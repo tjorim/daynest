@@ -1,0 +1,49 @@
+version: '3.9'
+
+services:
+  caddy:
+    image: caddy:2
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - frontend
+      - backend
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    expose:
+      - "5173"
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    env_file:
+      - ./backend/.env.example
+    depends_on:
+      - postgres
+    expose:
+      - "8000"
+
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: daynest
+      POSTGRES_USER: daynest
+      POSTGRES_PASSWORD: daynest
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:
