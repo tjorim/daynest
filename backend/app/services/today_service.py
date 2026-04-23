@@ -19,11 +19,11 @@ class TodayService:
             next_medication=None,
         )
 
-    def get_today(self, for_date: date) -> TodayResponse:
+    def get_today(self, user_id: int, for_date: date) -> TodayResponse:
         if self.repository is None:
             raise ValueError("TodayRepository is required to fetch today view data")
 
-        routine_tasks = self.repository.get_today_routines(for_date)
+        routine_tasks = self.repository.get_today_routines(user_id=user_id, for_date=for_date)
 
         routines = [
             RoutineTodayItem(
