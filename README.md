@@ -237,3 +237,16 @@ Related backend environment variables:
 - `LOG_LEVEL` (default `INFO`)
 - `SENTRY_DSN` (optional)
 - `SENTRY_TRACES_SAMPLE_RATE` (default `0.0`)
+
+## CI safety automation
+
+GitHub Actions now enforces non-feature safety checks on pull requests and pushes to `main` via `.github/workflows/ci-safety.yml`:
+
+- `backend-safety` (lint, type-check, tests)
+- `frontend-type-build` (TypeScript compile + production build)
+- `migration-check` (`alembic upgrade head` + `alembic check` against Postgres)
+- `container-build-verification` (builds both backend and frontend Dockerfiles)
+
+Branch protection is automated in `.github/workflows/branch-protection.yml` and requires those checks to be green before merge.
+
+If `GITHUB_TOKEN` cannot administer branch settings in your repo, create a `BRANCH_PROTECTION_TOKEN` secret with a token that has repository administration rights.

@@ -9,6 +9,7 @@ import {
   type CalendarDayPayload,
   type CalendarMonthDaySummary,
   type PlannedItemBackupFile,
+  type PlannedItemModuleKey,
 } from '../../lib/api/today';
 
 function toIsoDate(value: Date): string {
@@ -40,7 +41,7 @@ export function CalendarPage() {
   const [selectedDate, setSelectedDate] = useState(() => toIsoDate(new Date()));
   const [dayPayload, setDayPayload] = useState<CalendarDayPayload | null>(null);
   const [title, setTitle] = useState('');
-  const [moduleKey, setModuleKey] = useState('');
+  const [moduleKey, setModuleKey] = useState<PlannedItemModuleKey | ''>('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [canRetry, setCanRetry] = useState(false);
@@ -91,7 +92,7 @@ export function CalendarPage() {
 
   const onAddPlanned = async () => {
     if (!title.trim()) return;
-    const inputModule = moduleKey || null;
+    const inputModule: PlannedItemModuleKey | null = moduleKey || null;
     await createPlannedItem({
       title: title.trim(),
       planned_for: selectedDate,
@@ -282,7 +283,7 @@ export function CalendarPage() {
                 onChange={(event) => setTitle(event.target.value)}
                 placeholder="Plan title"
               />
-              <select className="form-select" value={moduleKey} onChange={(event) => setModuleKey(event.target.value)} aria-label="Optional module">
+              <select className="form-select" value={moduleKey} onChange={(event) => setModuleKey(event.target.value as PlannedItemModuleKey | '')} aria-label="Optional module">
                 <option value="">General</option>
                 <option value="shopping_list">Shopping list</option>
                 <option value="meal_planning">Meal planning</option>
