@@ -37,9 +37,13 @@ class AppSettings(BaseSettings):
     refresh_token_expire_days: int = 7
 
     cors_allow_origins: list[str] = Field(default_factory=list)
-    trusted_hosts: list[str] = Field(default_factory=lambda: ["localhost", "127.0.0.1"])
+    trusted_hosts: list[str] = Field(default_factory=lambda: ["localhost", "127.0.0.1", "testserver"])
 
     password_hash_iterations: int = 390000
+
+    log_level: str = "INFO"
+    sentry_dsn: str | None = None
+    sentry_traces_sample_rate: float = 0.0
 
     @field_validator("cors_allow_origins", "trusted_hosts", mode="before")
     @classmethod

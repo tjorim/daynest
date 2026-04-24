@@ -10,8 +10,13 @@ from app.api.routes.integrations.mcp import router as mcp_router
 from app.api.routes.medications import router as medications_router
 from app.api.routes.today import router as today_router
 from app.core.config import settings
+from app.core.observability import configure_error_tracking, configure_logging, observability_middleware
+
+configure_logging()
+configure_error_tracking()
 
 app = FastAPI(title=settings.app_name, version=settings.version)
+app.middleware("http")(observability_middleware)
 
 if settings.trusted_hosts:
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.trusted_hosts)
@@ -39,7 +44,9 @@ def root() -> dict[str, str]:
     return {
         "name": settings.app_name,
         "message": "API is running",
-        "health": f"{settings.api_prefix}/health",
+        "liveness": f"{settings.api_prefix}/health/liveness",
+        "readiness": f"{settings.api_prefix}/health/readiness",
+        "metrics": f"{settings.api_prefix}/metrics",
         "ha_summary": f"{settings.api_prefix}/integrations/home-assistant/summary",
         "mcp_capabilities": f"{settings.api_prefix}/mcp/capabilities",
     }

@@ -217,3 +217,23 @@ Configure these per environment via env files:
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
 ```
+
+## Operational visibility
+
+The backend includes baseline observability primitives for production operations:
+
+- Structured request logging with `request_id`, `user_id` (when available), route, status, and latency.
+- Health split endpoints:
+  - `GET /api/v1/health/liveness` (process alive)
+  - `GET /api/v1/health/readiness` (dependency readiness via DB ping)
+- Minimal JSON metrics at `GET /api/v1/metrics`:
+  - total request count
+  - total 5xx error count and error rate
+  - request rate and latency stats
+- Optional Sentry error tracking/tracing when `SENTRY_DSN` is set.
+
+Related backend environment variables:
+
+- `LOG_LEVEL` (default `INFO`)
+- `SENTRY_DSN` (optional)
+- `SENTRY_TRACES_SAMPLE_RATE` (default `0.0`)
