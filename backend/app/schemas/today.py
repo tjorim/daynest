@@ -1,7 +1,8 @@
 from datetime import date, datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
+from app.models.chore_instance import ChoreStatus
 from app.models.task_instance import TaskStatus
 
 
@@ -21,21 +22,24 @@ class RoutineTodayItem(BaseModel):
 
 
 class OverdueTodayItem(BaseModel):
-    id: int
+    chore_instance_id: int
+    chore_template_id: int
     title: str
+    status: ChoreStatus
     overdue_since: date
 
 
 class DueTodayItem(BaseModel):
-    task_instance_id: int
+    chore_instance_id: int
+    chore_template_id: int
     title: str
-    status: TaskStatus
+    status: ChoreStatus
     scheduled_date: date
-    due_at: datetime | None = None
 
 
 class UpcomingTodayItem(BaseModel):
-    id: int
+    chore_instance_id: int
+    chore_template_id: int
     title: str
     scheduled_date: date
 
@@ -53,3 +57,13 @@ class TodayResponse(BaseModel):
     due_today: list[DueTodayItem]
     upcoming: list[UpcomingTodayItem]
     planned: list[PlannedTodayItem]
+
+
+class ChoreInstanceMutationResponse(BaseModel):
+    chore_instance_id: int
+    status: ChoreStatus
+    scheduled_date: date
+
+
+class RescheduleChoreRequest(BaseModel):
+    scheduled_date: date = Field(..., description="New date for the chore instance")

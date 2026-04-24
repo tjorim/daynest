@@ -18,3 +18,5 @@ class User(Base):
 
     routine_templates: Mapped[list["RoutineTemplate"]] = relationship(back_populates="user", cascade="all, delete-orphan")
     task_instances: Mapped[list["TaskInstance"]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    chore_templates: Mapped[list["ChoreTemplate"]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    chore_instances: Mapped[list["ChoreInstance"]] = relationship(back_populates="user", cascade="all, delete-orphan")

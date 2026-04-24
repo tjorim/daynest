@@ -27,17 +27,17 @@ const contractExample: TodayPayload = {
       due_at: null,
     },
   ],
-  overdue: [{ id: 7, title: 'Laundry', overdue_since: '2026-04-20' }],
+  overdue: [{ chore_instance_id: 7, chore_template_id: 3, title: 'Laundry', status: 'pending', overdue_since: '2026-04-20' }],
   due_today: [
     {
-      task_instance_id: 10,
+      chore_instance_id: 10,
+      chore_template_id: 2,
       title: 'Morning stretch',
       status: 'pending',
       scheduled_date: '2026-04-23',
-      due_at: null,
     },
   ],
-  upcoming: [{ id: 12, title: 'Refill meds', scheduled_date: '2026-04-24' }],
+  upcoming: [{ chore_instance_id: 12, chore_template_id: 4, title: 'Refill meds', scheduled_date: '2026-04-24' }],
   planned: [{ id: 13, title: 'Meal prep', planned_for: '2026-04-25' }],
 };
 

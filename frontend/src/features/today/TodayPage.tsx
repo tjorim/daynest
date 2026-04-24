@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
 import {
+  completeChore,
   fetchToday,
+  rescheduleChore,
+  skipChore,
   type DueTodayItem,
   type MedicationTodayItem,
   type OverdueTodayItem,
@@ -14,23 +17,47 @@ type SectionItem = {
   id: string;
   title: string;
   subtitle?: string;
-  isTask: boolean;
+  choreInstanceId?: number;
 };
 
-const STUB_ACTION = () => {
-  // TODO: wire to task mutation endpoints.
-};
+function TaskActions({
+  choreInstanceId,
+  onRefresh,
+}: {
+  choreInstanceId?: number;
+  onRefresh: () => Promise<void>;
+}) {
+  if (!choreInstanceId) {
+    return null;
+  }
 
-function TaskActions() {
+  const onDone = async () => {
+    await completeChore(choreInstanceId);
+    await onRefresh();
+  };
+
+  const onSkip = async () => {
+    await skipChore(choreInstanceId);
+    await onRefresh();
+  };
+
+  const onReschedule = async () => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const dateValue = tomorrow.toISOString().slice(0, 10);
+    await rescheduleChore(choreInstanceId, dateValue);
+    await onRefresh();
+  };
+
   return (
     <div className="btn-group btn-group-sm" role="group" aria-label="Task actions">
-      <button type="button" className="btn btn-outline-success" onClick={STUB_ACTION}>
+      <button type="button" className="btn btn-outline-success" onClick={() => void onDone()}>
         Done
       </button>
-      <button type="button" className="btn btn-outline-secondary" onClick={STUB_ACTION}>
+      <button type="button" className="btn btn-outline-secondary" onClick={() => void onSkip()}>
         Skip
       </button>
-      <button type="button" className="btn btn-outline-primary" onClick={STUB_ACTION}>
+      <button type="button" className="btn btn-outline-primary" onClick={() => void onReschedule()}>
         Reschedule
       </button>
     </div>
@@ -46,7 +73,6 @@ function buildMedicationItems(items: MedicationTodayItem[]): SectionItem[] {
     id: `medication-${item.id}`,
     title: item.name,
     subtitle: item.due_at ? `Due ${new Date(item.due_at).toLocaleTimeString()}` : undefined,
-    isTask: false,
   }));
 }
 
@@ -55,34 +81,33 @@ function buildRoutineItems(items: RoutineTodayItem[]): SectionItem[] {
     id: `routine-${item.task_instance_id}`,
     title: item.title,
     subtitle: formatSubtitle(item.status, item.scheduled_date, item.due_at ?? undefined),
-    isTask: true,
   }));
 }
 
 function buildOverdueItems(items: OverdueTodayItem[]): SectionItem[] {
   return items.map((item) => ({
-    id: `overdue-${item.id}`,
+    id: `overdue-${item.chore_instance_id}`,
     title: item.title,
     subtitle: `Overdue since ${item.overdue_since}`,
-    isTask: true,
+    choreInstanceId: item.chore_instance_id,
   }));
 }
 
 function buildDueTodayItems(items: DueTodayItem[]): SectionItem[] {
   return items.map((item) => ({
-    id: `due-${item.task_instance_id}`,
+    id: `due-${item.chore_instance_id}`,
     title: item.title,
-    subtitle: formatSubtitle(item.status, item.scheduled_date, item.due_at ?? undefined),
-    isTask: true,
+    subtitle: formatSubtitle(item.status, item.scheduled_date),
+    choreInstanceId: item.chore_instance_id,
   }));
 }
 
 function buildUpcomingItems(items: UpcomingTodayItem[]): SectionItem[] {
   return items.map((item) => ({
-    id: `upcoming-${item.id}`,
+    id: `upcoming-${item.chore_instance_id}`,
     title: item.title,
     subtitle: `Scheduled ${item.scheduled_date}`,
-    isTask: false,
+    choreInstanceId: item.chore_instance_id,
   }));
 }
 
@@ -91,16 +116,17 @@ function buildPlannedItems(items: PlannedTodayItem[]): SectionItem[] {
     id: `planned-${item.id}`,
     title: item.title,
     subtitle: `Planned for ${item.planned_for}`,
-    isTask: false,
   }));
 }
 
 function SectionCard({
   heading,
   items,
+  onRefresh,
 }: {
   heading: string;
   items: SectionItem[];
+  onRefresh: () => Promise<void>;
 }) {
   return (
     <div className="card mb-3">
@@ -115,7 +141,7 @@ function SectionCard({
                 <div className="fw-medium">{item.title}</div>
                 {item.subtitle ? <small className="text-muted">{item.subtitle}</small> : null}
               </div>
-              {item.isTask ? <TaskActions /> : null}
+              <TaskActions choreInstanceId={item.choreInstanceId} onRefresh={onRefresh} />
             </li>
           ))
         )}
@@ -129,30 +155,28 @@ export function TodayPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const controller = new AbortController();
-
-    async function loadToday() {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const payload = await fetchToday(controller.signal);
-        setToday(payload);
-      } catch (err) {
-        if (controller.signal.aborted) {
-          return;
-        }
-        setError(err instanceof Error ? err.message : 'Unable to load today payload.');
-        setToday(null);
-      } finally {
-        if (!controller.signal.aborted) {
-          setIsLoading(false);
-        }
+  const loadToday = async (signal?: AbortSignal) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const payload = await fetchToday(signal);
+      setToday(payload);
+    } catch (err) {
+      if (signal?.aborted) {
+        return;
+      }
+      setError(err instanceof Error ? err.message : 'Unable to load today payload.');
+      setToday(null);
+    } finally {
+      if (!signal?.aborted) {
+        setIsLoading(false);
       }
     }
+  };
 
-    void loadToday();
-
+  useEffect(() => {
+    const controller = new AbortController();
+    void loadToday(controller.signal);
     return () => {
       controller.abort();
     };
@@ -175,12 +199,12 @@ export function TodayPage() {
 
       {!isLoading && !error && today ? (
         <>
-          <SectionCard heading="Medication" items={buildMedicationItems(today.medication)} />
-          <SectionCard heading="Routines" items={buildRoutineItems(today.routines)} />
-          <SectionCard heading="Overdue" items={buildOverdueItems(today.overdue)} />
-          <SectionCard heading="Due Today" items={buildDueTodayItems(today.due_today)} />
-          <SectionCard heading="Upcoming" items={buildUpcomingItems(today.upcoming)} />
-          <SectionCard heading="Planned" items={buildPlannedItems(today.planned)} />
+          <SectionCard heading="Medication" items={buildMedicationItems(today.medication)} onRefresh={loadToday} />
+          <SectionCard heading="Routines" items={buildRoutineItems(today.routines)} onRefresh={loadToday} />
+          <SectionCard heading="Overdue" items={buildOverdueItems(today.overdue)} onRefresh={loadToday} />
+          <SectionCard heading="Due Today" items={buildDueTodayItems(today.due_today)} onRefresh={loadToday} />
+          <SectionCard heading="Upcoming" items={buildUpcomingItems(today.upcoming)} onRefresh={loadToday} />
+          <SectionCard heading="Planned" items={buildPlannedItems(today.planned)} onRefresh={loadToday} />
         </>
       ) : null}
     </section>
