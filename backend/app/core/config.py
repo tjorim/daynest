@@ -1,10 +1,12 @@
 from functools import lru_cache
 from pathlib import Path
+from urllib.parse import quote_plus
 
 from pydantic import Field, computed_field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
+@lru_cache
 def _read_secret_file(path: str | None) -> str | None:
     if not path:
         return None
@@ -74,7 +76,7 @@ class AppSettings(BaseSettings):
             return self.database_url
         password = self.resolved_db_password
         if password:
-            return f"postgresql+psycopg://{self.db_user}:{password}@{self.db_host}:{self.db_port}/{self.db_name}"
+            return f"postgresql+psycopg://{self.db_user}:{quote_plus(password)}@{self.db_host}:{self.db_port}/{self.db_name}"
         return f"postgresql+psycopg://{self.db_user}@{self.db_host}:{self.db_port}/{self.db_name}"
 
 
