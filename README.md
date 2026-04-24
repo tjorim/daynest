@@ -170,6 +170,16 @@ with scoped integration keys and per-client rate limits:
 
 The adapters intentionally avoid duplicate business logic and call shared services/repositories.
 
+Integration contracts are explicitly versioned via the `X-Integration-Contract` response header:
+
+- Home Assistant: `home-assistant; version=ha.v1`
+- MCP: `mcp; version=mcp.v1`
+
+Compatibility and schema evolution documentation:
+
+- `backend/docs/integrations/COMPATIBILITY_POLICY.md`
+- `backend/docs/integrations/SCHEMA_CHANGELOG.md`
+
 ## Runtime hardening and environment-specific config
 
 ### Environment files
