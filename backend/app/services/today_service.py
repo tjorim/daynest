@@ -319,17 +319,7 @@ class TodayService:
                 is_done=False,
             )
         )
-        return PlannedTodayItem(
-            id=item.id,
-            title=item.title,
-            planned_for=item.planned_for,
-            notes=item.notes,
-            module_key=cast(PlannedItemModuleKey | None, item.module_key),
-            recurrence_hint=item.recurrence_hint,
-            linked_source=item.linked_source,
-            linked_ref=item.linked_ref,
-            is_done=item.is_done,
-        )
+        return self._planned_item_to_schema(item)
 
     def update_planned_item(self, user_id: int, planned_item_id: int, request: PlannedItemUpdateRequest) -> PlannedTodayItem:
         item = self._get_user_planned_item(user_id=user_id, planned_item_id=planned_item_id)
@@ -343,31 +333,11 @@ class TodayService:
         item.is_done = request.is_done
         item.completed_at = self.repository.utcnow() if request.is_done else None
         self.repository.save()
-        return PlannedTodayItem(
-            id=item.id,
-            title=item.title,
-            planned_for=item.planned_for,
-            notes=item.notes,
-            module_key=cast(PlannedItemModuleKey | None, item.module_key),
-            recurrence_hint=item.recurrence_hint,
-            linked_source=item.linked_source,
-            linked_ref=item.linked_ref,
-            is_done=item.is_done,
-        )
+        return self._planned_item_to_schema(item)
 
     def list_planned_items(self, user_id: int, start_date: date | None = None, end_date: date | None = None) -> list[PlannedTodayItem]:
         return [
-            PlannedTodayItem(
-                id=item.id,
-                title=item.title,
-                planned_for=item.planned_for,
-                notes=item.notes,
-                module_key=cast(PlannedItemModuleKey | None, item.module_key),
-                recurrence_hint=item.recurrence_hint,
-                linked_source=item.linked_source,
-                linked_ref=item.linked_ref,
-                is_done=item.is_done,
-            )
+            self._planned_item_to_schema(item)
             for item in self.repository.list_planned_items(user_id=user_id, start_date=start_date, end_date=end_date)
         ]
 
@@ -423,6 +393,20 @@ class TodayService:
         if item is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Planned item not found")
         return item
+
+    @staticmethod
+    def _planned_item_to_schema(item: PlannedItem) -> PlannedTodayItem:
+        return PlannedTodayItem(
+            id=item.id,
+            title=item.title,
+            planned_for=item.planned_for,
+            notes=item.notes,
+            module_key=cast(PlannedItemModuleKey | None, item.module_key),
+            recurrence_hint=item.recurrence_hint,
+            linked_source=item.linked_source,
+            linked_ref=item.linked_ref,
+            is_done=item.is_done,
+        )
 
     def mutate_medication_status(self, user_id: int, medication_dose_instance_id: int, action: str):
         instance = self.repository.get_dose_for_user(user_id=user_id, dose_id=medication_dose_instance_id)

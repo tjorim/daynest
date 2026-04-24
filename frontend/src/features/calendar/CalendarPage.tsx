@@ -97,12 +97,10 @@ export function CalendarPage() {
     setIsAdding(true);
     setAddError(null);
     try {
-      const inputModule: PlannedItemModuleKey | null = moduleKey || null;
       await createPlannedItem({
         title: title.trim(),
         planned_for: selectedDate,
-        module_key: inputModule,
-        recurrence_hint: inputModule === 'recurring_grocery' ? 'weekly' : undefined,
+        module_key: moduleKey || null,
       });
       setTitle('');
       setModuleKey('');

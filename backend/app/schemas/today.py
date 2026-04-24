@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from app.models.chore_instance import ChoreStatus
 from app.models.medication_dose_instance import MedicationDoseStatus
@@ -73,7 +73,7 @@ class PlannedTodayItem(BaseModel):
     is_done: bool
 
 
-class PlannedItemCreateRequest(BaseModel):
+class PlannedItemBase(BaseModel):
     title: str = Field(..., min_length=1, max_length=255)
     planned_for: date
     notes: str | None = Field(default=None, max_length=4000)
@@ -83,14 +83,15 @@ class PlannedItemCreateRequest(BaseModel):
     linked_ref: str | None = Field(default=None, max_length=255)
 
 
-class PlannedItemUpdateRequest(BaseModel):
-    title: str = Field(..., min_length=1, max_length=255)
-    planned_for: date
-    notes: str | None = Field(default=None, max_length=4000)
-    module_key: PlannedItemModuleKey | None = None
-    recurrence_hint: str | None = Field(default=None, max_length=255)
-    linked_source: str | None = Field(default=None, max_length=120)
-    linked_ref: str | None = Field(default=None, max_length=255)
+class PlannedItemCreateRequest(PlannedItemBase):
+    @model_validator(mode="after")
+    def _apply_module_defaults(self) -> "PlannedItemCreateRequest":
+        if self.module_key == "recurring_grocery" and self.recurrence_hint is None:
+            self.recurrence_hint = "weekly"
+        return self
+
+
+class PlannedItemUpdateRequest(PlannedItemBase):
     is_done: bool = False
 
 
