@@ -1,0 +1,127 @@
+name: safety-ci
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  backend-safety:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install backend dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt ruff mypy
+
+      - name: Lint backend
+        run: ruff check app tests --ignore F821,F401
+
+      - name: Type-check backend
+        run: PYTHONPATH=. mypy --explicit-package-bases --follow-imports=skip --disable-error-code=prop-decorator --disable-error-code=union-attr app
+
+      - name: Run backend tests
+        run: PYTHONPATH=. pytest -q
+
+  frontend-type-build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Type-check and build frontend
+        run: npm run build
+
+  migration-check:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: daynest
+          POSTGRES_PASSWORD: daynest
+          POSTGRES_DB: daynest
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U daynest -d daynest"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_NAME: daynest
+      DB_USER: daynest
+      DB_PASSWORD: daynest
+      JWT_SECRET_KEY: ci-secret
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install backend dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Apply migrations to head
+        run: alembic upgrade head
+
+      - name: Verify migrations are in sync with models
+        run: alembic check
+
+  container-build-verification:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [backend, frontend]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build ${{ matrix.service }} container
+        uses: docker/build-push-action@v6
+        with:
+          context: ./${{ matrix.service }}
+          file: ./${{ matrix.service }}/Dockerfile
+          push: false
+          tags: daynest/${{ matrix.service }}:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
