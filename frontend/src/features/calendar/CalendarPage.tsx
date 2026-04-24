@@ -1,10 +1,14 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import type { ChangeEvent } from 'react';
 import {
   createPlannedItem,
   fetchCalendarDay,
   fetchCalendarMonth,
+  isRetryableApiError,
+  listPlannedItems,
   type CalendarDayPayload,
   type CalendarMonthDaySummary,
+  type PlannedItemBackupFile,
 } from '../../lib/api/today';
 
 function toIsoDate(value: Date): string {
@@ -22,6 +26,14 @@ function itemBadgeClass(itemType: string): string {
   return 'text-bg-secondary';
 }
 
+function safeParseBackup(raw: string): PlannedItemBackupFile {
+  const parsed = JSON.parse(raw) as Partial<PlannedItemBackupFile>;
+  if (parsed.source !== 'daynest' || parsed.schema_version !== 1 || !Array.isArray(parsed.items)) {
+    throw new Error('Unsupported backup file.');
+  }
+  return parsed as PlannedItemBackupFile;
+}
+
 export function CalendarPage() {
   const [currentMonth, setCurrentMonth] = useState(() => new Date());
   const [monthItems, setMonthItems] = useState<CalendarMonthDaySummary[]>([]);
@@ -30,32 +42,41 @@ export function CalendarPage() {
   const [title, setTitle] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [canRetry, setCanRetry] = useState(false);
+  const [backupStatus, setBackupStatus] = useState<string | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const monthKey = useMemo(() => ({ year: currentMonth.getFullYear(), month: currentMonth.getMonth() + 1 }), [currentMonth]);
 
-  useEffect(() => {
-    const controller = new AbortController();
+  const loadCalendar = async (signal?: AbortSignal) => {
     setLoading(true);
     setError(null);
-    Promise.all([
-      fetchCalendarMonth(monthKey.year, monthKey.month, controller.signal),
-      fetchCalendarDay(selectedDate, controller.signal),
-    ])
-      .then(([month, day]) => {
-        setMonthItems(month.days);
-        setDayPayload(day);
-      })
-      .catch((err) => {
-        if (!controller.signal.aborted) {
-          setError(err instanceof Error ? err.message : 'Unable to load calendar view.');
-        }
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) {
-          setLoading(false);
-        }
-      });
+    setCanRetry(false);
 
+    try {
+      const [month, day] = await Promise.all([
+        fetchCalendarMonth(monthKey.year, monthKey.month, signal),
+        fetchCalendarDay(selectedDate, signal),
+      ]);
+      setMonthItems(month.days);
+      setDayPayload(day);
+    } catch (err) {
+      if (!signal?.aborted) {
+        setCanRetry(isRetryableApiError(err));
+        setError(err instanceof Error ? err.message : 'Unable to load calendar view.');
+      }
+    } finally {
+      if (!signal?.aborted) {
+        setLoading(false);
+      }
+    }
+  };
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void loadCalendar(controller.signal);
     return () => controller.abort();
   }, [monthKey.month, monthKey.year, selectedDate]);
 
@@ -71,21 +92,91 @@ export function CalendarPage() {
     if (!title.trim()) return;
     await createPlannedItem({ title: title.trim(), planned_for: selectedDate });
     setTitle('');
-    const [month, day] = await Promise.all([fetchCalendarMonth(monthKey.year, monthKey.month), fetchCalendarDay(selectedDate)]);
-    setMonthItems(month.days);
-    setDayPayload(day);
+    await loadCalendar();
+  };
+
+  const onExportBackup = async () => {
+    setIsExporting(true);
+    setBackupStatus(null);
+    try {
+      const startDate = new Date(monthKey.year, monthKey.month - 1, 1).toISOString().slice(0, 10);
+      const endDate = new Date(monthKey.year, monthKey.month, 0).toISOString().slice(0, 10);
+      const items = await listPlannedItems(startDate, endDate);
+      const payload: PlannedItemBackupFile = {
+        source: 'daynest',
+        schema_version: 1,
+        exported_at: new Date().toISOString(),
+        items: items.map((item) => ({ title: item.title, planned_for: item.planned_for, notes: item.notes })),
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const downloadUrl = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = downloadUrl;
+      anchor.download = `daynest-backup-${monthKey.year}-${String(monthKey.month).padStart(2, '0')}.json`;
+      document.body.append(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(downloadUrl);
+      setBackupStatus(`Exported ${payload.items.length} planned items.`);
+    } catch (err) {
+      setBackupStatus(err instanceof Error ? err.message : 'Export failed.');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const onImportFile = async (event: ChangeEvent<HTMLInputElement>) => {
+    const selected = event.target.files?.[0];
+    if (!selected) {
+      return;
+    }
+
+    setIsImporting(true);
+    setBackupStatus(null);
+
+    try {
+      const raw = await selected.text();
+      const backup = safeParseBackup(raw);
+
+      let imported = 0;
+      let failed = 0;
+
+      for (const item of backup.items) {
+        try {
+          await createPlannedItem({ title: item.title, planned_for: item.planned_for, notes: item.notes });
+          imported += 1;
+        } catch {
+          failed += 1;
+        }
+      }
+
+      await loadCalendar();
+      setBackupStatus(`Import complete. ${imported} imported${failed ? `, ${failed} failed` : ''}.`);
+    } catch (err) {
+      setBackupStatus(err instanceof Error ? err.message : 'Import failed.');
+    } finally {
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+      setIsImporting(false);
+    }
   };
 
   return (
     <section>
-      <div className="d-flex justify-content-between align-items-center mb-2">
-        <h2 className="h4 mb-0">Calendar</h2>
-        <div className="btn-group btn-group-sm">
+      <div className="d-flex flex-column gap-2 mb-2">
+        <div className="d-flex justify-content-between align-items-center">
+          <h2 className="h4 mb-0">Calendar</h2>
+          <button type="button" className="btn btn-outline-primary btn-sm" onClick={() => void loadCalendar()}>
+            Refresh
+          </button>
+        </div>
+        <div className="btn-group btn-group-sm w-100" role="group" aria-label="Quick month controls">
           <button type="button" className="btn btn-outline-secondary" onClick={() => setCurrentMonth(new Date(monthKey.year, monthKey.month - 2, 1))}>
             Prev
           </button>
           <button type="button" className="btn btn-outline-secondary" onClick={() => setCurrentMonth(new Date())}>
-            Today
+            This month
           </button>
           <button type="button" className="btn btn-outline-secondary" onClick={() => setCurrentMonth(new Date(monthKey.year, monthKey.month, 1))}>
             Next
@@ -94,14 +185,23 @@ export function CalendarPage() {
       </div>
       <p className="text-muted">{monthLabel(firstDay)} unified month/day planning view.</p>
 
-      {loading ? <div className="alert alert-info">Loading calendar...</div> : null}
-      {error ? <div className="alert alert-danger">{error}</div> : null}
+      {loading ? <div className="alert alert-info py-2">Loading calendar...</div> : null}
+      {error ? (
+        <div className="alert alert-danger py-2 d-flex justify-content-between align-items-center gap-2 flex-wrap">
+          <span>{error}</span>
+          {canRetry ? (
+            <button type="button" className="btn btn-danger btn-sm" onClick={() => void loadCalendar()}>
+              Retry
+            </button>
+          ) : null}
+        </div>
+      ) : null}
 
       <div className="row g-3">
         <div className="col-lg-7">
           <div className="card">
-            <div className="card-body">
-              <div className="row row-cols-7 g-2">
+            <div className="card-body p-2 p-md-3">
+              <div className="row row-cols-7 g-1 g-md-2">
                 {Array.from({ length: daysInMonth }).map((_, idx) => {
                   const dayNumber = idx + 1;
                   const dateValue = toIsoDate(new Date(monthKey.year, monthKey.month - 1, dayNumber));
@@ -111,10 +211,10 @@ export function CalendarPage() {
                     <div key={dateValue} className="col">
                       <button
                         type="button"
-                        className={`btn w-100 text-start ${selected ? 'btn-primary' : 'btn-outline-secondary'}`}
+                        className={`btn w-100 text-start py-2 ${selected ? 'btn-primary' : 'btn-outline-secondary'}`}
                         onClick={() => setSelectedDate(dateValue)}
                       >
-                        <div className="fw-semibold">{dayNumber}</div>
+                        <div className="fw-semibold lh-1">{dayNumber}</div>
                         <small>{summary ? `${summary.total} items` : 'No items'}</small>
                       </button>
                     </div>
@@ -127,13 +227,13 @@ export function CalendarPage() {
 
         <div className="col-lg-5">
           <div className="card mb-3">
-            <div className="card-header fw-semibold">Day details · {selectedDate}</div>
+            <div className="card-header fw-semibold py-2">Day details · {selectedDate}</div>
             <ul className="list-group list-group-flush">
               {(dayPayload?.items ?? []).length === 0 ? (
-                <li className="list-group-item text-muted">No items for this day.</li>
+                <li className="list-group-item py-2 text-muted">No items for this day.</li>
               ) : (
                 dayPayload?.items.map((item) => (
-                  <li key={`${item.item_type}-${item.item_id}`} className="list-group-item">
+                  <li key={`${item.item_type}-${item.item_id}`} className="list-group-item py-2">
                     <div className="d-flex justify-content-between align-items-start">
                       <div>
                         <div className="fw-semibold">{item.title}</div>
@@ -148,9 +248,9 @@ export function CalendarPage() {
             </ul>
           </div>
 
-          <div className="card">
-            <div className="card-header fw-semibold">Quick add planned item</div>
-            <div className="card-body d-flex gap-2">
+          <div className="card mb-3">
+            <div className="card-header fw-semibold py-2">Quick add planned item</div>
+            <div className="card-body d-flex gap-2 flex-column flex-sm-row">
               <input
                 className="form-control"
                 value={title}
@@ -160,6 +260,27 @@ export function CalendarPage() {
               <button type="button" className="btn btn-primary" onClick={() => void onAddPlanned()}>
                 Add
               </button>
+            </div>
+          </div>
+
+          <div className="card">
+            <div className="card-header fw-semibold py-2">Backup export/import</div>
+            <div className="card-body">
+              <div className="d-flex flex-column flex-sm-row gap-2">
+                <button type="button" className="btn btn-outline-primary" disabled={isExporting || isImporting} onClick={() => void onExportBackup()}>
+                  {isExporting ? 'Exporting…' : 'Export month backup'}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-outline-secondary"
+                  disabled={isExporting || isImporting}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  {isImporting ? 'Importing…' : 'Import backup'}
+                </button>
+                <input ref={fileInputRef} type="file" accept="application/json" className="d-none" onChange={(event) => void onImportFile(event)} />
+              </div>
+              {backupStatus ? <small className="text-muted d-block mt-2">{backupStatus}</small> : null}
             </div>
           </div>
         </div>

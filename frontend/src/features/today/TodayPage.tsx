@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import {
   completeChore,
   fetchToday,
+  isRetryableApiError,
   rescheduleChore,
   skipChore,
   skipMedicationDose,
@@ -25,85 +26,6 @@ type SectionItem = {
   medicationDoseInstanceId?: number;
   medicationStatus?: string;
 };
-
-function TaskActions({
-  choreInstanceId,
-  onRefresh,
-}: {
-  choreInstanceId?: number;
-  onRefresh: () => Promise<void>;
-}) {
-  if (!choreInstanceId) {
-    return null;
-  }
-
-  const onDone = async () => {
-    await completeChore(choreInstanceId);
-    await onRefresh();
-  };
-
-  const onSkip = async () => {
-    await skipChore(choreInstanceId);
-    await onRefresh();
-  };
-
-  const onReschedule = async () => {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const dateValue = tomorrow.toISOString().slice(0, 10);
-    await rescheduleChore(choreInstanceId, dateValue);
-    await onRefresh();
-  };
-
-  return (
-    <div className="btn-group btn-group-sm" role="group" aria-label="Task actions">
-      <button type="button" className="btn btn-outline-success" onClick={() => void onDone()}>
-        Done
-      </button>
-      <button type="button" className="btn btn-outline-secondary" onClick={() => void onSkip()}>
-        Skip
-      </button>
-      <button type="button" className="btn btn-outline-primary" onClick={() => void onReschedule()}>
-        Reschedule
-      </button>
-    </div>
-  );
-}
-
-function MedicationActions({
-  medicationDoseInstanceId,
-  medicationStatus,
-  onRefresh,
-}: {
-  medicationDoseInstanceId?: number;
-  medicationStatus?: string;
-  onRefresh: () => Promise<void>;
-}) {
-  if (!medicationDoseInstanceId || medicationStatus !== 'scheduled') {
-    return null;
-  }
-
-  const onTake = async () => {
-    await takeMedicationDose(medicationDoseInstanceId);
-    await onRefresh();
-  };
-
-  const onSkip = async () => {
-    await skipMedicationDose(medicationDoseInstanceId);
-    await onRefresh();
-  };
-
-  return (
-    <div className="btn-group btn-group-sm" role="group" aria-label="Medication actions">
-      <button type="button" className="btn btn-outline-success" onClick={() => void onTake()}>
-        Taken
-      </button>
-      <button type="button" className="btn btn-outline-secondary" onClick={() => void onSkip()}>
-        Skip
-      </button>
-    </div>
-  );
-}
 
 function formatSubtitle(...values: Array<string | null | undefined>) {
   return values.filter(Boolean).join(' • ');
@@ -173,6 +95,88 @@ function buildPlannedItems(items: PlannedTodayItem[]): SectionItem[] {
   }));
 }
 
+function TaskActions({
+  choreInstanceId,
+  onRefresh,
+}: {
+  choreInstanceId?: number;
+  onRefresh: () => Promise<void>;
+}) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  if (!choreInstanceId) {
+    return null;
+  }
+
+  const runAction = async (action: () => Promise<unknown>) => {
+    setIsSubmitting(true);
+    try {
+      await action();
+      await onRefresh();
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const onReschedule = async () => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const dateValue = tomorrow.toISOString().slice(0, 10);
+    await rescheduleChore(choreInstanceId, dateValue);
+  };
+
+  return (
+    <div className="d-grid gap-2 d-sm-flex" role="group" aria-label="Task actions">
+      <button type="button" className="btn btn-success btn-sm" disabled={isSubmitting} onClick={() => void runAction(() => completeChore(choreInstanceId))}>
+        Done
+      </button>
+      <button type="button" className="btn btn-outline-secondary btn-sm" disabled={isSubmitting} onClick={() => void runAction(() => skipChore(choreInstanceId))}>
+        Skip
+      </button>
+      <button type="button" className="btn btn-outline-primary btn-sm" disabled={isSubmitting} onClick={() => void runAction(onReschedule)}>
+        +1 day
+      </button>
+    </div>
+  );
+}
+
+function MedicationActions({
+  medicationDoseInstanceId,
+  medicationStatus,
+  onRefresh,
+}: {
+  medicationDoseInstanceId?: number;
+  medicationStatus?: string;
+  onRefresh: () => Promise<void>;
+}) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  if (!medicationDoseInstanceId || medicationStatus !== 'scheduled') {
+    return null;
+  }
+
+  const runAction = async (action: () => Promise<unknown>) => {
+    setIsSubmitting(true);
+    try {
+      await action();
+      await onRefresh();
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="d-grid gap-2 d-sm-flex" role="group" aria-label="Medication actions">
+      <button type="button" className="btn btn-success btn-sm" disabled={isSubmitting} onClick={() => void runAction(() => takeMedicationDose(medicationDoseInstanceId))}>
+        Taken
+      </button>
+      <button type="button" className="btn btn-outline-secondary btn-sm" disabled={isSubmitting} onClick={() => void runAction(() => skipMedicationDose(medicationDoseInstanceId))}>
+        Skip
+      </button>
+    </div>
+  );
+}
+
 function SectionCard({
   heading,
   items,
@@ -184,13 +188,13 @@ function SectionCard({
 }) {
   return (
     <div className="card mb-3">
-      <div className="card-header fw-semibold">{heading}</div>
+      <div className="card-header py-2 fw-semibold">{heading}</div>
       <ul className="list-group list-group-flush">
         {items.length === 0 ? (
-          <li className="list-group-item text-muted">No items.</li>
+          <li className="list-group-item py-2 text-muted">No items.</li>
         ) : (
           items.map((item) => (
-            <li key={item.id} className="list-group-item d-flex justify-content-between gap-3 align-items-start">
+            <li key={item.id} className="list-group-item py-2 d-flex justify-content-between gap-3 align-items-start flex-column flex-md-row">
               <div>
                 <div className="fw-medium">{item.title}</div>
                 {item.instructions ? <small className="d-block">Instructions: {item.instructions}</small> : null}
@@ -216,10 +220,12 @@ export function TodayPage() {
   const [today, setToday] = useState<TodayPayload | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [canRetry, setCanRetry] = useState(false);
 
   const loadToday = async (signal?: AbortSignal) => {
     setIsLoading(true);
     setError(null);
+    setCanRetry(false);
     try {
       const payload = await fetchToday(signal);
       setToday(payload);
@@ -227,6 +233,7 @@ export function TodayPage() {
       if (signal?.aborted) {
         return;
       }
+      setCanRetry(isRetryableApiError(err));
       setError(err instanceof Error ? err.message : 'Unable to load today payload.');
       setToday(null);
     } finally {
@@ -250,13 +257,29 @@ export function TodayPage() {
 
   return (
     <section>
-      <h2 className="h4">Today</h2>
-      <p className="text-muted">Medication with instructions and history, routines, overdue chores, due today, upcoming, and planned items.</p>
+      <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2 mb-2">
+        <h2 className="h4 mb-0">Today</h2>
+        <div className="d-flex gap-2 w-100 w-md-auto">
+          <button className="btn btn-outline-primary btn-sm flex-grow-1 flex-md-grow-0" type="button" onClick={() => void loadToday()}>
+            Refresh
+          </button>
+        </div>
+      </div>
+      <p className="text-muted mb-3">Medication, routines, chores, and planned tasks with fast mobile-friendly actions.</p>
 
-      {isLoading ? <div className="alert alert-info">Loading today...</div> : null}
-      {!isLoading && error ? <div className="alert alert-danger">{error}</div> : null}
+      {isLoading ? <div className="alert alert-info py-2">Loading today...</div> : null}
+      {!isLoading && error ? (
+        <div className="alert alert-danger py-2 d-flex justify-content-between align-items-center gap-2 flex-wrap">
+          <span>{error}</span>
+          {canRetry ? (
+            <button type="button" className="btn btn-danger btn-sm" onClick={() => void loadToday()}>
+              Retry
+            </button>
+          ) : null}
+        </div>
+      ) : null}
       {!isLoading && !error && today && !hasAnyItems ? (
-        <div className="alert alert-secondary">Nothing scheduled for today yet.</div>
+        <div className="alert alert-secondary py-2">Nothing scheduled for today yet.</div>
       ) : null}
 
       {!isLoading && !error && today ? (
