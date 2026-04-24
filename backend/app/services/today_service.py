@@ -2,6 +2,8 @@ from calendar import monthrange
 from collections import defaultdict
 from datetime import date, datetime, timezone
 
+from typing import cast
+
 from fastapi import HTTPException, status
 
 from app.models.chore_instance import ChoreStatus
@@ -19,6 +21,7 @@ from app.schemas.today import (
     MedicationTodayItem,
     OverdueTodayItem,
     PlannedItemCreateRequest,
+    PlannedItemModuleKey,
     PlannedItemUpdateRequest,
     PlannedTodayItem,
     RoutineTodayItem,
@@ -180,7 +183,7 @@ class TodayService:
                     title=item.title,
                     planned_for=item.planned_for,
                     notes=item.notes,
-                    module_key=item.module_key,
+                    module_key=cast(PlannedItemModuleKey | None, item.module_key),
                     recurrence_hint=item.recurrence_hint,
                     linked_source=item.linked_source,
                     linked_ref=item.linked_ref,
@@ -205,49 +208,49 @@ class TodayService:
         planned = self.repository.list_planned_items(user_id=user_id, start_date=for_date, end_date=for_date)
 
         items: list[UnifiedDayItem] = []
-        for item in routines:
+        for routine in routines:
             items.append(
                 UnifiedDayItem(
                     item_type="routine",
-                    item_id=item.id,
-                    title=item.title,
-                    status=item.status.value,
-                    scheduled_date=item.scheduled_date,
-                    scheduled_at=item.due_at,
+                    item_id=routine.id,
+                    title=routine.title,
+                    status=routine.status.value,
+                    scheduled_date=routine.scheduled_date,
+                    scheduled_at=routine.due_at,
                 )
             )
-        for item in chores:
+        for chore in chores:
             items.append(
                 UnifiedDayItem(
                     item_type="chore",
-                    item_id=item.id,
-                    title=item.title,
-                    status=item.status.value,
-                    scheduled_date=item.scheduled_date,
+                    item_id=chore.id,
+                    title=chore.title,
+                    status=chore.status.value,
+                    scheduled_date=chore.scheduled_date,
                 )
             )
-        for item in medications:
+        for med in medications:
             items.append(
                 UnifiedDayItem(
                     item_type="medication",
-                    item_id=item.id,
-                    title=item.name,
-                    status=item.status.value,
-                    scheduled_date=item.scheduled_date,
-                    scheduled_at=item.scheduled_at,
-                    detail=item.instructions,
+                    item_id=med.id,
+                    title=med.name,
+                    status=med.status.value,
+                    scheduled_date=med.scheduled_date,
+                    scheduled_at=med.scheduled_at,
+                    detail=med.instructions,
                 )
             )
-        for item in planned:
+        for plan in planned:
             items.append(
                 UnifiedDayItem(
                     item_type="planned",
-                    item_id=item.id,
-                    title=item.title,
-                    status="done" if item.is_done else "planned",
-                    scheduled_date=item.planned_for,
-                    detail=item.notes,
-                    module_key=item.module_key,
+                    item_id=plan.id,
+                    title=plan.title,
+                    status="done" if plan.is_done else "planned",
+                    scheduled_date=plan.planned_for,
+                    detail=plan.notes,
+                    module_key=plan.module_key,
                 )
             )
 

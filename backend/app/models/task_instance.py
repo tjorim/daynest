@@ -1,10 +1,17 @@
+from __future__ import annotations
+
 import enum
 from datetime import date, datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Date, DateTime, Enum, ForeignKey, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
+
+if TYPE_CHECKING:
+    from app.models.routine_template import RoutineTemplate
+    from app.models.user import User
 
 
 class TaskStatus(str, enum.Enum):
@@ -36,5 +43,5 @@ class TaskInstance(Base):
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
-    user: Mapped["User"] = relationship(back_populates="task_instances")  # noqa: F821
-    routine_template: Mapped["RoutineTemplate"] = relationship(back_populates="task_instances")  # noqa: F821
+    user: Mapped["User"] = relationship(back_populates="task_instances")
+    routine_template: Mapped["RoutineTemplate"] = relationship(back_populates="task_instances")

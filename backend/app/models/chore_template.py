@@ -1,9 +1,16 @@
+from __future__ import annotations
+
 from datetime import date, datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
+
+if TYPE_CHECKING:
+    from app.models.chore_instance import ChoreInstance
+    from app.models.user import User
 
 
 class ChoreTemplate(Base):
@@ -18,8 +25,8 @@ class ChoreTemplate(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="1")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
-    user: Mapped["User"] = relationship(back_populates="chore_templates")  # noqa: F821
-    chore_instances: Mapped[list["ChoreInstance"]] = relationship(  # noqa: F821
+    user: Mapped["User"] = relationship(back_populates="chore_templates")
+    chore_instances: Mapped[list["ChoreInstance"]] = relationship(
         back_populates="chore_template",
         cascade="all, delete-orphan",
     )

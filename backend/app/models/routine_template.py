@@ -1,9 +1,16 @@
+from __future__ import annotations
+
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
+
+if TYPE_CHECKING:
+    from app.models.task_instance import TaskInstance
+    from app.models.user import User
 
 
 class RoutineTemplate(Base):
@@ -16,8 +23,8 @@ class RoutineTemplate(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="1")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
-    user: Mapped["User"] = relationship(back_populates="routine_templates")  # noqa: F821
-    task_instances: Mapped[list["TaskInstance"]] = relationship(  # noqa: F821
+    user: Mapped["User"] = relationship(back_populates="routine_templates")
+    task_instances: Mapped[list["TaskInstance"]] = relationship(
         back_populates="routine_template",
         cascade="all, delete-orphan",
     )
