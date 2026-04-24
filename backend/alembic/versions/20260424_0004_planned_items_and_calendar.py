@@ -25,7 +25,7 @@ def upgrade() -> None:
         sa.Column("title", sa.String(length=255), nullable=False),
         sa.Column("notes", sa.Text(), nullable=True),
         sa.Column("planned_for", sa.Date(), nullable=False),
-        sa.Column("is_done", sa.Boolean(), server_default=sa.text("0"), nullable=False),
+        sa.Column("is_done", sa.Boolean(), server_default=sa.text("false"), nullable=False),
         sa.Column("completed_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
         sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),

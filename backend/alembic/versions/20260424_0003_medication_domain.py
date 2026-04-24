@@ -28,7 +28,7 @@ def upgrade() -> None:
         sa.Column("start_date", sa.Date(), nullable=False),
         sa.Column("schedule_time", sa.Time(), nullable=False),
         sa.Column("every_n_days", sa.Integer(), server_default="1", nullable=False),
-        sa.Column("is_active", sa.Boolean(), server_default=sa.text("1"), nullable=False),
+        sa.Column("is_active", sa.Boolean(), server_default=sa.text("true"), nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
         sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
@@ -37,7 +37,6 @@ def upgrade() -> None:
     op.create_index(op.f("ix_medication_plans_user_id"), "medication_plans", ["user_id"], unique=False)
 
     dose_status = sa.Enum("scheduled", "taken", "skipped", "missed", name="medication_dose_status")
-    dose_status.create(op.get_bind(), checkfirst=True)
 
     op.create_table(
         "medication_dose_instances",

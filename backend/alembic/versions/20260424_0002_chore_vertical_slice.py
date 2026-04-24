@@ -27,7 +27,7 @@ def upgrade() -> None:
         sa.Column("description", sa.Text(), nullable=True),
         sa.Column("start_date", sa.Date(), nullable=False),
         sa.Column("every_n_days", sa.Integer(), server_default="1", nullable=False),
-        sa.Column("is_active", sa.Boolean(), server_default=sa.text("1"), nullable=False),
+        sa.Column("is_active", sa.Boolean(), server_default=sa.text("true"), nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
         sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
@@ -35,7 +35,6 @@ def upgrade() -> None:
     op.create_index(op.f("ix_chore_templates_user_id"), "chore_templates", ["user_id"], unique=False)
 
     chore_status = sa.Enum("pending", "completed", "skipped", name="chore_status")
-    chore_status.create(op.get_bind(), checkfirst=True)
 
     op.create_table(
         "chore_instances",
