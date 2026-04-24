@@ -125,13 +125,21 @@ Top 3 recommendations for your product direction:
 3. **Planstead** (planning-oriented, calm tone)
 
 
-## Integration-ready API surface (scaffold)
+## Integration-ready API surface
 
-To support future Home Assistant and MCP integration without redesigning core logic,
-the scaffold now exposes helper endpoints backed by the same service layer approach:
+Daynest now exposes thin integration adapters over the existing `TodayService` read models,
+with scoped integration keys and per-client rate limits:
 
-- `GET /api/v1/integrations/home-assistant/summary`
-- `GET /api/v1/mcp/capabilities`
+- Integration client management (user bearer auth):
+  - `POST /api/v1/integrations/clients` (returns one-time API key)
+  - `GET /api/v1/integrations/clients`
+- Home Assistant adapter (requires `X-Integration-Key` + `ha:read` scope):
+  - `GET /api/v1/integrations/home-assistant/summary`
+  - `GET /api/v1/integrations/home-assistant/entities`
+  - `GET /api/v1/integrations/home-assistant/dashboard`
+- MCP adapter (requires `X-Integration-Key` + `mcp:read` scope):
+  - `GET /api/v1/mcp/capabilities`
+  - `GET /api/v1/mcp/today`
+  - `GET /api/v1/mcp/calendar/day?date=YYYY-MM-DD`
 
-These are intentionally thin and should remain adapters over shared services (for example,
-`TodayService`) rather than custom logic per integration.
+The adapters intentionally avoid duplicate business logic and call shared services/repositories.

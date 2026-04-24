@@ -1,0 +1,54 @@
+from collections import defaultdict, deque
+from collections.abc import Callable
+from datetime import datetime, timedelta, timezone
+from hashlib import sha256
+from hmac import compare_digest
+
+from fastapi import Depends, Header, HTTPException, status
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from app.db.session import get_db
+from app.models.integration_client import IntegrationClient
+from app.models.user import User
+
+_request_log: dict[int, deque[datetime]] = defaultdict(deque)
+
+
+def hash_integration_key(raw_key: str) -> str:
+    return sha256(raw_key.encode("utf-8")).hexdigest()
+
+
+def require_integration_scope(scope: str) -> Callable:
+    def dependency(
+        x_integration_key: str = Header(..., alias="X-Integration-Key"),
+        db: Session = Depends(get_db),
+    ) -> User:
+        token_hash = hash_integration_key(x_integration_key)
+        stmt = select(IntegrationClient).where(IntegrationClient.key_hash == token_hash)
+        client = db.scalar(stmt)
+        if client is None or not client.is_active:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid integration key")
+
+        scopes = {item.strip() for item in client.scopes_csv.split(",") if item.strip()}
+        has_scope = any(compare_digest(scope, granted_scope) for granted_scope in scopes)
+        if not has_scope:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"Missing scope: {scope}")
+
+        now = datetime.now(timezone.utc)
+        cutoff = now - timedelta(minutes=1)
+        bucket = _request_log[client.id]
+        while bucket and bucket[0] < cutoff:
+            bucket.popleft()
+        if len(bucket) >= client.rate_limit_per_minute:
+            raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Integration rate limit exceeded")
+        bucket.append(now)
+
+        if client.user is None:
+            user = db.get(User, client.user_id)
+            if user is None:
+                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Integration owner not found")
+            return user
+        return client.user
+
+    return dependency

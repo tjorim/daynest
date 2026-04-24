@@ -26,3 +26,7 @@ class User(Base):
         cascade="all, delete-orphan",
     )
     planned_items: Mapped[list["PlannedItem"]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    integration_clients: Mapped[list["IntegrationClient"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
