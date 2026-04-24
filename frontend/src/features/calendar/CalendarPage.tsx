@@ -9,6 +9,7 @@ import {
   type CalendarDayPayload,
   type CalendarMonthDaySummary,
   type PlannedItemBackupFile,
+  type PlannedItemModuleKey,
 } from '../../lib/api/today';
 
 function toIsoDate(value: Date): string {
@@ -40,10 +41,13 @@ export function CalendarPage() {
   const [selectedDate, setSelectedDate] = useState(() => toIsoDate(new Date()));
   const [dayPayload, setDayPayload] = useState<CalendarDayPayload | null>(null);
   const [title, setTitle] = useState('');
+  const [moduleKey, setModuleKey] = useState<PlannedItemModuleKey | ''>('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [canRetry, setCanRetry] = useState(false);
   const [backupStatus, setBackupStatus] = useState<string | null>(null);
+  const [isAdding, setIsAdding] = useState(false);
+  const [addError, setAddError] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -90,9 +94,22 @@ export function CalendarPage() {
 
   const onAddPlanned = async () => {
     if (!title.trim()) return;
-    await createPlannedItem({ title: title.trim(), planned_for: selectedDate });
-    setTitle('');
-    await loadCalendar();
+    setIsAdding(true);
+    setAddError(null);
+    try {
+      await createPlannedItem({
+        title: title.trim(),
+        planned_for: selectedDate,
+        module_key: moduleKey || null,
+      });
+      setTitle('');
+      setModuleKey('');
+      await loadCalendar();
+    } catch (err) {
+      setAddError(err instanceof Error ? err.message : 'Failed to add item.');
+    } finally {
+      setIsAdding(false);
+    }
   };
 
   const onExportBackup = async () => {
@@ -106,7 +123,15 @@ export function CalendarPage() {
         source: 'daynest',
         schema_version: 1,
         exported_at: new Date().toISOString(),
-        items: items.map((item) => ({ title: item.title, planned_for: item.planned_for, notes: item.notes })),
+        items: items.map((item) => ({
+          title: item.title,
+          planned_for: item.planned_for,
+          notes: item.notes,
+          module_key: item.module_key,
+          recurrence_hint: item.recurrence_hint,
+          linked_source: item.linked_source,
+          linked_ref: item.linked_ref,
+        })),
       };
       const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
       const downloadUrl = URL.createObjectURL(blob);
@@ -143,7 +168,15 @@ export function CalendarPage() {
 
       for (const item of backup.items) {
         try {
-          await createPlannedItem({ title: item.title, planned_for: item.planned_for, notes: item.notes });
+          await createPlannedItem({
+            title: item.title,
+            planned_for: item.planned_for,
+            notes: item.notes,
+            module_key: item.module_key,
+            recurrence_hint: item.recurrence_hint,
+            linked_source: item.linked_source,
+            linked_ref: item.linked_ref,
+          });
           imported += 1;
         } catch {
           failed += 1;
@@ -239,6 +272,7 @@ export function CalendarPage() {
                         <div className="fw-semibold">{item.title}</div>
                         <small className="text-muted">{item.status}</small>
                         {item.detail ? <small className="d-block">{item.detail}</small> : null}
+                        {item.module_key ? <small className="d-block text-muted">Module: {item.module_key}</small> : null}
                       </div>
                       <span className={`badge ${itemBadgeClass(item.item_type)}`}>{item.item_type}</span>
                     </div>
@@ -254,13 +288,21 @@ export function CalendarPage() {
               <input
                 className="form-control"
                 value={title}
-                onChange={(event) => setTitle(event.target.value)}
+                onChange={(event) => { setTitle(event.target.value); setAddError(null); }}
                 placeholder="Plan title"
               />
-              <button type="button" className="btn btn-primary" onClick={() => void onAddPlanned()}>
-                Add
+              <select className="form-select" value={moduleKey} onChange={(event) => { setModuleKey(event.target.value as PlannedItemModuleKey | ''); setAddError(null); }} aria-label="Optional module">
+                <option value="">General</option>
+                <option value="shopping_list">Shopping list</option>
+                <option value="meal_planning">Meal planning</option>
+                <option value="recurring_grocery">Recurring grocery</option>
+                <option value="shared_calendar">Shared calendar</option>
+              </select>
+              <button type="button" className="btn btn-primary" disabled={isAdding} onClick={() => void onAddPlanned()}>
+                {isAdding ? 'Adding…' : 'Add'}
               </button>
             </div>
+            {addError ? <div className="card-footer text-danger py-2 small">{addError}</div> : null}
           </div>
 
           <div className="card">

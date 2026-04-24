@@ -90,7 +90,7 @@ function buildPlannedItems(items: PlannedTodayItem[]): SectionItem[] {
   return items.map((item) => ({
     id: `planned-${item.id}`,
     title: item.title,
-    subtitle: `${item.is_done ? 'Done' : 'Planned'} for ${item.planned_for}`,
+    subtitle: formatSubtitle(`${item.is_done ? 'Done' : 'Planned'} for ${item.planned_for}`, item.module_key ? `Module: ${item.module_key}` : undefined),
     instructions: item.notes ?? undefined,
   }));
 }
