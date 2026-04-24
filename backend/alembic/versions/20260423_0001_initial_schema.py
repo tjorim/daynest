@@ -30,6 +30,22 @@ def upgrade() -> None:
     op.create_index(op.f("ix_users_email"), "users", ["email"], unique=True)
 
     op.create_table(
+        "integration_clients",
+        sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("user_id", sa.Integer(), nullable=False),
+        sa.Column("name", sa.String(length=120), nullable=False),
+        sa.Column("key_hash", sa.String(length=128), nullable=False),
+        sa.Column("scopes_csv", sa.String(length=255), nullable=False),
+        sa.Column("rate_limit_per_minute", sa.Integer(), nullable=False, server_default="120"),
+        sa.Column("is_active", sa.Boolean(), nullable=False, server_default=sa.text("true")),
+        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
+        sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
+        sa.PrimaryKeyConstraint("id"),
+    )
+    op.create_index(op.f("ix_integration_clients_key_hash"), "integration_clients", ["key_hash"], unique=True)
+    op.create_index(op.f("ix_integration_clients_user_id"), "integration_clients", ["user_id"], unique=False)
+
+    op.create_table(
         "routine_templates",
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("user_id", sa.Integer(), nullable=False),
@@ -94,7 +110,6 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["chore_template_id"], ["chore_templates.id"], ondelete="CASCADE"),
         sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint("chore_template_id", "scheduled_date", name="uq_chore_instance_template_scheduled_date"),
     )
     op.create_index(op.f("ix_chore_instances_chore_template_id"), "chore_instances", ["chore_template_id"], unique=False)
     op.create_index(op.f("ix_chore_instances_scheduled_date"), "chore_instances", ["scheduled_date"], unique=False)
@@ -198,6 +213,10 @@ def downgrade() -> None:
 
     op.drop_index(op.f("ix_routine_templates_user_id"), table_name="routine_templates")
     op.drop_table("routine_templates")
+
+    op.drop_index(op.f("ix_integration_clients_user_id"), table_name="integration_clients")
+    op.drop_index(op.f("ix_integration_clients_key_hash"), table_name="integration_clients")
+    op.drop_table("integration_clients")
 
     op.drop_index(op.f("ix_users_email"), table_name="users")
     op.drop_table("users")
