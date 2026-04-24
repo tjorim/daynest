@@ -26,24 +26,35 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     env_file:
-      - ./backend/.env.example
+      - ${BACKEND_ENV_FILE:-./backend/env/dev.env}
     depends_on:
       - postgres
     expose:
       - "8000"
+    secrets:
+      - jwt_secret
+      - postgres_password
 
   postgres:
     image: postgres:16
     environment:
       POSTGRES_DB: daynest
       POSTGRES_USER: daynest
-      POSTGRES_PASSWORD: daynest
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
     volumes:
       - pgdata:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
+    expose:
+      - "5432"
+    secrets:
+      - postgres_password
 
 volumes:
   pgdata:
   caddy_data:
   caddy_config:
+
+secrets:
+  jwt_secret:
+    file: ${JWT_SECRET_FILE_PATH:-./secrets/dev/jwt_secret.txt}
+  postgres_password:
+    file: ${POSTGRES_PASSWORD_FILE_PATH:-./secrets/dev/postgres_password.txt}

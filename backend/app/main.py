@@ -1,4 +1,6 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
 
 from app.api.routes.auth import router as auth_router
 from app.api.routes.health import router as system_router
@@ -10,6 +12,18 @@ from app.api.routes.today import router as today_router
 from app.core.config import settings
 
 app = FastAPI(title=settings.app_name, version=settings.version)
+
+if settings.trusted_hosts:
+    app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.trusted_hosts)
+
+if settings.cors_allow_origins:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.cors_allow_origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
 app.include_router(system_router, prefix=settings.api_prefix)
 app.include_router(auth_router, prefix=settings.api_prefix)

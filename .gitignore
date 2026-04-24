@@ -9,6 +9,8 @@ dist/
 
 # Env
 .env
+secrets/**
+!secrets/.gitkeep
 
 # OS/editor
 .DS_Store

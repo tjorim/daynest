@@ -169,3 +169,51 @@ with scoped integration keys and per-client rate limits:
   - `GET /api/v1/mcp/calendar/day?date=YYYY-MM-DD`
 
 The adapters intentionally avoid duplicate business logic and call shared services/repositories.
+
+## Runtime hardening and environment-specific config
+
+### Environment files
+
+Backend runtime configuration is split by environment:
+
+- `backend/env/dev.env`
+- `backend/env/staging.env`
+- `backend/env/prod.env`
+
+Select the backend env file at deploy time:
+
+```bash
+BACKEND_ENV_FILE=./backend/env/staging.env docker compose up -d
+```
+
+### Managed secret injection
+
+Do not store app/database secrets in env files. The stack reads them from container secret files:
+
+- `JWT_SECRET_FILE` -> `/run/secrets/jwt_secret`
+- `DB_PASSWORD_FILE` -> `/run/secrets/postgres_password`
+
+Compose secret file locations are chosen at runtime:
+
+```bash
+JWT_SECRET_FILE_PATH=./secrets/staging/jwt_secret.txt \
+POSTGRES_PASSWORD_FILE_PATH=./secrets/staging/postgres_password.txt \
+BACKEND_ENV_FILE=./backend/env/staging.env \
+docker compose up -d
+```
+
+### CORS and trusted hosts
+
+Configure these per environment via env files:
+
+- `CORS_ALLOW_ORIGINS` (comma-separated)
+- `TRUSTED_HOSTS` (comma-separated)
+
+### DB/network exposure by environment
+
+- Base `docker-compose.yml` keeps Postgres internal-only (`expose` only).
+- Local development can opt into host DB access by layering `docker-compose.dev.yml`:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+```
