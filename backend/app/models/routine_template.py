@@ -16,8 +16,8 @@ class RoutineTemplate(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="1")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
-    user: Mapped["User"] = relationship(back_populates="routine_templates")
-    task_instances: Mapped[list["TaskInstance"]] = relationship(
+    user: Mapped["User"] = relationship(back_populates="routine_templates")  # noqa: F821
+    task_instances: Mapped[list["TaskInstance"]] = relationship(  # noqa: F821
         back_populates="routine_template",
         cascade="all, delete-orphan",
     )

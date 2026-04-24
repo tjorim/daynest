@@ -20,8 +20,8 @@ class MedicationPlan(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="1")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
-    user: Mapped["User"] = relationship(back_populates="medication_plans")
-    dose_instances: Mapped[list["MedicationDoseInstance"]] = relationship(
+    user: Mapped["User"] = relationship(back_populates="medication_plans")  # noqa: F821
+    dose_instances: Mapped[list["MedicationDoseInstance"]] = relationship(  # noqa: F821
         back_populates="medication_plan",
         cascade="all, delete-orphan",
     )

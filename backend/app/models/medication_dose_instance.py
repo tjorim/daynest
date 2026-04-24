@@ -38,5 +38,5 @@ class MedicationDoseInstance(Base):
     missed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
-    user: Mapped["User"] = relationship(back_populates="medication_dose_instances")
-    medication_plan: Mapped["MedicationPlan"] = relationship(back_populates="dose_instances")
+    user: Mapped["User"] = relationship(back_populates="medication_dose_instances")  # noqa: F821
+    medication_plan: Mapped["MedicationPlan"] = relationship(back_populates="dose_instances")  # noqa: F821
