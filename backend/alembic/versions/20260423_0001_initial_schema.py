@@ -110,6 +110,7 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["chore_template_id"], ["chore_templates.id"], ondelete="CASCADE"),
         sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
+        sa.UniqueConstraint("chore_template_id", "scheduled_date", name="uq_chore_instance_template_scheduled_date"),
     )
     op.create_index(op.f("ix_chore_instances_chore_template_id"), "chore_instances", ["chore_template_id"], unique=False)
     op.create_index(op.f("ix_chore_instances_scheduled_date"), "chore_instances", ["scheduled_date"], unique=False)
