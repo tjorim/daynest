@@ -250,7 +250,7 @@ class TodayService:
                     status="done" if plan.is_done else "planned",
                     scheduled_date=plan.planned_for,
                     detail=plan.notes,
-                    module_key=plan.module_key,
+                    module_key=cast(PlannedItemModuleKey | None, plan.module_key),
                 )
             )
 
@@ -324,7 +324,7 @@ class TodayService:
             title=item.title,
             planned_for=item.planned_for,
             notes=item.notes,
-            module_key=item.module_key,
+            module_key=cast(PlannedItemModuleKey | None, item.module_key),
             recurrence_hint=item.recurrence_hint,
             linked_source=item.linked_source,
             linked_ref=item.linked_ref,
@@ -348,7 +348,7 @@ class TodayService:
             title=item.title,
             planned_for=item.planned_for,
             notes=item.notes,
-            module_key=item.module_key,
+            module_key=cast(PlannedItemModuleKey | None, item.module_key),
             recurrence_hint=item.recurrence_hint,
             linked_source=item.linked_source,
             linked_ref=item.linked_ref,
@@ -362,7 +362,7 @@ class TodayService:
                 title=item.title,
                 planned_for=item.planned_for,
                 notes=item.notes,
-                module_key=item.module_key,
+                module_key=cast(PlannedItemModuleKey | None, item.module_key),
                 recurrence_hint=item.recurrence_hint,
                 linked_source=item.linked_source,
                 linked_ref=item.linked_ref,
