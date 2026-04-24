@@ -1,6 +1,6 @@
 import logging
 
-from fastapi import APIRouter, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy import text
 
 from app.core.config import settings
@@ -10,6 +10,12 @@ from app.db.session import engine
 logger = logging.getLogger("app.health")
 
 router = APIRouter(tags=["system"])
+
+
+def _require_metrics_access(request: Request) -> None:
+    secret = settings.metrics_secret
+    if secret and request.headers.get("X-Metrics-Secret") != secret:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
 
 
 @router.get("/health/liveness")
@@ -36,7 +42,7 @@ def health_check() -> dict[str, str]:
 
 
 @router.get("/metrics")
-def metrics_endpoint() -> dict[str, float | int]:
+def metrics_endpoint(_: None = Depends(_require_metrics_access)) -> dict[str, float | int]:
     snapshot = metrics.snapshot()
     return {
         "uptime_seconds": round(snapshot.uptime_seconds, 2),

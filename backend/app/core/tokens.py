@@ -5,6 +5,9 @@ import jwt
 
 from app.core.config import settings
 
+_jwt_secret: str = settings.resolved_jwt_secret_key
+_jwt_algorithm: str = settings.jwt_algorithm
+
 
 def _encode_token(payload: dict[str, Any], expires_delta: timedelta) -> str:
     now = datetime.now(timezone.utc)
@@ -13,7 +16,7 @@ def _encode_token(payload: dict[str, Any], expires_delta: timedelta) -> str:
         "iat": now,
         "exp": now + expires_delta,
     }
-    return jwt.encode(claims, settings.resolved_jwt_secret_key, algorithm=settings.jwt_algorithm)
+    return jwt.encode(claims, _jwt_secret, algorithm=_jwt_algorithm)
 
 
 def create_access_token(user_id: int, email: str) -> str:
@@ -31,4 +34,4 @@ def create_refresh_token(user_id: int, email: str) -> str:
 
 
 def decode_token(token: str) -> dict[str, Any]:
-    return jwt.decode(token, settings.resolved_jwt_secret_key, algorithms=[settings.jwt_algorithm])
+    return jwt.decode(token, _jwt_secret, algorithms=[_jwt_algorithm])

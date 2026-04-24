@@ -6,6 +6,10 @@ on:
     branches:
       - main
 
+concurrency:
+  group: "safety-ci-${{ github.head_ref || github.ref }}"
+  cancel-in-progress: true
+
 jobs:
   backend-safety:
     runs-on: ubuntu-latest
@@ -27,10 +31,10 @@ jobs:
           pip install -r requirements.txt ruff mypy
 
       - name: Lint backend
-        run: ruff check app tests --ignore F821,F401
+        run: ruff check app tests --ignore F401
 
       - name: Type-check backend
-        run: PYTHONPATH=. mypy --explicit-package-bases --follow-imports=skip --disable-error-code=prop-decorator --disable-error-code=union-attr app
+        run: PYTHONPATH=. mypy app
 
       - name: Run backend tests
         run: PYTHONPATH=. pytest -q

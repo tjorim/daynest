@@ -11,8 +11,8 @@ Integration responses expose the `X-Integration-Contract` header:
 
 Contract versions are additive-major:
 
-- **Patch changes** (`ha.v1` -> `ha.v1`): bug fixes only, no schema removal or type changes.
-- **Minor additive changes** (`ha.v1` -> still `ha.v1`): optional fields or new endpoints may be added.
+- **Patch changes** (version stays `ha.v1`): bug fixes only, no schema removal or type changes.
+- **Minor additive changes** (version stays `ha.v1`): optional fields or new endpoints may be added.
 - **Major breaking changes** (`ha.v1` -> `ha.v2`): any field removal, rename, type change, or behavior change that can break strict clients.
 
 ## What can break and when

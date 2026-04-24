@@ -19,14 +19,16 @@ from app.services.today_service import TodayService
 router = APIRouter(prefix="/integrations/home-assistant", tags=["integrations"])
 
 
-@router.get("/summary")
-def home_assistant_summary(
-    response: Response,
-    db: Session = Depends(get_db),
-    integration_user: User = Depends(require_integration_scope("ha:read")),
-) -> dict[str, str | int | None]:
+def _set_ha_contract_header(response: Response) -> None:
     response.headers[INTEGRATION_CONTRACT_HEADER] = integration_contract_header(HOME_ASSISTANT_ADAPTER, HOME_ASSISTANT_CONTRACT_VERSION)
 
+
+@router.get("/summary")
+def home_assistant_summary(
+    db: Session = Depends(get_db),
+    integration_user: User = Depends(require_integration_scope("ha:read")),
+    _: None = Depends(_set_ha_contract_header),
+) -> dict[str, str | int | None]:
     service = TodayService(TodayRepository(db))
     summary = service.get_summary(user_id=integration_user.id, for_date=date.today())
     return {
@@ -38,12 +40,10 @@ def home_assistant_summary(
 
 @router.get("/entities", response_model=list[HomeAssistantEntity])
 def home_assistant_entities(
-    response: Response,
     db: Session = Depends(get_db),
     integration_user: User = Depends(require_integration_scope("ha:read")),
+    _: None = Depends(_set_ha_contract_header),
 ) -> list[HomeAssistantEntity]:
-    response.headers[INTEGRATION_CONTRACT_HEADER] = integration_contract_header(HOME_ASSISTANT_ADAPTER, HOME_ASSISTANT_CONTRACT_VERSION)
-
     service = TodayService(TodayRepository(db))
     read_model = service.get_dashboard_read_model(user_id=integration_user.id, for_date=date.today())
     return [
@@ -72,11 +72,9 @@ def home_assistant_entities(
 
 @router.get("/dashboard", response_model=DashboardReadModel)
 def home_assistant_dashboard(
-    response: Response,
     db: Session = Depends(get_db),
     integration_user: User = Depends(require_integration_scope("ha:read")),
+    _: None = Depends(_set_ha_contract_header),
 ) -> DashboardReadModel:
-    response.headers[INTEGRATION_CONTRACT_HEADER] = integration_contract_header(HOME_ASSISTANT_ADAPTER, HOME_ASSISTANT_CONTRACT_VERSION)
-
     service = TodayService(TodayRepository(db))
     return service.get_dashboard_read_model(user_id=integration_user.id, for_date=date.today())

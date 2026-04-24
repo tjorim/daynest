@@ -2,7 +2,7 @@ from functools import lru_cache
 from pathlib import Path
 from urllib.parse import quote_plus
 
-from pydantic import Field, computed_field, field_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -39,7 +39,9 @@ class AppSettings(BaseSettings):
     refresh_token_expire_days: int = 7
 
     cors_allow_origins: list[str] = Field(default_factory=list)
-    trusted_hosts: list[str] = Field(default_factory=lambda: ["localhost", "127.0.0.1", "testserver"])
+    trusted_hosts: list[str] = Field(default_factory=lambda: ["localhost", "127.0.0.1"])
+
+    metrics_secret: str | None = None
 
     password_hash_iterations: int = 390000
 
@@ -54,30 +56,32 @@ class AppSettings(BaseSettings):
             return [item.strip() for item in value.split(",") if item.strip()]
         return value
 
-    @computed_field
+    @model_validator(mode="after")
+    def _validate_jwt_secret(self) -> "AppSettings":
+        secret = self.jwt_secret_key or _read_secret_file(self.jwt_secret_file)
+        if not secret and self.environment != "dev":
+            raise ValueError("JWT secret key must be provided via JWT_SECRET_KEY or JWT_SECRET_FILE")
+        return self
+
     @property
     def resolved_db_password(self) -> str | None:
         return self.db_password or _read_secret_file(self.db_password_file)
 
-    @computed_field
     @property
     def resolved_jwt_secret_key(self) -> str:
         secret = self.jwt_secret_key or _read_secret_file(self.jwt_secret_file)
         if secret:
             return secret
-        if self.environment == "dev":
-            return "local-dev-secret"
-        raise ValueError("JWT secret key must be provided via JWT_SECRET_KEY or JWT_SECRET_FILE")
+        return "local-dev-secret"
 
-    @computed_field
     @property
     def resolved_database_url(self) -> str:
         if self.database_url:
             return self.database_url
         password = self.resolved_db_password
         if password:
-            return f"postgresql+psycopg://{self.db_user}:{quote_plus(password)}@{self.db_host}:{self.db_port}/{self.db_name}"
-        return f"postgresql+psycopg://{self.db_user}@{self.db_host}:{self.db_port}/{self.db_name}"
+            return f"postgresql+psycopg://{quote_plus(self.db_user)}:{quote_plus(password)}@{self.db_host}:{self.db_port}/{self.db_name}"
+        return f"postgresql+psycopg://{quote_plus(self.db_user)}@{self.db_host}:{self.db_port}/{self.db_name}"
 
 
 @lru_cache

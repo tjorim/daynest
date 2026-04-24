@@ -89,6 +89,7 @@ def configure_error_tracking() -> None:
 async def observability_middleware(request: Request, call_next):
     started = time.perf_counter()
     request_id = request.headers.get("X-Request-ID") or str(uuid.uuid4())
+    request.state.request_id = request_id
 
     status_code = 500
     response = None
@@ -111,7 +112,8 @@ async def observability_middleware(request: Request, call_next):
                 "status_code": status_code,
                 "latency_ms": round(latency_ms, 2),
             }
-            logger.info(json.dumps(log_payload, separators=(",", ":")))
+            log = logger.error if status_code >= 500 else logger.warning if status_code >= 400 else logger.info
+            log(json.dumps(log_payload, separators=(",", ":")))
 
         if response is not None:
             response.headers["X-Request-ID"] = request_id

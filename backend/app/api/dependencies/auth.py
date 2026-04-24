@@ -31,5 +31,5 @@ def get_current_user(
     if user is None or not user.is_active:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found or inactive")
 
-    request.state.user_id = str(user_id)
+    request.state.user_id = user_id
     return user

@@ -1,6 +1,7 @@
 from datetime import date, datetime, timezone
 
 from sqlalchemy import and_, select
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
 from app.models.chore_instance import ChoreInstance, ChoreStatus
@@ -38,18 +39,23 @@ class TodayRepository:
 
             step = max(template.every_n_days, 1)
             cursor = template.start_date
+            rows = []
             while cursor <= through_date:
                 if cursor not in existing_dates:
-                    self.db.add(
-                        ChoreInstance(
-                            user_id=user_id,
-                            chore_template_id=template.id,
-                            title=template.name,
-                            scheduled_date=cursor,
-                            status=ChoreStatus.pending,
-                        )
-                    )
+                    rows.append({
+                        "user_id": user_id,
+                        "chore_template_id": template.id,
+                        "title": template.name,
+                        "scheduled_date": cursor,
+                        "status": ChoreStatus.pending,
+                    })
                 cursor = date.fromordinal(cursor.toordinal() + step)
+            if rows:
+                self.db.execute(
+                    pg_insert(ChoreInstance).values(rows).on_conflict_do_nothing(
+                        index_elements=["chore_template_id", "scheduled_date"]
+                    )
+                )
 
         self.db.commit()
 

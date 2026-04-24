@@ -290,10 +290,10 @@ export function CalendarPage() {
               <input
                 className="form-control"
                 value={title}
-                onChange={(event) => setTitle(event.target.value)}
+                onChange={(event) => { setTitle(event.target.value); setAddError(null); }}
                 placeholder="Plan title"
               />
-              <select className="form-select" value={moduleKey} onChange={(event) => setModuleKey(event.target.value as PlannedItemModuleKey | '')} aria-label="Optional module">
+              <select className="form-select" value={moduleKey} onChange={(event) => { setModuleKey(event.target.value as PlannedItemModuleKey | ''); setAddError(null); }} aria-label="Optional module">
                 <option value="">General</option>
                 <option value="shopping_list">Shopping list</option>
                 <option value="meal_planning">Meal planning</option>
