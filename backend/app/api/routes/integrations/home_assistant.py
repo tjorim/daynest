@@ -8,7 +8,9 @@ from app.db.session import get_db
 from app.models.user import User
 from app.repositories.today_repository import TodayRepository
 from app.schemas.integration_contracts import (
+    HOME_ASSISTANT_ADAPTER,
     HOME_ASSISTANT_CONTRACT_VERSION,
+    INTEGRATION_CONTRACT_HEADER,
     integration_contract_header,
 )
 from app.schemas.integrations import DashboardReadModel, HomeAssistantEntity
@@ -23,7 +25,7 @@ def home_assistant_summary(
     db: Session = Depends(get_db),
     integration_user: User = Depends(require_integration_scope("ha:read")),
 ) -> dict[str, str | int | None]:
-    response.headers["X-Integration-Contract"] = integration_contract_header("home-assistant", HOME_ASSISTANT_CONTRACT_VERSION)
+    response.headers[INTEGRATION_CONTRACT_HEADER] = integration_contract_header(HOME_ASSISTANT_ADAPTER, HOME_ASSISTANT_CONTRACT_VERSION)
 
     service = TodayService(TodayRepository(db))
     summary = service.get_summary(user_id=integration_user.id, for_date=date.today())
@@ -40,7 +42,7 @@ def home_assistant_entities(
     db: Session = Depends(get_db),
     integration_user: User = Depends(require_integration_scope("ha:read")),
 ) -> list[HomeAssistantEntity]:
-    response.headers["X-Integration-Contract"] = integration_contract_header("home-assistant", HOME_ASSISTANT_CONTRACT_VERSION)
+    response.headers[INTEGRATION_CONTRACT_HEADER] = integration_contract_header(HOME_ASSISTANT_ADAPTER, HOME_ASSISTANT_CONTRACT_VERSION)
 
     service = TodayService(TodayRepository(db))
     read_model = service.get_dashboard_read_model(user_id=integration_user.id, for_date=date.today())
@@ -74,7 +76,7 @@ def home_assistant_dashboard(
     db: Session = Depends(get_db),
     integration_user: User = Depends(require_integration_scope("ha:read")),
 ) -> DashboardReadModel:
-    response.headers["X-Integration-Contract"] = integration_contract_header("home-assistant", HOME_ASSISTANT_CONTRACT_VERSION)
+    response.headers[INTEGRATION_CONTRACT_HEADER] = integration_contract_header(HOME_ASSISTANT_ADAPTER, HOME_ASSISTANT_CONTRACT_VERSION)
 
     service = TodayService(TodayRepository(db))
     return service.get_dashboard_read_model(user_id=integration_user.id, for_date=date.today())

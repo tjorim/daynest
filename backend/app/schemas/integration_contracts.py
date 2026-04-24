@@ -1,12 +1,9 @@
-from pydantic import BaseModel
+INTEGRATION_CONTRACT_HEADER = "X-Integration-Contract"
 
-
-class IntegrationContractVersion(BaseModel):
-    adapter: str
-    contract_version: str
-
-
+HOME_ASSISTANT_ADAPTER = "home-assistant"
 HOME_ASSISTANT_CONTRACT_VERSION = "ha.v1"
+
+MCP_ADAPTER = "mcp"
 MCP_CONTRACT_VERSION = "mcp.v1"
 
 

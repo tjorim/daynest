@@ -4,6 +4,14 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from app.api.dependencies.integration_auth import hash_integration_key
+from app.schemas.integration_contracts import (
+    HOME_ASSISTANT_ADAPTER,
+    HOME_ASSISTANT_CONTRACT_VERSION,
+    INTEGRATION_CONTRACT_HEADER,
+    MCP_ADAPTER,
+    MCP_CONTRACT_VERSION,
+    integration_contract_header,
+)
 from app.models.chore_instance import ChoreInstance, ChoreStatus
 from app.models.chore_template import ChoreTemplate
 from app.models.integration_client import IntegrationClient
@@ -62,7 +70,7 @@ def test_home_assistant_contract_header_and_summary_shape(client: TestClient, db
     response = client.get("/api/v1/integrations/home-assistant/summary", headers={"X-Integration-Key": key})
 
     assert response.status_code == 200
-    assert response.headers["X-Integration-Contract"] == "home-assistant; version=ha.v1"
+    assert response.headers[INTEGRATION_CONTRACT_HEADER] == integration_contract_header(HOME_ASSISTANT_ADAPTER, HOME_ASSISTANT_CONTRACT_VERSION)
     payload = response.json()
     assert set(payload.keys()) == {
         "todo_daynest_today",
@@ -77,11 +85,11 @@ def test_mcp_contract_headers_and_core_today_keys(client: TestClient, db_session
 
     capabilities = client.get("/api/v1/mcp/capabilities", headers={"X-Integration-Key": key})
     assert capabilities.status_code == 200
-    assert capabilities.headers["X-Integration-Contract"] == "mcp; version=mcp.v1"
+    assert capabilities.headers[INTEGRATION_CONTRACT_HEADER] == integration_contract_header(MCP_ADAPTER, MCP_CONTRACT_VERSION)
 
     today = client.get("/api/v1/mcp/today", headers={"X-Integration-Key": key})
     assert today.status_code == 200
-    assert today.headers["X-Integration-Contract"] == "mcp; version=mcp.v1"
+    assert today.headers[INTEGRATION_CONTRACT_HEADER] == integration_contract_header(MCP_ADAPTER, MCP_CONTRACT_VERSION)
 
     payload = today.json()
     assert set(payload.keys()) == {
