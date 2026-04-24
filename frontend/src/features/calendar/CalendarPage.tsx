@@ -46,6 +46,8 @@ export function CalendarPage() {
   const [error, setError] = useState<string | null>(null);
   const [canRetry, setCanRetry] = useState(false);
   const [backupStatus, setBackupStatus] = useState<string | null>(null);
+  const [isAdding, setIsAdding] = useState(false);
+  const [addError, setAddError] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -92,16 +94,24 @@ export function CalendarPage() {
 
   const onAddPlanned = async () => {
     if (!title.trim()) return;
-    const inputModule: PlannedItemModuleKey | null = moduleKey || null;
-    await createPlannedItem({
-      title: title.trim(),
-      planned_for: selectedDate,
-      module_key: inputModule,
-      recurrence_hint: inputModule === 'recurring_grocery' ? 'weekly' : undefined,
-    });
-    setTitle('');
-    setModuleKey('');
-    await loadCalendar();
+    setIsAdding(true);
+    setAddError(null);
+    try {
+      const inputModule: PlannedItemModuleKey | null = moduleKey || null;
+      await createPlannedItem({
+        title: title.trim(),
+        planned_for: selectedDate,
+        module_key: inputModule,
+        recurrence_hint: inputModule === 'recurring_grocery' ? 'weekly' : undefined,
+      });
+      setTitle('');
+      setModuleKey('');
+      await loadCalendar();
+    } catch (err) {
+      setAddError(err instanceof Error ? err.message : 'Failed to add item.');
+    } finally {
+      setIsAdding(false);
+    }
   };
 
   const onExportBackup = async () => {
@@ -290,10 +300,11 @@ export function CalendarPage() {
                 <option value="recurring_grocery">Recurring grocery</option>
                 <option value="shared_calendar">Shared calendar</option>
               </select>
-              <button type="button" className="btn btn-primary" onClick={() => void onAddPlanned()}>
-                Add
+              <button type="button" className="btn btn-primary" disabled={isAdding} onClick={() => void onAddPlanned()}>
+                {isAdding ? 'Adding…' : 'Add'}
               </button>
             </div>
+            {addError ? <div className="card-footer text-danger py-2 small">{addError}</div> : null}
           </div>
 
           <div className="card">

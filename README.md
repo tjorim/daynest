@@ -342,4 +342,4 @@ GitHub Actions now enforces non-feature safety checks on pull requests and pushe
 
 Branch protection is automated in `.github/workflows/branch-protection.yml` and requires those checks to be green before merge.
 
-If `GITHUB_TOKEN` cannot administer branch settings in your repo, create a `BRANCH_PROTECTION_TOKEN` secret with a token that has repository administration rights.
+If `GITHUB_TOKEN` cannot administer branch settings in your repo, create a `BRANCH_PROTECTION_TOKEN` secret with a fine-grained personal access token that has "Administration" repository permissions (read and write).
