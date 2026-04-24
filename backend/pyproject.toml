@@ -1,0 +1,4 @@
+[tool.mypy]
+explicit_package_bases = true
+ignore_missing_imports = true
+disable_error_code = ["prop-decorator", "union-attr"]
