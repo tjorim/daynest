@@ -170,6 +170,16 @@ with scoped integration keys and per-client rate limits:
 
 The adapters intentionally avoid duplicate business logic and call shared services/repositories.
 
+Integration contracts are explicitly versioned via the `X-Integration-Contract` response header:
+
+- Home Assistant: `home-assistant; version=ha.v1`
+- MCP: `mcp; version=mcp.v1`
+
+Compatibility and schema evolution documentation:
+
+- `backend/docs/integrations/COMPATIBILITY_POLICY.md`
+- `backend/docs/integrations/SCHEMA_CHANGELOG.md`
+
 ## Runtime hardening and environment-specific config
 
 ### Environment files
@@ -217,6 +227,89 @@ Configure these per environment via env files:
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
 ```
+
+## Data loss prevention playbook
+
+To reduce painful data loss, Daynest treats backup/recovery and data portability as first-class operational requirements.
+
+### 1) Postgres backup policy + restore drill
+
+**Backup policy**
+
+- **Nightly full logical backup** using `pg_dump -Fc` from the running Postgres service.
+- **Retention:** keep daily backups for 14 days, weekly backups for 8 weeks, and monthly backups for 12 months.
+- **Storage:** write to encrypted object storage (or equivalent off-host storage) plus a short-term local cache for fast restores.
+- **Naming convention:** `daynest_<env>_<YYYYMMDD_HHMMSS>.dump`.
+- **Ownership:** backup job runs from infra automation; failures page on-call and create an issue.
+
+**Restore drill (required)**
+
+- Run a **monthly restore drill** in a disposable environment using the latest nightly backup.
+- Verify:
+  1. Database can be restored without manual intervention or schema adjustments.
+  2. API health endpoint and auth login work post-restore.
+  3. Row-count sanity checks pass for critical tables (`users`, `routine_templates`, `task_instances`, `planned_items`, `medication_plans`, `medication_dose_instances`).
+- Publish a short drill report with:
+  - backup artifact used,
+  - recovery time objective achieved (actual minutes),
+  - data validation findings,
+  - follow-up actions.
+
+### 2) Export/import compatibility contract + versioning
+
+Daynest export files must be **self-describing** and versioned.
+
+- Top-level required metadata:
+  - `format`: `"daynest-export"`
+  - `version`: semantic version for export schema (for example `1.0.0`)
+  - `exported_at`: ISO-8601 UTC timestamp
+  - `source_app_version`: Daynest release identifier
+  - `source_env`: one of `dev|staging|prod`
+- Contract rules:
+  - **Backward compatible imports** within the same major export version.
+  - Importers must ignore unknown additive fields.
+  - Breaking export format changes require **major** version bump.
+  - New optional fields require **minor** version bump.
+  - Metadata-only/cosmetic corrections require **patch** bump.
+- Import endpoint/process should support a `--dry-run`/validation mode that reports:
+  - version compatibility,
+  - unknown required fields,
+  - foreign-key/reference integrity issues,
+  - per-entity counts to be created/updated/skipped.
+
+### 3) Migration rollback guidelines
+
+Alembic migrations should be written with safe rollback strategy in mind.
+
+- Every revision must define both `upgrade()` and `downgrade()`.
+- Favor **expand-and-contract** migration patterns for production:
+  1. Additive schema changes first (new nullable columns/tables/indexes).
+  2. Dual-write/read compatibility in app layer if needed.
+  3. Backfill data in controlled batches.
+  4. Flip reads/writes to new schema.
+  5. Remove old columns/tables in a separate, subsequent release.
+- For destructive operations, require:
+  - explicit pre-migration backup confirmation,
+  - rollback notes in PR description,
+  - tested downgrade on staging snapshot before production apply.
+- Never combine major schema reshaping and unrelated feature work in one migration revision.
+
+### 4) Seed/snapshot strategy for local + staging parity
+
+Use both deterministic seeds and sanitized snapshots, each for a different purpose.
+
+- **Deterministic seed data** (committed scripts):
+  - minimal baseline users/templates/items for fast local setup,
+  - stable IDs/names where possible to keep frontend/API tests predictable,
+  - safe for CI and developer onboarding.
+- **Sanitized staging snapshot** (scheduled refresh):
+  - periodic import from production-like data with PII/token stripping,
+  - preserves realistic relational shape, recurrence patterns, and historical ranges,
+  - used for migration rehearsals, performance checks, and export/import validation.
+- Operating rule:
+  - local dev defaults to deterministic seed,
+  - staging defaults to latest approved sanitized snapshot,
+  - snapshot refresh procedure includes automatic smoke tests before marking usable.
 
 ## Operational visibility
 
