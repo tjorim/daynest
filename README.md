@@ -238,7 +238,7 @@ To reduce painful data loss, Daynest treats backup/recovery and data portability
 
 - **Nightly full logical backup** using `pg_dump -Fc` from the running Postgres service.
 - **Retention:** keep daily backups for 14 days, weekly backups for 8 weeks, and monthly backups for 12 months.
-- **Storage:** write to encrypted object storage (or equivalent off-host storage) plus a short local cache for fast restores.
+- **Storage:** write to encrypted object storage (or equivalent off-host storage) plus a short-term local cache for fast restores.
 - **Naming convention:** `daynest_<env>_<YYYYMMDD_HHMMSS>.dump`.
 - **Ownership:** backup job runs from infra automation; failures page on-call and create an issue.
 
@@ -246,7 +246,7 @@ To reduce painful data loss, Daynest treats backup/recovery and data portability
 
 - Run a **monthly restore drill** in a disposable environment using the latest nightly backup.
 - Verify:
-  1. Database can be restored without manual SQL edits.
+  1. Database can be restored without manual intervention or schema adjustments.
   2. API health endpoint and auth login work post-restore.
   3. Row-count sanity checks pass for critical tables (`users`, `routine_templates`, `task_instances`, `planned_items`, `medication_plans`, `medication_dose_instances`).
 - Publish a short drill report with:
@@ -287,7 +287,7 @@ Alembic migrations should be written with safe rollback strategy in mind.
   2. Dual-write/read compatibility in app layer if needed.
   3. Backfill data in controlled batches.
   4. Flip reads/writes to new schema.
-  5. Remove old columns/tables in a later release.
+  5. Remove old columns/tables in a separate, subsequent release.
 - For destructive operations, require:
   - explicit pre-migration backup confirmation,
   - rollback notes in PR description,
