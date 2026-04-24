@@ -168,7 +168,8 @@ function buildPlannedItems(items: PlannedTodayItem[]): SectionItem[] {
   return items.map((item) => ({
     id: `planned-${item.id}`,
     title: item.title,
-    subtitle: `Planned for ${item.planned_for}`,
+    subtitle: `${item.is_done ? 'Done' : 'Planned'} for ${item.planned_for}`,
+    instructions: item.notes ?? undefined,
   }));
 }
 

@@ -1,4 +1,4 @@
-from datetime import date, datetime, time, timezone
+from datetime import date, datetime, timezone
 
 from sqlalchemy import and_, select
 from sqlalchemy.orm import Session
@@ -7,6 +7,7 @@ from app.models.chore_instance import ChoreInstance, ChoreStatus
 from app.models.chore_template import ChoreTemplate
 from app.models.medication_dose_instance import MedicationDoseInstance, MedicationDoseStatus
 from app.models.medication_plan import MedicationPlan
+from app.models.planned_item import PlannedItem
 from app.models.routine_template import RoutineTemplate
 from app.models.task_instance import TaskInstance
 
@@ -187,6 +188,65 @@ class TodayRepository:
     def get_chore_instance_for_user(self, user_id: int, chore_instance_id: int) -> ChoreInstance | None:
         stmt = select(ChoreInstance).where(ChoreInstance.user_id == user_id).where(ChoreInstance.id == chore_instance_id)
         return self.db.scalar(stmt)
+
+    def list_planned_items(self, user_id: int, start_date: date | None = None, end_date: date | None = None) -> list[PlannedItem]:
+        stmt = select(PlannedItem).where(PlannedItem.user_id == user_id)
+        if start_date is not None:
+            stmt = stmt.where(PlannedItem.planned_for >= start_date)
+        if end_date is not None:
+            stmt = stmt.where(PlannedItem.planned_for <= end_date)
+        stmt = stmt.order_by(PlannedItem.planned_for.asc(), PlannedItem.id.asc())
+        return list(self.db.scalars(stmt).all())
+
+    def add_planned_item(self, item: PlannedItem) -> PlannedItem:
+        self.db.add(item)
+        self.db.commit()
+        self.db.refresh(item)
+        return item
+
+    def get_planned_item_for_user(self, user_id: int, planned_item_id: int) -> PlannedItem | None:
+        stmt = select(PlannedItem).where(PlannedItem.user_id == user_id).where(PlannedItem.id == planned_item_id)
+        return self.db.scalar(stmt)
+
+    def delete_planned_item(self, item: PlannedItem) -> None:
+        self.db.delete(item)
+        self.db.commit()
+
+    def get_day_chores(self, user_id: int, target_date: date) -> list[ChoreInstance]:
+        stmt = (
+            select(ChoreInstance)
+            .where(ChoreInstance.user_id == user_id)
+            .where(ChoreInstance.scheduled_date == target_date)
+            .order_by(ChoreInstance.id.asc())
+        )
+        return list(self.db.scalars(stmt).all())
+
+    def get_month_chores(self, user_id: int, start_date: date, end_date: date) -> list[ChoreInstance]:
+        stmt = (
+            select(ChoreInstance)
+            .where(ChoreInstance.user_id == user_id)
+            .where(ChoreInstance.scheduled_date >= start_date)
+            .where(ChoreInstance.scheduled_date <= end_date)
+        )
+        return list(self.db.scalars(stmt).all())
+
+    def get_month_routines(self, user_id: int, start_date: date, end_date: date) -> list[TaskInstance]:
+        stmt = (
+            select(TaskInstance)
+            .where(TaskInstance.user_id == user_id)
+            .where(TaskInstance.scheduled_date >= start_date)
+            .where(TaskInstance.scheduled_date <= end_date)
+        )
+        return list(self.db.scalars(stmt).all())
+
+    def get_month_medications(self, user_id: int, start_date: date, end_date: date) -> list[MedicationDoseInstance]:
+        stmt = (
+            select(MedicationDoseInstance)
+            .where(MedicationDoseInstance.user_id == user_id)
+            .where(MedicationDoseInstance.scheduled_date >= start_date)
+            .where(MedicationDoseInstance.scheduled_date <= end_date)
+        )
+        return list(self.db.scalars(stmt).all())
 
     def save(self) -> None:
         self.db.commit()

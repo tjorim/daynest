@@ -11,7 +11,7 @@ type TodayTopLevelKeys = keyof TodayPayload;
 type _todayKeysAreStable = Expect<
   Equal<
     TodayTopLevelKeys,
-    'medication' | 'medication_history' | 'routines' | 'overdue' | 'due_today' | 'upcoming' | 'planned'
+    'medication' | 'medication_history' | 'routines' | 'overdue' | 'due_today' | 'upcoming' | 'planned' | 'day_items'
   >
 >;
 
@@ -57,7 +57,18 @@ const contractExample: TodayPayload = {
     },
   ],
   upcoming: [{ chore_instance_id: 12, chore_template_id: 4, title: 'Refill meds', scheduled_date: '2026-04-24' }],
-  planned: [{ id: 13, title: 'Meal prep', planned_for: '2026-04-25' }],
+  planned: [{ id: 13, title: 'Meal prep', planned_for: '2026-04-25', notes: null, is_done: false }],
+  day_items: [
+    {
+      item_type: 'planned',
+      item_id: 13,
+      title: 'Meal prep',
+      status: 'planned',
+      scheduled_at: null,
+      scheduled_date: '2026-04-25',
+      detail: null,
+    },
+  ],
 };
 
 void contractExample;

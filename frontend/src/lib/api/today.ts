@@ -56,6 +56,38 @@ export interface PlannedTodayItem {
   id: number;
   title: string;
   planned_for: string;
+  notes: string | null;
+  is_done: boolean;
+}
+
+export interface UnifiedDayItem {
+  item_type: 'routine' | 'chore' | 'medication' | 'planned';
+  item_id: number;
+  title: string;
+  status: string;
+  scheduled_at: string | null;
+  scheduled_date: string | null;
+  detail: string | null;
+}
+
+export interface CalendarDayPayload {
+  date: string;
+  items: UnifiedDayItem[];
+}
+
+export interface CalendarMonthDaySummary {
+  date: string;
+  total: number;
+  routines: number;
+  chores: number;
+  medications: number;
+  planned: number;
+}
+
+export interface CalendarMonthPayload {
+  year: number;
+  month: number;
+  days: CalendarMonthDaySummary[];
 }
 
 export interface TodayPayload {
@@ -66,6 +98,7 @@ export interface TodayPayload {
   due_today: DueTodayItem[];
   upcoming: UpcomingTodayItem[];
   planned: PlannedTodayItem[];
+  day_items: UnifiedDayItem[];
 }
 
 export interface ChoreMutationResponse {
@@ -98,6 +131,38 @@ export async function fetchToday(signal?: AbortSignal): Promise<TodayPayload> {
   }
 
   return (await response.json()) as TodayPayload;
+}
+
+export async function fetchCalendarMonth(year: number, month: number, signal?: AbortSignal): Promise<CalendarMonthPayload> {
+  const response = await fetch(`/api/v1/calendar/month?year=${year}&month=${month}`, {
+    headers: { Accept: 'application/json' },
+    signal,
+  });
+  return parseJsonResponse<CalendarMonthPayload>(response);
+}
+
+export async function fetchCalendarDay(date: string, signal?: AbortSignal): Promise<CalendarDayPayload> {
+  const response = await fetch(`/api/v1/calendar/day?date=${encodeURIComponent(date)}`, {
+    headers: { Accept: 'application/json' },
+    signal,
+  });
+  return parseJsonResponse<CalendarDayPayload>(response);
+}
+
+export async function createPlannedItem(input: {
+  title: string;
+  planned_for: string;
+  notes?: string | null;
+}): Promise<PlannedTodayItem> {
+  const response = await fetch('/api/v1/planned-items', {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(input),
+  });
+  return parseJsonResponse<PlannedTodayItem>(response);
 }
 
 export async function completeChore(choreInstanceId: number): Promise<ChoreMutationResponse> {

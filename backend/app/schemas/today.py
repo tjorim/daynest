@@ -1,4 +1,5 @@
 from datetime import date, datetime
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -61,6 +62,51 @@ class PlannedTodayItem(BaseModel):
     id: int
     title: str
     planned_for: date
+    notes: str | None = None
+    is_done: bool
+
+
+class PlannedItemCreateRequest(BaseModel):
+    title: str = Field(..., min_length=1, max_length=255)
+    planned_for: date
+    notes: str | None = Field(default=None, max_length=4000)
+
+
+class PlannedItemUpdateRequest(BaseModel):
+    title: str = Field(..., min_length=1, max_length=255)
+    planned_for: date
+    notes: str | None = Field(default=None, max_length=4000)
+    is_done: bool = False
+
+
+class UnifiedDayItem(BaseModel):
+    item_type: Literal["routine", "chore", "medication", "planned"]
+    item_id: int
+    title: str
+    status: str
+    scheduled_at: datetime | None = None
+    scheduled_date: date | None = None
+    detail: str | None = None
+
+
+class CalendarDayResponse(BaseModel):
+    date: date
+    items: list[UnifiedDayItem]
+
+
+class CalendarMonthDaySummary(BaseModel):
+    date: date
+    total: int
+    routines: int
+    chores: int
+    medications: int
+    planned: int
+
+
+class CalendarMonthResponse(BaseModel):
+    year: int
+    month: int
+    days: list[CalendarMonthDaySummary]
 
 
 class TodayResponse(BaseModel):
@@ -71,6 +117,7 @@ class TodayResponse(BaseModel):
     due_today: list[DueTodayItem]
     upcoming: list[UpcomingTodayItem]
     planned: list[PlannedTodayItem]
+    day_items: list[UnifiedDayItem]
 
 
 class ChoreInstanceMutationResponse(BaseModel):
