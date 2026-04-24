@@ -4,6 +4,7 @@ from app.api.routes.auth import router as auth_router
 from app.api.routes.health import router as system_router
 from app.api.routes.integrations.home_assistant import router as home_assistant_router
 from app.api.routes.integrations.mcp import router as mcp_router
+from app.api.routes.medications import router as medications_router
 from app.api.routes.today import router as today_router
 from app.core.config import settings
 
@@ -14,6 +15,7 @@ app.include_router(auth_router, prefix=settings.api_prefix)
 app.include_router(home_assistant_router, prefix=settings.api_prefix)
 app.include_router(mcp_router, prefix=settings.api_prefix)
 app.include_router(today_router, prefix=settings.api_prefix)
+app.include_router(medications_router, prefix=settings.api_prefix)
 
 
 @app.get("/")

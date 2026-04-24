@@ -1,10 +1,23 @@
 export type TaskStatus = 'pending' | 'in_progress' | 'completed' | 'skipped';
 export type ChoreStatus = 'pending' | 'completed' | 'skipped';
+export type MedicationDoseStatus = 'scheduled' | 'taken' | 'skipped' | 'missed';
 
 export interface MedicationTodayItem {
-  id: number;
+  medication_dose_instance_id: number;
+  medication_plan_id: number;
   name: string;
-  due_at: string | null;
+  instructions: string;
+  scheduled_at: string;
+  status: MedicationDoseStatus;
+}
+
+export interface MedicationHistoryItem {
+  medication_dose_instance_id: number;
+  medication_plan_id: number;
+  name: string;
+  instructions: string;
+  scheduled_at: string;
+  status: MedicationDoseStatus;
 }
 
 export interface RoutineTodayItem {
@@ -47,6 +60,7 @@ export interface PlannedTodayItem {
 
 export interface TodayPayload {
   medication: MedicationTodayItem[];
+  medication_history: MedicationHistoryItem[];
   routines: RoutineTodayItem[];
   overdue: OverdueTodayItem[];
   due_today: DueTodayItem[];
@@ -57,6 +71,12 @@ export interface TodayPayload {
 export interface ChoreMutationResponse {
   chore_instance_id: number;
   status: ChoreStatus;
+  scheduled_date: string;
+}
+
+export interface MedicationMutationResponse {
+  medication_dose_instance_id: number;
+  status: MedicationDoseStatus;
   scheduled_date: string;
 }
 
@@ -106,4 +126,20 @@ export async function rescheduleChore(choreInstanceId: number, scheduledDate: st
     body: JSON.stringify({ scheduled_date: scheduledDate }),
   });
   return parseJsonResponse<ChoreMutationResponse>(response);
+}
+
+export async function takeMedicationDose(medicationDoseId: number): Promise<MedicationMutationResponse> {
+  const response = await fetch(`/api/v1/medication-doses/${medicationDoseId}/take`, {
+    method: 'POST',
+    headers: { Accept: 'application/json' },
+  });
+  return parseJsonResponse<MedicationMutationResponse>(response);
+}
+
+export async function skipMedicationDose(medicationDoseId: number): Promise<MedicationMutationResponse> {
+  const response = await fetch(`/api/v1/medication-doses/${medicationDoseId}/skip`, {
+    method: 'POST',
+    headers: { Accept: 'application/json' },
+  });
+  return parseJsonResponse<MedicationMutationResponse>(response);
 }

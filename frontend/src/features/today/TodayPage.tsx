@@ -4,7 +4,10 @@ import {
   fetchToday,
   rescheduleChore,
   skipChore,
+  skipMedicationDose,
+  takeMedicationDose,
   type DueTodayItem,
+  type MedicationHistoryItem,
   type MedicationTodayItem,
   type OverdueTodayItem,
   type PlannedTodayItem,
@@ -17,7 +20,10 @@ type SectionItem = {
   id: string;
   title: string;
   subtitle?: string;
+  instructions?: string;
   choreInstanceId?: number;
+  medicationDoseInstanceId?: number;
+  medicationStatus?: string;
 };
 
 function TaskActions({
@@ -64,15 +70,62 @@ function TaskActions({
   );
 }
 
+function MedicationActions({
+  medicationDoseInstanceId,
+  medicationStatus,
+  onRefresh,
+}: {
+  medicationDoseInstanceId?: number;
+  medicationStatus?: string;
+  onRefresh: () => Promise<void>;
+}) {
+  if (!medicationDoseInstanceId || medicationStatus !== 'scheduled') {
+    return null;
+  }
+
+  const onTake = async () => {
+    await takeMedicationDose(medicationDoseInstanceId);
+    await onRefresh();
+  };
+
+  const onSkip = async () => {
+    await skipMedicationDose(medicationDoseInstanceId);
+    await onRefresh();
+  };
+
+  return (
+    <div className="btn-group btn-group-sm" role="group" aria-label="Medication actions">
+      <button type="button" className="btn btn-outline-success" onClick={() => void onTake()}>
+        Taken
+      </button>
+      <button type="button" className="btn btn-outline-secondary" onClick={() => void onSkip()}>
+        Skip
+      </button>
+    </div>
+  );
+}
+
 function formatSubtitle(...values: Array<string | null | undefined>) {
   return values.filter(Boolean).join(' • ');
 }
 
 function buildMedicationItems(items: MedicationTodayItem[]): SectionItem[] {
   return items.map((item) => ({
-    id: `medication-${item.id}`,
+    id: `medication-${item.medication_dose_instance_id}`,
     title: item.name,
-    subtitle: item.due_at ? `Due ${new Date(item.due_at).toLocaleTimeString()}` : undefined,
+    subtitle: formatSubtitle(new Date(item.scheduled_at).toLocaleTimeString(), item.status),
+    instructions: item.instructions,
+    medicationDoseInstanceId: item.medication_dose_instance_id,
+    medicationStatus: item.status,
+  }));
+}
+
+function buildMedicationHistoryItems(items: MedicationHistoryItem[]): SectionItem[] {
+  return items.map((item) => ({
+    id: `medication-history-${item.medication_dose_instance_id}`,
+    title: item.name,
+    subtitle: formatSubtitle(new Date(item.scheduled_at).toLocaleString(), item.status),
+    instructions: item.instructions,
   }));
 }
 
@@ -139,9 +192,17 @@ function SectionCard({
             <li key={item.id} className="list-group-item d-flex justify-content-between gap-3 align-items-start">
               <div>
                 <div className="fw-medium">{item.title}</div>
+                {item.instructions ? <small className="d-block">Instructions: {item.instructions}</small> : null}
                 {item.subtitle ? <small className="text-muted">{item.subtitle}</small> : null}
               </div>
-              <TaskActions choreInstanceId={item.choreInstanceId} onRefresh={onRefresh} />
+              <div className="d-flex gap-2 align-items-center">
+                <MedicationActions
+                  medicationDoseInstanceId={item.medicationDoseInstanceId}
+                  medicationStatus={item.medicationStatus}
+                  onRefresh={onRefresh}
+                />
+                <TaskActions choreInstanceId={item.choreInstanceId} onRefresh={onRefresh} />
+              </div>
             </li>
           ))
         )}
@@ -189,7 +250,7 @@ export function TodayPage() {
   return (
     <section>
       <h2 className="h4">Today</h2>
-      <p className="text-muted">Medication, routines, overdue chores, due today, upcoming, and planned items.</p>
+      <p className="text-muted">Medication with instructions and history, routines, overdue chores, due today, upcoming, and planned items.</p>
 
       {isLoading ? <div className="alert alert-info">Loading today...</div> : null}
       {!isLoading && error ? <div className="alert alert-danger">{error}</div> : null}
@@ -199,7 +260,8 @@ export function TodayPage() {
 
       {!isLoading && !error && today ? (
         <>
-          <SectionCard heading="Medication" items={buildMedicationItems(today.medication)} onRefresh={loadToday} />
+          <SectionCard heading="Medication Today" items={buildMedicationItems(today.medication)} onRefresh={loadToday} />
+          <SectionCard heading="Medication History" items={buildMedicationHistoryItems(today.medication_history)} onRefresh={loadToday} />
           <SectionCard heading="Routines" items={buildRoutineItems(today.routines)} onRefresh={loadToday} />
           <SectionCard heading="Overdue" items={buildOverdueItems(today.overdue)} onRefresh={loadToday} />
           <SectionCard heading="Due Today" items={buildDueTodayItems(today.due_today)} onRefresh={loadToday} />

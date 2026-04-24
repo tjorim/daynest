@@ -1,10 +1,12 @@
-from datetime import date, datetime, timezone
+from datetime import date, datetime, time, timezone
 
 from sqlalchemy import and_, select
 from sqlalchemy.orm import Session
 
 from app.models.chore_instance import ChoreInstance, ChoreStatus
 from app.models.chore_template import ChoreTemplate
+from app.models.medication_dose_instance import MedicationDoseInstance, MedicationDoseStatus
+from app.models.medication_plan import MedicationPlan
 from app.models.routine_template import RoutineTemplate
 from app.models.task_instance import TaskInstance
 
@@ -49,6 +51,96 @@ class TodayRepository:
                 cursor = date.fromordinal(cursor.toordinal() + step)
 
         self.db.commit()
+
+    def ensure_medication_dose_instances_generated(self, user_id: int, through_date: date) -> None:
+        templates = list(
+            self.db.scalars(
+                select(MedicationPlan)
+                .where(MedicationPlan.user_id == user_id)
+                .where(MedicationPlan.is_active.is_(True))
+            ).all()
+        )
+
+        for template in templates:
+            if template.start_date > through_date:
+                continue
+
+            existing_dates = set(
+                self.db.scalars(
+                    select(MedicationDoseInstance.scheduled_date)
+                    .where(MedicationDoseInstance.medication_plan_id == template.id)
+                    .where(MedicationDoseInstance.scheduled_date <= through_date)
+                ).all()
+            )
+
+            step = max(template.every_n_days, 1)
+            cursor = template.start_date
+            while cursor <= through_date:
+                if cursor not in existing_dates:
+                    scheduled_at = datetime.combine(cursor, template.schedule_time, tzinfo=timezone.utc)
+                    self.db.add(
+                        MedicationDoseInstance(
+                            user_id=user_id,
+                            medication_plan_id=template.id,
+                            name=template.name,
+                            instructions=template.instructions,
+                            scheduled_date=cursor,
+                            scheduled_at=scheduled_at,
+                            status=MedicationDoseStatus.scheduled,
+                        )
+                    )
+                cursor = date.fromordinal(cursor.toordinal() + step)
+
+        self.db.commit()
+
+    def mark_due_medications_missed(self, user_id: int, now: datetime) -> None:
+        doses = list(
+            self.db.scalars(
+                select(MedicationDoseInstance)
+                .where(MedicationDoseInstance.user_id == user_id)
+                .where(MedicationDoseInstance.status == MedicationDoseStatus.scheduled)
+                .where(MedicationDoseInstance.scheduled_at < now)
+            ).all()
+        )
+        for dose in doses:
+            dose.status = MedicationDoseStatus.missed
+            dose.missed_at = now
+            dose.taken_at = None
+            dose.skipped_at = None
+        self.db.commit()
+
+    def get_today_medication(self, user_id: int, for_date: date) -> list[MedicationDoseInstance]:
+        stmt = (
+            select(MedicationDoseInstance)
+            .where(MedicationDoseInstance.user_id == user_id)
+            .where(MedicationDoseInstance.scheduled_date == for_date)
+            .order_by(MedicationDoseInstance.scheduled_at.asc(), MedicationDoseInstance.id.asc())
+        )
+        return list(self.db.scalars(stmt).all())
+
+    def get_medication_history(self, user_id: int, before_date: date, limit: int = 20) -> list[MedicationDoseInstance]:
+        stmt = (
+            select(MedicationDoseInstance)
+            .where(MedicationDoseInstance.user_id == user_id)
+            .where(MedicationDoseInstance.scheduled_date < before_date)
+            .order_by(MedicationDoseInstance.scheduled_at.desc(), MedicationDoseInstance.id.desc())
+            .limit(limit)
+        )
+        return list(self.db.scalars(stmt).all())
+
+    def list_medication_plans(self, user_id: int) -> list[MedicationPlan]:
+        stmt = select(MedicationPlan).where(MedicationPlan.user_id == user_id).order_by(MedicationPlan.id.asc())
+        return list(self.db.scalars(stmt).all())
+
+    def add_medication_plan(self, plan: MedicationPlan) -> MedicationPlan:
+        self.db.add(plan)
+        self.db.commit()
+        self.db.refresh(plan)
+        return plan
+
+    def get_dose_for_user(self, user_id: int, dose_id: int) -> MedicationDoseInstance | None:
+        stmt = select(MedicationDoseInstance).where(MedicationDoseInstance.user_id == user_id).where(MedicationDoseInstance.id == dose_id)
+        return self.db.scalar(stmt)
 
     def get_today_routines(self, user_id: int, for_date: date) -> list[TaskInstance]:
         stmt = (
@@ -101,6 +193,3 @@ class TodayRepository:
 
     def utcnow(self) -> datetime:
         return datetime.now(timezone.utc)
-
-    def get_medication_placeholder(self) -> list[dict[str, str]]:
-        return []

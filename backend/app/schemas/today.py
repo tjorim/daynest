@@ -3,13 +3,26 @@ from datetime import date, datetime
 from pydantic import BaseModel, Field
 
 from app.models.chore_instance import ChoreStatus
+from app.models.medication_dose_instance import MedicationDoseStatus
 from app.models.task_instance import TaskStatus
 
 
 class MedicationTodayItem(BaseModel):
-    id: int
+    medication_dose_instance_id: int
+    medication_plan_id: int
     name: str
-    due_at: datetime | None = None
+    instructions: str
+    scheduled_at: datetime
+    status: MedicationDoseStatus
+
+
+class MedicationHistoryItem(BaseModel):
+    medication_dose_instance_id: int
+    medication_plan_id: int
+    name: str
+    instructions: str
+    scheduled_at: datetime
+    status: MedicationDoseStatus
 
 
 class RoutineTodayItem(BaseModel):
@@ -52,6 +65,7 @@ class PlannedTodayItem(BaseModel):
 
 class TodayResponse(BaseModel):
     medication: list[MedicationTodayItem]
+    medication_history: list[MedicationHistoryItem]
     routines: list[RoutineTodayItem]
     overdue: list[OverdueTodayItem]
     due_today: list[DueTodayItem]

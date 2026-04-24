@@ -11,12 +11,31 @@ type TodayTopLevelKeys = keyof TodayPayload;
 type _todayKeysAreStable = Expect<
   Equal<
     TodayTopLevelKeys,
-    'medication' | 'routines' | 'overdue' | 'due_today' | 'upcoming' | 'planned'
+    'medication' | 'medication_history' | 'routines' | 'overdue' | 'due_today' | 'upcoming' | 'planned'
   >
 >;
 
 const contractExample: TodayPayload = {
-  medication: [{ id: 1, name: 'Vitamin D', due_at: '2026-04-23T09:00:00Z' }],
+  medication: [
+    {
+      medication_dose_instance_id: 1,
+      medication_plan_id: 5,
+      name: 'Vitamin D',
+      instructions: 'Take with breakfast and water.',
+      scheduled_at: '2026-04-23T09:00:00Z',
+      status: 'scheduled',
+    },
+  ],
+  medication_history: [
+    {
+      medication_dose_instance_id: 2,
+      medication_plan_id: 5,
+      name: 'Vitamin D',
+      instructions: 'Take with breakfast and water.',
+      scheduled_at: '2026-04-22T09:00:00Z',
+      status: 'taken',
+    },
+  ],
   routines: [
     {
       task_instance_id: 10,
