@@ -1,9 +1,13 @@
+import logging
+
 from fastapi import APIRouter, Response, status
 from sqlalchemy import text
 
 from app.core.config import settings
 from app.core.observability import metrics
 from app.db.session import engine
+
+logger = logging.getLogger("app.health")
 
 router = APIRouter(tags=["system"])
 
@@ -19,6 +23,7 @@ def readiness_check(response: Response) -> dict[str, str]:
         with engine.connect() as connection:
             connection.execute(text("SELECT 1"))
     except Exception:
+        logger.exception("Readiness check failed: database connectivity error")
         response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
         return {"status": "not_ready"}
 

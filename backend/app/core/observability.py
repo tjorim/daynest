@@ -12,7 +12,6 @@ from fastapi import Request
 from sentry_sdk.integrations.fastapi import FastApiIntegration
 
 from app.core.config import settings
-from app.core.tokens import decode_token
 
 logger = logging.getLogger("app.observability")
 
@@ -66,7 +65,13 @@ metrics = InMemoryRequestMetrics()
 
 
 def configure_logging() -> None:
-    logging.basicConfig(level=getattr(logging, settings.log_level.upper(), logging.INFO), format="%(message)s")
+    level = getattr(logging, settings.log_level.upper(), logging.INFO)
+    app_logger = logging.getLogger("app")
+    app_logger.setLevel(level)
+    if not app_logger.handlers:
+        handler = logging.StreamHandler()
+        handler.setFormatter(logging.Formatter("%(message)s"))
+        app_logger.addHandler(handler)
 
 
 def configure_error_tracking() -> None:
@@ -81,28 +86,9 @@ def configure_error_tracking() -> None:
     )
 
 
-def _extract_user_id(request: Request) -> str | None:
-    auth_header = request.headers.get("Authorization", "")
-    if not auth_header.startswith("Bearer "):
-        return None
-
-    token = auth_header.removeprefix("Bearer ").strip()
-    if not token:
-        return None
-
-    try:
-        payload = decode_token(token)
-    except Exception:
-        return None
-
-    user_id = payload.get("sub")
-    return str(user_id) if user_id is not None else None
-
-
 async def observability_middleware(request: Request, call_next):
     started = time.perf_counter()
     request_id = request.headers.get("X-Request-ID") or str(uuid.uuid4())
-    user_id = _extract_user_id(request)
 
     status_code = 500
     response = None
@@ -114,16 +100,18 @@ async def observability_middleware(request: Request, call_next):
         latency_ms = (time.perf_counter() - started) * 1000
         metrics.record(status_code=status_code, latency_ms=latency_ms)
 
-        log_payload = {
-            "event": "http_request",
-            "request_id": request_id,
-            "user_id": user_id,
-            "method": request.method,
-            "route": request.url.path,
-            "status_code": status_code,
-            "latency_ms": round(latency_ms, 2),
-        }
-        logger.info(json.dumps(log_payload, separators=(",", ":")))
+        if logger.isEnabledFor(logging.INFO):
+            user_id = getattr(request.state, "user_id", None)
+            log_payload = {
+                "event": "http_request",
+                "request_id": request_id,
+                "user_id": user_id,
+                "method": request.method,
+                "route": request.url.path,
+                "status_code": status_code,
+                "latency_ms": round(latency_ms, 2),
+            }
+            logger.info(json.dumps(log_payload, separators=(",", ":")))
 
         if response is not None:
             response.headers["X-Request-ID"] = request_id
