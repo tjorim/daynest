@@ -40,6 +40,7 @@ export function CalendarPage() {
   const [selectedDate, setSelectedDate] = useState(() => toIsoDate(new Date()));
   const [dayPayload, setDayPayload] = useState<CalendarDayPayload | null>(null);
   const [title, setTitle] = useState('');
+  const [moduleKey, setModuleKey] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [canRetry, setCanRetry] = useState(false);
@@ -90,8 +91,15 @@ export function CalendarPage() {
 
   const onAddPlanned = async () => {
     if (!title.trim()) return;
-    await createPlannedItem({ title: title.trim(), planned_for: selectedDate });
+    const inputModule = moduleKey || null;
+    await createPlannedItem({
+      title: title.trim(),
+      planned_for: selectedDate,
+      module_key: inputModule,
+      recurrence_hint: inputModule === 'recurring_grocery' ? 'weekly' : undefined,
+    });
     setTitle('');
+    setModuleKey('');
     await loadCalendar();
   };
 
@@ -106,7 +114,15 @@ export function CalendarPage() {
         source: 'daynest',
         schema_version: 1,
         exported_at: new Date().toISOString(),
-        items: items.map((item) => ({ title: item.title, planned_for: item.planned_for, notes: item.notes })),
+        items: items.map((item) => ({
+          title: item.title,
+          planned_for: item.planned_for,
+          notes: item.notes,
+          module_key: item.module_key,
+          recurrence_hint: item.recurrence_hint,
+          linked_source: item.linked_source,
+          linked_ref: item.linked_ref,
+        })),
       };
       const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
       const downloadUrl = URL.createObjectURL(blob);
@@ -143,7 +159,15 @@ export function CalendarPage() {
 
       for (const item of backup.items) {
         try {
-          await createPlannedItem({ title: item.title, planned_for: item.planned_for, notes: item.notes });
+          await createPlannedItem({
+            title: item.title,
+            planned_for: item.planned_for,
+            notes: item.notes,
+            module_key: item.module_key,
+            recurrence_hint: item.recurrence_hint,
+            linked_source: item.linked_source,
+            linked_ref: item.linked_ref,
+          });
           imported += 1;
         } catch {
           failed += 1;
@@ -239,6 +263,7 @@ export function CalendarPage() {
                         <div className="fw-semibold">{item.title}</div>
                         <small className="text-muted">{item.status}</small>
                         {item.detail ? <small className="d-block">{item.detail}</small> : null}
+                        {item.module_key ? <small className="d-block text-muted">Module: {item.module_key}</small> : null}
                       </div>
                       <span className={`badge ${itemBadgeClass(item.item_type)}`}>{item.item_type}</span>
                     </div>
@@ -257,6 +282,13 @@ export function CalendarPage() {
                 onChange={(event) => setTitle(event.target.value)}
                 placeholder="Plan title"
               />
+              <select className="form-select" value={moduleKey} onChange={(event) => setModuleKey(event.target.value)} aria-label="Optional module">
+                <option value="">General</option>
+                <option value="shopping_list">Shopping list</option>
+                <option value="meal_planning">Meal planning</option>
+                <option value="recurring_grocery">Recurring grocery</option>
+                <option value="shared_calendar">Shared calendar</option>
+              </select>
               <button type="button" className="btn btn-primary" onClick={() => void onAddPlanned()}>
                 Add
               </button>

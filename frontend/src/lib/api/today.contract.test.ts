@@ -57,7 +57,19 @@ const contractExample: TodayPayload = {
     },
   ],
   upcoming: [{ chore_instance_id: 12, chore_template_id: 4, title: 'Refill meds', scheduled_date: '2026-04-24' }],
-  planned: [{ id: 13, title: 'Meal prep', planned_for: '2026-04-25', notes: null, is_done: false }],
+  planned: [
+    {
+      id: 13,
+      title: 'Meal prep',
+      planned_for: '2026-04-25',
+      notes: null,
+      module_key: 'meal_planning',
+      recurrence_hint: 'weekly',
+      linked_source: 'google_calendar',
+      linked_ref: 'event_13',
+      is_done: false,
+    },
+  ],
   day_items: [
     {
       item_type: 'planned',
@@ -67,6 +79,7 @@ const contractExample: TodayPayload = {
       scheduled_at: null,
       scheduled_date: '2026-04-25',
       detail: null,
+      module_key: 'meal_planning',
     },
   ],
 };

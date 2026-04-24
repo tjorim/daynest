@@ -36,6 +36,7 @@ The name reflects the product goal: a calm place to organize everyday life at ho
 - Completing tasks should be frictionless.
 - Recurrence should be powerful but understandable.
 - Integrations should reuse core services instead of duplicating logic.
+- Growth areas should be optional modules layered on top of planning, not required complexity for core daily use.
 
 ## Initial architecture layout
 
@@ -95,6 +96,31 @@ backend/
 5. Calendar + planned items: month/day detail and unified daily read model.
 6. Polish: PWA installability, caching, export/import.
 7. Integrations: Home Assistant and thin MCP adapter.
+8. Optional growth modules:
+   - Shopping lists
+   - Meal planning
+   - Recurring groceries/inventory hooks
+   - Shared calendar/planning linkage
+
+## Optional growth modules (implemented as metadata, not separate silos)
+
+Planned items can now carry optional `module_key` and link metadata so Daynest can grow into shopping,
+meal planning, recurring grocery reminders, and shared calendar linkage without creating new mandatory workflows.
+
+Current module keys:
+
+- `shopping_list`
+- `meal_planning`
+- `recurring_grocery`
+- `shared_calendar`
+
+Optional linkage fields on planned items:
+
+- `recurrence_hint` (simple reminder cadence hint)
+- `linked_source` (e.g. external calendar/inventory source)
+- `linked_ref` (external record/event identifier)
+
+If these fields are omitted, planned items remain plain and simple.
 
 ## Why this direction
 

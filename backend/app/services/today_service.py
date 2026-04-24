@@ -180,6 +180,10 @@ class TodayService:
                     title=item.title,
                     planned_for=item.planned_for,
                     notes=item.notes,
+                    module_key=item.module_key,
+                    recurrence_hint=item.recurrence_hint,
+                    linked_source=item.linked_source,
+                    linked_ref=item.linked_ref,
                     is_done=item.is_done,
                 )
                 for item in planned
@@ -243,6 +247,7 @@ class TodayService:
                     status="done" if item.is_done else "planned",
                     scheduled_date=item.planned_for,
                     detail=item.notes,
+                    module_key=item.module_key,
                 )
             )
 
@@ -303,25 +308,63 @@ class TodayService:
                 user_id=user_id,
                 title=request.title,
                 notes=request.notes,
+                module_key=request.module_key,
+                recurrence_hint=request.recurrence_hint,
+                linked_source=request.linked_source,
+                linked_ref=request.linked_ref,
                 planned_for=request.planned_for,
                 is_done=False,
             )
         )
-        return PlannedTodayItem(id=item.id, title=item.title, planned_for=item.planned_for, notes=item.notes, is_done=item.is_done)
+        return PlannedTodayItem(
+            id=item.id,
+            title=item.title,
+            planned_for=item.planned_for,
+            notes=item.notes,
+            module_key=item.module_key,
+            recurrence_hint=item.recurrence_hint,
+            linked_source=item.linked_source,
+            linked_ref=item.linked_ref,
+            is_done=item.is_done,
+        )
 
     def update_planned_item(self, user_id: int, planned_item_id: int, request: PlannedItemUpdateRequest) -> PlannedTodayItem:
         item = self._get_user_planned_item(user_id=user_id, planned_item_id=planned_item_id)
         item.title = request.title
         item.notes = request.notes
+        item.module_key = request.module_key
+        item.recurrence_hint = request.recurrence_hint
+        item.linked_source = request.linked_source
+        item.linked_ref = request.linked_ref
         item.planned_for = request.planned_for
         item.is_done = request.is_done
         item.completed_at = self.repository.utcnow() if request.is_done else None
         self.repository.save()
-        return PlannedTodayItem(id=item.id, title=item.title, planned_for=item.planned_for, notes=item.notes, is_done=item.is_done)
+        return PlannedTodayItem(
+            id=item.id,
+            title=item.title,
+            planned_for=item.planned_for,
+            notes=item.notes,
+            module_key=item.module_key,
+            recurrence_hint=item.recurrence_hint,
+            linked_source=item.linked_source,
+            linked_ref=item.linked_ref,
+            is_done=item.is_done,
+        )
 
     def list_planned_items(self, user_id: int, start_date: date | None = None, end_date: date | None = None) -> list[PlannedTodayItem]:
         return [
-            PlannedTodayItem(id=item.id, title=item.title, planned_for=item.planned_for, notes=item.notes, is_done=item.is_done)
+            PlannedTodayItem(
+                id=item.id,
+                title=item.title,
+                planned_for=item.planned_for,
+                notes=item.notes,
+                module_key=item.module_key,
+                recurrence_hint=item.recurrence_hint,
+                linked_source=item.linked_source,
+                linked_ref=item.linked_ref,
+                is_done=item.is_done,
+            )
             for item in self.repository.list_planned_items(user_id=user_id, start_date=start_date, end_date=end_date)
         ]
 

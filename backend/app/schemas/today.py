@@ -58,11 +58,18 @@ class UpcomingTodayItem(BaseModel):
     scheduled_date: date
 
 
+PlannedItemModuleKey = Literal["shopping_list", "meal_planning", "recurring_grocery", "shared_calendar"]
+
+
 class PlannedTodayItem(BaseModel):
     id: int
     title: str
     planned_for: date
     notes: str | None = None
+    module_key: PlannedItemModuleKey | None = None
+    recurrence_hint: str | None = None
+    linked_source: str | None = None
+    linked_ref: str | None = None
     is_done: bool
 
 
@@ -70,12 +77,20 @@ class PlannedItemCreateRequest(BaseModel):
     title: str = Field(..., min_length=1, max_length=255)
     planned_for: date
     notes: str | None = Field(default=None, max_length=4000)
+    module_key: PlannedItemModuleKey | None = None
+    recurrence_hint: str | None = Field(default=None, max_length=255)
+    linked_source: str | None = Field(default=None, max_length=120)
+    linked_ref: str | None = Field(default=None, max_length=255)
 
 
 class PlannedItemUpdateRequest(BaseModel):
     title: str = Field(..., min_length=1, max_length=255)
     planned_for: date
     notes: str | None = Field(default=None, max_length=4000)
+    module_key: PlannedItemModuleKey | None = None
+    recurrence_hint: str | None = Field(default=None, max_length=255)
+    linked_source: str | None = Field(default=None, max_length=120)
+    linked_ref: str | None = Field(default=None, max_length=255)
     is_done: bool = False
 
 
@@ -87,6 +102,7 @@ class UnifiedDayItem(BaseModel):
     scheduled_at: datetime | None = None
     scheduled_date: date | None = None
     detail: str | None = None
+    module_key: PlannedItemModuleKey | None = None
 
 
 class CalendarDayResponse(BaseModel):

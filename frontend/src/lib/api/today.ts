@@ -1,6 +1,7 @@
 export type TaskStatus = 'pending' | 'in_progress' | 'completed' | 'skipped';
 export type ChoreStatus = 'pending' | 'completed' | 'skipped';
 export type MedicationDoseStatus = 'scheduled' | 'taken' | 'skipped' | 'missed';
+export type PlannedItemModuleKey = 'shopping_list' | 'meal_planning' | 'recurring_grocery' | 'shared_calendar';
 
 export interface MedicationTodayItem {
   medication_dose_instance_id: number;
@@ -57,6 +58,10 @@ export interface PlannedTodayItem {
   title: string;
   planned_for: string;
   notes: string | null;
+  module_key: PlannedItemModuleKey | null;
+  recurrence_hint: string | null;
+  linked_source: string | null;
+  linked_ref: string | null;
   is_done: boolean;
 }
 
@@ -64,6 +69,10 @@ export interface PlannedItemInput {
   title: string;
   planned_for: string;
   notes?: string | null;
+  module_key?: PlannedItemModuleKey | null;
+  recurrence_hint?: string | null;
+  linked_source?: string | null;
+  linked_ref?: string | null;
 }
 
 export interface PlannedItemBackupFile {
@@ -81,6 +90,7 @@ export interface UnifiedDayItem {
   scheduled_at: string | null;
   scheduled_date: string | null;
   detail: string | null;
+  module_key: PlannedItemModuleKey | null;
 }
 
 export interface CalendarDayPayload {
