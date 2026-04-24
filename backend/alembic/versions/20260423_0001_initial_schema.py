@@ -43,7 +43,7 @@ def upgrade() -> None:
     )
     op.create_index(op.f("ix_routine_templates_user_id"), "routine_templates", ["user_id"], unique=False)
 
-    task_status = sa.Enum("pending", "in_progress", "completed", "skipped", name="task_status")
+    task_status = sa.Enum("pending", "in_progress", "completed", "skipped", name="task_status", create_type=False)
     task_status.create(op.get_bind(), checkfirst=True)
 
     op.create_table(
