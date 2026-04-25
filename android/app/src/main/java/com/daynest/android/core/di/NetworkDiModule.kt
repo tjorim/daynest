@@ -3,6 +3,7 @@ package com.daynest.android.core.di
 import com.daynest.android.BuildConfig
 import com.daynest.android.core.network.ApiConfig
 import com.daynest.android.core.network.JsonSerializer
+import com.daynest.android.data.auth.AuthApi
 import com.daynest.android.data.today.TodayApi
 import dagger.Module
 import dagger.Provides
@@ -48,4 +49,8 @@ object NetworkDiModule {
     @Provides
     @Singleton
     fun provideTodayApi(retrofit: Retrofit): TodayApi = retrofit.create(TodayApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideAuthApi(retrofit: Retrofit): AuthApi = retrofit.create(AuthApi::class.java)
 }

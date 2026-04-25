@@ -6,6 +6,14 @@
     <string name="home_retry">Retry</string>
     <string name="home_error_generic">Unable to load today data.</string>
 
+    <string name="auth_title">Sign in to Daynest</string>
+    <string name="auth_email_label">Email</string>
+    <string name="auth_password_label">Password</string>
+    <string name="auth_sign_in_button">Sign in</string>
+    <string name="auth_error_missing_credentials">Enter both email and password.</string>
+    <string name="auth_error_sign_in_failed">Unable to sign in. Please try again.</string>
+
+
     <plurals name="home_items_remaining">
         <item quantity="one">You have %1$d item to handle today.</item>
         <item quantity="other">You have %1$d items to handle today.</item>
