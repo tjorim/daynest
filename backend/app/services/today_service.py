@@ -26,6 +26,7 @@ from app.schemas.today import (
     PlannedItemUpdateRequest,
     PlannedTodayItem,
     RoutineTodayItem,
+    TaskInstanceMutationResponse,
     TodayResponse,
     UnifiedDayItem,
     UpcomingTodayItem,
@@ -56,6 +57,7 @@ class TodayService:
             user_id=user_id,
             through_date=for_date + timedelta(days=self.UPCOMING_HORIZON_DAYS),
         )
+        self.repository.ensure_task_instances_generated(user_id=user_id, through_date=for_date)
         self.repository.ensure_medication_dose_instances_generated(user_id=user_id, through_date=for_date)
         self.repository.mark_due_medications_missed(
             user_id=user_id,
@@ -108,6 +110,7 @@ class TodayService:
             user_id=user_id,
             through_date=for_date + timedelta(days=self.UPCOMING_HORIZON_DAYS),
         )
+        self.repository.ensure_task_instances_generated(user_id=user_id, through_date=for_date)
         self.repository.ensure_medication_dose_instances_generated(
             user_id=user_id,
             through_date=for_date,
@@ -219,6 +222,7 @@ class TodayService:
 
     def get_day_items(self, user_id: int, for_date: date) -> CalendarDayResponse:
         self.repository.ensure_chore_instances_generated(user_id=user_id, through_date=for_date)
+        self.repository.ensure_task_instances_generated(user_id=user_id, through_date=for_date)
         self.repository.ensure_medication_dose_instances_generated(user_id=user_id, through_date=for_date)
         self.repository.mark_due_medications_missed(
             user_id=user_id,
@@ -307,6 +311,7 @@ class TodayService:
         end_date = date(year, month, last_day)
 
         self.repository.ensure_chore_instances_generated(user_id=user_id, through_date=end_date)
+        self.repository.ensure_task_instances_generated(user_id=user_id, through_date=end_date)
         self.repository.ensure_medication_dose_instances_generated(user_id=user_id, through_date=end_date)
         self.repository.mark_due_medications_missed(
             user_id=user_id,
@@ -398,6 +403,34 @@ class TodayService:
             skipped_at=instance.skipped_at,
         )
 
+    def start_routine_task(self, user_id: int, task_instance_id: int) -> TaskInstanceMutationResponse:
+        instance = self._get_user_task(user_id, task_instance_id)
+        if instance.status == TaskStatus.completed:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Completed tasks cannot be started again")
+        if instance.status == TaskStatus.skipped:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Skipped tasks cannot be started again")
+        instance.status = TaskStatus.in_progress
+        self.repository.save()
+        return self._task_instance_to_response(instance)
+
+    def complete_routine_task(self, user_id: int, task_instance_id: int) -> TaskInstanceMutationResponse:
+        instance = self._get_user_task(user_id, task_instance_id)
+        if instance.status == TaskStatus.skipped:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Skipped tasks cannot be completed")
+        instance.status = TaskStatus.completed
+        instance.completed_at = self.repository.utcnow()
+        self.repository.save()
+        return self._task_instance_to_response(instance)
+
+    def skip_routine_task(self, user_id: int, task_instance_id: int) -> TaskInstanceMutationResponse:
+        instance = self._get_user_task(user_id, task_instance_id)
+        if instance.status == TaskStatus.completed:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Completed tasks cannot be skipped")
+        instance.status = TaskStatus.skipped
+        instance.completed_at = None
+        self.repository.save()
+        return self._task_instance_to_response(instance)
+
     def skip_chore(self, user_id: int, chore_instance_id: int) -> ChoreInstanceMutationResponse:
         instance = self._get_user_chore(user_id, chore_instance_id)
         instance.status = ChoreStatus.skipped
@@ -435,6 +468,12 @@ class TodayService:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chore instance not found")
         return instance
 
+    def _get_user_task(self, user_id: int, task_instance_id: int) -> TaskInstance:
+        instance = self.repository.get_task_instance_for_user(user_id=user_id, task_instance_id=task_instance_id)
+        if instance is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task instance not found")
+        return instance
+
     def _get_user_planned_item(self, user_id: int, planned_item_id: int) -> PlannedItem:
         item = self.repository.get_planned_item_for_user(user_id=user_id, planned_item_id=planned_item_id)
         if item is None:
@@ -453,6 +492,16 @@ class TodayService:
             linked_source=item.linked_source,
             linked_ref=item.linked_ref,
             is_done=item.is_done,
+        )
+
+    @staticmethod
+    def _task_instance_to_response(instance: TaskInstance) -> TaskInstanceMutationResponse:
+        return TaskInstanceMutationResponse(
+            task_instance_id=instance.id,
+            status=instance.status,
+            scheduled_date=instance.scheduled_date,
+            due_at=instance.due_at,
+            completed_at=instance.completed_at,
         )
 
     def mutate_medication_status(self, user_id: int, medication_dose_instance_id: int, action: str):

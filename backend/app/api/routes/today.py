@@ -15,6 +15,7 @@ from app.schemas.today import (
     PlannedItemUpdateRequest,
     PlannedTodayItem,
     RescheduleChoreRequest,
+    TaskInstanceMutationResponse,
     TodayResponse,
 )
 from app.services.today_service import TodayService
@@ -138,3 +139,36 @@ def reschedule_chore(
         chore_instance_id=chore_instance_id,
         scheduled_date=request.scheduled_date,
     )
+
+
+@router.post("/tasks/{task_instance_id}/start", response_model=TaskInstanceMutationResponse)
+def start_task(
+    task_instance_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> TaskInstanceMutationResponse:
+    repository = TodayRepository(db)
+    service = TodayService(repository)
+    return service.start_routine_task(user_id=current_user.id, task_instance_id=task_instance_id)
+
+
+@router.post("/tasks/{task_instance_id}/complete", response_model=TaskInstanceMutationResponse)
+def complete_task(
+    task_instance_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> TaskInstanceMutationResponse:
+    repository = TodayRepository(db)
+    service = TodayService(repository)
+    return service.complete_routine_task(user_id=current_user.id, task_instance_id=task_instance_id)
+
+
+@router.post("/tasks/{task_instance_id}/skip", response_model=TaskInstanceMutationResponse)
+def skip_task(
+    task_instance_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> TaskInstanceMutationResponse:
+    repository = TodayRepository(db)
+    service = TodayService(repository)
+    return service.skip_routine_task(user_id=current_user.id, task_instance_id=task_instance_id)

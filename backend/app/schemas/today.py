@@ -147,5 +147,13 @@ class ChoreInstanceMutationResponse(BaseModel):
     skipped_at: datetime | None = None
 
 
+class TaskInstanceMutationResponse(BaseModel):
+    task_instance_id: int
+    status: TaskStatus
+    scheduled_date: date
+    due_at: datetime | None = None
+    completed_at: datetime | None = None
+
+
 class RescheduleChoreRequest(BaseModel):
     scheduled_date: date = Field(..., description="New date for the chore instance")

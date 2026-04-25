@@ -8,6 +8,7 @@ from app.api.routes.integrations.clients import router as integration_clients_ro
 from app.api.routes.integrations.home_assistant import router as home_assistant_router
 from app.api.routes.integrations.mcp import router as mcp_router
 from app.api.routes.medications import router as medications_router
+from app.api.routes.templates import router as templates_router
 from app.api.routes.today import router as today_router
 from app.core.config import settings
 from app.core.observability import configure_error_tracking, configure_logging, observability_middleware
@@ -38,6 +39,7 @@ app.include_router(home_assistant_router, prefix=settings.api_prefix)
 app.include_router(mcp_router, prefix=settings.api_prefix)
 app.include_router(today_router, prefix=settings.api_prefix)
 app.include_router(medications_router, prefix=settings.api_prefix)
+app.include_router(templates_router, prefix=settings.api_prefix)
 
 
 @app.get("/")

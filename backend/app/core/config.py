@@ -95,6 +95,8 @@ class AppSettings(BaseSettings):
     def resolved_database_url(self) -> str:
         if self.database_url:
             return self.database_url
+        if self.environment == "dev":
+            return "sqlite:///./dev.db"
         password = self.resolved_db_password
         if password:
             return f"postgresql+psycopg://{quote_plus(self.db_user)}:{quote_plus(password)}@{self.db_host}:{self.db_port}/{self.db_name}"

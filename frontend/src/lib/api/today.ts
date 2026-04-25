@@ -2,6 +2,8 @@ export type TaskStatus = 'pending' | 'in_progress' | 'completed' | 'skipped';
 export type ChoreStatus = 'pending' | 'completed' | 'skipped';
 export type MedicationDoseStatus = 'scheduled' | 'taken' | 'skipped' | 'missed';
 export type PlannedItemModuleKey = 'shopping_list' | 'meal_planning' | 'recurring_grocery' | 'shared_calendar';
+import { refreshSessionTokens } from './auth';
+import { clearStoredTokens, getStoredTokens } from '../auth/session';
 
 export interface MedicationTodayItem {
   medication_dose_instance_id: number;
@@ -75,6 +77,10 @@ export interface PlannedItemInput {
   linked_ref?: string | null;
 }
 
+export interface PlannedItemUpdateInput extends PlannedItemInput {
+  is_done: boolean;
+}
+
 export interface PlannedItemBackupFile {
   exported_at: string;
   source: 'daynest';
@@ -132,10 +138,96 @@ export interface ChoreMutationResponse {
   skipped_at: string | null;
 }
 
+export interface TaskMutationResponse {
+  task_instance_id: number;
+  status: TaskStatus;
+  scheduled_date: string;
+  due_at: string | null;
+  completed_at: string | null;
+}
+
 export interface MedicationMutationResponse {
   medication_dose_instance_id: number;
   status: MedicationDoseStatus;
   scheduled_date: string;
+}
+
+export interface MedicationPlan {
+  id: number;
+  name: string;
+  instructions: string;
+  start_date: string;
+  schedule_time: string;
+  every_n_days: number;
+  is_active: boolean;
+}
+
+export interface MedicationPlanInput {
+  name: string;
+  instructions: string;
+  start_date: string;
+  schedule_time: string;
+  every_n_days: number;
+}
+
+export interface MedicationHistoryResponse {
+  history: MedicationHistoryItem[];
+}
+
+export interface IntegrationClient {
+  id: number;
+  name: string;
+  scopes: string[];
+  rate_limit_per_minute: number;
+  is_active: boolean;
+}
+
+export interface IntegrationClientInput {
+  name: string;
+  scopes: string[];
+  rate_limit_per_minute: number;
+}
+
+export interface IntegrationClientCreateResponse extends IntegrationClient {
+  api_key: string;
+}
+
+export interface RoutineTemplate {
+  id: number;
+  name: string;
+  description: string | null;
+  start_date: string;
+  every_n_days: number;
+  due_time: string | null;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface RoutineTemplateInput {
+  name: string;
+  description?: string | null;
+  start_date: string;
+  every_n_days: number;
+  due_time?: string | null;
+  is_active: boolean;
+}
+
+export interface ChoreTemplate {
+  id: number;
+  name: string;
+  description: string | null;
+  start_date: string;
+  every_n_days: number;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface ChoreTemplateInput {
+  name: string;
+  description?: string | null;
+  start_date: string;
+  every_n_days: number;
+  is_active: boolean;
 }
 
 export class ApiError extends Error {
@@ -149,15 +241,6 @@ export class ApiError extends Error {
     this.retryable = retryable;
   }
 }
-
-interface TokenPairResponse {
-  access_token: string;
-  refresh_token: string;
-}
-
-const DEV_ACCESS_TOKEN_KEY = 'daynest.dev.accessToken';
-const DEV_REFRESH_TOKEN_KEY = 'daynest.dev.refreshToken';
-let devLoginPromise: Promise<string> | null = null;
 
 function isRetryableStatus(status: number): boolean {
   return status === 408 || status === 425 || status === 429 || status >= 500;
@@ -198,68 +281,30 @@ async function fetchWithRetry(input: RequestInfo | URL, init: RequestInit = {}, 
   throw new ApiError('Network request failed.', 0, isIdempotent);
 }
 
-function withAuthHeader(init: RequestInit, token: string): RequestInit {
+function withAuthHeader(init: RequestInit, token?: string): RequestInit {
+  if (!token) {
+    return init;
+  }
   const headers = new Headers(init.headers);
   headers.set('Authorization', `Bearer ${token}`);
   return { ...init, headers };
 }
 
-async function getDevAccessToken(): Promise<string | null> {
-  if (!import.meta.env.DEV) {
-    return null;
-  }
-
-  const existing = window.localStorage.getItem(DEV_ACCESS_TOKEN_KEY);
-  if (existing) {
-    return existing;
-  }
-
-  devLoginPromise ??= (async () => {
-    const response = await fetchWithRetry(
-      '/api/v1/auth/login',
-      {
-        method: 'POST',
-        headers: {
-          Accept: 'application/json',
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: 'dev@example.com',
-          full_name: 'Dev User',
-          password: 'dev-password',
-        }),
-      },
-      0,
-    );
-    const tokens = await parseJsonResponse<TokenPairResponse>(response, 'Unable to create dev session', false);
-    window.localStorage.setItem(DEV_ACCESS_TOKEN_KEY, tokens.access_token);
-    window.localStorage.setItem(DEV_REFRESH_TOKEN_KEY, tokens.refresh_token);
-    return tokens.access_token;
-  })();
-
-  try {
-    return await devLoginPromise;
-  } finally {
-    devLoginPromise = null;
-  }
-}
-
 async function fetchWithDevAuth(input: RequestInfo | URL, init: RequestInit = {}, retries = 2): Promise<Response> {
-  const token = await getDevAccessToken();
-  const response = await fetchWithRetry(input, token ? withAuthHeader(init, token) : init, retries);
+  const token = getStoredTokens()?.accessToken;
+  const response = await fetchWithRetry(input, withAuthHeader(init, token), retries);
 
   if (response.status !== 401 && response.status !== 403) {
     return response;
   }
 
-  if (!import.meta.env.DEV) {
+  const refreshed = await refreshSessionTokens();
+  if (!refreshed) {
+    clearStoredTokens();
     return response;
   }
 
-  window.localStorage.removeItem(DEV_ACCESS_TOKEN_KEY);
-  window.localStorage.removeItem(DEV_REFRESH_TOKEN_KEY);
-  const refreshedToken = await getDevAccessToken();
-  return fetchWithRetry(input, refreshedToken ? withAuthHeader(init, refreshedToken) : init, retries);
+  return fetchWithRetry(input, withAuthHeader(init, refreshed.accessToken), retries);
 }
 
 async function parseJsonResponse<T>(response: Response, fallbackMessage = 'Request failed', isIdempotent = true): Promise<T> {
@@ -336,6 +381,29 @@ export async function createPlannedItem(input: PlannedItemInput): Promise<Planne
   return parseJsonResponse<PlannedTodayItem>(response, 'Request failed', false);
 }
 
+export async function updatePlannedItem(plannedItemId: number, input: PlannedItemUpdateInput): Promise<PlannedTodayItem> {
+  const response = await fetchWithDevAuth(`/api/v1/planned-items/${plannedItemId}`, {
+    method: 'PUT',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(input),
+  });
+  return parseJsonResponse<PlannedTodayItem>(response, 'Request failed', false);
+}
+
+export async function deletePlannedItem(plannedItemId: number): Promise<void> {
+  const response = await fetchWithDevAuth(`/api/v1/planned-items/${plannedItemId}`, {
+    method: 'DELETE',
+    headers: { Accept: 'application/json' },
+  });
+
+  if (!response.ok) {
+    await parseJsonResponse<never>(response, 'Request failed', false);
+  }
+}
+
 export async function listPlannedItems(startDate?: string, endDate?: string): Promise<PlannedTodayItem[]> {
   const params = new URLSearchParams();
   if (startDate) {
@@ -394,6 +462,160 @@ export async function skipMedicationDose(medicationDoseId: number): Promise<Medi
     headers: { Accept: 'application/json' },
   });
   return parseJsonResponse<MedicationMutationResponse>(response, 'Request failed', false);
+}
+
+export async function startRoutineTask(taskInstanceId: number): Promise<TaskMutationResponse> {
+  const response = await fetchWithDevAuth(`/api/v1/tasks/${taskInstanceId}/start`, {
+    method: 'POST',
+    headers: { Accept: 'application/json' },
+  });
+  return parseJsonResponse<TaskMutationResponse>(response, 'Request failed', false);
+}
+
+export async function completeRoutineTask(taskInstanceId: number): Promise<TaskMutationResponse> {
+  const response = await fetchWithDevAuth(`/api/v1/tasks/${taskInstanceId}/complete`, {
+    method: 'POST',
+    headers: { Accept: 'application/json' },
+  });
+  return parseJsonResponse<TaskMutationResponse>(response, 'Request failed', false);
+}
+
+export async function skipRoutineTask(taskInstanceId: number): Promise<TaskMutationResponse> {
+  const response = await fetchWithDevAuth(`/api/v1/tasks/${taskInstanceId}/skip`, {
+    method: 'POST',
+    headers: { Accept: 'application/json' },
+  });
+  return parseJsonResponse<TaskMutationResponse>(response, 'Request failed', false);
+}
+
+export async function listMedicationPlans(): Promise<MedicationPlan[]> {
+  const response = await fetchWithDevAuth('/api/v1/medications', {
+    headers: { Accept: 'application/json' },
+  });
+  return parseJsonResponse<MedicationPlan[]>(response);
+}
+
+export async function createMedicationPlan(input: MedicationPlanInput): Promise<MedicationPlan> {
+  const response = await fetchWithDevAuth('/api/v1/medications', {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(input),
+  });
+  return parseJsonResponse<MedicationPlan>(response, 'Request failed', false);
+}
+
+export async function fetchMedicationHistory(): Promise<MedicationHistoryItem[]> {
+  const response = await fetchWithDevAuth('/api/v1/medication-doses/history', {
+    headers: { Accept: 'application/json' },
+  });
+  const payload = await parseJsonResponse<MedicationHistoryResponse>(response);
+  return payload.history;
+}
+
+export async function listIntegrationClients(): Promise<IntegrationClient[]> {
+  const response = await fetchWithDevAuth('/api/v1/integrations/clients', {
+    headers: { Accept: 'application/json' },
+  });
+  return parseJsonResponse<IntegrationClient[]>(response);
+}
+
+export async function createIntegrationClient(input: IntegrationClientInput): Promise<IntegrationClientCreateResponse> {
+  const response = await fetchWithDevAuth('/api/v1/integrations/clients', {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(input),
+  });
+  return parseJsonResponse<IntegrationClientCreateResponse>(response, 'Request failed', false);
+}
+
+export async function listRoutineTemplates(): Promise<RoutineTemplate[]> {
+  const response = await fetchWithDevAuth('/api/v1/routines', {
+    headers: { Accept: 'application/json' },
+  });
+  return parseJsonResponse<RoutineTemplate[]>(response);
+}
+
+export async function createRoutineTemplate(input: RoutineTemplateInput): Promise<RoutineTemplate> {
+  const response = await fetchWithDevAuth('/api/v1/routines', {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(input),
+  });
+  return parseJsonResponse<RoutineTemplate>(response, 'Request failed', false);
+}
+
+export async function updateRoutineTemplate(routineTemplateId: number, input: RoutineTemplateInput): Promise<RoutineTemplate> {
+  const response = await fetchWithDevAuth(`/api/v1/routines/${routineTemplateId}`, {
+    method: 'PUT',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(input),
+  });
+  return parseJsonResponse<RoutineTemplate>(response, 'Request failed', false);
+}
+
+export async function deleteRoutineTemplate(routineTemplateId: number): Promise<void> {
+  const response = await fetchWithDevAuth(`/api/v1/routines/${routineTemplateId}`, {
+    method: 'DELETE',
+    headers: { Accept: 'application/json' },
+  });
+
+  if (!response.ok) {
+    await parseJsonResponse<never>(response, 'Request failed', false);
+  }
+}
+
+export async function listChoreTemplates(): Promise<ChoreTemplate[]> {
+  const response = await fetchWithDevAuth('/api/v1/chore-templates', {
+    headers: { Accept: 'application/json' },
+  });
+  return parseJsonResponse<ChoreTemplate[]>(response);
+}
+
+export async function createChoreTemplate(input: ChoreTemplateInput): Promise<ChoreTemplate> {
+  const response = await fetchWithDevAuth('/api/v1/chore-templates', {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(input),
+  });
+  return parseJsonResponse<ChoreTemplate>(response, 'Request failed', false);
+}
+
+export async function updateChoreTemplate(choreTemplateId: number, input: ChoreTemplateInput): Promise<ChoreTemplate> {
+  const response = await fetchWithDevAuth(`/api/v1/chore-templates/${choreTemplateId}`, {
+    method: 'PUT',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(input),
+  });
+  return parseJsonResponse<ChoreTemplate>(response, 'Request failed', false);
+}
+
+export async function deleteChoreTemplate(choreTemplateId: number): Promise<void> {
+  const response = await fetchWithDevAuth(`/api/v1/chore-templates/${choreTemplateId}`, {
+    method: 'DELETE',
+    headers: { Accept: 'application/json' },
+  });
+
+  if (!response.ok) {
+    await parseJsonResponse<never>(response, 'Request failed', false);
+  }
 }
 
 export function isRetryableApiError(error: unknown): boolean {
