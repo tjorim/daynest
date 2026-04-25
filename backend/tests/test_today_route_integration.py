@@ -21,7 +21,7 @@ def _create_user(db_session: Session, email: str) -> User:
 
 def test_get_today_requires_authentication(client: TestClient) -> None:
     response = client.get("/api/v1/today")
-    assert response.status_code == 403
+    assert response.status_code == 401
 
 
 def test_get_today_includes_generated_chore_sections(client: TestClient, db_session: Session) -> None:
