@@ -1,0 +1,66 @@
+name: enforce-branch-protection
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/ci-safety.yml
+      - .github/workflows/branch-protection.yml
+
+jobs:
+  protect-main:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Fail if BRANCH_PROTECTION_TOKEN is not set
+        run: |
+          if [ -z "${{ secrets.BRANCH_PROTECTION_TOKEN }}" ]; then
+            echo "::error::BRANCH_PROTECTION_TOKEN secret is required but not set."
+            exit 1
+          fi
+
+      - name: Enforce required status checks on main
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.BRANCH_PROTECTION_TOKEN }}
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const branch = 'main';
+
+            const contexts = [
+              'backend-safety',
+              'frontend-type-build',
+              'migration-check',
+              'container-build-verification (backend)',
+              'container-build-verification (frontend)'
+            ];
+
+            await github.request('PUT /repos/{owner}/{repo}/branches/{branch}/protection', {
+              owner,
+              repo,
+              branch,
+              required_status_checks: {
+                strict: true,
+                contexts
+              },
+              enforce_admins: true,
+              required_pull_request_reviews: {
+                dismiss_stale_reviews: true,
+                require_code_owner_reviews: false,
+                required_approving_review_count: 1
+              },
+              restrictions: null,
+              required_linear_history: true,
+              allow_force_pushes: false,
+              allow_deletions: false,
+              block_creations: false,
+              required_conversation_resolution: true,
+              lock_branch: false,
+              allow_fork_syncing: true
+            });
+
+            core.info(`Branch protection updated for ${owner}/${repo}@${branch}.`);

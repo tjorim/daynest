@@ -1,0 +1,64 @@
+services:
+  caddy:
+    image: caddy:2
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - frontend
+      - backend
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    expose:
+      - "5173"
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    env_file:
+      - ${BACKEND_ENV_FILE:-./backend/env/dev.env}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    expose:
+      - "8000"
+    secrets:
+      - jwt_secret
+      - postgres_password
+
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: daynest
+      POSTGRES_USER: daynest
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    expose:
+      - "5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U daynest -d daynest"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    secrets:
+      - postgres_password
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:
+
+secrets:
+  jwt_secret:
+    file: ${JWT_SECRET_FILE_PATH:-./secrets/dev/jwt_secret.txt}
+  postgres_password:
+    file: ${POSTGRES_PASSWORD_FILE_PATH:-./secrets/dev/postgres_password.txt}

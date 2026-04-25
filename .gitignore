@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Node
+node_modules/
+dist/
+*.tsbuildinfo
+.vite/
+
+# Local dev/runtime artifacts
+.playwright-mcp/
+*.log
+*.db
+
+# Env
+.env
+secrets/**
+!secrets/**/.gitkeep
+!secrets/**/*.example.txt
+
+# OS/editor
+.DS_Store
+.vscode/
+.idea/
+
+# Claude Code local settings
+.claude/settings.local.json
