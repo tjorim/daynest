@@ -9,7 +9,7 @@ import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.const import CONF_API_KEY, CONF_URL
 from homeassistant.helpers import selector
-from homeassistant.helpers.aiohttp_client import async_create_clientsession
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.loader import async_get_loaded_integration
 
 from .api import (
@@ -80,21 +80,20 @@ class DaynestConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 )
 
         integration = async_get_loaded_integration(self.hass, DOMAIN)
-        assert integration.documentation is not None, "Integration documentation URL is not set in manifest.json"
 
         return self.async_show_form(
             step_id="user",
             data_schema=_user_schema(user_input),
             errors=errors,
             description_placeholders={
-                "documentation_url": integration.documentation,
+                "documentation_url": integration.documentation or "",
             },
         )
 
     async def _async_validate_user_input(self, user_input: dict[str, str]) -> dict[str, str]:
         """Validate user input by calling Daynest summary endpoint."""
         client = DaynestApiClient(
-            session=async_create_clientsession(self.hass),
+            session=async_get_clientsession(self.hass),
             base_url=user_input[CONF_URL],
             integration_key=user_input[CONF_API_KEY],
         )
