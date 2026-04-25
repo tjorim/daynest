@@ -90,7 +90,10 @@ Core runtime pieces:
 
 - Treat Daynest response shape as an external contract.
 - Require and log `X-Integration-Contract` to verify expected version.
-- Gracefully degrade if optional fields are missing.
+- On contract mismatch, fail loudly with user-visible remediation:
+  - during setup/re-auth, raise `ConfigEntryAuthFailed` with a clear message about required backend/integration versions;
+  - during runtime refresh, create a persistent notification and mark entities unavailable until compatibility is restored.
+- Gracefully degrade only for explicitly optional fields; do not silently ignore contract-version incompatibility.
 - Pin minimum backend contract version in integration constants.
 
 ## Delivery plan
