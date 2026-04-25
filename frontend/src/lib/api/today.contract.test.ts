@@ -11,12 +11,31 @@ type TodayTopLevelKeys = keyof TodayPayload;
 type _todayKeysAreStable = Expect<
   Equal<
     TodayTopLevelKeys,
-    'medication' | 'routines' | 'overdue' | 'due_today' | 'upcoming' | 'planned'
+    'medication' | 'medication_history' | 'routines' | 'overdue' | 'due_today' | 'upcoming' | 'planned' | 'day_items'
   >
 >;
 
 const contractExample: TodayPayload = {
-  medication: [{ id: 1, name: 'Vitamin D', due_at: '2026-04-23T09:00:00Z' }],
+  medication: [
+    {
+      medication_dose_instance_id: 1,
+      medication_plan_id: 5,
+      name: 'Vitamin D',
+      instructions: 'Take with breakfast and water.',
+      scheduled_at: '2026-04-23T09:00:00Z',
+      status: 'scheduled',
+    },
+  ],
+  medication_history: [
+    {
+      medication_dose_instance_id: 2,
+      medication_plan_id: 5,
+      name: 'Vitamin D',
+      instructions: 'Take with breakfast and water.',
+      scheduled_at: '2026-04-22T09:00:00Z',
+      status: 'taken',
+    },
+  ],
   routines: [
     {
       task_instance_id: 10,
@@ -27,18 +46,42 @@ const contractExample: TodayPayload = {
       due_at: null,
     },
   ],
-  overdue: [{ id: 7, title: 'Laundry', overdue_since: '2026-04-20' }],
+  overdue: [{ chore_instance_id: 7, chore_template_id: 3, title: 'Laundry', status: 'pending', overdue_since: '2026-04-20' }],
   due_today: [
     {
-      task_instance_id: 10,
+      chore_instance_id: 10,
+      chore_template_id: 2,
       title: 'Morning stretch',
       status: 'pending',
       scheduled_date: '2026-04-23',
-      due_at: null,
     },
   ],
-  upcoming: [{ id: 12, title: 'Refill meds', scheduled_date: '2026-04-24' }],
-  planned: [{ id: 13, title: 'Meal prep', planned_for: '2026-04-25' }],
+  upcoming: [{ chore_instance_id: 12, chore_template_id: 4, title: 'Refill meds', scheduled_date: '2026-04-24' }],
+  planned: [
+    {
+      id: 13,
+      title: 'Meal prep',
+      planned_for: '2026-04-25',
+      notes: null,
+      module_key: 'meal_planning',
+      recurrence_hint: 'weekly',
+      linked_source: 'google_calendar',
+      linked_ref: 'event_13',
+      is_done: false,
+    },
+  ],
+  day_items: [
+    {
+      item_type: 'planned',
+      item_id: 13,
+      title: 'Meal prep',
+      status: 'planned',
+      scheduled_at: null,
+      scheduled_date: '2026-04-25',
+      detail: null,
+      module_key: 'meal_planning',
+    },
+  ],
 };
 
 void contractExample;
