@@ -55,7 +55,7 @@ Uncomment and customize these badges if you want to use them:
 
 Click the button below to open the integration directly in HACS:
 
-[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=jpawlowski&repository=daynest-home-assistant&category=integration)
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=daynest&repository=daynest-home-assistant&category=integration)
 
 Then:
 
@@ -133,6 +133,58 @@ Find all entities in **Settings** → **Devices & Services** → **Daynest** →
 - [Configuration](docs/user/CONFIGURATION.md) - Detailed configuration options
 - [Examples](docs/user/EXAMPLES.md) - Automation and dashboard examples
 - [Backend Integration: Home Assistant Custom Integration](docs/user/BACKEND_INTEGRATION_HOME_ASSISTANT.md) - API scope, base URL, endpoints, and error handling guidance
+
+## HACS Repository Structure
+
+This repository is structured for direct HACS installation:
+
+- `hacs.json` exists in the repository root and defines HACS metadata
+- Integration code is located at `custom_components/daynest/`
+- `custom_components/daynest/manifest.json` includes the integration `version`
+- `README.md` is rendered in HACS for install/setup guidance
+
+## Compatibility Matrix (Integration ↔ Backend Contract)
+
+The integration includes the backend contract expectation using the `X-Integration-Contract` header. Keep backend behavior aligned with the matrix below during upgrades.
+
+| Integration version | Expected `X-Integration-Contract` | Backend expectation |
+| --- | --- | --- |
+| `0.1.x` | `daynest-ha.v1` | Supports `GET /health`, `GET /v1/air-quality`, and `GET /v1/device` contract documented in [the backend integration guide](docs/user/BACKEND_INTEGRATION_HOME_ASSISTANT.md). |
+
+> [!NOTE]
+> When introducing a new backend contract (`daynest-ha.v2`, etc.), add a new row before release and document compatibility or migration notes in `CHANGELOG.md`.
+
+## Release Checklist
+
+Use this checklist before and after publishing each integration release.
+
+### 1) Version tagging
+
+- [ ] Confirm `custom_components/daynest/manifest.json` version is correct (`./script/version`)
+- [ ] Confirm release tag format is `vX.Y.Z` and matches `manifest.json`
+- [ ] Verify `.release-please-manifest.json` is aligned (`./script/version --check`)
+
+### 2) Changelog updates
+
+- [ ] Verify `CHANGELOG.md` includes all user-facing changes for the release
+- [ ] Ensure compatibility or migration notes are present for contract changes
+- [ ] Ensure non-user-facing internal changes remain excluded (per release-please config)
+
+### 3) Daynest backend contract compatibility notes
+
+- [ ] Confirm the compatibility matrix in this README is updated for the new version
+- [ ] Confirm backend expectation still matches integration requests and payload parsing
+- [ ] If contract changed, include explicit upgrade notes and rollback guidance
+
+### 4) Post-release validation in a real Home Assistant instance
+
+- [ ] Install from HACS in a non-dev Home Assistant instance and restart HA
+- [ ] Add or reconfigure the Daynest integration through UI config flow
+- [ ] Validate entities load and update (`sensor`, `binary_sensor`, `fan`, `select`, `number`, `button`, `switch`)
+- [ ] Execute `daynest.reload_data` and verify coordinator refresh succeeds
+- [ ] Check Home Assistant logs for auth, schema, and availability errors
+- [ ] Validate diagnostics redaction and confirm no secrets are exposed
+- [ ] Verify upgrade path from previous release (no orphaned entities or broken config entries)
 
 ## Available Entities
 
