@@ -3,14 +3,13 @@ package com.daynest.android.feature.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.daynest.android.core.model.TodaySummary
-import com.daynest.android.core.network.NetworkModule
 import com.daynest.android.data.today.TodayRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class HomeViewModel(
-    private val repository: TodayRepository = TodayRepository(NetworkModule.todayApi),
+    private val repository: TodayRepository,
 ) : ViewModel() {
     private val _state = MutableStateFlow<HomeUiState>(HomeUiState.Loading)
 
