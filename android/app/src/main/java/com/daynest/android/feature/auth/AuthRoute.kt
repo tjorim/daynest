@@ -1,4 +1,4 @@
-@file:Suppress("ktlint:standard:function-naming")
+@file:Suppress("ktlint:standard:function-naming", "FunctionNaming")
 
 package com.daynest.android.feature.auth
 
@@ -45,6 +45,7 @@ fun AuthRoute(
 }
 
 @Composable
+@Suppress("LongMethod")
 internal fun AuthScreen(
     uiState: AuthUiState,
     onEvent: (AuthUiEvent) -> Unit,
