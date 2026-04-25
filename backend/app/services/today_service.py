@@ -47,12 +47,10 @@ class TodayService:
 
     UPCOMING_HORIZON_DAYS = 7
 
-    def __init__(self, repository: TodayRepository | None = None):
+    def __init__(self, repository: TodayRepository):
         self.repository = repository
 
     def _fetch_day_data(self, user_id: int, for_date: date) -> _TodayData:
-        if self.repository is None:
-            raise ValueError("TodayRepository is required")
         self.repository.ensure_chore_instances_generated(
             user_id=user_id,
             through_date=date.fromordinal(for_date.toordinal() + self.UPCOMING_HORIZON_DAYS),
@@ -101,9 +99,6 @@ class TodayService:
         )
 
     def get_today(self, user_id: int, for_date: date) -> TodayResponse:
-        if self.repository is None:
-            raise ValueError("TodayRepository is required to fetch today view data")
-
         self.repository.ensure_chore_instances_generated(
             user_id=user_id,
             through_date=date.fromordinal(for_date.toordinal() + self.UPCOMING_HORIZON_DAYS),
@@ -209,9 +204,6 @@ class TodayService:
         )
 
     def get_day_items(self, user_id: int, for_date: date) -> CalendarDayResponse:
-        if self.repository is None:
-            raise ValueError("TodayRepository is required")
-
         self.repository.ensure_chore_instances_generated(user_id=user_id, through_date=for_date)
         self.repository.ensure_medication_dose_instances_generated(user_id=user_id, through_date=for_date)
         self.repository.mark_due_medications_missed(user_id=user_id, now=self.repository.utcnow())
@@ -279,9 +271,6 @@ class TodayService:
         return CalendarDayResponse(date=for_date, items=items)
 
     def get_month(self, user_id: int, year: int, month: int) -> CalendarMonthResponse:
-        if self.repository is None:
-            raise ValueError("TodayRepository is required")
-
         _, last_day = monthrange(year, month)
         start_date = date(year, month, 1)
         end_date = date(year, month, last_day)
@@ -318,8 +307,6 @@ class TodayService:
         return CalendarMonthResponse(year=year, month=month, days=days)
 
     def create_planned_item(self, user_id: int, request: PlannedItemCreateRequest) -> PlannedTodayItem:
-        if self.repository is None:
-            raise ValueError("TodayRepository is required")
         item = self.repository.add_planned_item(
             PlannedItem(
                 user_id=user_id,
