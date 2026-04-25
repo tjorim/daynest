@@ -10,7 +10,7 @@ import com.daynest.android.data.today.TodayApi
 import com.daynest.android.data.today.TodayRepository
 import com.daynest.android.data.today.TodayResponseDto
 import com.daynest.android.data.today.UpcomingTodayItemDto
-import java.util.ArrayDeque
+import kotlin.collections.ArrayDeque
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
