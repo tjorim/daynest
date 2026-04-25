@@ -40,4 +40,4 @@ def client(db_session: Session) -> Generator[TestClient, None, None]:
     with TestClient(app, base_url="http://localhost") as test_client:
         yield test_client
 
-    app.dependency_overrides.clear()
+    app.dependency_overrides.pop(get_db, None)
