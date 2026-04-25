@@ -1,3 +1,4 @@
+import dayjs from 'dayjs';
 import { useEffect, useState } from 'react';
 import {
   fetchToday,
@@ -17,20 +18,20 @@ type SectionItem = {
   isTask: boolean;
 };
 
-const STUB_ACTION = () => {
+const STUB_ACTION = (_taskId: string, _action: string) => {
   // TODO: wire to task mutation endpoints.
 };
 
-function TaskActions() {
+function TaskActions({ taskId }: { taskId: string }) {
   return (
     <div className="btn-group btn-group-sm" role="group" aria-label="Task actions">
-      <button type="button" className="btn btn-outline-success" onClick={STUB_ACTION}>
+      <button type="button" className="btn btn-outline-success" onClick={() => STUB_ACTION(taskId, 'done')}>
         Done
       </button>
-      <button type="button" className="btn btn-outline-secondary" onClick={STUB_ACTION}>
+      <button type="button" className="btn btn-outline-secondary" onClick={() => STUB_ACTION(taskId, 'skip')}>
         Skip
       </button>
-      <button type="button" className="btn btn-outline-primary" onClick={STUB_ACTION}>
+      <button type="button" className="btn btn-outline-primary" onClick={() => STUB_ACTION(taskId, 'reschedule')}>
         Reschedule
       </button>
     </div>
@@ -45,7 +46,7 @@ function buildMedicationItems(items: MedicationTodayItem[]): SectionItem[] {
   return items.map((item) => ({
     id: `medication-${item.id}`,
     title: item.name,
-    subtitle: item.due_at ? `Due ${new Date(item.due_at).toLocaleTimeString()}` : undefined,
+    subtitle: item.due_at ? `Due ${dayjs(item.due_at).format('HH:mm')}` : undefined,
     isTask: false,
   }));
 }
@@ -54,7 +55,7 @@ function buildRoutineItems(items: RoutineTodayItem[]): SectionItem[] {
   return items.map((item) => ({
     id: `routine-${item.task_instance_id}`,
     title: item.title,
-    subtitle: formatSubtitle(item.status, item.scheduled_date, item.due_at ?? undefined),
+    subtitle: formatSubtitle(item.status, item.scheduled_date, item.due_at ? dayjs(item.due_at).format('HH:mm') : undefined),
     isTask: true,
   }));
 }
@@ -72,7 +73,7 @@ function buildDueTodayItems(items: DueTodayItem[]): SectionItem[] {
   return items.map((item) => ({
     id: `due-${item.task_instance_id}`,
     title: item.title,
-    subtitle: formatSubtitle(item.status, item.scheduled_date, item.due_at ?? undefined),
+    subtitle: formatSubtitle(item.status, item.scheduled_date, item.due_at ? dayjs(item.due_at).format('HH:mm') : undefined),
     isTask: true,
   }));
 }
@@ -115,7 +116,7 @@ function SectionCard({
                 <div className="fw-medium">{item.title}</div>
                 {item.subtitle ? <small className="text-muted">{item.subtitle}</small> : null}
               </div>
-              {item.isTask ? <TaskActions /> : null}
+              {item.isTask ? <TaskActions taskId={item.id} /> : null}
             </li>
           ))
         )}
