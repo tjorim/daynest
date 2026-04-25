@@ -1,4 +1,5 @@
 from app.models.chore_instance import ChoreInstance, ChoreStatus
+from app.models.integration_client import IntegrationClient
 from app.models.chore_template import ChoreTemplate
 from app.models.medication_dose_instance import MedicationDoseInstance, MedicationDoseStatus
 from app.models.medication_plan import MedicationPlan
@@ -15,6 +16,7 @@ __all__ = [
     "ChoreTemplate",
     "ChoreInstance",
     "ChoreStatus",
+    "IntegrationClient",
     "MedicationPlan",
     "MedicationDoseInstance",
     "MedicationDoseStatus",

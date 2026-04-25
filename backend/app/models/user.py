@@ -1,9 +1,22 @@
+from __future__ import annotations
+
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Boolean, DateTime, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
+
+if TYPE_CHECKING:
+    from app.models.chore_instance import ChoreInstance
+    from app.models.chore_template import ChoreTemplate
+    from app.models.integration_client import IntegrationClient
+    from app.models.medication_dose_instance import MedicationDoseInstance
+    from app.models.medication_plan import MedicationPlan
+    from app.models.planned_item import PlannedItem
+    from app.models.routine_template import RoutineTemplate
+    from app.models.task_instance import TaskInstance
 
 
 class User(Base):
@@ -26,3 +39,7 @@ class User(Base):
         cascade="all, delete-orphan",
     )
     planned_items: Mapped[list["PlannedItem"]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    integration_clients: Mapped[list["IntegrationClient"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
