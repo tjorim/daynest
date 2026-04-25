@@ -127,6 +127,13 @@ The integration creates several entities for your air purifier:
 
 Find all entities in **Settings** → **Devices & Services** → **Daynest** → click on the device.
 
+## Integration Docs
+
+- [Getting Started](docs/user/GETTING_STARTED.md) - Installation and initial setup
+- [Configuration](docs/user/CONFIGURATION.md) - Detailed configuration options
+- [Examples](docs/user/EXAMPLES.md) - Automation and dashboard examples
+- [Backend Integration: Home Assistant Custom Integration](docs/user/BACKEND_INTEGRATION_HOME_ASSISTANT.md) - API scope, base URL, endpoints, and error handling guidance
+
 ## Available Entities
 
 ### Sensors
