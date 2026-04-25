@@ -18,28 +18,33 @@ class TodayRepository:
         self.db = db
 
     def ensure_chore_instances_generated(self, user_id: int, through_date: date) -> None:
-        templates_stmt = (
-            select(ChoreTemplate)
-            .where(ChoreTemplate.user_id == user_id)
-            .where(ChoreTemplate.is_active.is_(True))
+        templates = list(
+            self.db.scalars(
+                select(ChoreTemplate)
+                .where(ChoreTemplate.user_id == user_id)
+                .where(ChoreTemplate.is_active.is_(True))
+            ).all()
         )
-        templates = list(self.db.scalars(templates_stmt).all())
+        if not templates:
+            return
 
+        template_ids = [t.id for t in templates]
+        last_generated_rows = self.db.execute(
+            select(ChoreInstance.chore_template_id, func.max(ChoreInstance.scheduled_date))
+            .where(ChoreInstance.chore_template_id.in_(template_ids))
+            .group_by(ChoreInstance.chore_template_id)
+        ).all()
+        last_generated_map: dict[int, date] = {row[0]: row[1] for row in last_generated_rows}
+
+        rows = []
         for template in templates:
             if template.start_date > through_date:
                 continue
 
             step = max(template.every_n_days, 1)
-            last_generated = self.db.scalar(
-                select(func.max(ChoreInstance.scheduled_date))
-                .where(ChoreInstance.chore_template_id == template.id)
-            )
-            if last_generated is None:
-                cursor = template.start_date
-            else:
-                cursor = date.fromordinal(last_generated.toordinal() + step)
+            last = last_generated_map.get(template.id)
+            cursor = template.start_date if last is None else date.fromordinal(last.toordinal() + step)
 
-            rows = []
             while cursor <= through_date:
                 rows.append({
                     "user_id": user_id,
@@ -49,16 +54,17 @@ class TodayRepository:
                     "status": ChoreStatus.pending,
                 })
                 cursor = date.fromordinal(cursor.toordinal() + step)
-            if rows:
-                dialect_name = self.db.connection().dialect.name
-                if dialect_name == "postgresql":
-                    self.db.execute(
-                        pg_insert(ChoreInstance).values(rows).on_conflict_do_nothing(
-                            index_elements=["chore_template_id", "scheduled_date"]
-                        )
+
+        if rows:
+            dialect_name = self.db.connection().dialect.name
+            if dialect_name == "postgresql":
+                self.db.execute(
+                    pg_insert(ChoreInstance).values(rows).on_conflict_do_nothing(
+                        index_elements=["chore_template_id", "scheduled_date"]
                     )
-                else:
-                    self.db.execute(insert(ChoreInstance).prefix_with("OR IGNORE").values(rows))
+                )
+            else:
+                self.db.execute(insert(ChoreInstance).prefix_with("OR IGNORE").values(rows))
 
         self.db.commit()
 
@@ -70,24 +76,29 @@ class TodayRepository:
                 .where(MedicationPlan.is_active.is_(True))
             ).all()
         )
+        if not templates:
+            return
 
+        template_ids = [t.id for t in templates]
+        last_generated_rows = self.db.execute(
+            select(MedicationDoseInstance.medication_plan_id, func.max(MedicationDoseInstance.scheduled_date))
+            .where(MedicationDoseInstance.medication_plan_id.in_(template_ids))
+            .group_by(MedicationDoseInstance.medication_plan_id)
+        ).all()
+        last_generated_map: dict[int, date] = {row[0]: row[1] for row in last_generated_rows}
+
+        new_instances = []
         for template in templates:
             if template.start_date > through_date:
                 continue
 
             step = max(template.every_n_days, 1)
-            last_generated = self.db.scalar(
-                select(func.max(MedicationDoseInstance.scheduled_date))
-                .where(MedicationDoseInstance.medication_plan_id == template.id)
-            )
-            if last_generated is None:
-                cursor = template.start_date
-            else:
-                cursor = date.fromordinal(last_generated.toordinal() + step)
+            last = last_generated_map.get(template.id)
+            cursor = template.start_date if last is None else date.fromordinal(last.toordinal() + step)
 
             while cursor <= through_date:
                 scheduled_at = datetime.combine(cursor, template.schedule_time, tzinfo=timezone.utc)
-                self.db.add(
+                new_instances.append(
                     MedicationDoseInstance(
                         user_id=user_id,
                         medication_plan_id=template.id,
@@ -100,6 +111,8 @@ class TodayRepository:
                 )
                 cursor = date.fromordinal(cursor.toordinal() + step)
 
+        if new_instances:
+            self.db.add_all(new_instances)
         self.db.commit()
 
     def mark_due_medications_missed(self, user_id: int, now: datetime) -> None:
