@@ -5,59 +5,64 @@ This guide explains the backend contract expected when connecting Daynest from a
 ## Authentication Requirements
 
 - Use an API key that includes the required scope: `ha:read`
-- Send the API key using the `Authorization` header:
+- Send the API key using the `X-Integration-Key` header:
 
   ```http
-  Authorization: Bearer <DAYNEST_API_KEY>
+  X-Integration-Key: <DAYNEST_API_KEY>
   ```
 
 If the API key is missing the `ha:read` scope, Home Assistant will not be able to fetch Daynest data.
 
 ## Base URL Requirements
 
-Use a fully-qualified HTTPS base URL for the Daynest backend:
+Use the fully-qualified HTTPS origin for the Daynest backend:
 
 - ✅ `https://api.daynest.example`
-- ✅ `https://api.daynest.example/v1`
 - ❌ `http://api.daynest.example` (HTTP not recommended)
 - ❌ `api.daynest.example` (scheme missing)
+- ❌ `https://api.daynest.example/v1` (the integration appends `/api/v1/...` paths)
 
 Guidelines:
 
 - Include scheme (`https://`)
 - Use a reachable host from the Home Assistant runtime environment
+- Avoid including API version path segments in the configured base URL
 - Avoid trailing slash in stored configuration to prevent double-slash request paths
 
 ## Expected Endpoints
 
 The Home Assistant custom integration expects these read endpoints to be available under the configured base URL.
 
-### `GET /health`
+### `GET /api/v1/integrations/home-assistant/summary`
 
-Purpose: Lightweight connectivity check used during setup and diagnostics.
-
-Expected behavior:
-
-- Returns `200 OK` when the backend is available
-- Response body may include status metadata
-
-### `GET /v1/air-quality`
-
-Purpose: Returns dashboard air quality data consumed by sensor entities.
+Purpose: Lightweight setup-time validation of the configured base URL and integration key.
 
 Expected behavior:
 
 - Returns `200 OK`
-- Returns JSON payload with current air quality values (for example AQI and PM2.5)
+- Returns `X-Integration-Contract: 1`
+- Returns a JSON object with these required fields:
+  - `userId`
+  - `id`
+  - `title`
+  - `body`
 
-### `GET /v1/device`
+### `GET /api/v1/integrations/home-assistant/dashboard`
 
-Purpose: Returns device metadata used for device registry information and diagnostics.
+Purpose: Returns dashboard data consumed by Home Assistant sensor entities.
 
 Expected behavior:
 
 - Returns `200 OK`
-- Returns stable identifiers and model information
+- Returns `X-Integration-Contract: 1`
+- Returns a JSON object. The integration currently consumes:
+  - `dueTodayCount`
+  - `overdueCount`
+  - `completionRatio`
+  - `nextMedication`
+  - `userId`
+  - `id`
+  - `model`
 
 ## Common Errors and Fixes
 
@@ -79,7 +84,7 @@ Fixes:
 Symptoms:
 
 - Timeout, DNS, or connection refused errors
-- Health check fails intermittently
+- Setup validation or dashboard refresh fails intermittently
 
 Fixes:
 
@@ -99,12 +104,12 @@ Fixes:
 
 1. Ensure expected endpoints exist and return JSON
 2. Ensure response keys and data types match the integration contract
-3. Validate endpoint versioning (`/v1/...`) matches the configured backend
+3. Validate endpoint versioning (`/api/v1/integrations/home-assistant/...`) matches the configured backend
 
 ## Validation Checklist
 
 - [ ] API key includes `ha:read`
 - [ ] Base URL is HTTPS and reachable from Home Assistant
-- [ ] `GET /health` returns `200 OK`
-- [ ] Expected `/v1/...` endpoints return JSON with required fields
+- [ ] `GET /api/v1/integrations/home-assistant/summary` returns `200 OK`, `X-Integration-Contract: 1`, and the required summary fields
+- [ ] `GET /api/v1/integrations/home-assistant/dashboard` returns `200 OK`, `X-Integration-Contract: 1`, and a JSON object
 - [ ] Integration loads without entity availability errors

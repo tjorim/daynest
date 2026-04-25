@@ -149,10 +149,10 @@ The integration includes the backend contract expectation using the `X-Integrati
 
 | Integration version | Expected `X-Integration-Contract` | Backend expectation |
 | --- | --- | --- |
-| `0.1.x` | `daynest-ha.v1` | Supports `GET /health`, `GET /v1/air-quality`, and `GET /v1/device` contract documented in [the backend integration guide](docs/user/BACKEND_INTEGRATION_HOME_ASSISTANT.md). |
+| `0.1.x` | `1` | Supports `GET /api/v1/integrations/home-assistant/summary` and `GET /api/v1/integrations/home-assistant/dashboard` contract documented in [the backend integration guide](docs/user/BACKEND_INTEGRATION_HOME_ASSISTANT.md). |
 
 > [!NOTE]
-> When introducing a new backend contract (`daynest-ha.v2`, etc.), add a new row before release and document compatibility or migration notes in `CHANGELOG.md`.
+> When introducing a new backend contract (`2`, etc.), add a new row before release and document compatibility or migration notes in `CHANGELOG.md`.
 
 ## Release Checklist
 
