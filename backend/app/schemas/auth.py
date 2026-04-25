@@ -1,8 +1,13 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, EmailStr, Field
 
 
 class LoginRequest(BaseModel):
-    email: str
+    email: EmailStr
+    password: str = Field(min_length=8)
+
+
+class RegisterRequest(BaseModel):
+    email: EmailStr
     password: str = Field(min_length=8)
     full_name: str | None = None
 
@@ -14,7 +19,7 @@ class RefreshRequest(BaseModel):
 class TokenPairResponse(BaseModel):
     access_token: str
     refresh_token: str
-    token_type: str = "bearer"
+    token_type: str = "bearer"  # noqa: S105
 
 
 class UserMeResponse(BaseModel):
