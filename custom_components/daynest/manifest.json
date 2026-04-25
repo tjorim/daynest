@@ -5,9 +5,9 @@
     "@daynest"
   ],
   "config_flow": true,
-  "documentation": "https://github.com/daynest/daynest-home-assistant",
+  "documentation": "https://github.com/daynest/daynest",
   "integration_type": "hub",
   "iot_class": "cloud_polling",
-  "issue_tracker": "https://github.com/daynest/daynest-home-assistant/issues",
+  "issue_tracker": "https://github.com/daynest/daynest/issues",
   "version": "0.1.0"
 }

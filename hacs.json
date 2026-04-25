@@ -1,0 +1,7 @@
+{
+  "name": "Daynest",
+  "content_in_root": false,
+  "render_readme": false,
+  "homeassistant": "2026.4.0",
+  "hacs": "2.0.5"
+}
