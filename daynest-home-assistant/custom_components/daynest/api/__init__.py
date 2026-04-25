@@ -18,15 +18,27 @@ Coordinator exception mapping:
 """
 
 from .client import (
+    DaynestApiResponse,
     DaynestApiClient,
     DaynestApiClientAuthenticationError,
     DaynestApiClientCommunicationError,
     DaynestApiClientError,
+    DaynestApiClientMalformedResponseError,
+    DaynestApiClientServerUnavailableError,
+    DaynestApiClientTimeoutError,
+    DaynestDashboard,
+    DaynestSummary,
 )
 
 __all__ = [
+    "DaynestApiResponse",
     "DaynestApiClient",
     "DaynestApiClientAuthenticationError",
     "DaynestApiClientCommunicationError",
     "DaynestApiClientError",
+    "DaynestApiClientMalformedResponseError",
+    "DaynestApiClientServerUnavailableError",
+    "DaynestApiClientTimeoutError",
+    "DaynestDashboard",
+    "DaynestSummary",
 ]
