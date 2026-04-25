@@ -79,6 +79,11 @@ else
 fi
 echo ""
 
+# Always clean up accidental package installations, even on test failure.
+# This prevents Home Assistant from loading the installed version instead of
+# the development version from custom_components/
+trap '"$SCRIPT_DIR/clean" --minimal' EXIT
+
 run_hook "test" "pre"
 echo ""
 pytest "${COVERAGE_ARGS[@]}" "${PYTEST_ARGS[@]}"
@@ -91,8 +96,3 @@ if [[ ${#COVERAGE_ARGS[@]} -gt 0 ]] && [[ " ${COVERAGE_ARGS[*]} " =~ " --cov-rep
     echo ""
     log_success "Coverage report generated in htmlcov/index.html"
 fi
-
-# Clean up any accidental package installation from pytest/test dependencies
-# This prevents Home Assistant from loading the installed version instead of
-# the development version from custom_components/
-"$SCRIPT_DIR/clean" --minimal

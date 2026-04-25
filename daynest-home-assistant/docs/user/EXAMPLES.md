@@ -3,60 +3,57 @@
 This page provides ready-to-use examples for automations, dashboards, and blueprints
 with the Daynest custom integration.
 
-Replace entity IDs like `sensor.device_name_*` with your actual entity IDs after
+Replace entity IDs like `sensor.daynest_*` with your actual entity IDs after
 setting up the integration.
 
 ## Automations
 
-### Notify when a sensor exceeds a threshold
+### Notify when tasks are overdue
 
 ```yaml
 automation:
-  - alias: "Alert when sensor is high"
+  - alias: "Alert when tasks are overdue"
     trigger:
       - trigger: numeric_state
-        entity_id: sensor.device_name_air_quality
-        above: 100
+        entity_id: sensor.daynest_overdue_count
+        above: 0
     action:
       - action: notify.notify
         data:
-          title: "Air quality alert"
-          message: "Sensor value exceeded 100!"
+          title: "Daynest"
+          message: "You have {{ trigger.to_state.state }} overdue task(s)!"
 ```
 
-### Turn on a switch when connectivity is lost
+### Notify when completion ratio drops below threshold
 
 ```yaml
 automation:
-  - alias: "React to connectivity loss"
+  - alias: "Alert when completion is low"
     trigger:
-      - trigger: state
-        entity_id: binary_sensor.device_name_connectivity
-        to: "off"
-        for:
-          minutes: 5
+      - trigger: numeric_state
+        entity_id: sensor.daynest_completion_ratio
+        below: 50
     action:
-      - action: switch.turn_off
-        target:
-          entity_id: switch.device_name_switch
+      - action: notify.notify
+        data:
+          title: "Daynest"
+          message: "Task completion is at {{ trigger.to_state.state }}%"
 ```
 
-### Call a service action on schedule
+### Notify when medication is due
 
 ```yaml
 automation:
-  - alias: "Reset filter counter weekly"
+  - alias: "Medication due reminder"
     trigger:
-      - trigger: time
-        at: "03:00:00"
-    condition:
-      - condition: time
-        weekday:
-          - mon
+      - trigger: numeric_state
+        entity_id: sensor.daynest_medication_due_count
+        above: 0
     action:
-      - action: daynest.example_service
-        target:
-          entity_id: button.device_name_reset_filter
+      - action: notify.notify
+        data:
+          title: "Medication reminder"
+          message: "{{ trigger.to_state.state }} medication(s) due. Next: {{ states('sensor.daynest_next_medication') }}"
 ```
 
 ### Use a blueprint for threshold alerts
@@ -106,43 +103,39 @@ action:
 
 ```yaml
 type: sensor
-entity: sensor.device_name_air_quality
-name: Air Quality
+entity: sensor.daynest_due_today_count
+name: Tasks Due Today
 graph: line
 ```
 
-### Device summary — entities card
+### Task summary — entities card
 
 ```yaml
 type: entities
-title: My Device
+title: Daynest
 entities:
-  - entity: sensor.device_name_air_quality
-    name: Air Quality
-  - entity: binary_sensor.device_name_connectivity
-    name: Connected
-  - entity: binary_sensor.device_name_filter
-    name: Filter Status
-  - entity: switch.device_name_switch
-    name: Power
-  - entity: select.device_name_fan_speed
-    name: Fan Speed
-  - entity: number.device_name_threshold
-    name: Threshold
+  - entity: sensor.daynest_due_today_count
+    name: Due Today
+  - entity: sensor.daynest_overdue_count
+    name: Overdue
+  - entity: sensor.daynest_planned_count
+    name: Planned
+  - entity: sensor.daynest_completion_ratio
+    name: Completion
 ```
 
-### Status badge — multiple entities
+### Status badge — glance card
 
 ```yaml
 type: glance
-title: Device Status
+title: Daynest Summary
 entities:
-  - entity: binary_sensor.device_name_connectivity
-    name: Online
-  - entity: sensor.device_name_air_quality
-    name: Air Quality
-  - entity: binary_sensor.device_name_filter
-    name: Filter
+  - entity: sensor.daynest_due_today_count
+    name: Due Today
+  - entity: sensor.daynest_overdue_count
+    name: Overdue
+  - entity: sensor.daynest_completion_ratio
+    name: Done
 show_state: true
 ```
 
@@ -150,9 +143,9 @@ show_state: true
 
 ```yaml
 type: history-graph
-title: Air Quality (last 24 h)
+title: Completion Ratio (last 24 h)
 entities:
-  - entity: sensor.device_name_air_quality
+  - entity: sensor.daynest_completion_ratio
 hours_to_show: 24
 ```
 

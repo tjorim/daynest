@@ -170,24 +170,27 @@ log_info "Current version: $CURRENT_VERSION"
 LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || true)
 if [[ -n "$LAST_TAG" ]]; then
     RANGE="$LAST_TAG..HEAD"
+    LOG_RANGE="$RANGE"
     log_info "Changes since tag: $LAST_TAG"
 else
     FIRST_COMMIT=$(git rev-list --max-parents=0 HEAD)
     RANGE="$FIRST_COMMIT..HEAD"
+    # git rev-list HEAD (no range notation) includes the root commit; FIRST_COMMIT..HEAD excludes it
+    LOG_RANGE="HEAD"
     log_info "No previous tag found — using all commits"
 fi
 
 # Rich commit log (subject + body + file stats)
 log_step "Collecting commit details..."
-COMMIT_CONTEXT=$(build_commit_context "$RANGE")
-COMMIT_COUNT=$(git rev-list --count "$RANGE" 2>/dev/null || echo "0")
+COMMIT_CONTEXT=$(build_commit_context "$LOG_RANGE")
+COMMIT_COUNT=$(git rev-list --count "$LOG_RANGE" 2>/dev/null || echo "0")
 log_info "Commits in range: $COMMIT_COUNT"
 
 # Final net file changes (source of truth when commits revert each other)
 FINAL_FILE_CHANGES=$(git diff --name-status "$RANGE" 2>/dev/null || echo "(none)")
 
 # Revert commits (chronology hints for the AI)
-REVERT_COMMITS=$(git log --reverse --pretty=format:"%h | %s" "$RANGE" 2>/dev/null |
+REVERT_COMMITS=$(git log --reverse --pretty=format:"%h | %s" "$LOG_RANGE" 2>/dev/null |
     grep -Ei '\|[[:space:]]*revert\b' || echo "(none)")
 
 # User-facing code diff (token-limited)
@@ -220,7 +223,7 @@ while IFS= read -r commit_hash; do
     if commit_should_skip "$commit_hash"; then
         SKIPPED_COMMITS+="$(git show -s --format='%h | %s' "$commit_hash")"$'\n'
     fi
-done < <(git rev-list --reverse "$RANGE")
+done < <(git rev-list --reverse "$LOG_RANGE")
 if [[ -z "$SKIPPED_COMMITS" ]]; then
     SKIPPED_COMMITS="(none)"
 fi
@@ -411,7 +414,7 @@ case "$MODE" in
     log_info "Starting interactive session — reference the context file above"
     log_separator
     echo ""
-    exec "$COPILOT_BIN" --model "$COPILOT_MODEL"
+    "$COPILOT_BIN" --model "$COPILOT_MODEL"
     ;;
 
 --apply)

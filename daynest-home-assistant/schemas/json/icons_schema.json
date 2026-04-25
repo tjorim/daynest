@@ -37,6 +37,10 @@
           "type": "object",
           "description": "Translation key for the entity (matches entity_description.translation_key).",
           "properties": {
+            "default": {
+              "$ref": "#/definitions/icon",
+              "description": "Default icon for this entity when no state-specific icon matches."
+            },
             "state": {
               "type": "object",
               "description": "Mapping of raw state values to icons.",

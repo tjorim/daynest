@@ -10,38 +10,10 @@ These options are configured during initial setup via the Home Assistant UI.
 
 #### Connection Settings
 
-| Option      | Type    | Required | Default | Description                                  |
-| ----------- | ------- | -------- | ------- | -------------------------------------------- |
-| **Host**    | string  | Yes      | -       | Hostname or IP address of the device/service |
-| **Port**    | integer | No       | 8080    | Connection port                              |
-| **API Key** | string  | Yes\*    | -       | Authentication key or token                  |
-| **Use SSL** | boolean | No       | false   | Enable HTTPS connection                      |
-
-\*Required if the device/service requires authentication.
-
-#### Update Settings
-
-| Option              | Type              | Required | Default  | Description                                         |
-| ------------------- | ----------------- | -------- | -------- | --------------------------------------------------- |
-| **Update Interval** | integer (seconds) | No       | 300      | How often to poll for updates (minimum: 30 seconds) |
-| **Name**            | string            | No       | "Device" | Friendly name for the integration instance          |
-
-### Options Flow (Reconfiguration)
-
-After initial setup, you can modify settings:
-
-1. Go to **Settings** → **Devices & Services**
-2. Find "Daynest"
-3. Click **Configure**
-4. Modify settings
-5. Click **Submit**
-
-**Available options:**
-
-- Update interval
-- Name/identifier
-- Connection timeout
-- Additional features (device-specific)
+| Option | Type | Required | Description |
+| --- | --- | --- | --- |
+| **Base URL** | string (URL) | Yes | The URL of your Daynest backend |
+| **API Key** | string | Yes | Your Daynest integration API key |
 
 ## Entity Configuration
 
@@ -58,7 +30,6 @@ Customize entities via the UI or `configuration.yaml`:
    - Entity ID
    - Name
    - Icon
-   - Device class (for applicable entities)
    - Area assignment
 
 #### Via configuration.yaml
@@ -66,10 +37,9 @@ Customize entities via the UI or `configuration.yaml`:
 ```yaml
 homeassistant:
   customize:
-    sensor.device_name_sensor:
-      friendly_name: "Custom Sensor Name"
-      icon: mdi:custom-icon
-      unit_of_measurement: "units"
+    sensor.daynest_due_today_count:
+      friendly_name: "Tasks Due Today"
+      icon: mdi:format-list-checks
 ```
 
 ### Disabling Entities
@@ -83,85 +53,18 @@ If you don't need certain entities:
 
 Disabled entities won't update or consume resources.
 
-## Services
-
-The integration provides the following services:
-
-### `daynest.example_service`
-
-Execute an example service action on the device.
-
-**Service data:**
-
-| Parameter   | Type           | Required | Description                                      |
-| ----------- | -------------- | -------- | ------------------------------------------------ |
-| `entity_id` | string or list | No       | Target entity/entities (if omitted, targets all) |
-| `parameter` | string         | Yes      | Service-specific parameter                       |
-| `value`     | integer        | No       | Numeric value for the action                     |
-
-**Example:**
-
-```yaml
-service: daynest.example_service
-target:
-  entity_id: switch.device_name_switch
-data:
-  parameter: "setting_name"
-  value: 42
-```
-
-### Using Services in Automations
-
-```yaml
-automation:
-  - alias: "Call service at sunset"
-    trigger:
-      - trigger: sun
-        event: sunset
-    action:
-      - action: daynest.example_service
-        target:
-          entity_id: switch.device_name_switch
-        data:
-          parameter: "mode"
-          value: 1
-```
-
 ## Advanced Configuration
 
 ### Multiple Instances
 
-You can add multiple instances of this integration for different devices:
+You can add multiple instances of this integration for different Daynest backends:
 
 1. Go to **Settings** → **Devices & Services**
 2. Click **+ Add Integration**
 3. Search for "Daynest"
-4. Configure with different connection details
+4. Configure with different base URL and API key
 
 Each instance creates separate entities with unique entity IDs.
-
-### Network Configuration
-
-If the device is on a different network or behind a firewall:
-
-- Ensure ports are open (default: 8080)
-- Configure port forwarding if needed
-- Consider VPN for remote access
-- Some devices may require static IP addresses
-
-### Polling Behavior
-
-The integration uses polling to fetch updates:
-
-- **Minimum interval:** 30 seconds (prevents overloading the device)
-- **Recommended interval:** 5 minutes (default)
-- **Longer intervals:** Save resources but reduce responsiveness
-
-Adjust based on your needs:
-
-- Real-time monitoring: 30-60 seconds
-- Regular updates: 5 minutes
-- Slow-changing values: 15-30 minutes
 
 ## Diagnostic Data
 
@@ -229,18 +132,8 @@ See [EXAMPLES.md](./EXAMPLES.md) for complete automation and dashboard examples.
 If the integration fails to load after configuration:
 
 1. Check Home Assistant logs for errors
-2. Verify connection details are correct
-3. Test connectivity from Home Assistant to the device
-4. Try removing and re-adding the integration
-
-### Options Don't Save
-
-If configuration changes aren't persisted:
-
-1. Check for validation errors in the UI
-2. Ensure values are within allowed ranges
-3. Review logs for detailed error messages
-4. Try restarting Home Assistant
+2. Verify the base URL is reachable and the API key is correct
+3. Try removing and re-adding the integration
 
 ## Related Documentation
 

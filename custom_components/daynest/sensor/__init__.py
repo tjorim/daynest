@@ -105,6 +105,8 @@ class DaynestMetricSensor(SensorEntity, DaynestEntity):
     @property
     def native_value(self) -> int | float | str | None:
         """Return the current sensor value."""
+        if self.coordinator.data is None:
+            return None
         value = self.coordinator.data.get(self.entity_description.value_key)
         if value is None:
             return None
@@ -120,6 +122,8 @@ class DaynestMetricSensor(SensorEntity, DaynestEntity):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return shared Daynest context for the current reading."""
+        if self.coordinator.data is None:
+            return {}
         attributes: dict[str, Any] = {
             "for_date": self.coordinator.data.get("for_date"),
             "integration_contract": self.coordinator.data.get("integration_contract"),

@@ -38,7 +38,7 @@ class TestParseIntegrationContractVersion:
 
     def test_version_key_must_match_exactly(self) -> None:
         result = parse_integration_contract_version("home-assistant; Version=ha.v1")
-        assert result != "ha.v1"
+        assert result == "home-assistant; Version=ha.v1"
 
     def test_leading_trailing_whitespace_stripped(self) -> None:
         assert parse_integration_contract_version("  ha.v1  ") == "ha.v1"

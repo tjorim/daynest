@@ -18,7 +18,6 @@
   "postStartCommand": "bash .devcontainer/post-start.sh",
   // Runs on every container creation — installs all dependencies.
   "postCreateCommand": "bash .devcontainer/post-create.sh",
-  // Runs on every client attach — detects fresh blueprints and triggers initialization.
   "containerEnv": {
     // Python runtime variables — must be set for ALL Python processes, including those spawned
     // by VS Code extensions (Pylance, test runner, Ruff) that never go through our shell scripts.

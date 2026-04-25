@@ -78,7 +78,6 @@ class DaynestDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "completion_ratio": completion_ratio,
             "next_medication": next_medication,
             "integration_contract": contract,
-            "model": str(payload.get("model", "Daynest")),
         }
 
     async def _async_update_data(self) -> dict[str, Any]:

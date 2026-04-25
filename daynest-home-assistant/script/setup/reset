@@ -25,6 +25,10 @@ FULL_RESET=false
 
 if [[ ${1:-} == --full ]]; then
     FULL_RESET=true
+elif [[ -n "${1:-}" ]]; then
+    log_error "Unknown argument: ${1}"
+    echo "Usage: script/setup/reset [--full]"
+    exit 1
 fi
 
 run_hook "setup/reset" "pre"

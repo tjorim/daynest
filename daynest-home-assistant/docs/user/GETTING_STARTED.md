@@ -6,7 +6,8 @@ This guide will help you install and set up the Daynest custom integration for H
 
 - Home Assistant 2025.7.0 or newer
 - HACS (Home Assistant Community Store) installed
-- Network connectivity to [external service/device]
+- Network connectivity to your Daynest backend
+- A Daynest API key
 
 ## Installation
 
@@ -37,58 +38,29 @@ After installation, add the integration:
 1. Go to **Settings** → **Devices & Services**
 2. Click **+ Add Integration**
 3. Search for "Daynest"
-4. Follow the configuration steps:
+4. Enter the required connection details:
 
-### Step 1: Connection Information
+### Connection Information
 
-Enter the required connection details:
+| Field | Description |
+| --- | --- |
+| **Base URL** | The URL of your Daynest backend (e.g. `https://your-daynest-instance.example.com`) |
+| **API Key** | Your Daynest integration API key |
 
-- **Host/IP Address:** The hostname or IP address of your device/service
-- **API Key/Token:** Your authentication credentials (if applicable)
-- **Port:** Connection port (default: 8080)
-
-Click **Submit** to test the connection.
-
-### Step 2: Configuration Options
-
-Configure optional settings:
-
-- **Update Interval:** How often to poll for updates (default: 5 minutes)
-- **Name:** Friendly name for this integration instance
-
-Click **Submit** to complete setup.
+Click **Submit** to test the connection. The integration will verify the credentials before saving.
 
 ## What Gets Created
 
-After successful setup, the integration creates:
+After successful setup, the integration creates the following sensor entities:
 
-### Devices
-
-- **Device Name:** Main device representing your connected service/hardware
-  - Model information
-  - Software version
-  - Configuration URL (link to device web interface)
-
-### Entities
-
-The following entities are automatically created:
-
-#### Sensors
-
-- `sensor.<device_name>_<sensor_name>` - Descriptive sensor measurements
-- More sensors as applicable to your setup
-
-#### Binary Sensors
-
-- `binary_sensor.<device_name>_<sensor_name>` - On/off status indicators
-
-#### Switches
-
-- `switch.<device_name>_<switch_name>` - Controllable on/off switches
-
-#### Other Platforms
-
-Additional entities may be created depending on your device capabilities.
+| Entity | Description |
+| --- | --- |
+| `sensor.daynest_due_today_count` | Number of tasks due today |
+| `sensor.daynest_overdue_count` | Number of overdue tasks |
+| `sensor.daynest_planned_count` | Number of planned tasks |
+| `sensor.daynest_medication_due_count` | Number of medications due |
+| `sensor.daynest_completion_ratio` | Task completion ratio (%) |
+| `sensor.daynest_next_medication` | Time of next scheduled medication |
 
 ## First Steps
 
@@ -107,41 +79,27 @@ Example entities card:
 type: entities
 title: Daynest
 entities:
-  - sensor.device_name_sensor
-  - binary_sensor.device_name_connectivity
-  - switch.device_name_switch
+  - sensor.daynest_due_today_count
+  - sensor.daynest_overdue_count
+  - sensor.daynest_completion_ratio
 ```
 
 ### Automations
 
 Use the integration in automations:
 
-**Example - Trigger on sensor change:**
-
 ```yaml
 automation:
-  - alias: "React to sensor value"
+  - alias: "Notify when tasks are overdue"
     trigger:
-      - trigger: state
-        entity_id: sensor.device_name_sensor
+      - trigger: numeric_state
+        entity_id: sensor.daynest_overdue_count
+        above: 0
     action:
       - action: notify.notify
         data:
-          message: "Sensor changed to {{ trigger.to_state.state }}"
-```
-
-**Example - Control switch based on time:**
-
-```yaml
-automation:
-  - alias: "Turn on in morning"
-    trigger:
-      - trigger: time
-        at: "07:00:00"
-    action:
-      - action: switch.turn_on
-        target:
-          entity_id: switch.device_name_switch
+          title: "Daynest"
+          message: "You have {{ trigger.to_state.state }} overdue task(s)!"
 ```
 
 ## Troubleshooting
@@ -150,8 +108,8 @@ automation:
 
 If setup fails with connection errors:
 
-1. Verify the host/IP address is correct and reachable
-2. Check that the API key/token is valid
+1. Verify the base URL is correct and reachable from Home Assistant
+2. Check that the API key is valid
 3. Ensure no firewall is blocking the connection
 4. Check Home Assistant logs for detailed error messages
 
@@ -159,8 +117,8 @@ If setup fails with connection errors:
 
 If entities show "Unavailable" or don't update:
 
-1. Check that the device/service is online
-2. Verify API credentials haven't expired
+1. Check that your Daynest backend is online
+2. Verify the API key hasn't expired
 3. Review logs: **Settings** → **System** → **Logs**
 4. Try reloading the integration
 

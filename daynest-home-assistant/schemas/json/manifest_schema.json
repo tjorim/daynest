@@ -19,7 +19,7 @@
             "description": "The domain identifier of the integration.\nhttps://developers.home-assistant.io/docs/creating_integration_manifest/#domain",
             "examples": ["mobile_app"],
             "type": "string",
-            "pattern": "[0-9a-z_]+"
+            "pattern": "^[0-9a-z_]+$"
           },
           "name": {
             "description": "The friendly name of the integration.",
@@ -48,7 +48,7 @@
             "description": "The domain identifier of the integration.\nhttps://developers.home-assistant.io/docs/creating_integration_manifest/#domain",
             "examples": ["mobile_app"],
             "type": "string",
-            "pattern": "[0-9a-z_]+"
+            "pattern": "^[0-9a-z_]+$"
           },
           "name": {
             "description": "The friendly name of the integration.",
@@ -74,7 +74,7 @@
         "description": "The domain identifier of the integration.\nhttps://developers.home-assistant.io/docs/creating_integration_manifest/#domain",
         "examples": ["mobile_app"],
         "type": "string",
-        "pattern": "[0-9a-z_]+"
+        "pattern": "^[0-9a-z_]+$"
       },
       "name": {
         "description": "The friendly name of the integration.",
@@ -183,13 +183,13 @@
             "service_uuid": {
               "description": "The 128-bit service data UUID to match.",
               "type": "string",
-              "pattern": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
             },
             "service_data_uuid": {
               "description": "The 16-bit service data UUID to match, converted into the corresponding 128-bit UUID by replacing the 3rd and 4th byte of `00000000-0000-1000-8000-00805f9b34fb` with the 16-bit UUID.",
               "examples": ["0000fd3d-0000-1000-8000-00805f9b34fb"],
               "type": "string",
-              "pattern": "0000[0-9a-f]{4}-0000-1000-8000-00805f9b34fb"
+              "pattern": "^0000[0-9a-f]{4}-0000-1000-8000-00805f9b34fb$"
             },
             "manufacturer_id": {
               "description": "The Manufacturer ID to match.",
@@ -271,12 +271,12 @@
             "vid": {
               "description": "The vendor ID to match.",
               "type": "string",
-              "pattern": "[0-9A-F]{4}"
+              "pattern": "^[0-9A-F]{4}$"
             },
             "pid": {
               "description": "The product ID to match.",
               "type": "string",
-              "pattern": "[0-9A-F]{4}"
+              "pattern": "^[0-9A-F]{4}$"
             },
             "description": {
               "description": "The USB device description to match.",
@@ -319,7 +319,7 @@
         "type": "array",
         "items": {
           "type": "string",
-          "pattern": ".+==.+"
+          "pattern": "^.+==.+$"
         },
         "uniqueItems": true
       },

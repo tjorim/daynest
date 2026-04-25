@@ -55,7 +55,7 @@ indent_size = 2
 indent_size = 2
 
 # Jinja2 templates - Home Assistant templates
-[*.jinja,*.jinja2,*.j2]
+[*.{jinja,jinja2,j2}]
 indent_size = 2
 
 # Makefiles require tabs
@@ -73,7 +73,7 @@ indent_size = 2
 [Dockerfile*]
 indent_size = 2
 
-[*.dockerignore]
+[.dockerignore]
 indent_size = 2
 
 [docker-compose*.{yml,yaml}]

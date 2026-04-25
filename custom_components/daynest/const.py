@@ -30,6 +30,8 @@ def parse_integration_contract_version(contract: str | None) -> str | None:
         key, separator, value = segment.strip().partition("=")
         if separator and key == "version":
             version_token = value.strip()
+            if not version_token:
+                return None
             break
 
     return LEGACY_CONTRACT_VERSION_ALIASES.get(version_token, version_token)

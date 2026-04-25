@@ -23,7 +23,7 @@ source "$SCRIPT_DIR/.lib/output.sh"
 run_hook "shell" "pre"
 
 log_header "Running shfmt"
-find script/ .devcontainer/ -not -path "script/hooks/*" -not -path ".devcontainer/hooks/*" -type f \( -name "*.sh" -o ! -name "*.*" \) -print0 | xargs -0 shfmt -i 4 -w
+find script/ .devcontainer/ -not -path "script/hooks/*" -not -path ".devcontainer/hooks/*" -type f \( -name "*.sh" -o ! -name "*.*" \) -print0 | xargs -0 -r shfmt -i 4 -w
 
 run_hook "shell" "post"
 log_success "Shell formatting completed"

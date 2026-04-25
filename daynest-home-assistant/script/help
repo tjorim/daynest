@@ -21,7 +21,7 @@ source "$SCRIPT_DIR/.lib/output.sh"
 
 run_hook "help" "pre"
 
-REPO_NAME=$(basename "$(git rev-parse --show-toplevel 2>/dev/null)" 2>/dev/null || basename "$(pwd)")
+REPO_NAME=$(basename "$(git rev-parse --show-toplevel 2>/dev/null || pwd)")
 
 printf "%bDevelopment environment for %s%b\n\n" "$BOLD" "$REPO_NAME" "$NC"
 
