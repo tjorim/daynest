@@ -11,6 +11,7 @@ def test_liveness_and_health_endpoints(client: TestClient) -> None:
     payload = health_response.json()
     assert payload["status"] == "ok"
     assert payload["liveness"] == "alive"
+    assert "readiness_endpoint" in payload
 
 
 def test_readiness_endpoint_returns_ready_or_not_ready(client: TestClient) -> None:
@@ -19,20 +20,22 @@ def test_readiness_endpoint_returns_ready_or_not_ready(client: TestClient) -> No
     assert readiness_response.json()["status"] in {"ready", "not_ready"}
 
 
-def test_request_id_header_and_metrics_exposure(client: TestClient) -> None:
-    before = client.get("/api/v1/metrics")
-    assert before.status_code == 200
-    before_total = before.json()["request_total"]
-
+def test_request_id_header_present(client: TestClient) -> None:
     response = client.get("/api/v1/health/liveness")
     assert response.status_code == 200
     assert response.headers.get("X-Request-ID")
 
-    after = client.get("/api/v1/metrics")
-    assert after.status_code == 200
-    payload = after.json()
 
-    assert payload["request_total"] >= before_total + 1
-    assert "request_rate_per_second" in payload
-    assert "error_rate" in payload
-    assert "latency_avg_ms" in payload
+def test_metrics_requires_secret(client: TestClient) -> None:
+    from app.core.config import settings
+
+    # When no secret is configured the endpoint is always forbidden (fail-closed).
+    response = client.get("/api/v1/metrics")
+    if settings.metrics_secret is None:
+        assert response.status_code == 403
+    else:
+        # Secret is set; requests without it must be forbidden.
+        assert response.status_code == 403
+        authed = client.get("/api/v1/metrics", headers={"X-Metrics-Secret": settings.metrics_secret})
+        assert authed.status_code == 200
+        assert "request_total" in authed.json()

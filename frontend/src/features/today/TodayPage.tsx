@@ -104,6 +104,7 @@ function TaskActions({
   onRefresh: () => Promise<void>;
 }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   if (!choreInstanceId) {
     return null;
@@ -111,9 +112,12 @@ function TaskActions({
 
   const runAction = async (action: () => Promise<unknown>) => {
     setIsSubmitting(true);
+    setActionError(null);
     try {
       await action();
       await onRefresh();
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Action failed');
     } finally {
       setIsSubmitting(false);
     }
@@ -125,16 +129,19 @@ function TaskActions({
   };
 
   return (
-    <div className="d-grid gap-2 d-sm-flex" role="group" aria-label="Task actions">
-      <button type="button" className="btn btn-success btn-sm" disabled={isSubmitting} onClick={() => void runAction(() => completeChore(choreInstanceId))}>
-        Done
-      </button>
-      <button type="button" className="btn btn-outline-secondary btn-sm" disabled={isSubmitting} onClick={() => void runAction(() => skipChore(choreInstanceId))}>
-        Skip
-      </button>
-      <button type="button" className="btn btn-outline-primary btn-sm" disabled={isSubmitting} onClick={() => void runAction(onReschedule)}>
-        +1 day
-      </button>
+    <div>
+      {actionError ? <small className="text-danger d-block mb-1">{actionError}</small> : null}
+      <div className="d-grid gap-2 d-sm-flex" role="group" aria-label="Task actions">
+        <button type="button" className="btn btn-success btn-sm" disabled={isSubmitting} onClick={() => void runAction(() => completeChore(choreInstanceId))}>
+          Done
+        </button>
+        <button type="button" className="btn btn-outline-secondary btn-sm" disabled={isSubmitting} onClick={() => void runAction(() => skipChore(choreInstanceId))}>
+          Skip
+        </button>
+        <button type="button" className="btn btn-outline-primary btn-sm" disabled={isSubmitting} onClick={() => void runAction(onReschedule)}>
+          +1 day
+        </button>
+      </div>
     </div>
   );
 }
@@ -149,6 +156,7 @@ function MedicationActions({
   onRefresh: () => Promise<void>;
 }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   if (!medicationDoseInstanceId || medicationStatus !== 'scheduled') {
     return null;
@@ -156,22 +164,28 @@ function MedicationActions({
 
   const runAction = async (action: () => Promise<unknown>) => {
     setIsSubmitting(true);
+    setActionError(null);
     try {
       await action();
       await onRefresh();
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Action failed');
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="d-grid gap-2 d-sm-flex" role="group" aria-label="Medication actions">
-      <button type="button" className="btn btn-success btn-sm" disabled={isSubmitting} onClick={() => void runAction(() => takeMedicationDose(medicationDoseInstanceId))}>
-        Taken
-      </button>
-      <button type="button" className="btn btn-outline-secondary btn-sm" disabled={isSubmitting} onClick={() => void runAction(() => skipMedicationDose(medicationDoseInstanceId))}>
-        Skip
-      </button>
+    <div>
+      {actionError ? <small className="text-danger d-block mb-1">{actionError}</small> : null}
+      <div className="d-grid gap-2 d-sm-flex" role="group" aria-label="Medication actions">
+        <button type="button" className="btn btn-success btn-sm" disabled={isSubmitting} onClick={() => void runAction(() => takeMedicationDose(medicationDoseInstanceId))}>
+          Taken
+        </button>
+        <button type="button" className="btn btn-outline-secondary btn-sm" disabled={isSubmitting} onClick={() => void runAction(() => skipMedicationDose(medicationDoseInstanceId))}>
+          Skip
+        </button>
+      </div>
     </div>
   );
 }
@@ -259,7 +273,7 @@ export function TodayPage() {
       <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2 mb-2">
         <h2 className="h4 mb-0">Today</h2>
         <div className="d-flex gap-2 w-100 w-md-auto">
-          <button className="btn btn-outline-primary btn-sm flex-grow-1 flex-md-grow-0" type="button" onClick={() => void loadToday()}>
+          <button className="btn btn-outline-primary btn-sm flex-grow-1 flex-md-grow-0" type="button" disabled={isLoading} onClick={() => void loadToday()}>
             Refresh
           </button>
         </div>

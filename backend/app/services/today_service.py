@@ -68,32 +68,36 @@ class TodayService:
             medication=self.repository.get_today_medication(user_id=user_id, for_date=for_date),
         )
 
+    @staticmethod
+    def _format_next_medication(medication: list[MedicationDoseInstance]) -> str | None:
+        next_med = next((item for item in medication if item.status == MedicationDoseStatus.scheduled), None)
+        return f"{next_med.name} @ {next_med.scheduled_at.strftime('%H:%M')}" if next_med else None
+
     def get_summary(self, user_id: int, for_date: date) -> TodaySummary:
         data = self._fetch_day_data(user_id=user_id, for_date=for_date)
-        next_med = next((item for item in data.medication if item.status == MedicationDoseStatus.scheduled), None)
         return TodaySummary(
             overdue_count=len(data.overdue),
             tasks_remaining=len(data.due_today) + len([r for r in data.routines if r.status in (TaskStatus.pending, TaskStatus.in_progress)]) + len([item for item in data.planned if not item.is_done]),
-            next_medication=f"{next_med.name} @ {next_med.scheduled_at.strftime('%H:%M')}" if next_med else None,
+            next_medication=self._format_next_medication(data.medication),
         )
 
     def get_dashboard_read_model(self, user_id: int, for_date: date) -> DashboardReadModel:
         data = self._fetch_day_data(user_id=user_id, for_date=for_date)
-        next_med = next((item for item in data.medication if item.status == MedicationDoseStatus.scheduled), None)
         completed_count = (
             len([item for item in data.all_chores if item.status == ChoreStatus.completed])
             + len([item for item in data.planned if item.is_done])
             + len([item for item in data.medication if item.status == MedicationDoseStatus.taken])
+            + len([item for item in data.routines if item.status == TaskStatus.completed])
         )
-        total = len(data.all_chores) + len(data.planned) + len(data.medication)
+        total = len(data.all_chores) + len(data.planned) + len(data.medication) + len(data.routines)
         return DashboardReadModel(
             for_date=for_date,
             overdue_count=len(data.overdue),
-            due_today_count=len([c for c in data.all_chores if c.status == ChoreStatus.pending]),
+            due_today_count=len(data.due_today),
             planned_count=len(data.planned),
             medication_due_count=len([item for item in data.medication if item.status == MedicationDoseStatus.scheduled]),
             completion_ratio=round(completed_count / total if total else 0.0, 3),
-            next_medication=f"{next_med.name} @ {next_med.scheduled_at.strftime('%H:%M')}" if next_med else None,
+            next_medication=self._format_next_medication(data.medication),
         )
 
     def get_today(self, user_id: int, for_date: date) -> TodayResponse:

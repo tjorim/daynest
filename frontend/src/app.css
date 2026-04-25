@@ -1,5 +1,5 @@
 :root {
-  color-scheme: light;
+  color-scheme: light dark;
 }
 
 main.container {
@@ -7,11 +7,11 @@ main.container {
 }
 
 .nav-pills .nav-link {
-  min-height: 42px;
+  min-height: 44px;
 }
 
 .list-group-item .btn {
-  min-height: 34px;
+  min-height: 44px;
 }
 
 @media (max-width: 575.98px) {

@@ -82,13 +82,15 @@ class PlannedItemBase(BaseModel):
     linked_source: str | None = Field(default=None, max_length=120)
     linked_ref: str | None = Field(default=None, max_length=255)
 
-
-class PlannedItemCreateRequest(PlannedItemBase):
     @model_validator(mode="after")
-    def _apply_module_defaults(self) -> "PlannedItemCreateRequest":
+    def _apply_module_defaults(self) -> "PlannedItemBase":
         if self.module_key == "recurring_grocery" and self.recurrence_hint is None:
             self.recurrence_hint = "weekly"
         return self
+
+
+class PlannedItemCreateRequest(PlannedItemBase):
+    pass
 
 
 class PlannedItemUpdateRequest(PlannedItemBase):

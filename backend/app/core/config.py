@@ -1,17 +1,19 @@
 from functools import lru_cache
 from pathlib import Path
+from typing import Annotated
 from urllib.parse import quote_plus
 
 from pydantic import Field, field_validator, model_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
-@lru_cache
 def _read_secret_file(path: str | None) -> str | None:
     if not path:
         return None
     secret_path = Path(path)
     if not secret_path.exists():
+        import logging
+        logging.getLogger("app.config").warning("Secret file configured but not found: %s", path)
         return None
     return secret_path.read_text(encoding="utf-8").strip()
 
@@ -31,6 +33,7 @@ class AppSettings(BaseSettings):
     db_user: str = "daynest"
     db_password: str | None = None
     db_password_file: str | None = None
+    db_connect_timeout_seconds: int = 5
 
     jwt_secret_key: str | None = None
     jwt_secret_file: str | None = None
@@ -38,8 +41,8 @@ class AppSettings(BaseSettings):
     access_token_expire_minutes: int = 30
     refresh_token_expire_days: int = 7
 
-    cors_allow_origins: list[str] = Field(default_factory=list)
-    trusted_hosts: list[str] = Field(default_factory=lambda: ["localhost", "127.0.0.1"])
+    cors_allow_origins: Annotated[list[str], NoDecode] = Field(default_factory=list)
+    trusted_hosts: Annotated[list[str], NoDecode] = Field(default_factory=lambda: ["localhost", "127.0.0.1"])
 
     metrics_secret: str | None = None
 
@@ -72,6 +75,8 @@ class AppSettings(BaseSettings):
         secret = self.jwt_secret_key or _read_secret_file(self.jwt_secret_file)
         if secret:
             return secret
+        if self.environment != "dev":
+            raise ValueError("JWT secret key is required in non-dev environments")
         return "local-dev-secret"
 
     @property

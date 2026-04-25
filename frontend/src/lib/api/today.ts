@@ -136,7 +136,7 @@ export interface MedicationMutationResponse {
   scheduled_date: string;
 }
 
-class ApiError extends Error {
+export class ApiError extends Error {
   readonly status: number;
   readonly retryable: boolean;
 
@@ -189,7 +189,18 @@ async function fetchWithRetry(input: RequestInfo | URL, init: RequestInit = {}, 
 
 async function parseJsonResponse<T>(response: Response, fallbackMessage = 'Request failed'): Promise<T> {
   if (!response.ok) {
-    throw new ApiError(`${fallbackMessage} (${response.status})`, response.status, isRetryableStatus(response.status));
+    let message = `${fallbackMessage} (${response.status})`;
+    try {
+      const body = (await response.json()) as { detail?: string | Array<{ msg: string }> };
+      if (typeof body.detail === 'string') {
+        message = body.detail;
+      } else if (Array.isArray(body.detail) && body.detail.length > 0) {
+        message = body.detail.map((e) => e.msg).join(', ');
+      }
+    } catch {
+      // keep fallback message
+    }
+    throw new ApiError(message, response.status, isRetryableStatus(response.status));
   }
   return (await response.json()) as T;
 }

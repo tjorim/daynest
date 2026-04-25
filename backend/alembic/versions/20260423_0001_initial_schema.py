@@ -58,7 +58,8 @@ def upgrade() -> None:
     )
     op.create_index(op.f("ix_routine_templates_user_id"), "routine_templates", ["user_id"], unique=False)
 
-    task_status = sa.Enum("pending", "in_progress", "completed", "skipped", name="task_status")
+    task_status = sa.Enum("pending", "in_progress", "completed", "skipped", name="task_status", create_type=False)
+    task_status.create(op.get_bind(), checkfirst=True)
 
     op.create_table(
         "task_instances",
@@ -94,7 +95,8 @@ def upgrade() -> None:
     )
     op.create_index(op.f("ix_chore_templates_user_id"), "chore_templates", ["user_id"], unique=False)
 
-    chore_status = sa.Enum("pending", "completed", "skipped", name="chore_status")
+    chore_status = sa.Enum("pending", "completed", "skipped", name="chore_status", create_type=False)
+    chore_status.create(op.get_bind(), checkfirst=True)
 
     op.create_table(
         "chore_instances",
@@ -133,7 +135,8 @@ def upgrade() -> None:
     )
     op.create_index(op.f("ix_medication_plans_user_id"), "medication_plans", ["user_id"], unique=False)
 
-    dose_status = sa.Enum("scheduled", "taken", "skipped", "missed", name="medication_dose_status")
+    dose_status = sa.Enum("scheduled", "taken", "skipped", "missed", name="medication_dose_status", create_type=False)
+    dose_status.create(op.get_bind(), checkfirst=True)
 
     op.create_table(
         "medication_dose_instances",
@@ -141,7 +144,7 @@ def upgrade() -> None:
         sa.Column("user_id", sa.Integer(), nullable=False),
         sa.Column("medication_plan_id", sa.Integer(), nullable=False),
         sa.Column("name", sa.String(length=255), nullable=False),
-        sa.Column("instructions", sa.String(length=1000), nullable=False),
+        sa.Column("instructions", sa.Text(), nullable=False),
         sa.Column("scheduled_date", sa.Date(), nullable=False),
         sa.Column("scheduled_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("status", dose_status, server_default="scheduled", nullable=False),

@@ -34,18 +34,19 @@ self.addEventListener('fetch', (event) => {
 
   event.respondWith(
     caches.match(event.request).then((cached) => {
-      const isApi = event.request.url.includes('/api/');
+      const reqUrl = new URL(event.request.url);
+      const isApi = reqUrl.origin === self.location.origin && reqUrl.pathname.startsWith('/api/');
       if (cached && !isApi) return cached;
 
       const fetchPromise = fetch(event.request).then((response) => {
-        if (response.ok && event.request.url.startsWith(self.location.origin)) {
+        if (response.ok && !isApi && reqUrl.origin === self.location.origin) {
           const copy = response.clone();
           void caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
         }
         return response;
       });
 
-      return isApi ? fetchPromise.catch(() => cached || Response.error()) : fetchPromise.catch(() => Response.error());
+      return isApi ? fetchPromise.catch(() => Response.error()) : fetchPromise.catch(() => cached || Response.error());
     }),
   );
 });

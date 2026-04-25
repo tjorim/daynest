@@ -259,14 +259,13 @@ To reduce painful data loss, Daynest treats backup/recovery and data portability
 
 Daynest export files must be **self-describing** and versioned.
 
-- Top-level required metadata:
-  - `format`: `"daynest-export"`
-  - `version`: semantic version for export schema (for example `1.0.0`)
+- Top-level required fields (current v1 schema, see `PlannedItemBackupFile` in `frontend/src/lib/api/today.ts`):
   - `exported_at`: ISO-8601 UTC timestamp
-  - `source_app_version`: Daynest release identifier
-  - `source_env`: one of `dev|staging|prod`
+  - `source`: `"daynest"`
+  - `schema_version`: `1` (integer literal)
+  - `items`: array of planned-item objects
 - Contract rules:
-  - **Backward compatible imports** within the same major export version.
+  - **Backward-compatible imports** within the same major export version.
   - Importers must ignore unknown additive fields.
   - Breaking export format changes require **major** version bump.
   - New optional fields require **minor** version bump.

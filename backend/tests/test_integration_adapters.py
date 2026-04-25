@@ -106,6 +106,9 @@ def test_home_assistant_requires_scope_and_returns_entities(client: TestClient, 
 
 
 def test_mcp_adapter_and_rate_limit(client: TestClient, db_session: Session) -> None:
+    import app.api.dependencies.integration_auth as auth_dep
+    auth_dep._request_log.clear()
+
     user = _create_user(db_session, "mcp-rate@example.com")
     db_session.add(
         PlannedItem(

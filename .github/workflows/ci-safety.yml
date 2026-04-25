@@ -31,7 +31,7 @@ jobs:
           pip install -r requirements.txt ruff mypy
 
       - name: Lint backend
-        run: ruff check app tests --ignore F401
+        run: ruff check app tests
 
       - name: Type-check backend
         run: PYTHONPATH=. mypy app

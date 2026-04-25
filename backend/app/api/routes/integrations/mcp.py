@@ -26,7 +26,7 @@ def _set_mcp_contract_header(response: Response) -> None:
 
 @router.get("/capabilities")
 def mcp_capabilities(
-    integration_user: User = Depends(require_integration_scope("mcp:read")),
+    _integration_user: User = Depends(require_integration_scope("mcp:read")),
     _: None = Depends(_set_mcp_contract_header),
 ) -> IntegrationCapabilities:
     return IntegrationCapabilities(

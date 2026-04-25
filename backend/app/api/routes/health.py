@@ -1,3 +1,4 @@
+import hmac
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
@@ -14,7 +15,10 @@ router = APIRouter(tags=["system"])
 
 def _require_metrics_access(request: Request) -> None:
     secret = settings.metrics_secret
-    if secret and request.headers.get("X-Metrics-Secret") != secret:
+    if not secret:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
+    provided = request.headers.get("X-Metrics-Secret", "")
+    if not hmac.compare_digest(provided, secret):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
 
 
@@ -27,6 +31,7 @@ def liveness_check() -> dict[str, str]:
 def readiness_check(response: Response) -> dict[str, str]:
     try:
         with engine.connect() as connection:
+            connection.execute(text("SET LOCAL statement_timeout = '2000'"))
             connection.execute(text("SELECT 1"))
     except Exception:
         logger.exception("Readiness check failed: database connectivity error")
@@ -38,7 +43,7 @@ def readiness_check(response: Response) -> dict[str, str]:
 
 @router.get("/health")
 def health_check() -> dict[str, str]:
-    return {"status": "ok", "liveness": "alive", "readiness": "use /health/readiness"}
+    return {"status": "ok", "liveness": "alive", "readiness_endpoint": "/health/readiness"}
 
 
 @router.get("/metrics")

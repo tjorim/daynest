@@ -1,8 +1,8 @@
+import threading
 from collections import defaultdict, deque
 from collections.abc import Callable
 from datetime import datetime, timedelta, timezone
 from hashlib import sha256
-from hmac import compare_digest
 
 from fastapi import Depends, Header, HTTPException, status
 from sqlalchemy import select
@@ -15,6 +15,7 @@ from app.models.user import User
 # In-process only: does not work correctly with multiple Uvicorn/Gunicorn workers.
 # Replace with a distributed store (e.g. Redis) before scaling beyond a single process.
 _request_log: dict[int, deque[datetime]] = defaultdict(deque)
+_request_log_lock = threading.Lock()
 
 
 def hash_integration_key(raw_key: str) -> str:
@@ -33,21 +34,27 @@ def require_integration_scope(scope: str) -> Callable:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid integration key")
 
         scopes = {item.strip() for item in client.scopes_csv.split(",") if item.strip()}
-        has_scope = any(compare_digest(scope, granted_scope) for granted_scope in scopes)
-        if not has_scope:
+        if scope not in scopes:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"Missing scope: {scope}")
-
-        now = datetime.now(timezone.utc)
-        cutoff = now - timedelta(minutes=1)
-        bucket = _request_log[client.id]
-        while bucket and bucket[0] < cutoff:
-            bucket.popleft()
-        if len(bucket) >= client.rate_limit_per_minute:
-            raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Integration rate limit exceeded")
-        bucket.append(now)
 
         if client.user is None:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Integration owner not found")
+
+        with _request_log_lock:
+            now = datetime.now(timezone.utc)
+            cutoff = now - timedelta(minutes=1)
+            bucket = _request_log[client.id]
+            while bucket and bucket[0] < cutoff:
+                bucket.popleft()
+            if not bucket:
+                # Remove stale empty bucket and create a fresh one
+                del _request_log[client.id]
+                bucket = deque()
+                _request_log[client.id] = bucket
+            if len(bucket) >= client.rate_limit_per_minute:
+                raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Integration rate limit exceeded")
+            bucket.append(now)
+
         return client.user
 
     return dependency

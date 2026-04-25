@@ -1,6 +1,6 @@
 from datetime import date, datetime, timezone
 
-from sqlalchemy import and_, select
+from sqlalchemy import and_, insert, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
@@ -51,11 +51,15 @@ class TodayRepository:
                     })
                 cursor = date.fromordinal(cursor.toordinal() + step)
             if rows:
-                self.db.execute(
-                    pg_insert(ChoreInstance).values(rows).on_conflict_do_nothing(
-                        index_elements=["chore_template_id", "scheduled_date"]
+                dialect_name = self.db.connection().dialect.name
+                if dialect_name == "postgresql":
+                    self.db.execute(
+                        pg_insert(ChoreInstance).values(rows).on_conflict_do_nothing(
+                            index_elements=["chore_template_id", "scheduled_date"]
+                        )
                     )
-                )
+                else:
+                    self.db.execute(insert(ChoreInstance).prefix_with("OR IGNORE").values(rows))
 
         self.db.commit()
 
