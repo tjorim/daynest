@@ -83,6 +83,18 @@
       },
       "runtime": {
         "name": "Total Runtime"
+      },
+      "overdue_count": {
+        "name": "Overdue Count"
+      },
+      "completion_ratio": {
+        "name": "Completion Ratio"
+      },
+      "next_medication": {
+        "name": "Next Medication"
+      },
+      "due_today_count": {
+        "name": "Due Today Count"
       }
     },
     "binary_sensor": {
