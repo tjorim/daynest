@@ -68,7 +68,7 @@ kapt {
 }
 
 dependencies {
-    val bom = platform("androidx.compose:compose-bom:2024.09.00")
+    val bom = platform("androidx.compose:compose-bom:2026.04.01")
 
     implementation("androidx.core:core-ktx:1.18.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.10.0")
