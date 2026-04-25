@@ -92,8 +92,8 @@ class DaynestConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             try:
                 await validate_credentials(
                     self.hass,
-                    username=user_input[CONF_USERNAME],
-                    password=user_input[CONF_PASSWORD],
+                    base_url=user_input[CONF_USERNAME],
+                    integration_key=user_input[CONF_PASSWORD],
                 )
             except Exception as exception:  # noqa: BLE001
                 errors["base"] = self._map_exception_to_error(exception)
@@ -139,8 +139,8 @@ class DaynestConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             try:
                 await validate_credentials(
                     self.hass,
-                    username=user_input[CONF_USERNAME],
-                    password=user_input[CONF_PASSWORD],
+                    base_url=user_input[CONF_USERNAME],
+                    integration_key=user_input[CONF_PASSWORD],
                 )
             except Exception as exception:  # noqa: BLE001
                 errors["base"] = self._map_exception_to_error(exception)
@@ -198,8 +198,8 @@ class DaynestConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             try:
                 await validate_credentials(
                     self.hass,
-                    username=user_input[CONF_USERNAME],
-                    password=user_input[CONF_PASSWORD],
+                    base_url=user_input[CONF_USERNAME],
+                    integration_key=user_input[CONF_PASSWORD],
                 )
             except Exception as exception:  # noqa: BLE001
                 errors["base"] = self._map_exception_to_error(exception)

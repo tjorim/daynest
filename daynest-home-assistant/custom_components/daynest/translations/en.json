@@ -7,21 +7,6 @@
           "url": "Daynest base URL",
           "api_key": "Integration API key"
         }
-      },
-      "reconfigure": {
-        "description": "Update the credentials for this integration.",
-        "data": {
-          "username": "Username",
-          "password": "Password"
-        }
-      },
-      "reauth_confirm": {
-        "title": "Reauthenticate Integration",
-        "description": "The credentials for {username} are no longer valid. Please provide updated credentials to restore access.",
-        "data": {
-          "username": "Username",
-          "password": "Password"
-        }
       }
     },
     "error": {

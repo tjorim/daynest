@@ -8,13 +8,21 @@ Architecture:
 
 Exception hierarchy:
     DaynestApiClientError (base)
-    ├── DaynestApiClientCommunicationError (network/timeout)
-    └── DaynestApiClientAuthenticationError (401/403)
+    ├── DaynestApiClientCommunicationError
+    │   ├── DaynestApiClientTimeoutError
+    │   └── DaynestApiClientServerUnavailableError
+    ├── DaynestApiClientMalformedResponseError
+    └── DaynestApiClientAuthenticationError
 
 Coordinator exception mapping:
-    ApiClientAuthenticationError → ConfigEntryAuthFailed (triggers reauth)
-    ApiClientCommunicationError → UpdateFailed (auto-retry)
-    ApiClientError             → UpdateFailed (auto-retry)
+    DaynestApiClientAuthenticationError → ConfigEntryAuthFailed
+    DaynestApiClientCommunicationError → UpdateFailed
+    DaynestApiClientTimeoutError → UpdateFailed
+    DaynestApiClientServerUnavailableError → UpdateFailed
+    DaynestApiClientMalformedResponseError → UpdateFailed
+    DaynestApiClientError → UpdateFailed
+
+These mappings reflect the handling in coordinator._async_update_data.
 """
 
 from .client import (

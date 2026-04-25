@@ -5,13 +5,14 @@ from __future__ import annotations
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
-from custom_components.daynest.entity import DaynestEntity
 from homeassistant.components.sensor import SensorEntity, SensorEntityDescription, SensorStateClass
 from homeassistant.const import PERCENTAGE
 from homeassistant.util import dt as dt_util
 
+from ..entity import DaynestEntity
+
 if TYPE_CHECKING:
-    from custom_components.daynest.coordinator import DaynestDataUpdateCoordinator
+    from ..coordinator import DaynestDataUpdateCoordinator
 
 ENTITY_DESCRIPTIONS = (
     SensorEntityDescription(
@@ -51,14 +52,6 @@ ENTITY_DESCRIPTIONS = (
 class DaynestDashboardSensor(SensorEntity, DaynestEntity):
     """Dashboard sensor class for care metrics."""
 
-    def __init__(
-        self,
-        coordinator: DaynestDataUpdateCoordinator,
-        entity_description: SensorEntityDescription,
-    ) -> None:
-        """Initialize the dashboard sensor."""
-        super().__init__(coordinator, entity_description)
-
     @property
     def native_value(self) -> int | float | str | datetime | None:
         """Return the sensor's state."""
@@ -74,10 +67,14 @@ class DaynestDashboardSensor(SensorEntity, DaynestEntity):
             return round(ratio * 100, 1)
 
         if key == "next_medication":
+            next_medication = self.coordinator.data.get("next_medication")
+            if isinstance(next_medication, str):
+                return next_medication
+
             medication = self._next_medication
             if medication is None:
                 return None
-            for field in ("name", "medicationName", "title", "id"):
+            for field in ("name", "medication_name", "medicationName", "title", "id"):
                 if (value := medication.get(field)) is not None:
                     return str(value)
             return None
@@ -94,7 +91,11 @@ class DaynestDashboardSensor(SensorEntity, DaynestEntity):
         if medication is None:
             return None
 
-        due_at = medication.get("dueAt")
+        due_at = medication.get("due_at")
+        if due_at is None:
+            due_at = medication.get("dueAt")
+        if due_at is None:
+            due_at = medication.get("scheduled_at")
         if due_at is None:
             due_at = medication.get("scheduledAt")
         if due_at is None:
@@ -106,11 +107,13 @@ class DaynestDashboardSensor(SensorEntity, DaynestEntity):
         else:
             parsed_due = None
 
+        due_at_str = parsed_due.isoformat() if parsed_due else str(due_at) if due_at is not None else None
+
         return {
             "medication_id": medication.get("id"),
             "dosage": medication.get("dosage"),
             "instructions": medication.get("instructions"),
-            "due_at": parsed_due.isoformat() if parsed_due is not None else due_at,
+            "due_at": due_at_str,
         }
 
     @property

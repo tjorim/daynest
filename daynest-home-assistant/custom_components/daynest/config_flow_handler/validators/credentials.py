@@ -20,14 +20,14 @@ if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
 
 
-async def validate_credentials(hass: HomeAssistant, username: str, password: str) -> None:
+async def validate_credentials(hass: HomeAssistant, base_url: str, integration_key: str) -> None:
     """
     Validate user credentials by testing API connection.
 
     Args:
         hass: Home Assistant instance.
-        username: The username to validate.
-        password: The password to validate.
+        base_url: The Daynest base URL to validate.
+        integration_key: The Daynest integration key to validate.
 
     Raises:
         DaynestApiClientAuthenticationError: If credentials are invalid.
@@ -36,11 +36,11 @@ async def validate_credentials(hass: HomeAssistant, username: str, password: str
 
     """
     client = DaynestApiClient(
-        username=username,
-        password=password,
         session=async_get_clientsession(hass),
+        base_url=base_url,
+        integration_key=integration_key,
     )
-    await client.async_get_data()  # May raise authentication/communication errors
+    await client.async_get_summary()  # May raise authentication/communication errors
 
 
 __all__ = [

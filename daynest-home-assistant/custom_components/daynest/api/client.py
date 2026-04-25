@@ -3,14 +3,16 @@
 from __future__ import annotations
 
 import asyncio
-from dataclasses import dataclass
 from collections.abc import Callable
+from dataclasses import dataclass
 from typing import Any, Generic, TypeVar
 from urllib.parse import urljoin
 
 import aiohttp
 
 from ..const import DEFAULT_API_BASE_URL
+
+REQUEST_TIMEOUT = aiohttp.ClientTimeout(total=10)
 
 
 class DaynestApiClientError(Exception):
@@ -41,24 +43,23 @@ class DaynestApiClientMalformedResponseError(DaynestApiClientError):
 class DaynestSummary:
     """Typed model for `/summary` payload."""
 
-    user_id: int
-    record_id: int
-    title: str
-    body: str
+    payload: dict[str, Any]
 
     @classmethod
     def from_dict(cls, payload: dict[str, Any]) -> DaynestSummary:
         """Build a typed summary model from raw JSON payload."""
-        try:
-            user_id = int(payload["userId"])
-            record_id = int(payload["id"])
-            title = str(payload["title"])
-            body = str(payload["body"])
-        except (KeyError, TypeError, ValueError) as err:
-            msg = f"Malformed summary payload: {err}"
-            raise DaynestApiClientMalformedResponseError(msg) from err
+        required_keys = {
+            "todo_daynest_today",
+            "sensor_daynest_overdue_count",
+            "sensor_daynest_next_medication",
+        }
+        missing_keys = sorted(required_keys.difference(payload))
+        if missing_keys:
+            missing = ", ".join(missing_keys)
+            msg = f"Malformed summary payload: missing required keys ({missing})"
+            raise DaynestApiClientMalformedResponseError(msg)
 
-        return cls(user_id=user_id, record_id=record_id, title=title, body=body)
+        return cls(payload=payload)
 
 
 @dataclass(slots=True, frozen=True)
@@ -107,7 +108,7 @@ class DaynestApiClient:
 
         self._session = session
         self._base_url = resolved_base_url
-        self._integration_key = integration_key or password
+        self._integration_key = integration_key if integration_key is not None else password
 
         self.last_integration_contract: str | None = None
 
@@ -119,12 +120,7 @@ class DaynestApiClient:
     async def async_get_data(self) -> dict[str, Any]:
         """Fetch summary data as the coordinator's primary payload."""
         response = await self.async_get_summary()
-        return {
-            "userId": response.data.user_id,
-            "id": response.data.record_id,
-            "title": response.data.title,
-            "body": response.data.body,
-        }
+        return response.data.payload
 
     async def async_get_summary(self) -> DaynestApiResponse[DaynestSummary]:
         """Fetch and parse the integration summary endpoint."""
@@ -152,11 +148,11 @@ class DaynestApiClient:
             headers["X-Integration-Key"] = self._integration_key
 
         try:
-            async with self._session.get(url, headers=headers, timeout=aiohttp.ClientTimeout(total=10)) as response:
+            async with self._session.get(url, headers=headers, timeout=REQUEST_TIMEOUT) as response:
                 if response.status in (401, 403):
                     msg = f"Authentication failed with status {response.status}"
                     raise DaynestApiClientAuthenticationError(msg)
-                if response.status in (502, 503, 504):
+                if 500 <= response.status < 600:
                     msg = f"Backend unavailable (status {response.status})"
                     raise DaynestApiClientServerUnavailableError(msg)
                 response.raise_for_status()

@@ -40,12 +40,11 @@ Purpose: Lightweight setup-time validation of the configured base URL and integr
 Expected behavior:
 
 - Returns `200 OK`
-- Returns `X-Integration-Contract: 1`
+- Returns `X-Integration-Contract: home-assistant; version=ha.v1`
 - Returns a JSON object with these required fields:
-  - `userId`
-  - `id`
-  - `title`
-  - `body`
+  - `todo_daynest_today`
+  - `sensor_daynest_overdue_count`
+  - `sensor_daynest_next_medication`
 
 ### `GET /api/v1/integrations/home-assistant/dashboard`
 
@@ -54,15 +53,15 @@ Purpose: Returns dashboard data consumed by Home Assistant sensor entities.
 Expected behavior:
 
 - Returns `200 OK`
-- Returns `X-Integration-Contract: 1`
+- Returns `X-Integration-Contract: home-assistant; version=ha.v1`
 - Returns a JSON object. The integration currently consumes:
-  - `dueTodayCount`
-  - `overdueCount`
-  - `completionRatio`
-  - `nextMedication`
-  - `userId`
-  - `id`
-  - `model`
+  - `for_date`
+  - `due_today_count`
+  - `overdue_count`
+  - `planned_count`
+  - `medication_due_count`
+  - `completion_ratio`
+  - `next_medication`
 
 ## Common Errors and Fixes
 
@@ -110,6 +109,6 @@ Fixes:
 
 - [ ] API key includes `ha:read`
 - [ ] Base URL is HTTPS and reachable from Home Assistant
-- [ ] `GET /api/v1/integrations/home-assistant/summary` returns `200 OK`, `X-Integration-Contract: 1`, and the required summary fields
-- [ ] `GET /api/v1/integrations/home-assistant/dashboard` returns `200 OK`, `X-Integration-Contract: 1`, and a JSON object
+- [ ] `GET /api/v1/integrations/home-assistant/summary` returns `200 OK`, `X-Integration-Contract: home-assistant; version=ha.v1`, and the required summary fields
+- [ ] `GET /api/v1/integrations/home-assistant/dashboard` returns `200 OK`, `X-Integration-Contract: home-assistant; version=ha.v1`, and a JSON object
 - [ ] Integration loads without entity availability errors

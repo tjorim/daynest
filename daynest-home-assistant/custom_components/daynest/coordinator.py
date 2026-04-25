@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import timedelta
 from typing import Any
 
+from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
@@ -15,10 +16,10 @@ from .api import (
     DaynestApiClientError,
     DaynestApiClientMalformedResponseError,
 )
-from .const import DOMAIN, LOGGER
+from .const import DOMAIN, LOGGER, SUPPORTED_INTEGRATION_CONTRACT_VERSIONS, parse_integration_contract_version
 from .data import DaynestConfigEntry
 
-SUPPORTED_CONTRACT_VERSIONS = frozenset({"1"})
+SUPPORTED_CONTRACT_VERSIONS = SUPPORTED_INTEGRATION_CONTRACT_VERSIONS
 DASHBOARD_UPDATE_INTERVAL = timedelta(minutes=15)
 
 
@@ -45,7 +46,7 @@ class DaynestDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     def __init__(
         self,
-        hass,
+        hass: HomeAssistant,
         config_entry: DaynestConfigEntry,
         client: DaynestApiClient,
     ) -> None:
@@ -62,23 +63,26 @@ class DaynestDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     def _normalize_dashboard(self, payload: dict[str, Any], contract: str) -> dict[str, Any]:
         """Normalize dashboard payload into stable coordinator keys."""
-        next_medication = payload.get("nextMedication")
-        if not isinstance(next_medication, dict):
-            next_medication = None
+        next_medication = payload.get("next_medication")
+        if not isinstance(next_medication, (dict, str)) and next_medication is not None:
+            next_medication = str(next_medication)
 
-        completion_ratio = _safe_float(payload.get("completionRatio"), default=0.0)
+        completion_ratio = _safe_float(payload.get("completion_ratio"), default=0.0)
         completion_ratio = max(0.0, min(completion_ratio, 1.0))
 
         return {
-            "due_today_count": max(0, _safe_int(payload.get("dueTodayCount"), default=0)),
-            "overdue_count": max(0, _safe_int(payload.get("overdueCount"), default=0)),
+            "for_date": payload.get("for_date"),
+            "due_today_count": max(0, _safe_int(payload.get("due_today_count"), default=0)),
+            "overdue_count": max(0, _safe_int(payload.get("overdue_count"), default=0)),
+            "planned_count": max(0, _safe_int(payload.get("planned_count"), default=0)),
+            "medication_due_count": max(0, _safe_int(payload.get("medication_due_count"), default=0)),
             "completion_ratio": completion_ratio,
             "next_medication": next_medication,
             "integration_contract": contract,
-            # Compatibility keys for existing entities until they are migrated.
-            "userId": max(0, _safe_int(payload.get("userId"), default=0)),
-            "id": max(0, _safe_int(payload.get("id"), default=0)),
             "model": str(payload.get("model", "Daynest")),
+            # Compatibility keys for demo entities that still derive synthetic values from coordinator data.
+            "userId": max(0, _safe_int(payload.get("due_today_count"), default=0)),
+            "id": max(0, _safe_int(payload.get("overdue_count"), default=0)),
         }
 
     async def _async_update_data(self) -> dict[str, Any]:
@@ -94,11 +98,12 @@ class DaynestDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         except DaynestApiClientError as err:
             raise UpdateFailed(f"Unexpected API error while updating dashboard: {err}") from err
 
-        contract = response.integration_contract
-        if contract not in SUPPORTED_CONTRACT_VERSIONS:
-            raise UpdateFailed(f"Unsupported or missing integration contract header: {contract}")
+        parsed_contract = parse_integration_contract_version(response.integration_contract)
+        if parsed_contract not in SUPPORTED_CONTRACT_VERSIONS:
+            unsupported_token = parsed_contract or response.integration_contract or "missing"
+            raise UpdateFailed(f"Unsupported or missing integration contract version: {unsupported_token}")
 
-        return self._normalize_dashboard(response.data.payload, contract)
+        return self._normalize_dashboard(response.data.payload, parsed_contract)
 
 
 __all__ = ["DASHBOARD_UPDATE_INTERVAL", "DaynestDataUpdateCoordinator"]

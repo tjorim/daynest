@@ -15,12 +15,13 @@ from homeassistant.loader import async_get_loaded_integration
 from .api import (
     DaynestApiClient,
     DaynestApiClientAuthenticationError,
+    DaynestApiClientMalformedResponseError,
     DaynestApiClientServerUnavailableError,
     DaynestApiClientTimeoutError,
 )
-from .const import DOMAIN, LOGGER
+from .const import DOMAIN, LOGGER, SUPPORTED_INTEGRATION_CONTRACT_VERSIONS, parse_integration_contract_version
 
-SUPPORTED_CONTRACT_VERSIONS = {"1"}
+SUPPORTED_CONTRACT_VERSIONS = SUPPORTED_INTEGRATION_CONTRACT_VERSIONS
 
 ERROR_AUTH = "invalid_auth"
 ERROR_CANNOT_CONNECT = "cannot_connect"
@@ -109,14 +110,18 @@ class DaynestConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         except DaynestApiClientServerUnavailableError as err:
             LOGGER.warning("Could not connect to Daynest during setup: %s", err)
             return {"base": ERROR_CANNOT_CONNECT}
+        except DaynestApiClientMalformedResponseError as err:
+            LOGGER.warning("Malformed or unsupported Daynest setup response: %s", err)
+            return {"base": ERROR_UNSUPPORTED_CONTRACT}
         except Exception as err:  # noqa: BLE001
             LOGGER.exception("Unexpected error during Daynest setup: %s", err)
             return {"base": ERROR_UNKNOWN}
 
-        contract_version = summary_response.integration_contract
+        contract_version = parse_integration_contract_version(summary_response.integration_contract)
         if contract_version not in SUPPORTED_CONTRACT_VERSIONS:
             LOGGER.warning(
-                "Unsupported Daynest integration contract '%s' received during setup", contract_version
+                "Unsupported Daynest integration contract '%s' received during setup",
+                summary_response.integration_contract,
             )
             return {"base": ERROR_UNSUPPORTED_CONTRACT}
 

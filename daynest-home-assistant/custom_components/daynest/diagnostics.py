@@ -115,8 +115,10 @@ async def async_get_config_entry_diagnostics(
         if isinstance(coordinator.data, dict):
             # Include sample data but sanitize sensitive info
             data_sample = {
-                "title": coordinator.data.get("title"),
-                "body_length": len(coordinator.data.get("body", "")) if coordinator.data.get("body") else 0,
+                "for_date": coordinator.data.get("for_date"),
+                "due_today_count": coordinator.data.get("due_today_count"),
+                "overdue_count": coordinator.data.get("overdue_count"),
+                "next_medication": coordinator.data.get("next_medication"),
                 "has_user_id": "userId" in coordinator.data,
             }
 
