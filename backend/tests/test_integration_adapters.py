@@ -16,7 +16,6 @@ from app.models.chore_instance import ChoreInstance, ChoreStatus
 from app.models.chore_template import ChoreTemplate
 from app.models.integration_client import IntegrationClient
 from app.models.medication_plan import MedicationPlan
-from app.models.planned_item import PlannedItem
 from app.models.user import User
 
 
