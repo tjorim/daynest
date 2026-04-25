@@ -9,6 +9,7 @@ from homeassistant.components.sensor import SensorEntityDescription
 
 from .air_quality import ENTITY_DESCRIPTIONS as AIR_QUALITY_DESCRIPTIONS, DaynestAirQualitySensor
 from .diagnostic import ENTITY_DESCRIPTIONS as DIAGNOSTIC_DESCRIPTIONS, DaynestDiagnosticSensor
+from .dashboard import ENTITY_DESCRIPTIONS as DASHBOARD_DESCRIPTIONS, DaynestDashboardSensor
 
 if TYPE_CHECKING:
     from custom_components.daynest.data import DaynestConfigEntry
@@ -19,6 +20,7 @@ if TYPE_CHECKING:
 ENTITY_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
     *AIR_QUALITY_DESCRIPTIONS,
     *DIAGNOSTIC_DESCRIPTIONS,
+    *DASHBOARD_DESCRIPTIONS,
 )
 
 
@@ -43,4 +45,12 @@ async def async_setup_entry(
             entity_description=entity_description,
         )
         for entity_description in DIAGNOSTIC_DESCRIPTIONS
+    )
+    # Add dashboard sensors
+    async_add_entities(
+        DaynestDashboardSensor(
+            coordinator=entry.runtime_data.coordinator,
+            entity_description=entity_description,
+        )
+        for entity_description in DASHBOARD_DESCRIPTIONS
     )
