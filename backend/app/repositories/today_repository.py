@@ -22,6 +22,9 @@ class TodayRepository:
         )
         return list(self.db.scalars(stmt).all())
 
+    def get_due_today_chores_placeholder(self) -> list[dict[str, str]]:
+        return []
+
     def get_overdue_chores_placeholder(self) -> list[dict[str, str]]:
         return []
 

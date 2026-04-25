@@ -17,7 +17,10 @@ def hash_password(password: str) -> str:
 
 
 def verify_password(password: str, password_hash: str) -> bool:
-    algorithm, iterations, salt_hex, expected_hash = password_hash.split("$", 3)
+    try:
+        algorithm, iterations, salt_hex, expected_hash = password_hash.split("$", 3)
+    except ValueError:
+        return False
     if algorithm != "pbkdf2_sha256":
         return False
 

@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from jwt import InvalidTokenError
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.api.dependencies.auth import get_current_user
@@ -18,14 +19,20 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)) -> TokenPairResp
     user = db.scalar(select(User).where(User.email == payload.email.lower()))
 
     if user is None:
-        user = User(
-            email=payload.email.lower(),
-            full_name=payload.full_name,
-            password_hash=hash_password(payload.password),
-        )
-        db.add(user)
-        db.commit()
-        db.refresh(user)
+        try:
+            user = User(
+                email=payload.email.lower(),
+                full_name=payload.full_name,
+                password_hash=hash_password(payload.password),
+            )
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+        except IntegrityError:
+            db.rollback()
+            user = db.scalar(select(User).where(User.email == payload.email.lower()))
+            if user is None or not verify_password(payload.password, user.password_hash):
+                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")
     elif not verify_password(payload.password, user.password_hash):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")
 
@@ -45,11 +52,16 @@ def refresh(payload: RefreshRequest, db: Session = Depends(get_db)) -> TokenPair
     if claims.get("type") != "refresh":
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token type")
 
-    user_id = claims.get("sub")
-    if user_id is None:
+    user_id_val = claims.get("sub")
+    if user_id_val is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token subject")
 
-    user = db.get(User, int(user_id))
+    try:
+        user_id = int(user_id_val)
+    except (ValueError, TypeError):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid user ID format")
+
+    user = db.get(User, user_id)
     if user is None or not user.is_active:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found or inactive")
 

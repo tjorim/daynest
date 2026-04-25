@@ -2,7 +2,7 @@ from datetime import date
 
 from app.repositories.today_repository import TodayRepository
 from app.schemas.integrations import TodaySummary
-from app.schemas.today import DueTodayItem, RoutineTodayItem, TodayResponse
+from app.schemas.today import RoutineTodayItem, TodayResponse
 
 
 class TodayService:
@@ -37,22 +37,11 @@ class TodayService:
             for task in routine_tasks
         ]
 
-        due_today = [
-            DueTodayItem(
-                task_instance_id=task.id,
-                title=task.title,
-                status=task.status,
-                scheduled_date=task.scheduled_date,
-                due_at=task.due_at,
-            )
-            for task in routine_tasks
-        ]
-
         return TodayResponse(
             medication=self.repository.get_medication_placeholder(),
             routines=routines,
             overdue=self.repository.get_overdue_chores_placeholder(),
-            due_today=due_today,
+            due_today=self.repository.get_due_today_chores_placeholder(),
             upcoming=[],
             planned=[],
         )

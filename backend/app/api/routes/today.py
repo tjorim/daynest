@@ -1,6 +1,6 @@
 from datetime import date
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.api.dependencies.auth import get_current_user
@@ -17,7 +17,8 @@ router = APIRouter(tags=["today"])
 def get_today(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    for_date: date = Query(default_factory=date.today),
 ) -> TodayResponse:
     repository = TodayRepository(db)
     service = TodayService(repository)
-    return service.get_today(user_id=current_user.id, for_date=date.today())
+    return service.get_today(user_id=current_user.id, for_date=for_date)

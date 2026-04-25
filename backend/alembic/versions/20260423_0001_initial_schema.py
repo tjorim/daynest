@@ -54,7 +54,7 @@ def upgrade() -> None:
         sa.Column("title", sa.String(length=255), nullable=False),
         sa.Column("scheduled_date", sa.Date(), nullable=False),
         sa.Column("due_at", sa.DateTime(timezone=True), nullable=True),
-        sa.Column("status", task_status, server_default="pending", nullable=False),
+        sa.Column("status", task_status, server_default="'pending'", nullable=False),
         sa.Column("completed_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
         sa.ForeignKeyConstraint(["routine_template_id"], ["routine_templates.id"], ondelete="CASCADE"),
