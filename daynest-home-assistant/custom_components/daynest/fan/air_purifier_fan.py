@@ -32,8 +32,7 @@ class DaynestFan(FanEntity, DaynestEntity):
     """
     Air purifier fan entity.
 
-    This entity is linked to the fan_speed select entity - they control the same thing.
-    When you change one, the other updates automatically.
+    This entity controls the air purifier fan speed.
     """
 
     _attr_supported_features = FanEntityFeature.SET_SPEED | FanEntityFeature.TURN_ON | FanEntityFeature.TURN_OFF
@@ -65,11 +64,7 @@ class DaynestFan(FanEntity, DaynestEntity):
         return self._percentage
 
     async def async_set_percentage(self, percentage: int) -> None:
-        """
-        Set the speed percentage of the fan.
-
-        This also updates the fan_speed select entity to match.
-        """
+        """Set the speed percentage of the fan."""
         try:
             if percentage == 0:
                 await self.async_turn_off()
@@ -87,11 +82,6 @@ class DaynestFan(FanEntity, DaynestEntity):
 
             self._percentage = percentage
             self._is_on = True
-
-            # Store in coordinator data for select entity to read
-            # This creates a link: when you change the fan speed here,
-            # the fan_speed select entity will also update
-            self.coordinator.data["demo_fan_speed"] = speed_name
 
             # Request coordinator refresh - simulates: API call → device updates → fetch new state
             await self.coordinator.async_request_refresh()

@@ -1,237 +1,182 @@
-"""
-API Client for daynest.
-
-This module provides the API client for communicating with external services.
-It demonstrates proper error handling, authentication patterns, and async operations.
-
-For more information on creating API clients:
-https://developers.home-assistant.io/docs/api_lib_index
-"""
+"""HTTP API client for Daynest backend integration endpoints."""
 
 from __future__ import annotations
 
 import asyncio
-import socket
-from typing import Any
+from collections.abc import Callable
+from dataclasses import dataclass
+from typing import Any, Generic, TypeVar
+from urllib.parse import urljoin
 
 import aiohttp
 
+from ..const import DEFAULT_API_BASE_URL
+
+REQUEST_TIMEOUT = aiohttp.ClientTimeout(total=10)
+
 
 class DaynestApiClientError(Exception):
-    """Base exception to indicate a general API error."""
+    """Base exception for API client failures."""
 
 
-class DaynestApiClientCommunicationError(
-    DaynestApiClientError,
-):
-    """Exception to indicate a communication error with the API."""
+class DaynestApiClientCommunicationError(DaynestApiClientError):
+    """Generic transport-level failure."""
 
 
-class DaynestApiClientAuthenticationError(
-    DaynestApiClientError,
-):
-    """Exception to indicate an authentication error with the API."""
+class DaynestApiClientAuthenticationError(DaynestApiClientError):
+    """Authentication/authorization failure reported by backend."""
 
 
-def _verify_response_or_raise(response: aiohttp.ClientResponse) -> None:
-    """
-    Verify that the API response is valid.
+class DaynestApiClientTimeoutError(DaynestApiClientCommunicationError):
+    """Request timed out before receiving a response."""
 
-    Raises appropriate exceptions for authentication and HTTP errors.
 
-    Args:
-        response: The aiohttp ClientResponse to verify.
+class DaynestApiClientServerUnavailableError(DaynestApiClientCommunicationError):
+    """Backend is unavailable or returned an upstream/server error."""
 
-    Raises:
-        DaynestApiClientAuthenticationError: For 401/403 errors.
-        aiohttp.ClientResponseError: For other HTTP errors.
 
-    """
-    if response.status in (401, 403):
-        msg = "Invalid credentials"
-        raise DaynestApiClientAuthenticationError(
-            msg,
-        )
-    response.raise_for_status()
+class DaynestApiClientMalformedResponseError(DaynestApiClientError):
+    """Response payload could not be parsed into expected model."""
+
+
+@dataclass(slots=True, frozen=True)
+class DaynestSummary:
+    """Typed model for `/summary` payload."""
+
+    payload: dict[str, Any]
+
+    @classmethod
+    def from_dict(cls, payload: dict[str, Any]) -> DaynestSummary:
+        """Build a typed summary model from raw JSON payload."""
+        required_keys = {
+            "todo_daynest_today",
+            "sensor_daynest_overdue_count",
+            "sensor_daynest_next_medication",
+        }
+        missing_keys = sorted(required_keys.difference(payload))
+        if missing_keys:
+            missing = ", ".join(missing_keys)
+            msg = f"Malformed summary payload: missing required keys ({missing})"
+            raise DaynestApiClientMalformedResponseError(msg)
+
+        return cls(payload=payload)
+
+
+@dataclass(slots=True, frozen=True)
+class DaynestDashboard:
+    """Typed model for `/dashboard` payload."""
+
+    payload: dict[str, Any]
+
+    @classmethod
+    def from_dict(cls, payload: dict[str, Any]) -> DaynestDashboard:
+        """Build a typed dashboard model from raw JSON payload."""
+        if not isinstance(payload, dict):
+            msg = "Malformed dashboard payload: expected JSON object"
+            raise DaynestApiClientMalformedResponseError(msg)
+        return cls(payload=payload)
+
+
+ModelT = TypeVar("ModelT")
+
+
+@dataclass(slots=True, frozen=True)
+class DaynestApiResponse(Generic[ModelT]):
+    """Typed response wrapper carrying contract metadata."""
+
+    data: ModelT
+    integration_contract: str | None
 
 
 class DaynestApiClient:
-    """
-    API Client for Smart Air Purifier integration.
-
-    This client demonstrates authentication and API communication patterns
-    for Home Assistant integrations. It handles HTTP requests, error handling,
-    and credential management.
-
-    The username and password are stored and would be used for:
-    - HTTP Basic Auth headers
-    - OAuth token exchange
-    - API key generation
-    - Session token management
-
-    Note: JSONPlaceholder is used as a demo endpoint and doesn't require auth.
-    In production, replace with your actual API endpoint that validates credentials.
-
-    For more information on API clients:
-    https://developers.home-assistant.io/docs/api_lib_index
-
-    Attributes:
-        _username: The username for API authentication.
-        _password: The password for API authentication.
-        _session: The aiohttp ClientSession for making requests.
-
-    """
+    """Thin HTTP client for Daynest Home Assistant integration backend."""
 
     def __init__(
         self,
-        username: str,
-        password: str,
         session: aiohttp.ClientSession,
+        base_url: str | None = None,
+        integration_key: str | None = None,
+        *,
+        username: str | None = None,
+        password: str | None = None,
     ) -> None:
-        """
-        Initialize the API Client with credentials.
+        """Initialize client with optional backward-compatible parameter aliases."""
+        resolved_base_url = (base_url or DEFAULT_API_BASE_URL).strip().rstrip("/")
+        if not resolved_base_url:
+            msg = "A base URL is required to initialize DaynestApiClient"
+            raise ValueError(msg)
 
-        Args:
-            username: The username for authentication from config flow.
-            password: The password for authentication from config flow.
-            session: The aiohttp ClientSession to use for requests.
-
-        """
-        self._username = username
-        self._password = password
         self._session = session
+        self._base_url = resolved_base_url
+        self._integration_key = integration_key if integration_key is not None else password
 
-    async def async_get_data(self) -> Any:
-        """
-        Get data from the API.
+        self.last_integration_contract: str | None = None
 
-        This method fetches the current state and sensor data from the device.
-        It demonstrates where credentials would be used in production:
-        - Authorization headers (Basic Auth, Bearer Token)
-        - Query parameters (username, api_key)
-        - Session cookies (after login)
+    @property
+    def has_integration_key(self) -> bool:
+        """Return whether the client has an integration key configured."""
+        return bool(self._integration_key)
 
-        Returns:
-            A dictionary containing the device data.
+    async def async_get_data(self) -> dict[str, Any]:
+        """Fetch summary data as the coordinator's primary payload."""
+        response = await self.async_get_summary()
+        return response.data.payload
 
-        Raises:
-            DaynestApiClientAuthenticationError: If authentication fails.
-            DaynestApiClientCommunicationError: If communication fails.
-            DaynestApiClientError: For other API errors.
-
-        """
-        # In production: Use username/password for authentication
-        # Example patterns:
-        # 1. Basic Auth: auth=aiohttp.BasicAuth(self._username, self._password)
-        # 2. Token: headers={"Authorization": f"Bearer {self._get_token()}"}
-        # 3. API Key: params={"username": self._username, "key": self._password}
-
-        return await self._api_wrapper(
-            method="get",
-            url="https://jsonplaceholder.typicode.com/posts/1",
-            # For demo purposes with JSONPlaceholder (no auth required)
-            # In production, add authentication here
+    async def async_get_summary(self) -> DaynestApiResponse[DaynestSummary]:
+        """Fetch and parse the integration summary endpoint."""
+        return await self._request_model(
+            path="/api/v1/integrations/home-assistant/summary",
+            parser=DaynestSummary.from_dict,
         )
 
-    async def async_set_fan_speed(self, speed: str) -> Any:
-        """
-        Set the fan speed on the device.
-
-        Args:
-            speed: The fan speed to set (low, medium, high, auto).
-
-        Returns:
-            A dictionary containing the API response.
-
-        Raises:
-            DaynestApiClientAuthenticationError: If authentication fails.
-            DaynestApiClientCommunicationError: If communication fails.
-            DaynestApiClientError: For other API errors.
-
-        """
-        # In production: Send authenticated request to change fan speed
-        return await self._api_wrapper(
-            method="patch",
-            url="https://jsonplaceholder.typicode.com/posts/1",
-            data={"fan_speed": speed, "user": self._username},
-            headers={"Content-type": "application/json; charset=UTF-8"},
+    async def async_get_dashboard(self) -> DaynestApiResponse[DaynestDashboard]:
+        """Fetch and parse the integration dashboard endpoint."""
+        return await self._request_model(
+            path="/api/v1/integrations/home-assistant/dashboard",
+            parser=DaynestDashboard.from_dict,
         )
 
-    async def async_set_target_humidity(self, humidity: int) -> Any:
-        """
-        Set the target humidity on the device.
-
-        Args:
-            humidity: The target humidity percentage (30-80).
-
-        Returns:
-            A dictionary containing the API response.
-
-        Raises:
-            DaynestApiClientAuthenticationError: If authentication fails.
-            DaynestApiClientCommunicationError: If communication fails.
-            DaynestApiClientError: For other API errors.
-
-        """
-        # In production: Send authenticated request to change humidity setting
-        return await self._api_wrapper(
-            method="patch",
-            url="https://jsonplaceholder.typicode.com/posts/1",
-            data={"target_humidity": humidity, "user": self._username},
-            headers={"Content-type": "application/json; charset=UTF-8"},
-        )
-
-    async def _api_wrapper(
+    async def _request_model(
         self,
-        method: str,
-        url: str,
-        data: dict | None = None,
-        headers: dict | None = None,
-    ) -> Any:
-        """
-        Wrapper for API requests with error handling.
+        path: str,
+        parser: Callable[[dict[str, Any]], ModelT],
+    ) -> DaynestApiResponse[ModelT]:
+        """Request JSON endpoint and parse into a typed model."""
+        url = urljoin(f"{self._base_url}/", path.lstrip("/"))
+        headers = {"Accept": "application/json"}
+        if self._integration_key:
+            headers["X-Integration-Key"] = self._integration_key
 
-        This method handles all HTTP requests and translates exceptions
-        into integration-specific exceptions.
-
-        Args:
-            method: The HTTP method (get, post, patch, etc.).
-            url: The URL to request.
-            data: Optional data to send in the request body.
-            headers: Optional headers to include in the request.
-
-        Returns:
-            The JSON response from the API.
-
-        Raises:
-            DaynestApiClientAuthenticationError: If authentication fails.
-            DaynestApiClientCommunicationError: If communication fails.
-            DaynestApiClientError: For other API errors.
-
-        """
         try:
-            async with asyncio.timeout(10):
-                response = await self._session.request(
-                    method=method,
-                    url=url,
-                    headers=headers,
-                    json=data,
-                )
-                _verify_response_or_raise(response)
-                return await response.json()
+            async with self._session.get(url, headers=headers, timeout=REQUEST_TIMEOUT) as response:
+                if response.status in (401, 403):
+                    msg = f"Authentication failed with status {response.status}"
+                    raise DaynestApiClientAuthenticationError(msg)
+                if 500 <= response.status < 600:
+                    msg = f"Backend unavailable (status {response.status})"
+                    raise DaynestApiClientServerUnavailableError(msg)
+                response.raise_for_status()
 
-        except TimeoutError as exception:
-            msg = f"Timeout error fetching information - {exception}"
-            raise DaynestApiClientCommunicationError(
-                msg,
-            ) from exception
-        except (aiohttp.ClientError, socket.gaierror) as exception:
-            msg = f"Error fetching information - {exception}"
-            raise DaynestApiClientCommunicationError(
-                msg,
-            ) from exception
-        except Exception as exception:
-            msg = f"Something really wrong happened! - {exception}"
-            raise DaynestApiClientError(
-                msg,
-            ) from exception
+                contract = response.headers.get("X-Integration-Contract")
+                self.last_integration_contract = contract
+
+                payload = await response.json(content_type=None)
+                if not isinstance(payload, dict):
+                    msg = "Malformed response payload: expected JSON object"
+                    raise DaynestApiClientMalformedResponseError(msg)
+
+                model = parser(payload)
+                return DaynestApiResponse(data=model, integration_contract=contract)
+
+        except asyncio.TimeoutError as err:
+            msg = f"Request timed out for endpoint {path}"
+            raise DaynestApiClientTimeoutError(msg) from err
+        except aiohttp.ClientConnectionError as err:
+            msg = f"Server unavailable while requesting endpoint {path}: {err}"
+            raise DaynestApiClientServerUnavailableError(msg) from err
+        except aiohttp.ClientError as err:
+            msg = f"Communication error while requesting endpoint {path}: {err}"
+            raise DaynestApiClientCommunicationError(msg) from err
+        except ValueError as err:
+            msg = f"Malformed JSON response for endpoint {path}: {err}"
+            raise DaynestApiClientMalformedResponseError(msg) from err

@@ -14,8 +14,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from slugify import slugify
-
 from custom_components.daynest.config_flow_handler.schemas import (
     get_reauth_schema,
     get_reconfigure_schema,
@@ -94,18 +92,12 @@ class DaynestConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             try:
                 await validate_credentials(
                     self.hass,
-                    username=user_input[CONF_USERNAME],
-                    password=user_input[CONF_PASSWORD],
+                    base_url=user_input[CONF_USERNAME],
+                    integration_key=user_input[CONF_PASSWORD],
                 )
             except Exception as exception:  # noqa: BLE001
                 errors["base"] = self._map_exception_to_error(exception)
             else:
-                # Set unique ID based on username
-                # NOTE: This is just an example - use a proper unique ID in production
-                # See: https://developers.home-assistant.io/docs/config_entries_config_flow_handler#unique-ids
-                await self.async_set_unique_id(slugify(user_input[CONF_USERNAME]))
-                self._abort_if_unique_id_configured()
-
                 return self.async_create_entry(
                     title=user_input[CONF_USERNAME],
                     data=user_input,
@@ -147,8 +139,8 @@ class DaynestConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             try:
                 await validate_credentials(
                     self.hass,
-                    username=user_input[CONF_USERNAME],
-                    password=user_input[CONF_PASSWORD],
+                    base_url=user_input[CONF_USERNAME],
+                    integration_key=user_input[CONF_PASSWORD],
                 )
             except Exception as exception:  # noqa: BLE001
                 errors["base"] = self._map_exception_to_error(exception)
@@ -206,8 +198,8 @@ class DaynestConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             try:
                 await validate_credentials(
                     self.hass,
-                    username=user_input[CONF_USERNAME],
-                    password=user_input[CONF_PASSWORD],
+                    base_url=user_input[CONF_USERNAME],
+                    integration_key=user_input[CONF_PASSWORD],
                 )
             except Exception as exception:  # noqa: BLE001
                 errors["base"] = self._map_exception_to_error(exception)

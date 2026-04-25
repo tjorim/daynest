@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
+from homeassistant.const import CONF_API_KEY, CONF_URL
 from homeassistant.helpers import device_registry as dr, entity_registry as er
 from homeassistant.helpers.redact import async_redact_data
 
@@ -19,11 +19,12 @@ if TYPE_CHECKING:
 
 # Fields to redact from diagnostics - CRITICAL for security!
 TO_REDACT = {
-    CONF_PASSWORD,
-    CONF_USERNAME,
+    CONF_API_KEY,
+    CONF_URL,
     "username",
     "password",
     "api_key",
+    "integration_key",
     "token",
 }
 
@@ -76,8 +77,7 @@ async def async_get_config_entry_diagnostics(
 
     # API client information (no sensitive data)
     api_info = {
-        "base_endpoint": "https://jsonplaceholder.typicode.com",
-        "has_credentials": bool(client._username),  # noqa: SLF001
+        "has_credentials": client.has_integration_key,
     }
 
     # Integration information
@@ -115,8 +115,10 @@ async def async_get_config_entry_diagnostics(
         if isinstance(coordinator.data, dict):
             # Include sample data but sanitize sensitive info
             data_sample = {
-                "title": coordinator.data.get("title"),
-                "body_length": len(coordinator.data.get("body", "")) if coordinator.data.get("body") else 0,
+                "for_date": coordinator.data.get("for_date"),
+                "due_today_count": coordinator.data.get("due_today_count"),
+                "overdue_count": coordinator.data.get("overdue_count"),
+                "next_medication": coordinator.data.get("next_medication"),
                 "has_user_id": "userId" in coordinator.data,
             }
 

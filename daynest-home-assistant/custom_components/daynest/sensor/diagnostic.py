@@ -60,9 +60,6 @@ class DaynestDiagnosticSensor(SensorEntity, DaynestEntity):
 
         # Filter life remaining (0-100%)
         if self.entity_description.key == "filter_life":
-            # Demo: If reset button was pressed, show 100%!
-            if self.coordinator.data.get("demo_filter_reset"):
-                return 100
             return 100 - (user_id % 100)
 
         # Total runtime in hours

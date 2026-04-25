@@ -11,21 +11,24 @@ https://developers.home-assistant.io/docs/integration_fetching_data#coordinated-
 
 from __future__ import annotations
 
+from datetime import timedelta
 from typing import TYPE_CHECKING, Any
 
 from custom_components.daynest.api import (
     DaynestApiClientAuthenticationError,
     DaynestApiClientError,
 )
-from custom_components.daynest.const import LOGGER
+from custom_components.daynest.const import DEFAULT_UPDATE_INTERVAL_HOURS, DOMAIN, LOGGER
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 if TYPE_CHECKING:
+    from custom_components.daynest.api import DaynestApiClient
     from custom_components.daynest.data import DaynestConfigEntry
+    from homeassistant.core import HomeAssistant
 
 
-class DaynestDataUpdateCoordinator(DataUpdateCoordinator):
+class DaynestDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     """
     Class to manage fetching data from the API.
 
@@ -45,6 +48,23 @@ class DaynestDataUpdateCoordinator(DataUpdateCoordinator):
     """
 
     config_entry: DaynestConfigEntry
+
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        config_entry: DaynestConfigEntry,
+        client: DaynestApiClient,
+    ) -> None:
+        """Initialize the data update coordinator."""
+        super().__init__(
+            hass,
+            logger=LOGGER,
+            name=DOMAIN,
+            update_interval=timedelta(hours=DEFAULT_UPDATE_INTERVAL_HOURS),
+            always_update=False,
+        )
+        self.config_entry = config_entry
+        self._client = client
 
     async def _async_setup(self) -> None:
         """
@@ -107,7 +127,7 @@ class DaynestDataUpdateCoordinator(DataUpdateCoordinator):
             # Fetch data from API
             # In production, you could pass listening_contexts to optimize the API call:
             # return await self.config_entry.runtime_data.client.async_get_data(listening_contexts)
-            return await self.config_entry.runtime_data.client.async_get_data()
+            return await self._client.async_get_data()
         except DaynestApiClientAuthenticationError as exception:
             LOGGER.warning("Authentication error - %s", exception)
             raise ConfigEntryAuthFailed(
@@ -115,7 +135,7 @@ class DaynestDataUpdateCoordinator(DataUpdateCoordinator):
                 translation_key="authentication_failed",
             ) from exception
         except DaynestApiClientError as exception:
-            LOGGER.exception("Error communicating with API")
+            LOGGER.error("Error communicating with API: %s", exception)
             # If the API provides rate limit information, you can honor it:
             # if hasattr(exception, 'retry_after'):
             #     raise UpdateFailed(retry_after=exception.retry_after) from exception
