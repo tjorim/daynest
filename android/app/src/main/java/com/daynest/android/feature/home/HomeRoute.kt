@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -29,20 +30,41 @@ fun HomeRoute(viewModel: HomeViewModel = viewModel()) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
-            Text(
-                text = state.greeting,
-                style = MaterialTheme.typography.headlineMedium,
-            )
-            Text(
-                text = state.subtitle,
-                modifier = Modifier.padding(top = 12.dp),
-                style = MaterialTheme.typography.bodyLarge,
-            )
-            Button(
-                onClick = { },
-                modifier = Modifier.padding(top = 20.dp),
-            ) {
-                Text(state.primaryActionLabel)
+            when (val uiState = state) {
+                HomeUiState.Loading -> {
+                    CircularProgressIndicator()
+                }
+
+                is HomeUiState.Success -> {
+                    Text(
+                        text = uiState.summary.greeting,
+                        style = MaterialTheme.typography.headlineMedium,
+                    )
+                    Text(
+                        text = uiState.summary.subtitle,
+                        modifier = Modifier.padding(top = 12.dp),
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                    Button(
+                        onClick = { },
+                        modifier = Modifier.padding(top = 20.dp),
+                    ) {
+                        Text(uiState.summary.primaryActionLabel)
+                    }
+                }
+
+                is HomeUiState.Error -> {
+                    Text(
+                        text = uiState.message,
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                    Button(
+                        onClick = viewModel::refreshToday,
+                        modifier = Modifier.padding(top = 20.dp),
+                    ) {
+                        Text("Retry")
+                    }
+                }
             }
         }
     }
