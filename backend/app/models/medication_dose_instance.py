@@ -1,10 +1,17 @@
+from __future__ import annotations
+
 import enum
 from datetime import date, datetime
+from typing import TYPE_CHECKING
 
-from sqlalchemy import Date, DateTime, Enum, ForeignKey, String, UniqueConstraint, func
+from sqlalchemy import Date, DateTime, Enum, ForeignKey, String, Text, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
+
+if TYPE_CHECKING:
+    from app.models.medication_plan import MedicationPlan
+    from app.models.user import User
 
 
 class MedicationDoseStatus(str, enum.Enum):
@@ -24,7 +31,7 @@ class MedicationDoseInstance(Base):
         ForeignKey("medication_plans.id", ondelete="CASCADE"), nullable=False, index=True
     )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
-    instructions: Mapped[str] = mapped_column(String(1000), nullable=False)
+    instructions: Mapped[str] = mapped_column(Text, nullable=False)
     scheduled_date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
     scheduled_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
     status: Mapped[MedicationDoseStatus] = mapped_column(

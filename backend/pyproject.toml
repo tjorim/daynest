@@ -1,0 +1,8 @@
+[tool.mypy]
+explicit_package_bases = true
+python_version = "3.12"
+ignore_missing_imports = true
+disable_error_code = ["prop-decorator"]  # property decorator stacking (e.g. @classmethod + @property) requires this
+
+[tool.ruff.lint]
+ignore = ["F401"]

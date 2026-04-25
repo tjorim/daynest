@@ -8,6 +8,7 @@ from app.models.chore_instance import ChoreInstance, ChoreStatus
 from app.models.chore_template import ChoreTemplate
 from app.models.medication_dose_instance import MedicationDoseInstance, MedicationDoseStatus
 from app.models.medication_plan import MedicationPlan
+from app.models.planned_item import PlannedItem
 from app.models.user import User
 
 
@@ -54,7 +55,7 @@ def test_get_today_includes_generated_chore_sections(client: TestClient, db_sess
     assert response.status_code == 200
     payload = response.json()
 
-    assert list(payload.keys()) == ["medication", "medication_history", "routines", "overdue", "due_today", "upcoming", "planned"]
+    assert list(payload.keys()) == ["medication", "medication_history", "routines", "overdue", "due_today", "upcoming", "planned", "day_items"]
     assert payload["due_today"][0]["title"] == "Take out trash"
     assert payload["due_today"][0]["status"] == "pending"
     assert payload["medication"][0]["name"] == "Vitamin D"
@@ -152,3 +153,62 @@ def test_medication_endpoints_create_list_history_and_mutate_status(client: Test
     history_response = client.get("/api/v1/medication-doses/history", headers=headers)
     assert history_response.status_code == 200
     assert history_response.json()["history"][0]["name"] == "Magnesium"
+
+
+def test_calendar_and_planned_endpoints(client: TestClient, db_session: Session) -> None:
+    user = _create_user(db_session, email="calendar@example.com")
+    token = create_access_token(user_id=user.id, email=user.email)
+    headers = {"Authorization": f"Bearer {token}"}
+
+    create_planned = client.post(
+        "/api/v1/planned-items",
+        headers=headers,
+        json={
+            "title": "Meal prep",
+            "planned_for": "2026-04-24",
+            "notes": "Sunday batch",
+            "module_key": "meal_planning",
+            "linked_source": "google_calendar",
+            "linked_ref": "meal-prep-2026-04-24",
+        },
+    )
+    assert create_planned.status_code == 200
+    assert create_planned.json()["module_key"] == "meal_planning"
+    assert create_planned.json()["linked_source"] == "google_calendar"
+    assert create_planned.json()["linked_ref"] == "meal-prep-2026-04-24"
+    planned_id = create_planned.json()["id"]
+
+    list_planned = client.get("/api/v1/planned-items?start_date=2026-04-24&end_date=2026-04-24", headers=headers)
+    assert list_planned.status_code == 200
+    assert len(list_planned.json()) == 1
+
+    update_planned = client.put(
+        f"/api/v1/planned-items/{planned_id}",
+        headers=headers,
+        json={
+            "title": "Meal prep",
+            "planned_for": "2026-04-24",
+            "notes": "Sunday batch",
+            "module_key": "meal_planning",
+            "recurrence_hint": "weekly",
+            "linked_source": "google_calendar",
+            "linked_ref": "meal-prep-2026-04-24",
+            "is_done": True,
+        },
+    )
+    assert update_planned.status_code == 200
+    assert update_planned.json()["is_done"] is True
+    assert update_planned.json()["recurrence_hint"] == "weekly"
+    assert update_planned.json()["linked_source"] == "google_calendar"
+    assert update_planned.json()["linked_ref"] == "meal-prep-2026-04-24"
+
+    day_response = client.get("/api/v1/calendar/day?date=2026-04-24", headers=headers)
+    assert day_response.status_code == 200
+    assert day_response.json()["items"][0]["item_type"] == "planned"
+
+    month_response = client.get("/api/v1/calendar/month?year=2026&month=4", headers=headers)
+    assert month_response.status_code == 200
+    assert month_response.json()["days"][0]["planned"] >= 1
+
+    delete_response = client.delete(f"/api/v1/planned-items/{planned_id}", headers=headers)
+    assert delete_response.status_code == 204
