@@ -1,0 +1,13 @@
+{
+  "domain": "daynest",
+  "name": "Daynest",
+  "codeowners": [
+    "@tjorim"
+  ],
+  "config_flow": true,
+  "documentation": "https://github.com/tjorim/daynest",
+  "integration_type": "hub",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/tjorim/daynest/issues",
+  "version": "0.1.0"
+}

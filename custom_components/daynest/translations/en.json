@@ -1,0 +1,53 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "description": "If you need help with the configuration have a look at the [documentation]({documentation_url}).",
+        "data": {
+          "url": "Daynest base URL",
+          "api_key": "Integration API key"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "The API key is invalid or missing the required ha:read scope.",
+      "cannot_connect": "Unable to reach the Daynest host.",
+      "timeout": "Connection to Daynest timed out.",
+      "unsupported_contract": "The Daynest server contract version is not supported by this integration.",
+      "unknown": "Unknown error occurred."
+    },
+    "abort": {
+      "already_configured": "This entry is already configured."
+    }
+  },
+  "exceptions": {
+    "authentication_failed": {
+      "message": "Authentication failed during data update."
+    },
+    "update_failed": {
+      "message": "Failed to update data from the server."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "due_today_count": {
+        "name": "Tasks Due Today"
+      },
+      "overdue_count": {
+        "name": "Overdue Count"
+      },
+      "planned_count": {
+        "name": "Planned Count"
+      },
+      "medication_due_count": {
+        "name": "Medication Due Count"
+      },
+      "completion_ratio": {
+        "name": "Completion Ratio"
+      },
+      "next_medication": {
+        "name": "Next Medication"
+      }
+    }
+  }
+}
