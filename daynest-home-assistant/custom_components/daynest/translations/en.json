@@ -4,8 +4,8 @@
       "user": {
         "description": "If you need help with the configuration have a look at the [documentation]({documentation_url}).",
         "data": {
-          "username": "Username",
-          "password": "Password"
+          "url": "Daynest base URL",
+          "api_key": "Integration API key"
         }
       },
       "reconfigure": {
@@ -25,8 +25,10 @@
       }
     },
     "error": {
-      "auth": "Username/Password is wrong.",
-      "connection": "Unable to connect to the server.",
+      "invalid_auth": "The API key is invalid or missing the required ha:read scope.",
+      "cannot_connect": "Unable to reach the Daynest host.",
+      "timeout": "Connection to Daynest timed out.",
+      "unsupported_contract": "The Daynest server contract version is not supported by this integration.",
       "unknown": "Unknown error occurred."
     },
     "abort": {
@@ -81,6 +83,18 @@
       },
       "runtime": {
         "name": "Total Runtime"
+      },
+      "overdue_count": {
+        "name": "Overdue Count"
+      },
+      "completion_ratio": {
+        "name": "Completion Ratio"
+      },
+      "next_medication": {
+        "name": "Next Medication"
+      },
+      "due_today_count": {
+        "name": "Due Today Count"
       }
     },
     "binary_sensor": {

@@ -18,16 +18,15 @@ https://developers.home-assistant.io/docs/creating_integration_manifest
 
 from __future__ import annotations
 
-from datetime import timedelta
 from typing import TYPE_CHECKING
 
-from homeassistant.const import CONF_PASSWORD, CONF_USERNAME, Platform
+from homeassistant.const import CONF_API_KEY, CONF_URL, Platform
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 import homeassistant.helpers.config_validation as cv
 from homeassistant.loader import async_get_loaded_integration
 
 from .api import DaynestApiClient
-from .const import DOMAIN, LOGGER
+from .const import DOMAIN
 from .coordinator import DaynestDataUpdateCoordinator
 from .data import DaynestData
 from .service_actions import async_setup_services
@@ -93,8 +92,8 @@ async def async_setup_entry(
     6. Sets up reload listener for config changes
 
     Data flow in this integration:
-    1. User enters username/password in config flow (config_flow.py)
-    2. Credentials stored in entry.data[CONF_USERNAME/CONF_PASSWORD]
+    1. User enters base URL / API key in config flow (config_flow.py)
+    2. Credentials stored in entry.data[CONF_URL/CONF_API_KEY]
     3. API Client initialized with credentials (api/client.py)
     4. Coordinator fetches data using authenticated client (coordinator/base.py)
     5. Entities access data via self.coordinator.data (sensor/, binary_sensor/, etc.)
@@ -114,19 +113,16 @@ async def async_setup_entry(
     """
     # Initialize client first
     client = DaynestApiClient(
-        username=entry.data[CONF_USERNAME],  # From config flow setup
-        password=entry.data[CONF_PASSWORD],  # From config flow setup
+        base_url=entry.data[CONF_URL],  # From config flow setup
+        integration_key=entry.data[CONF_API_KEY],  # From config flow setup
         session=async_get_clientsession(hass),
     )
 
     # Initialize coordinator with config_entry
     coordinator = DaynestDataUpdateCoordinator(
         hass=hass,
-        logger=LOGGER,
-        name=DOMAIN,
         config_entry=entry,
-        update_interval=timedelta(hours=1),
-        always_update=False,  # Only update entities when data actually changes
+        client=client,
     )
 
     # Store runtime data
