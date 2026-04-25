@@ -7,7 +7,7 @@ import sys
 from collections.abc import Callable
 from contextlib import contextmanager
 from datetime import date
-from typing import Any, TypeVar
+from typing import Any, Literal, TypeVar, cast
 
 from mcp.server.auth.middleware.auth_context import get_access_token
 from mcp.server.auth.provider import AccessToken, TokenVerifier
@@ -501,7 +501,10 @@ mcp = create_mcp_server()
 
 
 def main() -> None:
-    transport = os.getenv("DAYNEST_MCP_TRANSPORT", "stdio")
+    transport_name = os.getenv("DAYNEST_MCP_TRANSPORT", "stdio")
+    if transport_name not in {"stdio", "sse", "streamable-http"}:
+        raise ValueError(f"Unsupported DAYNEST_MCP_TRANSPORT: {transport_name}")
+    transport = cast(Literal["stdio", "sse", "streamable-http"], transport_name)
     logger.info("Starting Daynest MCP server with transport=%s", transport)
     mcp.run(transport=transport)
 
