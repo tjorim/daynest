@@ -29,7 +29,7 @@ object NetworkDiModule {
     fun provideOkHttpClient(): OkHttpClient = OkHttpClient.Builder()
         .apply {
             if (BuildConfig.DEBUG) {
-                addInterceptor(HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BASIC })
+                addInterceptor(HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BODY })
             }
         }
         .build()
