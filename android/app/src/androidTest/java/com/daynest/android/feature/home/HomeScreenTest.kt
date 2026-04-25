@@ -22,6 +22,6 @@ class HomeScreenTest {
             }
         }
 
-        composeTestRule.onNode(hasProgressBarRangeInfo()).assertExists()
+        composeTestRule.onNode(hasProgressBarRangeInfo(androidx.compose.ui.semantics.ProgressBarRangeInfo.Indeterminate)).assertExists()
     }
 }
