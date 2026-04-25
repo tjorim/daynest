@@ -7,7 +7,7 @@ import sys
 from collections.abc import Callable
 from contextlib import contextmanager
 from datetime import date, datetime
-from typing import Any, Literal, TypeVar, cast
+from typing import Any, TypeVar
 
 from mcp.server.auth.middleware.auth_context import get_access_token
 from mcp.server.auth.provider import AccessToken, TokenVerifier
@@ -293,9 +293,10 @@ class IntegrationKeyTokenVerifier(TokenVerifier):
 
             try:
                 ensure_integration_scope(client, self.REQUIRED_SCOPE)
-                enforce_integration_rate_limit(client)
             except Exception:
                 return None
+
+            enforce_integration_rate_limit(client)
 
             scopes = [scope for scope in client.scopes_csv.split(",") if scope]
             return AccessToken(
@@ -332,7 +333,7 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
     mcp = FastMCP(
         "Daynest",
         json_response=True,
-        streamable_http_path="/mcp",
+        streamable_http_path="/",  # mounted at /mcp in FastAPI; prefix is stripped before the sub-app sees it
         token_verifier=IntegrationKeyTokenVerifier(SessionLocal, resource_server_url=resource_server_url),
         auth=_build_auth_settings(resource_server_url),
         transport_security=_build_transport_security(),
@@ -502,16 +503,10 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
     return mcp
 
 
-mcp = create_mcp_server()
-
-
 def main() -> None:
-    transport_name = os.getenv("DAYNEST_MCP_TRANSPORT", "stdio")
-    if transport_name not in {"stdio", "sse", "streamable-http"}:
-        raise ValueError(f"Unsupported DAYNEST_MCP_TRANSPORT: {transport_name}")
-    transport = cast(Literal["stdio", "sse", "streamable-http"], transport_name)
-    logger.info("Starting Daynest MCP server with transport=%s", transport)
-    mcp.run(transport=transport)
+    mcp = create_mcp_server()
+    logger.info("Starting Daynest MCP server (stdio)")
+    mcp.run(transport="stdio")
 
 
 if __name__ == "__main__":

@@ -55,7 +55,7 @@ class AppSettings(BaseSettings):
     password_hash_iterations: int = 600000
 
     feature_home_assistant: bool = True
-    feature_mcp_adapter: bool = True
+    feature_mcp: bool = True
     feature_export_import: bool = False
 
     log_level: str = "INFO"

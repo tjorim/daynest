@@ -222,28 +222,3 @@ def test_home_assistant_dashboard_contract_is_stable(
     assert dashboard_payload["next_medication"] is None or isinstance(dashboard_payload["next_medication"], str)
 
 
-def test_mcp_adapter_and_rate_limit(client: TestClient, db_session: Session, monkeypatch: MonkeyPatch) -> None:
-    import app.api.dependencies.integration_auth as auth_dep
-
-    _freeze_route_today(monkeypatch, "app.api.routes.integrations.mcp")
-    auth_dep._request_log.clear()
-
-    user = _create_user(db_session, "mcp-rate@example.com")
-    db_session.add(
-        PlannedItem(
-            user_id=user.id,
-            title="Weekly planning",
-            planned_for=FIXED_TODAY,
-            notes="sync",
-            is_done=False,
-        )
-    )
-    db_session.commit()
-    key = _create_integration_key(db_session, user.id, scopes="mcp:read", rate_limit_per_minute=1)
-
-    first = client.get("/api/v1/mcp/today", headers={"X-Integration-Key": key})
-    assert first.status_code == 200
-    assert len(first.json()["planned"]) == 1
-
-    second = client.get("/api/v1/mcp/today", headers={"X-Integration-Key": key})
-    assert second.status_code == 429

@@ -47,10 +47,20 @@ def enforce_integration_rate_limit(client: IntegrationClient) -> None:
 
 def require_integration_scope(scope: str) -> Callable:
     def dependency(
-        x_integration_key: str = Header(..., alias="X-Integration-Key"),
+        authorization: str | None = Header(default=None, alias="Authorization"),
+        x_integration_key: str | None = Header(default=None, alias="X-Integration-Key"),
         db: Session = Depends(get_db),
     ) -> User:
-        token_hash = hash_integration_key(x_integration_key)
+        raw_key: str | None = None
+        if authorization and authorization.startswith("Bearer "):
+            raw_key = authorization.removeprefix("Bearer ").strip()
+        elif x_integration_key:
+            raw_key = x_integration_key
+
+        if not raw_key:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Integration key required")
+
+        token_hash = hash_integration_key(raw_key)
         client = get_integration_client_by_token_hash(db, token_hash)
         if client is None or not client.is_active:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid integration key")

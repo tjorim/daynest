@@ -10,11 +10,6 @@ class TodaySummary(BaseModel):
     next_medication: str | None = None
 
 
-class IntegrationCapabilities(BaseModel):
-    home_assistant: bool
-    mcp_adapter: bool
-    export_import: bool
-
 
 class IntegrationClientCreateRequest(BaseModel):
     name: str = Field(min_length=2, max_length=120)
