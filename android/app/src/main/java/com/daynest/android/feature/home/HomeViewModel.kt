@@ -4,11 +4,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.daynest.android.core.model.TodaySummary
 import com.daynest.android.data.today.TodayRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-class HomeViewModel(
+@HiltViewModel
+class HomeViewModel @Inject constructor(
     private val repository: TodayRepository,
 ) : ViewModel() {
     private val _state = MutableStateFlow<HomeUiState>(HomeUiState.Loading)
