@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { BrowserRouter, Link } from 'react-router-dom';
+import { BrowserRouter, NavLink } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './app.css';
 
@@ -12,12 +12,12 @@ function App() {
       <header className="mb-3 mb-md-4">
         <h1 className="mb-2">Daynest</h1>
         <nav className="nav nav-pills gap-2">
-          <Link className="nav-link" to="/today">
+          <NavLink className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`} to="/today">
             Today
-          </Link>
-          <Link className="nav-link" to="/calendar">
+          </NavLink>
+          <NavLink className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`} to="/calendar">
             Calendar
-          </Link>
+          </NavLink>
         </nav>
       </header>
       <AppRouter />

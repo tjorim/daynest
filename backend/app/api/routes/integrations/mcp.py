@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy.orm import Session
 
 from app.api.dependencies.integration_auth import require_integration_scope
+from app.core.config import settings
 from app.db.session import get_db
 from app.models.user import User
 from app.repositories.today_repository import TodayRepository
@@ -30,9 +31,9 @@ def mcp_capabilities(
     _: None = Depends(_set_mcp_contract_header),
 ) -> IntegrationCapabilities:
     return IntegrationCapabilities(
-        home_assistant=True,
-        mcp_adapter=True,
-        export_import=False,
+        home_assistant=settings.feature_home_assistant,
+        mcp_adapter=settings.feature_mcp_adapter,
+        export_import=settings.feature_export_import,
     )
 
 

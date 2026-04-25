@@ -17,14 +17,19 @@ def hash_password(password: str) -> str:
 
 
 def verify_password(password: str, password_hash: str) -> bool:
-    algorithm, iterations, salt_hex, expected_hash = password_hash.split("$", 3)
-    if algorithm != "pbkdf2_sha256":
+    try:
+        algorithm, iterations, salt_hex, expected_hash = password_hash.split("$", 3)
+        if algorithm != "pbkdf2_sha256":
+            return False
+        salt = bytes.fromhex(salt_hex)
+        iter_count = int(iterations)
+    except ValueError:
         return False
 
     digest = hashlib.pbkdf2_hmac(
         "sha256",
         password.encode("utf-8"),
-        bytes.fromhex(salt_hex),
-        int(iterations),
+        salt,
+        iter_count,
     )
     return hmac.compare_digest(digest.hex(), expected_hash)

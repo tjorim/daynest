@@ -52,7 +52,11 @@ class AppSettings(BaseSettings):
 
     metrics_secret: str | None = None
 
-    password_hash_iterations: int = 390000
+    password_hash_iterations: int = 600000
+
+    feature_home_assistant: bool = True
+    feature_mcp_adapter: bool = True
+    feature_export_import: bool = False
 
     log_level: str = "INFO"
     sentry_dsn: str | None = None

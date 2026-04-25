@@ -31,4 +31,9 @@ def create_refresh_token(user_id: int, email: str) -> str:
 
 
 def decode_token(token: str) -> dict[str, Any]:
-    return jwt.decode(token, settings.resolved_jwt_secret_key, algorithms=[settings.jwt_algorithm])
+    return jwt.decode(
+        token,
+        settings.resolved_jwt_secret_key,
+        algorithms=[settings.jwt_algorithm],
+        options={"require": ["exp", "iat", "sub"]},
+    )

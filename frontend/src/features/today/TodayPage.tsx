@@ -33,6 +33,14 @@ function formatSubtitle(...values: Array<string | null | undefined>) {
   return values.filter(Boolean).join(' • ');
 }
 
+function capitalize(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1).replace(/_/g, ' ');
+}
+
+function formatDate(iso: string): string {
+  return dayjs(iso).format('MMM D');
+}
+
 function buildMedicationItems(items: MedicationTodayItem[]): SectionItem[] {
   return items.map((item) => ({
     id: `medication-${item.medication_dose_instance_id}`,
@@ -57,7 +65,11 @@ function buildRoutineItems(items: RoutineTodayItem[]): SectionItem[] {
   return items.map((item) => ({
     id: `routine-${item.task_instance_id}`,
     title: item.title,
-    subtitle: formatSubtitle(item.status, item.scheduled_date, item.due_at ?? undefined),
+    subtitle: formatSubtitle(
+      capitalize(item.status),
+      formatDate(item.scheduled_date),
+      item.due_at ? dayjs(item.due_at).format('HH:mm') : undefined,
+    ),
   }));
 }
 
@@ -65,7 +77,7 @@ function buildOverdueItems(items: OverdueTodayItem[]): SectionItem[] {
   return items.map((item) => ({
     id: `overdue-${item.chore_instance_id}`,
     title: item.title,
-    subtitle: `Overdue since ${item.overdue_since}`,
+    subtitle: `Overdue since ${formatDate(item.overdue_since)}`,
     choreInstanceId: item.chore_instance_id,
     scheduledDate: item.overdue_since,
   }));
@@ -75,7 +87,7 @@ function buildDueTodayItems(items: DueTodayItem[]): SectionItem[] {
   return items.map((item) => ({
     id: `due-${item.chore_instance_id}`,
     title: item.title,
-    subtitle: formatSubtitle(item.status, item.scheduled_date),
+    subtitle: formatSubtitle(capitalize(item.status), formatDate(item.scheduled_date)),
     choreInstanceId: item.chore_instance_id,
     scheduledDate: item.scheduled_date,
   }));
@@ -85,7 +97,7 @@ function buildUpcomingItems(items: UpcomingTodayItem[]): SectionItem[] {
   return items.map((item) => ({
     id: `upcoming-${item.chore_instance_id}`,
     title: item.title,
-    subtitle: `Scheduled ${item.scheduled_date}`,
+    subtitle: `Scheduled ${formatDate(item.scheduled_date)}`,
     choreInstanceId: item.chore_instance_id,
     scheduledDate: item.scheduled_date,
   }));
