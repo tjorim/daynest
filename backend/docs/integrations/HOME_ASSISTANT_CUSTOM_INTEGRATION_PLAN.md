@@ -64,7 +64,7 @@ Core runtime pieces:
 - `custom_components/daynest/coordinator.py`
 - `custom_components/daynest/sensor.py`
 - `custom_components/daynest/todo.py` (optional in phase 2)
-- `custom_components/daynest/api.py` (thin HTTP client over Daynest backend)
+- `custom_components/daynest/api.py` (async HTTP client over Daynest backend via `aiohttp`, no blocking calls)
 
 ### Data flow
 
@@ -78,6 +78,13 @@ Core runtime pieces:
      - next medication
    - To-do entity:
      - tasks due today (phase 2)
+
+### Home Assistant async requirement (must-have)
+
+- All network I/O must be asynchronous and event-loop safe.
+- Use Home Assistant's `aiohttp` session helpers (e.g., `async_get_clientsession`) in `api.py`; do **not** use blocking libraries such as `requests`.
+- Coordinator refreshes should run in `async_update_data` and await API calls directly.
+- Treat blocking-call warnings as release blockers, because they can degrade HA responsiveness/stability.
 
 ### Contract and compatibility strategy
 
