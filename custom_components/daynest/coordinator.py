@@ -19,7 +19,6 @@ from .api import (
 from .const import DOMAIN, LOGGER, SUPPORTED_INTEGRATION_CONTRACT_VERSIONS, parse_integration_contract_version
 from .data import DaynestConfigEntry
 
-SUPPORTED_CONTRACT_VERSIONS = SUPPORTED_INTEGRATION_CONTRACT_VERSIONS
 DASHBOARD_UPDATE_INTERVAL = timedelta(minutes=15)
 
 
@@ -61,7 +60,7 @@ class DaynestDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         )
         self._client = client
 
-    def _normalize_dashboard(self, payload: dict[str, Any], contract: str) -> dict[str, Any]:
+    def _normalize_dashboard(self, payload: dict[str, Any], contract: str | None) -> dict[str, Any]:
         """Normalize dashboard payload into stable coordinator keys."""
         next_medication = payload.get("next_medication")
         if not isinstance(next_medication, (dict, str)) and next_medication is not None:
@@ -80,9 +79,6 @@ class DaynestDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "next_medication": next_medication,
             "integration_contract": contract,
             "model": str(payload.get("model", "Daynest")),
-            # Compatibility keys for demo entities that still derive synthetic values from coordinator data.
-            "userId": max(0, _safe_int(payload.get("due_today_count"), default=0)),
-            "id": max(0, _safe_int(payload.get("overdue_count"), default=0)),
         }
 
     async def _async_update_data(self) -> dict[str, Any]:
@@ -99,7 +95,7 @@ class DaynestDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             raise UpdateFailed(f"Unexpected API error while updating dashboard: {err}") from err
 
         parsed_contract = parse_integration_contract_version(response.integration_contract)
-        if parsed_contract not in SUPPORTED_CONTRACT_VERSIONS:
+        if parsed_contract not in SUPPORTED_INTEGRATION_CONTRACT_VERSIONS:
             unsupported_token = parsed_contract or response.integration_contract or "missing"
             raise UpdateFailed(f"Unsupported or missing integration contract version: {unsupported_token}")
 

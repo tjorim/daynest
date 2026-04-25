@@ -74,6 +74,20 @@ class DaynestDashboard:
         if not isinstance(payload, dict):
             msg = "Malformed dashboard payload: expected JSON object"
             raise DaynestApiClientMalformedResponseError(msg)
+        required_keys = {
+            "for_date",
+            "due_today_count",
+            "overdue_count",
+            "planned_count",
+            "medication_due_count",
+            "completion_ratio",
+            "next_medication",
+        }
+        missing_keys = sorted(required_keys.difference(payload))
+        if missing_keys:
+            missing = ", ".join(missing_keys)
+            msg = f"Malformed dashboard payload: missing required keys ({missing})"
+            raise DaynestApiClientMalformedResponseError(msg)
         return cls(payload=payload)
 
 
@@ -97,10 +111,9 @@ class DaynestApiClient:
         base_url: str | None = None,
         integration_key: str | None = None,
         *,
-        username: str | None = None,
         password: str | None = None,
     ) -> None:
-        """Initialize client with optional backward-compatible parameter aliases."""
+        """Initialize client."""
         resolved_base_url = (base_url or DEFAULT_API_BASE_URL).strip().rstrip("/")
         if not resolved_base_url:
             msg = "A base URL is required to initialize DaynestApiClient"
@@ -109,8 +122,6 @@ class DaynestApiClient:
         self._session = session
         self._base_url = resolved_base_url
         self._integration_key = integration_key if integration_key is not None else password
-
-        self.last_integration_contract: str | None = None
 
     @property
     def has_integration_key(self) -> bool:
@@ -158,7 +169,6 @@ class DaynestApiClient:
                 response.raise_for_status()
 
                 contract = response.headers.get("X-Integration-Contract")
-                self.last_integration_contract = contract
 
                 payload = await response.json(content_type=None)
                 if not isinstance(payload, dict):

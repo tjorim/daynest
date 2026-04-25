@@ -21,8 +21,6 @@ from .api import (
 )
 from .const import DOMAIN, LOGGER, SUPPORTED_INTEGRATION_CONTRACT_VERSIONS, parse_integration_contract_version
 
-SUPPORTED_CONTRACT_VERSIONS = SUPPORTED_INTEGRATION_CONTRACT_VERSIONS
-
 ERROR_AUTH = "invalid_auth"
 ERROR_CANNOT_CONNECT = "cannot_connect"
 ERROR_TIMEOUT = "timeout"
@@ -118,7 +116,7 @@ class DaynestConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             return {"base": ERROR_UNKNOWN}
 
         contract_version = parse_integration_contract_version(summary_response.integration_contract)
-        if contract_version not in SUPPORTED_CONTRACT_VERSIONS:
+        if contract_version not in SUPPORTED_INTEGRATION_CONTRACT_VERSIONS:
             LOGGER.warning(
                 "Unsupported Daynest integration contract '%s' received during setup",
                 summary_response.integration_contract,

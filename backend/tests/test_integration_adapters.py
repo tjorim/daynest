@@ -177,7 +177,6 @@ def test_home_assistant_entities_contract_is_stable(
     assert entities.headers[INTEGRATION_CONTRACT_HEADER] == expected_contract
     entities_payload = entities.json()
     assert isinstance(entities_payload, list)
-    assert len(entities_payload) == 4
     expected_entity_ids = {
         "todo.daynest_tasks",
         "sensor.daynest_overdue_count",

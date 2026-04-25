@@ -5,14 +5,15 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
-from custom_components.daynest.const import PARALLEL_UPDATES as PARALLEL_UPDATES
-from custom_components.daynest.entity import DaynestEntity
 from homeassistant.components.sensor import SensorEntity, SensorEntityDescription, SensorStateClass
 from homeassistant.const import PERCENTAGE
 
+from ..const import PARALLEL_UPDATES
+from ..entity import DaynestEntity
+
 if TYPE_CHECKING:
-    from custom_components.daynest.coordinator import DaynestDataUpdateCoordinator
-    from custom_components.daynest.data import DaynestConfigEntry
+    from ..coordinator import DaynestDataUpdateCoordinator
+    from ..data import DaynestConfigEntry
     from homeassistant.core import HomeAssistant
     from homeassistant.helpers.entity_platform import AddEntitiesCallback
 

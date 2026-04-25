@@ -2,7 +2,7 @@
   "domain": "daynest",
   "name": "Daynest",
   "codeowners": [
-    "@daynest"
+    "@tjorim"
   ],
   "config_flow": true,
   "documentation": "https://github.com/tjorim/daynest",

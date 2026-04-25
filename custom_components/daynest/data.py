@@ -24,7 +24,7 @@ if TYPE_CHECKING:
 type DaynestConfigEntry = ConfigEntry[DaynestData]
 
 
-@dataclass
+@dataclass(frozen=True)
 class DaynestData:
     """Runtime data for daynest config entries.
 
