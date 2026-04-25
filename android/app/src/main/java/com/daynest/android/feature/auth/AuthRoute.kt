@@ -1,3 +1,5 @@
+@file:Suppress("ktlint:standard:function-naming")
+
 package com.daynest.android.feature.auth
 
 import androidx.compose.foundation.layout.Arrangement
@@ -49,10 +51,11 @@ internal fun AuthScreen(
 ) {
     Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(24.dp),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .padding(24.dp),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
@@ -79,10 +82,11 @@ internal fun AuthScreen(
             )
             if (uiState.error != null) {
                 Text(
-                    text = when (uiState.error) {
-                        AuthError.MissingCredentials -> stringResource(R.string.auth_error_missing_credentials)
-                        AuthError.SignInFailed -> stringResource(R.string.auth_error_sign_in_failed)
-                    },
+                    text =
+                        when (uiState.error) {
+                            AuthError.MissingCredentials -> stringResource(R.string.auth_error_missing_credentials)
+                            AuthError.SignInFailed -> stringResource(R.string.auth_error_sign_in_failed)
+                        },
                     color = MaterialTheme.colorScheme.error,
                     modifier = Modifier.padding(top = 12.dp),
                 )
