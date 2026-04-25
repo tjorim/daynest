@@ -24,7 +24,7 @@ class StubTodayRepository:
     def ensure_medication_dose_instances_generated(self, user_id: int, through_date: date) -> None:
         return None
 
-    def mark_due_medications_missed(self, user_id: int, now):
+    def mark_due_medications_missed(self, user_id: int, now, grace_minutes: int = 30):
         return None
 
     def utcnow(self):
@@ -102,7 +102,7 @@ def test_get_today_shapes_chore_sections() -> None:
 
     response = service.get_today(user_id=7, for_date=for_date)
 
-    assert repo.generated_through == date(2026, 4, 23)
+    assert repo.generated_through == date(2026, 4, 30)
 
     assert response.medication[0].medication_dose_instance_id == 55
     assert response.routines[0].task_instance_id == 100

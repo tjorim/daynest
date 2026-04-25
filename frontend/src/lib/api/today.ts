@@ -128,6 +128,8 @@ export interface ChoreMutationResponse {
   chore_instance_id: number;
   status: ChoreStatus;
   scheduled_date: string;
+  completed_at: string | null;
+  skipped_at: string | null;
 }
 
 export interface MedicationMutationResponse {
@@ -182,25 +184,33 @@ async function fetchWithRetry(input: RequestInfo | URL, init: RequestInit = {}, 
   }
 
   if (lastError instanceof Error) {
-    throw new ApiError(`Network request failed: ${lastError.message}`, 0, true);
+    throw new ApiError(`Network request failed: ${lastError.message}`, 0, isIdempotent);
   }
-  throw new ApiError('Network request failed.', 0, true);
+  throw new ApiError('Network request failed.', 0, isIdempotent);
 }
 
-async function parseJsonResponse<T>(response: Response, fallbackMessage = 'Request failed'): Promise<T> {
+async function parseJsonResponse<T>(response: Response, fallbackMessage = 'Request failed', isIdempotent = true): Promise<T> {
   if (!response.ok) {
     let message = `${fallbackMessage} (${response.status})`;
     try {
-      const body = (await response.json()) as { detail?: string | Array<{ msg: string }> };
+      const body = (await response.json()) as { detail?: string | unknown[] };
       if (typeof body.detail === 'string') {
         message = body.detail;
       } else if (Array.isArray(body.detail) && body.detail.length > 0) {
-        message = body.detail.map((e) => e.msg).join(', ');
+        message = body.detail
+          .map((entry) => {
+            if (entry && typeof entry === 'object' && 'msg' in entry && typeof entry.msg === 'string') {
+              return entry.msg;
+            }
+            return JSON.stringify(entry);
+          })
+          .filter((entry): entry is string => Boolean(entry))
+          .join(', ');
       }
     } catch {
       // keep fallback message
     }
-    throw new ApiError(message, response.status, isRetryableStatus(response.status));
+    throw new ApiError(message, response.status, isIdempotent && isRetryableStatus(response.status));
   }
   return (await response.json()) as T;
 }
@@ -250,7 +260,7 @@ export async function createPlannedItem(input: PlannedItemInput): Promise<Planne
     },
     body: JSON.stringify(input),
   });
-  return parseJsonResponse<PlannedTodayItem>(response);
+  return parseJsonResponse<PlannedTodayItem>(response, 'Request failed', false);
 }
 
 export async function listPlannedItems(startDate?: string, endDate?: string): Promise<PlannedTodayItem[]> {
@@ -274,7 +284,7 @@ export async function completeChore(choreInstanceId: number): Promise<ChoreMutat
     method: 'POST',
     headers: { Accept: 'application/json' },
   });
-  return parseJsonResponse<ChoreMutationResponse>(response);
+  return parseJsonResponse<ChoreMutationResponse>(response, 'Request failed', false);
 }
 
 export async function skipChore(choreInstanceId: number): Promise<ChoreMutationResponse> {
@@ -282,7 +292,7 @@ export async function skipChore(choreInstanceId: number): Promise<ChoreMutationR
     method: 'POST',
     headers: { Accept: 'application/json' },
   });
-  return parseJsonResponse<ChoreMutationResponse>(response);
+  return parseJsonResponse<ChoreMutationResponse>(response, 'Request failed', false);
 }
 
 export async function rescheduleChore(choreInstanceId: number, scheduledDate: string): Promise<ChoreMutationResponse> {
@@ -294,7 +304,7 @@ export async function rescheduleChore(choreInstanceId: number, scheduledDate: st
     },
     body: JSON.stringify({ scheduled_date: scheduledDate }),
   });
-  return parseJsonResponse<ChoreMutationResponse>(response);
+  return parseJsonResponse<ChoreMutationResponse>(response, 'Request failed', false);
 }
 
 export async function takeMedicationDose(medicationDoseId: number): Promise<MedicationMutationResponse> {
@@ -302,7 +312,7 @@ export async function takeMedicationDose(medicationDoseId: number): Promise<Medi
     method: 'POST',
     headers: { Accept: 'application/json' },
   });
-  return parseJsonResponse<MedicationMutationResponse>(response);
+  return parseJsonResponse<MedicationMutationResponse>(response, 'Request failed', false);
 }
 
 export async function skipMedicationDose(medicationDoseId: number): Promise<MedicationMutationResponse> {
@@ -310,7 +320,7 @@ export async function skipMedicationDose(medicationDoseId: number): Promise<Medi
     method: 'POST',
     headers: { Accept: 'application/json' },
   });
-  return parseJsonResponse<MedicationMutationResponse>(response);
+  return parseJsonResponse<MedicationMutationResponse>(response, 'Request failed', false);
 }
 
 export function isRetryableApiError(error: unknown): boolean {

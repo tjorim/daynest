@@ -1,7 +1,7 @@
 from calendar import monthrange
 from collections import defaultdict
 from dataclasses import dataclass
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from typing import cast
 
 from fastapi import HTTPException, status
@@ -46,6 +46,7 @@ class TodayService:
     """Read/write service for today's dashboard."""
 
     UPCOMING_HORIZON_DAYS = 7
+    MEDICATION_MISSED_GRACE_MINUTES = 30
 
     def __init__(self, repository: TodayRepository):
         self.repository = repository
@@ -53,10 +54,14 @@ class TodayService:
     def _fetch_day_data(self, user_id: int, for_date: date) -> _TodayData:
         self.repository.ensure_chore_instances_generated(
             user_id=user_id,
-            through_date=date.fromordinal(for_date.toordinal() + self.UPCOMING_HORIZON_DAYS),
+            through_date=for_date + timedelta(days=self.UPCOMING_HORIZON_DAYS),
         )
         self.repository.ensure_medication_dose_instances_generated(user_id=user_id, through_date=for_date)
-        self.repository.mark_due_medications_missed(user_id=user_id, now=self.repository.utcnow())
+        self.repository.mark_due_medications_missed(
+            user_id=user_id,
+            now=self.repository.utcnow(),
+            grace_minutes=self.MEDICATION_MISSED_GRACE_MINUTES,
+        )
         return _TodayData(
             overdue=self.repository.get_overdue_chores(user_id=user_id, for_date=for_date),
             due_today=self.repository.get_due_today_chores(user_id=user_id, for_date=for_date),
@@ -101,13 +106,17 @@ class TodayService:
     def get_today(self, user_id: int, for_date: date) -> TodayResponse:
         self.repository.ensure_chore_instances_generated(
             user_id=user_id,
-            through_date=date.fromordinal(for_date.toordinal() + self.UPCOMING_HORIZON_DAYS),
+            through_date=for_date + timedelta(days=self.UPCOMING_HORIZON_DAYS),
         )
         self.repository.ensure_medication_dose_instances_generated(
             user_id=user_id,
             through_date=for_date,
         )
-        self.repository.mark_due_medications_missed(user_id=user_id, now=self.repository.utcnow())
+        self.repository.mark_due_medications_missed(
+            user_id=user_id,
+            now=self.repository.utcnow(),
+            grace_minutes=self.MEDICATION_MISSED_GRACE_MINUTES,
+        )
 
         today_medication = self.repository.get_today_medication(user_id=user_id, for_date=for_date)
         medication_history = self.repository.get_medication_history(user_id=user_id, before_date=for_date)
@@ -200,19 +209,41 @@ class TodayService:
                 )
                 for item in planned
             ],
-            day_items=self.get_day_items(user_id=user_id, for_date=for_date).items,
+            day_items=self._build_day_items(
+                routines=routine_tasks,
+                chores=due_today_chores,
+                medications=today_medication,
+                planned=planned,
+            ),
         )
 
     def get_day_items(self, user_id: int, for_date: date) -> CalendarDayResponse:
         self.repository.ensure_chore_instances_generated(user_id=user_id, through_date=for_date)
         self.repository.ensure_medication_dose_instances_generated(user_id=user_id, through_date=for_date)
-        self.repository.mark_due_medications_missed(user_id=user_id, now=self.repository.utcnow())
+        self.repository.mark_due_medications_missed(
+            user_id=user_id,
+            now=self.repository.utcnow(),
+            grace_minutes=self.MEDICATION_MISSED_GRACE_MINUTES,
+        )
 
         routines = self.repository.get_today_routines(user_id=user_id, for_date=for_date)
         chores = self.repository.get_day_chores(user_id=user_id, target_date=for_date)
         medications = self.repository.get_today_medication(user_id=user_id, for_date=for_date)
         planned = self.repository.list_planned_items(user_id=user_id, start_date=for_date, end_date=for_date)
 
+        return CalendarDayResponse(
+            date=for_date,
+            items=self._build_day_items(routines=routines, chores=chores, medications=medications, planned=planned),
+        )
+
+    @staticmethod
+    def _build_day_items(
+        *,
+        routines: list[TaskInstance],
+        chores: list[ChoreInstance],
+        medications: list[MedicationDoseInstance],
+        planned: list[PlannedItem],
+    ) -> list[UnifiedDayItem]:
         items: list[UnifiedDayItem] = []
         for routine in routines:
             items.append(
@@ -268,7 +299,7 @@ class TodayService:
                 value.item_id,
             )
         )
-        return CalendarDayResponse(date=for_date, items=items)
+        return items
 
     def get_month(self, user_id: int, year: int, month: int) -> CalendarMonthResponse:
         _, last_day = monthrange(year, month)
@@ -277,7 +308,11 @@ class TodayService:
 
         self.repository.ensure_chore_instances_generated(user_id=user_id, through_date=end_date)
         self.repository.ensure_medication_dose_instances_generated(user_id=user_id, through_date=end_date)
-        self.repository.mark_due_medications_missed(user_id=user_id, now=self.repository.utcnow())
+        self.repository.mark_due_medications_missed(
+            user_id=user_id,
+            now=self.repository.utcnow(),
+            grace_minutes=self.MEDICATION_MISSED_GRACE_MINUTES,
+        )
 
         by_day: dict[date, dict[str, int]] = defaultdict(lambda: {"routine": 0, "chore": 0, "medication": 0, "planned": 0})
 
@@ -359,6 +394,8 @@ class TodayService:
             chore_instance_id=instance.id,
             status=instance.status,
             scheduled_date=instance.scheduled_date,
+            completed_at=instance.completed_at,
+            skipped_at=instance.skipped_at,
         )
 
     def skip_chore(self, user_id: int, chore_instance_id: int) -> ChoreInstanceMutationResponse:
@@ -371,10 +408,14 @@ class TodayService:
             chore_instance_id=instance.id,
             status=instance.status,
             scheduled_date=instance.scheduled_date,
+            completed_at=instance.completed_at,
+            skipped_at=instance.skipped_at,
         )
 
     def reschedule_chore(self, user_id: int, chore_instance_id: int, scheduled_date: date) -> ChoreInstanceMutationResponse:
         instance = self._get_user_chore(user_id, chore_instance_id)
+        if instance.status in (ChoreStatus.completed, ChoreStatus.skipped):
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Completed or skipped chores cannot be rescheduled")
         instance.scheduled_date = scheduled_date
         instance.status = ChoreStatus.pending
         instance.completed_at = None
@@ -384,6 +425,8 @@ class TodayService:
             chore_instance_id=instance.id,
             status=instance.status,
             scheduled_date=instance.scheduled_date,
+            completed_at=instance.completed_at,
+            skipped_at=instance.skipped_at,
         )
 
     def _get_user_chore(self, user_id: int, chore_instance_id: int):

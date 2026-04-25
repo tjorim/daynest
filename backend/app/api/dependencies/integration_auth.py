@@ -46,11 +46,6 @@ def require_integration_scope(scope: str) -> Callable:
             bucket = _request_log[client.id]
             while bucket and bucket[0] < cutoff:
                 bucket.popleft()
-            if not bucket:
-                # Remove stale empty bucket and create a fresh one
-                del _request_log[client.id]
-                bucket = deque()
-                _request_log[client.id] = bucket
             if len(bucket) >= client.rate_limit_per_minute:
                 raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Integration rate limit exceeded")
             bucket.append(now)

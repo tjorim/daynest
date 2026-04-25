@@ -28,6 +28,11 @@ class MetricsSnapshot:
 
 
 class InMemoryRequestMetrics:
+    """Debug-only in-process metrics collector.
+
+    Values are process-local, reset on restart, and are not aggregated across workers.
+    """
+
     def __init__(self) -> None:
         self._lock = Lock()
         self._started_at = time.monotonic()
@@ -59,6 +64,14 @@ class InMemoryRequestMetrics:
                 latency_avg_ms=latency_avg_ms,
                 latency_max_ms=self._latency_max_ms,
             )
+
+    def reset(self) -> None:
+        with self._lock:
+            self._started_at = time.monotonic()
+            self._total_requests = 0
+            self._total_errors = 0
+            self._latency_sum_ms = 0.0
+            self._latency_max_ms = 0.0
 
 
 metrics = InMemoryRequestMetrics()
@@ -98,7 +111,9 @@ async def observability_middleware(request: Request, call_next):
     try:
         response = await call_next(request)
         status_code = response.status_code
-    except Exception:
+    except Exception as exc:
+        sentry_sdk.capture_exception(exc)
+        logger.exception("Unhandled request error: %s %s", request.method, request.url.path)
         response = StarletteResponse("Internal Server Error", status_code=500)
 
     latency_ms = (time.perf_counter() - started) * 1000

@@ -5,9 +5,12 @@ set -euo pipefail
 
 SECRETS_DIR="$(cd "$(dirname "$0")/.." && pwd)/secrets/dev"
 mkdir -p "$SECRETS_DIR"
+chmod 700 "$SECRETS_DIR"
+umask 077
 
 if [ ! -f "$SECRETS_DIR/jwt_secret.txt" ]; then
   openssl rand -hex 32 > "$SECRETS_DIR/jwt_secret.txt"
+  chmod 600 "$SECRETS_DIR/jwt_secret.txt"
   echo "Created $SECRETS_DIR/jwt_secret.txt"
 else
   echo "Skipped jwt_secret.txt (already exists)"
@@ -15,6 +18,7 @@ fi
 
 if [ ! -f "$SECRETS_DIR/postgres_password.txt" ]; then
   openssl rand -hex 16 > "$SECRETS_DIR/postgres_password.txt"
+  chmod 600 "$SECRETS_DIR/postgres_password.txt"
   echo "Created $SECRETS_DIR/postgres_password.txt"
 else
   echo "Skipped postgres_password.txt (already exists)"

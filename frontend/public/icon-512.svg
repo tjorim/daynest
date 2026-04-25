@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Daynest">
   <rect width="512" height="512" rx="96" fill="#0d6efd"/>
   <path d="M128 352V160h100c49 0 81 31 81 74s-32 74-81 74h-54v44H128Zm46-85h46c24 0 39-12 39-33s-15-33-39-33h-46v66Z" fill="#fff"/>
-  <circle cx="372" cy="170" r="34" fill="#7cc4ff"/>
+  <circle cx="360" cy="178" r="30" fill="#7cc4ff"/>
 </svg>

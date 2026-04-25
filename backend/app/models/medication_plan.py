@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import date, datetime, time
 from typing import TYPE_CHECKING
 
+import sqlalchemy as sa
 from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Integer, String, Text, Time, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -24,7 +25,7 @@ class MedicationPlan(Base):
     start_date: Mapped[date] = mapped_column(Date, nullable=False)
     schedule_time: Mapped[time] = mapped_column(Time(), nullable=False)
     every_n_days: Mapped[int] = mapped_column(Integer, nullable=False, default=1, server_default="1")
-    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="1")
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default=sa.text("true"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
     user: Mapped["User"] = relationship(back_populates="medication_plans")

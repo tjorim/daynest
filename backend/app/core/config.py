@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Annotated
 from urllib.parse import quote_plus
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import Field, PrivateAttr, field_validator, model_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
@@ -12,14 +12,20 @@ def _read_secret_file(path: str | None) -> str | None:
         return None
     secret_path = Path(path)
     if not secret_path.exists():
-        import logging
-        logging.getLogger("app.config").warning("Secret file configured but not found: %s", path)
-        return None
-    return secret_path.read_text(encoding="utf-8").strip()
+        raise ValueError(f"Secret file configured but not found: {path}")
+    try:
+        value = secret_path.read_text(encoding="utf-8").strip()
+    except OSError as exc:
+        raise ValueError(f"Secret file configured but could not be read: {path}") from exc
+    if not value:
+        raise ValueError(f"Secret file configured but empty: {path}")
+    return value
 
 
 class AppSettings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+    _cached_db_password: str | None = PrivateAttr(default=None)
+    _cached_jwt_secret: str | None = PrivateAttr(default=None)
 
     app_name: str = "Daynest API"
     version: str = "0.1.0"
@@ -60,21 +66,23 @@ class AppSettings(BaseSettings):
         return value
 
     @model_validator(mode="after")
-    def _validate_jwt_secret(self) -> "AppSettings":
-        secret = self.jwt_secret_key or _read_secret_file(self.jwt_secret_file)
-        if not secret and self.environment != "dev":
+    def _validate_secrets(self) -> "AppSettings":
+        self._cached_db_password = self.db_password or _read_secret_file(self.db_password_file)
+        self._cached_jwt_secret = self.jwt_secret_key or _read_secret_file(self.jwt_secret_file)
+        if not self._cached_jwt_secret and self.environment != "dev":
             raise ValueError("JWT secret key must be provided via JWT_SECRET_KEY or JWT_SECRET_FILE")
+        if not self.database_url and not self._cached_db_password and self.environment != "dev":
+            raise ValueError("Database password must be provided via DB_PASSWORD or DB_PASSWORD_FILE in non-dev environments")
         return self
 
     @property
     def resolved_db_password(self) -> str | None:
-        return self.db_password or _read_secret_file(self.db_password_file)
+        return self._cached_db_password
 
     @property
     def resolved_jwt_secret_key(self) -> str:
-        secret = self.jwt_secret_key or _read_secret_file(self.jwt_secret_file)
-        if secret:
-            return secret
+        if self._cached_jwt_secret:
+            return self._cached_jwt_secret
         if self.environment != "dev":
             raise ValueError("JWT secret key is required in non-dev environments")
         return "local-dev-secret"

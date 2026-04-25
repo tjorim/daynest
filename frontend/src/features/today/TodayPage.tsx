@@ -16,7 +16,7 @@ import {
   type TodayPayload,
   type UpcomingTodayItem,
 } from '../../lib/api/today';
-import { dayjs } from '../../lib/dateUtils';
+import { dayjs, formatDateTime } from '../../lib/dateUtils';
 
 type SectionItem = {
   id: string;
@@ -24,6 +24,7 @@ type SectionItem = {
   subtitle?: string;
   instructions?: string;
   choreInstanceId?: number;
+  scheduledDate?: string;
   medicationDoseInstanceId?: number;
   medicationStatus?: string;
 };
@@ -47,7 +48,7 @@ function buildMedicationHistoryItems(items: MedicationHistoryItem[]): SectionIte
   return items.map((item) => ({
     id: `medication-history-${item.medication_dose_instance_id}`,
     title: item.name,
-    subtitle: formatSubtitle(dayjs(item.scheduled_at).format('D/M/YYYY, HH:mm'), item.status),
+    subtitle: formatSubtitle(formatDateTime(item.scheduled_at), item.status),
     instructions: item.instructions,
   }));
 }
@@ -66,6 +67,7 @@ function buildOverdueItems(items: OverdueTodayItem[]): SectionItem[] {
     title: item.title,
     subtitle: `Overdue since ${item.overdue_since}`,
     choreInstanceId: item.chore_instance_id,
+    scheduledDate: item.overdue_since,
   }));
 }
 
@@ -75,6 +77,7 @@ function buildDueTodayItems(items: DueTodayItem[]): SectionItem[] {
     title: item.title,
     subtitle: formatSubtitle(item.status, item.scheduled_date),
     choreInstanceId: item.chore_instance_id,
+    scheduledDate: item.scheduled_date,
   }));
 }
 
@@ -84,6 +87,7 @@ function buildUpcomingItems(items: UpcomingTodayItem[]): SectionItem[] {
     title: item.title,
     subtitle: `Scheduled ${item.scheduled_date}`,
     choreInstanceId: item.chore_instance_id,
+    scheduledDate: item.scheduled_date,
   }));
 }
 
@@ -96,19 +100,9 @@ function buildPlannedItems(items: PlannedTodayItem[]): SectionItem[] {
   }));
 }
 
-function TaskActions({
-  choreInstanceId,
-  onRefresh,
-}: {
-  choreInstanceId?: number;
-  onRefresh: () => Promise<void>;
-}) {
+function useAsyncAction(onRefresh: () => Promise<void>) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
-
-  if (!choreInstanceId) {
-    return null;
-  }
 
   const runAction = async (action: () => Promise<unknown>) => {
     setIsSubmitting(true);
@@ -123,8 +117,26 @@ function TaskActions({
     }
   };
 
+  return { isSubmitting, actionError, runAction };
+}
+
+function TaskActions({
+  choreInstanceId,
+  scheduledDate,
+  onRefresh,
+}: {
+  choreInstanceId?: number;
+  scheduledDate?: string;
+  onRefresh: () => Promise<void>;
+}) {
+  const { isSubmitting, actionError, runAction } = useAsyncAction(onRefresh);
+
+  if (!choreInstanceId || !scheduledDate) {
+    return null;
+  }
+
   const onReschedule = async () => {
-    const dateValue = dayjs().add(1, 'day').format('YYYY-MM-DD');
+    const dateValue = dayjs(scheduledDate).add(1, 'day').format('YYYY-MM-DD');
     await rescheduleChore(choreInstanceId, dateValue);
   };
 
@@ -155,25 +167,11 @@ function MedicationActions({
   medicationStatus?: string;
   onRefresh: () => Promise<void>;
 }) {
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [actionError, setActionError] = useState<string | null>(null);
+  const { isSubmitting, actionError, runAction } = useAsyncAction(onRefresh);
 
   if (!medicationDoseInstanceId || medicationStatus !== 'scheduled') {
     return null;
   }
-
-  const runAction = async (action: () => Promise<unknown>) => {
-    setIsSubmitting(true);
-    setActionError(null);
-    try {
-      await action();
-      await onRefresh();
-    } catch (err) {
-      setActionError(err instanceof Error ? err.message : 'Action failed');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
 
   return (
     <div>
@@ -219,7 +217,7 @@ function SectionCard({
                   medicationStatus={item.medicationStatus}
                   onRefresh={onRefresh}
                 />
-                <TaskActions choreInstanceId={item.choreInstanceId} onRefresh={onRefresh} />
+                <TaskActions choreInstanceId={item.choreInstanceId} scheduledDate={item.scheduledDate} onRefresh={onRefresh} />
               </div>
             </li>
           ))

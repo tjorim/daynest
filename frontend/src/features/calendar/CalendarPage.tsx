@@ -25,6 +25,11 @@ function safeParseBackup(raw: string): PlannedItemBackupFile {
   if (parsed.source !== 'daynest' || parsed.schema_version !== 1 || !Array.isArray(parsed.items)) {
     throw new Error('Unsupported backup file.');
   }
+  parsed.items.forEach((item, index) => {
+    if (!item || typeof item.title !== 'string' || typeof item.planned_for !== 'string') {
+      throw new Error(`Invalid backup item at index ${index}: title and planned_for are required.`);
+    }
+  });
   return parsed as PlannedItemBackupFile;
 }
 
@@ -83,6 +88,8 @@ export function CalendarPage() {
 
   const monthStart = currentMonth.startOf('month');
   const daysInMonth = monthStart.daysInMonth();
+  const leadingEmptyDays = (monthStart.day() + 6) % 7;
+  const totalCalendarCells = Math.ceil((leadingEmptyDays + daysInMonth) / 7) * 7;
 
   const onAddPlanned = async () => {
     if (!title.trim()) return;
@@ -158,20 +165,27 @@ export function CalendarPage() {
       let imported = 0;
       let failed = 0;
 
-      for (const item of backup.items) {
-        try {
-          await createPlannedItem({
-            title: item.title,
-            planned_for: item.planned_for,
-            notes: item.notes,
-            module_key: item.module_key,
-            recurrence_hint: item.recurrence_hint,
-            linked_source: item.linked_source,
-            linked_ref: item.linked_ref,
-          });
-          imported += 1;
-        } catch {
-          failed += 1;
+      for (let start = 0; start < backup.items.length; start += 5) {
+        const batch = backup.items.slice(start, start + 5);
+        const results = await Promise.allSettled(
+          batch.map((item) =>
+            createPlannedItem({
+              title: item.title,
+              planned_for: item.planned_for,
+              notes: item.notes,
+              module_key: item.module_key,
+              recurrence_hint: item.recurrence_hint,
+              linked_source: item.linked_source,
+              linked_ref: item.linked_ref,
+            }),
+          ),
+        );
+        for (const result of results) {
+          if (result.status === 'fulfilled') {
+            imported += 1;
+          } else {
+            failed += 1;
+          }
         }
       }
 
@@ -227,8 +241,16 @@ export function CalendarPage() {
           <div className="card">
             <div className="card-body p-2 p-md-3">
               <div className="row row-cols-7 g-1 g-md-2">
-                {Array.from({ length: daysInMonth }).map((_, idx) => {
-                  const dayNumber = idx + 1;
+                {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((weekday) => (
+                  <div key={weekday} className="col text-center small fw-semibold text-muted">
+                    {weekday}
+                  </div>
+                ))}
+                {Array.from({ length: totalCalendarCells }).map((_, idx) => {
+                  const dayNumber = idx - leadingEmptyDays + 1;
+                  if (dayNumber < 1 || dayNumber > daysInMonth) {
+                    return <div key={`empty-${idx}`} className="col" aria-hidden="true" />;
+                  }
                   const dateValue = monthStart.date(dayNumber).format('YYYY-MM-DD');
                   const summary = itemsByDate.get(dateValue);
                   const selected = selectedDate === dateValue;

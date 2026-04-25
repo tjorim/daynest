@@ -1,4 +1,5 @@
 from datetime import date
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -40,7 +41,7 @@ class IntegrationClientResponse(BaseModel):
 class HomeAssistantEntity(BaseModel):
     entity_id: str
     state: str
-    attributes: dict[str, int | str | None]
+    attributes: dict[str, Any]
 
 
 class DashboardReadModel(BaseModel):

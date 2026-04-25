@@ -143,6 +143,8 @@ class ChoreInstanceMutationResponse(BaseModel):
     chore_instance_id: int
     status: ChoreStatus
     scheduled_date: date
+    completed_at: datetime | None = None
+    skipped_at: datetime | None = None
 
 
 class RescheduleChoreRequest(BaseModel):

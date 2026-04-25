@@ -1,4 +1,4 @@
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 
 from sqlalchemy import and_, func, insert, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
@@ -115,12 +115,13 @@ class TodayRepository:
             self.db.add_all(new_instances)
         self.db.commit()
 
-    def mark_due_medications_missed(self, user_id: int, now: datetime) -> None:
+    def mark_due_medications_missed(self, user_id: int, now: datetime, grace_minutes: int = 30) -> None:
+        cutoff = now - timedelta(minutes=grace_minutes)
         stmt = (
             update(MedicationDoseInstance)
             .where(MedicationDoseInstance.user_id == user_id)
             .where(MedicationDoseInstance.status == MedicationDoseStatus.scheduled)
-            .where(MedicationDoseInstance.scheduled_at < now)
+            .where(MedicationDoseInstance.scheduled_at < cutoff)
             .values(status=MedicationDoseStatus.missed, missed_at=now, taken_at=None, skipped_at=None)
             .execution_options(synchronize_session=False)
         )

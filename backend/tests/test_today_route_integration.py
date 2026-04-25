@@ -8,7 +8,6 @@ from app.models.chore_instance import ChoreInstance, ChoreStatus
 from app.models.chore_template import ChoreTemplate
 from app.models.medication_dose_instance import MedicationDoseInstance, MedicationDoseStatus
 from app.models.medication_plan import MedicationPlan
-from app.models.planned_item import PlannedItem
 from app.models.user import User
 
 
@@ -55,7 +54,11 @@ def test_get_today_includes_generated_chore_sections(client: TestClient, db_sess
     assert response.status_code == 200
     payload = response.json()
 
-    assert list(payload.keys()) == ["medication", "medication_history", "routines", "overdue", "due_today", "upcoming", "planned", "day_items"]
+    required_keys = {"medication", "medication_history", "routines", "overdue", "due_today", "upcoming", "planned", "day_items"}
+    assert set(payload.keys()) == required_keys
+    assert "medication" in payload
+    assert "routines" in payload
+    assert "day_items" in payload
     assert payload["due_today"][0]["title"] == "Take out trash"
     assert payload["due_today"][0]["status"] == "pending"
     assert payload["medication"][0]["name"] == "Vitamin D"
@@ -83,23 +86,45 @@ def test_chore_mutation_endpoints_complete_skip_and_reschedule(client: TestClien
         scheduled_date=date(2026, 4, 23),
         status=ChoreStatus.pending,
     )
+    pending_instance = ChoreInstance(
+        user_id=user.id,
+        chore_template_id=template.id,
+        title=template.name,
+        scheduled_date=date(2026, 4, 24),
+        status=ChoreStatus.pending,
+    )
     db_session.add(instance)
+    db_session.add(pending_instance)
     db_session.commit()
     db_session.refresh(instance)
+    db_session.refresh(pending_instance)
 
     token = create_access_token(user_id=user.id, email=user.email)
     headers = {"Authorization": f"Bearer {token}"}
 
     complete_response = client.post(f"/api/v1/chores/{instance.id}/complete", headers=headers)
     assert complete_response.status_code == 200
-    assert complete_response.json()["status"] == "completed"
+    complete_payload = complete_response.json()
+    assert complete_payload["status"] == "completed"
+    assert complete_payload["completed_at"] is not None
+    assert complete_payload["skipped_at"] is None
 
     skip_response = client.post(f"/api/v1/chores/{instance.id}/skip", headers=headers)
     assert skip_response.status_code == 200
-    assert skip_response.json()["status"] == "skipped"
+    skip_payload = skip_response.json()
+    assert skip_payload["status"] == "skipped"
+    assert skip_payload["skipped_at"] is not None
+    assert skip_payload["completed_at"] is None
+
+    blocked_reschedule_response = client.post(
+        f"/api/v1/chores/{instance.id}/reschedule",
+        headers=headers,
+        json={"scheduled_date": "2026-04-25"},
+    )
+    assert blocked_reschedule_response.status_code == 409
 
     reschedule_response = client.post(
-        f"/api/v1/chores/{instance.id}/reschedule",
+        f"/api/v1/chores/{pending_instance.id}/reschedule",
         headers=headers,
         json={"scheduled_date": "2026-04-25"},
     )
@@ -107,6 +132,8 @@ def test_chore_mutation_endpoints_complete_skip_and_reschedule(client: TestClien
     payload = reschedule_response.json()
     assert payload["status"] == "pending"
     assert payload["scheduled_date"] == "2026-04-25"
+    assert payload["completed_at"] is None
+    assert payload["skipped_at"] is None
 
 
 def test_medication_endpoints_create_list_history_and_mutate_status(client: TestClient, db_session: Session) -> None:
