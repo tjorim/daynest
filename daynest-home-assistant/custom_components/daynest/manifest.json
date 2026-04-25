@@ -1,0 +1,13 @@
+{
+  "domain": "daynest",
+  "name": "Daynest",
+  "codeowners": [
+    "@daynest"
+  ],
+  "config_flow": true,
+  "documentation": "https://github.com/daynest/daynest-home-assistant",
+  "integration_type": "hub",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/daynest/daynest-home-assistant/issues",
+  "version": "0.1.0"
+}
