@@ -16,6 +16,7 @@ import {
   type TodayPayload,
   type UpcomingTodayItem,
 } from '../../lib/api/today';
+import { dayjs } from '../../lib/dateUtils';
 
 type SectionItem = {
   id: string;
@@ -35,7 +36,7 @@ function buildMedicationItems(items: MedicationTodayItem[]): SectionItem[] {
   return items.map((item) => ({
     id: `medication-${item.medication_dose_instance_id}`,
     title: item.name,
-    subtitle: formatSubtitle(new Date(item.scheduled_at).toLocaleTimeString(), item.status),
+    subtitle: formatSubtitle(dayjs(item.scheduled_at).format('HH:mm'), item.status),
     instructions: item.instructions,
     medicationDoseInstanceId: item.medication_dose_instance_id,
     medicationStatus: item.status,
@@ -46,7 +47,7 @@ function buildMedicationHistoryItems(items: MedicationHistoryItem[]): SectionIte
   return items.map((item) => ({
     id: `medication-history-${item.medication_dose_instance_id}`,
     title: item.name,
-    subtitle: formatSubtitle(new Date(item.scheduled_at).toLocaleString(), item.status),
+    subtitle: formatSubtitle(dayjs(item.scheduled_at).format('D/M/YYYY, HH:mm'), item.status),
     instructions: item.instructions,
   }));
 }
@@ -119,9 +120,7 @@ function TaskActions({
   };
 
   const onReschedule = async () => {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const dateValue = tomorrow.toISOString().slice(0, 10);
+    const dateValue = dayjs().add(1, 'day').format('YYYY-MM-DD');
     await rescheduleChore(choreInstanceId, dateValue);
   };
 

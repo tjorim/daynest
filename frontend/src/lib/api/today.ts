@@ -161,21 +161,21 @@ function sleep(ms: number): Promise<void> {
 async function fetchWithRetry(input: RequestInfo | URL, init: RequestInit = {}, retries = 2): Promise<Response> {
   let attempt = 0;
   let lastError: unknown;
+  const isIdempotent = !init.method || ['GET', 'HEAD', 'PUT', 'DELETE', 'OPTIONS'].includes(init.method.toUpperCase());
 
   while (attempt <= retries) {
     try {
       const response = await fetch(input, init);
-      if (!response.ok && isRetryableStatus(response.status) && attempt < retries) {
+      if (!response.ok && isRetryableStatus(response.status) && attempt < retries && isIdempotent) {
         await sleep(250 * 2 ** attempt);
         attempt += 1;
         continue;
       }
       return response;
     } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') throw error;
       lastError = error;
-      if (attempt >= retries) {
-        break;
-      }
+      if (attempt >= retries || !isIdempotent) break;
       await sleep(250 * 2 ** attempt);
       attempt += 1;
     }

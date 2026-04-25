@@ -11,14 +11,7 @@ import {
   type PlannedItemBackupFile,
   type PlannedItemModuleKey,
 } from '../../lib/api/today';
-
-function toIsoDate(value: Date): string {
-  return value.toISOString().slice(0, 10);
-}
-
-function monthLabel(date: Date): string {
-  return date.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
-}
+import { dayjs } from '../../lib/dateUtils';
 
 function itemBadgeClass(itemType: string): string {
   if (itemType === 'medication') return 'text-bg-info';
@@ -36,9 +29,9 @@ function safeParseBackup(raw: string): PlannedItemBackupFile {
 }
 
 export function CalendarPage() {
-  const [currentMonth, setCurrentMonth] = useState(() => new Date());
+  const [currentMonth, setCurrentMonth] = useState(() => dayjs());
   const [monthItems, setMonthItems] = useState<CalendarMonthDaySummary[]>([]);
-  const [selectedDate, setSelectedDate] = useState(() => toIsoDate(new Date()));
+  const [selectedDate, setSelectedDate] = useState(() => dayjs().format('YYYY-MM-DD'));
   const [dayPayload, setDayPayload] = useState<CalendarDayPayload | null>(null);
   const [title, setTitle] = useState('');
   const [moduleKey, setModuleKey] = useState<PlannedItemModuleKey | ''>('');
@@ -52,7 +45,7 @@ export function CalendarPage() {
   const [isImporting, setIsImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  const monthKey = useMemo(() => ({ year: currentMonth.getFullYear(), month: currentMonth.getMonth() + 1 }), [currentMonth]);
+  const monthKey = useMemo(() => ({ year: currentMonth.year(), month: currentMonth.month() + 1 }), [currentMonth]);
 
   const loadCalendar = async (signal?: AbortSignal) => {
     setLoading(true);
@@ -88,9 +81,8 @@ export function CalendarPage() {
     return new Map(monthItems.map((item) => [item.date, item]));
   }, [monthItems]);
 
-  const firstDay = new Date(monthKey.year, monthKey.month - 1, 1);
-  const lastDay = new Date(monthKey.year, monthKey.month, 0);
-  const daysInMonth = lastDay.getDate();
+  const monthStart = currentMonth.startOf('month');
+  const daysInMonth = monthStart.daysInMonth();
 
   const onAddPlanned = async () => {
     if (!title.trim()) return;
@@ -116,13 +108,13 @@ export function CalendarPage() {
     setIsExporting(true);
     setBackupStatus(null);
     try {
-      const startDate = new Date(monthKey.year, monthKey.month - 1, 1).toISOString().slice(0, 10);
-      const endDate = new Date(monthKey.year, monthKey.month, 0).toISOString().slice(0, 10);
+      const startDate = monthStart.format('YYYY-MM-DD');
+      const endDate = monthStart.endOf('month').format('YYYY-MM-DD');
       const items = await listPlannedItems(startDate, endDate);
       const payload: PlannedItemBackupFile = {
         source: 'daynest',
         schema_version: 1,
-        exported_at: new Date().toISOString(),
+        exported_at: dayjs().toISOString(),
         items: items.map((item) => ({
           title: item.title,
           planned_for: item.planned_for,
@@ -205,18 +197,18 @@ export function CalendarPage() {
           </button>
         </div>
         <div className="btn-group btn-group-sm w-100" role="group" aria-label="Quick month controls">
-          <button type="button" className="btn btn-outline-secondary" onClick={() => setCurrentMonth(new Date(monthKey.year, monthKey.month - 2, 1))}>
+          <button type="button" className="btn btn-outline-secondary" onClick={() => setCurrentMonth(currentMonth.subtract(1, 'month'))}>
             Prev
           </button>
-          <button type="button" className="btn btn-outline-secondary" onClick={() => setCurrentMonth(new Date())}>
+          <button type="button" className="btn btn-outline-secondary" onClick={() => setCurrentMonth(dayjs())}>
             This month
           </button>
-          <button type="button" className="btn btn-outline-secondary" onClick={() => setCurrentMonth(new Date(monthKey.year, monthKey.month, 1))}>
+          <button type="button" className="btn btn-outline-secondary" onClick={() => setCurrentMonth(currentMonth.add(1, 'month'))}>
             Next
           </button>
         </div>
       </div>
-      <p className="text-muted">{monthLabel(firstDay)} unified month/day planning view.</p>
+      <p className="text-muted">{monthStart.format('MMMM YYYY')} unified month/day planning view.</p>
 
       {loading ? <div className="alert alert-info py-2">Loading calendar...</div> : null}
       {error ? (
@@ -237,7 +229,7 @@ export function CalendarPage() {
               <div className="row row-cols-7 g-1 g-md-2">
                 {Array.from({ length: daysInMonth }).map((_, idx) => {
                   const dayNumber = idx + 1;
-                  const dateValue = toIsoDate(new Date(monthKey.year, monthKey.month - 1, dayNumber));
+                  const dateValue = monthStart.date(dayNumber).format('YYYY-MM-DD');
                   const summary = itemsByDate.get(dateValue);
                   const selected = selectedDate === dateValue;
                   return (
