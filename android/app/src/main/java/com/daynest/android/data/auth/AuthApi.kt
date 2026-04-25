@@ -8,7 +8,9 @@ import retrofit2.http.POST
 
 interface AuthApi {
     @POST("api/v1/auth/sign-in")
-    suspend fun signIn(@Body request: SignInRequestDto): AuthSessionDto
+    suspend fun signIn(
+        @Body request: SignInRequestDto,
+    ): AuthSessionDto
 
     @GET("api/v1/auth/session")
     suspend fun restoreSession(): AuthSessionDto

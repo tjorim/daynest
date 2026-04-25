@@ -17,12 +17,9 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class StorageDiModule {
-
     @Binds
     @Singleton
-    abstract fun bindSecureTokenStorage(
-        encryptedTokenStorage: EncryptedTokenStorage,
-    ): SecureTokenStorage
+    abstract fun bindSecureTokenStorage(encryptedTokenStorage: EncryptedTokenStorage): SecureTokenStorage
 
     companion object {
         @Provides
@@ -30,9 +27,11 @@ abstract class StorageDiModule {
         fun provideSecurePreferences(
             @ApplicationContext context: Context,
         ): SharedPreferences {
-            val masterKey = MasterKey.Builder(context)
-                .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-                .build()
+            val masterKey =
+                MasterKey
+                    .Builder(context)
+                    .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+                    .build()
 
             return EncryptedSharedPreferences.create(
                 context,

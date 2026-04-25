@@ -10,53 +10,52 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
-import kotlinx.coroutines.runBlocking
 import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
 object NetworkDiModule {
-
     @Provides
     @Singleton
     fun provideJson(): Json = JsonSerializer.config
 
     @Provides
     @Singleton
-    fun provideOkHttpClient(
-        secureTokenStorage: SecureTokenStorage,
-    ): OkHttpClient = OkHttpClient.Builder()
-        .addInterceptor { chain ->
-            val requestBuilder = chain.request().newBuilder()
-            val token = runBlocking { secureTokenStorage.getToken() }
-            if (!token.isNullOrBlank()) {
-                requestBuilder.addHeader("Authorization", "Bearer $token")
-            }
-            chain.proceed(requestBuilder.build())
-        }
-        .apply {
-            if (BuildConfig.DEBUG) {
-                addInterceptor(HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BODY })
-            }
-        }
-        .build()
+    fun provideOkHttpClient(secureTokenStorage: SecureTokenStorage): OkHttpClient =
+        OkHttpClient
+            .Builder()
+            .addInterceptor { chain ->
+                val requestBuilder = chain.request().newBuilder()
+                val token = runBlocking { secureTokenStorage.getToken() }
+                if (!token.isNullOrBlank()) {
+                    requestBuilder.addHeader("Authorization", "Bearer $token")
+                }
+                chain.proceed(requestBuilder.build())
+            }.apply {
+                if (BuildConfig.DEBUG) {
+                    addInterceptor(HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BODY })
+                }
+            }.build()
 
     @Provides
     @Singleton
     fun provideRetrofit(
         okHttpClient: OkHttpClient,
         json: Json,
-    ): Retrofit = Retrofit.Builder()
-        .baseUrl(ApiConfig.baseUrl)
-        .client(okHttpClient)
-        .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
-        .build()
+    ): Retrofit =
+        Retrofit
+            .Builder()
+            .baseUrl(ApiConfig.baseUrl)
+            .client(okHttpClient)
+            .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
+            .build()
 
     @Provides
     @Singleton
