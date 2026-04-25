@@ -6,7 +6,7 @@ import os
 import sys
 from collections.abc import Callable
 from contextlib import contextmanager
-from datetime import date
+from datetime import date, datetime
 from typing import Any, Literal, TypeVar, cast
 
 from mcp.server.auth.middleware.auth_context import get_access_token
@@ -49,12 +49,17 @@ T = TypeVar("T")
 def _parse_date(value: str | None) -> date:
     if not value or value == "today":
         return date.today()
-    return date.fromisoformat(value)
+    try:
+        return date.fromisoformat(value)
+    except ValueError:
+        raise ValueError(f"Invalid date '{value}'. Expected YYYY-MM-DD format or 'today'.")
 
 
 def _jsonable(value: Any) -> Any:
     if isinstance(value, BaseModel):
         return value.model_dump(mode="json")
+    if isinstance(value, (date, datetime)):
+        return value.isoformat()
     if isinstance(value, list):
         return [_jsonable(item) for item in value]
     if isinstance(value, dict):
