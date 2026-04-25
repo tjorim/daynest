@@ -6,6 +6,7 @@ import com.daynest.android.core.model.TodaySummary
 import com.daynest.android.data.today.TodayRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -34,11 +35,14 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = HomeUiState.Loading
 
-            _uiState.value = runCatching { repository.getTodaySummary() }
-                .fold(
-                    onSuccess = { HomeUiState.Content(it) },
-                    onFailure = { HomeUiState.Error(HomeError.LoadTodayFailed) },
-                )
+            _uiState.value = try {
+                HomeUiState.Content(repository.getTodaySummary())
+            } catch (exception: Exception) {
+                if (exception is CancellationException) {
+                    throw exception
+                }
+                HomeUiState.Error(HomeError.LoadTodayFailed)
+            }
         }
     }
 }
