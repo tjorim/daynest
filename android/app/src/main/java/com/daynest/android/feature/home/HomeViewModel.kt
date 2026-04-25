@@ -6,7 +6,9 @@ import com.daynest.android.core.model.TodaySummary
 import com.daynest.android.data.today.TodayRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
@@ -14,31 +16,46 @@ import kotlinx.coroutines.launch
 class HomeViewModel @Inject constructor(
     private val repository: TodayRepository,
 ) : ViewModel() {
-    private val _state = MutableStateFlow<HomeUiState>(HomeUiState.Loading)
+    private val _uiState = MutableStateFlow<HomeUiState>(HomeUiState.Loading)
 
-    val state = _state.asStateFlow()
+    val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
     init {
         refreshToday()
     }
 
-    fun refreshToday() {
-        viewModelScope.launch {
-            _state.value = HomeUiState.Loading
+    fun onEvent(event: HomeUiEvent) {
+        when (event) {
+            HomeUiEvent.RetryClicked -> refreshToday()
+            HomeUiEvent.OpenTodayDetailsClicked -> Unit
+        }
+    }
 
-            _state.value = runCatching { repository.getTodaySummary() }
-                .fold(
-                    onSuccess = { HomeUiState.Success(it) },
-                    onFailure = { HomeUiState.Error(HomeError.LoadTodayFailed) },
-                )
+    private fun refreshToday() {
+        viewModelScope.launch {
+            _uiState.value = HomeUiState.Loading
+
+            _uiState.value = try {
+                HomeUiState.Content(repository.getTodaySummary())
+            } catch (exception: Exception) {
+                if (exception is CancellationException) {
+                    throw exception
+                }
+                HomeUiState.Error(HomeError.LoadTodayFailed)
+            }
         }
     }
 }
 
 sealed interface HomeUiState {
     data object Loading : HomeUiState
-    data class Success(val summary: TodaySummary) : HomeUiState
+    data class Content(val summary: TodaySummary) : HomeUiState
     data class Error(val error: HomeError) : HomeUiState
+}
+
+sealed interface HomeUiEvent {
+    data object RetryClicked : HomeUiEvent
+    data object OpenTodayDetailsClicked : HomeUiEvent
 }
 
 enum class HomeError {

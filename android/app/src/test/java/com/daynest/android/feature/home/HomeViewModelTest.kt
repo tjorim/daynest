@@ -60,10 +60,10 @@ class HomeViewModelTest {
 
         advanceUntilIdle()
 
-        val state = viewModel.state.value
+        val state = viewModel.uiState.value
 
-        assertTrue(state is HomeUiState.Success)
-        val success = state as HomeUiState.Success
+        assertTrue(state is HomeUiState.Content)
+        val success = state as HomeUiState.Content
         assertEquals(5, success.summary.remainingCount)
         assertTrue(!success.summary.isCaughtUp)
     }
@@ -76,7 +76,7 @@ class HomeViewModelTest {
 
         advanceUntilIdle()
 
-        val state = viewModel.state.value
+        val state = viewModel.uiState.value
 
         assertTrue(state is HomeUiState.Error)
         assertEquals(HomeError.LoadTodayFailed, (state as HomeUiState.Error).error)
