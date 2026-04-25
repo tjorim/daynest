@@ -1,20 +1,17 @@
-"""Constants for daynest."""
+"""Constants for the Daynest integration."""
 
 from logging import Logger, getLogger
 
 LOGGER: Logger = getLogger(__package__)
 
-# Integration metadata
 DOMAIN = "daynest"
-ATTRIBUTION = "Data provided by https://jsonplaceholder.typicode.com/"
-DEFAULT_API_BASE_URL = "https://jsonplaceholder.typicode.com"
+ATTRIBUTION = "Data provided by Daynest"
+DEFAULT_API_BASE_URL = "http://localhost:8000"
 SUPPORTED_INTEGRATION_CONTRACT_VERSIONS = frozenset({"ha.v1"})
 LEGACY_CONTRACT_VERSION_ALIASES = {"1": "ha.v1"}
 
-# Platform parallel updates - applied to all platforms
 PARALLEL_UPDATES = 1
 
-# Default configuration values
 DEFAULT_UPDATE_INTERVAL_HOURS = 1
 DEFAULT_ENABLE_DEBUGGING = False
 

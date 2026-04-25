@@ -1,26 +1,75 @@
-"""Sensor platform for daynest."""
+"""Sensor platform for Daynest dashboard metrics."""
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Any
 
 from custom_components.daynest.const import PARALLEL_UPDATES as PARALLEL_UPDATES
-from homeassistant.components.sensor import SensorEntityDescription
-
-from .air_quality import ENTITY_DESCRIPTIONS as AIR_QUALITY_DESCRIPTIONS, DaynestAirQualitySensor
-from .diagnostic import ENTITY_DESCRIPTIONS as DIAGNOSTIC_DESCRIPTIONS, DaynestDiagnosticSensor
-from .dashboard import ENTITY_DESCRIPTIONS as DASHBOARD_DESCRIPTIONS, DaynestDashboardSensor
+from custom_components.daynest.entity import DaynestEntity
+from homeassistant.components.sensor import SensorEntity, SensorEntityDescription, SensorStateClass
+from homeassistant.const import PERCENTAGE
 
 if TYPE_CHECKING:
+    from custom_components.daynest.coordinator import DaynestDataUpdateCoordinator
     from custom_components.daynest.data import DaynestConfigEntry
     from homeassistant.core import HomeAssistant
     from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-# Combine all entity descriptions from different modules
-ENTITY_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
-    *AIR_QUALITY_DESCRIPTIONS,
-    *DIAGNOSTIC_DESCRIPTIONS,
-    *DASHBOARD_DESCRIPTIONS,
+
+@dataclass(frozen=True, kw_only=True)
+class DaynestSensorEntityDescription(SensorEntityDescription):
+    """Describe a Daynest dashboard sensor."""
+
+    value_key: str
+    scale: float = 1.0
+
+
+ENTITY_DESCRIPTIONS: tuple[DaynestSensorEntityDescription, ...] = (
+    DaynestSensorEntityDescription(
+        key="due_today_count",
+        translation_key="due_today_count",
+        icon="mdi:format-list-checks",
+        state_class=SensorStateClass.MEASUREMENT,
+        value_key="due_today_count",
+    ),
+    DaynestSensorEntityDescription(
+        key="overdue_count",
+        translation_key="overdue_count",
+        icon="mdi:alert-circle-outline",
+        state_class=SensorStateClass.MEASUREMENT,
+        value_key="overdue_count",
+    ),
+    DaynestSensorEntityDescription(
+        key="planned_count",
+        translation_key="planned_count",
+        icon="mdi:calendar-text-outline",
+        state_class=SensorStateClass.MEASUREMENT,
+        value_key="planned_count",
+    ),
+    DaynestSensorEntityDescription(
+        key="medication_due_count",
+        translation_key="medication_due_count",
+        icon="mdi:pill",
+        state_class=SensorStateClass.MEASUREMENT,
+        value_key="medication_due_count",
+    ),
+    DaynestSensorEntityDescription(
+        key="completion_ratio",
+        translation_key="completion_ratio",
+        icon="mdi:percent-circle-outline",
+        native_unit_of_measurement=PERCENTAGE,
+        suggested_display_precision=0,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_key="completion_ratio",
+        scale=100,
+    ),
+    DaynestSensorEntityDescription(
+        key="next_medication",
+        translation_key="next_medication",
+        icon="mdi:clock-time-eight-outline",
+        value_key="next_medication",
+    ),
 )
 
 
@@ -29,28 +78,53 @@ async def async_setup_entry(
     entry: DaynestConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up the sensor platform."""
-    # Add air quality sensors
+    """Set up Daynest sensors for a config entry."""
     async_add_entities(
-        DaynestAirQualitySensor(
+        DaynestMetricSensor(
             coordinator=entry.runtime_data.coordinator,
             entity_description=entity_description,
         )
-        for entity_description in AIR_QUALITY_DESCRIPTIONS
+        for entity_description in ENTITY_DESCRIPTIONS
     )
-    # Add diagnostic sensors
-    async_add_entities(
-        DaynestDiagnosticSensor(
-            coordinator=entry.runtime_data.coordinator,
-            entity_description=entity_description,
-        )
-        for entity_description in DIAGNOSTIC_DESCRIPTIONS
-    )
-    # Add dashboard sensors
-    async_add_entities(
-        DaynestDashboardSensor(
-            coordinator=entry.runtime_data.coordinator,
-            entity_description=entity_description,
-        )
-        for entity_description in DASHBOARD_DESCRIPTIONS
-    )
+
+
+class DaynestMetricSensor(SensorEntity, DaynestEntity):
+    """Expose a single field from the Daynest dashboard payload."""
+
+    entity_description: DaynestSensorEntityDescription
+
+    def __init__(
+        self,
+        coordinator: DaynestDataUpdateCoordinator,
+        entity_description: DaynestSensorEntityDescription,
+    ) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator, entity_description)
+
+    @property
+    def native_value(self) -> int | float | str | None:
+        """Return the current sensor value."""
+        value = self.coordinator.data.get(self.entity_description.value_key)
+        if value is None:
+            return None
+
+        if self.entity_description.scale != 1.0:
+            try:
+                return round(float(value) * self.entity_description.scale, 0)
+            except (TypeError, ValueError):
+                return None
+
+        return value
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return shared Daynest context for the current reading."""
+        attributes: dict[str, Any] = {
+            "for_date": self.coordinator.data.get("for_date"),
+            "integration_contract": self.coordinator.data.get("integration_contract"),
+        }
+
+        if self.entity_description.key == "next_medication":
+            attributes["medication_due_count"] = self.coordinator.data.get("medication_due_count")
+
+        return {key: value for key, value in attributes.items() if value is not None}
