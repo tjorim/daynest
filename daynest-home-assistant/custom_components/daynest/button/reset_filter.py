@@ -50,10 +50,6 @@ class DaynestButton(ButtonEntity, DaynestEntity):
             # In production: Send reset command to device
             # await self.coordinator.config_entry.runtime_data.client.async_reset_filter()
 
-            # For demo: Store reset flag in coordinator data
-            # The filter_life sensor will read this and show 100%
-            self.coordinator.data["demo_filter_reset"] = True
-
             # Request a coordinator refresh - this simulates the real flow:
             # 1. API call to device (commented out above)
             # 2. Coordinator fetches updated data from device

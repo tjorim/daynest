@@ -48,16 +48,7 @@ class DaynestFanSpeedSelect(SelectEntity, DaynestEntity):
 
     @property
     def current_option(self) -> str | None:
-        """
-        Return the current selected option.
-
-        Demo: This is linked to the fan entity - if you change the fan speed
-        slider there, this select will also update!
-        """
-        # Check if fan entity has set a speed
-        demo_speed = self.coordinator.data.get("demo_fan_speed")
-        if demo_speed and demo_speed in [speed.value for speed in FanSpeed]:
-            return demo_speed
+        """Return the current selected option."""
         return self._attr_current_option
 
     @property
@@ -73,11 +64,7 @@ class DaynestFanSpeedSelect(SelectEntity, DaynestEntity):
         return "mdi:fan-auto"
 
     async def async_select_option(self, option: str) -> None:
-        """
-        Change the selected option.
-
-        Demo: This also updates the fan entity - they're linked!
-        """
+        """Change the selected option."""
         LOGGER.debug("Setting fan speed to: %s", option)
 
         if option not in [speed.value for speed in FanSpeed]:
@@ -86,9 +73,6 @@ class DaynestFanSpeedSelect(SelectEntity, DaynestEntity):
 
         # In production: Call API to set fan speed
         # await self.coordinator.config_entry.runtime_data.client.async_set_fan_speed(option)
-
-        # Store in coordinator data so fan entity can read it
-        self.coordinator.data["demo_fan_speed"] = option
 
         self._attr_current_option = option
 
