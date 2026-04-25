@@ -24,6 +24,9 @@ class StubTodayRepository:
     def ensure_medication_dose_instances_generated(self, user_id: int, through_date: date) -> None:
         return None
 
+    def ensure_task_instances_generated(self, user_id: int, through_date: date) -> None:
+        return None
+
     def mark_due_medications_missed(self, user_id: int, now, grace_minutes: int = 30):
         return None
 
