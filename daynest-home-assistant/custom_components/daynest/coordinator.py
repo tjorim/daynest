@@ -59,21 +59,6 @@ class DaynestDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             always_update=False,
         )
         self._client = client
-        self.data = self._default_data()
-
-    def _default_data(self) -> dict[str, Any]:
-        """Return stable default payload used before first successful refresh."""
-        return {
-            "due_today_count": 0,
-            "overdue_count": 0,
-            "completion_ratio": 0.0,
-            "next_medication": None,
-            "integration_contract": None,
-            # Compatibility keys for existing entities expecting a dict payload.
-            "userId": 0,
-            "id": 0,
-            "model": "Daynest",
-        }
 
     def _normalize_dashboard(self, payload: dict[str, Any], contract: str) -> dict[str, Any]:
         """Normalize dashboard payload into stable coordinator keys."""
