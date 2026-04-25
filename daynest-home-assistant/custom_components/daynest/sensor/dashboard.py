@@ -67,23 +67,20 @@ class DaynestDashboardSensor(SensorEntity, DaynestEntity):
 
         key = self.entity_description.key
         if key in {"overdue_count", "due_today_count"}:
-            return int(self.coordinator.data.get(key, 0))
+            return self.coordinator.data[key]
 
         if key == "completion_ratio":
-            ratio = float(self.coordinator.data.get("completion_ratio", 0.0))
+            ratio = self.coordinator.data["completion_ratio"]
             return round(ratio * 100, 1)
 
         if key == "next_medication":
             medication = self._next_medication
             if medication is None:
                 return None
-            return str(
-                medication.get("name")
-                or medication.get("medicationName")
-                or medication.get("title")
-                or medication.get("id")
-                or ""
-            ) or None
+            for field in ("name", "medicationName", "title", "id"):
+                if (value := medication.get(field)) is not None:
+                    return str(value)
+            return None
 
         return None
 
@@ -97,8 +94,17 @@ class DaynestDashboardSensor(SensorEntity, DaynestEntity):
         if medication is None:
             return None
 
-        due_at = medication.get("dueAt") or medication.get("scheduledAt") or medication.get("timestamp")
-        parsed_due = dt_util.parse_datetime(str(due_at)) if due_at is not None else None
+        due_at = medication.get("dueAt")
+        if due_at is None:
+            due_at = medication.get("scheduledAt")
+        if due_at is None:
+            due_at = medication.get("timestamp")
+        if isinstance(due_at, datetime):
+            parsed_due = due_at
+        elif isinstance(due_at, str):
+            parsed_due = dt_util.parse_datetime(due_at)
+        else:
+            parsed_due = None
 
         return {
             "medication_id": medication.get("id"),
