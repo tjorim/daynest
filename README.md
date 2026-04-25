@@ -186,6 +186,7 @@ Compatibility and schema evolution documentation:
 
 - `backend/docs/integrations/COMPATIBILITY_POLICY.md`
 - `backend/docs/integrations/SCHEMA_CHANGELOG.md`
+- `backend/docs/integrations/HOME_ASSISTANT_CUSTOM_INTEGRATION_PLAN.md`
 
 ## Runtime hardening and environment-specific config
 
