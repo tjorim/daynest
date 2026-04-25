@@ -1,10 +1,17 @@
+from __future__ import annotations
+
 import enum
 from datetime import date, datetime
+from typing import TYPE_CHECKING
 
-from sqlalchemy import Date, DateTime, Enum, ForeignKey, String, func
+from sqlalchemy import Date, DateTime, Enum, ForeignKey, String, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
+
+if TYPE_CHECKING:
+    from app.models.chore_template import ChoreTemplate
+    from app.models.user import User
 
 
 class ChoreStatus(str, enum.Enum):
@@ -15,6 +22,7 @@ class ChoreStatus(str, enum.Enum):
 
 class ChoreInstance(Base):
     __tablename__ = "chore_instances"
+    __table_args__ = (UniqueConstraint("chore_template_id", "scheduled_date", name="uq_chore_instance_template_scheduled_date"),)
 
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)

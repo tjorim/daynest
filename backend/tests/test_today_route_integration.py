@@ -163,9 +163,19 @@ def test_calendar_and_planned_endpoints(client: TestClient, db_session: Session)
     create_planned = client.post(
         "/api/v1/planned-items",
         headers=headers,
-        json={"title": "Meal prep", "planned_for": "2026-04-24", "notes": "Sunday batch"},
+        json={
+            "title": "Meal prep",
+            "planned_for": "2026-04-24",
+            "notes": "Sunday batch",
+            "module_key": "meal_planning",
+            "linked_source": "google_calendar",
+            "linked_ref": "meal-prep-2026-04-24",
+        },
     )
     assert create_planned.status_code == 200
+    assert create_planned.json()["module_key"] == "meal_planning"
+    assert create_planned.json()["linked_source"] == "google_calendar"
+    assert create_planned.json()["linked_ref"] == "meal-prep-2026-04-24"
     planned_id = create_planned.json()["id"]
 
     list_planned = client.get("/api/v1/planned-items?start_date=2026-04-24&end_date=2026-04-24", headers=headers)
@@ -175,10 +185,22 @@ def test_calendar_and_planned_endpoints(client: TestClient, db_session: Session)
     update_planned = client.put(
         f"/api/v1/planned-items/{planned_id}",
         headers=headers,
-        json={"title": "Meal prep", "planned_for": "2026-04-24", "notes": "Sunday batch", "is_done": True},
+        json={
+            "title": "Meal prep",
+            "planned_for": "2026-04-24",
+            "notes": "Sunday batch",
+            "module_key": "meal_planning",
+            "recurrence_hint": "weekly",
+            "linked_source": "google_calendar",
+            "linked_ref": "meal-prep-2026-04-24",
+            "is_done": True,
+        },
     )
     assert update_planned.status_code == 200
     assert update_planned.json()["is_done"] is True
+    assert update_planned.json()["recurrence_hint"] == "weekly"
+    assert update_planned.json()["linked_source"] == "google_calendar"
+    assert update_planned.json()["linked_ref"] == "meal-prep-2026-04-24"
 
     day_response = client.get("/api/v1/calendar/day?date=2026-04-24", headers=headers)
     assert day_response.status_code == 200
@@ -190,4 +212,3 @@ def test_calendar_and_planned_endpoints(client: TestClient, db_session: Session)
 
     delete_response = client.delete(f"/api/v1/planned-items/{planned_id}", headers=headers)
     assert delete_response.status_code == 204
-

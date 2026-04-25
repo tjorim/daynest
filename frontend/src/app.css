@@ -1,0 +1,22 @@
+:root {
+  color-scheme: light dark;
+}
+
+main.container {
+  max-width: 1080px;
+}
+
+.nav-pills .nav-link {
+  min-height: 44px;
+}
+
+.list-group-item .btn {
+  min-height: 44px;
+}
+
+@media (max-width: 575.98px) {
+  main.container {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+}

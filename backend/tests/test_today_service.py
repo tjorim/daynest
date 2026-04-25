@@ -83,7 +83,19 @@ def test_get_today_shapes_chore_sections() -> None:
     overdue = [SimpleNamespace(id=1, chore_template_id=11, title="Laundry", status=ChoreStatus.pending, scheduled_date=date(2026, 4, 20))]
     due = [SimpleNamespace(id=2, chore_template_id=12, title="Trash", status=ChoreStatus.pending, scheduled_date=for_date)]
     upcoming = [SimpleNamespace(id=3, chore_template_id=13, title="Vacuum", scheduled_date=date(2026, 4, 24))]
-    planned = [SimpleNamespace(id=77, title="Meal prep", planned_for=for_date, notes=None, is_done=False)]
+    planned = [
+        SimpleNamespace(
+            id=77,
+            title="Meal prep",
+            planned_for=for_date,
+            notes=None,
+            module_key="meal_planning",
+            recurrence_hint="weekly",
+            linked_source=None,
+            linked_ref=None,
+            is_done=False,
+        )
+    ]
 
     repo = StubTodayRepository(tasks=routine_tasks, overdue=overdue, due=due, upcoming=upcoming, medication=medication, medication_history=[], planned=planned)
     service = TodayService(repository=repo)
@@ -98,4 +110,5 @@ def test_get_today_shapes_chore_sections() -> None:
     assert response.due_today[0].chore_instance_id == 2
     assert response.upcoming[0].chore_instance_id == 3
     assert response.planned[0].id == 77
+    assert response.planned[0].module_key == "meal_planning"
     assert len(response.day_items) == 4
