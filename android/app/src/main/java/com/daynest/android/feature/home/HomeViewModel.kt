@@ -7,6 +7,7 @@ import com.daynest.android.data.today.TodayRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
@@ -14,21 +15,28 @@ import kotlinx.coroutines.launch
 class HomeViewModel @Inject constructor(
     private val repository: TodayRepository,
 ) : ViewModel() {
-    private val _state = MutableStateFlow<HomeUiState>(HomeUiState.Loading)
+    private val _uiState = MutableStateFlow<HomeUiState>(HomeUiState.Loading)
 
-    val state = _state.asStateFlow()
+    val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
     init {
         refreshToday()
     }
 
-    fun refreshToday() {
-        viewModelScope.launch {
-            _state.value = HomeUiState.Loading
+    fun onEvent(event: HomeUiEvent) {
+        when (event) {
+            HomeUiEvent.RetryClicked -> refreshToday()
+            HomeUiEvent.OpenTodayDetailsClicked -> Unit
+        }
+    }
 
-            _state.value = runCatching { repository.getTodaySummary() }
+    private fun refreshToday() {
+        viewModelScope.launch {
+            _uiState.value = HomeUiState.Loading
+
+            _uiState.value = runCatching { repository.getTodaySummary() }
                 .fold(
-                    onSuccess = { HomeUiState.Success(it) },
+                    onSuccess = { HomeUiState.Content(it) },
                     onFailure = { HomeUiState.Error(HomeError.LoadTodayFailed) },
                 )
         }
@@ -37,8 +45,13 @@ class HomeViewModel @Inject constructor(
 
 sealed interface HomeUiState {
     data object Loading : HomeUiState
-    data class Success(val summary: TodaySummary) : HomeUiState
+    data class Content(val summary: TodaySummary) : HomeUiState
     data class Error(val error: HomeError) : HomeUiState
+}
+
+sealed interface HomeUiEvent {
+    data object RetryClicked : HomeUiEvent
+    data object OpenTodayDetailsClicked : HomeUiEvent
 }
 
 enum class HomeError {

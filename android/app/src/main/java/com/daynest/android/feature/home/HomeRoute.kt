@@ -24,7 +24,7 @@ import com.daynest.android.R
 fun HomeRoute(
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
-    val state by viewModel.state.collectAsStateWithLifecycle()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
         Column(
@@ -35,12 +35,12 @@ fun HomeRoute(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
-            when (val uiState = state) {
+            when (val state = uiState) {
                 HomeUiState.Loading -> {
                     CircularProgressIndicator()
                 }
 
-                is HomeUiState.Success -> {
+                is HomeUiState.Content -> {
                     Text(
                         text = stringResource(id = R.string.home_welcome),
                         style = MaterialTheme.typography.headlineMedium,
@@ -48,18 +48,18 @@ fun HomeRoute(
                     Text(
                         text = pluralStringResource(
                             id = R.plurals.home_items_remaining,
-                            count = uiState.summary.remainingCount,
-                            uiState.summary.remainingCount,
+                            count = state.summary.remainingCount,
+                            state.summary.remainingCount,
                         ),
                         modifier = Modifier.padding(top = 12.dp),
                         style = MaterialTheme.typography.bodyLarge,
                     )
                     Button(
-                        onClick = { },
+                        onClick = { viewModel.onEvent(HomeUiEvent.OpenTodayDetailsClicked) },
                         modifier = Modifier.padding(top = 20.dp),
                     ) {
                         Text(
-                            text = if (uiState.summary.isCaughtUp) {
+                            text = if (state.summary.isCaughtUp) {
                                 stringResource(id = R.string.home_action_caught_up)
                             } else {
                                 stringResource(id = R.string.home_action_plan_today)
@@ -70,16 +70,16 @@ fun HomeRoute(
 
                 is HomeUiState.Error -> {
                     Text(
-                        text = when (uiState.error) {
+                        text = when (state.error) {
                             HomeError.LoadTodayFailed -> stringResource(id = R.string.home_error_generic)
                         },
                         style = MaterialTheme.typography.bodyLarge,
                     )
                     Button(
-                        onClick = viewModel::refreshToday,
+                        onClick = { viewModel.onEvent(HomeUiEvent.RetryClicked) },
                         modifier = Modifier.padding(top = 20.dp),
                     ) {
-                        Text(stringResource(id = R.string.home_retry))
+                        Text(text = stringResource(id = R.string.home_retry))
                     }
                 }
             }
