@@ -64,9 +64,8 @@ class HomeViewModelTest {
 
         assertTrue(state is HomeUiState.Success)
         val success = state as HomeUiState.Success
-        assertEquals("Welcome to Daynest", success.summary.greeting)
-        assertEquals("You have 5 items to handle today.", success.summary.subtitle)
-        assertEquals("Plan today", success.summary.primaryActionLabel)
+        assertEquals(5, success.summary.remainingCount)
+        assertTrue(!success.summary.isCaughtUp)
     }
 
     @Test

@@ -5,14 +5,10 @@ data class TodaySummary(
     val choresCount: Int,
     val medicationsCount: Int,
     val plannedPendingCount: Int,
-)
+) {
+    val remainingCount: Int
+        get() = routinesCount + choresCount + medicationsCount + plannedPendingCount
 
-fun TodaySummary.toTodoSummaryUiModel(): TodoSummaryUiModel {
-    val remaining = routinesCount + choresCount + plannedPendingCount + medicationsCount
-
-    return TodoSummaryUiModel(
-        greeting = "Welcome to Daynest",
-        subtitle = "You have $remaining items to handle today.",
-        primaryActionLabel = if (remaining == 0) "You're all caught up" else "Plan today",
-    )
+    val isCaughtUp: Boolean
+        get() = remainingCount == 0
 }

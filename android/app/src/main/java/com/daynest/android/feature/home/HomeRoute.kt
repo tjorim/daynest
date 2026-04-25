@@ -13,9 +13,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.daynest.android.R
 
 @Composable
 fun HomeRoute(viewModel: HomeViewModel = viewModel()) {
@@ -37,11 +40,15 @@ fun HomeRoute(viewModel: HomeViewModel = viewModel()) {
 
                 is HomeUiState.Success -> {
                     Text(
-                        text = uiState.summary.greeting,
+                        text = stringResource(id = R.string.home_welcome),
                         style = MaterialTheme.typography.headlineMedium,
                     )
                     Text(
-                        text = uiState.summary.subtitle,
+                        text = pluralStringResource(
+                            id = R.plurals.home_items_remaining,
+                            count = uiState.summary.remainingCount,
+                            uiState.summary.remainingCount,
+                        ),
                         modifier = Modifier.padding(top = 12.dp),
                         style = MaterialTheme.typography.bodyLarge,
                     )
@@ -49,20 +56,26 @@ fun HomeRoute(viewModel: HomeViewModel = viewModel()) {
                         onClick = { },
                         modifier = Modifier.padding(top = 20.dp),
                     ) {
-                        Text(uiState.summary.primaryActionLabel)
+                        Text(
+                            text = if (uiState.summary.isCaughtUp) {
+                                stringResource(id = R.string.home_action_caught_up)
+                            } else {
+                                stringResource(id = R.string.home_action_plan_today)
+                            },
+                        )
                     }
                 }
 
                 is HomeUiState.Error -> {
                     Text(
-                        text = uiState.message,
+                        text = uiState.message ?: stringResource(id = R.string.home_error_generic),
                         style = MaterialTheme.typography.bodyLarge,
                     )
                     Button(
                         onClick = viewModel::refreshToday,
                         modifier = Modifier.padding(top = 20.dp),
                     ) {
-                        Text("Retry")
+                        Text(stringResource(id = R.string.home_retry))
                     }
                 }
             }
