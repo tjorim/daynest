@@ -150,6 +150,15 @@ export class ApiError extends Error {
   }
 }
 
+interface TokenPairResponse {
+  access_token: string;
+  refresh_token: string;
+}
+
+const DEV_ACCESS_TOKEN_KEY = 'daynest.dev.accessToken';
+const DEV_REFRESH_TOKEN_KEY = 'daynest.dev.refreshToken';
+let devLoginPromise: Promise<string> | null = null;
+
 function isRetryableStatus(status: number): boolean {
   return status === 408 || status === 425 || status === 429 || status >= 500;
 }
@@ -189,6 +198,70 @@ async function fetchWithRetry(input: RequestInfo | URL, init: RequestInit = {}, 
   throw new ApiError('Network request failed.', 0, isIdempotent);
 }
 
+function withAuthHeader(init: RequestInit, token: string): RequestInit {
+  const headers = new Headers(init.headers);
+  headers.set('Authorization', `Bearer ${token}`);
+  return { ...init, headers };
+}
+
+async function getDevAccessToken(): Promise<string | null> {
+  if (!import.meta.env.DEV) {
+    return null;
+  }
+
+  const existing = window.localStorage.getItem(DEV_ACCESS_TOKEN_KEY);
+  if (existing) {
+    return existing;
+  }
+
+  devLoginPromise ??= (async () => {
+    const response = await fetchWithRetry(
+      '/api/v1/auth/login',
+      {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: 'dev@example.com',
+          full_name: 'Dev User',
+          password: 'dev-password',
+        }),
+      },
+      0,
+    );
+    const tokens = await parseJsonResponse<TokenPairResponse>(response, 'Unable to create dev session', false);
+    window.localStorage.setItem(DEV_ACCESS_TOKEN_KEY, tokens.access_token);
+    window.localStorage.setItem(DEV_REFRESH_TOKEN_KEY, tokens.refresh_token);
+    return tokens.access_token;
+  })();
+
+  try {
+    return await devLoginPromise;
+  } finally {
+    devLoginPromise = null;
+  }
+}
+
+async function fetchWithDevAuth(input: RequestInfo | URL, init: RequestInit = {}, retries = 2): Promise<Response> {
+  const token = await getDevAccessToken();
+  const response = await fetchWithRetry(input, token ? withAuthHeader(init, token) : init, retries);
+
+  if (response.status !== 401 && response.status !== 403) {
+    return response;
+  }
+
+  if (!import.meta.env.DEV) {
+    return response;
+  }
+
+  window.localStorage.removeItem(DEV_ACCESS_TOKEN_KEY);
+  window.localStorage.removeItem(DEV_REFRESH_TOKEN_KEY);
+  const refreshedToken = await getDevAccessToken();
+  return fetchWithRetry(input, refreshedToken ? withAuthHeader(init, refreshedToken) : init, retries);
+}
+
 async function parseJsonResponse<T>(response: Response, fallbackMessage = 'Request failed', isIdempotent = true): Promise<T> {
   if (!response.ok) {
     let message = `${fallbackMessage} (${response.status})`;
@@ -216,7 +289,7 @@ async function parseJsonResponse<T>(response: Response, fallbackMessage = 'Reque
 }
 
 export async function fetchToday(signal?: AbortSignal): Promise<TodayPayload> {
-  const response = await fetchWithRetry(
+  const response = await fetchWithDevAuth(
     '/api/v1/today',
     {
       headers: { Accept: 'application/json' },
@@ -228,7 +301,7 @@ export async function fetchToday(signal?: AbortSignal): Promise<TodayPayload> {
 }
 
 export async function fetchCalendarMonth(year: number, month: number, signal?: AbortSignal): Promise<CalendarMonthPayload> {
-  const response = await fetchWithRetry(
+  const response = await fetchWithDevAuth(
     `/api/v1/calendar/month?year=${year}&month=${month}`,
     {
       headers: { Accept: 'application/json' },
@@ -240,7 +313,7 @@ export async function fetchCalendarMonth(year: number, month: number, signal?: A
 }
 
 export async function fetchCalendarDay(date: string, signal?: AbortSignal): Promise<CalendarDayPayload> {
-  const response = await fetchWithRetry(
+  const response = await fetchWithDevAuth(
     `/api/v1/calendar/day?date=${encodeURIComponent(date)}`,
     {
       headers: { Accept: 'application/json' },
@@ -252,7 +325,7 @@ export async function fetchCalendarDay(date: string, signal?: AbortSignal): Prom
 }
 
 export async function createPlannedItem(input: PlannedItemInput): Promise<PlannedTodayItem> {
-  const response = await fetchWithRetry('/api/v1/planned-items', {
+  const response = await fetchWithDevAuth('/api/v1/planned-items', {
     method: 'POST',
     headers: {
       Accept: 'application/json',
@@ -273,14 +346,14 @@ export async function listPlannedItems(startDate?: string, endDate?: string): Pr
   }
   const qs = params.toString();
 
-  const response = await fetchWithRetry(`/api/v1/planned-items${qs ? `?${qs}` : ''}`, {
+  const response = await fetchWithDevAuth(`/api/v1/planned-items${qs ? `?${qs}` : ''}`, {
     headers: { Accept: 'application/json' },
   });
   return parseJsonResponse<PlannedTodayItem[]>(response);
 }
 
 export async function completeChore(choreInstanceId: number): Promise<ChoreMutationResponse> {
-  const response = await fetchWithRetry(`/api/v1/chores/${choreInstanceId}/complete`, {
+  const response = await fetchWithDevAuth(`/api/v1/chores/${choreInstanceId}/complete`, {
     method: 'POST',
     headers: { Accept: 'application/json' },
   });
@@ -288,7 +361,7 @@ export async function completeChore(choreInstanceId: number): Promise<ChoreMutat
 }
 
 export async function skipChore(choreInstanceId: number): Promise<ChoreMutationResponse> {
-  const response = await fetchWithRetry(`/api/v1/chores/${choreInstanceId}/skip`, {
+  const response = await fetchWithDevAuth(`/api/v1/chores/${choreInstanceId}/skip`, {
     method: 'POST',
     headers: { Accept: 'application/json' },
   });
@@ -296,7 +369,7 @@ export async function skipChore(choreInstanceId: number): Promise<ChoreMutationR
 }
 
 export async function rescheduleChore(choreInstanceId: number, scheduledDate: string): Promise<ChoreMutationResponse> {
-  const response = await fetchWithRetry(`/api/v1/chores/${choreInstanceId}/reschedule`, {
+  const response = await fetchWithDevAuth(`/api/v1/chores/${choreInstanceId}/reschedule`, {
     method: 'POST',
     headers: {
       Accept: 'application/json',
@@ -308,7 +381,7 @@ export async function rescheduleChore(choreInstanceId: number, scheduledDate: st
 }
 
 export async function takeMedicationDose(medicationDoseId: number): Promise<MedicationMutationResponse> {
-  const response = await fetchWithRetry(`/api/v1/medication-doses/${medicationDoseId}/take`, {
+  const response = await fetchWithDevAuth(`/api/v1/medication-doses/${medicationDoseId}/take`, {
     method: 'POST',
     headers: { Accept: 'application/json' },
   });
@@ -316,7 +389,7 @@ export async function takeMedicationDose(medicationDoseId: number): Promise<Medi
 }
 
 export async function skipMedicationDose(medicationDoseId: number): Promise<MedicationMutationResponse> {
-  const response = await fetchWithRetry(`/api/v1/medication-doses/${medicationDoseId}/skip`, {
+  const response = await fetchWithDevAuth(`/api/v1/medication-doses/${medicationDoseId}/skip`, {
     method: 'POST',
     headers: { Accept: 'application/json' },
   });

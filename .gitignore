@@ -6,6 +6,12 @@ __pycache__/
 # Node
 node_modules/
 dist/
+*.tsbuildinfo
+
+# Local dev/runtime artifacts
+.playwright-mcp/
+*.log
+*.db
 
 # Env
 .env
