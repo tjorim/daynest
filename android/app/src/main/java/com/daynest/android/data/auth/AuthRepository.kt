@@ -3,6 +3,7 @@ package com.daynest.android.data.auth
 import com.daynest.android.core.storage.SecureTokenStorage
 import javax.inject.Inject
 import javax.inject.Singleton
+import retrofit2.HttpException
 
 @Singleton
 class AuthRepository @Inject constructor(
@@ -30,8 +31,10 @@ class AuthRepository @Inject constructor(
             val refreshed = authApi.restoreSession()
             secureTokenStorage.saveToken(refreshed.accessToken)
             true
-        } catch (_: Exception) {
-            secureTokenStorage.clearToken()
+        } catch (exception: Exception) {
+            if (exception is HttpException && exception.code() == 401) {
+                secureTokenStorage.clearToken()
+            }
             false
         }
     }
