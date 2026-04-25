@@ -25,6 +25,7 @@ The name reflects the product goal: a calm place to organize everyday life at ho
 ## Tech stack (planned)
 
 - Frontend: React, TypeScript, Vite, Bootstrap, dayjs
+- Native Android: Kotlin, Jetpack Compose, AndroidX
 - Backend: FastAPI, SQLAlchemy/SQLModel, PostgreSQL, Alembic, Pydantic
 - Hosting: Docker Compose on a VPS, Caddy reverse proxy
 
@@ -85,6 +86,12 @@ backend/
     jobs/
     integrations/
   alembic/
+
+android/
+  app/
+    src/main/
+      java/com/test/nativeapp/
+      res/
 ```
 
 ## Roadmap
