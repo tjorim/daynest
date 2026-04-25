@@ -11,7 +11,7 @@ import {
   type PlannedItemBackupFile,
   type PlannedItemModuleKey,
 } from '../../lib/api/today';
-import { dayjs } from '../../lib/dateUtils';
+import { capitalize, dayjs, formatDate, formatMonthYear, toIsoDate } from '../../lib/dateUtils';
 
 function itemBadgeClass(itemType: string): string {
   if (itemType === 'medication') return 'text-bg-info';
@@ -36,7 +36,7 @@ function safeParseBackup(raw: string): PlannedItemBackupFile {
 export function CalendarPage() {
   const [currentMonth, setCurrentMonth] = useState(() => dayjs());
   const [monthItems, setMonthItems] = useState<CalendarMonthDaySummary[]>([]);
-  const [selectedDate, setSelectedDate] = useState(() => dayjs().format('YYYY-MM-DD'));
+  const [selectedDate, setSelectedDate] = useState(() => toIsoDate(dayjs()));
   const [dayPayload, setDayPayload] = useState<CalendarDayPayload | null>(null);
   const [title, setTitle] = useState('');
   const [moduleKey, setModuleKey] = useState<PlannedItemModuleKey | ''>('');
@@ -222,7 +222,7 @@ export function CalendarPage() {
           </button>
         </div>
       </div>
-      <p className="text-muted">{monthStart.format('MMMM YYYY')} unified month/day planning view.</p>
+      <p className="text-muted">{formatMonthYear(monthStart)} unified month/day planning view.</p>
 
       {loading ? <div className="alert alert-info py-2">Loading calendar...</div> : null}
       {error ? (
@@ -251,7 +251,7 @@ export function CalendarPage() {
                   if (dayNumber < 1 || dayNumber > daysInMonth) {
                     return <div key={`empty-${idx}`} className="col" aria-hidden="true" />;
                   }
-                  const dateValue = monthStart.date(dayNumber).format('YYYY-MM-DD');
+                  const dateValue = toIsoDate(monthStart.date(dayNumber));
                   const summary = itemsByDate.get(dateValue);
                   const selected = selectedDate === dateValue;
                   return (
@@ -274,7 +274,7 @@ export function CalendarPage() {
 
         <div className="col-lg-5">
           <div className="card mb-3">
-            <div className="card-header fw-semibold py-2">Day details · {selectedDate}</div>
+            <div className="card-header fw-semibold py-2">Day details · {formatDate(selectedDate)}</div>
             <ul className="list-group list-group-flush">
               {(dayPayload?.items ?? []).length === 0 ? (
                 <li className="list-group-item py-2 text-muted">No items for this day.</li>
@@ -284,7 +284,7 @@ export function CalendarPage() {
                     <div className="d-flex justify-content-between align-items-start">
                       <div>
                         <div className="fw-semibold">{item.title}</div>
-                        <small className="text-muted">{item.status}</small>
+                        <small className="text-muted">{capitalize(item.status)}</small>
                         {item.detail ? <small className="d-block">{item.detail}</small> : null}
                         {item.module_key ? <small className="d-block text-muted">Module: {item.module_key}</small> : null}
                       </div>

@@ -16,7 +16,7 @@ import {
   type TodayPayload,
   type UpcomingTodayItem,
 } from '../../lib/api/today';
-import { dayjs, formatDateTime } from '../../lib/dateUtils';
+import { capitalize, dayjs, formatDate, formatDateTime, formatTime, toIsoDate } from '../../lib/dateUtils';
 
 type SectionItem = {
   id: string;
@@ -33,19 +33,11 @@ function formatSubtitle(...values: Array<string | null | undefined>) {
   return values.filter(Boolean).join(' • ');
 }
 
-function capitalize(s: string): string {
-  return s.charAt(0).toUpperCase() + s.slice(1).replace(/_/g, ' ');
-}
-
-function formatDate(iso: string): string {
-  return dayjs(iso).format('MMM D');
-}
-
 function buildMedicationItems(items: MedicationTodayItem[]): SectionItem[] {
   return items.map((item) => ({
     id: `medication-${item.medication_dose_instance_id}`,
     title: item.name,
-    subtitle: formatSubtitle(dayjs(item.scheduled_at).format('HH:mm'), item.status),
+    subtitle: formatSubtitle(formatTime(item.scheduled_at), item.status),
     instructions: item.instructions,
     medicationDoseInstanceId: item.medication_dose_instance_id,
     medicationStatus: item.status,
@@ -68,7 +60,7 @@ function buildRoutineItems(items: RoutineTodayItem[]): SectionItem[] {
     subtitle: formatSubtitle(
       capitalize(item.status),
       formatDate(item.scheduled_date),
-      item.due_at ? dayjs(item.due_at).format('HH:mm') : undefined,
+      item.due_at ? formatTime(item.due_at) : undefined,
     ),
   }));
 }
@@ -148,7 +140,7 @@ function TaskActions({
   }
 
   const onReschedule = async () => {
-    const dateValue = dayjs(scheduledDate).add(1, 'day').format('YYYY-MM-DD');
+    const dateValue = toIsoDate(dayjs(scheduledDate).add(1, 'day'));
     await rescheduleChore(choreInstanceId, dateValue);
   };
 
