@@ -1,6 +1,6 @@
 from datetime import date, datetime, timezone
 
-from sqlalchemy import and_, insert, select
+from sqlalchemy import and_, func, insert, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
@@ -29,26 +29,25 @@ class TodayRepository:
             if template.start_date > through_date:
                 continue
 
-            existing_dates = set(
-                self.db.scalars(
-                    select(ChoreInstance.scheduled_date)
-                    .where(ChoreInstance.chore_template_id == template.id)
-                    .where(ChoreInstance.scheduled_date <= through_date)
-                ).all()
-            )
-
             step = max(template.every_n_days, 1)
-            cursor = template.start_date
+            last_generated = self.db.scalar(
+                select(func.max(ChoreInstance.scheduled_date))
+                .where(ChoreInstance.chore_template_id == template.id)
+            )
+            if last_generated is None:
+                cursor = template.start_date
+            else:
+                cursor = date.fromordinal(last_generated.toordinal() + step)
+
             rows = []
             while cursor <= through_date:
-                if cursor not in existing_dates:
-                    rows.append({
-                        "user_id": user_id,
-                        "chore_template_id": template.id,
-                        "title": template.name,
-                        "scheduled_date": cursor,
-                        "status": ChoreStatus.pending,
-                    })
+                rows.append({
+                    "user_id": user_id,
+                    "chore_template_id": template.id,
+                    "title": template.name,
+                    "scheduled_date": cursor,
+                    "status": ChoreStatus.pending,
+                })
                 cursor = date.fromordinal(cursor.toordinal() + step)
             if rows:
                 dialect_name = self.db.connection().dialect.name
@@ -76,48 +75,42 @@ class TodayRepository:
             if template.start_date > through_date:
                 continue
 
-            existing_dates = set(
-                self.db.scalars(
-                    select(MedicationDoseInstance.scheduled_date)
-                    .where(MedicationDoseInstance.medication_plan_id == template.id)
-                    .where(MedicationDoseInstance.scheduled_date <= through_date)
-                ).all()
-            )
-
             step = max(template.every_n_days, 1)
-            cursor = template.start_date
+            last_generated = self.db.scalar(
+                select(func.max(MedicationDoseInstance.scheduled_date))
+                .where(MedicationDoseInstance.medication_plan_id == template.id)
+            )
+            if last_generated is None:
+                cursor = template.start_date
+            else:
+                cursor = date.fromordinal(last_generated.toordinal() + step)
+
             while cursor <= through_date:
-                if cursor not in existing_dates:
-                    scheduled_at = datetime.combine(cursor, template.schedule_time, tzinfo=timezone.utc)
-                    self.db.add(
-                        MedicationDoseInstance(
-                            user_id=user_id,
-                            medication_plan_id=template.id,
-                            name=template.name,
-                            instructions=template.instructions,
-                            scheduled_date=cursor,
-                            scheduled_at=scheduled_at,
-                            status=MedicationDoseStatus.scheduled,
-                        )
+                scheduled_at = datetime.combine(cursor, template.schedule_time, tzinfo=timezone.utc)
+                self.db.add(
+                    MedicationDoseInstance(
+                        user_id=user_id,
+                        medication_plan_id=template.id,
+                        name=template.name,
+                        instructions=template.instructions,
+                        scheduled_date=cursor,
+                        scheduled_at=scheduled_at,
+                        status=MedicationDoseStatus.scheduled,
                     )
+                )
                 cursor = date.fromordinal(cursor.toordinal() + step)
 
         self.db.commit()
 
     def mark_due_medications_missed(self, user_id: int, now: datetime) -> None:
-        doses = list(
-            self.db.scalars(
-                select(MedicationDoseInstance)
-                .where(MedicationDoseInstance.user_id == user_id)
-                .where(MedicationDoseInstance.status == MedicationDoseStatus.scheduled)
-                .where(MedicationDoseInstance.scheduled_at < now)
-            ).all()
+        stmt = (
+            update(MedicationDoseInstance)
+            .where(MedicationDoseInstance.user_id == user_id)
+            .where(MedicationDoseInstance.status == MedicationDoseStatus.scheduled)
+            .where(MedicationDoseInstance.scheduled_at < now)
+            .values(status=MedicationDoseStatus.missed, missed_at=now, taken_at=None, skipped_at=None)
         )
-        for dose in doses:
-            dose.status = MedicationDoseStatus.missed
-            dose.missed_at = now
-            dose.taken_at = None
-            dose.skipped_at = None
+        self.db.execute(stmt)
         self.db.commit()
 
     def get_today_medication(self, user_id: int, for_date: date) -> list[MedicationDoseInstance]:

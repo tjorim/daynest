@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
@@ -136,7 +136,7 @@ def medication_history(
     current_user: User = Depends(get_current_user),
 ) -> MedicationHistoryResponse:
     repository = TodayRepository(db)
-    history = repository.get_medication_history(user_id=current_user.id, before_date=date.today())
+    history = repository.get_medication_history(user_id=current_user.id, before_date=datetime.now(timezone.utc).date())
     return MedicationHistoryResponse(
         history=[
             MedicationHistoryItem(

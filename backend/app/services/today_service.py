@@ -449,7 +449,7 @@ class TodayService:
             instance.taken_at = None
             instance.skipped_at = None
         else:
-            raise ValueError("Unsupported medication action")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported medication action")
 
         self.repository.save()
         return instance
