@@ -18,7 +18,6 @@ https://developers.home-assistant.io/docs/creating_integration_manifest
 
 from __future__ import annotations
 
-from datetime import timedelta
 from typing import TYPE_CHECKING
 
 from homeassistant.const import CONF_API_KEY, CONF_URL, Platform
@@ -27,7 +26,7 @@ import homeassistant.helpers.config_validation as cv
 from homeassistant.loader import async_get_loaded_integration
 
 from .api import DaynestApiClient
-from .const import DOMAIN, LOGGER
+from .const import DOMAIN
 from .coordinator import DaynestDataUpdateCoordinator
 from .data import DaynestData
 from .service_actions import async_setup_services
@@ -122,11 +121,8 @@ async def async_setup_entry(
     # Initialize coordinator with config_entry
     coordinator = DaynestDataUpdateCoordinator(
         hass=hass,
-        logger=LOGGER,
-        name=DOMAIN,
         config_entry=entry,
-        update_interval=timedelta(hours=1),
-        always_update=False,  # Only update entities when data actually changes
+        client=client,
     )
 
     # Store runtime data
@@ -137,7 +133,7 @@ async def async_setup_entry(
     )
 
     # https://developers.home-assistant.io/docs/integration_fetching_data#coordinated-single-api-poll-for-data-for-all-entities
-    await coordinator.async_config_entry_first_refresh()
+    await coordinator.async_refresh()
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.async_on_unload(entry.add_update_listener(async_reload_entry))
