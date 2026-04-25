@@ -8,7 +8,7 @@ data class TodaySummary(
 )
 
 fun TodaySummary.toTodoSummaryUiModel(): TodoSummaryUiModel {
-    val remaining = routinesCount + choresCount + plannedPendingCount
+    val remaining = routinesCount + choresCount + plannedPendingCount + medicationsCount
 
     return TodoSummaryUiModel(
         greeting = "Welcome to Daynest",
