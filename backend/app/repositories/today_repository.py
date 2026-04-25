@@ -122,6 +122,7 @@ class TodayRepository:
             .where(MedicationDoseInstance.status == MedicationDoseStatus.scheduled)
             .where(MedicationDoseInstance.scheduled_at < now)
             .values(status=MedicationDoseStatus.missed, missed_at=now, taken_at=None, skipped_at=None)
+            .execution_options(synchronize_session=False)
         )
         self.db.execute(stmt)
         self.db.commit()
