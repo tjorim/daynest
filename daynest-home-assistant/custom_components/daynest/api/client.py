@@ -10,6 +10,8 @@ from urllib.parse import urljoin
 
 import aiohttp
 
+from ..const import DEFAULT_API_BASE_URL
+
 
 class DaynestApiClientError(Exception):
     """Base exception for API client failures."""
@@ -98,7 +100,7 @@ class DaynestApiClient:
         password: str | None = None,
     ) -> None:
         """Initialize client with optional backward-compatible parameter aliases."""
-        resolved_base_url = (base_url or username or "").strip().rstrip("/")
+        resolved_base_url = (base_url or DEFAULT_API_BASE_URL).strip().rstrip("/")
         if not resolved_base_url:
             msg = "A base URL is required to initialize DaynestApiClient"
             raise ValueError(msg)
@@ -107,11 +109,12 @@ class DaynestApiClient:
         self._base_url = resolved_base_url
         self._integration_key = integration_key or password
 
-        # Backwards-compatibility for existing diagnostics code.
-        self._username = resolved_base_url
-        self._password = self._integration_key
-
         self.last_integration_contract: str | None = None
+
+    @property
+    def has_integration_key(self) -> bool:
+        """Return whether the client has an integration key configured."""
+        return bool(self._integration_key)
 
     async def async_get_data(self) -> dict[str, Any]:
         """Fetch summary data as the coordinator's primary payload."""

@@ -77,7 +77,7 @@ async def async_get_config_entry_diagnostics(
 
     # API client information (no sensitive data)
     api_info = {
-        "has_credentials": bool(client._password),  # noqa: SLF001
+        "has_credentials": client.has_integration_key,
     }
 
     # Integration information

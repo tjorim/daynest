@@ -7,6 +7,7 @@ LOGGER: Logger = getLogger(__package__)
 # Integration metadata
 DOMAIN = "daynest"
 ATTRIBUTION = "Data provided by http://jsonplaceholder.typicode.com/"
+DEFAULT_API_BASE_URL = "https://jsonplaceholder.typicode.com"
 
 # Platform parallel updates - applied to all platforms
 PARALLEL_UPDATES = 1
