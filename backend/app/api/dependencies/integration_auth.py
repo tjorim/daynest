@@ -6,12 +6,14 @@ from hmac import compare_digest
 
 from fastapi import Depends, Header, HTTPException, status
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.db.session import get_db
 from app.models.integration_client import IntegrationClient
 from app.models.user import User
 
+# In-process only: does not work correctly with multiple Uvicorn/Gunicorn workers.
+# Replace with a distributed store (e.g. Redis) before scaling beyond a single process.
 _request_log: dict[int, deque[datetime]] = defaultdict(deque)
 
 
@@ -25,7 +27,7 @@ def require_integration_scope(scope: str) -> Callable:
         db: Session = Depends(get_db),
     ) -> User:
         token_hash = hash_integration_key(x_integration_key)
-        stmt = select(IntegrationClient).where(IntegrationClient.key_hash == token_hash)
+        stmt = select(IntegrationClient).where(IntegrationClient.key_hash == token_hash).options(joinedload(IntegrationClient.user))
         client = db.scalar(stmt)
         if client is None or not client.is_active:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid integration key")
@@ -45,10 +47,7 @@ def require_integration_scope(scope: str) -> Callable:
         bucket.append(now)
 
         if client.user is None:
-            user = db.get(User, client.user_id)
-            if user is None:
-                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Integration owner not found")
-            return user
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Integration owner not found")
         return client.user
 
     return dependency

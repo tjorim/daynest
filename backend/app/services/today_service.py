@@ -1,14 +1,15 @@
 from calendar import monthrange
 from collections import defaultdict
+from dataclasses import dataclass
 from datetime import date, datetime, timezone
-
 from typing import cast
 
 from fastapi import HTTPException, status
 
-from app.models.chore_instance import ChoreStatus
-from app.models.medication_dose_instance import MedicationDoseStatus
+from app.models.chore_instance import ChoreInstance, ChoreStatus
+from app.models.medication_dose_instance import MedicationDoseInstance, MedicationDoseStatus
 from app.models.planned_item import PlannedItem
+from app.models.task_instance import TaskInstance, TaskStatus
 from app.repositories.today_repository import TodayRepository
 from app.schemas.integrations import DashboardReadModel, TodaySummary
 from app.schemas.today import (
@@ -31,6 +32,16 @@ from app.schemas.today import (
 )
 
 
+@dataclass
+class _TodayData:
+    overdue: list[ChoreInstance]
+    due_today: list[ChoreInstance]
+    all_chores: list[ChoreInstance]
+    routines: list[TaskInstance]
+    planned: list[PlannedItem]
+    medication: list[MedicationDoseInstance]
+
+
 class TodayService:
     """Read/write service for today's dashboard."""
 
@@ -39,51 +50,50 @@ class TodayService:
     def __init__(self, repository: TodayRepository | None = None):
         self.repository = repository
 
-    def get_summary(self, user_id: int, for_date: date) -> TodaySummary:
+    def _fetch_day_data(self, user_id: int, for_date: date) -> _TodayData:
         if self.repository is None:
             raise ValueError("TodayRepository is required")
-
         self.repository.ensure_chore_instances_generated(
             user_id=user_id,
             through_date=date.fromordinal(for_date.toordinal() + self.UPCOMING_HORIZON_DAYS),
         )
         self.repository.ensure_medication_dose_instances_generated(user_id=user_id, through_date=for_date)
         self.repository.mark_due_medications_missed(user_id=user_id, now=self.repository.utcnow())
+        return _TodayData(
+            overdue=self.repository.get_overdue_chores(user_id=user_id, for_date=for_date),
+            due_today=self.repository.get_due_today_chores(user_id=user_id, for_date=for_date),
+            all_chores=self.repository.get_day_chores(user_id=user_id, target_date=for_date),
+            routines=self.repository.get_today_routines(user_id=user_id, for_date=for_date),
+            planned=self.repository.list_planned_items(user_id=user_id, start_date=for_date, end_date=for_date),
+            medication=self.repository.get_today_medication(user_id=user_id, for_date=for_date),
+        )
 
-        overdue = self.repository.get_overdue_chores(user_id=user_id, for_date=for_date)
-        due_today = self.repository.get_due_today_chores(user_id=user_id, for_date=for_date)
-        routines = self.repository.get_today_routines(user_id=user_id, for_date=for_date)
-        planned = self.repository.list_planned_items(user_id=user_id, start_date=for_date, end_date=for_date)
-        medication = self.repository.get_today_medication(user_id=user_id, for_date=for_date)
-        next_med = next((item for item in medication if item.status == MedicationDoseStatus.scheduled), None)
-        next_medication = f"{next_med.name} @ {next_med.scheduled_at.strftime('%H:%M')}" if next_med else None
-
+    def get_summary(self, user_id: int, for_date: date) -> TodaySummary:
+        data = self._fetch_day_data(user_id=user_id, for_date=for_date)
+        next_med = next((item for item in data.medication if item.status == MedicationDoseStatus.scheduled), None)
         return TodaySummary(
-            overdue_count=len(overdue),
-            tasks_remaining=len(due_today) + len(routines) + len([item for item in planned if not item.is_done]),
-            next_medication=next_medication,
+            overdue_count=len(data.overdue),
+            tasks_remaining=len(data.due_today) + len([r for r in data.routines if r.status in (TaskStatus.pending, TaskStatus.in_progress)]) + len([item for item in data.planned if not item.is_done]),
+            next_medication=f"{next_med.name} @ {next_med.scheduled_at.strftime('%H:%M')}" if next_med else None,
         )
 
     def get_dashboard_read_model(self, user_id: int, for_date: date) -> DashboardReadModel:
-        summary = self.get_summary(user_id=user_id, for_date=for_date)
-        due_today = self.repository.get_due_today_chores(user_id=user_id, for_date=for_date)
-        planned = self.repository.list_planned_items(user_id=user_id, start_date=for_date, end_date=for_date)
-        medication = self.repository.get_today_medication(user_id=user_id, for_date=for_date)
-
-        completed_count = len([item for item in due_today if item.status == ChoreStatus.completed]) + len(
-            [item for item in planned if item.is_done]
-        ) + len([item for item in medication if item.status == MedicationDoseStatus.taken])
-        total = len(due_today) + len(planned) + len(medication)
-        ratio = completed_count / total if total else 0.0
-
+        data = self._fetch_day_data(user_id=user_id, for_date=for_date)
+        next_med = next((item for item in data.medication if item.status == MedicationDoseStatus.scheduled), None)
+        completed_count = (
+            len([item for item in data.all_chores if item.status == ChoreStatus.completed])
+            + len([item for item in data.planned if item.is_done])
+            + len([item for item in data.medication if item.status == MedicationDoseStatus.taken])
+        )
+        total = len(data.all_chores) + len(data.planned) + len(data.medication)
         return DashboardReadModel(
             for_date=for_date,
-            overdue_count=summary.overdue_count,
-            due_today_count=len(due_today),
-            planned_count=len(planned),
-            medication_due_count=len([item for item in medication if item.status == MedicationDoseStatus.scheduled]),
-            completion_ratio=round(ratio, 3),
-            next_medication=summary.next_medication,
+            overdue_count=len(data.overdue),
+            due_today_count=len([c for c in data.all_chores if c.status == ChoreStatus.pending]),
+            planned_count=len(data.planned),
+            medication_due_count=len([item for item in data.medication if item.status == MedicationDoseStatus.scheduled]),
+            completion_ratio=round(completed_count / total if total else 0.0, 3),
+            next_medication=f"{next_med.name} @ {next_med.scheduled_at.strftime('%H:%M')}" if next_med else None,
         )
 
     def get_today(self, user_id: int, for_date: date) -> TodayResponse:
