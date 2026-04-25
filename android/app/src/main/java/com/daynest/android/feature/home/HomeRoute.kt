@@ -73,7 +73,9 @@ fun HomeRoute() {
 
                 is HomeUiState.Error -> {
                     Text(
-                        text = uiState.message ?: stringResource(id = R.string.home_error_generic),
+                        text = when (uiState.error) {
+                            HomeError.LoadTodayFailed -> stringResource(id = R.string.home_error_generic)
+                        },
                         style = MaterialTheme.typography.bodyLarge,
                     )
                     Button(

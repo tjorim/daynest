@@ -26,7 +26,7 @@ class HomeViewModel(
             _state.value = runCatching { repository.getTodaySummary() }
                 .fold(
                     onSuccess = { HomeUiState.Success(it) },
-                    onFailure = { HomeUiState.Error(it.message) },
+                    onFailure = { HomeUiState.Error(HomeError.LoadTodayFailed) },
                 )
         }
     }
@@ -35,5 +35,9 @@ class HomeViewModel(
 sealed interface HomeUiState {
     data object Loading : HomeUiState
     data class Success(val summary: TodaySummary) : HomeUiState
-    data class Error(val message: String?) : HomeUiState
+    data class Error(val error: HomeError) : HomeUiState
+}
+
+enum class HomeError {
+    LoadTodayFailed,
 }

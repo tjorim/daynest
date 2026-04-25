@@ -79,7 +79,7 @@ class HomeViewModelTest {
         val state = viewModel.state.value
 
         assertTrue(state is HomeUiState.Error)
-        assertEquals("boom", (state as HomeUiState.Error).message)
+        assertEquals(HomeError.LoadTodayFailed, (state as HomeUiState.Error).error)
     }
 }
 
