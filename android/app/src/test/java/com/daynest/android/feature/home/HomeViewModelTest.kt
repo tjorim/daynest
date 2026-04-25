@@ -10,11 +10,14 @@ import com.daynest.android.data.today.TodayApi
 import com.daynest.android.data.today.TodayRepository
 import com.daynest.android.data.today.TodayResponseDto
 import com.daynest.android.data.today.UpcomingTodayItemDto
+import kotlin.collections.ArrayDeque
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
@@ -41,20 +44,9 @@ class HomeViewModelTest {
     fun `state emits success when repository returns today data`() = runTest {
         val viewModel = HomeViewModel(
             repository = TodayRepository(
-                todayApi = FakeTodayApi(
-                    response = TodayResponseDto(
-                        medication = listOf(MedicationTodayItemDto(1, "Vitamin D")),
-                        medicationHistory = listOf(MedicationHistoryItemDto(2, "Omega-3")),
-                        routines = listOf(RoutineTodayItemDto(3, "Walk the dog")),
-                        overdue = listOf(OverdueTodayItemDto(4, "Trash out")),
-                        dueToday = listOf(DueTodayItemDto(5, "Laundry")),
-                        upcoming = listOf(UpcomingTodayItemDto(6, "Plant watering")),
-                        planned = listOf(
-                            PlannedTodayItemDto(7, "Buy groceries", isDone = false),
-                            PlannedTodayItemDto(8, "Call insurance", isDone = true),
-                        ),
-                    ),
-                ),
+                todayApi = FakeTodayApi().apply {
+                    enqueueSuccess(todayResponse())
+                },
             ),
         )
 
@@ -63,15 +55,19 @@ class HomeViewModelTest {
         val state = viewModel.uiState.value
 
         assertTrue(state is HomeUiState.Content)
-        val success = state as HomeUiState.Content
-        assertEquals(5, success.summary.remainingCount)
-        assertTrue(!success.summary.isCaughtUp)
+        val content = state as HomeUiState.Content
+        assertEquals(5, content.summary.remainingCount)
+        assertTrue(!content.summary.isCaughtUp)
     }
 
     @Test
     fun `state emits error when repository request fails`() = runTest {
         val viewModel = HomeViewModel(
-            repository = TodayRepository(todayApi = FakeTodayApi(error = IllegalStateException("boom"))),
+            repository = TodayRepository(
+                todayApi = FakeTodayApi().apply {
+                    enqueueError(IllegalStateException("boom"))
+                },
+            ),
         )
 
         advanceUntilIdle()
@@ -81,14 +77,79 @@ class HomeViewModelTest {
         assertTrue(state is HomeUiState.Error)
         assertEquals(HomeError.LoadTodayFailed, (state as HomeUiState.Error).error)
     }
-}
 
-private class FakeTodayApi(
-    private val response: TodayResponseDto? = null,
-    private val error: Throwable? = null,
-) : TodayApi {
-    override suspend fun getToday(): TodayResponseDto {
-        error?.let { throw it }
-        return checkNotNull(response)
+    @Test
+    fun `retry transitions from error to loading to content`() = runTest {
+        val loadGate = CompletableDeferred<Unit>()
+        val api = FakeTodayApi().apply {
+            enqueueError(IllegalStateException("initial load failure"))
+            enqueueSuccess(todayResponse(), gate = loadGate)
+        }
+        val viewModel = HomeViewModel(repository = TodayRepository(todayApi = api))
+
+        advanceUntilIdle()
+        assertTrue(viewModel.uiState.value is HomeUiState.Error)
+
+        viewModel.onEvent(HomeUiEvent.RetryClicked)
+        runCurrent()
+
+        assertEquals(HomeUiState.Loading, viewModel.uiState.value)
+
+        loadGate.complete(Unit)
+        advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value is HomeUiState.Content)
     }
 }
+
+private class FakeTodayApi : TodayApi {
+    private val requests: ArrayDeque<FakeResponse> = ArrayDeque()
+
+    fun enqueueSuccess(response: TodayResponseDto, gate: CompletableDeferred<Unit>? = null) {
+        requests.addLast(FakeResponse.Success(response = response, gate = gate))
+    }
+
+    fun enqueueError(error: Throwable, gate: CompletableDeferred<Unit>? = null) {
+        requests.addLast(FakeResponse.Error(error = error, gate = gate))
+    }
+
+    override suspend fun getToday(): TodayResponseDto {
+        val response = checkNotNull(requests.removeFirstOrNull()) {
+            "No queued response for FakeTodayApi"
+        }
+
+        response.gate?.await()
+
+        return when (response) {
+            is FakeResponse.Success -> response.response
+            is FakeResponse.Error -> throw response.error
+        }
+    }
+}
+
+private sealed interface FakeResponse {
+    val gate: CompletableDeferred<Unit>?
+
+    data class Success(
+        val response: TodayResponseDto,
+        override val gate: CompletableDeferred<Unit>? = null,
+    ) : FakeResponse
+
+    data class Error(
+        val error: Throwable,
+        override val gate: CompletableDeferred<Unit>? = null,
+    ) : FakeResponse
+}
+
+private fun todayResponse() = TodayResponseDto(
+    medication = listOf(MedicationTodayItemDto(1, "Vitamin D")),
+    medicationHistory = listOf(MedicationHistoryItemDto(2, "Omega-3")),
+    routines = listOf(RoutineTodayItemDto(3, "Walk the dog")),
+    overdue = listOf(OverdueTodayItemDto(4, "Trash out")),
+    dueToday = listOf(DueTodayItemDto(5, "Laundry")),
+    upcoming = listOf(UpcomingTodayItemDto(6, "Plant watering")),
+    planned = listOf(
+        PlannedTodayItemDto(7, "Buy groceries", isDone = false),
+        PlannedTodayItemDto(8, "Call insurance", isDone = true),
+    ),
+)

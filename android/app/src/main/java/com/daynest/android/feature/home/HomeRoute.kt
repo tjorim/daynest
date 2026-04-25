@@ -26,6 +26,17 @@ fun HomeRoute(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
+    HomeScreen(
+        uiState = uiState,
+        onEvent = viewModel::onEvent,
+    )
+}
+
+@Composable
+internal fun HomeScreen(
+    uiState: HomeUiState,
+    onEvent: (HomeUiEvent) -> Unit,
+) {
     Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
         Column(
             modifier = Modifier
@@ -55,7 +66,7 @@ fun HomeRoute(
                         style = MaterialTheme.typography.bodyLarge,
                     )
                     Button(
-                        onClick = { viewModel.onEvent(HomeUiEvent.OpenTodayDetailsClicked) },
+                        onClick = { onEvent(HomeUiEvent.OpenTodayDetailsClicked) },
                         modifier = Modifier.padding(top = 20.dp),
                     ) {
                         Text(
@@ -76,7 +87,7 @@ fun HomeRoute(
                         style = MaterialTheme.typography.bodyLarge,
                     )
                     Button(
-                        onClick = { viewModel.onEvent(HomeUiEvent.RetryClicked) },
+                        onClick = { onEvent(HomeUiEvent.RetryClicked) },
                         modifier = Modifier.padding(top = 20.dp),
                     ) {
                         Text(text = stringResource(id = R.string.home_retry))
