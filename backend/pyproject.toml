@@ -8,7 +8,7 @@ dependencies = [
     "fastapi>=0.136.1",
     "psycopg[binary]==3.3.3",
     "pydantic==2.13.3",
-    "pydantic-settings==2.7.0",
+    "pydantic-settings==2.14.0",
     "pyjwt>=2.12.0",
     "sentry-sdk[fastapi]==2.18.0",
     "sqlalchemy==2.0.49",
