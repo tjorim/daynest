@@ -10,8 +10,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import retrofit2.HttpException
-import java.io.IOException
 import javax.inject.Inject
 
 @HiltViewModel
@@ -42,11 +40,9 @@ class HomeViewModel
                 _uiState.value =
                     try {
                         HomeUiState.Content(repository.getTodaySummary())
-                    } catch (exception: CancellationException) {
-                        throw exception
-                    } catch (_: IOException) {
-                        HomeUiState.Error(HomeError.LoadTodayFailed)
-                    } catch (_: HttpException) {
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (_: Exception) {
                         HomeUiState.Error(HomeError.LoadTodayFailed)
                     }
             }
