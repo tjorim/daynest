@@ -344,8 +344,11 @@ class TodayService:
         item.linked_source = request.linked_source
         item.linked_ref = request.linked_ref
         item.planned_for = request.planned_for
+        if request.is_done and not item.is_done:
+            item.completed_at = self.repository.utcnow()
+        elif not request.is_done:
+            item.completed_at = None
         item.is_done = request.is_done
-        item.completed_at = self.repository.utcnow() if request.is_done else None
         self.repository.save()
         return self._planned_item_to_schema(item)
 

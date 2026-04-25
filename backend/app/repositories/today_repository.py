@@ -227,6 +227,8 @@ class TodayRepository:
             select(ChoreInstance)
             .where(ChoreInstance.user_id == user_id)
             .where(ChoreInstance.scheduled_date == target_date)
+            .join(ChoreTemplate, ChoreInstance.chore_template_id == ChoreTemplate.id)
+            .where(ChoreTemplate.is_active.is_(True))
             .order_by(ChoreInstance.id.asc())
         )
         return list(self.db.scalars(stmt).all())
@@ -237,6 +239,8 @@ class TodayRepository:
             .where(ChoreInstance.user_id == user_id)
             .where(ChoreInstance.scheduled_date >= start_date)
             .where(ChoreInstance.scheduled_date <= end_date)
+            .join(ChoreTemplate, ChoreInstance.chore_template_id == ChoreTemplate.id)
+            .where(ChoreTemplate.is_active.is_(True))
         )
         return list(self.db.scalars(stmt).all())
 
@@ -246,6 +250,8 @@ class TodayRepository:
             .where(TaskInstance.user_id == user_id)
             .where(TaskInstance.scheduled_date >= start_date)
             .where(TaskInstance.scheduled_date <= end_date)
+            .join(RoutineTemplate, TaskInstance.routine_template_id == RoutineTemplate.id)
+            .where(RoutineTemplate.is_active.is_(True))
         )
         return list(self.db.scalars(stmt).all())
 
@@ -255,6 +261,8 @@ class TodayRepository:
             .where(MedicationDoseInstance.user_id == user_id)
             .where(MedicationDoseInstance.scheduled_date >= start_date)
             .where(MedicationDoseInstance.scheduled_date <= end_date)
+            .join(MedicationPlan, MedicationDoseInstance.medication_plan_id == MedicationPlan.id)
+            .where(MedicationPlan.is_active.is_(True))
         )
         return list(self.db.scalars(stmt).all())
 
