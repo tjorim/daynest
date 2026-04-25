@@ -1,17 +1,17 @@
+import com.android.build.api.dsl.ApplicationExtension
 import io.gitlab.arturbosch.detekt.Detekt
 
 plugins {
     id("com.android.application")
-    id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
     id("org.jetbrains.kotlin.plugin.serialization")
-    id("org.jetbrains.kotlin.kapt")
+    id("com.google.devtools.ksp")
     id("com.google.dagger.hilt.android")
     id("io.gitlab.arturbosch.detekt")
     id("org.jlleitschuh.gradle.ktlint")
 }
 
-android {
+extensions.configure<ApplicationExtension> {
     namespace = "com.daynest.android"
     compileSdk = 37
 
@@ -68,10 +68,6 @@ kotlin {
     }
 }
 
-kapt {
-    correctErrorTypes = true
-}
-
 detekt {
     buildUponDefaultConfig = true
     allRules = false
@@ -98,7 +94,7 @@ dependencies {
     implementation("androidx.navigation:navigation-compose:2.9.8")
     implementation("androidx.hilt:hilt-navigation-compose:1.3.0")
     implementation("com.google.dagger:hilt-android:2.59.2")
-    kapt("com.google.dagger:hilt-android-compiler:2.59.2")
+    ksp("com.google.dagger:hilt-android-compiler:2.59.2")
     implementation(bom)
     androidTestImplementation(bom)
 

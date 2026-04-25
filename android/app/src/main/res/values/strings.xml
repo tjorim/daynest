@@ -2,7 +2,7 @@
     <string name="app_name">Daynest</string>
     <string name="home_welcome">Welcome to Daynest</string>
     <string name="home_action_plan_today">Plan today</string>
-    <string name="home_action_caught_up">You're all caught up</string>
+    <string name="home_action_caught_up">You\'re all caught up</string>
     <string name="home_retry">Retry</string>
     <string name="home_error_generic">Unable to load today data.</string>
 
