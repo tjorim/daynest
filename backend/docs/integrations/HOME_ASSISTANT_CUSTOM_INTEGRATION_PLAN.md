@@ -144,6 +144,8 @@ To prepare Daynest backend for a clean custom integration launch:
 
 - **Contract drift** between backend and integration:
   - Mitigation: schema contract tests + explicit version header checks.
+- **Network instability / backend latency spikes**:
+  - Mitigation: set explicit client-side timeouts in `api.py` (connect + read + total), use bounded retry/backoff in `DataUpdateCoordinator`, and mark entities temporarily unavailable instead of hard-failing entries during transient outages.
 - **User setup friction** (URL/auth confusion):
   - Mitigation: stricter config-flow validation and clear error messages.
 - **HA release churn**:
