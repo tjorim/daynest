@@ -1,5 +1,5 @@
 import asyncio
-from datetime import date, datetime, time, timezone
+from datetime import datetime, time, timezone
 
 import pytest
 
