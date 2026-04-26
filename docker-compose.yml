@@ -1,23 +1,12 @@
 services:
-  caddy:
-    image: caddy:2
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-      - caddy_config:/config
-    depends_on:
-      - frontend
-      - backend
-
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    expose:
-      - "4173"
+    ports:
+      - "4173:4173"
+    depends_on:
+      - backend
 
   backend:
     build:
@@ -54,8 +43,6 @@ services:
 
 volumes:
   pgdata:
-  caddy_data:
-  caddy_config:
 
 secrets:
   jwt_secret:
