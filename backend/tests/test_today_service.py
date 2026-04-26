@@ -107,7 +107,7 @@ def test_get_today_shapes_chore_sections() -> None:
     response = service.get_today(user_id=7, for_date=for_date)
 
     assert repo.generated_through == date(2026, 4, 30)
-    assert repo.tasks_generated_through == date(2026, 4, 30)
+    assert repo.tasks_generated_through == for_date
 
     assert response.medication[0].medication_dose_instance_id == 55
     assert response.routines[0].task_instance_id == 100

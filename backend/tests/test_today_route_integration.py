@@ -273,7 +273,7 @@ def test_template_management_endpoints(client: TestClient, db_session: Session) 
             "is_active": True,
         },
     )
-    assert create_routine.status_code == 200
+    assert create_routine.status_code == 201
     routine_id = create_routine.json()["id"]
 
     list_routines = client.get("/api/v1/routines", headers=headers)
@@ -307,7 +307,7 @@ def test_template_management_endpoints(client: TestClient, db_session: Session) 
             "is_active": True,
         },
     )
-    assert create_chore.status_code == 200
+    assert create_chore.status_code == 201
     chore_id = create_chore.json()["id"]
 
     list_chores = client.get("/api/v1/chore-templates", headers=headers)
