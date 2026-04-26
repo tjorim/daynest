@@ -415,6 +415,8 @@ class TodayService:
 
     def complete_routine_task(self, user_id: int, task_instance_id: int) -> TaskInstanceMutationResponse:
         instance = self._get_user_task(user_id, task_instance_id)
+        if instance.status == TaskStatus.completed:
+            return self._task_instance_to_response(instance)
         if instance.status == TaskStatus.skipped:
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Skipped tasks cannot be completed")
         instance.status = TaskStatus.completed
@@ -424,6 +426,8 @@ class TodayService:
 
     def skip_routine_task(self, user_id: int, task_instance_id: int) -> TaskInstanceMutationResponse:
         instance = self._get_user_task(user_id, task_instance_id)
+        if instance.status == TaskStatus.skipped:
+            return self._task_instance_to_response(instance)
         if instance.status == TaskStatus.completed:
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Completed tasks cannot be skipped")
         instance.status = TaskStatus.skipped

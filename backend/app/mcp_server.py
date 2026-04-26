@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import functools
 import json
 import logging
 import os
@@ -9,11 +10,13 @@ from contextlib import contextmanager
 from datetime import date, datetime
 from typing import Any, TypeVar
 
+import anyio
+from fastapi import HTTPException
 from mcp.server.auth.middleware.auth_context import get_access_token
 from mcp.server.auth.provider import AccessToken, TokenVerifier
 from mcp.server.auth.settings import AuthSettings
-from mcp.server.fastmcp import FastMCP
-from mcp.server.fastmcp.server import Context, TransportSecuritySettings
+from mcp.server.fastmcp import Context, FastMCP
+from mcp.server.transport_security import TransportSecuritySettings
 from pydantic import AnyHttpUrl, BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
@@ -113,14 +116,22 @@ class DaynestMcpBackend:
                 f"{DAYNEST_USER_EMAIL_ENV}=you@example.com."
             )
         if len(active_users) > 1:
-            available_emails = ", ".join(user.email for user in active_users)
+            logger.debug(
+                "Multiple active users: %s",
+                ", ".join(user.email for user in active_users),
+            )
             raise ValueError(
-                f"Multiple active Daynest users found. Set {DAYNEST_USER_EMAIL_ENV} to one of: {available_emails}"
+                f"Multiple active Daynest users found ({len(active_users)} matches). "
+                f"Set {DAYNEST_USER_EMAIL_ENV} to the correct account or inspect active users locally."
             )
         return active_users[0]
 
     @staticmethod
     def _resolve_authenticated_integration_client(db: Session) -> IntegrationClient | None:
+        # verify_token stores only an AccessToken (client_id, scopes, resource) in the request
+        # context — it does not retain the IntegrationClient ORM object or its related User.
+        # We must re-query IntegrationClient here (with joinedload of user) to get a
+        # fully-populated, session-bound instance for this request's DB session.
         access_token = get_access_token()
         if access_token is None:
             return None
@@ -293,12 +304,15 @@ class IntegrationKeyTokenVerifier(TokenVerifier):
 
             try:
                 ensure_integration_scope(client, self.REQUIRED_SCOPE)
-            except Exception:
+            except HTTPException:
                 return None
 
-            enforce_integration_rate_limit(client)
+            try:
+                enforce_integration_rate_limit(client)
+            except HTTPException:
+                return None
 
-            scopes = [scope for scope in client.scopes_csv.split(",") if scope]
+            scopes = [scope.strip() for scope in client.scopes_csv.split(",") if scope.strip()]
             return AccessToken(
                 token=token,
                 client_id=str(client.id),
@@ -344,37 +358,37 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
         """Return the active Daynest user used by this MCP server."""
 
         await ctx.debug("Resolving authenticated Daynest user")
-        return daynest.whoami()
+        return await anyio.to_thread.run_sync(daynest.whoami)
 
     @mcp.tool()
     async def list_users() -> list[dict[str, Any]]:
         """List local Daynest users to help choose DAYNEST_USER_EMAIL when multiple accounts exist."""
 
-        return daynest.list_users()
+        return await anyio.to_thread.run_sync(daynest.list_users)
 
     @mcp.tool()
     async def get_today(for_date: str = "today") -> dict[str, Any]:
         """Return the Daynest Today payload for a given date in YYYY-MM-DD format or 'today'."""
 
-        return daynest.get_today(for_date)
+        return await anyio.to_thread.run_sync(daynest.get_today, for_date)
 
     @mcp.tool()
     async def get_calendar_day(for_date: str = "today") -> dict[str, Any]:
         """Return the Daynest calendar day view for a date in YYYY-MM-DD format or 'today'."""
 
-        return daynest.get_calendar_day(for_date)
+        return await anyio.to_thread.run_sync(daynest.get_calendar_day, for_date)
 
     @mcp.tool()
     async def get_calendar_month(year: int, month: int) -> dict[str, Any]:
         """Return the Daynest calendar month summary for a year and month."""
 
-        return daynest.get_calendar_month(year, month)
+        return await anyio.to_thread.run_sync(daynest.get_calendar_month, year, month)
 
     @mcp.tool()
     async def list_planned_items(start_date: str | None = None, end_date: str | None = None) -> list[dict[str, Any]]:
         """List planned items, optionally filtered by inclusive start and end dates in YYYY-MM-DD format."""
 
-        return daynest.list_planned_items(start_date, end_date)
+        return await anyio.to_thread.run_sync(daynest.list_planned_items, start_date, end_date)
 
     @mcp.tool()
     async def create_planned_item(
@@ -388,14 +402,17 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
     ) -> dict[str, Any]:
         """Create a planned Daynest item."""
 
-        return daynest.create_planned_item(
-            title=title,
-            planned_for=planned_for,
-            notes=notes,
-            module_key=module_key,
-            recurrence_hint=recurrence_hint,
-            linked_source=linked_source,
-            linked_ref=linked_ref,
+        return await anyio.to_thread.run_sync(
+            functools.partial(
+                daynest.create_planned_item,
+                title=title,
+                planned_for=planned_for,
+                notes=notes,
+                module_key=module_key,
+                recurrence_hint=recurrence_hint,
+                linked_source=linked_source,
+                linked_ref=linked_ref,
+            )
         )
 
     @mcp.tool()
@@ -412,83 +429,86 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
     ) -> dict[str, Any]:
         """Update a planned Daynest item."""
 
-        return daynest.update_planned_item(
-            planned_item_id=planned_item_id,
-            title=title,
-            planned_for=planned_for,
-            is_done=is_done,
-            notes=notes,
-            module_key=module_key,
-            recurrence_hint=recurrence_hint,
-            linked_source=linked_source,
-            linked_ref=linked_ref,
+        return await anyio.to_thread.run_sync(
+            functools.partial(
+                daynest.update_planned_item,
+                planned_item_id=planned_item_id,
+                title=title,
+                planned_for=planned_for,
+                is_done=is_done,
+                notes=notes,
+                module_key=module_key,
+                recurrence_hint=recurrence_hint,
+                linked_source=linked_source,
+                linked_ref=linked_ref,
+            )
         )
 
     @mcp.tool()
     async def delete_planned_item(planned_item_id: int) -> dict[str, Any]:
         """Delete a planned Daynest item by id."""
 
-        return daynest.delete_planned_item(planned_item_id)
+        return await anyio.to_thread.run_sync(daynest.delete_planned_item, planned_item_id)
 
     @mcp.tool()
     async def complete_chore(chore_instance_id: int) -> dict[str, Any]:
         """Mark a Daynest chore instance as completed."""
 
-        return daynest.complete_chore(chore_instance_id)
+        return await anyio.to_thread.run_sync(daynest.complete_chore, chore_instance_id)
 
     @mcp.tool()
     async def skip_chore(chore_instance_id: int) -> dict[str, Any]:
         """Mark a Daynest chore instance as skipped."""
 
-        return daynest.skip_chore(chore_instance_id)
+        return await anyio.to_thread.run_sync(daynest.skip_chore, chore_instance_id)
 
     @mcp.tool()
     async def reschedule_chore(chore_instance_id: int, scheduled_date: str) -> dict[str, Any]:
         """Reschedule a Daynest chore instance to a new YYYY-MM-DD date."""
 
-        return daynest.reschedule_chore(chore_instance_id, scheduled_date)
+        return await anyio.to_thread.run_sync(daynest.reschedule_chore, chore_instance_id, scheduled_date)
 
     @mcp.tool()
     async def start_routine_task(task_instance_id: int) -> dict[str, Any]:
         """Start a Daynest routine task."""
 
-        return daynest.start_routine_task(task_instance_id)
+        return await anyio.to_thread.run_sync(daynest.start_routine_task, task_instance_id)
 
     @mcp.tool()
     async def complete_routine_task(task_instance_id: int) -> dict[str, Any]:
         """Complete a Daynest routine task."""
 
-        return daynest.complete_routine_task(task_instance_id)
+        return await anyio.to_thread.run_sync(daynest.complete_routine_task, task_instance_id)
 
     @mcp.tool()
     async def skip_routine_task(task_instance_id: int) -> dict[str, Any]:
         """Skip a Daynest routine task."""
 
-        return daynest.skip_routine_task(task_instance_id)
+        return await anyio.to_thread.run_sync(daynest.skip_routine_task, task_instance_id)
 
     @mcp.tool()
     async def take_medication_dose(medication_dose_instance_id: int) -> dict[str, Any]:
         """Mark a Daynest medication dose as taken."""
 
-        return daynest.take_medication_dose(medication_dose_instance_id)
+        return await anyio.to_thread.run_sync(daynest.take_medication_dose, medication_dose_instance_id)
 
     @mcp.tool()
     async def skip_medication_dose(medication_dose_instance_id: int) -> dict[str, Any]:
         """Mark a Daynest medication dose as skipped."""
 
-        return daynest.skip_medication_dose(medication_dose_instance_id)
+        return await anyio.to_thread.run_sync(daynest.skip_medication_dose, medication_dose_instance_id)
 
     @mcp.resource("daynest://today/{for_date}")
     async def today_resource(for_date: str) -> str:
         """Read the Daynest Today payload as a JSON resource."""
 
-        return json.dumps(daynest.get_today(for_date), indent=2)
+        return json.dumps(await anyio.to_thread.run_sync(daynest.get_today, for_date), indent=2)
 
     @mcp.resource("daynest://calendar/day/{for_date}")
     async def calendar_day_resource(for_date: str) -> str:
         """Read the Daynest day view as a JSON resource."""
 
-        return json.dumps(daynest.get_calendar_day(for_date), indent=2)
+        return json.dumps(await anyio.to_thread.run_sync(daynest.get_calendar_day, for_date), indent=2)
 
     @mcp.prompt()
     def daily_briefing(for_date: str = "today") -> str:

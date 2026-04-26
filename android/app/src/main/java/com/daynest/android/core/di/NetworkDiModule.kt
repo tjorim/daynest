@@ -10,7 +10,6 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
-import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -33,7 +32,7 @@ object NetworkDiModule {
             .Builder()
             .addInterceptor { chain ->
                 val requestBuilder = chain.request().newBuilder()
-                val token = runBlocking { secureTokenStorage.getToken() }
+                val token = secureTokenStorage.cachedToken
                 if (!token.isNullOrBlank()) {
                     requestBuilder.addHeader("Authorization", "Bearer $token")
                 }

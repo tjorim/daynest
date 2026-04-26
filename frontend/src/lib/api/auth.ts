@@ -120,8 +120,8 @@ export async function refreshSessionTokens(): Promise<SessionTokens | null> {
         refresh_token: tokens.refreshToken,
       });
     } catch (error) {
-      clearStoredTokens();
       if (error instanceof AuthApiError && error.status === 401) {
+        clearStoredTokens();
         return null;
       }
       throw error;

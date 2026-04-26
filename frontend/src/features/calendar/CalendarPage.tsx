@@ -154,12 +154,6 @@ export function CalendarPage() {
         await createPlannedItem(payload);
       }
 
-      setTitle('');
-      setNotes('');
-      setModuleKey('');
-      setRecurrenceHint('');
-      setLinkedSource('');
-      setLinkedRef('');
       resetPlannedForm();
       setActionStatus(editingPlannedItemId ? 'Planned item updated.' : 'Planned item created.');
       await loadCalendar();
@@ -481,7 +475,7 @@ export function CalendarPage() {
                           ) : null}
                         </div>
                       </div>
-                      <div className="d-grid gap-1 justify-items-end">
+                      <div className="d-grid gap-1 text-end">
                         <span className={`badge ${itemBadgeClass(item.item_type)}`}>{item.item_type}</span>
                         <span className={`badge ${dayItemStatusClass(item.status)}`}>{capitalize(item.status)}</span>
                       </div>
@@ -569,7 +563,7 @@ export function CalendarPage() {
                 ) : null}
               </div>
             </div>
-            {addError ? <div className="card-footer text-danger py-2 small">{addError}</div> : null}
+            {addError && editingPlannedItemId ? <div className="card-footer text-danger py-2 small">{addError}</div> : null}
           </div>
 
           <div className="card mb-3">

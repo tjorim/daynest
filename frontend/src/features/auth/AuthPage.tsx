@@ -9,10 +9,11 @@ function buildRedirectPath(value: unknown): string {
   if (
     value &&
     typeof value === 'object' &&
-    'pathname' in value &&
-    typeof value.pathname === 'string'
+    'from' in value &&
+    typeof value.from === 'string' &&
+    value.from.startsWith('/')
   ) {
-    return value.pathname;
+    return value.from;
   }
 
   return '/today';

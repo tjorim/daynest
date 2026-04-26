@@ -4,7 +4,7 @@ from datetime import date, datetime, time
 from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
-from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Integer, String, Text, Time, func
+from sqlalchemy import Boolean, CheckConstraint, Date, DateTime, ForeignKey, Integer, String, Text, Time, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -16,6 +16,9 @@ if TYPE_CHECKING:
 
 class RoutineTemplate(Base):
     __tablename__ = "routine_templates"
+    __table_args__ = (
+        CheckConstraint("every_n_days >= 1", name="ck_routine_templates_every_n_days_positive"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
@@ -23,6 +26,7 @@ class RoutineTemplate(Base):
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     start_date: Mapped[date] = mapped_column(Date, nullable=False)
     every_n_days: Mapped[int] = mapped_column(Integer, nullable=False, default=1, server_default="1")
+    # due_time is stored as a naive time value and treated as UTC by calling code (see today_repository.ensure_task_instances_generated)
     due_time: Mapped[time | None] = mapped_column(Time, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default=sa.text("true"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
@@ -31,4 +35,5 @@ class RoutineTemplate(Base):
     task_instances: Mapped[list["TaskInstance"]] = relationship(
         back_populates="routine_template",
         cascade="all, delete-orphan",
+        passive_deletes=True,
     )

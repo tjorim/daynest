@@ -1,5 +1,7 @@
 import asyncio
-from datetime import date, time
+from datetime import date, datetime, time, timezone
+
+import pytest
 
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -47,13 +49,14 @@ def _create_integration_client(
 
 
 def test_mcp_backend_resolves_single_active_user_and_returns_today(db_session: Session) -> None:
+    utc_today = datetime.now(timezone.utc).date()
     user = _create_user(db_session, "mcp@example.com")
     db_session.add(
         RoutineTemplate(
             user_id=user.id,
             name="Morning reset",
             description="Kitchen and windows",
-            start_date=date.today(),
+            start_date=utc_today,
             every_n_days=1,
             due_time=time(8, 0),
             is_active=True,
@@ -64,7 +67,7 @@ def test_mcp_backend_resolves_single_active_user_and_returns_today(db_session: S
             user_id=user.id,
             name="Take out trash",
             description=None,
-            start_date=date.today(),
+            start_date=utc_today,
             every_n_days=1,
             is_active=True,
         )
@@ -74,7 +77,7 @@ def test_mcp_backend_resolves_single_active_user_and_returns_today(db_session: S
             user_id=user.id,
             name="Vitamin D",
             instructions="Take with breakfast",
-            start_date=date.today(),
+            start_date=utc_today,
             schedule_time=time(9, 0),
             every_n_days=1,
             is_active=True,
@@ -85,7 +88,7 @@ def test_mcp_backend_resolves_single_active_user_and_returns_today(db_session: S
     backend = DaynestMcpBackend(_session_factory(db_session))
 
     whoami = backend.whoami()
-    payload = backend.get_today()
+    payload = backend.get_today(utc_today.isoformat())
 
     assert whoami["email"] == "mcp@example.com"
     assert payload["routines"][0]["title"] == "Morning reset"
@@ -99,14 +102,8 @@ def test_mcp_backend_requires_explicit_user_when_multiple_accounts_exist(db_sess
 
     backend = DaynestMcpBackend(_session_factory(db_session))
 
-    try:
+    with pytest.raises(ValueError, match=r"Multiple active Daynest users found.*DAYNEST_USER_EMAIL"):
         backend.whoami()
-    except ValueError as exc:
-        assert "DAYNEST_USER_EMAIL" in str(exc)
-        assert "one@example.com" in str(exc)
-        assert "two@example.com" in str(exc)
-    else:
-        raise AssertionError("Expected multiple-user resolution to require DAYNEST_USER_EMAIL")
 
 
 def test_mcp_backend_can_create_and_update_planned_items(db_session: Session) -> None:

@@ -12,7 +12,7 @@ import {
   type ChoreTemplate,
   type RoutineTemplate,
 } from '../../lib/api/today';
-import { formatDate } from '../../lib/dateUtils';
+import { formatDate, toIsoDate } from '../../lib/dateUtils';
 
 export function TemplatesPage() {
   const [routines, setRoutines] = useState<RoutineTemplate[]>([]);
@@ -26,7 +26,7 @@ export function TemplatesPage() {
 
   const [routineName, setRoutineName] = useState('');
   const [routineDescription, setRoutineDescription] = useState('');
-  const [routineStartDate, setRoutineStartDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [routineStartDate, setRoutineStartDate] = useState(() => toIsoDate(new Date()));
   const [routineEveryNDays, setRoutineEveryNDays] = useState('1');
   const [routineDueTime, setRoutineDueTime] = useState('08:00');
   const [routineActive, setRoutineActive] = useState(true);
@@ -34,7 +34,7 @@ export function TemplatesPage() {
 
   const [choreName, setChoreName] = useState('');
   const [choreDescription, setChoreDescription] = useState('');
-  const [choreStartDate, setChoreStartDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [choreStartDate, setChoreStartDate] = useState(() => toIsoDate(new Date()));
   const [choreEveryNDays, setChoreEveryNDays] = useState('7');
   const [choreActive, setChoreActive] = useState(true);
   const [editingChoreId, setEditingChoreId] = useState<number | null>(null);
@@ -45,8 +45,8 @@ export function TemplatesPage() {
     setCanRetry(false);
     try {
       const [nextRoutines, nextChores] = await Promise.all([
-        listRoutineTemplates(),
-        listChoreTemplates(),
+        listRoutineTemplates(signal),
+        listChoreTemplates(signal),
       ]);
       if (!signal?.aborted) {
         setRoutines(nextRoutines);
@@ -74,7 +74,7 @@ export function TemplatesPage() {
     setEditingRoutineId(null);
     setRoutineName('');
     setRoutineDescription('');
-    setRoutineStartDate(new Date().toISOString().slice(0, 10));
+    setRoutineStartDate(toIsoDate(new Date()));
     setRoutineEveryNDays('1');
     setRoutineDueTime('08:00');
     setRoutineActive(true);
@@ -84,7 +84,7 @@ export function TemplatesPage() {
     setEditingChoreId(null);
     setChoreName('');
     setChoreDescription('');
-    setChoreStartDate(new Date().toISOString().slice(0, 10));
+    setChoreStartDate(toIsoDate(new Date()));
     setChoreEveryNDays('7');
     setChoreActive(true);
   };
@@ -92,6 +92,11 @@ export function TemplatesPage() {
   const submitRoutine = async () => {
     if (!routineName.trim()) {
       setSubmitError('Routine name is required.');
+      return;
+    }
+    const everyNDaysRoutine = parseInt(routineEveryNDays, 10);
+    if (!Number.isInteger(everyNDaysRoutine) || everyNDaysRoutine < 1) {
+      setSubmitError('Every N days must be a positive integer.');
       return;
     }
     setIsSubmitting(true);
@@ -102,17 +107,17 @@ export function TemplatesPage() {
         name: routineName.trim(),
         description: routineDescription.trim() || null,
         start_date: routineStartDate,
-        every_n_days: Number(routineEveryNDays),
+        every_n_days: everyNDaysRoutine,
         due_time: routineDueTime ? `${routineDueTime}:00` : null,
         is_active: routineActive,
       };
-      if (editingRoutineId) {
+      if (editingRoutineId !== null) {
         await updateRoutineTemplate(editingRoutineId, payload);
       } else {
         await createRoutineTemplate(payload);
       }
       resetRoutineForm();
-      setSuccessMessage(editingRoutineId ? 'Routine template updated.' : 'Routine template created.');
+      setSuccessMessage(editingRoutineId !== null ? 'Routine template updated.' : 'Routine template created.');
       await loadTemplates();
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : 'Failed to save routine template.');
@@ -126,6 +131,11 @@ export function TemplatesPage() {
       setSubmitError('Chore name is required.');
       return;
     }
+    const everyNDaysChore = parseInt(choreEveryNDays, 10);
+    if (!Number.isInteger(everyNDaysChore) || everyNDaysChore < 1) {
+      setSubmitError('Every N days must be a positive integer.');
+      return;
+    }
     setIsSubmitting(true);
     setSubmitError(null);
     setSuccessMessage(null);
@@ -134,19 +144,57 @@ export function TemplatesPage() {
         name: choreName.trim(),
         description: choreDescription.trim() || null,
         start_date: choreStartDate,
-        every_n_days: Number(choreEveryNDays),
+        every_n_days: everyNDaysChore,
         is_active: choreActive,
       };
-      if (editingChoreId) {
+      if (editingChoreId !== null) {
         await updateChoreTemplate(editingChoreId, payload);
       } else {
         await createChoreTemplate(payload);
       }
       resetChoreForm();
-      setSuccessMessage(editingChoreId ? 'Chore template updated.' : 'Chore template created.');
+      setSuccessMessage(editingChoreId !== null ? 'Chore template updated.' : 'Chore template created.');
       await loadTemplates();
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : 'Failed to save chore template.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteRoutine = async (routineId: number) => {
+    if (!window.confirm('Delete this routine template?')) {
+      return;
+    }
+    setIsSubmitting(true);
+    setSubmitError(null);
+    setSuccessMessage(null);
+    try {
+      await deleteRoutineTemplate(routineId);
+      if (editingRoutineId === routineId) resetRoutineForm();
+      setSuccessMessage('Routine template deleted.');
+      await loadTemplates();
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : 'Failed to delete routine template.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteChore = async (choreId: number) => {
+    if (!window.confirm('Delete this chore template?')) {
+      return;
+    }
+    setIsSubmitting(true);
+    setSubmitError(null);
+    setSuccessMessage(null);
+    try {
+      await deleteChoreTemplate(choreId);
+      if (editingChoreId === choreId) resetChoreForm();
+      setSuccessMessage('Chore template deleted.');
+      await loadTemplates();
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : 'Failed to delete chore template.');
     } finally {
       setIsSubmitting(false);
     }
@@ -203,9 +251,9 @@ export function TemplatesPage() {
               </label>
               <div className="d-flex gap-2 flex-column flex-sm-row">
                 <button type="button" className="btn btn-primary" disabled={isSubmitting} onClick={() => void submitRoutine()}>
-                  {isSubmitting ? (editingRoutineId ? 'Saving…' : 'Creating…') : editingRoutineId ? 'Save routine' : 'Create routine'}
+                  {isSubmitting ? (editingRoutineId !== null ? 'Saving…' : 'Creating…') : editingRoutineId !== null ? 'Save routine' : 'Create routine'}
                 </button>
-                {editingRoutineId ? (
+                {editingRoutineId !== null ? (
                   <button type="button" className="btn btn-outline-secondary" disabled={isSubmitting} onClick={resetRoutineForm}>
                     Cancel edit
                   </button>
@@ -249,24 +297,7 @@ export function TemplatesPage() {
                         >
                           Edit
                         </button>
-                        <button type="button" className="btn btn-outline-danger btn-sm" onClick={() => void (async () => {
-                          if (!window.confirm('Delete this routine template?')) {
-                            return;
-                          }
-                          setIsSubmitting(true);
-                          setSubmitError(null);
-                          setSuccessMessage(null);
-                          try {
-                            await deleteRoutineTemplate(routine.id);
-                            if (editingRoutineId === routine.id) resetRoutineForm();
-                            setSuccessMessage('Routine template deleted.');
-                            await loadTemplates();
-                          } catch (err) {
-                            setSubmitError(err instanceof Error ? err.message : 'Failed to delete routine template.');
-                          } finally {
-                            setIsSubmitting(false);
-                          }
-                        })()}>
+                        <button type="button" className="btn btn-outline-danger btn-sm" onClick={() => void handleDeleteRoutine(routine.id)}>
                           Delete
                         </button>
                       </div>
@@ -300,9 +331,9 @@ export function TemplatesPage() {
               </label>
               <div className="d-flex gap-2 flex-column flex-sm-row">
                 <button type="button" className="btn btn-primary" disabled={isSubmitting} onClick={() => void submitChore()}>
-                  {isSubmitting ? (editingChoreId ? 'Saving…' : 'Creating…') : editingChoreId ? 'Save chore' : 'Create chore'}
+                  {isSubmitting ? (editingChoreId !== null ? 'Saving…' : 'Creating…') : editingChoreId !== null ? 'Save chore' : 'Create chore'}
                 </button>
-                {editingChoreId ? (
+                {editingChoreId !== null ? (
                   <button type="button" className="btn btn-outline-secondary" disabled={isSubmitting} onClick={resetChoreForm}>
                     Cancel edit
                   </button>
@@ -344,24 +375,7 @@ export function TemplatesPage() {
                         >
                           Edit
                         </button>
-                        <button type="button" className="btn btn-outline-danger btn-sm" onClick={() => void (async () => {
-                          if (!window.confirm('Delete this chore template?')) {
-                            return;
-                          }
-                          setIsSubmitting(true);
-                          setSubmitError(null);
-                          setSuccessMessage(null);
-                          try {
-                            await deleteChoreTemplate(chore.id);
-                            if (editingChoreId === chore.id) resetChoreForm();
-                            setSuccessMessage('Chore template deleted.');
-                            await loadTemplates();
-                          } catch (err) {
-                            setSubmitError(err instanceof Error ? err.message : 'Failed to delete chore template.');
-                          } finally {
-                            setIsSubmitting(false);
-                          }
-                        })()}>
+                        <button type="button" className="btn btn-outline-danger btn-sm" onClick={() => void handleDeleteChore(chore.id)}>
                           Delete
                         </button>
                       </div>

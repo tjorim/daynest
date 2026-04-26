@@ -294,13 +294,19 @@ async function fetchWithDevAuth(input: RequestInfo | URL, init: RequestInit = {}
   const token = getStoredTokens()?.accessToken;
   const response = await fetchWithRetry(input, withAuthHeader(init, token), retries);
 
-  if (response.status !== 401 && response.status !== 403) {
+  if (response.status !== 401) {
     return response;
   }
 
   const refreshed = await refreshSessionTokens();
   if (!refreshed) {
-    clearStoredTokens();
+    return response;
+  }
+
+  const body = init.body;
+  const isBodyRewindable =
+    body === null || body === undefined || typeof body === 'string' || body instanceof URLSearchParams;
+  if (!isBodyRewindable) {
     return response;
   }
 
@@ -488,9 +494,10 @@ export async function skipRoutineTask(taskInstanceId: number): Promise<TaskMutat
   return parseJsonResponse<TaskMutationResponse>(response, 'Request failed', false);
 }
 
-export async function listMedicationPlans(): Promise<MedicationPlan[]> {
+export async function listMedicationPlans(signal?: AbortSignal): Promise<MedicationPlan[]> {
   const response = await fetchWithDevAuth('/api/v1/medications', {
     headers: { Accept: 'application/json' },
+    signal,
   });
   return parseJsonResponse<MedicationPlan[]>(response);
 }
@@ -507,17 +514,19 @@ export async function createMedicationPlan(input: MedicationPlanInput): Promise<
   return parseJsonResponse<MedicationPlan>(response, 'Request failed', false);
 }
 
-export async function fetchMedicationHistory(): Promise<MedicationHistoryItem[]> {
+export async function fetchMedicationHistory(signal?: AbortSignal): Promise<MedicationHistoryItem[]> {
   const response = await fetchWithDevAuth('/api/v1/medication-doses/history', {
     headers: { Accept: 'application/json' },
+    signal,
   });
   const payload = await parseJsonResponse<MedicationHistoryResponse>(response);
   return payload.history;
 }
 
-export async function listIntegrationClients(): Promise<IntegrationClient[]> {
+export async function listIntegrationClients(signal?: AbortSignal): Promise<IntegrationClient[]> {
   const response = await fetchWithDevAuth('/api/v1/integrations/clients', {
     headers: { Accept: 'application/json' },
+    signal,
   });
   return parseJsonResponse<IntegrationClient[]>(response);
 }
@@ -534,9 +543,10 @@ export async function createIntegrationClient(input: IntegrationClientInput): Pr
   return parseJsonResponse<IntegrationClientCreateResponse>(response, 'Request failed', false);
 }
 
-export async function listRoutineTemplates(): Promise<RoutineTemplate[]> {
+export async function listRoutineTemplates(signal?: AbortSignal): Promise<RoutineTemplate[]> {
   const response = await fetchWithDevAuth('/api/v1/routines', {
     headers: { Accept: 'application/json' },
+    signal,
   });
   return parseJsonResponse<RoutineTemplate[]>(response);
 }
@@ -576,9 +586,10 @@ export async function deleteRoutineTemplate(routineTemplateId: number): Promise<
   }
 }
 
-export async function listChoreTemplates(): Promise<ChoreTemplate[]> {
+export async function listChoreTemplates(signal?: AbortSignal): Promise<ChoreTemplate[]> {
   const response = await fetchWithDevAuth('/api/v1/chore-templates', {
     headers: { Accept: 'application/json' },
+    signal,
   });
   return parseJsonResponse<ChoreTemplate[]>(response);
 }

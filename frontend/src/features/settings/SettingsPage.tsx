@@ -40,7 +40,7 @@ export function SettingsPage() {
     setError(null);
     setCanRetry(false);
     try {
-      const nextClients = await listIntegrationClients();
+      const nextClients = await listIntegrationClients(signal);
       if (!signal?.aborted) {
         setClients(nextClients);
       }
@@ -80,6 +80,12 @@ export function SettingsPage() {
       return;
     }
 
+    const parsedRateLimit = parseInt(rateLimit, 10);
+    if (isNaN(parsedRateLimit) || parsedRateLimit < 10 || parsedRateLimit > 600) {
+      setSubmitError('Rate limit must be an integer between 10 and 600.');
+      return;
+    }
+
     setIsSubmitting(true);
     setSubmitError(null);
     setSuccessMessage(null);
@@ -88,7 +94,7 @@ export function SettingsPage() {
       const created = await createIntegrationClient({
         name: name.trim(),
         scopes: selectedScopes,
-        rate_limit_per_minute: Number(rateLimit),
+        rate_limit_per_minute: parsedRateLimit,
       });
       setCreatedClient(created);
       setSuccessMessage('Integration client created. Copy the API key now; it will not be shown again.');

@@ -34,23 +34,25 @@ function App() {
             </NavLink>
           ) : null}
         </div>
-        <nav className="nav nav-pills gap-2">
-          <NavLink className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`} to="/today">
-            Today
-          </NavLink>
-          <NavLink className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`} to="/calendar">
-            Calendar
-          </NavLink>
-          <NavLink className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`} to="/medication">
-            Medication
-          </NavLink>
-          <NavLink className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`} to="/templates">
-            Templates
-          </NavLink>
-          <NavLink className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`} to="/settings">
-            Settings
-          </NavLink>
-        </nav>
+        {isAuthenticated ? (
+          <nav className="nav nav-pills gap-2">
+            <NavLink className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`} to="/today">
+              Today
+            </NavLink>
+            <NavLink className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`} to="/calendar">
+              Calendar
+            </NavLink>
+            <NavLink className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`} to="/medication">
+              Medication
+            </NavLink>
+            <NavLink className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`} to="/templates">
+              Templates
+            </NavLink>
+            <NavLink className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`} to="/settings">
+              Settings
+            </NavLink>
+          </nav>
+        ) : null}
       </header>
       <AppRouter />
     </main>

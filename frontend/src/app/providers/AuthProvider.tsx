@@ -7,7 +7,7 @@ import {
   register as registerRequest,
   type AuthUser,
 } from '../../lib/api/auth';
-import { getStoredTokens, storeTokens } from '../../lib/auth/session';
+import { getStoredTokens } from '../../lib/auth/session';
 
 type AuthContextValue = {
   user: AuthUser | null;
@@ -30,13 +30,16 @@ async function hydrateUser() {
 
   try {
     return await fetchMe(tokens.accessToken);
-  } catch (error) {
+  } catch {
     const refreshed = await refreshSessionTokens();
     if (!refreshed) {
       return null;
     }
-    storeTokens(refreshed);
-    return fetchMe(refreshed.accessToken);
+    try {
+      return await fetchMe(refreshed.accessToken);
+    } catch {
+      return null;
+    }
   }
 }
 

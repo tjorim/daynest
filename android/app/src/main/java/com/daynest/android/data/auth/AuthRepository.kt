@@ -1,6 +1,7 @@
 package com.daynest.android.data.auth
 
 import com.daynest.android.core.storage.SecureTokenStorage
+import kotlinx.coroutines.CancellationException
 import retrofit2.HttpException
 import java.io.IOException
 import javax.inject.Inject
@@ -47,6 +48,9 @@ class AuthRepository
                 }
                 false
             } catch (_: IOException) {
+                false
+            } catch (t: Throwable) {
+                if (t is CancellationException) throw t
                 false
             }
         }

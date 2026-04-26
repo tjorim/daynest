@@ -9,6 +9,12 @@ import {
 } from '../../lib/api/today';
 import { formatDate, formatDateTime } from '../../lib/dateUtils';
 
+function todayLocalDate(): string {
+  const d = new Date();
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+  return d.toISOString().slice(0, 10);
+}
+
 export function MedicationPage() {
   const [plans, setPlans] = useState<MedicationPlan[]>([]);
   const [history, setHistory] = useState<MedicationHistoryItem[]>([]);
@@ -21,7 +27,7 @@ export function MedicationPage() {
 
   const [name, setName] = useState('');
   const [instructions, setInstructions] = useState('');
-  const [startDate, setStartDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [startDate, setStartDate] = useState(todayLocalDate);
   const [scheduleTime, setScheduleTime] = useState('09:00:00');
   const [everyNDays, setEveryNDays] = useState('1');
 
@@ -31,8 +37,8 @@ export function MedicationPage() {
     setCanRetry(false);
     try {
       const [nextPlans, nextHistory] = await Promise.all([
-        listMedicationPlans(),
-        fetchMedicationHistory(),
+        listMedicationPlans(signal),
+        fetchMedicationHistory(signal),
       ]);
       if (!signal?.aborted) {
         setPlans(nextPlans);
@@ -62,6 +68,12 @@ export function MedicationPage() {
       return;
     }
 
+    const parsedEvery = parseInt(everyNDays, 10);
+    if (!Number.isInteger(parsedEvery) || parsedEvery < 1) {
+      setSubmitError('Every N days must be a positive integer.');
+      return;
+    }
+
     setIsSubmitting(true);
     setSubmitError(null);
     setSuccessMessage(null);
@@ -72,11 +84,11 @@ export function MedicationPage() {
         instructions: instructions.trim(),
         start_date: startDate,
         schedule_time: scheduleTime.length === 5 ? `${scheduleTime}:00` : scheduleTime,
-        every_n_days: Number(everyNDays),
+        every_n_days: parsedEvery,
       });
       setName('');
       setInstructions('');
-      setStartDate(new Date().toISOString().slice(0, 10));
+      setStartDate(todayLocalDate());
       setScheduleTime('09:00:00');
       setEveryNDays('1');
       setSuccessMessage('Medication plan created.');
@@ -122,6 +134,7 @@ export function MedicationPage() {
                 onChange={(event) => {
                   setName(event.target.value);
                   setSubmitError(null);
+                  setSuccessMessage(null);
                 }}
                 placeholder="Medication name"
               />
@@ -132,6 +145,7 @@ export function MedicationPage() {
                 onChange={(event) => {
                   setInstructions(event.target.value);
                   setSubmitError(null);
+                  setSuccessMessage(null);
                 }}
                 placeholder="Instructions"
               />
@@ -155,6 +169,7 @@ export function MedicationPage() {
                   onChange={(event) => {
                     setEveryNDays(event.target.value);
                     setSubmitError(null);
+                    setSuccessMessage(null);
                   }}
                 />
               </div>

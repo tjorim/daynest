@@ -314,10 +314,6 @@ function PlannedItemActions({
     return null;
   }
 
-  const nextPayload = {
-    ...buildPlannedItemPayload(plannedItem, !plannedItem.is_done),
-  };
-
   return (
     <div>
       {actionError ? <small className="text-danger d-block mb-1">{actionError}</small> : null}
@@ -328,9 +324,7 @@ function PlannedItemActions({
           disabled={isSubmitting}
           onClick={() =>
             void runAction(() =>
-              updatePlannedItem(plannedItem.id, {
-                ...nextPayload,
-              }),
+              updatePlannedItem(plannedItem.id, buildPlannedItemPayload(plannedItem, !plannedItem.is_done)),
             )
           }
         >
@@ -618,7 +612,8 @@ export function TodayPage() {
             <SummaryCard label="Overdue" value={today.overdue.length} tone="danger" />
             <SummaryCard label="Due Today" value={today.due_today.length} tone="warning" />
             <SummaryCard label="Medication Due" value={scheduledMedicationCount} tone="info" />
-            <SummaryCard label="Open Plans" value={openPlannedCount + routineOpenCount} tone="primary" />
+            <SummaryCard label="Open Plans" value={openPlannedCount} tone="primary" />
+            <SummaryCard label="Open Routines" value={routineOpenCount} tone="secondary" />
           </div>
           <SectionCard heading="Medication Today" items={buildMedicationItems(today.medication)} onRefresh={loadToday} />
           <SectionCard heading="Medication History" items={buildMedicationHistoryItems(today.medication_history)} onRefresh={loadToday} />

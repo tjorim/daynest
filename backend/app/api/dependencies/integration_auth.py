@@ -52,8 +52,8 @@ def require_integration_scope(scope: str) -> Callable:
         db: Session = Depends(get_db),
     ) -> User:
         raw_key: str | None = None
-        if authorization and authorization.startswith("Bearer "):
-            raw_key = authorization.removeprefix("Bearer ").strip()
+        if authorization and authorization.lower().startswith("bearer "):
+            raw_key = authorization[len("bearer "):].strip()
         elif x_integration_key:
             raw_key = x_integration_key
 

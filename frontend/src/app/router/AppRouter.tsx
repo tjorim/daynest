@@ -16,7 +16,7 @@ function RequireAuth() {
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/auth" replace state={{ pathname: location.pathname }} />;
+    return <Navigate to="/auth" replace state={{ from: location.pathname + location.search + location.hash }} />;
   }
 
   return <Outlet />;

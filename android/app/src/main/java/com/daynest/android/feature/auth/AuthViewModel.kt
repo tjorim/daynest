@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.daynest.android.data.auth.AuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -41,6 +42,8 @@ class AuthViewModel
                 val succeeded =
                     try {
                         authRepository.signIn(current.email.trim(), current.password)
+                    } catch (e: CancellationException) {
+                        throw e
                     } catch (_: Exception) {
                         false
                     }

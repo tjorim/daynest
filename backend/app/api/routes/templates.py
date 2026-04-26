@@ -67,7 +67,7 @@ def list_routines(
     return [_routine_to_response(item) for item in repository.list_routine_templates(current_user.id)]
 
 
-@router.post("/routines", response_model=RoutineTemplateResponse)
+@router.post("/routines", response_model=RoutineTemplateResponse, status_code=201)
 def create_routine(
     request: RoutineTemplateCreateRequest,
     db: Session = Depends(get_db),
@@ -104,7 +104,6 @@ def update_routine(
     template.due_time = request.due_time
     template.is_active = request.is_active
     repository.save()
-    db.refresh(template)
     return _routine_to_response(template)
 
 
@@ -129,7 +128,7 @@ def list_chore_templates(
     return [_chore_to_response(item) for item in repository.list_chore_templates(current_user.id)]
 
 
-@router.post("/chore-templates", response_model=ChoreTemplateResponse)
+@router.post("/chore-templates", response_model=ChoreTemplateResponse, status_code=201)
 def create_chore_template(
     request: ChoreTemplateCreateRequest,
     db: Session = Depends(get_db),
@@ -164,7 +163,6 @@ def update_chore_template(
     template.every_n_days = request.every_n_days
     template.is_active = request.is_active
     repository.save()
-    db.refresh(template)
     return _chore_to_response(template)
 
 
