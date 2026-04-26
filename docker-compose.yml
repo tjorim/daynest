@@ -17,7 +17,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     expose:
-      - "5173"
+      - "80"
 
   backend:
     build:
