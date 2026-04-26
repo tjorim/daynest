@@ -30,4 +30,5 @@ class ChoreTemplate(Base):
     chore_instances: Mapped[list["ChoreInstance"]] = relationship(
         back_populates="chore_template",
         cascade="all, delete-orphan",
+        passive_deletes=True,
     )

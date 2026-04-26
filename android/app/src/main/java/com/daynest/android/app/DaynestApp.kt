@@ -1,3 +1,5 @@
+@file:Suppress("ktlint:standard:function-naming", "FunctionNaming")
+
 package com.daynest.android.app
 
 import androidx.compose.runtime.Composable
@@ -18,27 +20,27 @@ fun DaynestApp() {
 
         NavHost(
             navController = navController,
-            startDestination = DaynestDestination.SessionGate,
+            startDestination = DaynestDestination.SESSION_GATE,
         ) {
-            composable(route = DaynestDestination.SessionGate) {
+            composable(route = DaynestDestination.SESSION_GATE) {
                 SessionGateRoute(
                     onGoAuth = {
-                        navController.navigate(DaynestDestination.Auth) {
-                            popUpTo(DaynestDestination.SessionGate) { inclusive = true }
+                        navController.navigate(DaynestDestination.AUTH) {
+                            popUpTo(DaynestDestination.SESSION_GATE) { inclusive = true }
                         }
                     },
                     onGoHome = {
-                        navController.navigate(DaynestDestination.Home) {
-                            popUpTo(DaynestDestination.SessionGate) { inclusive = true }
+                        navController.navigate(DaynestDestination.HOME) {
+                            popUpTo(DaynestDestination.SESSION_GATE) { inclusive = true }
                         }
                     },
                 )
             }
 
-            composable(route = DaynestDestination.Auth) {
+            composable(route = DaynestDestination.AUTH) {
                 AuthRoute(
                     onSignedIn = {
-                        navController.navigate(DaynestDestination.Home) {
+                        navController.navigate(DaynestDestination.HOME) {
                             popUpTo(navController.graph.findStartDestination().id) { inclusive = true }
                             launchSingleTop = true
                         }
@@ -46,7 +48,7 @@ fun DaynestApp() {
                 )
             }
 
-            composable(route = DaynestDestination.Home) {
+            composable(route = DaynestDestination.HOME) {
                 HomeRoute()
             }
         }

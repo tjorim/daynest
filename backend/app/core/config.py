@@ -55,7 +55,7 @@ class AppSettings(BaseSettings):
     password_hash_iterations: int = 600000
 
     feature_home_assistant: bool = True
-    feature_mcp_adapter: bool = True
+    feature_mcp: bool = True
     feature_export_import: bool = False
 
     log_level: str = "INFO"
@@ -95,6 +95,9 @@ class AppSettings(BaseSettings):
     def resolved_database_url(self) -> str:
         if self.database_url:
             return self.database_url
+        if self.environment == "dev":
+            dev_db_path = Path(__file__).resolve().parents[2] / "dev.db"
+            return f"sqlite:///{dev_db_path}"
         password = self.resolved_db_password
         if password:
             return f"postgresql+psycopg://{quote_plus(self.db_user)}:{quote_plus(password)}@{self.db_host}:{self.db_port}/{self.db_name}"

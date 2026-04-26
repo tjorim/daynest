@@ -1,9 +1,70 @@
 :root {
   color-scheme: light dark;
+
+  --bg-body-from: rgba(248, 249, 250, 0.95);
+  --bg-body-to: rgba(255, 255, 255, 1);
+  --bg-surface-from: rgba(255, 255, 255, 0.92);
+  --bg-surface-to: rgba(248, 249, 250, 0.96);
+  --bg-muted: rgba(33, 37, 41, 0.08);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-body-from: rgba(18, 18, 28, 0.98);
+    --bg-body-to: rgba(12, 12, 20, 1);
+    --bg-surface-from: rgba(30, 30, 45, 0.92);
+    --bg-surface-to: rgba(22, 22, 35, 0.96);
+    --bg-muted: rgba(255, 255, 255, 0.08);
+  }
+}
+
+body {
+  background:
+    radial-gradient(circle at top, rgba(13, 110, 253, 0.12), transparent 35%),
+    linear-gradient(180deg, var(--bg-body-from), var(--bg-body-to));
+  min-height: 100vh;
 }
 
 main.container {
   max-width: 1080px;
+}
+
+.summary-card {
+  background: linear-gradient(180deg, var(--bg-surface-from), var(--bg-surface-to));
+}
+
+.summary-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0.25rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.summary-value {
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  line-height: 1;
+  font-weight: 700;
+}
+
+.calendar-cell-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.calendar-cell-meta .badge {
+  font-size: 0.65rem;
+}
+
+.settings-api-key {
+  display: block;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  background: var(--bg-muted);
+  word-break: break-all;
 }
 
 .nav-pills .nav-link {
@@ -12,6 +73,16 @@ main.container {
 
 .list-group-item .btn {
   min-height: 44px;
+}
+
+.auth-shell {
+  min-height: min(70vh, 42rem);
+  display: grid;
+  place-items: center;
+}
+
+.auth-shell .card {
+  width: min(100%, 32rem);
 }
 
 @media (max-width: 575.98px) {

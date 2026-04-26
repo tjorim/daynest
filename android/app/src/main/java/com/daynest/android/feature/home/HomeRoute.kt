@@ -1,3 +1,5 @@
+@file:Suppress("ktlint:standard:function-naming")
+
 package com.daynest.android.feature.home
 
 import androidx.compose.foundation.layout.Arrangement
@@ -21,9 +23,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.daynest.android.R
 
 @Composable
-fun HomeRoute(
-    viewModel: HomeViewModel = hiltViewModel(),
-) {
+@Suppress("FunctionNaming")
+fun HomeRoute(viewModel: HomeViewModel = hiltViewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     HomeScreen(
@@ -33,16 +34,18 @@ fun HomeRoute(
 }
 
 @Composable
+@Suppress("FunctionNaming", "LongMethod")
 internal fun HomeScreen(
     uiState: HomeUiState,
     onEvent: (HomeUiEvent) -> Unit,
 ) {
     Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(24.dp),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
@@ -57,11 +60,12 @@ internal fun HomeScreen(
                         style = MaterialTheme.typography.headlineMedium,
                     )
                     Text(
-                        text = pluralStringResource(
-                            id = R.plurals.home_items_remaining,
-                            count = state.summary.remainingCount,
-                            state.summary.remainingCount,
-                        ),
+                        text =
+                            pluralStringResource(
+                                id = R.plurals.home_items_remaining,
+                                count = state.summary.remainingCount,
+                                state.summary.remainingCount,
+                            ),
                         modifier = Modifier.padding(top = 12.dp),
                         style = MaterialTheme.typography.bodyLarge,
                     )
@@ -70,20 +74,22 @@ internal fun HomeScreen(
                         modifier = Modifier.padding(top = 20.dp),
                     ) {
                         Text(
-                            text = if (state.summary.isCaughtUp) {
-                                stringResource(id = R.string.home_action_caught_up)
-                            } else {
-                                stringResource(id = R.string.home_action_plan_today)
-                            },
+                            text =
+                                if (state.summary.isCaughtUp) {
+                                    stringResource(id = R.string.home_action_caught_up)
+                                } else {
+                                    stringResource(id = R.string.home_action_plan_today)
+                                },
                         )
                     }
                 }
 
                 is HomeUiState.Error -> {
                     Text(
-                        text = when (state.error) {
-                            HomeError.LoadTodayFailed -> stringResource(id = R.string.home_error_generic)
-                        },
+                        text =
+                            when (state.error) {
+                                HomeError.LoadTodayFailed -> stringResource(id = R.string.home_error_generic)
+                            },
                         style = MaterialTheme.typography.bodyLarge,
                     )
                     Button(

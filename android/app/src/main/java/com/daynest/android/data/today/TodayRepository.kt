@@ -5,17 +5,19 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class TodayRepository @Inject constructor(
-    private val todayApi: TodayApi,
-) {
-    suspend fun getTodaySummary(): TodaySummary {
-        val today = todayApi.getToday()
+class TodayRepository
+    @Inject
+    constructor(
+        private val todayApi: TodayApi,
+    ) {
+        suspend fun getTodaySummary(): TodaySummary {
+            val today = todayApi.getToday()
 
-        return TodaySummary(
-            routinesCount = today.routines.size,
-            choresCount = today.dueToday.size + today.overdue.size,
-            medicationsCount = today.medication.size,
-            plannedPendingCount = today.planned.count { !it.isDone },
-        )
+            return TodaySummary(
+                routinesCount = today.routines.size,
+                choresCount = today.dueToday.size + today.overdue.size,
+                medicationsCount = today.medication.size,
+                plannedPendingCount = today.planned.count { !it.isDone },
+            )
+        }
     }
-}

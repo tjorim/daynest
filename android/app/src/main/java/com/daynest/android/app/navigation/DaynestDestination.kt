@@ -1,7 +1,7 @@
 package com.daynest.android.app.navigation
 
 object DaynestDestination {
-    const val SessionGate = "session_gate"
-    const val Auth = "auth"
-    const val Home = "home"
+    const val SESSION_GATE = "session_gate"
+    const val AUTH = "auth"
+    const val HOME = "home"
 }

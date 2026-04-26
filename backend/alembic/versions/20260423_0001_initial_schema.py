@@ -51,8 +51,12 @@ def upgrade() -> None:
         sa.Column("user_id", sa.Integer(), nullable=False),
         sa.Column("name", sa.String(length=255), nullable=False),
         sa.Column("description", sa.Text(), nullable=True),
+        sa.Column("start_date", sa.Date(), nullable=False),
+        sa.Column("every_n_days", sa.Integer(), server_default="1", nullable=False),
+        sa.Column("due_time", sa.Time(), nullable=True),
         sa.Column("is_active", sa.Boolean(), server_default=sa.text("true"), nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.CheckConstraint("every_n_days >= 1", name="ck_routine_templates_every_n_days_positive"),
         sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
     )
@@ -74,6 +78,7 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["routine_template_id"], ["routine_templates.id"], ondelete="CASCADE"),
         sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
+        sa.UniqueConstraint("routine_template_id", "scheduled_date", name="uq_task_instance_template_scheduled_date"),
     )
     op.create_index(op.f("ix_task_instances_routine_template_id"), "task_instances", ["routine_template_id"], unique=False)
     op.create_index(op.f("ix_task_instances_scheduled_date"), "task_instances", ["scheduled_date"], unique=False)

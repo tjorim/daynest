@@ -1,14 +1,23 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ChangeEvent } from 'react';
 import {
+  completeChore,
+  completeRoutineTask,
   createPlannedItem,
+  deletePlannedItem,
   fetchCalendarDay,
   fetchCalendarMonth,
   isRetryableApiError,
   listPlannedItems,
+  rescheduleChore,
+  skipRoutineTask,
+  skipChore,
+  startRoutineTask,
+  updatePlannedItem,
   type CalendarDayPayload,
   type CalendarMonthDaySummary,
   type PlannedItemBackupFile,
+  type PlannedTodayItem,
   type PlannedItemModuleKey,
 } from '../../lib/api/today';
 import { capitalize, dayjs, formatDate, formatMonthYear, toIsoDate } from '../../lib/dateUtils';
@@ -33,13 +42,38 @@ function safeParseBackup(raw: string): PlannedItemBackupFile {
   return parsed as PlannedItemBackupFile;
 }
 
+function formatPlannedMeta(item: PlannedTodayItem): string {
+  const values = [
+    item.is_done ? 'Done' : 'Planned',
+    item.module_key ? `Module: ${item.module_key}` : null,
+    item.recurrence_hint ? `Repeat: ${item.recurrence_hint}` : null,
+    item.linked_source ? `Source: ${item.linked_source}` : null,
+  ];
+
+  return values.filter(Boolean).join(' • ');
+}
+
+function dayItemStatusClass(status: string): string {
+  if (status === 'done' || status === 'completed' || status === 'taken') return 'text-bg-success';
+  if (status === 'pending') return 'text-bg-warning';
+  if (status === 'scheduled') return 'text-bg-info';
+  if (status === 'missed') return 'text-bg-danger';
+  return 'text-bg-secondary';
+}
+
 export function CalendarPage() {
   const [currentMonth, setCurrentMonth] = useState(() => dayjs());
   const [monthItems, setMonthItems] = useState<CalendarMonthDaySummary[]>([]);
   const [selectedDate, setSelectedDate] = useState(() => toIsoDate(dayjs()));
   const [dayPayload, setDayPayload] = useState<CalendarDayPayload | null>(null);
+  const [plannedItems, setPlannedItems] = useState<PlannedTodayItem[]>([]);
   const [title, setTitle] = useState('');
+  const [notes, setNotes] = useState('');
   const [moduleKey, setModuleKey] = useState<PlannedItemModuleKey | ''>('');
+  const [recurrenceHint, setRecurrenceHint] = useState('');
+  const [linkedSource, setLinkedSource] = useState('');
+  const [linkedRef, setLinkedRef] = useState('');
+  const [editingPlannedItemId, setEditingPlannedItemId] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [canRetry, setCanRetry] = useState(false);
@@ -48,6 +82,7 @@ export function CalendarPage() {
   const [addError, setAddError] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
+  const [actionStatus, setActionStatus] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const monthKey = useMemo(() => ({ year: currentMonth.year(), month: currentMonth.month() + 1 }), [currentMonth]);
@@ -58,12 +93,14 @@ export function CalendarPage() {
     setCanRetry(false);
 
     try {
-      const [month, day] = await Promise.all([
+      const [month, day, selectedPlanned] = await Promise.all([
         fetchCalendarMonth(monthKey.year, monthKey.month, signal),
         fetchCalendarDay(selectedDate, signal),
+        listPlannedItems(selectedDate, selectedDate),
       ]);
       setMonthItems(month.days);
       setDayPayload(day);
+      setPlannedItems(selectedPlanned);
     } catch (err) {
       if (!signal?.aborted) {
         setCanRetry(isRetryableApiError(err));
@@ -95,17 +132,100 @@ export function CalendarPage() {
     if (!title.trim()) return;
     setIsAdding(true);
     setAddError(null);
+    setActionStatus(null);
     try {
-      await createPlannedItem({
+      const payload = {
         title: title.trim(),
         planned_for: selectedDate,
+        notes: notes.trim() || null,
         module_key: moduleKey || null,
-      });
-      setTitle('');
-      setModuleKey('');
+        recurrence_hint: recurrenceHint.trim() || null,
+        linked_source: linkedSource.trim() || null,
+        linked_ref: linkedRef.trim() || null,
+      };
+
+      if (editingPlannedItemId) {
+        const currentItem = plannedItems.find((item) => item.id === editingPlannedItemId);
+        await updatePlannedItem(editingPlannedItemId, {
+          ...payload,
+          is_done: currentItem?.is_done ?? false,
+        });
+      } else {
+        await createPlannedItem(payload);
+      }
+
+      resetPlannedForm();
+      setActionStatus(editingPlannedItemId ? 'Planned item updated.' : 'Planned item created.');
       await loadCalendar();
     } catch (err) {
-      setAddError(err instanceof Error ? err.message : 'Failed to add item.');
+      setAddError(err instanceof Error ? err.message : `Failed to ${editingPlannedItemId ? 'update' : 'add'} item.`);
+    } finally {
+      setIsAdding(false);
+    }
+  };
+
+  const startEditing = (item: PlannedTodayItem) => {
+    setEditingPlannedItemId(item.id);
+    setTitle(item.title);
+    setNotes(item.notes ?? '');
+    setModuleKey(item.module_key ?? '');
+    setRecurrenceHint(item.recurrence_hint ?? '');
+    setLinkedSource(item.linked_source ?? '');
+    setLinkedRef(item.linked_ref ?? '');
+    setAddError(null);
+  };
+
+  const resetPlannedForm = () => {
+    setEditingPlannedItemId(null);
+    setTitle('');
+    setNotes('');
+    setModuleKey('');
+    setRecurrenceHint('');
+    setLinkedSource('');
+    setLinkedRef('');
+    setAddError(null);
+  };
+
+  const togglePlannedDone = async (item: PlannedTodayItem) => {
+    setAddError(null);
+    setIsAdding(true);
+    setActionStatus(null);
+    try {
+      await updatePlannedItem(item.id, {
+        title: item.title,
+        planned_for: item.planned_for,
+        notes: item.notes,
+        module_key: item.module_key,
+        recurrence_hint: item.recurrence_hint,
+        linked_source: item.linked_source,
+        linked_ref: item.linked_ref,
+        is_done: !item.is_done,
+      });
+      setActionStatus(item.is_done ? 'Planned item reopened.' : 'Planned item marked done.');
+      await loadCalendar();
+    } catch (err) {
+      setAddError(err instanceof Error ? err.message : 'Failed to update item.');
+    } finally {
+      setIsAdding(false);
+    }
+  };
+
+  const removePlannedItem = async (itemId: number) => {
+    if (!window.confirm('Delete this planned item?')) {
+      return;
+    }
+    setAddError(null);
+    setIsAdding(true);
+    setActionStatus(null);
+    try {
+      await deletePlannedItem(itemId);
+      if (editingPlannedItemId === itemId) {
+        resetPlannedForm();
+      }
+      setActionStatus('Planned item deleted.');
+      await loadCalendar();
+    } catch (err) {
+      setAddError(err instanceof Error ? err.message : 'Failed to delete item.');
     } finally {
       setIsAdding(false);
     }
@@ -146,6 +266,21 @@ export function CalendarPage() {
       setBackupStatus(err instanceof Error ? err.message : 'Export failed.');
     } finally {
       setIsExporting(false);
+    }
+  };
+
+  const runDayItemAction = async (action: () => Promise<unknown>, successMessage: string) => {
+    setActionStatus(null);
+    setAddError(null);
+    setIsAdding(true);
+    try {
+      await action();
+      setActionStatus(successMessage);
+      await loadCalendar();
+    } catch (err) {
+      setAddError(err instanceof Error ? err.message : 'Action failed.');
+    } finally {
+      setIsAdding(false);
     }
   };
 
@@ -235,6 +370,8 @@ export function CalendarPage() {
           ) : null}
         </div>
       ) : null}
+      {actionStatus ? <div className="alert alert-success py-2">{actionStatus}</div> : null}
+      {addError && !editingPlannedItemId ? <div className="alert alert-danger py-2">{addError}</div> : null}
 
       <div className="row g-3">
         <div className="col-lg-7">
@@ -263,6 +400,14 @@ export function CalendarPage() {
                       >
                         <div className="fw-semibold lh-1">{dayNumber}</div>
                         <small>{summary ? `${summary.total} items` : 'No items'}</small>
+                        {summary ? (
+                          <div className="calendar-cell-meta mt-2">
+                            {summary.routines ? <span className="badge text-bg-primary-subtle text-primary-emphasis">{summary.routines}R</span> : null}
+                            {summary.chores ? <span className="badge text-bg-warning-subtle text-warning-emphasis">{summary.chores}C</span> : null}
+                            {summary.medications ? <span className="badge text-bg-info-subtle text-info-emphasis">{summary.medications}M</span> : null}
+                            {summary.planned ? <span className="badge text-bg-secondary">{summary.planned}P</span> : null}
+                          </div>
+                        ) : null}
                       </button>
                     </div>
                   );
@@ -281,14 +426,59 @@ export function CalendarPage() {
               ) : (
                 dayPayload?.items.map((item) => (
                   <li key={`${item.item_type}-${item.item_id}`} className="list-group-item py-2">
-                    <div className="d-flex justify-content-between align-items-start">
+                    <div className="d-flex justify-content-between align-items-start gap-3">
                       <div>
                         <div className="fw-semibold">{item.title}</div>
                         <small className="text-muted">{capitalize(item.status)}</small>
                         {item.detail ? <small className="d-block">{item.detail}</small> : null}
                         {item.module_key ? <small className="d-block text-muted">Module: {item.module_key}</small> : null}
+                        <div className="d-flex gap-2 flex-wrap mt-2">
+                          {item.item_type === 'routine' && item.status === 'pending' ? (
+                            <button type="button" className="btn btn-outline-primary btn-sm" disabled={isAdding} onClick={() => void runDayItemAction(() => startRoutineTask(item.item_id), 'Routine started.')}>
+                              Start
+                            </button>
+                          ) : null}
+                          {item.item_type === 'routine' && item.status !== 'completed' && item.status !== 'skipped' ? (
+                            <>
+                              <button type="button" className="btn btn-success btn-sm" disabled={isAdding} onClick={() => void runDayItemAction(() => completeRoutineTask(item.item_id), 'Routine completed.')}>
+                                Done
+                              </button>
+                              <button type="button" className="btn btn-outline-secondary btn-sm" disabled={isAdding} onClick={() => void runDayItemAction(() => skipRoutineTask(item.item_id), 'Routine skipped.')}>
+                                Skip
+                              </button>
+                            </>
+                          ) : null}
+                          {item.item_type === 'chore' && item.status === 'pending' ? (
+                            <>
+                              <button type="button" className="btn btn-success btn-sm" disabled={isAdding} onClick={() => void runDayItemAction(() => completeChore(item.item_id), 'Chore completed.')}>
+                                Done
+                              </button>
+                              <button type="button" className="btn btn-outline-secondary btn-sm" disabled={isAdding} onClick={() => void runDayItemAction(() => skipChore(item.item_id), 'Chore skipped.')}>
+                                Skip
+                              </button>
+                              {item.scheduled_date ? (
+                                <button
+                                  type="button"
+                                  className="btn btn-outline-primary btn-sm"
+                                  disabled={isAdding}
+                                  onClick={() =>
+                                    void runDayItemAction(
+                                      () => rescheduleChore(item.item_id, toIsoDate(dayjs(item.scheduled_date).add(1, 'day'))),
+                                      'Chore rescheduled.',
+                                    )
+                                  }
+                                >
+                                  +1 day
+                                </button>
+                              ) : null}
+                            </>
+                          ) : null}
+                        </div>
                       </div>
-                      <span className={`badge ${itemBadgeClass(item.item_type)}`}>{item.item_type}</span>
+                      <div className="d-grid gap-1 text-end">
+                        <span className={`badge ${itemBadgeClass(item.item_type)}`}>{item.item_type}</span>
+                        <span className={`badge ${dayItemStatusClass(item.status)}`}>{capitalize(item.status)}</span>
+                      </div>
                     </div>
                   </li>
                 ))
@@ -298,25 +488,120 @@ export function CalendarPage() {
 
           <div className="card mb-3">
             <div className="card-header fw-semibold py-2">Quick add planned item</div>
-            <div className="card-body d-flex gap-2 flex-column flex-sm-row">
-              <input
-                className="form-control"
-                value={title}
-                onChange={(event) => { setTitle(event.target.value); setAddError(null); }}
-                placeholder="Plan title"
-              />
-              <select className="form-select" value={moduleKey} onChange={(event) => { setModuleKey(event.target.value as PlannedItemModuleKey | ''); setAddError(null); }} aria-label="Optional module">
-                <option value="">General</option>
-                <option value="shopping_list">Shopping list</option>
-                <option value="meal_planning">Meal planning</option>
-                <option value="recurring_grocery">Recurring grocery</option>
-                <option value="shared_calendar">Shared calendar</option>
-              </select>
-              <button type="button" className="btn btn-primary" disabled={isAdding} onClick={() => void onAddPlanned()}>
-                {isAdding ? 'Adding…' : 'Add'}
-              </button>
+            <div className="card-body d-grid gap-3">
+              <div className="d-grid gap-2">
+                <input
+                  className="form-control"
+                  value={title}
+                  onChange={(event) => {
+                    setTitle(event.target.value);
+                    setAddError(null);
+                  }}
+                  placeholder="Plan title"
+                />
+                <textarea
+                  className="form-control"
+                  rows={3}
+                  value={notes}
+                  onChange={(event) => {
+                    setNotes(event.target.value);
+                    setAddError(null);
+                  }}
+                  placeholder="Notes"
+                />
+                <select
+                  className="form-select"
+                  value={moduleKey}
+                  onChange={(event) => {
+                    setModuleKey(event.target.value as PlannedItemModuleKey | '');
+                    setAddError(null);
+                  }}
+                  aria-label="Optional module"
+                >
+                  <option value="">General</option>
+                  <option value="shopping_list">Shopping list</option>
+                  <option value="meal_planning">Meal planning</option>
+                  <option value="recurring_grocery">Recurring grocery</option>
+                  <option value="shared_calendar">Shared calendar</option>
+                </select>
+                <input
+                  className="form-control"
+                  value={recurrenceHint}
+                  onChange={(event) => {
+                    setRecurrenceHint(event.target.value);
+                    setAddError(null);
+                  }}
+                  placeholder="Recurrence hint (optional)"
+                />
+                <input
+                  className="form-control"
+                  value={linkedSource}
+                  onChange={(event) => {
+                    setLinkedSource(event.target.value);
+                    setAddError(null);
+                  }}
+                  placeholder="Linked source (optional)"
+                />
+                <input
+                  className="form-control"
+                  value={linkedRef}
+                  onChange={(event) => {
+                    setLinkedRef(event.target.value);
+                    setAddError(null);
+                  }}
+                  placeholder="Linked reference (optional)"
+                />
+              </div>
+              <div className="d-flex gap-2 flex-column flex-sm-row">
+                <button type="button" className="btn btn-primary" disabled={isAdding} onClick={() => void onAddPlanned()}>
+                  {isAdding ? (editingPlannedItemId ? 'Saving…' : 'Adding…') : editingPlannedItemId ? 'Save item' : 'Add item'}
+                </button>
+                {editingPlannedItemId ? (
+                  <button type="button" className="btn btn-outline-secondary" disabled={isAdding} onClick={resetPlannedForm}>
+                    Cancel edit
+                  </button>
+                ) : null}
+              </div>
             </div>
-            {addError ? <div className="card-footer text-danger py-2 small">{addError}</div> : null}
+            {addError && editingPlannedItemId ? <div className="card-footer text-danger py-2 small">{addError}</div> : null}
+          </div>
+
+          <div className="card mb-3">
+            <div className="card-header fw-semibold py-2">Planned items · {formatDate(selectedDate)}</div>
+            <ul className="list-group list-group-flush">
+              {plannedItems.length === 0 ? (
+                <li className="list-group-item py-2 text-muted">No planned items for this day.</li>
+              ) : (
+                plannedItems.map((item) => (
+                  <li key={item.id} className="list-group-item py-2">
+                    <div className="d-flex justify-content-between align-items-start gap-3">
+                      <div>
+                        <div className="fw-semibold">{item.title}</div>
+                        <small className="text-muted d-block">{formatPlannedMeta(item)}</small>
+                        {item.notes ? <small className="d-block mt-1">{item.notes}</small> : null}
+                        {item.linked_ref ? <small className="d-block text-muted">Ref: {item.linked_ref}</small> : null}
+                      </div>
+                      <div className="d-grid gap-2">
+                        <button
+                          type="button"
+                          className={`btn btn-sm ${item.is_done ? 'btn-outline-success' : 'btn-success'}`}
+                          disabled={isAdding}
+                          onClick={() => void togglePlannedDone(item)}
+                        >
+                          {item.is_done ? 'Undo' : 'Done'}
+                        </button>
+                        <button type="button" className="btn btn-outline-primary btn-sm" disabled={isAdding} onClick={() => startEditing(item)}>
+                          Edit
+                        </button>
+                        <button type="button" className="btn btn-outline-danger btn-sm" disabled={isAdding} onClick={() => void removePlannedItem(item.id)}>
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  </li>
+                ))
+              )}
+            </ul>
           </div>
 
           <div className="card">

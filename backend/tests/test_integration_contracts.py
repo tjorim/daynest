@@ -8,8 +8,6 @@ from app.schemas.integration_contracts import (
     HOME_ASSISTANT_ADAPTER,
     HOME_ASSISTANT_CONTRACT_VERSION,
     INTEGRATION_CONTRACT_HEADER,
-    MCP_ADAPTER,
-    MCP_CONTRACT_VERSION,
     integration_contract_header,
 )
 from app.models.chore_instance import ChoreInstance, ChoreStatus
@@ -79,26 +77,3 @@ def test_home_assistant_contract_header_and_summary_shape(client: TestClient, db
     }
 
 
-def test_mcp_contract_headers_and_core_today_keys(client: TestClient, db_session: Session) -> None:
-    user = _create_user(db_session, "contract-mcp@example.com")
-    key = _create_integration_key(db_session, user.id, scopes="mcp:read")
-
-    capabilities = client.get("/api/v1/mcp/capabilities", headers={"X-Integration-Key": key})
-    assert capabilities.status_code == 200
-    assert capabilities.headers[INTEGRATION_CONTRACT_HEADER] == integration_contract_header(MCP_ADAPTER, MCP_CONTRACT_VERSION)
-
-    today = client.get("/api/v1/mcp/today", headers={"X-Integration-Key": key})
-    assert today.status_code == 200
-    assert today.headers[INTEGRATION_CONTRACT_HEADER] == integration_contract_header(MCP_ADAPTER, MCP_CONTRACT_VERSION)
-
-    payload = today.json()
-    assert set(payload.keys()) == {
-        "medication",
-        "medication_history",
-        "routines",
-        "overdue",
-        "due_today",
-        "upcoming",
-        "planned",
-        "day_items",
-    }

@@ -10,7 +10,7 @@ from app.models.medication_dose_instance import MedicationDoseInstance, Medicati
 from app.models.medication_plan import MedicationPlan
 from app.models.planned_item import PlannedItem
 from app.models.routine_template import RoutineTemplate
-from app.models.task_instance import TaskInstance
+from app.models.task_instance import TaskInstance, TaskStatus
 
 
 class TodayRepository:
@@ -151,6 +151,95 @@ class TodayRepository:
         stmt = select(MedicationPlan).where(MedicationPlan.user_id == user_id).order_by(MedicationPlan.id.asc())
         return list(self.db.scalars(stmt).all())
 
+    def list_routine_templates(self, user_id: int) -> list[RoutineTemplate]:
+        stmt = select(RoutineTemplate).where(RoutineTemplate.user_id == user_id).order_by(RoutineTemplate.id.asc())
+        return list(self.db.scalars(stmt).all())
+
+    def add_routine_template(self, template: RoutineTemplate) -> RoutineTemplate:
+        self.db.add(template)
+        self.db.commit()
+        self.db.refresh(template)
+        return template
+
+    def ensure_task_instances_generated(self, user_id: int, through_date: date) -> None:
+        templates = list(
+            self.db.scalars(
+                select(RoutineTemplate)
+                .where(RoutineTemplate.user_id == user_id)
+                .where(RoutineTemplate.is_active.is_(True))
+            ).all()
+        )
+        if not templates:
+            return
+
+        template_ids = [t.id for t in templates]
+        last_generated_rows = self.db.execute(
+            select(TaskInstance.routine_template_id, func.max(TaskInstance.scheduled_date))
+            .where(TaskInstance.routine_template_id.in_(template_ids))
+            .group_by(TaskInstance.routine_template_id)
+        ).all()
+        last_generated_map: dict[int, date] = {row[0]: row[1] for row in last_generated_rows}
+
+        rows = []
+        for template in templates:
+            if template.start_date > through_date:
+                continue
+
+            step = max(template.every_n_days, 1)
+            last = last_generated_map.get(template.id)
+            cursor = template.start_date if last is None else date.fromordinal(last.toordinal() + step)
+
+            while cursor <= through_date:
+                due_at = datetime.combine(cursor, template.due_time, tzinfo=timezone.utc) if template.due_time else None
+                rows.append({
+                    "user_id": user_id,
+                    "routine_template_id": template.id,
+                    "title": template.name,
+                    "scheduled_date": cursor,
+                    "due_at": due_at,
+                    "status": TaskStatus.pending,
+                })
+                cursor = date.fromordinal(cursor.toordinal() + step)
+
+        if rows:
+            dialect_name = self.db.connection().dialect.name
+            if dialect_name == "postgresql":
+                self.db.execute(
+                    pg_insert(TaskInstance).values(rows).on_conflict_do_nothing(
+                        index_elements=["routine_template_id", "scheduled_date"]
+                    )
+                )
+            else:
+                self.db.execute(insert(TaskInstance).prefix_with("OR IGNORE").values(rows))
+
+        self.db.commit()
+
+    def get_routine_template_for_user(self, user_id: int, routine_template_id: int) -> RoutineTemplate | None:
+        stmt = select(RoutineTemplate).where(RoutineTemplate.user_id == user_id).where(RoutineTemplate.id == routine_template_id)
+        return self.db.scalar(stmt)
+
+    def delete_routine_template(self, template: RoutineTemplate) -> None:
+        self.db.delete(template)
+        self.db.commit()
+
+    def list_chore_templates(self, user_id: int) -> list[ChoreTemplate]:
+        stmt = select(ChoreTemplate).where(ChoreTemplate.user_id == user_id).order_by(ChoreTemplate.id.asc())
+        return list(self.db.scalars(stmt).all())
+
+    def add_chore_template(self, template: ChoreTemplate) -> ChoreTemplate:
+        self.db.add(template)
+        self.db.commit()
+        self.db.refresh(template)
+        return template
+
+    def get_chore_template_for_user(self, user_id: int, chore_template_id: int) -> ChoreTemplate | None:
+        stmt = select(ChoreTemplate).where(ChoreTemplate.user_id == user_id).where(ChoreTemplate.id == chore_template_id)
+        return self.db.scalar(stmt)
+
+    def delete_chore_template(self, template: ChoreTemplate) -> None:
+        self.db.delete(template)
+        self.db.commit()
+
     def add_medication_plan(self, plan: MedicationPlan) -> MedicationPlan:
         self.db.add(plan)
         self.db.commit()
@@ -159,6 +248,10 @@ class TodayRepository:
 
     def get_dose_for_user(self, user_id: int, dose_id: int) -> MedicationDoseInstance | None:
         stmt = select(MedicationDoseInstance).where(MedicationDoseInstance.user_id == user_id).where(MedicationDoseInstance.id == dose_id)
+        return self.db.scalar(stmt)
+
+    def get_task_instance_for_user(self, user_id: int, task_instance_id: int) -> TaskInstance | None:
+        stmt = select(TaskInstance).where(TaskInstance.user_id == user_id).where(TaskInstance.id == task_instance_id)
         return self.db.scalar(stmt)
 
     def get_today_routines(self, user_id: int, for_date: date) -> list[TaskInstance]:
