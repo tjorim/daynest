@@ -47,10 +47,11 @@ class AuthRepository
                     secureTokenStorage.clearToken()
                 }
                 false
+            } catch (exception: CancellationException) {
+                throw exception
             } catch (_: IOException) {
                 false
-            } catch (t: Throwable) {
-                if (t is CancellationException) throw t
+            } catch (_: Exception) {
                 false
             }
         }
