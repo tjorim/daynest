@@ -12,7 +12,8 @@ from app.schemas.integration_contracts import (
     INTEGRATION_CONTRACT_HEADER,
     integration_contract_header,
 )
-from app.models.chore_instance import ChoreInstance, ChoreStatus
+from app.core.enums import ChoreStatus
+from app.models.chore_instance import ChoreInstance
 from app.models.chore_template import ChoreTemplate
 from app.models.integration_client import IntegrationClient
 from app.models.medication_plan import MedicationPlan
