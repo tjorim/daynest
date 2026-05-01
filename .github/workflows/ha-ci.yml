@@ -51,6 +51,7 @@ jobs:
         run: ./script/setup/bootstrap
         env:
           HA_VERSION: "2026.4"
+          GITHUB_WORKSPACE: ${{ github.workspace }}/daynest-home-assistant
 
       - name: Install Node.js dependencies
         run: npm ci --silent
