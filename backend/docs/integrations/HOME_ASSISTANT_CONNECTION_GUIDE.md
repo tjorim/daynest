@@ -5,6 +5,7 @@ This guide describes the backend contract expected by the Daynest Home Assistant
 ## Authentication Requirements
 
 - Use an API key with the required scope: `ha:read`
+- For write operations (services), the API key must also include `ha:write`
 - Send the API key using the `X-Integration-Key` header
 
 ```http
@@ -12,6 +13,7 @@ X-Integration-Key: <DAYNEST_API_KEY>
 ```
 
 If the API key is missing the `ha:read` scope, Home Assistant will not be able to fetch Daynest data.
+If the API key is missing the `ha:write` scope, write services (`complete_task`, `snooze_task`, `mark_medication_taken`) will be rejected with `403 Forbidden`.
 
 ## Base URL Requirements
 
@@ -59,6 +61,39 @@ Expected behavior:
   - `completion_ratio`
   - `next_medication`
 
+### `POST /api/v1/integrations/home-assistant/actions/complete-task`
+
+Used by the `daynest.complete_task` Home Assistant service.
+
+- Requires `ha:write` scope
+- Request body: `{"task_id": <int>}`
+- Returns `{"success": true, "detail": "..."}`
+
+### `POST /api/v1/integrations/home-assistant/actions/snooze-task`
+
+Used by the `daynest.snooze_task` Home Assistant service.
+
+- Requires `ha:write` scope
+- Request body: `{"task_id": <int>, "days": <int, 1–30, default 1>}`
+- Returns `{"success": true, "detail": "..."}`
+
+### `POST /api/v1/integrations/home-assistant/actions/mark-medication-taken`
+
+Used by the `daynest.mark_medication_taken` Home Assistant service.
+
+- Requires `ha:write` scope
+- Request body: `{"medication_dose_id": <int>}`
+- Returns `{"success": true, "detail": "..."}`
+
+## Auth Scopes
+
+| Scope | Required for |
+|-------|-------------|
+| `ha:read` | All GET endpoints (summary, dashboard, entities); required for setup |
+| `ha:write` | All POST action endpoints (complete-task, snooze-task, mark-medication-taken) |
+
+Use least-privilege: create a read-only key (`ha:read`) for sensor-only setups and add `ha:write` only when you need automation write support.
+
 ## Common Errors
 
 ### Invalid API Key
@@ -71,7 +106,7 @@ Typical symptoms:
 Checks:
 
 1. Verify the key is copied exactly.
-2. Verify the key includes `ha:read`.
+2. Verify the key includes `ha:read` (and `ha:write` for write services).
 3. Regenerate the key and update the integration if needed.
 
 ### Network Errors
@@ -107,3 +142,5 @@ Checks:
 - `/summary` returns `200 OK`, the contract header, and required summary fields
 - `/dashboard` returns `200 OK`, the contract header, and the expected dashboard payload
 - the integration loads without entity availability errors
+- (optional) API key includes `ha:write` for service automation support
+

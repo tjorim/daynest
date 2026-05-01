@@ -222,3 +222,121 @@ def test_home_assistant_dashboard_contract_is_stable(
     assert dashboard_payload["next_medication"] is None or isinstance(dashboard_payload["next_medication"], str)
 
 
+def test_home_assistant_write_endpoints_require_ha_write_scope(
+    client: TestClient,
+    db_session: Session,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    _freeze_route_today(monkeypatch, "app.api.routes.integrations.home_assistant")
+    user = _create_home_assistant_fixture(db_session, "ha-write-scope-denied@example.com")
+    read_only_key = _create_integration_key(db_session, user.id, scopes="ha:read")
+
+    for path, payload in [
+        ("/api/v1/integrations/home-assistant/actions/complete-task", {"task_id": 1}),
+        ("/api/v1/integrations/home-assistant/actions/snooze-task", {"task_id": 1}),
+        ("/api/v1/integrations/home-assistant/actions/mark-medication-taken", {"medication_dose_id": 1}),
+    ]:
+        denied = client.post(path, json=payload, headers={"X-Integration-Key": read_only_key})
+        assert denied.status_code == 403, f"Expected 403 for {path} with ha:read scope"
+
+
+def test_home_assistant_complete_task_marks_chore_complete(
+    client: TestClient,
+    db_session: Session,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    _freeze_route_today(monkeypatch, "app.api.routes.integrations.home_assistant")
+    user = _create_home_assistant_fixture(db_session, "ha-complete-task@example.com")
+    write_key = _create_integration_key(db_session, user.id, scopes="ha:write")
+
+    chore = db_session.query(ChoreInstance).filter_by(user_id=user.id).first()
+    assert chore is not None
+    assert chore.status == ChoreStatus.pending
+
+    response = client.post(
+        "/api/v1/integrations/home-assistant/actions/complete-task",
+        json={"task_id": chore.id},
+        headers={"X-Integration-Key": write_key},
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["success"] is True
+    assert str(chore.id) in payload["detail"]
+
+    db_session.refresh(chore)
+    assert chore.status == ChoreStatus.completed
+
+
+def test_home_assistant_snooze_task_reschedules_chore(
+    client: TestClient,
+    db_session: Session,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    _freeze_route_today(monkeypatch, "app.api.routes.integrations.home_assistant")
+    user = _create_home_assistant_fixture(db_session, "ha-snooze-task@example.com")
+    write_key = _create_integration_key(db_session, user.id, scopes="ha:write")
+
+    chore = db_session.query(ChoreInstance).filter_by(user_id=user.id).first()
+    assert chore is not None
+
+    response = client.post(
+        "/api/v1/integrations/home-assistant/actions/snooze-task",
+        json={"task_id": chore.id, "days": 2},
+        headers={"X-Integration-Key": write_key},
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["success"] is True
+    assert "2 day(s)" in payload["detail"]
+
+    db_session.refresh(chore)
+    assert chore.scheduled_date == FIXED_TODAY + date.resolution * 2
+
+
+def test_home_assistant_mark_medication_taken(
+    client: TestClient,
+    db_session: Session,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    from datetime import datetime, timezone
+
+    from app.core.enums import MedicationDoseStatus
+    from app.models.medication_dose_instance import MedicationDoseInstance
+
+    _freeze_route_today(monkeypatch, "app.api.routes.integrations.home_assistant")
+    user = _create_home_assistant_fixture(db_session, "ha-mark-medication@example.com")
+    write_key = _create_integration_key(db_session, user.id, scopes="ha:write")
+
+    # Retrieve the medication plan created by the fixture
+    from app.models.medication_plan import MedicationPlan
+
+    plan = db_session.query(MedicationPlan).filter_by(user_id=user.id).first()
+    assert plan is not None
+
+    # Create a dose instance in scheduled status directly (avoids missed-marking by dashboard)
+    future_scheduled_at = datetime(2026, 1, 15, 12, 0, tzinfo=timezone.utc)
+    dose = MedicationDoseInstance(
+        user_id=user.id,
+        medication_plan_id=plan.id,
+        name=plan.name,
+        instructions=plan.instructions,
+        scheduled_date=FIXED_TODAY,
+        scheduled_at=future_scheduled_at,
+        status=MedicationDoseStatus.scheduled,
+    )
+    db_session.add(dose)
+    db_session.commit()
+    db_session.refresh(dose)
+
+    response = client.post(
+        "/api/v1/integrations/home-assistant/actions/mark-medication-taken",
+        json={"medication_dose_id": dose.id},
+        headers={"X-Integration-Key": write_key},
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["success"] is True
+    assert str(dose.id) in payload["detail"]
+
+    db_session.refresh(dose)
+    assert dose.status == MedicationDoseStatus.taken
