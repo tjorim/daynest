@@ -350,3 +350,28 @@ GitHub Actions now enforces non-feature safety checks on pull requests and pushe
 Branch protection is automated in `.github/workflows/branch-protection.yml` and requires those checks to be green before merge.
 
 If `GITHUB_TOKEN` cannot administer branch settings in your repo, create a `BRANCH_PROTECTION_TOKEN` secret with a fine-grained personal access token that has "Administration" repository permissions (read and write).
+
+## Backend Python tooling
+
+The backend uses Astral tooling throughout:
+
+| Tool | Role |
+|------|------|
+| [uv](https://docs.astral.sh/uv/) | Environment and dependency management |
+| [Ruff](https://docs.astral.sh/ruff/) | Linting and formatting |
+| [ty](https://github.com/astral-sh/ty) | Type checking (replaces mypy) |
+
+**Why ty over mypy?**
+
+- Completes the all-Astral toolchain (uv + Ruff + ty).
+- Significantly faster than mypy (10–100×), even on small codebases.
+- No mypy-specific plugins are used in this project, so migration is clean.
+- `ty` is in beta as of 0.0.x; false positives from incomplete third-party stubs
+  (e.g. `anyio.to_thread`) are suppressed via `[tool.ty.rules]` in `pyproject.toml`.
+
+Run type-checking locally:
+
+```bash
+cd backend
+uv run ty check app
+```

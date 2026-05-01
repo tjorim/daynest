@@ -37,7 +37,7 @@ jobs:
         run: uv run ruff check app tests
 
       - name: Type-check backend
-        run: PYTHONPATH=. uv run mypy app
+        run: uv run ty check app
 
       - name: Run backend tests
         run: PYTHONPATH=. uv run pytest -q
