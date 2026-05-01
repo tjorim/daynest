@@ -6,10 +6,11 @@ from typing import cast
 
 from fastapi import HTTPException, status
 
-from app.models.chore_instance import ChoreInstance, ChoreStatus
-from app.models.medication_dose_instance import MedicationDoseInstance, MedicationDoseStatus
+from app.core.enums import ChoreStatus, MedicationDoseStatus, TaskStatus
+from app.models.chore_instance import ChoreInstance
+from app.models.medication_dose_instance import MedicationDoseInstance
 from app.models.planned_item import PlannedItem
-from app.models.task_instance import TaskInstance, TaskStatus
+from app.models.task_instance import TaskInstance
 from app.repositories.today_repository import TodayRepository
 from app.schemas.integrations import DashboardReadModel, TodaySummary
 from app.schemas.today import (
