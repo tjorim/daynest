@@ -49,6 +49,8 @@ jobs:
 
       - name: Bootstrap environment
         run: ./script/setup/bootstrap
+        env:
+          HA_VERSION: "2026.4"
 
       - name: Install Node.js dependencies
         run: npm ci --silent
