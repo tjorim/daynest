@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 import voluptuous as vol
 
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import config_validation as cv
 
 from .api import (
@@ -74,18 +75,23 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         if not entries:
             LOGGER.warning("daynest.complete_task called but no Daynest entries are loaded")
             return
+        if len(entries) != 1:
+            LOGGER.warning(
+                "daynest.complete_task: multiple Daynest entries loaded; specify an entry_id to target"
+            )
+            return
         entry = entries[0]
         try:
             await entry.runtime_data.client.async_complete_task(task_id=task_id)
-        except DaynestApiClientAuthenticationError:
+        except DaynestApiClientAuthenticationError as err:
             LOGGER.error("daynest.complete_task: authentication error for task %s", task_id)
-            return
+            raise HomeAssistantError(f"Authentication error completing task {task_id}") from err
         except DaynestApiClientCommunicationError as err:
             LOGGER.error("daynest.complete_task: communication error for task %s: %s", task_id, err)
-            return
+            raise HomeAssistantError(f"Communication error completing task {task_id}") from err
         except DaynestApiClientError as err:
             LOGGER.error("daynest.complete_task: unexpected error for task %s: %s", task_id, err)
-            return
+            raise HomeAssistantError(f"Error completing task {task_id}") from err
         LOGGER.debug("daynest.complete_task: task %s marked as complete", task_id)
         await entry.runtime_data.coordinator.async_refresh()
 
@@ -97,18 +103,23 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         if not entries:
             LOGGER.warning("daynest.snooze_task called but no Daynest entries are loaded")
             return
+        if len(entries) != 1:
+            LOGGER.warning(
+                "daynest.snooze_task: multiple Daynest entries loaded; specify an entry_id to target"
+            )
+            return
         entry = entries[0]
         try:
             await entry.runtime_data.client.async_snooze_task(task_id=task_id, days=days)
-        except DaynestApiClientAuthenticationError:
+        except DaynestApiClientAuthenticationError as err:
             LOGGER.error("daynest.snooze_task: authentication error for task %s", task_id)
-            return
+            raise HomeAssistantError(f"Authentication error snoozing task {task_id}") from err
         except DaynestApiClientCommunicationError as err:
             LOGGER.error("daynest.snooze_task: communication error for task %s: %s", task_id, err)
-            return
+            raise HomeAssistantError(f"Communication error snoozing task {task_id}") from err
         except DaynestApiClientError as err:
             LOGGER.error("daynest.snooze_task: unexpected error for task %s: %s", task_id, err)
-            return
+            raise HomeAssistantError(f"Error snoozing task {task_id}") from err
         LOGGER.debug("daynest.snooze_task: task %s snoozed by %s day(s)", task_id, days)
         await entry.runtime_data.coordinator.async_refresh()
 
@@ -119,24 +130,29 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         if not entries:
             LOGGER.warning("daynest.mark_medication_taken called but no Daynest entries are loaded")
             return
+        if len(entries) != 1:
+            LOGGER.warning(
+                "daynest.mark_medication_taken: multiple Daynest entries loaded; specify an entry_id to target"
+            )
+            return
         entry = entries[0]
         try:
             await entry.runtime_data.client.async_mark_medication_taken(medication_dose_id=medication_dose_id)
-        except DaynestApiClientAuthenticationError:
+        except DaynestApiClientAuthenticationError as err:
             LOGGER.error(
                 "daynest.mark_medication_taken: authentication error for dose %s", medication_dose_id
             )
-            return
+            raise HomeAssistantError(f"Authentication error marking dose {medication_dose_id} taken") from err
         except DaynestApiClientCommunicationError as err:
             LOGGER.error(
                 "daynest.mark_medication_taken: communication error for dose %s: %s", medication_dose_id, err
             )
-            return
+            raise HomeAssistantError(f"Communication error marking dose {medication_dose_id} taken") from err
         except DaynestApiClientError as err:
             LOGGER.error(
                 "daynest.mark_medication_taken: unexpected error for dose %s: %s", medication_dose_id, err
             )
-            return
+            raise HomeAssistantError(f"Error marking dose {medication_dose_id} taken") from err
         LOGGER.debug("daynest.mark_medication_taken: dose %s marked as taken", medication_dose_id)
         await entry.runtime_data.coordinator.async_refresh()
 

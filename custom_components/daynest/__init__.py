@@ -69,7 +69,10 @@ async def async_unload_entry(
 ) -> bool:
     """Unload a config entry."""
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
-    if unload_ok and not hass.config_entries.async_entries(DOMAIN):
+    remaining = [
+        e for e in hass.config_entries.async_entries(DOMAIN) if e.entry_id != entry.entry_id
+    ]
+    if unload_ok and not remaining:
         async_unload_services(hass)
     return unload_ok
 
