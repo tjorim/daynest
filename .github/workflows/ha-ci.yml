@@ -48,10 +48,12 @@ jobs:
           version: '0.8.22'
 
       - name: Bootstrap environment
-        run: ./script/setup/bootstrap
+        run: |
+          ./script/setup/bootstrap
+          echo "VIRTUAL_ENV=${{ github.workspace }}/.local/ha-venv" >> "$GITHUB_ENV"
+          echo "${{ github.workspace }}/.local/ha-venv/bin" >> "$GITHUB_PATH"
         env:
           HA_VERSION: "2026.4"
-          GITHUB_WORKSPACE: ${{ github.workspace }}/daynest-home-assistant
 
       - name: Install Node.js dependencies
         run: npm ci --silent
