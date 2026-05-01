@@ -1,4 +1,4 @@
-from datetime import date, time
+from datetime import date, time, timedelta
 
 from fastapi.testclient import TestClient
 from pytest import MonkeyPatch
@@ -290,7 +290,7 @@ def test_home_assistant_snooze_task_reschedules_chore(
     assert "2 day(s)" in payload["detail"]
 
     db_session.refresh(chore)
-    assert chore.scheduled_date == FIXED_TODAY + date.resolution * 2
+    assert chore.scheduled_date == FIXED_TODAY + timedelta(days=2)
 
 
 def test_home_assistant_mark_medication_taken(
