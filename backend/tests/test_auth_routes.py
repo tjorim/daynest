@@ -159,18 +159,23 @@ class TestRefreshReuseDetection:
 
     def test_reuse_revokes_entire_family(self, client: TestClient, db_session: Session) -> None:
         first = _register(client)
-        client.post("/api/v1/auth/refresh", json={"refresh_token": first["refresh_token"]}).json()
+        old_jti = decode_token(first["refresh_token"])["jti"]
+
+        rotate_resp = client.post("/api/v1/auth/refresh", json={"refresh_token": first["refresh_token"]})
+        assert rotate_resp.status_code == 200
+        new_jti = decode_token(rotate_resp.json()["refresh_token"])["jti"]
 
         # Trigger reuse with the old token
         client.post("/api/v1/auth/refresh", json={"refresh_token": first["refresh_token"]})
 
-        # Both old and new tokens must be revoked
+        # Both JTIs from this test must be revoked
         revoked_count = db_session.scalar(
             select(func.count())
             .select_from(RefreshToken)
+            .where(RefreshToken.jti.in_([old_jti, new_jti]))
             .where(RefreshToken.revoked_at.is_not(None))
         )
-        assert revoked_count >= 2
+        assert revoked_count == 2
 
 
 # ---------------------------------------------------------------------------

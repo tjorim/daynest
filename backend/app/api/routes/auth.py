@@ -71,28 +71,30 @@ def refresh(payload: RefreshRequest, db: Session = Depends(get_db)) -> TokenPair
     if user_id is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token subject")
 
+    try:
+        user_id_int = int(user_id)
+    except (ValueError, TypeError) as exc:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token subject") from exc
+
     jti = claims.get("jti")
     if jti is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
 
-    user = db.get(User, int(user_id))
+    user = db.get(User, user_id_int)
     if user is None or not user.is_active:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found or inactive")
 
     repo = RefreshTokenRepository(db)
-    stored = repo.get_by_jti(jti)
+    stored = repo.consume_if_unrevoked(jti)
 
     if stored is None:
-        # Token was never issued by this server or has been purged.
+        existing = repo.get_by_jti(jti)
+        if existing is not None:
+            # Reuse detected — revoke the entire token family and force re-login.
+            repo.revoke_all_for_user(user.id)
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh token reuse detected")
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
 
-    if stored.revoked_at is not None:
-        # Reuse detected — revoke the entire token family and force re-login.
-        repo.revoke_all_for_user(user.id)
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh token reuse detected")
-
-    # Rotate: invalidate the current token, issue a fresh pair.
-    repo.revoke(stored)
     return _issue_token_pair(user, db)
 
 
