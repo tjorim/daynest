@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any
 from homeassistant.components.sensor import SensorEntity, SensorEntityDescription, SensorStateClass
 from homeassistant.const import PERCENTAGE
 
-from ..const import PARALLEL_UPDATES
+from ..const import PARALLEL_UPDATES as PARALLEL_UPDATES
 from ..entity import DaynestEntity
 
 if TYPE_CHECKING:
