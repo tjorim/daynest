@@ -26,7 +26,6 @@ These mappings reflect the handling in coordinator._async_update_data.
 """
 
 from .client import (
-    DaynestApiResponse,
     DaynestApiClient,
     DaynestApiClientAuthenticationError,
     DaynestApiClientCommunicationError,
@@ -34,12 +33,12 @@ from .client import (
     DaynestApiClientMalformedResponseError,
     DaynestApiClientServerUnavailableError,
     DaynestApiClientTimeoutError,
+    DaynestApiResponse,
     DaynestDashboard,
     DaynestSummary,
 )
 
 __all__ = [
-    "DaynestApiResponse",
     "DaynestApiClient",
     "DaynestApiClientAuthenticationError",
     "DaynestApiClientCommunicationError",
@@ -47,6 +46,7 @@ __all__ = [
     "DaynestApiClientMalformedResponseError",
     "DaynestApiClientServerUnavailableError",
     "DaynestApiClientTimeoutError",
+    "DaynestApiResponse",
     "DaynestDashboard",
     "DaynestSummary",
 ]

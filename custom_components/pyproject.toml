@@ -248,6 +248,9 @@ ignore = [
     "PLE0605",
 
     "FURB116",
+
+    # HA convention uses relative parent imports (from ..foo import bar)
+    "TID252",
 ]
 
 [tool.ruff.lint.flake8-import-conventions.extend-aliases]
@@ -279,6 +282,7 @@ split-on-trailing-comma = false
     "PLR2004", # Magic values are fine in tests
     "D",       # Docstrings not required in tests
     "PTH",     # Use pathlib - temporary exemption for tests
+    "SLF001",  # Private member access is fine in tests
 ]
 
 [tool.ruff.lint.mccabe]

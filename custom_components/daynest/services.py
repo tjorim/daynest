@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING
 import voluptuous as vol
 
 from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers import config_validation as cv
 
 from .api import (
     DaynestApiClientAuthenticationError,

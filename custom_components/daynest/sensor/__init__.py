@@ -12,10 +12,11 @@ from ..const import PARALLEL_UPDATES
 from ..entity import DaynestEntity
 
 if TYPE_CHECKING:
-    from ..coordinator import DaynestDataUpdateCoordinator
-    from ..data import DaynestConfigEntry
     from homeassistant.core import HomeAssistant
     from homeassistant.helpers.entity_platform import AddEntitiesCallback
+
+    from ..coordinator import DaynestDataUpdateCoordinator
+    from ..data import DaynestConfigEntry
 
 
 @dataclass(frozen=True, kw_only=True)

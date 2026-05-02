@@ -1,7 +1,7 @@
 """Unit tests for custom_components.daynest.api.client."""
 
 import asyncio
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import aiohttp
 import pytest

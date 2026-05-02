@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any, Generic, TypeVar
@@ -199,7 +198,7 @@ class DaynestApiClient:
                 model = parser(payload)
                 return DaynestApiResponse(data=model, integration_contract=contract)
 
-        except asyncio.TimeoutError as err:
+        except TimeoutError as err:
             msg = f"Request timed out for endpoint {path}"
             raise DaynestApiClientTimeoutError(msg) from err
         except aiohttp.ClientConnectionError as err:
@@ -235,7 +234,7 @@ class DaynestApiClient:
                     raise DaynestApiClientMalformedResponseError(msg)
                 return result
 
-        except asyncio.TimeoutError as err:
+        except TimeoutError as err:
             msg = f"Request timed out for endpoint {path}"
             raise DaynestApiClientTimeoutError(msg) from err
         except aiohttp.ClientConnectionError as err:
