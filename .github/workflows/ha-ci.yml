@@ -1,0 +1,49 @@
+name: ha-ci
+
+on:
+  pull_request:
+    paths:
+      - 'custom_components/**'
+      - '.github/workflows/ha-ci.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'custom_components/**'
+      - '.github/workflows/ha-ci.yml'
+
+concurrency:
+  group: "ha-ci-${{ github.head_ref || github.ref }}"
+  cancel-in-progress: true
+
+jobs:
+  ha-safety:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.14
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.14.2'
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: '0.8.22'
+
+      - name: Install dependencies
+        working-directory: custom_components
+        run: |
+          uv sync --group test
+          echo "VIRTUAL_ENV=${{ github.workspace }}/custom_components/.venv" >> "$GITHUB_ENV"
+          echo "${{ github.workspace }}/custom_components/.venv/bin" >> "$GITHUB_PATH"
+
+      - name: Lint
+        working-directory: custom_components
+        run: ruff check daynest/ tests/
+
+      - name: Run tests
+        working-directory: custom_components
+        run: pytest -q
