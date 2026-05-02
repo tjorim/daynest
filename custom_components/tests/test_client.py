@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock
 import aiohttp
 import pytest
 
-from custom_components.daynest.api.client import (
+from daynest.api.client import (
     DaynestApiClient,
     DaynestApiClientAuthenticationError,
     DaynestApiClientCommunicationError,
