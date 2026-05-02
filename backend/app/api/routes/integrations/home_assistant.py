@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, timedelta
 
 from fastapi import APIRouter, Depends, Response
 from sqlalchemy.orm import Session
@@ -13,7 +13,14 @@ from app.schemas.integration_contracts import (
     INTEGRATION_CONTRACT_HEADER,
     integration_contract_header,
 )
-from app.schemas.integrations import DashboardReadModel, HomeAssistantEntity
+from app.schemas.integrations import (
+    CompleteTaskRequest,
+    DashboardReadModel,
+    HAActionResult,
+    HomeAssistantEntity,
+    MarkMedicationTakenRequest,
+    SnoozeTaskRequest,
+)
 from app.services.today_service import TodayService
 
 router = APIRouter(prefix="/integrations/home-assistant", tags=["integrations"])
@@ -78,3 +85,44 @@ def home_assistant_dashboard(
 ) -> DashboardReadModel:
     service = TodayService(TodayRepository(db))
     return service.get_dashboard_read_model(user_id=integration_user.id, for_date=date.today())
+
+
+@router.post("/actions/complete-task", response_model=HAActionResult)
+def home_assistant_complete_task(
+    request: CompleteTaskRequest,
+    db: Session = Depends(get_db),
+    integration_user: User = Depends(require_integration_scope("ha:write")),
+) -> HAActionResult:
+    """Mark a chore instance as complete via Home Assistant automation."""
+    service = TodayService(TodayRepository(db))
+    service.complete_chore(user_id=integration_user.id, chore_instance_id=request.task_id)
+    return HAActionResult(success=True, detail=f"Task {request.task_id} marked as complete")
+
+
+@router.post("/actions/snooze-task", response_model=HAActionResult)
+def home_assistant_snooze_task(
+    request: SnoozeTaskRequest,
+    db: Session = Depends(get_db),
+    integration_user: User = Depends(require_integration_scope("ha:write")),
+) -> HAActionResult:
+    """Reschedule a chore instance N days into the future via Home Assistant automation."""
+    service = TodayService(TodayRepository(db))
+    new_date = date.today() + timedelta(days=request.days)
+    service.reschedule_chore(user_id=integration_user.id, chore_instance_id=request.task_id, scheduled_date=new_date)
+    return HAActionResult(success=True, detail=f"Task {request.task_id} rescheduled by {request.days} day(s)")
+
+
+@router.post("/actions/mark-medication-taken", response_model=HAActionResult)
+def home_assistant_mark_medication_taken(
+    request: MarkMedicationTakenRequest,
+    db: Session = Depends(get_db),
+    integration_user: User = Depends(require_integration_scope("ha:write")),
+) -> HAActionResult:
+    """Mark a medication dose as taken via Home Assistant automation."""
+    service = TodayService(TodayRepository(db))
+    service.mutate_medication_status(
+        user_id=integration_user.id,
+        medication_dose_instance_id=request.medication_dose_id,
+        action="take",
+    )
+    return HAActionResult(success=True, detail=f"Medication dose {request.medication_dose_id} marked as taken")

@@ -4,15 +4,16 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-import homeassistant.helpers.config_validation as cv
 from homeassistant.const import CONF_API_KEY, CONF_URL, Platform
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+import homeassistant.helpers.config_validation as cv
 from homeassistant.loader import async_get_loaded_integration
 
 from .api import DaynestApiClient
 from .const import DOMAIN
 from .coordinator import DaynestDataUpdateCoordinator
 from .data import DaynestData
+from .services import async_setup_services, async_unload_services
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
@@ -55,6 +56,10 @@ async def async_setup_entry(
     await coordinator.async_config_entry_first_refresh()
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.async_on_unload(entry.add_update_listener(async_reload_entry))
+
+    if not hass.services.has_service(DOMAIN, "refresh"):
+        await async_setup_services(hass)
+
     return True
 
 
@@ -63,7 +68,13 @@ async def async_unload_entry(
     entry: DaynestConfigEntry,
 ) -> bool:
     """Unload a config entry."""
-    return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    remaining = [
+        e for e in hass.config_entries.async_entries(DOMAIN) if e.entry_id != entry.entry_id
+    ]
+    if unload_ok and not remaining:
+        async_unload_services(hass)
+    return unload_ok
 
 
 async def async_reload_entry(

@@ -49,5 +49,45 @@
         "name": "Next Medication"
       }
     }
+  },
+  "services": {
+    "refresh": {
+      "name": "Refresh",
+      "description": "Triggers an immediate data refresh from the Daynest backend. Useful after making changes in the Daynest app to update Home Assistant sensors without waiting for the next scheduled poll."
+    },
+    "complete_task": {
+      "name": "Complete Task",
+      "description": "Marks a Daynest chore instance as complete. Requires the integration API key to have the ha:write scope.",
+      "fields": {
+        "task_id": {
+          "name": "Task ID",
+          "description": "The numeric ID of the chore instance to mark as complete. Obtain this ID from the Daynest app or API."
+        }
+      }
+    },
+    "snooze_task": {
+      "name": "Snooze Task",
+      "description": "Reschedules a Daynest chore instance to a later date. Requires the integration API key to have the ha:write scope.",
+      "fields": {
+        "task_id": {
+          "name": "Task ID",
+          "description": "The numeric ID of the chore instance to reschedule. Obtain this ID from the Daynest app or API."
+        },
+        "days": {
+          "name": "Days",
+          "description": "Number of days to snooze the task (1–30). Defaults to 1."
+        }
+      }
+    },
+    "mark_medication_taken": {
+      "name": "Mark Medication Taken",
+      "description": "Marks a scheduled medication dose as taken. Requires the integration API key to have the ha:write scope.",
+      "fields": {
+        "medication_dose_id": {
+          "name": "Medication Dose ID",
+          "description": "The numeric ID of the medication dose instance to mark as taken. Obtain this ID from the Daynest app or API."
+        }
+      }
+    }
   }
 }

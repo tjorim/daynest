@@ -28,7 +28,7 @@ def parse_integration_contract_version(contract: str | None) -> str | None:
     version_token = normalized_contract
     for segment in normalized_contract.split(";"):
         key, separator, value = segment.strip().partition("=")
-        if separator and key == "version":
+        if separator and key.strip() == "version":
             version_token = value.strip()
             if not version_token:
                 return None

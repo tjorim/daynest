@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any, Generic, TypeVar
@@ -114,10 +113,10 @@ class DaynestApiClient:
         password: str | None = None,
     ) -> None:
         """Initialize client."""
-        resolved_base_url = (base_url or DEFAULT_API_BASE_URL).strip().rstrip("/")
-        if not resolved_base_url:
+        if base_url is not None and not base_url.strip():
             msg = "A base URL is required to initialize DaynestApiClient"
             raise ValueError(msg)
+        resolved_base_url = (base_url or DEFAULT_API_BASE_URL).strip().rstrip("/")
 
         self._session = session
         self._base_url = resolved_base_url
@@ -145,6 +144,27 @@ class DaynestApiClient:
         return await self._request_model(
             path="/api/v1/integrations/home-assistant/dashboard",
             parser=DaynestDashboard.from_dict,
+        )
+
+    async def async_complete_task(self, task_id: int) -> dict[str, Any]:
+        """Complete a chore instance by ID via the HA write endpoint."""
+        return await self._post_action(
+            path="/api/v1/integrations/home-assistant/actions/complete-task",
+            payload={"task_id": task_id},
+        )
+
+    async def async_snooze_task(self, task_id: int, days: int = 1) -> dict[str, Any]:
+        """Reschedule a chore instance N days into the future via the HA write endpoint."""
+        return await self._post_action(
+            path="/api/v1/integrations/home-assistant/actions/snooze-task",
+            payload={"task_id": task_id, "days": days},
+        )
+
+    async def async_mark_medication_taken(self, medication_dose_id: int) -> dict[str, Any]:
+        """Mark a medication dose as taken via the HA write endpoint."""
+        return await self._post_action(
+            path="/api/v1/integrations/home-assistant/actions/mark-medication-taken",
+            payload={"medication_dose_id": medication_dose_id},
         )
 
     async def _request_model(
@@ -178,7 +198,43 @@ class DaynestApiClient:
                 model = parser(payload)
                 return DaynestApiResponse(data=model, integration_contract=contract)
 
-        except asyncio.TimeoutError as err:
+        except TimeoutError as err:
+            msg = f"Request timed out for endpoint {path}"
+            raise DaynestApiClientTimeoutError(msg) from err
+        except aiohttp.ClientConnectionError as err:
+            msg = f"Server unavailable while requesting endpoint {path}: {err}"
+            raise DaynestApiClientServerUnavailableError(msg) from err
+        except aiohttp.ClientError as err:
+            msg = f"Communication error while requesting endpoint {path}: {err}"
+            raise DaynestApiClientCommunicationError(msg) from err
+        except ValueError as err:
+            msg = f"Malformed JSON response for endpoint {path}: {err}"
+            raise DaynestApiClientMalformedResponseError(msg) from err
+
+    async def _post_action(self, path: str, payload: dict[str, Any]) -> dict[str, Any]:
+        """POST to a write endpoint and return the JSON response body."""
+        url = urljoin(f"{self._base_url}/", path.lstrip("/"))
+        headers = {"Accept": "application/json", "Content-Type": "application/json"}
+        if self._integration_key:
+            headers["X-Integration-Key"] = self._integration_key
+
+        try:
+            async with self._session.post(url, json=payload, headers=headers, timeout=REQUEST_TIMEOUT) as response:
+                if response.status in (401, 403):
+                    msg = f"Authentication failed with status {response.status}"
+                    raise DaynestApiClientAuthenticationError(msg)
+                if 500 <= response.status < 600:
+                    msg = f"Backend unavailable (status {response.status})"
+                    raise DaynestApiClientServerUnavailableError(msg)
+                response.raise_for_status()
+
+                result = await response.json(content_type=None)
+                if not isinstance(result, dict):
+                    msg = "Malformed response payload: expected JSON object"
+                    raise DaynestApiClientMalformedResponseError(msg)
+                return result
+
+        except TimeoutError as err:
             msg = f"Request timed out for endpoint {path}"
             raise DaynestApiClientTimeoutError(msg) from err
         except aiohttp.ClientConnectionError as err:
