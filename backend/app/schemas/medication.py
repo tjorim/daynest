@@ -2,7 +2,7 @@ from datetime import date, datetime, time
 
 from pydantic import BaseModel, Field
 
-from app.models.medication_dose_instance import MedicationDoseStatus
+from app.core.enums import MedicationDoseStatus
 
 
 class MedicationPlanCreateRequest(BaseModel):

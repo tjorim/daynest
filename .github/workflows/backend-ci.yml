@@ -1,0 +1,98 @@
+name: backend-ci
+
+on:
+  pull_request:
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-ci.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-ci.yml'
+
+concurrency:
+  group: "backend-ci-${{ github.head_ref || github.ref }}"
+  cancel-in-progress: true
+
+jobs:
+  backend-safety:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: '0.8.22'
+
+      - name: Install backend dependencies
+        run: uv sync --frozen --group dev
+
+      - name: Lint backend
+        run: uv run ruff check app tests
+
+      - name: Type-check backend
+        run: uv run ty check app
+
+      - name: Run backend tests
+        run: PYTHONPATH=. uv run pytest -q
+
+  migration-check:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: daynest
+          POSTGRES_PASSWORD: daynest
+          POSTGRES_DB: daynest
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U daynest -d daynest"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_NAME: daynest
+      DB_USER: daynest
+      DB_PASSWORD: daynest
+      JWT_SECRET_KEY: ci-secret
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: '0.8.22'
+
+      - name: Install backend dependencies
+        run: uv sync --frozen --no-dev
+
+      - name: Apply migrations to head
+        run: uv run alembic upgrade head
+
+      - name: Verify migrations are in sync with models
+        run: uv run alembic check

@@ -3,9 +3,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, model_validator
 
-from app.models.chore_instance import ChoreStatus
-from app.models.medication_dose_instance import MedicationDoseStatus
-from app.models.task_instance import TaskStatus
+from app.core.enums import ChoreStatus, MedicationDoseStatus, TaskStatus
 
 
 class MedicationTodayItem(BaseModel):

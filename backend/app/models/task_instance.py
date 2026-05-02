@@ -1,24 +1,17 @@
 from __future__ import annotations
 
-import enum
 from datetime import date, datetime
 from typing import TYPE_CHECKING
 
 from sqlalchemy import Date, DateTime, Enum, ForeignKey, String, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.core.enums import TaskStatus
 from app.db.base import Base
 
 if TYPE_CHECKING:
     from app.models.routine_template import RoutineTemplate
     from app.models.user import User
-
-
-class TaskStatus(str, enum.Enum):
-    pending = "pending"
-    in_progress = "in_progress"
-    completed = "completed"
-    skipped = "skipped"
 
 
 class TaskInstance(Base):
