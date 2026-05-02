@@ -113,10 +113,10 @@ class DaynestApiClient:
         password: str | None = None,
     ) -> None:
         """Initialize client."""
-        resolved_base_url = (base_url or DEFAULT_API_BASE_URL).strip().rstrip("/")
-        if not resolved_base_url:
+        if base_url is not None and not base_url.strip():
             msg = "A base URL is required to initialize DaynestApiClient"
             raise ValueError(msg)
+        resolved_base_url = (base_url or DEFAULT_API_BASE_URL).strip().rstrip("/")
 
         self._session = session
         self._base_url = resolved_base_url

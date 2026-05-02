@@ -43,7 +43,7 @@ def _make_mock_response(
 ) -> MagicMock:
     response = MagicMock()
     response.status = status
-    response.headers = headers or {"X-Integration-Contract": CONTRACT_HEADER}
+    response.headers = headers if headers is not None else {"X-Integration-Contract": CONTRACT_HEADER}
     response.json = AsyncMock(return_value=json_body)
     response.raise_for_status = MagicMock()
     response.__aenter__ = AsyncMock(return_value=response)
