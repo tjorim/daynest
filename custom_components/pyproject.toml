@@ -11,10 +11,16 @@ version = "0.0.0"              # Version is managed in manifest.json only
 requires-python = ">=3.14"
 
 [tool.setuptools]
-packages = ["custom_components.daynest"]
+packages = ["daynest"]
+
+[dependency-groups]
+test = [
+    "pytest-homeassistant-custom-component==0.13.323",
+    "ruff",
+]
 
 [tool.pyright]
-include = ["custom_components/daynest"]
+include = ["daynest"]
 exclude = [
     "**/.*",
     "**/__pycache__",
@@ -34,7 +40,7 @@ reportUnusedCoroutine = "none"
 reportMissingTypeStubs = "none"
 
 [tool.pytest.ini_options]
-testpaths = ["../tests"]
+testpaths = ["tests"]
 norecursedirs = [".git", "testing_config"]
 log_format = "%(asctime)s.%(msecs)03d %(levelname)-8s %(threadName)s %(name)s:%(filename)s:%(lineno)s %(message)s"
 log_date_format = "%Y-%m-%d %H:%M:%S"
@@ -54,7 +60,7 @@ filterwarnings = [
 ]
 
 [tool.coverage.run]
-source = ["custom_components/daynest"]
+source = ["daynest"]
 omit = ["tests/*"]
 
 [tool.coverage.report]
@@ -268,10 +274,6 @@ combine-as-imports = true
 split-on-trailing-comma = false
 
 [tool.ruff.lint.per-file-ignores]
-"script/*" = [
-    "T20",    # print() allowed in scripts
-    "INP001", # Implicit namespace package (scripts are not a package)
-]
 "tests/*" = [
     "S101",    # assert is fine in tests
     "PLR2004", # Magic values are fine in tests

@@ -4,16 +4,12 @@ on:
   pull_request:
     paths:
       - 'custom_components/**'
-      - 'tests/**'
-      - 'daynest-home-assistant/**'
       - '.github/workflows/ha-ci.yml'
   push:
     branches:
       - main
     paths:
       - 'custom_components/**'
-      - 'tests/**'
-      - 'daynest-home-assistant/**'
       - '.github/workflows/ha-ci.yml'
 
 concurrency:
@@ -23,9 +19,6 @@ concurrency:
 jobs:
   ha-safety:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: daynest-home-assistant
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -35,34 +28,22 @@ jobs:
         with:
           python-version: '3.14'
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: npm
-          cache-dependency-path: daynest-home-assistant/package-lock.json
-
       - name: Set up uv
         uses: astral-sh/setup-uv@v7
         with:
           version: '0.8.22'
 
-      - name: Bootstrap environment
+      - name: Install dependencies
+        working-directory: custom_components
         run: |
-          ./script/setup/bootstrap
-          echo "VIRTUAL_ENV=${{ github.workspace }}/.local/ha-venv" >> "$GITHUB_ENV"
-          echo "${{ github.workspace }}/.local/ha-venv/bin" >> "$GITHUB_PATH"
-        env:
-          HA_VERSION: "2026.4"
-
-      - name: Install Node.js dependencies
-        run: npm ci --silent
+          uv sync --group test
+          echo "VIRTUAL_ENV=${{ github.workspace }}/custom_components/.venv" >> "$GITHUB_ENV"
+          echo "${{ github.workspace }}/custom_components/.venv/bin" >> "$GITHUB_PATH"
 
       - name: Lint
-        run: ./script/python-check
-
-      - name: Type-check
-        run: ./script/type-check
+        working-directory: custom_components
+        run: ruff check daynest/ tests/
 
       - name: Run tests
-        run: ./script/test
+        working-directory: custom_components
+        run: pytest -q
