@@ -1,9 +1,13 @@
-export type TaskStatus = 'pending' | 'in_progress' | 'completed' | 'skipped';
-export type ChoreStatus = 'pending' | 'completed' | 'skipped';
-export type MedicationDoseStatus = 'scheduled' | 'taken' | 'skipped' | 'missed';
-export type PlannedItemModuleKey = 'shopping_list' | 'meal_planning' | 'recurring_grocery' | 'shared_calendar';
-import { refreshSessionTokens } from './auth';
-import { clearStoredTokens, getStoredTokens } from '../auth/session';
+export type TaskStatus = "pending" | "in_progress" | "completed" | "skipped";
+export type ChoreStatus = "pending" | "completed" | "skipped";
+export type MedicationDoseStatus = "scheduled" | "taken" | "skipped" | "missed";
+export type PlannedItemModuleKey =
+  | "shopping_list"
+  | "meal_planning"
+  | "recurring_grocery"
+  | "shared_calendar";
+import { refreshSessionTokens } from "./auth";
+import { getStoredTokens } from "../auth/session";
 
 export interface MedicationTodayItem {
   medication_dose_instance_id: number;
@@ -83,13 +87,13 @@ export interface PlannedItemUpdateInput extends PlannedItemInput {
 
 export interface PlannedItemBackupFile {
   exported_at: string;
-  source: 'daynest';
+  source: "daynest";
   schema_version: 1;
   items: PlannedItemInput[];
 }
 
 export interface UnifiedDayItem {
-  item_type: 'routine' | 'chore' | 'medication' | 'planned';
+  item_type: "routine" | "chore" | "medication" | "planned";
   item_id: number;
   title: string;
   status: string;
@@ -236,7 +240,7 @@ export class ApiError extends Error {
 
   constructor(message: string, status: number, retryable = false) {
     super(message);
-    this.name = 'ApiError';
+    this.name = "ApiError";
     this.status = status;
     this.retryable = retryable;
   }
@@ -252,10 +256,15 @@ function sleep(ms: number): Promise<void> {
   });
 }
 
-async function fetchWithRetry(input: RequestInfo | URL, init: RequestInit = {}, retries = 2): Promise<Response> {
+async function fetchWithRetry(
+  input: RequestInfo | URL,
+  init: RequestInit = {},
+  retries = 2,
+): Promise<Response> {
   let attempt = 0;
   let lastError: unknown;
-  const isIdempotent = !init.method || ['GET', 'HEAD', 'PUT', 'DELETE', 'OPTIONS'].includes(init.method.toUpperCase());
+  const isIdempotent =
+    !init.method || ["GET", "HEAD", "PUT", "DELETE", "OPTIONS"].includes(init.method.toUpperCase());
 
   while (attempt <= retries) {
     try {
@@ -267,7 +276,7 @@ async function fetchWithRetry(input: RequestInfo | URL, init: RequestInit = {}, 
       }
       return response;
     } catch (error) {
-      if (error instanceof Error && error.name === 'AbortError') throw error;
+      if (error instanceof Error && error.name === "AbortError") throw error;
       lastError = error;
       if (attempt >= retries || !isIdempotent) break;
       await sleep(250 * 2 ** attempt);
@@ -278,7 +287,7 @@ async function fetchWithRetry(input: RequestInfo | URL, init: RequestInit = {}, 
   if (lastError instanceof Error) {
     throw new ApiError(`Network request failed: ${lastError.message}`, 0, isIdempotent);
   }
-  throw new ApiError('Network request failed.', 0, isIdempotent);
+  throw new ApiError("Network request failed.", 0, isIdempotent);
 }
 
 function withAuthHeader(init: RequestInit, token?: string): RequestInit {
@@ -286,11 +295,15 @@ function withAuthHeader(init: RequestInit, token?: string): RequestInit {
     return init;
   }
   const headers = new Headers(init.headers);
-  headers.set('Authorization', `Bearer ${token}`);
+  headers.set("Authorization", `Bearer ${token}`);
   return { ...init, headers };
 }
 
-async function fetchWithDevAuth(input: RequestInfo | URL, init: RequestInit = {}, retries = 2): Promise<Response> {
+async function fetchWithDevAuth(
+  input: RequestInfo | URL,
+  init: RequestInit = {},
+  retries = 2,
+): Promise<Response> {
   const token = getStoredTokens()?.accessToken;
   const response = await fetchWithRetry(input, withAuthHeader(init, token), retries);
 
@@ -305,7 +318,10 @@ async function fetchWithDevAuth(input: RequestInfo | URL, init: RequestInit = {}
 
   const body = init.body;
   const isBodyRewindable =
-    body === null || body === undefined || typeof body === 'string' || body instanceof URLSearchParams;
+    body === null ||
+    body === undefined ||
+    typeof body === "string" ||
+    body instanceof URLSearchParams;
   if (!isBodyRewindable) {
     return response;
   }
@@ -313,37 +329,50 @@ async function fetchWithDevAuth(input: RequestInfo | URL, init: RequestInit = {}
   return fetchWithRetry(input, withAuthHeader(init, refreshed.accessToken), retries);
 }
 
-async function parseJsonResponse<T>(response: Response, fallbackMessage = 'Request failed', isIdempotent = true): Promise<T> {
+async function parseJsonResponse<T>(
+  response: Response,
+  fallbackMessage = "Request failed",
+  isIdempotent = true,
+): Promise<T> {
   if (!response.ok) {
     let message = `${fallbackMessage} (${response.status})`;
     try {
       const body = (await response.json()) as { detail?: string | unknown[] };
-      if (typeof body.detail === 'string') {
+      if (typeof body.detail === "string") {
         message = body.detail;
       } else if (Array.isArray(body.detail) && body.detail.length > 0) {
         message = body.detail
           .map((entry) => {
-            if (entry && typeof entry === 'object' && 'msg' in entry && typeof entry.msg === 'string') {
+            if (
+              entry &&
+              typeof entry === "object" &&
+              "msg" in entry &&
+              typeof entry.msg === "string"
+            ) {
               return entry.msg;
             }
             return JSON.stringify(entry);
           })
           .filter((entry): entry is string => Boolean(entry))
-          .join(', ');
+          .join(", ");
       }
     } catch {
       // keep fallback message
     }
-    throw new ApiError(message, response.status, isIdempotent && isRetryableStatus(response.status));
+    throw new ApiError(
+      message,
+      response.status,
+      isIdempotent && isRetryableStatus(response.status),
+    );
   }
   return (await response.json()) as T;
 }
 
 export async function fetchToday(signal?: AbortSignal): Promise<TodayPayload> {
   const response = await fetchWithDevAuth(
-    '/api/v1/today',
+    "/api/v1/today",
     {
-      headers: { Accept: 'application/json' },
+      headers: { Accept: "application/json" },
       signal,
     },
     1,
@@ -351,11 +380,15 @@ export async function fetchToday(signal?: AbortSignal): Promise<TodayPayload> {
   return parseJsonResponse<TodayPayload>(response, "Unable to load today's data");
 }
 
-export async function fetchCalendarMonth(year: number, month: number, signal?: AbortSignal): Promise<CalendarMonthPayload> {
+export async function fetchCalendarMonth(
+  year: number,
+  month: number,
+  signal?: AbortSignal,
+): Promise<CalendarMonthPayload> {
   const response = await fetchWithDevAuth(
     `/api/v1/calendar/month?year=${year}&month=${month}`,
     {
-      headers: { Accept: 'application/json' },
+      headers: { Accept: "application/json" },
       signal,
     },
     1,
@@ -363,11 +396,14 @@ export async function fetchCalendarMonth(year: number, month: number, signal?: A
   return parseJsonResponse<CalendarMonthPayload>(response);
 }
 
-export async function fetchCalendarDay(date: string, signal?: AbortSignal): Promise<CalendarDayPayload> {
+export async function fetchCalendarDay(
+  date: string,
+  signal?: AbortSignal,
+): Promise<CalendarDayPayload> {
   const response = await fetchWithDevAuth(
     `/api/v1/calendar/day?date=${encodeURIComponent(date)}`,
     {
-      headers: { Accept: 'application/json' },
+      headers: { Accept: "application/json" },
       signal,
     },
     1,
@@ -376,147 +412,162 @@ export async function fetchCalendarDay(date: string, signal?: AbortSignal): Prom
 }
 
 export async function createPlannedItem(input: PlannedItemInput): Promise<PlannedTodayItem> {
-  const response = await fetchWithDevAuth('/api/v1/planned-items', {
-    method: 'POST',
+  const response = await fetchWithDevAuth("/api/v1/planned-items", {
+    method: "POST",
     headers: {
-      Accept: 'application/json',
-      'Content-Type': 'application/json',
+      Accept: "application/json",
+      "Content-Type": "application/json",
     },
     body: JSON.stringify(input),
   });
-  return parseJsonResponse<PlannedTodayItem>(response, 'Request failed', false);
+  return parseJsonResponse<PlannedTodayItem>(response, "Request failed", false);
 }
 
-export async function updatePlannedItem(plannedItemId: number, input: PlannedItemUpdateInput): Promise<PlannedTodayItem> {
+export async function updatePlannedItem(
+  plannedItemId: number,
+  input: PlannedItemUpdateInput,
+): Promise<PlannedTodayItem> {
   const response = await fetchWithDevAuth(`/api/v1/planned-items/${plannedItemId}`, {
-    method: 'PUT',
+    method: "PUT",
     headers: {
-      Accept: 'application/json',
-      'Content-Type': 'application/json',
+      Accept: "application/json",
+      "Content-Type": "application/json",
     },
     body: JSON.stringify(input),
   });
-  return parseJsonResponse<PlannedTodayItem>(response, 'Request failed', false);
+  return parseJsonResponse<PlannedTodayItem>(response, "Request failed", false);
 }
 
 export async function deletePlannedItem(plannedItemId: number): Promise<void> {
   const response = await fetchWithDevAuth(`/api/v1/planned-items/${plannedItemId}`, {
-    method: 'DELETE',
-    headers: { Accept: 'application/json' },
+    method: "DELETE",
+    headers: { Accept: "application/json" },
   });
 
   if (!response.ok) {
-    await parseJsonResponse<never>(response, 'Request failed', false);
+    await parseJsonResponse<never>(response, "Request failed", false);
   }
 }
 
-export async function listPlannedItems(startDate?: string, endDate?: string): Promise<PlannedTodayItem[]> {
+export async function listPlannedItems(
+  startDate?: string,
+  endDate?: string,
+): Promise<PlannedTodayItem[]> {
   const params = new URLSearchParams();
   if (startDate) {
-    params.set('start_date', startDate);
+    params.set("start_date", startDate);
   }
   if (endDate) {
-    params.set('end_date', endDate);
+    params.set("end_date", endDate);
   }
   const qs = params.toString();
 
-  const response = await fetchWithDevAuth(`/api/v1/planned-items${qs ? `?${qs}` : ''}`, {
-    headers: { Accept: 'application/json' },
+  const response = await fetchWithDevAuth(`/api/v1/planned-items${qs ? `?${qs}` : ""}`, {
+    headers: { Accept: "application/json" },
   });
   return parseJsonResponse<PlannedTodayItem[]>(response);
 }
 
 export async function completeChore(choreInstanceId: number): Promise<ChoreMutationResponse> {
   const response = await fetchWithDevAuth(`/api/v1/chores/${choreInstanceId}/complete`, {
-    method: 'POST',
-    headers: { Accept: 'application/json' },
+    method: "POST",
+    headers: { Accept: "application/json" },
   });
-  return parseJsonResponse<ChoreMutationResponse>(response, 'Request failed', false);
+  return parseJsonResponse<ChoreMutationResponse>(response, "Request failed", false);
 }
 
 export async function skipChore(choreInstanceId: number): Promise<ChoreMutationResponse> {
   const response = await fetchWithDevAuth(`/api/v1/chores/${choreInstanceId}/skip`, {
-    method: 'POST',
-    headers: { Accept: 'application/json' },
+    method: "POST",
+    headers: { Accept: "application/json" },
   });
-  return parseJsonResponse<ChoreMutationResponse>(response, 'Request failed', false);
+  return parseJsonResponse<ChoreMutationResponse>(response, "Request failed", false);
 }
 
-export async function rescheduleChore(choreInstanceId: number, scheduledDate: string): Promise<ChoreMutationResponse> {
+export async function rescheduleChore(
+  choreInstanceId: number,
+  scheduledDate: string,
+): Promise<ChoreMutationResponse> {
   const response = await fetchWithDevAuth(`/api/v1/chores/${choreInstanceId}/reschedule`, {
-    method: 'POST',
+    method: "POST",
     headers: {
-      Accept: 'application/json',
-      'Content-Type': 'application/json',
+      Accept: "application/json",
+      "Content-Type": "application/json",
     },
     body: JSON.stringify({ scheduled_date: scheduledDate }),
   });
-  return parseJsonResponse<ChoreMutationResponse>(response, 'Request failed', false);
+  return parseJsonResponse<ChoreMutationResponse>(response, "Request failed", false);
 }
 
-export async function takeMedicationDose(medicationDoseId: number): Promise<MedicationMutationResponse> {
+export async function takeMedicationDose(
+  medicationDoseId: number,
+): Promise<MedicationMutationResponse> {
   const response = await fetchWithDevAuth(`/api/v1/medication-doses/${medicationDoseId}/take`, {
-    method: 'POST',
-    headers: { Accept: 'application/json' },
+    method: "POST",
+    headers: { Accept: "application/json" },
   });
-  return parseJsonResponse<MedicationMutationResponse>(response, 'Request failed', false);
+  return parseJsonResponse<MedicationMutationResponse>(response, "Request failed", false);
 }
 
-export async function skipMedicationDose(medicationDoseId: number): Promise<MedicationMutationResponse> {
+export async function skipMedicationDose(
+  medicationDoseId: number,
+): Promise<MedicationMutationResponse> {
   const response = await fetchWithDevAuth(`/api/v1/medication-doses/${medicationDoseId}/skip`, {
-    method: 'POST',
-    headers: { Accept: 'application/json' },
+    method: "POST",
+    headers: { Accept: "application/json" },
   });
-  return parseJsonResponse<MedicationMutationResponse>(response, 'Request failed', false);
+  return parseJsonResponse<MedicationMutationResponse>(response, "Request failed", false);
 }
 
 export async function startRoutineTask(taskInstanceId: number): Promise<TaskMutationResponse> {
   const response = await fetchWithDevAuth(`/api/v1/tasks/${taskInstanceId}/start`, {
-    method: 'POST',
-    headers: { Accept: 'application/json' },
+    method: "POST",
+    headers: { Accept: "application/json" },
   });
-  return parseJsonResponse<TaskMutationResponse>(response, 'Request failed', false);
+  return parseJsonResponse<TaskMutationResponse>(response, "Request failed", false);
 }
 
 export async function completeRoutineTask(taskInstanceId: number): Promise<TaskMutationResponse> {
   const response = await fetchWithDevAuth(`/api/v1/tasks/${taskInstanceId}/complete`, {
-    method: 'POST',
-    headers: { Accept: 'application/json' },
+    method: "POST",
+    headers: { Accept: "application/json" },
   });
-  return parseJsonResponse<TaskMutationResponse>(response, 'Request failed', false);
+  return parseJsonResponse<TaskMutationResponse>(response, "Request failed", false);
 }
 
 export async function skipRoutineTask(taskInstanceId: number): Promise<TaskMutationResponse> {
   const response = await fetchWithDevAuth(`/api/v1/tasks/${taskInstanceId}/skip`, {
-    method: 'POST',
-    headers: { Accept: 'application/json' },
+    method: "POST",
+    headers: { Accept: "application/json" },
   });
-  return parseJsonResponse<TaskMutationResponse>(response, 'Request failed', false);
+  return parseJsonResponse<TaskMutationResponse>(response, "Request failed", false);
 }
 
 export async function listMedicationPlans(signal?: AbortSignal): Promise<MedicationPlan[]> {
-  const response = await fetchWithDevAuth('/api/v1/medications', {
-    headers: { Accept: 'application/json' },
+  const response = await fetchWithDevAuth("/api/v1/medications", {
+    headers: { Accept: "application/json" },
     signal,
   });
   return parseJsonResponse<MedicationPlan[]>(response);
 }
 
 export async function createMedicationPlan(input: MedicationPlanInput): Promise<MedicationPlan> {
-  const response = await fetchWithDevAuth('/api/v1/medications', {
-    method: 'POST',
+  const response = await fetchWithDevAuth("/api/v1/medications", {
+    method: "POST",
     headers: {
-      Accept: 'application/json',
-      'Content-Type': 'application/json',
+      Accept: "application/json",
+      "Content-Type": "application/json",
     },
     body: JSON.stringify(input),
   });
-  return parseJsonResponse<MedicationPlan>(response, 'Request failed', false);
+  return parseJsonResponse<MedicationPlan>(response, "Request failed", false);
 }
 
-export async function fetchMedicationHistory(signal?: AbortSignal): Promise<MedicationHistoryItem[]> {
-  const response = await fetchWithDevAuth('/api/v1/medication-doses/history', {
-    headers: { Accept: 'application/json' },
+export async function fetchMedicationHistory(
+  signal?: AbortSignal,
+): Promise<MedicationHistoryItem[]> {
+  const response = await fetchWithDevAuth("/api/v1/medication-doses/history", {
+    headers: { Accept: "application/json" },
     signal,
   });
   const payload = await parseJsonResponse<MedicationHistoryResponse>(response);
@@ -524,108 +575,116 @@ export async function fetchMedicationHistory(signal?: AbortSignal): Promise<Medi
 }
 
 export async function listIntegrationClients(signal?: AbortSignal): Promise<IntegrationClient[]> {
-  const response = await fetchWithDevAuth('/api/v1/integrations/clients', {
-    headers: { Accept: 'application/json' },
+  const response = await fetchWithDevAuth("/api/v1/integrations/clients", {
+    headers: { Accept: "application/json" },
     signal,
   });
   return parseJsonResponse<IntegrationClient[]>(response);
 }
 
-export async function createIntegrationClient(input: IntegrationClientInput): Promise<IntegrationClientCreateResponse> {
-  const response = await fetchWithDevAuth('/api/v1/integrations/clients', {
-    method: 'POST',
+export async function createIntegrationClient(
+  input: IntegrationClientInput,
+): Promise<IntegrationClientCreateResponse> {
+  const response = await fetchWithDevAuth("/api/v1/integrations/clients", {
+    method: "POST",
     headers: {
-      Accept: 'application/json',
-      'Content-Type': 'application/json',
+      Accept: "application/json",
+      "Content-Type": "application/json",
     },
     body: JSON.stringify(input),
   });
-  return parseJsonResponse<IntegrationClientCreateResponse>(response, 'Request failed', false);
+  return parseJsonResponse<IntegrationClientCreateResponse>(response, "Request failed", false);
 }
 
 export async function listRoutineTemplates(signal?: AbortSignal): Promise<RoutineTemplate[]> {
-  const response = await fetchWithDevAuth('/api/v1/routines', {
-    headers: { Accept: 'application/json' },
+  const response = await fetchWithDevAuth("/api/v1/routines", {
+    headers: { Accept: "application/json" },
     signal,
   });
   return parseJsonResponse<RoutineTemplate[]>(response);
 }
 
 export async function createRoutineTemplate(input: RoutineTemplateInput): Promise<RoutineTemplate> {
-  const response = await fetchWithDevAuth('/api/v1/routines', {
-    method: 'POST',
+  const response = await fetchWithDevAuth("/api/v1/routines", {
+    method: "POST",
     headers: {
-      Accept: 'application/json',
-      'Content-Type': 'application/json',
+      Accept: "application/json",
+      "Content-Type": "application/json",
     },
     body: JSON.stringify(input),
   });
-  return parseJsonResponse<RoutineTemplate>(response, 'Request failed', false);
+  return parseJsonResponse<RoutineTemplate>(response, "Request failed", false);
 }
 
-export async function updateRoutineTemplate(routineTemplateId: number, input: RoutineTemplateInput): Promise<RoutineTemplate> {
+export async function updateRoutineTemplate(
+  routineTemplateId: number,
+  input: RoutineTemplateInput,
+): Promise<RoutineTemplate> {
   const response = await fetchWithDevAuth(`/api/v1/routines/${routineTemplateId}`, {
-    method: 'PUT',
+    method: "PUT",
     headers: {
-      Accept: 'application/json',
-      'Content-Type': 'application/json',
+      Accept: "application/json",
+      "Content-Type": "application/json",
     },
     body: JSON.stringify(input),
   });
-  return parseJsonResponse<RoutineTemplate>(response, 'Request failed', false);
+  return parseJsonResponse<RoutineTemplate>(response, "Request failed", false);
 }
 
 export async function deleteRoutineTemplate(routineTemplateId: number): Promise<void> {
   const response = await fetchWithDevAuth(`/api/v1/routines/${routineTemplateId}`, {
-    method: 'DELETE',
-    headers: { Accept: 'application/json' },
+    method: "DELETE",
+    headers: { Accept: "application/json" },
   });
 
   if (!response.ok) {
-    await parseJsonResponse<never>(response, 'Request failed', false);
+    await parseJsonResponse<never>(response, "Request failed", false);
   }
 }
 
 export async function listChoreTemplates(signal?: AbortSignal): Promise<ChoreTemplate[]> {
-  const response = await fetchWithDevAuth('/api/v1/chore-templates', {
-    headers: { Accept: 'application/json' },
+  const response = await fetchWithDevAuth("/api/v1/chore-templates", {
+    headers: { Accept: "application/json" },
     signal,
   });
   return parseJsonResponse<ChoreTemplate[]>(response);
 }
 
 export async function createChoreTemplate(input: ChoreTemplateInput): Promise<ChoreTemplate> {
-  const response = await fetchWithDevAuth('/api/v1/chore-templates', {
-    method: 'POST',
+  const response = await fetchWithDevAuth("/api/v1/chore-templates", {
+    method: "POST",
     headers: {
-      Accept: 'application/json',
-      'Content-Type': 'application/json',
+      Accept: "application/json",
+      "Content-Type": "application/json",
     },
     body: JSON.stringify(input),
   });
-  return parseJsonResponse<ChoreTemplate>(response, 'Request failed', false);
+  return parseJsonResponse<ChoreTemplate>(response, "Request failed", false);
 }
 
-export async function updateChoreTemplate(choreTemplateId: number, input: ChoreTemplateInput): Promise<ChoreTemplate> {
+export async function updateChoreTemplate(
+  choreTemplateId: number,
+  input: ChoreTemplateInput,
+): Promise<ChoreTemplate> {
   const response = await fetchWithDevAuth(`/api/v1/chore-templates/${choreTemplateId}`, {
-    method: 'PUT',
+    method: "PUT",
     headers: {
-      Accept: 'application/json',
-      'Content-Type': 'application/json',
+      Accept: "application/json",
+      "Content-Type": "application/json",
     },
     body: JSON.stringify(input),
   });
-  return parseJsonResponse<ChoreTemplate>(response, 'Request failed', false);
+  return parseJsonResponse<ChoreTemplate>(response, "Request failed", false);
 }
 
 export async function deleteChoreTemplate(choreTemplateId: number): Promise<void> {
   const response = await fetchWithDevAuth(`/api/v1/chore-templates/${choreTemplateId}`, {
-    method: 'DELETE',
-    headers: { Accept: 'application/json' },
+    method: "DELETE",
+    headers: { Accept: "application/json" },
   });
 
   if (!response.ok) {
-    await parseJsonResponse<never>(response, 'Request failed', false);
+    await parseJsonResponse<never>(response, "Request failed", false);
   }
 }
 

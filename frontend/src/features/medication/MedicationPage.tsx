@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from "react";
 import {
   createMedicationPlan,
   fetchMedicationHistory,
@@ -6,8 +6,8 @@ import {
   listMedicationPlans,
   type MedicationHistoryItem,
   type MedicationPlan,
-} from '../../lib/api/today';
-import { formatDate, formatDateTime } from '../../lib/dateUtils';
+} from "../../lib/api/today";
+import { formatDate, formatDateTime } from "../../lib/dateUtils";
 
 function todayLocalDate(): string {
   const d = new Date();
@@ -25,11 +25,11 @@ export function MedicationPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  const [name, setName] = useState('');
-  const [instructions, setInstructions] = useState('');
+  const [name, setName] = useState("");
+  const [instructions, setInstructions] = useState("");
   const [startDate, setStartDate] = useState(todayLocalDate);
-  const [scheduleTime, setScheduleTime] = useState('09:00:00');
-  const [everyNDays, setEveryNDays] = useState('1');
+  const [scheduleTime, setScheduleTime] = useState("09:00:00");
+  const [everyNDays, setEveryNDays] = useState("1");
 
   const loadMedication = async (signal?: AbortSignal) => {
     setLoading(true);
@@ -47,7 +47,7 @@ export function MedicationPage() {
     } catch (err) {
       if (!signal?.aborted) {
         setCanRetry(isRetryableApiError(err));
-        setError(err instanceof Error ? err.message : 'Unable to load medication data.');
+        setError(err instanceof Error ? err.message : "Unable to load medication data.");
       }
     } finally {
       if (!signal?.aborted) {
@@ -64,13 +64,13 @@ export function MedicationPage() {
 
   const onCreatePlan = async () => {
     if (!name.trim() || !instructions.trim()) {
-      setSubmitError('Name and instructions are required.');
+      setSubmitError("Name and instructions are required.");
       return;
     }
 
     const parsedEvery = parseInt(everyNDays, 10);
     if (!Number.isInteger(parsedEvery) || parsedEvery < 1) {
-      setSubmitError('Every N days must be a positive integer.');
+      setSubmitError("Every N days must be a positive integer.");
       return;
     }
 
@@ -86,15 +86,15 @@ export function MedicationPage() {
         schedule_time: scheduleTime.length === 5 ? `${scheduleTime}:00` : scheduleTime,
         every_n_days: parsedEvery,
       });
-      setName('');
-      setInstructions('');
+      setName("");
+      setInstructions("");
       setStartDate(todayLocalDate());
-      setScheduleTime('09:00:00');
-      setEveryNDays('1');
-      setSuccessMessage('Medication plan created.');
+      setScheduleTime("09:00:00");
+      setEveryNDays("1");
+      setSuccessMessage("Medication plan created.");
       await loadMedication();
     } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : 'Failed to create medication plan.');
+      setSubmitError(err instanceof Error ? err.message : "Failed to create medication plan.");
     } finally {
       setIsSubmitting(false);
     }
@@ -104,18 +104,29 @@ export function MedicationPage() {
     <section>
       <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2 mb-2">
         <h2 className="h4 mb-0">Medication</h2>
-        <button type="button" className="btn btn-outline-primary btn-sm" disabled={loading} onClick={() => void loadMedication()}>
+        <button
+          type="button"
+          className="btn btn-outline-primary btn-sm"
+          disabled={loading}
+          onClick={() => void loadMedication()}
+        >
           Refresh
         </button>
       </div>
-      <p className="text-muted mb-3">Manage recurring medication plans and review recent dose history outside the Today workflow.</p>
+      <p className="text-muted mb-3">
+        Manage recurring medication plans and review recent dose history outside the Today workflow.
+      </p>
 
       {loading ? <div className="alert alert-info py-2">Loading medication...</div> : null}
       {error ? (
         <div className="alert alert-danger py-2 d-flex justify-content-between align-items-center gap-2 flex-wrap">
           <span>{error}</span>
           {canRetry ? (
-            <button type="button" className="btn btn-danger btn-sm" onClick={() => void loadMedication()}>
+            <button
+              type="button"
+              className="btn btn-danger btn-sm"
+              onClick={() => void loadMedication()}
+            >
               Retry
             </button>
           ) : null}
@@ -152,11 +163,21 @@ export function MedicationPage() {
               <div className="row g-2">
                 <div className="col-sm-6">
                   <label className="form-label small fw-semibold mb-1">Start date</label>
-                  <input className="form-control" type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} />
+                  <input
+                    className="form-control"
+                    type="date"
+                    value={startDate}
+                    onChange={(event) => setStartDate(event.target.value)}
+                  />
                 </div>
                 <div className="col-sm-6">
                   <label className="form-label small fw-semibold mb-1">Schedule time</label>
-                  <input className="form-control" type="time" value={scheduleTime.slice(0, 5)} onChange={(event) => setScheduleTime(event.target.value)} />
+                  <input
+                    className="form-control"
+                    type="time"
+                    value={scheduleTime.slice(0, 5)}
+                    onChange={(event) => setScheduleTime(event.target.value)}
+                  />
                 </div>
               </div>
               <div>
@@ -173,11 +194,18 @@ export function MedicationPage() {
                   }}
                 />
               </div>
-              <button type="button" className="btn btn-primary" disabled={isSubmitting} onClick={() => void onCreatePlan()}>
-                {isSubmitting ? 'Creating…' : 'Create plan'}
+              <button
+                type="button"
+                className="btn btn-primary"
+                disabled={isSubmitting}
+                onClick={() => void onCreatePlan()}
+              >
+                {isSubmitting ? "Creating…" : "Create plan"}
               </button>
             </div>
-            {submitError ? <div className="card-footer text-danger py-2 small">{submitError}</div> : null}
+            {submitError ? (
+              <div className="card-footer text-danger py-2 small">{submitError}</div>
+            ) : null}
           </div>
 
           <div className="card">
@@ -190,7 +218,8 @@ export function MedicationPage() {
                   <li key={plan.id} className="list-group-item py-2">
                     <div className="fw-semibold">{plan.name}</div>
                     <small className="text-muted d-block">
-                      Starts {formatDate(plan.start_date)} • {plan.schedule_time.slice(0, 5)} • every {plan.every_n_days} day{plan.every_n_days === 1 ? '' : 's'}
+                      Starts {formatDate(plan.start_date)} • {plan.schedule_time.slice(0, 5)} •
+                      every {plan.every_n_days} day{plan.every_n_days === 1 ? "" : "s"}
                     </small>
                     <small className="d-block mt-1">{plan.instructions}</small>
                   </li>
@@ -217,7 +246,9 @@ export function MedicationPage() {
                         </small>
                         <small className="d-block mt-1">{item.instructions}</small>
                       </div>
-                      <span className={`badge ${item.status === 'taken' ? 'text-bg-success' : item.status === 'scheduled' ? 'text-bg-info' : 'text-bg-secondary'}`}>
+                      <span
+                        className={`badge ${item.status === "taken" ? "text-bg-success" : item.status === "scheduled" ? "text-bg-info" : "text-bg-secondary"}`}
+                      >
                         {item.status}
                       </span>
                     </div>

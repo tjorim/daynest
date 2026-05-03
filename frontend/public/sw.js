@@ -1,5 +1,5 @@
-const CACHE_NAME = 'daynest-shell-v1';
-const SHELL_ASSETS = ['/', '/index.html', '/manifest.webmanifest'];
+const CACHE_NAME = "daynest-shell-v1";
+const SHELL_ASSETS = ["/", "/index.html", "/manifest.webmanifest"];
 const MAX_RUNTIME_ENTRIES = 60;
 const MAX_RUNTIME_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -11,7 +11,7 @@ async function purgeRuntimeCache() {
   await Promise.all(
     requests.map(async (request) => {
       const response = await cache.match(request);
-      const cachedAt = response?.headers.get('date');
+      const cachedAt = response?.headers.get("date");
       if (cachedAt && now - new Date(cachedAt).getTime() > MAX_RUNTIME_AGE_MS) {
         await cache.delete(request);
       }
@@ -22,35 +22,44 @@ async function purgeRuntimeCache() {
   if (remaining.length <= MAX_RUNTIME_ENTRIES) {
     return;
   }
-  await Promise.all(remaining.slice(0, remaining.length - MAX_RUNTIME_ENTRIES).map((request) => cache.delete(request)));
+  await Promise.all(
+    remaining
+      .slice(0, remaining.length - MAX_RUNTIME_ENTRIES)
+      .map((request) => cache.delete(request)),
+  );
 }
 
-self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(SHELL_ASSETS)).then(() => self.skipWaiting()));
-});
-
-self.addEventListener('activate', (event) => {
+self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(
-        keys
-          .filter((key) => key !== CACHE_NAME)
-          .map((key) => caches.delete(key)),
-      ),
-    ).then(() => purgeRuntimeCache()).then(() => self.clients.claim()),
+    caches
+      .open(CACHE_NAME)
+      .then((cache) => cache.addAll(SHELL_ASSETS))
+      .then(() => self.skipWaiting()),
   );
 });
 
-self.addEventListener('fetch', (event) => {
-  if (event.request.method !== 'GET') {
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
+    caches
+      .keys()
+      .then((keys) =>
+        Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))),
+      )
+      .then(() => purgeRuntimeCache())
+      .then(() => self.clients.claim()),
+  );
+});
+
+self.addEventListener("fetch", (event) => {
+  if (event.request.method !== "GET") {
     return;
   }
 
-  if (event.request.mode === 'navigate') {
+  if (event.request.mode === "navigate") {
     event.respondWith(
       fetch(event.request).catch(async () => {
         const cache = await caches.open(CACHE_NAME);
-        return (await cache.match('/index.html')) || Response.error();
+        return (await cache.match("/index.html")) || Response.error();
       }),
     );
     return;
@@ -59,18 +68,23 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.match(event.request, { cacheName: CACHE_NAME }).then((cached) => {
       const reqUrl = new URL(event.request.url);
-      const isApi = reqUrl.origin === self.location.origin && reqUrl.pathname.startsWith('/api/');
+      const isApi = reqUrl.origin === self.location.origin && reqUrl.pathname.startsWith("/api/");
       if (cached && !isApi) return cached;
 
       const fetchPromise = fetch(event.request).then((response) => {
         if (response.ok && !isApi && reqUrl.origin === self.location.origin) {
           const copy = response.clone();
-          void caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy)).then(() => purgeRuntimeCache());
+          void caches
+            .open(CACHE_NAME)
+            .then((cache) => cache.put(event.request, copy))
+            .then(() => purgeRuntimeCache());
         }
         return response;
       });
 
-      return isApi ? fetchPromise.catch(() => Response.error()) : fetchPromise.catch(() => cached || Response.error());
+      return isApi
+        ? fetchPromise.catch(() => Response.error())
+        : fetchPromise.catch(() => cached || Response.error());
     }),
   );
 });

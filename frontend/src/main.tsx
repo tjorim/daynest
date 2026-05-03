@@ -1,11 +1,11 @@
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import { BrowserRouter, NavLink } from 'react-router-dom';
-import 'bootstrap/dist/css/bootstrap.min.css';
-import './app.css';
+import React from "react";
+import ReactDOM from "react-dom/client";
+import { BrowserRouter, NavLink } from "react-router-dom";
+import "bootstrap/dist/css/bootstrap.min.css";
+import "./app.css";
 
-import { AppRouter } from './app/router/AppRouter';
-import { AuthProvider, useAuth } from './app/providers/AuthProvider';
+import { AppRouter } from "./app/router/AppRouter";
+import { AuthProvider, useAuth } from "./app/providers/AuthProvider";
 
 function App() {
   const { isAuthenticated, isLoading, logout, user } = useAuth();
@@ -16,7 +16,9 @@ function App() {
         <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2">
           <div>
             <h1 className="mb-1">Daynest</h1>
-            <p className="text-muted mb-0">Daily flow, calendar planning, and household tracking.</p>
+            <p className="text-muted mb-0">
+              Daily flow, calendar planning, and household tracking.
+            </p>
           </div>
           {isAuthenticated && user ? (
             <div className="d-flex flex-column flex-sm-row align-items-start align-items-sm-center gap-2">
@@ -29,26 +31,46 @@ function App() {
               </button>
             </div>
           ) : !isLoading ? (
-            <NavLink className={({ isActive }) => `btn btn-sm ${isActive ? 'btn-primary' : 'btn-outline-primary'}`} to="/auth">
+            <NavLink
+              className={({ isActive }) =>
+                `btn btn-sm ${isActive ? "btn-primary" : "btn-outline-primary"}`
+              }
+              to="/auth"
+            >
               Login
             </NavLink>
           ) : null}
         </div>
         {isAuthenticated ? (
           <nav className="nav nav-pills gap-2">
-            <NavLink className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`} to="/today">
+            <NavLink
+              className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}
+              to="/today"
+            >
               Today
             </NavLink>
-            <NavLink className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`} to="/calendar">
+            <NavLink
+              className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}
+              to="/calendar"
+            >
               Calendar
             </NavLink>
-            <NavLink className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`} to="/medication">
+            <NavLink
+              className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}
+              to="/medication"
+            >
               Medication
             </NavLink>
-            <NavLink className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`} to="/templates">
+            <NavLink
+              className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}
+              to="/templates"
+            >
               Templates
             </NavLink>
-            <NavLink className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`} to="/settings">
+            <NavLink
+              className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}
+              to="/settings"
+            >
               Settings
             </NavLink>
           </nav>
@@ -59,7 +81,7 @@ function App() {
   );
 }
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
+ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <AuthProvider>
       <BrowserRouter>
@@ -69,10 +91,10 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   </React.StrictMode>,
 );
 
-if ('serviceWorker' in navigator && import.meta.env.PROD) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch((err) => {
-      console.error('Service worker registration failed:', err);
+if ("serviceWorker" in navigator && import.meta.env.PROD) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").catch((err) => {
+      console.error("Service worker registration failed:", err);
     });
   });
 }
