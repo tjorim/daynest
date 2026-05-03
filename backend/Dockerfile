@@ -9,7 +9,8 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 COPY pyproject.toml uv.lock ./
 
 # Install production dependencies
-RUN uv sync --frozen --no-dev
+RUN --mount=type=cache,target=/root/.cache/uv \
+    UV_COMPILE_BYTECODE=1 uv sync --frozen --no-dev
 
 # Copy application code
 COPY alembic/ alembic/
