@@ -1,4 +1,9 @@
-import { clearStoredTokens, getStoredTokens, storeTokens, type SessionTokens } from '../auth/session';
+import {
+  clearStoredTokens,
+  getStoredTokens,
+  storeTokens,
+  type SessionTokens,
+} from "../auth/session";
 
 export interface AuthUser {
   id: number;
@@ -12,7 +17,7 @@ export class AuthApiError extends Error {
 
   constructor(message: string, status: number) {
     super(message);
-    this.name = 'AuthApiError';
+    this.name = "AuthApiError";
     this.status = status;
   }
 }
@@ -39,18 +44,23 @@ async function parseJsonResponse<T>(response: Response, fallbackMessage: string)
 
     try {
       const body = (await response.json()) as { detail?: string | unknown[] };
-      if (typeof body.detail === 'string') {
+      if (typeof body.detail === "string") {
         message = body.detail;
       } else if (Array.isArray(body.detail) && body.detail.length > 0) {
         message = body.detail
           .map((entry) => {
-            if (entry && typeof entry === 'object' && 'msg' in entry && typeof entry.msg === 'string') {
+            if (
+              entry &&
+              typeof entry === "object" &&
+              "msg" in entry &&
+              typeof entry.msg === "string"
+            ) {
               return entry.msg;
             }
             return JSON.stringify(entry);
           })
           .filter((entry): entry is string => Boolean(entry))
-          .join(', ');
+          .join(", ");
       }
     } catch {
       // keep fallback message
@@ -62,17 +72,23 @@ async function parseJsonResponse<T>(response: Response, fallbackMessage: string)
   return (await response.json()) as T;
 }
 
-async function postTokenRequest(path: string, payload: LoginRequest | RegisterRequest | { refresh_token: string }) {
+async function postTokenRequest(
+  path: string,
+  payload: LoginRequest | RegisterRequest | { refresh_token: string },
+) {
   const response = await fetch(path, {
-    method: 'POST',
+    method: "POST",
     headers: {
-      Accept: 'application/json',
-      'Content-Type': 'application/json',
+      Accept: "application/json",
+      "Content-Type": "application/json",
     },
     body: JSON.stringify(payload),
   });
 
-  const tokens = await parseJsonResponse<TokenPairResponse>(response, 'Authentication request failed');
+  const tokens = await parseJsonResponse<TokenPairResponse>(
+    response,
+    "Authentication request failed",
+  );
   const sessionTokens = {
     accessToken: tokens.access_token,
     refreshToken: tokens.refresh_token,
@@ -82,28 +98,28 @@ async function postTokenRequest(path: string, payload: LoginRequest | RegisterRe
 }
 
 export async function login(credentials: LoginRequest): Promise<SessionTokens> {
-  return postTokenRequest('/api/v1/auth/login', credentials);
+  return postTokenRequest("/api/v1/auth/login", credentials);
 }
 
 export async function register(payload: RegisterRequest): Promise<SessionTokens> {
-  return postTokenRequest('/api/v1/auth/register', payload);
+  return postTokenRequest("/api/v1/auth/register", payload);
 }
 
 export async function fetchMe(accessToken?: string): Promise<AuthUser> {
   const token = accessToken ?? getStoredTokens()?.accessToken;
 
   if (!token) {
-    throw new AuthApiError('Missing access token', 401);
+    throw new AuthApiError("Missing access token", 401);
   }
 
-  const response = await fetch('/api/v1/auth/me', {
+  const response = await fetch("/api/v1/auth/me", {
     headers: {
-      Accept: 'application/json',
+      Accept: "application/json",
       Authorization: `Bearer ${token}`,
     },
   });
 
-  return parseJsonResponse<AuthUser>(response, 'Unable to load session');
+  return parseJsonResponse<AuthUser>(response, "Unable to load session");
 }
 
 export async function refreshSessionTokens(): Promise<SessionTokens | null> {
@@ -116,7 +132,7 @@ export async function refreshSessionTokens(): Promise<SessionTokens | null> {
 
   refreshPromise ??= (async () => {
     try {
-      return await postTokenRequest('/api/v1/auth/refresh', {
+      return await postTokenRequest("/api/v1/auth/refresh", {
         refresh_token: tokens.refreshToken,
       });
     } catch (error) {
