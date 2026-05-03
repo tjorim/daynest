@@ -10,6 +10,24 @@ class TodaySummary(BaseModel):
     next_medication: str | None = None
 
 
+class CompleteTaskRequest(BaseModel):
+    task_id: int = Field(gt=0, description="The chore instance ID to mark as complete")
+
+
+class SnoozeTaskRequest(BaseModel):
+    task_id: int = Field(gt=0, description="The chore instance ID to reschedule")
+    days: int = Field(default=1, ge=1, le=30, description="Number of days to snooze the task")
+
+
+class MarkMedicationTakenRequest(BaseModel):
+    medication_dose_id: int = Field(gt=0, description="The medication dose instance ID to mark as taken")
+
+
+class HAActionResult(BaseModel):
+    success: bool
+    detail: str
+
+
 
 class IntegrationClientCreateRequest(BaseModel):
     name: str = Field(min_length=2, max_length=120)

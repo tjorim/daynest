@@ -1,24 +1,17 @@
 from __future__ import annotations
 
-import enum
 from datetime import date, datetime
 from typing import TYPE_CHECKING
 
 from sqlalchemy import Date, DateTime, Enum, ForeignKey, String, Text, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.core.enums import MedicationDoseStatus
 from app.db.base import Base
 
 if TYPE_CHECKING:
     from app.models.medication_plan import MedicationPlan
     from app.models.user import User
-
-
-class MedicationDoseStatus(str, enum.Enum):
-    scheduled = "scheduled"
-    taken = "taken"
-    skipped = "skipped"
-    missed = "missed"
 
 
 class MedicationDoseInstance(Base):

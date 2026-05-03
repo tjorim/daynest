@@ -1,51 +1,21 @@
+# Local development only — do NOT use in production.
+# Credentials below are intentionally hardcoded dev defaults.
 services:
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    ports:
-      - "4173:4173"
-    depends_on:
-      - backend
-
-  backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    env_file:
-      - ${BACKEND_ENV_FILE:-./backend/env/dev.env}
-    depends_on:
-      postgres:
-        condition: service_healthy
-    expose:
-      - "8000"
-    secrets:
-      - jwt_secret
-      - postgres_password
-
   postgres:
-    image: postgres:18
+    image: postgres:18-alpine
     environment:
-      POSTGRES_DB: daynest
       POSTGRES_USER: daynest
-      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      POSTGRES_PASSWORD: daynest
+      POSTGRES_DB: daynest
+    ports:
+      - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
-    expose:
-      - "5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U daynest -d daynest"]
       interval: 10s
       timeout: 5s
       retries: 5
-    secrets:
-      - postgres_password
 
 volumes:
   pgdata:
-
-secrets:
-  jwt_secret:
-    file: ${JWT_SECRET_FILE_PATH:-./secrets/dev/jwt_secret.txt}
-  postgres_password:
-    file: ${POSTGRES_PASSWORD_FILE_PATH:-./secrets/dev/postgres_password.txt}

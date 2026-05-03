@@ -16,6 +16,7 @@ if TYPE_CHECKING:
     from app.models.medication_dose_instance import MedicationDoseInstance
     from app.models.medication_plan import MedicationPlan
     from app.models.planned_item import PlannedItem
+    from app.models.refresh_token import RefreshToken
     from app.models.routine_template import RoutineTemplate
     from app.models.task_instance import TaskInstance
 
@@ -41,6 +42,10 @@ class User(Base):
     )
     planned_items: Mapped[list["PlannedItem"]] = relationship(back_populates="user", cascade="all, delete-orphan")
     integration_clients: Mapped[list["IntegrationClient"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+    refresh_tokens: Mapped[list["RefreshToken"]] = relationship(
         back_populates="user",
         cascade="all, delete-orphan",
     )
