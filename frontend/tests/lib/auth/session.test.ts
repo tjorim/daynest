@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it } from "vitest";
-import { clearStoredTokens, getStoredTokens, storeTokens } from "./session";
+import { clearStoredTokens, getStoredTokens, storeTokens } from "../../../src/lib/auth/session";
 
 afterEach(() => {
   localStorage.clear();

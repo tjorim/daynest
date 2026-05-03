@@ -9,7 +9,7 @@ export default defineConfig({
     env: {
       TZ: "UTC",
     },
-    setupFiles: ["./src/test-setup.ts"],
+    setupFiles: ["./tests/setup.ts"],
     coverage: {
       provider: "v8",
     },

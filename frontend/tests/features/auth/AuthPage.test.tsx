@@ -3,10 +3,10 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { MemoryRouter } from "react-router-dom";
-import { AuthPage } from "./AuthPage";
+import { AuthPage } from "../../../src/features/auth/AuthPage";
 
 // Provide a minimal AuthContext so AuthPage can consume useAuth()
-vi.mock("../../app/providers/AuthProvider", () => ({
+vi.mock("../../../src/app/providers/AuthProvider", () => ({
   useAuth: () => ({
     isAuthenticated: false,
     isLoading: false,
