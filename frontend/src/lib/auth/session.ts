@@ -1,5 +1,5 @@
-const ACCESS_TOKEN_KEY = 'daynest.accessToken';
-const REFRESH_TOKEN_KEY = 'daynest.refreshToken';
+const ACCESS_TOKEN_KEY = "daynest.accessToken";
+const REFRESH_TOKEN_KEY = "daynest.refreshToken";
 
 export type SessionTokens = {
   accessToken: string;
@@ -7,7 +7,7 @@ export type SessionTokens = {
 };
 
 function hasWindow() {
-  return typeof window !== 'undefined';
+  return typeof window !== "undefined";
 }
 
 export function getStoredTokens(): SessionTokens | null {

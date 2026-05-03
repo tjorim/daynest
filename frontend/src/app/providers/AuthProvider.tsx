@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import {
   fetchMe,
   login as loginRequest,
@@ -6,8 +6,8 @@ import {
   refreshSessionTokens,
   register as registerRequest,
   type AuthUser,
-} from '../../lib/api/auth';
-import { getStoredTokens } from '../../lib/auth/session';
+} from "../../lib/api/auth";
+import { getStoredTokens } from "../../lib/auth/session";
 
 type AuthContextValue = {
   user: AuthUser | null;
@@ -46,11 +46,6 @@ async function hydrateUser() {
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-
-  const refreshUser = async () => {
-    const nextUser = await hydrateUser();
-    setUser(nextUser);
-  };
 
   useEffect(() => {
     let isMounted = true;
@@ -109,7 +104,7 @@ export function useAuth() {
   const context = useContext(AuthContext);
 
   if (!context) {
-    throw new Error('useAuth must be used within AuthProvider');
+    throw new Error("useAuth must be used within AuthProvider");
   }
 
   return context;

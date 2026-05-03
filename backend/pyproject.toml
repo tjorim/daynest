@@ -1,9 +1,10 @@
 [project]
 name = "daynest-backend"
 version = "0.1.0"
-requires-python = ">=3.12,<3.13"
+requires-python = ">=3.13"
 dependencies = [
     "alembic==1.18.4",
+    "anyio==4.13.0",
     "email-validator==2.3.0",
     "fastapi==0.136.1",
     "mcp==1.27.0",
@@ -23,9 +24,6 @@ dev = [
     "ruff==0.15.12",
     "ty>=0.0.33",
 ]
-
-[tool.ty.rules]
-unresolved-attribute = "ignore"  # anyio stubs are incomplete; suppress false positives on anyio.to_thread.run_sync
 
 [tool.ruff.lint]
 ignore = ["B008"]  # Depends/Query in FastAPI route defaults is intentional
