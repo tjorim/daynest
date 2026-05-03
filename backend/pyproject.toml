@@ -24,9 +24,6 @@ dev = [
     "ty>=0.0.33",
 ]
 
-[tool.ty.rules]
-unresolved-attribute = "ignore"  # anyio stubs are incomplete; suppress false positives on anyio.to_thread.run_sync
-
 [tool.ruff.lint]
 ignore = ["B008"]  # Depends/Query in FastAPI route defaults is intentional
 per-file-ignores = { "__init__.py" = ["F401"] }
