@@ -6,7 +6,7 @@ import {
   formatMonthYear,
   formatTime,
   toIsoDate,
-} from "../../src/lib/dateUtils";
+} from "@/lib/dateUtils";
 
 describe("toIsoDate", () => {
   it("formats a Date object as YYYY-MM-DD", () => {

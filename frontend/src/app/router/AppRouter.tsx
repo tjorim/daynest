@@ -1,11 +1,11 @@
 import { Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
-import { useAuth } from "../providers/AuthProvider";
-import { AuthPage } from "../../features/auth/AuthPage";
-import { TodayPage } from "../../features/today/TodayPage";
-import { CalendarPage } from "../../features/calendar/CalendarPage";
-import { MedicationPage } from "../../features/medication/MedicationPage";
-import { SettingsPage } from "../../features/settings/SettingsPage";
-import { TemplatesPage } from "../../features/templates/TemplatesPage";
+import { useAuth } from "@/app/providers/AuthProvider";
+import { AuthPage } from "@/features/auth/AuthPage";
+import { TodayPage } from "@/features/today/TodayPage";
+import { CalendarPage } from "@/features/calendar/CalendarPage";
+import { MedicationPage } from "@/features/medication/MedicationPage";
+import { SettingsPage } from "@/features/settings/SettingsPage";
+import { TemplatesPage } from "@/features/templates/TemplatesPage";
 
 function RequireAuth() {
   const location = useLocation();

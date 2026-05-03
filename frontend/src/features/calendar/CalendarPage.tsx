@@ -19,8 +19,8 @@ import {
   type PlannedItemBackupFile,
   type PlannedTodayItem,
   type PlannedItemModuleKey,
-} from "../../lib/api/today";
-import { capitalize, dayjs, formatDate, formatMonthYear, toIsoDate } from "../../lib/dateUtils";
+} from "@/lib/api/today";
+import { capitalize, dayjs, formatDate, formatMonthYear, toIsoDate } from "@/lib/dateUtils";
 
 function itemBadgeClass(itemType: string): string {
   if (itemType === "medication") return "text-bg-info";

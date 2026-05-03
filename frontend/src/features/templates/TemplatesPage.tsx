@@ -11,8 +11,8 @@ import {
   updateRoutineTemplate,
   type ChoreTemplate,
   type RoutineTemplate,
-} from "../../lib/api/today";
-import { formatDate, toIsoDate } from "../../lib/dateUtils";
+} from "@/lib/api/today";
+import { formatDate, toIsoDate } from "@/lib/dateUtils";
 
 export function TemplatesPage() {
   const [routines, setRoutines] = useState<RoutineTemplate[]>([]);

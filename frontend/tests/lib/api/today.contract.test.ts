@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { TodayPayload } from "../../../src/lib/api/today";
+import type { TodayPayload } from "@/lib/api/today";
 
 type Expect<T extends true> = T;
 type Equal<A, B> =

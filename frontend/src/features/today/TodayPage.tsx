@@ -21,7 +21,7 @@ import {
   type RoutineTodayItem,
   type TodayPayload,
   type UpcomingTodayItem,
-} from "../../lib/api/today";
+} from "@/lib/api/today";
 import {
   capitalize,
   dayjs,
@@ -29,7 +29,7 @@ import {
   formatDateTime,
   formatTime,
   toIsoDate,
-} from "../../lib/dateUtils";
+} from "@/lib/dateUtils";
 
 type SectionItem = {
   id: string;

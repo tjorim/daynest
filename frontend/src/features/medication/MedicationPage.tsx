@@ -6,8 +6,8 @@ import {
   listMedicationPlans,
   type MedicationHistoryItem,
   type MedicationPlan,
-} from "../../lib/api/today";
-import { formatDate, formatDateTime } from "../../lib/dateUtils";
+} from "@/lib/api/today";
+import { formatDate, formatDateTime } from "@/lib/dateUtils";
 
 function todayLocalDate(): string {
   const d = new Date();

@@ -4,8 +4,8 @@ import { BrowserRouter, NavLink } from "react-router-dom";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "./app.css";
 
-import { AppRouter } from "./app/router/AppRouter";
-import { AuthProvider, useAuth } from "./app/providers/AuthProvider";
+import { AppRouter } from "@/app/router/AppRouter";
+import { AuthProvider, useAuth } from "@/app/providers/AuthProvider";
 
 function App() {
   const { isAuthenticated, isLoading, logout, user } = useAuth();
