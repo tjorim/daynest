@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import functools
 import json
 import logging
 import os
@@ -403,16 +402,14 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
         """Create a planned Daynest item."""
 
         return await to_thread.run_sync(
-            functools.partial(
-                daynest.create_planned_item,
-                title=title,
-                planned_for=planned_for,
-                notes=notes,
-                module_key=module_key,
-                recurrence_hint=recurrence_hint,
-                linked_source=linked_source,
-                linked_ref=linked_ref,
-            )
+            daynest.create_planned_item,
+            title,
+            planned_for,
+            notes,
+            module_key,
+            recurrence_hint,
+            linked_source,
+            linked_ref,
         )
 
     @mcp.tool()
@@ -430,18 +427,16 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
         """Update a planned Daynest item."""
 
         return await to_thread.run_sync(
-            functools.partial(
-                daynest.update_planned_item,
-                planned_item_id=planned_item_id,
-                title=title,
-                planned_for=planned_for,
-                is_done=is_done,
-                notes=notes,
-                module_key=module_key,
-                recurrence_hint=recurrence_hint,
-                linked_source=linked_source,
-                linked_ref=linked_ref,
-            )
+            daynest.update_planned_item,
+            planned_item_id,
+            title,
+            planned_for,
+            is_done,
+            notes,
+            module_key,
+            recurrence_hint,
+            linked_source,
+            linked_ref,
         )
 
     @mcp.tool()

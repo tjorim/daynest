@@ -6,6 +6,9 @@ export default defineConfig({
   plugins: [react()],
   test: {
     environment: "node",
+    env: {
+      TZ: "UTC",
+    },
     coverage: {
       provider: "v8",
     },

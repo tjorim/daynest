@@ -99,7 +99,7 @@ export function CalendarPage() {
       const [month, day, selectedPlanned] = await Promise.all([
         fetchCalendarMonth(monthKey.year, monthKey.month, signal),
         fetchCalendarDay(selectedDate, signal),
-        listPlannedItems(selectedDate, selectedDate),
+        listPlannedItems(selectedDate, selectedDate, signal),
       ]);
       setMonthItems(month.days);
       setDayPayload(day);
@@ -147,7 +147,7 @@ export function CalendarPage() {
         linked_ref: linkedRef.trim() || null,
       };
 
-      if (editingPlannedItemId) {
+      if (editingPlannedItemId !== null) {
         const currentItem = plannedItems.find((item) => item.id === editingPlannedItemId);
         await updatePlannedItem(editingPlannedItemId, {
           ...payload,
@@ -158,13 +158,15 @@ export function CalendarPage() {
       }
 
       resetPlannedForm();
-      setActionStatus(editingPlannedItemId ? "Planned item updated." : "Planned item created.");
+      setActionStatus(
+        editingPlannedItemId !== null ? "Planned item updated." : "Planned item created.",
+      );
       await loadCalendar();
     } catch (err) {
       setAddError(
         err instanceof Error
           ? err.message
-          : `Failed to ${editingPlannedItemId ? "update" : "add"} item.`,
+          : `Failed to ${editingPlannedItemId !== null ? "update" : "add"} item.`,
       );
     } finally {
       setIsAdding(false);
@@ -244,7 +246,7 @@ export function CalendarPage() {
     try {
       const startDate = monthStart.format("YYYY-MM-DD");
       const endDate = monthStart.endOf("month").format("YYYY-MM-DD");
-      const items = await listPlannedItems(startDate, endDate);
+      const items = await listPlannedItems(startDate, endDate, undefined);
       const payload: PlannedItemBackupFile = {
         source: "daynest",
         schema_version: 1,
@@ -404,7 +406,7 @@ export function CalendarPage() {
         </div>
       ) : null}
       {actionStatus ? <div className="alert alert-success py-2">{actionStatus}</div> : null}
-      {addError && !editingPlannedItemId ? (
+      {addError && editingPlannedItemId === null ? (
         <div className="alert alert-danger py-2">{addError}</div>
       ) : null}
 
@@ -673,14 +675,14 @@ export function CalendarPage() {
                   onClick={() => void onAddPlanned()}
                 >
                   {isAdding
-                    ? editingPlannedItemId
+                    ? editingPlannedItemId !== null
                       ? "Saving…"
                       : "Adding…"
-                    : editingPlannedItemId
+                    : editingPlannedItemId !== null
                       ? "Save item"
                       : "Add item"}
                 </button>
-                {editingPlannedItemId ? (
+                {editingPlannedItemId !== null ? (
                   <button
                     type="button"
                     className="btn btn-outline-secondary"
@@ -692,7 +694,7 @@ export function CalendarPage() {
                 ) : null}
               </div>
             </div>
-            {addError && editingPlannedItemId ? (
+            {addError && editingPlannedItemId !== null ? (
               <div className="card-footer text-danger py-2 small">{addError}</div>
             ) : null}
           </div>

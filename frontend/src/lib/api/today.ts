@@ -452,6 +452,7 @@ export async function deletePlannedItem(plannedItemId: number): Promise<void> {
 export async function listPlannedItems(
   startDate?: string,
   endDate?: string,
+  signal?: AbortSignal,
 ): Promise<PlannedTodayItem[]> {
   const params = new URLSearchParams();
   if (startDate) {
@@ -464,6 +465,7 @@ export async function listPlannedItems(
 
   const response = await fetchWithDevAuth(`/api/v1/planned-items${qs ? `?${qs}` : ""}`, {
     headers: { Accept: "application/json" },
+    signal,
   });
   return parseJsonResponse<PlannedTodayItem[]>(response);
 }
