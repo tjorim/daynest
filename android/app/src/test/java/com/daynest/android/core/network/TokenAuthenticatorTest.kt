@@ -23,7 +23,7 @@ class TokenAuthenticatorTest {
 
     @After
     fun tearDown() {
-        server.shutdown()
+        server.close()
     }
 
     private fun buildScenario(
