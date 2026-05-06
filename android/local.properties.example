@@ -1,0 +1,18 @@
+# Copy this file to local.properties (already in .gitignore) and fill in the values.
+# local.properties is never committed to version control.
+
+# ---- Android SDK location (required by Android Gradle Plugin) ----
+# sdk.dir=/Users/<you>/Library/Android/sdk
+
+# ---- API base URLs ----
+# Debug defaults to the Android emulator loopback (http://10.0.2.2:8000/).
+# Override here if you run the backend on a different host or port.
+# apiBaseUrlDebug=http://10.0.2.2:8000/
+
+# Staging API base URL (required for :app:assembleStaging builds).
+# Must end with a trailing slash.
+# apiBaseUrlStaging=https://staging-api.daynest.com/
+
+# Release API base URL (required for :app:assembleRelease builds).
+# Must end with a trailing slash.
+# apiBaseUrlRelease=https://api.daynest.com/

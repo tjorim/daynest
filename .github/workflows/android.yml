@@ -27,6 +27,34 @@ jobs:
       - name: Set up Gradle cache
         uses: gradle/actions/setup-gradle@v6
 
+      - name: Write local.properties from secrets
+        working-directory: android
+        env:
+          API_BASE_URL_STAGING: ${{ secrets.API_BASE_URL_STAGING }}
+          API_BASE_URL_RELEASE: ${{ secrets.API_BASE_URL_RELEASE }}
+        run: |
+          if [[ -z "${API_BASE_URL_STAGING}" ]]; then
+            echo "::error::Secret API_BASE_URL_STAGING is not set."
+            exit 1
+          fi
+          if [[ -z "${API_BASE_URL_RELEASE}" ]]; then
+            echo "::error::Secret API_BASE_URL_RELEASE is not set."
+            exit 1
+          fi
+          {
+            echo "apiBaseUrlStaging=${API_BASE_URL_STAGING}"
+            echo "apiBaseUrlRelease=${API_BASE_URL_RELEASE}"
+          } >> local.properties
+
       - name: Run Android checks
         working-directory: android
         run: ./gradlew :app:detekt :app:ktlintCheck :app:lintDebug :app:testDebugUnitTest
+
+      - name: Assemble staging debug
+        working-directory: android
+        run: ./gradlew :app:assembleStagingDebug
+
+      - name: Assemble release (smoke check with debug signing)
+        working-directory: android
+        run: ./gradlew :app:assembleRelease
+

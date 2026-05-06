@@ -1,5 +1,6 @@
 import com.android.build.api.dsl.ApplicationExtension
 import io.gitlab.arturbosch.detekt.Detekt
+import java.util.Properties
 
 plugins {
     id("com.android.application")
@@ -9,6 +10,27 @@ plugins {
     id("com.google.dagger.hilt.android")
     id("io.gitlab.arturbosch.detekt")
     id("org.jlleitschuh.gradle.ktlint")
+}
+
+val localProperties = Properties().also { props ->
+    val localPropertiesFile = rootProject.file("local.properties")
+    if (localPropertiesFile.exists()) {
+        localPropertiesFile.inputStream().use { props.load(it) }
+    }
+}
+
+fun resolveApiUrl(key: String, envKey: String, required: Boolean, default: String = ""): String {
+    val value = localProperties.getProperty(key)
+        ?: providers.gradleProperty(key).orNull
+        ?: System.getenv(envKey)
+        ?: default.takeIf { it.isNotBlank() }
+    if (required && value.isNullOrBlank()) {
+        error(
+            "Missing required build property '$key'. " +
+                "Set it in local.properties, as a Gradle property, or as the env var '$envKey'.",
+        )
+    }
+    return value.orEmpty()
 }
 
 extensions.configure<ApplicationExtension> {
@@ -30,20 +52,37 @@ extensions.configure<ApplicationExtension> {
 
     buildTypes {
         debug {
-            buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:8000/\"")
+            val url = resolveApiUrl(
+                "apiBaseUrlDebug",
+                "API_BASE_URL_DEBUG",
+                required = false,
+                default = "http://10.0.2.2:8000/",
+            )
+            buildConfigField("String", "API_BASE_URL", "\"$url\"")
         }
         create("staging") {
             initWith(getByName("debug"))
             matchingFallbacks += listOf("debug")
-            buildConfigField("String", "API_BASE_URL", "\"https://staging-api.daynest.com/\"")
+            val url = resolveApiUrl(
+                "apiBaseUrlStaging",
+                "API_BASE_URL_STAGING",
+                required = true,
+            )
+            buildConfigField("String", "API_BASE_URL", "\"$url\"")
         }
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
-            buildConfigField("String", "API_BASE_URL", "\"https://api.daynest.com/\"")
+            val url = resolveApiUrl(
+                "apiBaseUrlRelease",
+                "API_BASE_URL_RELEASE",
+                required = true,
+            )
+            buildConfigField("String", "API_BASE_URL", "\"$url\"")
         }
     }
 
