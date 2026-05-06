@@ -24,4 +24,3 @@ object PreferencesDiModule {
             produceFile = { context.preferencesDataStoreFile("daynest_user_prefs") },
         )
 }
-
