@@ -26,10 +26,11 @@ class CertificatePinnerProviderTest {
         val pins = pinner.pins
         assertEquals(2, pins.size)
         assertTrue(pins.all { it.pattern == host })
-        val expectedHashes = setOf(
-            pin1.substringAfter('/').decodeBase64()!!,
-            pin2.substringAfter('/').decodeBase64()!!,
-        )
+        val expectedHashes =
+            setOf(
+                pin1.substringAfter('/').decodeBase64()!!,
+                pin2.substringAfter('/').decodeBase64()!!,
+            )
         assertEquals(expectedHashes, pins.map { it.hash }.toSet())
     }
 }

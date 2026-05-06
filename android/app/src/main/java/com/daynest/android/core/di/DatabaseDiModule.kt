@@ -25,6 +25,5 @@ object DatabaseDiModule {
 
     @Provides
     @Singleton
-    fun provideTodaySummaryDao(database: DaynestDatabase): TodaySummaryDao =
-        database.todaySummaryDao()
+    fun provideTodaySummaryDao(database: DaynestDatabase): TodaySummaryDao = database.todaySummaryDao()
 }

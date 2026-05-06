@@ -31,18 +31,21 @@ class TokenAuthenticatorTest {
         initialRefreshToken: String? = "old-refresh-token",
         setupApi: FakeAuthApi.() -> Unit = {},
     ): Triple<OkHttpClient, FakeSecureTokenStorage, FakeAuthApi> {
-        val fakeStorage = FakeSecureTokenStorage(
-            initialToken = initialAccessToken,
-            initialRefreshToken = initialRefreshToken,
-        )
+        val fakeStorage =
+            FakeSecureTokenStorage(
+                initialToken = initialAccessToken,
+                initialRefreshToken = initialRefreshToken,
+            )
         val fakeApi = FakeAuthApi().apply(setupApi)
         val authRepository = AuthRepository(authApi = fakeApi, secureTokenStorage = fakeStorage)
         val authInterceptor = AuthInterceptor(fakeStorage)
         val tokenAuthenticator = TokenAuthenticator(fakeStorage) { authRepository }
-        val client = OkHttpClient.Builder()
-            .addInterceptor(authInterceptor)
-            .authenticator(tokenAuthenticator)
-            .build()
+        val client =
+            OkHttpClient
+                .Builder()
+                .addInterceptor(authInterceptor)
+                .authenticator(tokenAuthenticator)
+                .build()
         return Triple(client, fakeStorage, fakeApi)
     }
 
@@ -51,18 +54,20 @@ class TokenAuthenticatorTest {
         server.enqueue(MockResponse(code = 401))
         server.enqueue(MockResponse(code = 200))
 
-        val (client, fakeStorage) = buildScenario(
-            setupApi = {
-                enqueueRefreshSuccess(
-                    accessToken = "new-access-token",
-                    refreshToken = "new-refresh-token",
-                )
-            },
-        )
+        val (client, fakeStorage) =
+            buildScenario(
+                setupApi = {
+                    enqueueRefreshSuccess(
+                        accessToken = "new-access-token",
+                        refreshToken = "new-refresh-token",
+                    )
+                },
+            )
 
-        val response = client.newCall(
-            Request.Builder().url(server.url("/api/test")).build(),
-        ).execute()
+        val response =
+            client
+                .newCall(Request.Builder().url(server.url("/api/test")).build())
+                .execute()
 
         assertEquals(200, response.code)
         val firstRequest = server.takeRequest()
@@ -77,18 +82,20 @@ class TokenAuthenticatorTest {
         server.enqueue(MockResponse(code = 401))
         server.enqueue(MockResponse(code = 401))
 
-        val (client, fakeStorage) = buildScenario(
-            setupApi = {
-                enqueueRefreshSuccess(
-                    accessToken = "new-access-token",
-                    refreshToken = "new-refresh-token",
-                )
-            },
-        )
+        val (client, fakeStorage) =
+            buildScenario(
+                setupApi = {
+                    enqueueRefreshSuccess(
+                        accessToken = "new-access-token",
+                        refreshToken = "new-refresh-token",
+                    )
+                },
+            )
 
-        val response = client.newCall(
-            Request.Builder().url(server.url("/api/test")).build(),
-        ).execute()
+        val response =
+            client
+                .newCall(Request.Builder().url(server.url("/api/test")).build())
+                .execute()
 
         assertEquals(401, response.code)
         assertEquals(2, server.requestCount)
