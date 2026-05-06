@@ -1,5 +1,5 @@
 import com.android.build.api.dsl.ApplicationExtension
-import io.gitlab.arturbosch.detekt.Detekt
+import dev.detekt.gradle.Detekt
 import java.net.URI
 import java.util.Properties
 
@@ -9,7 +9,7 @@ plugins {
     id("org.jetbrains.kotlin.plugin.serialization")
     id("com.google.devtools.ksp")
     id("com.google.dagger.hilt.android")
-    id("io.gitlab.arturbosch.detekt")
+    id("dev.detekt")
     id("org.jlleitschuh.gradle.ktlint")
 }
 
@@ -183,7 +183,7 @@ detekt {
 }
 
 tasks.withType<Detekt>().configureEach {
-    jvmTarget = "17"
+    jvmTarget.set("17")
 }
 
 ktlint {
