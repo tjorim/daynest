@@ -11,11 +11,35 @@ export default defineConfig({
     },
   },
   test: {
-    environment: "node",
-    env: {
-      TZ: "UTC",
-    },
-    setupFiles: ["./tests/setup.ts"],
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: "dom",
+          include: [
+            "tests/features/**/*.{test,spec}.?(c|m)[jt]s?(x)",
+            "tests/components/**/*.{test,spec}.?(c|m)[jt]s?(x)",
+          ],
+          environment: "jsdom",
+          env: {
+            TZ: "UTC",
+          },
+          setupFiles: ["./tests/setup.ts"],
+        },
+      },
+      {
+        extends: true,
+        test: {
+          name: "node",
+          include: ["tests/lib/**/*.{test,spec}.?(c|m)[jt]s?(x)"],
+          environment: "node",
+          env: {
+            TZ: "UTC",
+          },
+          setupFiles: ["./tests/setup.ts"],
+        },
+      },
+    ],
     coverage: {
       provider: "v8",
     },

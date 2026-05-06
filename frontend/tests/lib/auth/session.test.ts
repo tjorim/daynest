@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { clearStoredTokens, getStoredTokens, storeTokens } from "@/lib/auth/session";
 
 afterEach(() => {
+  vi.unstubAllGlobals();
   localStorage.clear();
 });
 
@@ -43,5 +44,27 @@ describe("clearStoredTokens", () => {
     clearStoredTokens();
     expect(localStorage.getItem("daynest.accessToken")).toBeNull();
     expect(localStorage.getItem("daynest.refreshToken")).toBeNull();
+  });
+});
+
+describe("window availability", () => {
+  it("returns null and no-ops when window is unavailable", () => {
+    const setItemSpy = vi.spyOn(Storage.prototype, "setItem");
+    const removeItemSpy = vi.spyOn(Storage.prototype, "removeItem");
+
+    try {
+      vi.stubGlobal("window", undefined);
+
+      expect(getStoredTokens()).toBeNull();
+      storeTokens({ accessToken: "a", refreshToken: "r" });
+      clearStoredTokens();
+
+      expect(setItemSpy).not.toHaveBeenCalled();
+      expect(removeItemSpy).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllGlobals();
+      setItemSpy.mockRestore();
+      removeItemSpy.mockRestore();
+    }
   });
 });
