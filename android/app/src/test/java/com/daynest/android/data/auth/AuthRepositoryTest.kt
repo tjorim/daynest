@@ -9,10 +9,11 @@ import org.junit.Test
 
 class AuthRepositoryTest {
     private val fakeApi = FakeAuthApi()
-    private val fakeStorage = FakeSecureTokenStorage(
-        initialToken = "old-access-token",
-        initialRefreshToken = "old-refresh-token",
-    )
+    private val fakeStorage =
+        FakeSecureTokenStorage(
+            initialToken = "old-access-token",
+            initialRefreshToken = "old-refresh-token",
+        )
     private val repository = AuthRepository(authApi = fakeApi, secureTokenStorage = fakeStorage)
 
     @Test
@@ -66,9 +67,10 @@ class AuthRepositoryTest {
     fun `signIn saves refresh token when returned by API`() =
         runTest {
             val storage = FakeSecureTokenStorage()
-            val api = FakeAuthApi().apply {
-                enqueueSignInSuccess(accessToken = "access-token", refreshToken = "refresh-token")
-            }
+            val api =
+                FakeAuthApi().apply {
+                    enqueueSignInSuccess(accessToken = "access-token", refreshToken = "refresh-token")
+                }
             val repo = AuthRepository(authApi = api, secureTokenStorage = storage)
 
             repo.signIn("user@example.com", "password")
