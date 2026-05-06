@@ -3,7 +3,7 @@ import {
   getStoredTokens,
   storeTokens,
   type SessionTokens,
-} from "../auth/session";
+} from "@/lib/auth/session";
 
 export interface AuthUser {
   id: number;

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
-import { AuthApiError } from "../../lib/api/auth";
-import { useAuth } from "../../app/providers/AuthProvider";
+import { AuthApiError } from "@/lib/api/auth";
+import { useAuth } from "@/app/providers/AuthProvider";
 
 type AuthMode = "login" | "register";
 

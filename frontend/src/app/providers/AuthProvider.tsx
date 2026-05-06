@@ -6,8 +6,8 @@ import {
   refreshSessionTokens,
   register as registerRequest,
   type AuthUser,
-} from "../../lib/api/auth";
-import { getStoredTokens } from "../../lib/auth/session";
+} from "@/lib/api/auth";
+import { getStoredTokens } from "@/lib/auth/session";
 
 type AuthContextValue = {
   user: AuthUser | null;

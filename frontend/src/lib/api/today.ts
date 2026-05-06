@@ -6,8 +6,8 @@ export type PlannedItemModuleKey =
   | "meal_planning"
   | "recurring_grocery"
   | "shared_calendar";
-import { refreshSessionTokens } from "./auth";
-import { getStoredTokens } from "../auth/session";
+import { refreshSessionTokens } from "@/lib/api/auth";
+import { getStoredTokens } from "@/lib/auth/session";
 
 export interface MedicationTodayItem {
   medication_dose_instance_id: number;

@@ -5,7 +5,7 @@ import {
   listIntegrationClients,
   type IntegrationClient,
   type IntegrationClientCreateResponse,
-} from "../../lib/api/today";
+} from "@/lib/api/today";
 
 const AVAILABLE_SCOPES = [
   {
