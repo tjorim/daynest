@@ -2,8 +2,10 @@ package com.daynest.android.core.di
 
 import com.daynest.android.BuildConfig
 import com.daynest.android.core.network.ApiConfig
+import com.daynest.android.core.network.AuthInterceptor
+import com.daynest.android.core.network.CertificatePinnerProvider
 import com.daynest.android.core.network.JsonSerializer
-import com.daynest.android.core.storage.SecureTokenStorage
+import com.daynest.android.core.network.TokenAuthenticator
 import com.daynest.android.data.auth.AuthApi
 import com.daynest.android.data.today.TodayApi
 import dagger.Module
@@ -11,6 +13,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import kotlinx.serialization.json.Json
+import okhttp3.CertificatePinner
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -27,17 +30,25 @@ object NetworkDiModule {
 
     @Provides
     @Singleton
-    fun provideOkHttpClient(secureTokenStorage: SecureTokenStorage): OkHttpClient =
+    fun provideCertificatePinner(): CertificatePinner =
+        CertificatePinnerProvider(
+            host = BuildConfig.PROD_HOST,
+            pins = BuildConfig.PROD_PINS.toList(),
+        ).get()
+
+    @Provides
+    @Singleton
+    fun provideOkHttpClient(
+        authInterceptor: AuthInterceptor,
+        tokenAuthenticator: TokenAuthenticator,
+        certificatePinner: CertificatePinner,
+    ): OkHttpClient =
         OkHttpClient
             .Builder()
-            .addInterceptor { chain ->
-                val requestBuilder = chain.request().newBuilder()
-                val token = secureTokenStorage.cachedToken
-                if (!token.isNullOrBlank()) {
-                    requestBuilder.addHeader("Authorization", "Bearer $token")
-                }
-                chain.proceed(requestBuilder.build())
-            }.apply {
+            .certificatePinner(certificatePinner)
+            .addInterceptor(authInterceptor)
+            .authenticator(tokenAuthenticator)
+            .apply {
                 if (BuildConfig.DEBUG) {
                     addInterceptor(HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BODY })
                 }

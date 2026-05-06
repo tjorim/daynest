@@ -5,10 +5,10 @@ import androidx.lifecycle.viewModelScope
 import com.daynest.android.core.model.TodaySummary
 import com.daynest.android.data.today.TodayRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -23,28 +23,41 @@ class HomeViewModel
         val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
         init {
-            refreshToday()
+            viewModelScope.launch {
+                repository.observeTodaySummary().collect { summary ->
+                    _uiState.update { current ->
+                        if (summary == null) {
+                            current
+                        } else {
+                            HomeUiState.Content(summary = summary, isStale = false)
+                        }
+                    }
+                }
+            }
+            refresh()
         }
 
         fun onEvent(event: HomeUiEvent) {
             when (event) {
-                HomeUiEvent.RetryClicked -> refreshToday()
+                HomeUiEvent.RetryClicked -> refresh()
                 HomeUiEvent.OpenTodayDetailsClicked -> Unit
             }
         }
 
-        private fun refreshToday() {
+        private fun refresh() {
             viewModelScope.launch {
-                _uiState.value = HomeUiState.Loading
-
-                _uiState.value =
-                    try {
-                        HomeUiState.Content(repository.getTodaySummary())
-                    } catch (e: CancellationException) {
-                        throw e
-                    } catch (_: Exception) {
-                        HomeUiState.Error(HomeError.LoadTodayFailed)
+                if (_uiState.value !is HomeUiState.Content) {
+                    _uiState.value = HomeUiState.Loading
+                }
+                val result = repository.refresh()
+                if (result.isFailure) {
+                    _uiState.update { current ->
+                        when (current) {
+                            is HomeUiState.Content -> current.copy(isStale = true)
+                            else -> HomeUiState.Error(HomeError.LoadTodayFailed)
+                        }
                     }
+                }
             }
         }
     }
@@ -54,6 +67,7 @@ sealed interface HomeUiState {
 
     data class Content(
         val summary: TodaySummary,
+        val isStale: Boolean = false,
     ) : HomeUiState
 
     data class Error(

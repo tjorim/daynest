@@ -14,6 +14,11 @@ interface AuthApi {
 
     @GET("api/v1/auth/session")
     suspend fun restoreSession(): AuthSessionDto
+
+    @POST("api/v1/auth/refresh")
+    suspend fun refresh(
+        @Body request: RefreshRequestDto,
+    ): AuthSessionDto
 }
 
 @Serializable
@@ -23,7 +28,15 @@ data class SignInRequestDto(
 )
 
 @Serializable
+data class RefreshRequestDto(
+    @SerialName("refresh_token")
+    val refreshToken: String,
+)
+
+@Serializable
 data class AuthSessionDto(
     @SerialName("access_token")
     val accessToken: String,
+    @SerialName("refresh_token")
+    val refreshToken: String? = null,
 )

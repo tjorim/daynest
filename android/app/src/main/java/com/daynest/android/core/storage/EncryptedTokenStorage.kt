@@ -14,7 +14,11 @@ class EncryptedTokenStorage
     ) : SecureTokenStorage {
         @Volatile private var _cachedToken: String? = sharedPreferences.getString(KEY_TOKEN, null)
 
+        @Volatile private var _cachedRefreshToken: String? = sharedPreferences.getString(KEY_REFRESH_TOKEN, null)
+
         override val cachedToken: String? get() = _cachedToken
+
+        override val cachedRefreshToken: String? get() = _cachedRefreshToken
 
         override suspend fun getToken(): String? =
             withContext(Dispatchers.IO) {
@@ -35,7 +39,27 @@ class EncryptedTokenStorage
             }
         }
 
+        override suspend fun getRefreshToken(): String? =
+            withContext(Dispatchers.IO) {
+                sharedPreferences.getString(KEY_REFRESH_TOKEN, null)
+            }
+
+        override suspend fun saveRefreshToken(token: String) {
+            _cachedRefreshToken = token
+            withContext(Dispatchers.IO) {
+                sharedPreferences.edit().putString(KEY_REFRESH_TOKEN, token).apply()
+            }
+        }
+
+        override suspend fun clearRefreshToken() {
+            _cachedRefreshToken = null
+            withContext(Dispatchers.IO) {
+                sharedPreferences.edit().remove(KEY_REFRESH_TOKEN).apply()
+            }
+        }
+
         private companion object {
             const val KEY_TOKEN = "auth_token"
+            const val KEY_REFRESH_TOKEN = "auth_refresh_token"
         }
     }
