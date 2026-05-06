@@ -1,5 +1,6 @@
 import com.android.build.api.dsl.ApplicationExtension
 import io.gitlab.arturbosch.detekt.Detekt
+import java.net.URI
 import java.util.Properties
 
 plugins {
@@ -18,6 +19,22 @@ val localProperties = Properties().also { props ->
         localPropertiesFile.inputStream().use { props.load(it) }
     }
 }
+
+fun resolvePins(key: String, envKey: String): List<String> {
+    val value = localProperties.getProperty(key)
+        ?: providers.gradleProperty(key).orNull
+        ?: System.getenv(envKey)
+    return value?.split(",")?.map { it.trim() }?.filter { it.isNotBlank() } ?: emptyList()
+}
+
+fun pinsArrayLiteral(pins: List<String>): String =
+    if (pins.isEmpty()) {
+        "new String[]{}"
+    } else {
+        "new String[]{${pins.joinToString(",") { "\"$it\"" }}}"
+    }
+
+fun extractHost(url: String): String = runCatching { URI(url).host }.getOrDefault("")
 
 fun resolveApiUrl(key: String, envKey: String, required: Boolean, default: String = ""): String {
     val value = localProperties.getProperty(key)
@@ -59,6 +76,8 @@ extensions.configure<ApplicationExtension> {
                 default = "http://10.0.2.2:8000/",
             )
             buildConfigField("String", "API_BASE_URL", "\"$url\"")
+            buildConfigField("String[]", "PROD_PINS", "new String[]{}")
+            buildConfigField("String", "PROD_HOST", "\"\"")
         }
         create("staging") {
             initWith(getByName("debug"))
@@ -69,6 +88,8 @@ extensions.configure<ApplicationExtension> {
                 required = true,
             )
             buildConfigField("String", "API_BASE_URL", "\"$url\"")
+            buildConfigField("String[]", "PROD_PINS", "new String[]{}")
+            buildConfigField("String", "PROD_HOST", "\"\"")
         }
         release {
             isMinifyEnabled = true
@@ -83,6 +104,9 @@ extensions.configure<ApplicationExtension> {
                 required = true,
             )
             buildConfigField("String", "API_BASE_URL", "\"$url\"")
+            val pins = resolvePins("apiProdPins", "API_PROD_PINS")
+            buildConfigField("String[]", "PROD_PINS", pinsArrayLiteral(pins))
+            buildConfigField("String", "PROD_HOST", "\"${extractHost(url)}\"")
         }
     }
 

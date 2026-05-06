@@ -3,6 +3,7 @@ package com.daynest.android.core.di
 import com.daynest.android.BuildConfig
 import com.daynest.android.core.network.ApiConfig
 import com.daynest.android.core.network.AuthInterceptor
+import com.daynest.android.core.network.CertificatePinnerProvider
 import com.daynest.android.core.network.JsonSerializer
 import com.daynest.android.core.network.TokenAuthenticator
 import com.daynest.android.data.auth.AuthApi
@@ -12,6 +13,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import kotlinx.serialization.json.Json
+import okhttp3.CertificatePinner
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -28,12 +30,22 @@ object NetworkDiModule {
 
     @Provides
     @Singleton
+    fun provideCertificatePinner(): CertificatePinner =
+        CertificatePinnerProvider(
+            host = BuildConfig.PROD_HOST,
+            pins = BuildConfig.PROD_PINS,
+        ).get()
+
+    @Provides
+    @Singleton
     fun provideOkHttpClient(
         authInterceptor: AuthInterceptor,
         tokenAuthenticator: TokenAuthenticator,
+        certificatePinner: CertificatePinner,
     ): OkHttpClient =
         OkHttpClient
             .Builder()
+            .certificatePinner(certificatePinner)
             .addInterceptor(authInterceptor)
             .authenticator(tokenAuthenticator)
             .apply {
