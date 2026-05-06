@@ -61,6 +61,7 @@ def _make_service_call(**data) -> MagicMock:
 
 
 @pytest.mark.unit
+@pytest.mark.asyncio
 class TestAsyncSetupServices:
     """Tests for async_setup_services service registration."""
 
@@ -83,6 +84,7 @@ class TestAsyncSetupServices:
 
 
 @pytest.mark.unit
+@pytest.mark.asyncio
 class TestHandleRefresh:
     """Tests for the refresh service handler."""
 
@@ -114,6 +116,7 @@ class TestHandleRefresh:
 
 
 @pytest.mark.unit
+@pytest.mark.asyncio
 class TestHandleCompleteTask:
     """Tests for the complete_task service handler."""
 
@@ -189,6 +192,7 @@ class TestHandleCompleteTask:
 
 
 @pytest.mark.unit
+@pytest.mark.asyncio
 class TestHandleSnoozeTask:
     """Tests for the snooze_task service handler."""
 
@@ -251,6 +255,7 @@ class TestHandleSnoozeTask:
 
 
 @pytest.mark.unit
+@pytest.mark.asyncio
 class TestHandleMarkMedicationTaken:
     """Tests for the mark_medication_taken service handler."""
 
