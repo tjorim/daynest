@@ -10,9 +10,8 @@ class CertificatePinnerProvider(
         if (pins.isEmpty()) return CertificatePinner.DEFAULT
         return CertificatePinner
             .Builder()
-            .apply {
-                pins.forEach { pin -> add(host, pin) }
-            }
-            .build()
+            .also { builder ->
+                pins.forEach { pin -> builder.add(host, pin) }
+            }.build()
     }
 }
