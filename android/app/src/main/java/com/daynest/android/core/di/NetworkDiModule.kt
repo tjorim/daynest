@@ -33,7 +33,7 @@ object NetworkDiModule {
     fun provideCertificatePinner(): CertificatePinner =
         CertificatePinnerProvider(
             host = BuildConfig.PROD_HOST,
-            pins = BuildConfig.PROD_PINS,
+            pins = BuildConfig.PROD_PINS.toList(),
         ).get()
 
     @Provides

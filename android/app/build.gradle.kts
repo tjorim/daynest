@@ -34,7 +34,7 @@ fun pinsArrayLiteral(pins: List<String>): String =
         "new String[]{${pins.joinToString(",") { "\"$it\"" }}}"
     }
 
-fun extractHost(url: String): String = runCatching { URI(url).host }.getOrDefault("")
+fun extractHost(url: String): String? = runCatching { URI(url).host }.getOrNull()
 
 fun resolveApiUrl(key: String, envKey: String, required: Boolean, default: String = ""): String {
     val value = localProperties.getProperty(key)
@@ -105,15 +105,22 @@ extensions.configure<ApplicationExtension> {
             )
             buildConfigField("String", "API_BASE_URL", "\"$url\"")
             val pins = resolvePins("apiProdPins", "API_PROD_PINS")
+            val invalidPins = pins.filter { !it.startsWith("sha256/") && !it.startsWith("sha1/") }
+            if (invalidPins.isNotEmpty()) {
+                error(
+                    "Invalid pin format(s): $invalidPins. " +
+                        "Pins must start with 'sha256/' or 'sha1/'.",
+                )
+            }
             val prodHost = extractHost(url)
-            if (pins.isNotEmpty() && prodHost.isBlank()) {
+            if (pins.isNotEmpty() && prodHost.isNullOrBlank()) {
                 error(
                     "Could not extract host from release URL '$url'. " +
                         "Certificate pinning would be ineffective — fix API_BASE_URL_RELEASE.",
                 )
             }
             buildConfigField("String[]", "PROD_PINS", pinsArrayLiteral(pins))
-            buildConfigField("String", "PROD_HOST", "\"$prodHost\"")
+            buildConfigField("String", "PROD_HOST", "\"${prodHost.orEmpty()}\"")
         }
     }
 

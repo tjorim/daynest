@@ -4,7 +4,7 @@ import okhttp3.CertificatePinner
 
 class CertificatePinnerProvider(
     private val host: String,
-    private val pins: Array<String>,
+    private val pins: List<String>,
 ) {
     fun get(): CertificatePinner {
         if (pins.isEmpty()) return CertificatePinner.DEFAULT
