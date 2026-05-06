@@ -105,8 +105,15 @@ extensions.configure<ApplicationExtension> {
             )
             buildConfigField("String", "API_BASE_URL", "\"$url\"")
             val pins = resolvePins("apiProdPins", "API_PROD_PINS")
+            val prodHost = extractHost(url)
+            if (pins.isNotEmpty() && prodHost.isBlank()) {
+                error(
+                    "Could not extract host from release URL '$url'. " +
+                        "Certificate pinning would be ineffective — fix API_BASE_URL_RELEASE.",
+                )
+            }
             buildConfigField("String[]", "PROD_PINS", pinsArrayLiteral(pins))
-            buildConfigField("String", "PROD_HOST", "\"${extractHost(url)}\"")
+            buildConfigField("String", "PROD_HOST", "\"$prodHost\"")
         }
     }
 

@@ -1,6 +1,7 @@
 package com.daynest.android.core.network
 
 import okhttp3.CertificatePinner
+import okio.ByteString.Companion.decodeBase64
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -24,5 +25,10 @@ class CertificatePinnerProviderTest {
         val pins = pinner.pins
         assertEquals(2, pins.size)
         assertTrue(pins.all { it.pattern == host })
+        val expectedHashes = setOf(
+            pin1.substringAfter('/').decodeBase64()!!,
+            pin2.substringAfter('/').decodeBase64()!!,
+        )
+        assertEquals(expectedHashes, pins.map { it.hash }.toSet())
     }
 }
