@@ -21,6 +21,20 @@ val localProperties =
         }
     }
 
+val requestedTaskNames = gradle.startParameter.taskNames.map { it.substringAfterLast(":").lowercase() }
+
+fun isBuildTypeRequested(buildType: String): Boolean {
+    if (requestedTaskNames.isEmpty()) {
+        return false
+    }
+
+    val buildTypeName = buildType.lowercase()
+    return requestedTaskNames.any { taskName ->
+        taskName.contains(buildTypeName) ||
+            taskName in listOf("assemble", "build", "bundle", "check", "lint", "test")
+    }
+}
+
 fun resolvePins(
     key: String,
     envKey: String,
@@ -94,11 +108,13 @@ extensions.configure<ApplicationExtension> {
         create("staging") {
             initWith(getByName("debug"))
             matchingFallbacks += listOf("debug")
+            val isRequested = isBuildTypeRequested("staging")
             val url =
                 resolveApiUrl(
                     "apiBaseUrlStaging",
                     "API_BASE_URL_STAGING",
-                    required = true,
+                    required = isRequested,
+                    default = if (isRequested) "" else "https://staging.placeholder.invalid/",
                 )
             buildConfigField("String", "API_BASE_URL", "\"$url\"")
             buildConfigField("String[]", "PROD_PINS", "new String[]{}")
@@ -111,11 +127,13 @@ extensions.configure<ApplicationExtension> {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
+            val isRequested = isBuildTypeRequested("release")
             val url =
                 resolveApiUrl(
                     "apiBaseUrlRelease",
                     "API_BASE_URL_RELEASE",
-                    required = true,
+                    required = isRequested,
+                    default = if (isRequested) "" else "https://release.placeholder.invalid/",
                 )
             buildConfigField("String", "API_BASE_URL", "\"$url\"")
             val pins = resolvePins("apiProdPins", "API_PROD_PINS")
