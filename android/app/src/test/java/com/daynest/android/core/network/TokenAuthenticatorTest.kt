@@ -95,4 +95,3 @@ class TokenAuthenticatorTest {
         assertNull(fakeStorage.cachedToken)
     }
 }
-
