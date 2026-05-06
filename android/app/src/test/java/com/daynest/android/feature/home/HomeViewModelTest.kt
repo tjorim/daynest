@@ -103,7 +103,8 @@ class HomeViewModelTest {
                     enqueueError(IllegalStateException("initial load failure"))
                     enqueueSuccess(todayResponse(), gate = loadGate)
                 }
-            val viewModel = HomeViewModel(repository = TodayRepository(todayApi = api, todaySummaryDao = FakeTodaySummaryDao()))
+            val repository = TodayRepository(todayApi = api, todaySummaryDao = FakeTodaySummaryDao())
+            val viewModel = HomeViewModel(repository = repository)
 
             advanceUntilIdle()
             assertTrue(viewModel.uiState.value is HomeUiState.Error)
