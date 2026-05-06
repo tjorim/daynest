@@ -26,8 +26,11 @@ class HomeViewModel
             viewModelScope.launch {
                 repository.observeTodaySummary().collect { summary ->
                     _uiState.update { current ->
-                        if (summary == null) current
-                        else HomeUiState.Content(summary = summary, isStale = false)
+                        if (summary == null) {
+                            current
+                        } else {
+                            HomeUiState.Content(summary = summary, isStale = false)
+                        }
                     }
                 }
             }

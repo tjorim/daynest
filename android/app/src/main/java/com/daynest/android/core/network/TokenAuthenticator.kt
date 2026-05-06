@@ -22,6 +22,7 @@ class TokenAuthenticator
     ) : Authenticator {
         private val mutex = Mutex()
 
+        @Suppress("ReturnCount")
         override fun authenticate(
             route: Route?,
             response: Response,

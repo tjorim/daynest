@@ -151,7 +151,11 @@ private class FakeTodayApi : TodayApi {
 }
 
 private sealed interface FakeApiResponse {
-    data class Success(val response: TodayResponseDto) : FakeApiResponse
+    data class Success(
+        val response: TodayResponseDto,
+    ) : FakeApiResponse
 
-    data class Error(val error: Throwable) : FakeApiResponse
+    data class Error(
+        val error: Throwable,
+    ) : FakeApiResponse
 }

@@ -1,5 +1,6 @@
 import com.android.build.api.dsl.ApplicationExtension
 import io.gitlab.arturbosch.detekt.Detekt
+import java.net.URI
 import java.util.Properties
 
 plugins {
@@ -12,18 +13,45 @@ plugins {
     id("org.jlleitschuh.gradle.ktlint")
 }
 
-val localProperties = Properties().also { props ->
-    val localPropertiesFile = rootProject.file("local.properties")
-    if (localPropertiesFile.exists()) {
-        localPropertiesFile.inputStream().use { props.load(it) }
+val localProperties =
+    Properties().also { props ->
+        val localPropertiesFile = rootProject.file("local.properties")
+        if (localPropertiesFile.exists()) {
+            localPropertiesFile.inputStream().use { props.load(it) }
+        }
     }
+
+fun resolvePins(
+    key: String,
+    envKey: String,
+): List<String> {
+    val value =
+        localProperties.getProperty(key)
+            ?: providers.gradleProperty(key).orNull
+            ?: System.getenv(envKey)
+    return value?.split(",")?.map { it.trim() }?.filter { it.isNotBlank() } ?: emptyList()
 }
 
-fun resolveApiUrl(key: String, envKey: String, required: Boolean, default: String = ""): String {
-    val value = localProperties.getProperty(key)
-        ?: providers.gradleProperty(key).orNull
-        ?: System.getenv(envKey)
-        ?: default.takeIf { it.isNotBlank() }
+fun pinsArrayLiteral(pins: List<String>): String =
+    if (pins.isEmpty()) {
+        "new String[]{}"
+    } else {
+        "new String[]{${pins.joinToString(",") { "\"$it\"" }}}"
+    }
+
+fun extractHost(url: String): String? = runCatching { URI(url).host }.getOrNull()
+
+fun resolveApiUrl(
+    key: String,
+    envKey: String,
+    required: Boolean,
+    default: String = "",
+): String {
+    val value =
+        localProperties.getProperty(key)
+            ?: providers.gradleProperty(key).orNull
+            ?: System.getenv(envKey)
+            ?: default.takeIf { it.isNotBlank() }
     if (required && value.isNullOrBlank()) {
         error(
             "Missing required build property '$key'. " +
@@ -52,23 +80,29 @@ extensions.configure<ApplicationExtension> {
 
     buildTypes {
         debug {
-            val url = resolveApiUrl(
-                "apiBaseUrlDebug",
-                "API_BASE_URL_DEBUG",
-                required = false,
-                default = "http://10.0.2.2:8000/",
-            )
+            val url =
+                resolveApiUrl(
+                    "apiBaseUrlDebug",
+                    "API_BASE_URL_DEBUG",
+                    required = false,
+                    default = "http://10.0.2.2:8000/",
+                )
             buildConfigField("String", "API_BASE_URL", "\"$url\"")
+            buildConfigField("String[]", "PROD_PINS", "new String[]{}")
+            buildConfigField("String", "PROD_HOST", "\"\"")
         }
         create("staging") {
             initWith(getByName("debug"))
             matchingFallbacks += listOf("debug")
-            val url = resolveApiUrl(
-                "apiBaseUrlStaging",
-                "API_BASE_URL_STAGING",
-                required = true,
-            )
+            val url =
+                resolveApiUrl(
+                    "apiBaseUrlStaging",
+                    "API_BASE_URL_STAGING",
+                    required = true,
+                )
             buildConfigField("String", "API_BASE_URL", "\"$url\"")
+            buildConfigField("String[]", "PROD_PINS", "new String[]{}")
+            buildConfigField("String", "PROD_HOST", "\"\"")
         }
         release {
             isMinifyEnabled = true
@@ -77,12 +111,30 @@ extensions.configure<ApplicationExtension> {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
-            val url = resolveApiUrl(
-                "apiBaseUrlRelease",
-                "API_BASE_URL_RELEASE",
-                required = true,
-            )
+            val url =
+                resolveApiUrl(
+                    "apiBaseUrlRelease",
+                    "API_BASE_URL_RELEASE",
+                    required = true,
+                )
             buildConfigField("String", "API_BASE_URL", "\"$url\"")
+            val pins = resolvePins("apiProdPins", "API_PROD_PINS")
+            val invalidPins = pins.filter { !it.startsWith("sha256/") && !it.startsWith("sha1/") }
+            if (invalidPins.isNotEmpty()) {
+                error(
+                    "Invalid pin format(s): $invalidPins. " +
+                        "Pins must start with 'sha256/' or 'sha1/'.",
+                )
+            }
+            val prodHost = extractHost(url)
+            if (pins.isNotEmpty() && prodHost.isNullOrBlank()) {
+                error(
+                    "Could not extract host from release URL '$url'. " +
+                        "Certificate pinning would be ineffective — fix API_BASE_URL_RELEASE.",
+                )
+            }
+            buildConfigField("String[]", "PROD_PINS", pinsArrayLiteral(pins))
+            buildConfigField("String", "PROD_HOST", "\"${prodHost.orEmpty()}\"")
         }
     }
 
