@@ -1,5 +1,7 @@
 package com.daynest.android.feature.home
 
+import com.daynest.android.core.database.today.TodaySummaryDao
+import com.daynest.android.core.database.today.TodaySummaryEntity
 import com.daynest.android.data.today.DueTodayItemDto
 import com.daynest.android.data.today.MedicationHistoryItemDto
 import com.daynest.android.data.today.MedicationTodayItemDto
@@ -13,6 +15,8 @@ import com.daynest.android.data.today.UpcomingTodayItemDto
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -21,6 +25,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -51,6 +56,7 @@ class HomeViewModelTest {
                                 FakeTodayApi().apply {
                                     enqueueSuccess(todayResponse())
                                 },
+                            todaySummaryDao = FakeTodaySummaryDao(),
                         ),
                 )
 
@@ -61,6 +67,7 @@ class HomeViewModelTest {
             assertTrue(state is HomeUiState.Content)
             val content = state as HomeUiState.Content
             assertEquals(5, content.summary.remainingCount)
+            assertFalse(content.isStale)
             assertTrue(!content.summary.isCaughtUp)
         }
 
@@ -75,6 +82,7 @@ class HomeViewModelTest {
                                 FakeTodayApi().apply {
                                     enqueueError(IllegalStateException("boom"))
                                 },
+                            todaySummaryDao = FakeTodaySummaryDao(),
                         ),
                 )
 
@@ -95,7 +103,8 @@ class HomeViewModelTest {
                     enqueueError(IllegalStateException("initial load failure"))
                     enqueueSuccess(todayResponse(), gate = loadGate)
                 }
-            val viewModel = HomeViewModel(repository = TodayRepository(todayApi = api))
+            val repository = TodayRepository(todayApi = api, todaySummaryDao = FakeTodaySummaryDao())
+            val viewModel = HomeViewModel(repository = repository)
 
             advanceUntilIdle()
             assertTrue(viewModel.uiState.value is HomeUiState.Error)
@@ -110,6 +119,43 @@ class HomeViewModelTest {
 
             assertTrue(viewModel.uiState.value is HomeUiState.Content)
         }
+
+    @Test
+    fun `state shows stale content when refresh fails but cache exists`() =
+        runTest {
+            val dao = FakeTodaySummaryDao()
+            val api =
+                FakeTodayApi().apply {
+                    enqueueSuccess(todayResponse())
+                    enqueueError(IllegalStateException("network gone"))
+                }
+            val viewModel = HomeViewModel(repository = TodayRepository(todayApi = api, todaySummaryDao = dao))
+
+            advanceUntilIdle()
+            assertTrue(viewModel.uiState.value is HomeUiState.Content)
+            assertFalse((viewModel.uiState.value as HomeUiState.Content).isStale)
+
+            viewModel.onEvent(HomeUiEvent.RetryClicked)
+            advanceUntilIdle()
+
+            val state = viewModel.uiState.value
+            assertTrue(state is HomeUiState.Content)
+            assertTrue((state as HomeUiState.Content).isStale)
+        }
+}
+
+private class FakeTodaySummaryDao : TodaySummaryDao {
+    private val flow = MutableStateFlow<TodaySummaryEntity?>(null)
+
+    override fun observe(): Flow<TodaySummaryEntity?> = flow
+
+    override suspend fun upsert(entity: TodaySummaryEntity) {
+        flow.value = entity
+    }
+
+    override suspend fun clear() {
+        flow.value = null
+    }
 }
 
 private class FakeTodayApi : TodayApi {

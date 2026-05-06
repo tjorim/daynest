@@ -1,5 +1,7 @@
 import com.android.build.api.dsl.ApplicationExtension
-import io.gitlab.arturbosch.detekt.Detekt
+import dev.detekt.gradle.Detekt
+import java.net.URI
+import java.util.Properties
 
 plugins {
     id("com.android.application")
@@ -7,8 +9,70 @@ plugins {
     id("org.jetbrains.kotlin.plugin.serialization")
     id("com.google.devtools.ksp")
     id("com.google.dagger.hilt.android")
-    id("io.gitlab.arturbosch.detekt")
+    id("dev.detekt")
     id("org.jlleitschuh.gradle.ktlint")
+}
+
+val localProperties =
+    Properties().also { props ->
+        val localPropertiesFile = rootProject.file("local.properties")
+        if (localPropertiesFile.exists()) {
+            localPropertiesFile.inputStream().use { props.load(it) }
+        }
+    }
+
+val requestedTaskNames = gradle.startParameter.taskNames.map { it.substringAfterLast(":").lowercase() }
+
+fun isBuildTypeRequested(buildType: String): Boolean {
+    if (requestedTaskNames.isEmpty()) {
+        return false
+    }
+
+    val buildTypeName = buildType.lowercase()
+    return requestedTaskNames.any { taskName ->
+        taskName.contains(buildTypeName) ||
+            taskName in listOf("assemble", "build", "bundle", "check", "lint", "test")
+    }
+}
+
+fun resolvePins(
+    key: String,
+    envKey: String,
+): List<String> {
+    val value =
+        localProperties.getProperty(key)
+            ?: providers.gradleProperty(key).orNull
+            ?: System.getenv(envKey)
+    return value?.split(",")?.map { it.trim() }?.filter { it.isNotBlank() } ?: emptyList()
+}
+
+fun pinsArrayLiteral(pins: List<String>): String =
+    if (pins.isEmpty()) {
+        "new String[]{}"
+    } else {
+        "new String[]{${pins.joinToString(",") { "\"$it\"" }}}"
+    }
+
+fun extractHost(url: String): String? = runCatching { URI(url).host }.getOrNull()
+
+fun resolveApiUrl(
+    key: String,
+    envKey: String,
+    required: Boolean,
+    default: String = "",
+): String {
+    val value =
+        localProperties.getProperty(key)
+            ?: providers.gradleProperty(key).orNull
+            ?: System.getenv(envKey)
+            ?: default.takeIf { it.isNotBlank() }
+    if (required && value.isNullOrBlank()) {
+        error(
+            "Missing required build property '$key'. " +
+                "Set it in local.properties, as a Gradle property, or as the env var '$envKey'.",
+        )
+    }
+    return value.orEmpty()
 }
 
 extensions.configure<ApplicationExtension> {
@@ -30,20 +94,65 @@ extensions.configure<ApplicationExtension> {
 
     buildTypes {
         debug {
-            buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:8000/\"")
+            val url =
+                resolveApiUrl(
+                    "apiBaseUrlDebug",
+                    "API_BASE_URL_DEBUG",
+                    required = false,
+                    default = "http://10.0.2.2:8000/",
+                )
+            buildConfigField("String", "API_BASE_URL", "\"$url\"")
+            buildConfigField("String[]", "PROD_PINS", "new String[]{}")
+            buildConfigField("String", "PROD_HOST", "\"\"")
         }
         create("staging") {
             initWith(getByName("debug"))
             matchingFallbacks += listOf("debug")
-            buildConfigField("String", "API_BASE_URL", "\"https://staging-api.daynest.com/\"")
+            val isRequested = isBuildTypeRequested("staging")
+            val url =
+                resolveApiUrl(
+                    "apiBaseUrlStaging",
+                    "API_BASE_URL_STAGING",
+                    required = isRequested,
+                    default = if (isRequested) "" else "https://staging.placeholder.invalid/",
+                )
+            buildConfigField("String", "API_BASE_URL", "\"$url\"")
+            buildConfigField("String[]", "PROD_PINS", "new String[]{}")
+            buildConfigField("String", "PROD_HOST", "\"\"")
         }
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
-            buildConfigField("String", "API_BASE_URL", "\"https://api.daynest.com/\"")
+            val isRequested = isBuildTypeRequested("release")
+            val url =
+                resolveApiUrl(
+                    "apiBaseUrlRelease",
+                    "API_BASE_URL_RELEASE",
+                    required = isRequested,
+                    default = if (isRequested) "" else "https://release.placeholder.invalid/",
+                )
+            buildConfigField("String", "API_BASE_URL", "\"$url\"")
+            val pins = resolvePins("apiProdPins", "API_PROD_PINS")
+            val invalidPins = pins.filter { !it.startsWith("sha256/") && !it.startsWith("sha1/") }
+            if (invalidPins.isNotEmpty()) {
+                error(
+                    "Invalid pin format(s): $invalidPins. " +
+                        "Pins must start with 'sha256/' or 'sha1/'.",
+                )
+            }
+            val prodHost = extractHost(url)
+            if (pins.isNotEmpty() && prodHost.isNullOrBlank()) {
+                error(
+                    "Could not extract host from release URL '$url'. " +
+                        "Certificate pinning would be ineffective — fix API_BASE_URL_RELEASE.",
+                )
+            }
+            buildConfigField("String[]", "PROD_PINS", pinsArrayLiteral(pins))
+            buildConfigField("String", "PROD_HOST", "\"${prodHost.orEmpty()}\"")
         }
     }
 
@@ -74,7 +183,7 @@ detekt {
 }
 
 tasks.withType<Detekt>().configureEach {
-    jvmTarget = "17"
+    jvmTarget.set("17")
 }
 
 ktlint {
@@ -108,13 +217,20 @@ dependencies {
     implementation("com.squareup.okhttp3:okhttp:5.3.2")
     implementation("com.squareup.okhttp3:logging-interceptor:5.3.2")
     implementation("androidx.security:security-crypto:1.1.0")
+    implementation("androidx.room:room-runtime:2.7.1")
+    implementation("androidx.room:room-ktx:2.7.1")
+    ksp("androidx.room:room-compiler:2.7.1")
+    implementation("androidx.datastore:datastore-preferences:1.1.4")
 
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
+    testImplementation("com.squareup.okhttp3:mockwebserver:5.3.2")
+    testImplementation("app.cash.turbine:turbine:1.2.1")
     androidTestImplementation("androidx.test.ext:junit:1.3.0")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.7.0")
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
+    androidTestImplementation("androidx.room:room-testing:2.7.1")
 }
