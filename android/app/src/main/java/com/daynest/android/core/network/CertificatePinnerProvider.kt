@@ -12,7 +12,6 @@ class CertificatePinnerProvider(
             .Builder()
             .apply {
                 pins.forEach { pin -> add(host, pin) }
-            }
-            .build()
+            }.build()
     }
 }
