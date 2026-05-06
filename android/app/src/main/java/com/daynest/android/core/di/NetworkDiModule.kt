@@ -2,8 +2,9 @@ package com.daynest.android.core.di
 
 import com.daynest.android.BuildConfig
 import com.daynest.android.core.network.ApiConfig
+import com.daynest.android.core.network.AuthInterceptor
 import com.daynest.android.core.network.JsonSerializer
-import com.daynest.android.core.storage.SecureTokenStorage
+import com.daynest.android.core.network.TokenAuthenticator
 import com.daynest.android.data.auth.AuthApi
 import com.daynest.android.data.today.TodayApi
 import dagger.Module
@@ -27,17 +28,15 @@ object NetworkDiModule {
 
     @Provides
     @Singleton
-    fun provideOkHttpClient(secureTokenStorage: SecureTokenStorage): OkHttpClient =
+    fun provideOkHttpClient(
+        authInterceptor: AuthInterceptor,
+        tokenAuthenticator: TokenAuthenticator,
+    ): OkHttpClient =
         OkHttpClient
             .Builder()
-            .addInterceptor { chain ->
-                val requestBuilder = chain.request().newBuilder()
-                val token = secureTokenStorage.cachedToken
-                if (!token.isNullOrBlank()) {
-                    requestBuilder.addHeader("Authorization", "Bearer $token")
-                }
-                chain.proceed(requestBuilder.build())
-            }.apply {
+            .addInterceptor(authInterceptor)
+            .authenticator(tokenAuthenticator)
+            .apply {
                 if (BuildConfig.DEBUG) {
                     addInterceptor(HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BODY })
                 }

@@ -29,6 +29,7 @@ class AuthRepository
                         ),
                 )
             secureTokenStorage.saveToken(session.accessToken)
+            session.refreshToken?.let { secureTokenStorage.saveRefreshToken(it) }
             return true
         }
 
@@ -54,5 +55,25 @@ class AuthRepository
             } catch (_: Exception) {
                 false
             }
+        }
+
+        suspend fun refreshAccessToken(): String? {
+            val refreshToken = secureTokenStorage.getRefreshToken() ?: return null
+            return try {
+                val session = authApi.refresh(RefreshRequestDto(refreshToken))
+                secureTokenStorage.saveToken(session.accessToken)
+                session.refreshToken?.let { secureTokenStorage.saveRefreshToken(it) }
+                session.accessToken
+            } catch (exception: CancellationException) {
+                throw exception
+            } catch (_: Exception) {
+                signOut()
+                null
+            }
+        }
+
+        suspend fun signOut() {
+            secureTokenStorage.clearToken()
+            secureTokenStorage.clearRefreshToken()
         }
     }
