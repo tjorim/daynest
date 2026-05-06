@@ -8,8 +8,11 @@ class CertificatePinnerProvider(
 ) {
     fun get(): CertificatePinner {
         if (pins.isEmpty()) return CertificatePinner.DEFAULT
-        return CertificatePinner.Builder().apply {
-            pins.forEach { pin -> add(host, pin) }
-        }.build()
+        return CertificatePinner
+            .Builder()
+            .apply {
+                pins.forEach { pin -> add(host, pin) }
+            }
+            .build()
     }
 }
