@@ -16,8 +16,7 @@ class TodayRepository
         private val todayApi: TodayApi,
         private val todaySummaryDao: TodaySummaryDao,
     ) {
-        fun observeTodaySummary(): Flow<TodaySummary?> =
-            todaySummaryDao.observe().map { entity -> entity?.toDomain() }
+        fun observeTodaySummary(): Flow<TodaySummary?> = todaySummaryDao.observe().map { entity -> entity?.toDomain() }
 
         @Suppress("TooGenericExceptionCaught")
         suspend fun refresh(): Result<Unit> =
