@@ -28,22 +28,22 @@ jobs:
         uses: gradle/actions/setup-gradle@v6
 
       - name: Write local.properties from secrets
+        id: local-properties
         working-directory: android
         env:
           API_BASE_URL_STAGING: ${{ secrets.API_BASE_URL_STAGING }}
           API_BASE_URL_RELEASE: ${{ secrets.API_BASE_URL_RELEASE }}
         run: |
-          if [[ -z "${API_BASE_URL_STAGING}" ]]; then
-            echo "::error::Secret API_BASE_URL_STAGING is not set."
-            exit 1
-          fi
-          if [[ -z "${API_BASE_URL_RELEASE}" ]]; then
-            echo "::error::Secret API_BASE_URL_RELEASE is not set."
-            exit 1
+          if [[ -z "${API_BASE_URL_STAGING}" || -z "${API_BASE_URL_RELEASE}" ]]; then
+            echo "::warning::API_BASE_URL_STAGING and/or API_BASE_URL_RELEASE secret is not set. Assemble steps will be skipped."
+            echo "secrets_available=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "secrets_available=true" >> "$GITHUB_OUTPUT"
           fi
           {
-            echo "apiBaseUrlStaging=${API_BASE_URL_STAGING}"
-            echo "apiBaseUrlRelease=${API_BASE_URL_RELEASE}"
+            # .invalid TLD is an RFC 2606 reserved domain intentionally unusable in production
+            echo "apiBaseUrlStaging=${API_BASE_URL_STAGING:-https://staging.placeholder.invalid/}"
+            echo "apiBaseUrlRelease=${API_BASE_URL_RELEASE:-https://release.placeholder.invalid/}"
           } >> local.properties
 
       - name: Run Android checks
@@ -51,10 +51,12 @@ jobs:
         run: ./gradlew :app:detekt :app:ktlintCheck :app:lintDebug :app:testDebugUnitTest
 
       - name: Assemble staging debug
+        if: steps.local-properties.outputs.secrets_available == 'true'
         working-directory: android
         run: ./gradlew :app:assembleStagingDebug
 
       - name: Assemble release (smoke check with debug signing)
+        if: steps.local-properties.outputs.secrets_available == 'true'
         working-directory: android
         run: ./gradlew :app:assembleRelease
 
