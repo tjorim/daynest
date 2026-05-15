@@ -1,6 +1,6 @@
 package com.daynest.android.data.settings
 
-import kotlinx.coroutines.CancellationException
+import com.daynest.android.data.safeApiCall
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -10,23 +10,8 @@ class SettingsRepository
     constructor(
         private val settingsApi: SettingsApi,
     ) {
-        @Suppress("TooGenericExceptionCaught")
-        suspend fun listClients(): Result<List<IntegrationClientDto>> =
-            try {
-                Result.success(settingsApi.listClients())
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                Result.failure(e)
-            }
+        suspend fun listClients(): Result<List<IntegrationClientDto>> = safeApiCall { settingsApi.listClients() }
 
-        @Suppress("TooGenericExceptionCaught")
         suspend fun createClient(request: IntegrationClientInputDto): Result<IntegrationClientCreateResponseDto> =
-            try {
-                Result.success(settingsApi.createClient(request))
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                Result.failure(e)
-            }
+            safeApiCall { settingsApi.createClient(request) }
     }

@@ -31,6 +31,8 @@ export function TemplatesPage() {
   const [routineDueTime, setRoutineDueTime] = useState("08:00");
   const [routineActive, setRoutineActive] = useState(true);
   const [editingRoutineId, setEditingRoutineId] = useState<number | null>(null);
+  const [confirmDeleteRoutineId, setConfirmDeleteRoutineId] = useState<number | null>(null);
+  const [confirmDeleteChoreId, setConfirmDeleteChoreId] = useState<number | null>(null);
 
   const [choreName, setChoreName] = useState("");
   const [choreDescription, setChoreDescription] = useState("");
@@ -167,9 +169,7 @@ export function TemplatesPage() {
   };
 
   const handleDeleteRoutine = async (routineId: number) => {
-    if (!window.confirm("Delete this routine template?")) {
-      return;
-    }
+    setConfirmDeleteRoutineId(null);
     setIsSubmitting(true);
     setSubmitError(null);
     setSuccessMessage(null);
@@ -186,9 +186,7 @@ export function TemplatesPage() {
   };
 
   const handleDeleteChore = async (choreId: number) => {
-    if (!window.confirm("Delete this chore template?")) {
-      return;
-    }
+    setConfirmDeleteChoreId(null);
     setIsSubmitting(true);
     setSubmitError(null);
     setSuccessMessage(null);
@@ -366,18 +364,40 @@ export function TemplatesPage() {
                             setRoutineEveryNDays(String(routine.every_n_days));
                             setRoutineDueTime(routine.due_time ? routine.due_time.slice(0, 5) : "");
                             setRoutineActive(routine.is_active);
+                            setConfirmDeleteRoutineId(null);
                             setSubmitError(null);
                           }}
                         >
                           Edit
                         </button>
-                        <button
-                          type="button"
-                          className="btn btn-outline-danger btn-sm"
-                          onClick={() => void handleDeleteRoutine(routine.id)}
-                        >
-                          Delete
-                        </button>
+                        {confirmDeleteRoutineId === routine.id ? (
+                          <div className="d-flex gap-1">
+                            <button
+                              type="button"
+                              className="btn btn-danger btn-sm"
+                              disabled={isSubmitting}
+                              onClick={() => void handleDeleteRoutine(routine.id)}
+                            >
+                              Confirm
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn-outline-secondary btn-sm"
+                              disabled={isSubmitting}
+                              onClick={() => setConfirmDeleteRoutineId(null)}
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            className="btn btn-outline-danger btn-sm"
+                            onClick={() => setConfirmDeleteRoutineId(routine.id)}
+                          >
+                            Delete
+                          </button>
+                        )}
                       </div>
                     </div>
                   </li>
@@ -498,18 +518,40 @@ export function TemplatesPage() {
                             setChoreStartDate(chore.start_date);
                             setChoreEveryNDays(String(chore.every_n_days));
                             setChoreActive(chore.is_active);
+                            setConfirmDeleteChoreId(null);
                             setSubmitError(null);
                           }}
                         >
                           Edit
                         </button>
-                        <button
-                          type="button"
-                          className="btn btn-outline-danger btn-sm"
-                          onClick={() => void handleDeleteChore(chore.id)}
-                        >
-                          Delete
-                        </button>
+                        {confirmDeleteChoreId === chore.id ? (
+                          <div className="d-flex gap-1">
+                            <button
+                              type="button"
+                              className="btn btn-danger btn-sm"
+                              disabled={isSubmitting}
+                              onClick={() => void handleDeleteChore(chore.id)}
+                            >
+                              Confirm
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn-outline-secondary btn-sm"
+                              disabled={isSubmitting}
+                              onClick={() => setConfirmDeleteChoreId(null)}
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            className="btn btn-outline-danger btn-sm"
+                            onClick={() => setConfirmDeleteChoreId(chore.id)}
+                          >
+                            Delete
+                          </button>
+                        )}
                       </div>
                     </div>
                   </li>

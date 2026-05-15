@@ -47,6 +47,9 @@
       },
       "next_medication": {
         "name": "Next Medication"
+      },
+      "routines_open_count": {
+        "name": "Open Routines"
       }
     }
   },
@@ -59,8 +62,8 @@
       "name": "Complete Task",
       "description": "Marks a Daynest chore instance as complete. Requires the integration API key to have the ha:write scope.",
       "fields": {
-        "task_id": {
-          "name": "Task ID",
+        "chore_instance_id": {
+          "name": "Chore Instance ID",
           "description": "The numeric ID of the chore instance to mark as complete. Obtain this ID from the Daynest app or API."
         }
       }
@@ -69,8 +72,8 @@
       "name": "Snooze Task",
       "description": "Reschedules a Daynest chore instance to a later date. Requires the integration API key to have the ha:write scope.",
       "fields": {
-        "task_id": {
-          "name": "Task ID",
+        "chore_instance_id": {
+          "name": "Chore Instance ID",
           "description": "The numeric ID of the chore instance to reschedule. Obtain this ID from the Daynest app or API."
         },
         "days": {
@@ -86,6 +89,26 @@
         "medication_dose_id": {
           "name": "Medication Dose ID",
           "description": "The numeric ID of the medication dose instance to mark as taken. Obtain this ID from the Daynest app or API."
+        }
+      }
+    },
+    "skip_task": {
+      "name": "Skip Task",
+      "description": "Skips a Daynest chore instance. Requires the integration API key to have the ha:write scope.",
+      "fields": {
+        "chore_instance_id": {
+          "name": "Chore Instance ID",
+          "description": "The numeric ID of the chore instance to skip."
+        }
+      }
+    },
+    "skip_medication": {
+      "name": "Skip Medication Dose",
+      "description": "Skips a scheduled medication dose. Requires the integration API key to have the ha:write scope.",
+      "fields": {
+        "medication_dose_id": {
+          "name": "Medication Dose ID",
+          "description": "The numeric ID of the medication dose instance to skip."
         }
       }
     }

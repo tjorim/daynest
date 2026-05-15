@@ -3,7 +3,7 @@ refresh:
 
 complete_task:
   fields:
-    task_id:
+    chore_instance_id:
       required: true
       selector:
         number:
@@ -12,7 +12,7 @@ complete_task:
 
 snooze_task:
   fields:
-    task_id:
+    chore_instance_id:
       required: true
       selector:
         number:
@@ -28,6 +28,24 @@ snooze_task:
           mode: box
 
 mark_medication_taken:
+  fields:
+    medication_dose_id:
+      required: true
+      selector:
+        number:
+          min: 1
+          mode: box
+
+skip_task:
+  fields:
+    chore_instance_id:
+      required: true
+      selector:
+        number:
+          min: 1
+          mode: box
+
+skip_medication:
   fields:
     medication_dose_id:
       required: true

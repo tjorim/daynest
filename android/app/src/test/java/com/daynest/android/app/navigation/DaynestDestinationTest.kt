@@ -24,7 +24,7 @@ class DaynestDestinationTest {
     @Test
     fun topLevelDestinations_haveUserFacingLabels() {
         daynestTopLevelDestinations.forEach { destination ->
-            assertTrue(destination.label.isNotBlank())
+            assertTrue(destination.labelResId != 0)
         }
     }
 }

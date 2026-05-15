@@ -11,6 +11,8 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.test.platform.app.InstrumentationRegistry
+import com.daynest.android.R
 import com.daynest.android.app.navigation.DaynestDestination
 import com.daynest.android.app.session.SessionGateRoute
 import com.daynest.android.app.session.SessionGateViewModel
@@ -54,106 +56,83 @@ class DaynestNavigationTest {
 
     @Test
     fun gateGoHome_navigatesToHomeDestination() {
-        val fakeStorage = FakeNavTokenStorage("valid-token")
-        val fakeApi = FakeNavAuthApi(restoreResult = Result.success(AuthSessionDto("token")))
-        val authRepo = AuthRepository(authApi = fakeApi, secureTokenStorage = fakeStorage)
-        val sessionVm = SessionGateViewModel(authRepo)
-        val authVm = AuthViewModel(authRepo)
-        val homeVm = makeHomeViewModel()
-
-        lateinit var navController: NavHostController
-
-        composeTestRule.setContent {
-            DaynestTheme {
-                navController = rememberNavController()
-                TestNavHost(
-                    navController = navController,
-                    sessionGateViewModel = sessionVm,
-                    authViewModel = authVm,
-                    homeViewModel = homeVm,
-                )
-            }
-        }
+        val harness =
+            setNavContent(
+                initialToken = "valid-token",
+                fakeApi = FakeNavAuthApi(restoreResult = Result.success(AuthSessionDto("token"))),
+            )
 
         composeTestRule.waitUntil(timeoutMillis = 3_000L) {
-            navController.currentDestination?.route == DaynestDestination.HOME
+            harness.navController.currentDestination?.route == DaynestDestination.HOME
         }
 
-        assertEquals(DaynestDestination.HOME, navController.currentDestination?.route)
+        assertEquals(DaynestDestination.HOME, harness.navController.currentDestination?.route)
     }
 
     @Test
     fun gateGoAuth_navigatesToAuthDestination() {
-        val fakeStorage = FakeNavTokenStorage(null)
-        val fakeApi = FakeNavAuthApi()
-        val authRepo = AuthRepository(authApi = fakeApi, secureTokenStorage = fakeStorage)
-        val sessionVm = SessionGateViewModel(authRepo)
-        val authVm = AuthViewModel(authRepo)
-        val homeVm = makeHomeViewModel()
-
-        lateinit var navController: NavHostController
-
-        composeTestRule.setContent {
-            DaynestTheme {
-                navController = rememberNavController()
-                TestNavHost(
-                    navController = navController,
-                    sessionGateViewModel = sessionVm,
-                    authViewModel = authVm,
-                    homeViewModel = homeVm,
-                )
-            }
-        }
+        val harness = setNavContent(initialToken = null)
 
         composeTestRule.waitUntil(timeoutMillis = 3_000L) {
-            navController.currentDestination?.route == DaynestDestination.AUTH
+            harness.navController.currentDestination?.route == DaynestDestination.AUTH
         }
 
-        assertEquals(DaynestDestination.AUTH, navController.currentDestination?.route)
+        assertEquals(DaynestDestination.AUTH, harness.navController.currentDestination?.route)
     }
 
     @Test
     fun authSignedIn_navigatesToHomeDestination() {
-        val fakeStorage = FakeNavTokenStorage(null)
-        val fakeApi = FakeNavAuthApi(signInResult = Result.success(AuthSessionDto("new-token")))
-        val authRepo = AuthRepository(authApi = fakeApi, secureTokenStorage = fakeStorage)
-        val sessionVm = SessionGateViewModel(authRepo)
-        val authVm = AuthViewModel(authRepo)
-        val homeVm = makeHomeViewModel()
-
-        lateinit var navController: NavHostController
-
-        composeTestRule.setContent {
-            DaynestTheme {
-                navController = rememberNavController()
-                TestNavHost(
-                    navController = navController,
-                    sessionGateViewModel = sessionVm,
-                    authViewModel = authVm,
-                    homeViewModel = homeVm,
-                )
-            }
-        }
+        val harness =
+            setNavContent(
+                initialToken = null,
+                fakeApi = FakeNavAuthApi(signInResult = Result.success(AuthSessionDto("new-token"))),
+            )
 
         composeTestRule.waitUntil(timeoutMillis = 3_000L) {
-            navController.currentDestination?.route == DaynestDestination.AUTH
+            harness.navController.currentDestination?.route == DaynestDestination.AUTH
         }
 
-        authVm.onEvent(AuthUiEvent.EmailChanged("user@example.com"))
-        authVm.onEvent(AuthUiEvent.PasswordChanged("password123"))
-        authVm.onEvent(AuthUiEvent.SignInClicked)
+        harness.authViewModel.onEvent(AuthUiEvent.EmailChanged("user@example.com"))
+        harness.authViewModel.onEvent(AuthUiEvent.PasswordChanged("password123"))
+        harness.authViewModel.onEvent(AuthUiEvent.SignInClicked)
 
         composeTestRule.waitUntil(timeoutMillis = 3_000L) {
-            navController.currentDestination?.route == DaynestDestination.HOME
+            harness.navController.currentDestination?.route == DaynestDestination.HOME
         }
 
-        assertEquals(DaynestDestination.HOME, navController.currentDestination?.route)
+        assertEquals(DaynestDestination.HOME, harness.navController.currentDestination?.route)
     }
 
     @Test
     fun homeBottomNavigation_opensCalendarDestination() {
-        val fakeStorage = FakeNavTokenStorage("valid-token")
-        val fakeApi = FakeNavAuthApi(restoreResult = Result.success(AuthSessionDto("token")))
+        val harness =
+            setNavContent(
+                initialToken = "valid-token",
+                fakeApi = FakeNavAuthApi(restoreResult = Result.success(AuthSessionDto("token"))),
+            )
+
+        composeTestRule.waitUntil(timeoutMillis = 3_000L) {
+            harness.navController.currentDestination?.route == DaynestDestination.HOME
+        }
+
+        val calendarTitle =
+            InstrumentationRegistry
+                .getInstrumentation()
+                .targetContext
+                .getString(R.string.calendar_title)
+        composeTestRule.onNodeWithText(calendarTitle).performClick()
+        composeTestRule.waitUntil(timeoutMillis = 3_000L) {
+            harness.navController.currentDestination?.route == DaynestDestination.CALENDAR
+        }
+
+        assertEquals(DaynestDestination.CALENDAR, harness.navController.currentDestination?.route)
+    }
+
+    private fun setNavContent(
+        initialToken: String?,
+        fakeApi: FakeNavAuthApi = FakeNavAuthApi(),
+    ): NavTestHarness {
+        val fakeStorage = FakeNavTokenStorage(initialToken)
         val authRepo = AuthRepository(authApi = fakeApi, secureTokenStorage = fakeStorage)
         val sessionVm = SessionGateViewModel(authRepo)
         val authVm = AuthViewModel(authRepo)
@@ -173,18 +152,17 @@ class DaynestNavigationTest {
             }
         }
 
-        composeTestRule.waitUntil(timeoutMillis = 3_000L) {
-            navController.currentDestination?.route == DaynestDestination.HOME
-        }
-
-        composeTestRule.onNodeWithText("Calendar").performClick()
-        composeTestRule.waitUntil(timeoutMillis = 3_000L) {
-            navController.currentDestination?.route == DaynestDestination.CALENDAR
-        }
-
-        assertEquals(DaynestDestination.CALENDAR, navController.currentDestination?.route)
+        return NavTestHarness(
+            navController = navController,
+            authViewModel = authVm,
+        )
     }
 }
+
+private data class NavTestHarness(
+    val navController: NavHostController,
+    val authViewModel: AuthViewModel,
+)
 
 @Composable
 private fun TestNavHost(

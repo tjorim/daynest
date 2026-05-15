@@ -91,3 +91,28 @@ main.container {
     padding-right: 0.75rem;
   }
 }
+
+.web-focus-panel {
+  background: linear-gradient(135deg, rgba(13, 110, 253, 0.12), var(--bg-surface-from));
+}
+
+.focus-progress {
+  min-width: 7rem;
+  padding: 0.75rem 1rem;
+  border-radius: 1rem;
+  background: var(--bg-muted);
+  text-align: center;
+}
+
+.focus-progress-value {
+  display: block;
+  font-size: clamp(1.75rem, 4vw, 2.5rem);
+  line-height: 1;
+  font-weight: 800;
+}
+
+.settings-endpoint-list {
+  display: grid;
+  gap: 0.35rem;
+  padding-left: 1rem;
+}

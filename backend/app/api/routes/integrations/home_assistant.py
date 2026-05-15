@@ -19,6 +19,8 @@ from app.schemas.integrations import (
     HAActionResult,
     HomeAssistantEntity,
     MarkMedicationTakenRequest,
+    SkipMedicationRequest,
+    SkipTaskRequest,
     SnoozeTaskRequest,
 )
 from app.services.today_service import TodayService
@@ -95,8 +97,8 @@ def home_assistant_complete_task(
 ) -> HAActionResult:
     """Mark a chore instance as complete via Home Assistant automation."""
     service = TodayService(TodayRepository(db))
-    service.complete_chore(user_id=integration_user.id, chore_instance_id=request.task_id)
-    return HAActionResult(success=True, detail=f"Task {request.task_id} marked as complete")
+    service.complete_chore(user_id=integration_user.id, chore_instance_id=request.chore_instance_id)
+    return HAActionResult(success=True, detail=f"Task {request.chore_instance_id} marked as complete")
 
 
 @router.post("/actions/snooze-task", response_model=HAActionResult)
@@ -108,8 +110,8 @@ def home_assistant_snooze_task(
     """Reschedule a chore instance N days into the future via Home Assistant automation."""
     service = TodayService(TodayRepository(db))
     new_date = date.today() + timedelta(days=request.days)
-    service.reschedule_chore(user_id=integration_user.id, chore_instance_id=request.task_id, scheduled_date=new_date)
-    return HAActionResult(success=True, detail=f"Task {request.task_id} rescheduled by {request.days} day(s)")
+    service.reschedule_chore(user_id=integration_user.id, chore_instance_id=request.chore_instance_id, scheduled_date=new_date)
+    return HAActionResult(success=True, detail=f"Task {request.chore_instance_id} rescheduled by {request.days} day(s)")
 
 
 @router.post("/actions/mark-medication-taken", response_model=HAActionResult)
@@ -126,3 +128,31 @@ def home_assistant_mark_medication_taken(
         action="take",
     )
     return HAActionResult(success=True, detail=f"Medication dose {request.medication_dose_id} marked as taken")
+
+
+@router.post("/actions/skip-task", response_model=HAActionResult)
+def home_assistant_skip_task(
+    request: SkipTaskRequest,
+    db: Session = Depends(get_db),
+    integration_user: User = Depends(require_integration_scope("ha:write")),
+) -> HAActionResult:
+    """Skip a chore instance via Home Assistant automation."""
+    service = TodayService(TodayRepository(db))
+    service.skip_chore(user_id=integration_user.id, chore_instance_id=request.chore_instance_id)
+    return HAActionResult(success=True, detail=f"Task {request.chore_instance_id} skipped")
+
+
+@router.post("/actions/skip-medication", response_model=HAActionResult)
+def home_assistant_skip_medication(
+    request: SkipMedicationRequest,
+    db: Session = Depends(get_db),
+    integration_user: User = Depends(require_integration_scope("ha:write")),
+) -> HAActionResult:
+    """Skip a medication dose via Home Assistant automation."""
+    service = TodayService(TodayRepository(db))
+    service.mutate_medication_status(
+        user_id=integration_user.id,
+        medication_dose_instance_id=request.medication_dose_id,
+        action="skip",
+    )
+    return HAActionResult(success=True, detail=f"Medication dose {request.medication_dose_id} skipped")
