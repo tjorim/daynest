@@ -11,11 +11,11 @@ class TodaySummary(BaseModel):
 
 
 class CompleteTaskRequest(BaseModel):
-    task_id: int = Field(gt=0, description="The chore instance ID to mark as complete")
+    chore_instance_id: int = Field(gt=0, description="The chore instance ID to mark as complete")
 
 
 class SnoozeTaskRequest(BaseModel):
-    task_id: int = Field(gt=0, description="The chore instance ID to reschedule")
+    chore_instance_id: int = Field(gt=0, description="The chore instance ID to reschedule")
     days: int = Field(default=1, ge=1, le=30, description="Number of days to snooze the task")
 
 

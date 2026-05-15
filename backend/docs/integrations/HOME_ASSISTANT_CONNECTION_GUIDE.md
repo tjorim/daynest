@@ -66,7 +66,7 @@ Expected behavior:
 Used by the `daynest.complete_task` Home Assistant service.
 
 - Requires `ha:write` scope
-- Request body: `{"task_id": <int>}`
+- Request body: `{"chore_instance_id": <int>}`
 - Returns `{"success": true, "detail": "..."}`
 
 ### `POST /api/v1/integrations/home-assistant/actions/snooze-task`
@@ -74,7 +74,7 @@ Used by the `daynest.complete_task` Home Assistant service.
 Used by the `daynest.snooze_task` Home Assistant service.
 
 - Requires `ha:write` scope
-- Request body: `{"task_id": <int>, "days": <int, 1–30, default 1>}`
+- Request body: `{"chore_instance_id": <int>, "days": <int, 1–30, default 1>}`
 - Returns `{"success": true, "detail": "..."}`
 
 ### `POST /api/v1/integrations/home-assistant/actions/mark-medication-taken`

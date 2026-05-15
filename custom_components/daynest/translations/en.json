@@ -62,8 +62,8 @@
       "name": "Complete Task",
       "description": "Marks a Daynest chore instance as complete. Requires the integration API key to have the ha:write scope.",
       "fields": {
-        "task_id": {
-          "name": "Task ID",
+        "chore_instance_id": {
+          "name": "Chore Instance ID",
           "description": "The numeric ID of the chore instance to mark as complete. Obtain this ID from the Daynest app or API."
         }
       }
@@ -72,8 +72,8 @@
       "name": "Snooze Task",
       "description": "Reschedules a Daynest chore instance to a later date. Requires the integration API key to have the ha:write scope.",
       "fields": {
-        "task_id": {
-          "name": "Task ID",
+        "chore_instance_id": {
+          "name": "Chore Instance ID",
           "description": "The numeric ID of the chore instance to reschedule. Obtain this ID from the Daynest app or API."
         },
         "days": {

@@ -15,7 +15,6 @@ from daynest.services import (
     ATTR_CHORE_INSTANCE_ID,
     ATTR_DAYS,
     ATTR_MEDICATION_DOSE_ID,
-    ATTR_TASK_ID,
     SERVICE_COMPLETE_TASK,
     SERVICE_MARK_MEDICATION_TAKEN,
     SERVICE_REFRESH,
@@ -127,7 +126,7 @@ class TestHandleCompleteTask:
         await async_setup_services(hass)
         handler = await _get_handler(hass, SERVICE_COMPLETE_TASK)
         with patch("daynest.services.LOGGER") as mock_logger:
-            await handler(_make_service_call(**{ATTR_TASK_ID: 42}))
+            await handler(_make_service_call(**{ATTR_CHORE_INSTANCE_ID: 42}))
         mock_logger.warning.assert_called_once()
 
     async def test_multiple_entries_logs_warning_and_returns(self) -> None:
@@ -136,7 +135,7 @@ class TestHandleCompleteTask:
         await async_setup_services(hass)
         handler = await _get_handler(hass, SERVICE_COMPLETE_TASK)
         with patch("daynest.services.LOGGER") as mock_logger:
-            await handler(_make_service_call(**{ATTR_TASK_ID: 42}))
+            await handler(_make_service_call(**{ATTR_CHORE_INSTANCE_ID: 42}))
         mock_logger.warning.assert_called_once()
         for entry in entries:
             entry.runtime_data.client.async_complete_task.assert_not_awaited()
@@ -147,8 +146,8 @@ class TestHandleCompleteTask:
         hass = _make_hass(entries=[entry])
         await async_setup_services(hass)
         handler = await _get_handler(hass, SERVICE_COMPLETE_TASK)
-        await handler(_make_service_call(**{ATTR_TASK_ID: 7}))
-        client.async_complete_task.assert_awaited_once_with(task_id=7)
+        await handler(_make_service_call(**{ATTR_CHORE_INSTANCE_ID: 7}))
+        client.async_complete_task.assert_awaited_once_with(chore_instance_id=7)
         entry.runtime_data.coordinator.async_refresh.assert_awaited_once()
 
     async def test_authentication_error_raises_homeassistant_error(self) -> None:
@@ -158,8 +157,8 @@ class TestHandleCompleteTask:
         hass = _make_hass(entries=[entry])
         await async_setup_services(hass)
         handler = await _get_handler(hass, SERVICE_COMPLETE_TASK)
-        with pytest.raises(HomeAssistantError, match="Authentication error completing task"):
-            await handler(_make_service_call(**{ATTR_TASK_ID: 7}))
+        with pytest.raises(HomeAssistantError, match="Authentication error completing chore"):
+            await handler(_make_service_call(**{ATTR_CHORE_INSTANCE_ID: 7}))
 
     async def test_communication_error_raises_homeassistant_error(self) -> None:
         client = AsyncMock()
@@ -168,8 +167,8 @@ class TestHandleCompleteTask:
         hass = _make_hass(entries=[entry])
         await async_setup_services(hass)
         handler = await _get_handler(hass, SERVICE_COMPLETE_TASK)
-        with pytest.raises(HomeAssistantError, match="Communication error completing task"):
-            await handler(_make_service_call(**{ATTR_TASK_ID: 7}))
+        with pytest.raises(HomeAssistantError, match="Communication error completing chore"):
+            await handler(_make_service_call(**{ATTR_CHORE_INSTANCE_ID: 7}))
 
     async def test_generic_api_error_raises_homeassistant_error(self) -> None:
         client = AsyncMock()
@@ -178,8 +177,8 @@ class TestHandleCompleteTask:
         hass = _make_hass(entries=[entry])
         await async_setup_services(hass)
         handler = await _get_handler(hass, SERVICE_COMPLETE_TASK)
-        with pytest.raises(HomeAssistantError, match="Error completing task"):
-            await handler(_make_service_call(**{ATTR_TASK_ID: 7}))
+        with pytest.raises(HomeAssistantError, match="Error completing chore"):
+            await handler(_make_service_call(**{ATTR_CHORE_INSTANCE_ID: 7}))
 
     async def test_error_does_not_trigger_coordinator_refresh(self) -> None:
         client = AsyncMock()
@@ -189,7 +188,7 @@ class TestHandleCompleteTask:
         await async_setup_services(hass)
         handler = await _get_handler(hass, SERVICE_COMPLETE_TASK)
         with pytest.raises(HomeAssistantError):
-            await handler(_make_service_call(**{ATTR_TASK_ID: 7}))
+            await handler(_make_service_call(**{ATTR_CHORE_INSTANCE_ID: 7}))
         entry.runtime_data.coordinator.async_refresh.assert_not_awaited()
 
 
@@ -203,7 +202,7 @@ class TestHandleSnoozeTask:
         await async_setup_services(hass)
         handler = await _get_handler(hass, SERVICE_SNOOZE_TASK)
         with patch("daynest.services.LOGGER") as mock_logger:
-            await handler(_make_service_call(**{ATTR_TASK_ID: 1, ATTR_DAYS: 2}))
+            await handler(_make_service_call(**{ATTR_CHORE_INSTANCE_ID: 1, ATTR_DAYS: 2}))
         mock_logger.warning.assert_called_once()
 
     async def test_multiple_entries_logs_warning_and_returns(self) -> None:
@@ -212,7 +211,7 @@ class TestHandleSnoozeTask:
         await async_setup_services(hass)
         handler = await _get_handler(hass, SERVICE_SNOOZE_TASK)
         with patch("daynest.services.LOGGER") as mock_logger:
-            await handler(_make_service_call(**{ATTR_TASK_ID: 1, ATTR_DAYS: 2}))
+            await handler(_make_service_call(**{ATTR_CHORE_INSTANCE_ID: 1, ATTR_DAYS: 2}))
         mock_logger.warning.assert_called_once()
 
     async def test_success_calls_client_with_correct_args(self) -> None:
@@ -221,8 +220,8 @@ class TestHandleSnoozeTask:
         hass = _make_hass(entries=[entry])
         await async_setup_services(hass)
         handler = await _get_handler(hass, SERVICE_SNOOZE_TASK)
-        await handler(_make_service_call(**{ATTR_TASK_ID: 3, ATTR_DAYS: 5}))
-        client.async_snooze_task.assert_awaited_once_with(task_id=3, days=5)
+        await handler(_make_service_call(**{ATTR_CHORE_INSTANCE_ID: 3, ATTR_DAYS: 5}))
+        client.async_snooze_task.assert_awaited_once_with(chore_instance_id=3, days=5)
         entry.runtime_data.coordinator.async_refresh.assert_awaited_once()
 
     async def test_authentication_error_raises_homeassistant_error(self) -> None:
@@ -232,8 +231,8 @@ class TestHandleSnoozeTask:
         hass = _make_hass(entries=[entry])
         await async_setup_services(hass)
         handler = await _get_handler(hass, SERVICE_SNOOZE_TASK)
-        with pytest.raises(HomeAssistantError, match="Authentication error snoozing task"):
-            await handler(_make_service_call(**{ATTR_TASK_ID: 3, ATTR_DAYS: 2}))
+        with pytest.raises(HomeAssistantError, match="Authentication error snoozing chore"):
+            await handler(_make_service_call(**{ATTR_CHORE_INSTANCE_ID: 3, ATTR_DAYS: 2}))
 
     async def test_communication_error_raises_homeassistant_error(self) -> None:
         client = AsyncMock()
@@ -242,8 +241,8 @@ class TestHandleSnoozeTask:
         hass = _make_hass(entries=[entry])
         await async_setup_services(hass)
         handler = await _get_handler(hass, SERVICE_SNOOZE_TASK)
-        with pytest.raises(HomeAssistantError, match="Communication error snoozing task"):
-            await handler(_make_service_call(**{ATTR_TASK_ID: 3, ATTR_DAYS: 2}))
+        with pytest.raises(HomeAssistantError, match="Communication error snoozing chore"):
+            await handler(_make_service_call(**{ATTR_CHORE_INSTANCE_ID: 3, ATTR_DAYS: 2}))
 
     async def test_generic_api_error_raises_homeassistant_error(self) -> None:
         client = AsyncMock()
@@ -252,8 +251,8 @@ class TestHandleSnoozeTask:
         hass = _make_hass(entries=[entry])
         await async_setup_services(hass)
         handler = await _get_handler(hass, SERVICE_SNOOZE_TASK)
-        with pytest.raises(HomeAssistantError, match="Error snoozing task"):
-            await handler(_make_service_call(**{ATTR_TASK_ID: 3, ATTR_DAYS: 2}))
+        with pytest.raises(HomeAssistantError, match="Error snoozing chore"):
+            await handler(_make_service_call(**{ATTR_CHORE_INSTANCE_ID: 3, ATTR_DAYS: 2}))
 
 
 @pytest.mark.unit

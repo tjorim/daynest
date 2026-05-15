@@ -173,7 +173,12 @@ class CalendarViewModel
                         if (current is CalendarUiState.Content) {
                             current.copy(
                                 days = current.days.adjustPlannedSummary(date = date, delta = -1),
-                                dayItems = current.dayItems.filterNot { it.itemType == "planned" && it.itemId == id },
+                                dayItems =
+                                    if (current.selectedDate == date) {
+                                        current.dayItems.filterNot { it.itemType == "planned" && it.itemId == id }
+                                    } else {
+                                        current.dayItems
+                                    },
                             )
                         } else {
                             current
@@ -218,10 +223,12 @@ private fun List<CalendarDaySummaryDto>.adjustPlannedSummary(
         }
     }
 
+    val newPlanned = (existing.planned + delta).coerceAtLeast(0)
+    val actualDelta = newPlanned - existing.planned
     val updated =
         existing.copy(
-            total = (existing.total + delta).coerceAtLeast(0),
-            planned = (existing.planned + delta).coerceAtLeast(0),
+            total = (existing.total + actualDelta).coerceAtLeast(0),
+            planned = newPlanned,
         )
     return if (updated.total == 0) {
         filterNot { it.date == date }
