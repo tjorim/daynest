@@ -2,6 +2,8 @@
 
 package com.daynest.android.feature.calendar
 
+private const val DAYS_IN_WEEK = 7
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -259,10 +261,10 @@ private fun MonthGrid(
     val dayMap = remember(days) { days.associateBy { it.date } }
     val firstDayOfMonth = remember(displayMonth) { displayMonth.withDayOfMonth(1) }
     val daysInMonth = remember(displayMonth) { displayMonth.lengthOfMonth() }
-    val firstWeekday = remember(firstDayOfMonth) { firstDayOfMonth.dayOfWeek.value % 7 }
+    val firstWeekday = remember(firstDayOfMonth) { firstDayOfMonth.dayOfWeek.value % DAYS_IN_WEEK }
     val dayLabels = remember {
-        (0 until 7).map { offset ->
-            val dayValue = (DayOfWeek.SUNDAY.value - 1 + offset) % 7 + 1
+        (0 until DAYS_IN_WEEK).map { offset ->
+            val dayValue = (DayOfWeek.SUNDAY.value - 1 + offset) % DAYS_IN_WEEK + 1
             DayOfWeek.of(dayValue).getDisplayName(TextStyle.SHORT, Locale.getDefault())
         }
     }
@@ -282,11 +284,11 @@ private fun MonthGrid(
         Spacer(modifier = Modifier.height(4.dp))
 
         val totalCells = firstWeekday + daysInMonth
-        val rows = (totalCells + 6) / 7
+        val rows = (totalCells + DAYS_IN_WEEK - 1) / DAYS_IN_WEEK
         for (row in 0 until rows) {
             Row(modifier = Modifier.fillMaxWidth()) {
-                for (col in 0 until 7) {
-                    val cellIndex = row * 7 + col
+                for (col in 0 until DAYS_IN_WEEK) {
+                    val cellIndex = row * DAYS_IN_WEEK + col
                     val dayNum = cellIndex - firstWeekday + 1
                     if (dayNum < 1 || dayNum > daysInMonth) {
                         Spacer(modifier = Modifier.weight(1f).aspectRatio(1f))
