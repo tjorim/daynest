@@ -72,6 +72,13 @@ ENTITY_DESCRIPTIONS: tuple[DaynestSensorEntityDescription, ...] = (
         icon="mdi:clock-time-eight-outline",
         value_key="next_medication",
     ),
+    DaynestSensorEntityDescription(
+        key="routines_open_count",
+        translation_key="routines_open_count",
+        icon="mdi:clipboard-list-outline",
+        state_class=SensorStateClass.MEASUREMENT,
+        value_key="routines_open_count",
+    ),
 )
 
 

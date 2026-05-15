@@ -216,12 +216,21 @@ export function MedicationPage() {
               ) : (
                 plans.map((plan) => (
                   <li key={plan.id} className="list-group-item py-2">
-                    <div className="fw-semibold">{plan.name}</div>
-                    <small className="text-muted d-block">
-                      Starts {formatDate(plan.start_date)} • {plan.schedule_time.slice(0, 5)} •
-                      every {plan.every_n_days} day{plan.every_n_days === 1 ? "" : "s"}
-                    </small>
-                    <small className="d-block mt-1">{plan.instructions}</small>
+                    <div className="d-flex justify-content-between align-items-start gap-3">
+                      <div>
+                        <div className="fw-semibold">{plan.name}</div>
+                        <small className="text-muted d-block">
+                          Starts {formatDate(plan.start_date)} • {plan.schedule_time.slice(0, 5)} •
+                          every {plan.every_n_days} day{plan.every_n_days === 1 ? "" : "s"}
+                        </small>
+                        <small className="d-block mt-1">{plan.instructions}</small>
+                      </div>
+                      <span
+                        className={`badge align-self-start ${plan.is_active ? "text-bg-success" : "text-bg-secondary"}`}
+                      >
+                        {plan.is_active ? "Active" : "Inactive"}
+                      </span>
+                    </div>
                   </li>
                 ))
               )}

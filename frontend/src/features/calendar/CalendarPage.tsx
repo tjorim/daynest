@@ -74,6 +74,7 @@ export function CalendarPage() {
   const [linkedSource, setLinkedSource] = useState("");
   const [linkedRef, setLinkedRef] = useState("");
   const [editingPlannedItemId, setEditingPlannedItemId] = useState<number | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [canRetry, setCanRetry] = useState(false);
@@ -220,9 +221,7 @@ export function CalendarPage() {
   };
 
   const removePlannedItem = async (itemId: number) => {
-    if (!window.confirm("Delete this planned item?")) {
-      return;
-    }
+    setConfirmDeleteId(null);
     setAddError(null);
     setIsAdding(true);
     setActionStatus(null);
@@ -735,14 +734,35 @@ export function CalendarPage() {
                         >
                           Edit
                         </button>
-                        <button
-                          type="button"
-                          className="btn btn-outline-danger btn-sm"
-                          disabled={isAdding}
-                          onClick={() => void removePlannedItem(item.id)}
-                        >
-                          Delete
-                        </button>
+                        {confirmDeleteId === item.id ? (
+                          <div className="d-flex gap-1">
+                            <button
+                              type="button"
+                              className="btn btn-danger btn-sm"
+                              disabled={isAdding}
+                              onClick={() => void removePlannedItem(item.id)}
+                            >
+                              Confirm
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn-outline-secondary btn-sm"
+                              disabled={isAdding}
+                              onClick={() => setConfirmDeleteId(null)}
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            className="btn btn-outline-danger btn-sm"
+                            disabled={isAdding}
+                            onClick={() => setConfirmDeleteId(item.id)}
+                          >
+                            Delete
+                          </button>
+                        )}
                       </div>
                     </div>
                   </li>

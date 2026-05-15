@@ -20,6 +20,8 @@ SERVICE_REFRESH = "refresh"
 SERVICE_COMPLETE_TASK = "complete_task"
 SERVICE_SNOOZE_TASK = "snooze_task"
 SERVICE_MARK_MEDICATION_TAKEN = "mark_medication_taken"
+SERVICE_SKIP_TASK = "skip_task"
+SERVICE_SKIP_MEDICATION = "skip_medication"
 
 ATTR_TASK_ID = "task_id"
 ATTR_MEDICATION_DOSE_ID = "medication_dose_id"
@@ -39,6 +41,18 @@ SERVICE_SNOOZE_TASK_SCHEMA = vol.Schema(
 )
 
 SERVICE_MARK_MEDICATION_TAKEN_SCHEMA = vol.Schema(
+    {
+        vol.Required(ATTR_MEDICATION_DOSE_ID): vol.All(int, vol.Range(min=1)),
+    }
+)
+
+SERVICE_SKIP_TASK_SCHEMA = vol.Schema(
+    {
+        vol.Required(ATTR_TASK_ID): vol.All(int, vol.Range(min=1)),
+    }
+)
+
+SERVICE_SKIP_MEDICATION_SCHEMA = vol.Schema(
     {
         vol.Required(ATTR_MEDICATION_DOSE_ID): vol.All(int, vol.Range(min=1)),
     }
@@ -151,6 +165,66 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         LOGGER.debug("daynest.mark_medication_taken: dose %s marked as taken", medication_dose_id)
         await entry.runtime_data.coordinator.async_refresh()
 
+    async def handle_skip_task(call: ServiceCall) -> None:
+        """Skip a chore instance."""
+        task_id: int = call.data[ATTR_TASK_ID]
+        entries = _get_entries(hass)
+        if not entries:
+            LOGGER.warning("daynest.skip_task called but no Daynest entries are loaded")
+            return
+        if len(entries) != 1:
+            LOGGER.warning(
+                "daynest.skip_task: multiple Daynest entries loaded; specify an entry_id to target"
+            )
+            return
+        entry = entries[0]
+        try:
+            await entry.runtime_data.client.async_skip_task(task_id=task_id)
+        except DaynestApiClientAuthenticationError as err:
+            LOGGER.error("daynest.skip_task: authentication error for task %s", task_id)
+            raise HomeAssistantError(f"Authentication error skipping task {task_id}") from err
+        except DaynestApiClientCommunicationError as err:
+            LOGGER.error("daynest.skip_task: communication error for task %s: %s", task_id, err)
+            raise HomeAssistantError(f"Communication error skipping task {task_id}") from err
+        except DaynestApiClientError as err:
+            LOGGER.error("daynest.skip_task: unexpected error for task %s: %s", task_id, err)
+            raise HomeAssistantError(f"Error skipping task {task_id}") from err
+        LOGGER.debug("daynest.skip_task: task %s skipped", task_id)
+        await entry.runtime_data.coordinator.async_refresh()
+
+    async def handle_skip_medication(call: ServiceCall) -> None:
+        """Skip a medication dose."""
+        medication_dose_id: int = call.data[ATTR_MEDICATION_DOSE_ID]
+        entries = _get_entries(hass)
+        if not entries:
+            LOGGER.warning("daynest.skip_medication called but no Daynest entries are loaded")
+            return
+        if len(entries) != 1:
+            LOGGER.warning(
+                "daynest.skip_medication: multiple Daynest entries loaded; specify an entry_id to target"
+            )
+            return
+        entry = entries[0]
+        try:
+            await entry.runtime_data.client.async_skip_medication(medication_dose_id=medication_dose_id)
+        except DaynestApiClientAuthenticationError as err:
+            LOGGER.error(
+                "daynest.skip_medication: authentication error for dose %s", medication_dose_id
+            )
+            raise HomeAssistantError(f"Authentication error skipping dose {medication_dose_id}") from err
+        except DaynestApiClientCommunicationError as err:
+            LOGGER.error(
+                "daynest.skip_medication: communication error for dose %s: %s", medication_dose_id, err
+            )
+            raise HomeAssistantError(f"Communication error skipping dose {medication_dose_id}") from err
+        except DaynestApiClientError as err:
+            LOGGER.error(
+                "daynest.skip_medication: unexpected error for dose %s: %s", medication_dose_id, err
+            )
+            raise HomeAssistantError(f"Error skipping dose {medication_dose_id}") from err
+        LOGGER.debug("daynest.skip_medication: dose %s skipped", medication_dose_id)
+        await entry.runtime_data.coordinator.async_refresh()
+
     hass.services.async_register(DOMAIN, SERVICE_REFRESH, handle_refresh)
     hass.services.async_register(
         DOMAIN, SERVICE_COMPLETE_TASK, handle_complete_task, schema=SERVICE_COMPLETE_TASK_SCHEMA
@@ -161,6 +235,12 @@ async def async_setup_services(hass: HomeAssistant) -> None:
     hass.services.async_register(
         DOMAIN, SERVICE_MARK_MEDICATION_TAKEN, handle_mark_medication_taken, schema=SERVICE_MARK_MEDICATION_TAKEN_SCHEMA
     )
+    hass.services.async_register(
+        DOMAIN, SERVICE_SKIP_TASK, handle_skip_task, schema=SERVICE_SKIP_TASK_SCHEMA
+    )
+    hass.services.async_register(
+        DOMAIN, SERVICE_SKIP_MEDICATION, handle_skip_medication, schema=SERVICE_SKIP_MEDICATION_SCHEMA
+    )
 
 
 def async_unload_services(hass: HomeAssistant) -> None:
@@ -169,6 +249,8 @@ def async_unload_services(hass: HomeAssistant) -> None:
     hass.services.async_remove(DOMAIN, SERVICE_COMPLETE_TASK)
     hass.services.async_remove(DOMAIN, SERVICE_SNOOZE_TASK)
     hass.services.async_remove(DOMAIN, SERVICE_MARK_MEDICATION_TAKEN)
+    hass.services.async_remove(DOMAIN, SERVICE_SKIP_TASK)
+    hass.services.async_remove(DOMAIN, SERVICE_SKIP_MEDICATION)
 
 
 __all__ = [
@@ -178,6 +260,8 @@ __all__ = [
     "SERVICE_COMPLETE_TASK",
     "SERVICE_MARK_MEDICATION_TAKEN",
     "SERVICE_REFRESH",
+    "SERVICE_SKIP_MEDICATION",
+    "SERVICE_SKIP_TASK",
     "SERVICE_SNOOZE_TASK",
     "async_setup_services",
     "async_unload_services",
