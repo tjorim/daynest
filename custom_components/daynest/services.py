@@ -228,8 +228,8 @@ def async_unload_services(hass: HomeAssistant) -> None:
 
 
 __all__ = [
-    "ATTR_DAYS",
     "ATTR_CHORE_INSTANCE_ID",
+    "ATTR_DAYS",
     "ATTR_MEDICATION_DOSE_ID",
     "SERVICE_COMPLETE_TASK",
     "SERVICE_MARK_MEDICATION_TAKEN",
