@@ -129,16 +129,14 @@ Core runtime pieces:
 - Add CHANGELOG + migration notes.
 - Add compatibility matrix between integration version and backend contract version.
 
-## Immediate next actions in this repo
+## Implementation status
 
-To prepare Daynest backend for a clean custom integration launch:
-
-1. Add explicit API examples for HA adapter payloads in docs.
-2. Add integration-focused tests that lock the JSON response shape for:
-   - `/summary`
-   - `/entities`
-   - `/dashboard`
-3. Add a short “How to connect from Home Assistant custom integration” guide with API key scope requirements.
+- ✅ Phase 0 — Integration implemented in-monorepo under `custom_components/daynest/` (dedicated-repo approach was superseded).
+- ✅ Phase 1 — API client, coordinator, sensor entities, config flow, error mapping, tests.
+- ✅ Phase 2 (partial) — Diagnostics, services; to-do platform tracked in [#158](https://github.com/tjorim/daynest/issues/158).
+- ✅ Connection guide: `backend/docs/integrations/HOME_ASSISTANT_CONNECTION_GUIDE.md`.
+- ✅ Contract test for `/summary` response shape (`backend/tests/test_integration_contracts.py`).
+- ⬜ Contract tests for `/dashboard` and `/entities` shapes — tracked in [#157](https://github.com/tjorim/daynest/issues/157).
 
 ## Risks and mitigations
 

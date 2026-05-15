@@ -32,21 +32,21 @@ The native app now exposes the same authenticated top-level product areas as the
 
 Today is backed by the shared API read model. The other top-level areas currently provide native destination surfaces that mirror the web modules and will continue gaining editing controls from the shared backend contracts.
 
-## Suggested split for next tasks
+## Implementation status
 
-### Phase 1 — Foundation
-- Add Detekt/ktlint and GitHub Actions Android build checks.
-- Add `buildSrc`/version catalog and dependency centralization.
-- Add debug/release environment configs.
+### Foundation
+- ✅ Detekt, ktlint, GitHub Actions Android build checks
+- ✅ Debug / staging / release build configs with per-environment API URLs
+- ⬜ Gradle version catalog (`libs.versions.toml`) — tracked in [#156](https://github.com/tjorim/daynest/issues/156)
 
-### Phase 2 — App architecture
-- Add data/domain layers and repository contracts.
-- Add Retrofit API client for auth + today endpoints.
-- Add error mapping and offline cache (Room + DataStore).
+### App architecture
+- ✅ Data / domain layers and repository contracts
+- ✅ Retrofit API client (auth + all feature endpoints)
+- ✅ Certificate pinning for production builds
+- ✅ 401 auto-retry with transparent token refresh
+- ✅ Offline cache via Room + DataStore
 
-### Phase 3 — Product flows
-- Build login flow and session persistence.
-- Build Today screen backed by real API data.
-- Add basic instrumentation tests for startup + today happy path.
-### Phase 4 — Polish
-- Add CI checks for code formatting and linting.
+### Product flows
+- ✅ Login flow and session persistence
+- ✅ Today, Calendar, Medication, Templates, Settings screens backed by real API data
+- ✅ Instrumented tests (navigation + home screen)

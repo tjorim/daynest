@@ -22,7 +22,7 @@ The name reflects the product goal: a calm place to organize everyday life at ho
 - Stay simple enough for one person to build and maintain.
 - Support future integrations without redesigning core logic.
 
-## Tech stack (planned)
+## Tech stack
 
 - Frontend: React, TypeScript, Vite, Bootstrap, dayjs
 - Native Android: Kotlin, Jetpack Compose, AndroidX
@@ -96,18 +96,22 @@ android/
 
 ## Roadmap
 
-1. Foundation: scaffold app, auth skeleton, migrations, recurrence/date utilities.
-2. Routines + Today: recurring routine templates and daily task instances.
-3. Chores: recurring/one-off chores, overdue and reschedule support.
-4. Medication: plan + dose generation + history.
-5. Calendar + planned items: month/day detail and unified daily read model.
-6. Polish: PWA installability, caching, export/import.
-7. Integrations: Home Assistant and thin MCP adapter.
-8. Optional growth modules:
-   - Shopping lists
-   - Meal planning
-   - Recurring groceries/inventory hooks
-   - Shared calendar/planning linkage
+Completed phases:
+
+1. ✅ Foundation: scaffold app, auth skeleton, migrations, recurrence/date utilities.
+2. ✅ Routines + Today: recurring routine templates and daily task instances.
+3. ✅ Chores: recurring/one-off chores, overdue and reschedule support.
+4. ✅ Medication: plan + dose generation + history.
+5. ✅ Calendar + planned items: month/day detail and unified daily read model.
+6. ✅ Polish: PWA installability, caching, export/import.
+7. ✅ Integrations: Home Assistant custom integration and MCP server.
+
+Optional growth modules (not yet implemented — tracked as metadata hooks):
+
+- Shopping lists
+- Meal planning
+- Recurring groceries/inventory hooks
+- Shared calendar/planning linkage
 
 ## Optional growth modules (implemented as metadata, not separate silos)
 
@@ -132,31 +136,6 @@ If these fields are omitted, planned items remain plain and simple.
 ## Why this direction
 
 This architecture keeps Daynest calm, lightweight, and practical while preserving a clean path for future integrations and automation.
-
-
-## Practical next suggestions
-
-1. Add first migrations and real SQLAlchemy models for `User`, `RoutineTemplate`, and `TaskInstance`.
-2. Implement `GET /api/v1/today` as the first real read model and drive the Today UI from it.
-3. Add lightweight auth (`/auth/login`, `/auth/refresh`, `/auth/me`) before writing chore/medication mutations.
-4. Add basic CI checks (`python -m py_compile`, `npm run build`) to prevent scaffold regressions.
-5. Add a service worker for shell caching once Today + Calendar routes are stable.
-
-## App name suggestions
-
-If you want alternatives to **Daynest**, here are options grouped by tone:
-
-- **Calm/homey**: Daynest, Hearthlist, Nestday, Homeday
-- **Practical/task-focused**: TidyTick, Chorepath, Routinest, Plainplan
-- **Medication-forward**: Dosepath, Medinest, DailyDosebook
-- **Planning-forward**: Daygrid, Planstead, Weeknest
-
-Top 3 recommendations for your product direction:
-
-1. **Daynest** (best balance of personal + practical)
-2. **TidyTick** (more task-centric, playful)
-3. **Planstead** (planning-oriented, calm tone)
-
 
 ## Integration-ready API surface
 
