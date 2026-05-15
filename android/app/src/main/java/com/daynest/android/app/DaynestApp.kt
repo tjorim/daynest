@@ -4,13 +4,18 @@ package com.daynest.android.app
 
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.daynest.android.app.navigation.DaynestDestination
 import com.daynest.android.app.session.SessionGateRoute
 import com.daynest.android.feature.auth.AuthRoute
+import com.daynest.android.feature.calendar.CalendarRoute
 import com.daynest.android.feature.home.HomeRoute
+import com.daynest.android.feature.medication.MedicationRoute
+import com.daynest.android.feature.settings.SettingsRoute
+import com.daynest.android.feature.templates.TemplatesRoute
 import com.daynest.android.ui.theme.DaynestTheme
 
 @Composable
@@ -49,8 +54,38 @@ fun DaynestApp() {
             }
 
             composable(route = DaynestDestination.HOME) {
-                HomeRoute()
+                HomeRoute(onNavigate = navController::navigateTopLevel)
+            }
+            composable(route = DaynestDestination.CALENDAR) {
+                CalendarRoute(onNavigate = navController::navigateTopLevel)
+            }
+            composable(route = DaynestDestination.MEDICATION) {
+                MedicationRoute(onNavigate = navController::navigateTopLevel)
+            }
+            composable(route = DaynestDestination.TEMPLATES) {
+                TemplatesRoute(onNavigate = navController::navigateTopLevel)
+            }
+            composable(route = DaynestDestination.SETTINGS) {
+                SettingsRoute(
+                    onNavigate = navController::navigateTopLevel,
+                    onSignedOut = {
+                        navController.navigate(DaynestDestination.AUTH) {
+                            popUpTo(DaynestDestination.HOME) { inclusive = true }
+                            launchSingleTop = true
+                        }
+                    },
+                )
             }
         }
+    }
+}
+
+private fun NavHostController.navigateTopLevel(route: String) {
+    navigate(route) {
+        popUpTo(DaynestDestination.HOME) {
+            saveState = true
+        }
+        launchSingleTop = true
+        restoreState = true
     }
 }

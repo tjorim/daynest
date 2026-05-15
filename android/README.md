@@ -20,6 +20,18 @@ cd android
 ./gradlew assembleDebug
 ```
 
+## Current feature parity
+
+The native app now exposes the same authenticated top-level product areas as the web app:
+
+- Today
+- Calendar
+- Medication
+- Templates
+- Settings
+
+Today is backed by the shared API read model. The other top-level areas currently provide native destination surfaces that mirror the web modules and will continue gaining editing controls from the shared backend contracts.
+
 ## Suggested split for next tasks
 
 ### Phase 1 — Foundation

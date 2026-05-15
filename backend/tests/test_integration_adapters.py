@@ -212,6 +212,7 @@ def test_home_assistant_dashboard_contract_is_stable(
         "medication_due_count",
         "completion_ratio",
         "next_medication",
+        "routines_open_count",
     }
     assert isinstance(dashboard_payload["for_date"], str)
     assert isinstance(dashboard_payload["overdue_count"], int)
@@ -232,9 +233,11 @@ def test_home_assistant_write_endpoints_require_ha_write_scope(
     read_only_key = _create_integration_key(db_session, user.id, scopes="ha:read")
 
     for path, payload in [
-        ("/api/v1/integrations/home-assistant/actions/complete-task", {"task_id": 1}),
-        ("/api/v1/integrations/home-assistant/actions/snooze-task", {"task_id": 1}),
+        ("/api/v1/integrations/home-assistant/actions/complete-task", {"chore_instance_id": 1}),
+        ("/api/v1/integrations/home-assistant/actions/snooze-task", {"chore_instance_id": 1}),
         ("/api/v1/integrations/home-assistant/actions/mark-medication-taken", {"medication_dose_id": 1}),
+        ("/api/v1/integrations/home-assistant/actions/skip-task", {"chore_instance_id": 1}),
+        ("/api/v1/integrations/home-assistant/actions/skip-medication", {"medication_dose_id": 1}),
     ]:
         denied = client.post(path, json=payload, headers={"X-Integration-Key": read_only_key})
         assert denied.status_code == 403, f"Expected 403 for {path} with ha:read scope"
@@ -255,7 +258,7 @@ def test_home_assistant_complete_task_marks_chore_complete(
 
     response = client.post(
         "/api/v1/integrations/home-assistant/actions/complete-task",
-        json={"task_id": chore.id},
+        json={"chore_instance_id": chore.id},
         headers={"X-Integration-Key": write_key},
     )
     assert response.status_code == 200
@@ -281,7 +284,7 @@ def test_home_assistant_snooze_task_reschedules_chore(
 
     response = client.post(
         "/api/v1/integrations/home-assistant/actions/snooze-task",
-        json={"task_id": chore.id, "days": 2},
+        json={"chore_instance_id": chore.id, "days": 2},
         headers={"X-Integration-Key": write_key},
     )
     assert response.status_code == 200

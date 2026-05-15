@@ -104,6 +104,7 @@ class TodayService:
             medication_due_count=len([item for item in data.medication if item.status == MedicationDoseStatus.scheduled]),
             completion_ratio=round(completed_count / total if total else 0.0, 3),
             next_medication=self._format_next_medication(data.medication),
+            routines_open_count=len([item for item in data.routines if item.status in (TaskStatus.pending, TaskStatus.in_progress)]),
         )
 
     def get_today(self, user_id: int, for_date: date) -> TodayResponse:

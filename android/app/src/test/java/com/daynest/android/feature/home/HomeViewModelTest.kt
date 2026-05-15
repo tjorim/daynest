@@ -2,16 +2,23 @@ package com.daynest.android.feature.home
 
 import com.daynest.android.core.database.today.TodaySummaryDao
 import com.daynest.android.core.database.today.TodaySummaryEntity
+import com.daynest.android.data.today.ChoreMutationDto
+import com.daynest.android.data.today.DoseMutationDto
 import com.daynest.android.data.today.DueTodayItemDto
 import com.daynest.android.data.today.MedicationHistoryItemDto
 import com.daynest.android.data.today.MedicationTodayItemDto
 import com.daynest.android.data.today.OverdueTodayItemDto
+import com.daynest.android.data.today.PlannedItemCreateDto
+import com.daynest.android.data.today.PlannedItemUpdateDto
 import com.daynest.android.data.today.PlannedTodayItemDto
 import com.daynest.android.data.today.RoutineTodayItemDto
+import com.daynest.android.data.today.TaskMutationDto
+import com.daynest.android.data.today.TodayActionsApi
 import com.daynest.android.data.today.TodayApi
 import com.daynest.android.data.today.TodayRepository
 import com.daynest.android.data.today.TodayResponseDto
 import com.daynest.android.data.today.UpcomingTodayItemDto
+import com.daynest.android.fakes.StubTodayActionsApi
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -56,6 +63,7 @@ class HomeViewModelTest {
                                 FakeTodayApi().apply {
                                     enqueueSuccess(todayResponse())
                                 },
+                            todayActionsApi = StubTodayActionsApi(),
                             todaySummaryDao = FakeTodaySummaryDao(),
                         ),
                 )
@@ -82,6 +90,7 @@ class HomeViewModelTest {
                                 FakeTodayApi().apply {
                                     enqueueError(IllegalStateException("boom"))
                                 },
+                            todayActionsApi = StubTodayActionsApi(),
                             todaySummaryDao = FakeTodaySummaryDao(),
                         ),
                 )
@@ -103,7 +112,12 @@ class HomeViewModelTest {
                     enqueueError(IllegalStateException("initial load failure"))
                     enqueueSuccess(todayResponse(), gate = loadGate)
                 }
-            val repository = TodayRepository(todayApi = api, todaySummaryDao = FakeTodaySummaryDao())
+            val repository =
+                TodayRepository(
+                    todayApi = api,
+                    todayActionsApi = StubTodayActionsApi(),
+                    todaySummaryDao = FakeTodaySummaryDao(),
+                )
             val viewModel = HomeViewModel(repository = repository)
 
             advanceUntilIdle()
@@ -129,7 +143,15 @@ class HomeViewModelTest {
                     enqueueSuccess(todayResponse())
                     enqueueError(IllegalStateException("network gone"))
                 }
-            val viewModel = HomeViewModel(repository = TodayRepository(todayApi = api, todaySummaryDao = dao))
+            val viewModel =
+                HomeViewModel(
+                    repository =
+                        TodayRepository(
+                            todayApi = api,
+                            todayActionsApi = StubTodayActionsApi(),
+                            todaySummaryDao = dao,
+                        ),
+                )
 
             advanceUntilIdle()
             assertTrue(viewModel.uiState.value is HomeUiState.Content)
@@ -218,3 +240,29 @@ private fun todayResponse() =
                 PlannedTodayItemDto(8, "Call insurance", isDone = true),
             ),
     )
+
+private class StubTodayActionsApi : TodayActionsApi {
+    override suspend fun completeChore(id: Int): ChoreMutationDto = ChoreMutationDto(id, "completed")
+
+    override suspend fun skipChore(id: Int): ChoreMutationDto = ChoreMutationDto(id, "skipped")
+
+    override suspend fun completeTask(id: Int): TaskMutationDto = TaskMutationDto(id, "completed")
+
+    override suspend fun skipTask(id: Int): TaskMutationDto = TaskMutationDto(id, "skipped")
+
+    override suspend fun startTask(id: Int): TaskMutationDto = TaskMutationDto(id, "in_progress")
+
+    override suspend fun takeDose(id: Int): DoseMutationDto = DoseMutationDto(id, "taken")
+
+    override suspend fun skipDose(id: Int): DoseMutationDto = DoseMutationDto(id, "skipped")
+
+    override suspend fun updatePlannedItem(
+        id: Int,
+        request: PlannedItemUpdateDto,
+    ): PlannedTodayItemDto = PlannedTodayItemDto(id, request.title, request.isDone)
+
+    override suspend fun deletePlannedItem(id: Int) = Unit
+
+    override suspend fun createPlannedItem(request: PlannedItemCreateDto): PlannedTodayItemDto =
+        PlannedTodayItemDto(0, request.title, false)
+}

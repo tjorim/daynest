@@ -1,11 +1,12 @@
 <resources>
     <string name="app_name">Daynest</string>
-    <string name="home_welcome">Welcome to Daynest</string>
+    <string name="home_welcome">Today</string>
     <string name="home_action_plan_today">Plan today</string>
     <string name="home_action_caught_up">You\'re all caught up</string>
     <string name="home_retry">Retry</string>
     <string name="home_error_generic">Unable to load today data.</string>
-
+    <string name="home_stale_notice">Showing cached data.</string>
+    <string name="home_all_caught_up">You\'re all caught up for today.</string>
     <string name="auth_title">Sign in to Daynest</string>
     <string name="auth_email_label">Email</string>
     <string name="auth_password_label">Password</string>
@@ -13,6 +14,111 @@
     <string name="auth_error_missing_credentials">Enter both email and password.</string>
     <string name="auth_error_sign_in_failed">Unable to sign in. Please try again.</string>
 
+    <!-- Today screen sections -->
+    <string name="today_section_medication">Medication</string>
+    <string name="today_section_medication_history">Medication History</string>
+    <string name="today_section_routines">Routines</string>
+    <string name="today_section_overdue">Overdue</string>
+    <string name="today_section_due_today">Due Today</string>
+    <string name="today_section_upcoming">Upcoming</string>
+    <string name="today_section_planned">Planned</string>
+    <string name="today_overdue_since">Overdue since %1$s</string>
+
+    <!-- Common actions -->
+    <string name="action_done">Done</string>
+    <string name="action_undo">Undo</string>
+    <string name="action_skip">Skip</string>
+    <string name="action_take">Take</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_add">Add</string>
+    <string name="action_cancel">Cancel</string>
+
+    <!-- Top-level destinations -->
+    <string name="today_title">Today</string>
+    <string name="calendar_title">Calendar</string>
+
+    <!-- Calendar -->
+    <string name="calendar_subtitle">Month and day planning, matching the web calendar workspace.</string>
+    <string name="calendar_capability_month">Review month-level counts for routines, chores, medication, and planned items.</string>
+    <string name="calendar_capability_day">Open a day detail view that keeps completed, pending, and overdue work visible.</string>
+    <string name="calendar_capability_planned">Create and organize planned items with optional notes and module metadata.</string>
+    <string name="calendar_capability_backup">Export and import planned-item backups from the same product surface.</string>
+    <string name="calendar_error">Unable to load calendar data.</string>
+    <string name="calendar_prev_month">Previous month</string>
+    <string name="calendar_next_month">Next month</string>
+    <string name="calendar_month_year">%1$s %2$s</string>
+    <string name="calendar_day_detail_header">%1$s</string>
+    <string name="calendar_day_empty">No items for this day.</string>
+    <string name="calendar_add_planned">+ Add planned</string>
+    <string name="calendar_add_planned_title">Add planned item</string>
+    <string name="calendar_planned_title_label">Title</string>
+
+    <!-- Medication -->
+    <string name="medication_title">Medication</string>
+    <string name="medication_subtitle">Medication planning and dose tracking are available from native navigation.</string>
+    <string name="medication_capability_today">Track today\'s scheduled medication doses alongside the Today checklist.</string>
+    <string name="medication_capability_history">Review dose history statuses such as taken, skipped, and missed.</string>
+    <string name="medication_capability_strict">Keep medication modeled separately from routine chores for safer reminders.</string>
+    <string name="medication_error">Unable to load medication data.</string>
+    <string name="medication_plans_section">Plans</string>
+    <string name="medication_history_section">History</string>
+    <string name="medication_no_plans">No medication plans yet.</string>
+    <string name="medication_no_history">No dose history yet.</string>
+    <string name="medication_inactive">Inactive</string>
+    <string name="medication_add_plan">+ Add plan</string>
+    <string name="medication_create_title">Add medication plan</string>
+    <string name="medication_name_label">Name</string>
+    <string name="medication_instructions_label">Instructions</string>
+    <string name="medication_time_label">Schedule time (HH:MM)</string>
+    <string name="medication_every_n_days_label">Every N days</string>
+    <string name="medication_plan_schedule">%1$s · every %2$d day(s)</string>
+
+    <!-- Templates -->
+    <string name="templates_title">Templates</string>
+    <string name="templates_subtitle">Reusable routine and chore setup now has a native destination.</string>
+    <string name="templates_capability_routines">Manage routine templates that generate daily task instances.</string>
+    <string name="templates_capability_chores">Manage chore templates for recurring household work.</string>
+    <string name="templates_capability_recurring">Keep recurrence understandable while supporting repeating work.</string>
+    <string name="templates_error">Unable to load templates.</string>
+    <string name="templates_tab_routines">Routines</string>
+    <string name="templates_tab_chores">Chores</string>
+    <string name="templates_no_routines">No routine templates yet.</string>
+    <string name="templates_no_chores">No chore templates yet.</string>
+    <string name="templates_add_routine">+ Add routine</string>
+    <string name="templates_add_chore">+ Add chore</string>
+    <string name="templates_create_routine_title">Add routine template</string>
+    <string name="templates_create_chore_title">Add chore template</string>
+    <string name="templates_name_label">Name</string>
+    <string name="templates_description_label">Description (optional)</string>
+    <string name="templates_every_n_days_label">Every N days</string>
+    <string name="templates_every_n_days">Every %1$d day(s)</string>
+    <string name="templates_inactive">Inactive</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_subtitle">Account and integration controls are represented across platforms.</string>
+    <string name="settings_capability_account">Review account session state and future profile preferences.</string>
+    <string name="settings_capability_integrations">Connect integration surfaces such as Home Assistant and MCP clients.</string>
+    <string name="settings_capability_clients">Prepare integration clients with scoped access from one settings area.</string>
+    <string name="settings_account_section">Account</string>
+    <string name="settings_session_active">Signed in</string>
+    <string name="settings_sign_out">Sign out</string>
+    <string name="settings_integrations_section">Integration Clients</string>
+    <string name="settings_new_client">+ New client</string>
+    <string name="settings_no_clients">No integration clients configured.</string>
+    <string name="settings_clients_error">Unable to load integration clients.</string>
+    <string name="settings_client_active">Active</string>
+    <string name="settings_client_inactive">Inactive</string>
+    <string name="settings_client_rate_limit">%1$d req/min</string>
+    <string name="settings_create_client_title">New integration client</string>
+    <string name="settings_client_name_label">Name</string>
+    <string name="settings_client_scopes_label">Scopes (comma-separated)</string>
+    <string name="settings_client_rate_limit_label">Rate limit (per minute)</string>
+    <string name="settings_new_key_title">API Key Created</string>
+    <string name="settings_new_key_notice">Copy this key now — it will not be shown again.</string>
+    <string name="settings_new_key_dismiss">I\'ve copied it</string>
+
+    <string name="parity_more_coming">Native editing controls will continue to grow from the same shared API contracts.</string>
 
     <plurals name="home_items_remaining">
         <item quantity="one">You have %1$d item to handle today.</item>

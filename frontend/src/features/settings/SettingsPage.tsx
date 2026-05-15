@@ -10,14 +10,57 @@ import {
 const AVAILABLE_SCOPES = [
   {
     key: "ha:read",
-    label: "Home Assistant",
-    description: "Allows Home Assistant summary, entities, and dashboard reads.",
+    label: "Home Assistant dashboard",
+    description: "Allows Home Assistant summary, entity, and dashboard reads.",
+  },
+  {
+    key: "ha:write",
+    label: "Home Assistant actions",
+    description:
+      "Allows Home Assistant services to complete tasks, snooze tasks, and mark medication taken.",
   },
   {
     key: "mcp:read",
     label: "MCP Adapter",
     description: "Allows MCP-compatible reads for Today and Calendar day data.",
   },
+];
+
+const INTEGRATION_PRESETS = [
+  {
+    key: "ha-dashboard",
+    label: "Home Assistant dashboard",
+    name: "Home Assistant",
+    scopes: ["ha:read"],
+    rateLimit: "120",
+    description: "Sensors, dashboard metrics, setup validation, and entity reads.",
+  },
+  {
+    key: "ha-automation",
+    label: "Home Assistant automations",
+    name: "Home Assistant Automations",
+    scopes: ["ha:read", "ha:write"],
+    rateLimit: "120",
+    description: "Everything in dashboard mode plus write services for household automations.",
+  },
+  {
+    key: "mcp-reader",
+    label: "MCP read-only",
+    name: "MCP Adapter",
+    scopes: ["mcp:read"],
+    rateLimit: "60",
+    description: "Least-privilege read access for MCP consumers.",
+  },
+];
+
+const HA_ENDPOINTS = [
+  "GET /api/v1/integrations/home-assistant/summary",
+  "GET /api/v1/integrations/home-assistant/dashboard",
+  "POST /api/v1/integrations/home-assistant/actions/complete-task",
+  "POST /api/v1/integrations/home-assistant/actions/snooze-task",
+  "POST /api/v1/integrations/home-assistant/actions/mark-medication-taken",
+  "POST /api/v1/integrations/home-assistant/actions/skip-task",
+  "POST /api/v1/integrations/home-assistant/actions/skip-medication",
 ];
 
 export function SettingsPage() {
@@ -34,6 +77,8 @@ export function SettingsPage() {
   const [name, setName] = useState("Home Assistant");
   const [rateLimit, setRateLimit] = useState("120");
   const [selectedScopes, setSelectedScopes] = useState<string[]>(["ha:read"]);
+
+  const backendBaseUrl = window.location.origin;
 
   const loadClients = async (signal?: AbortSignal) => {
     setLoading(true);
@@ -67,6 +112,14 @@ export function SettingsPage() {
       current.includes(scope) ? current.filter((item) => item !== scope) : [...current, scope],
     );
     setSubmitError(null);
+  };
+
+  const applyPreset = (preset: (typeof INTEGRATION_PRESETS)[number]) => {
+    setName(preset.name);
+    setRateLimit(preset.rateLimit);
+    setSelectedScopes(preset.scopes);
+    setSubmitError(null);
+    setSuccessMessage(null);
   };
 
   const onCreateClient = async () => {
@@ -158,6 +211,23 @@ export function SettingsPage() {
       <div className="row g-3">
         <div className="col-lg-5">
           <div className="card mb-3">
+            <div className="card-header fw-semibold py-2">Integration presets</div>
+            <div className="card-body d-grid gap-2">
+              {INTEGRATION_PRESETS.map((preset) => (
+                <button
+                  key={preset.key}
+                  type="button"
+                  className="btn btn-outline-primary text-start"
+                  onClick={() => applyPreset(preset)}
+                >
+                  <span className="fw-semibold d-block">{preset.label}</span>
+                  <span className="small text-muted">{preset.description}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="card mb-3">
             <div className="card-header fw-semibold py-2">Create integration client</div>
             <div className="card-body d-grid gap-3">
               <input
@@ -220,6 +290,39 @@ export function SettingsPage() {
             ) : null}
           </div>
 
+          <div className="card mb-3">
+            <div className="card-header fw-semibold py-2">Home Assistant connection details</div>
+            <div className="card-body">
+              <p className="text-muted small mb-2">
+                Use these values when adding the Daynest custom integration in Home Assistant.
+              </p>
+              <dl className="row small mb-0">
+                <dt className="col-sm-4">Base URL</dt>
+                <dd className="col-sm-8">
+                  <code>{backendBaseUrl}</code>
+                </dd>
+                <dt className="col-sm-4">Header</dt>
+                <dd className="col-sm-8">
+                  <code>X-Integration-Key</code>
+                </dd>
+                <dt className="col-sm-4">Contract</dt>
+                <dd className="col-sm-8">
+                  <code>home-assistant; version=ha.v1</code>
+                </dd>
+              </dl>
+              <details className="mt-3">
+                <summary className="small fw-semibold">Home Assistant endpoints</summary>
+                <ul className="settings-endpoint-list mt-2 mb-0">
+                  {HA_ENDPOINTS.map((endpoint) => (
+                    <li key={endpoint}>
+                      <code>{endpoint}</code>
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            </div>
+          </div>
+
           {createdClient ? (
             <div className="card">
               <div className="card-header fw-semibold py-2">New API key</div>
@@ -262,11 +365,13 @@ export function SettingsPage() {
                           {client.scopes.join(", ")} • {client.rate_limit_per_minute}/min
                         </small>
                         <small className="text-muted d-block mt-1">
-                          {client.scopes.includes("ha:read") ? "Home Assistant ready." : ""}
-                          {client.scopes.includes("ha:read") && client.scopes.includes("mcp:read")
-                            ? " "
-                            : ""}
-                          {client.scopes.includes("mcp:read") ? "MCP adapter ready." : ""}
+                          {[
+                            client.scopes.includes("ha:read") && "Home Assistant dashboard ready.",
+                            client.scopes.includes("ha:write") && "HA actions enabled.",
+                            client.scopes.includes("mcp:read") && "MCP adapter ready.",
+                          ]
+                            .filter(Boolean)
+                            .join(" ")}
                         </small>
                       </div>
                       <span

@@ -3,6 +3,7 @@ package com.daynest.android.data.today
 import app.cash.turbine.test
 import com.daynest.android.core.database.today.TodaySummaryDao
 import com.daynest.android.core.database.today.TodaySummaryEntity
+import com.daynest.android.fakes.StubTodayActionsApi
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -36,7 +37,12 @@ class TodayRepositoryTest {
                         ),
                     )
                 }
-            val repository = TodayRepository(todayApi = api, todaySummaryDao = dao)
+            val repository =
+                TodayRepository(
+                    todayApi = api,
+                    todayActionsApi = StubTodayActionsApi(),
+                    todaySummaryDao = dao,
+                )
 
             repository.observeTodaySummary().test {
                 assertNull(awaitItem())
@@ -76,7 +82,12 @@ class TodayRepositoryTest {
                 FakeTodayApi().apply {
                     enqueueError(RuntimeException("network unavailable"))
                 }
-            val repository = TodayRepository(todayApi = api, todaySummaryDao = dao)
+            val repository =
+                TodayRepository(
+                    todayApi = api,
+                    todayActionsApi = StubTodayActionsApi(),
+                    todaySummaryDao = dao,
+                )
 
             repository.observeTodaySummary().test {
                 val cached = awaitItem()
@@ -99,7 +110,12 @@ class TodayRepositoryTest {
                 FakeTodayApi().apply {
                     enqueueError(RuntimeException("no connection"))
                 }
-            val repository = TodayRepository(todayApi = api, todaySummaryDao = dao)
+            val repository =
+                TodayRepository(
+                    todayApi = api,
+                    todayActionsApi = StubTodayActionsApi(),
+                    todaySummaryDao = dao,
+                )
 
             repository.observeTodaySummary().test {
                 assertNull(awaitItem())

@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
+import type { FormEvent } from "react";
 import {
   completeRoutineTask,
   completeChore,
+  createPlannedItem,
   deletePlannedItem,
   fetchToday,
   isRetryableApiError,
@@ -55,6 +57,39 @@ type BulkAction = {
   isAvailable: (item: SectionItem) => boolean;
   run: (item: SectionItem) => Promise<unknown>;
 };
+
+type TodaySection = {
+  key: string;
+  heading: string;
+  items: SectionItem[];
+  bulkActions?: BulkAction[];
+};
+
+function isItemActionable(item: SectionItem): boolean {
+  if (item.medicationDoseInstanceId) return item.medicationStatus === "scheduled";
+  if (item.taskInstanceId)
+    return item.taskStatus !== "completed" && item.taskStatus !== "skipped";
+  if (item.choreInstanceId)
+    return item.choreStatus !== "completed" && item.choreStatus !== "skipped";
+  if (item.plannedItem) return !item.plannedItem.is_done;
+  return false;
+}
+
+function isItemCompleted(item: SectionItem): boolean {
+  if (item.medicationDoseInstanceId) return item.medicationStatus === "taken";
+  if (item.taskInstanceId) return item.taskStatus === "completed";
+  if (item.choreInstanceId) return item.choreStatus === "completed";
+  if (item.plannedItem) return item.plannedItem.is_done;
+  return false;
+}
+
+function getActionableCount(items: SectionItem[]): number {
+  return items.filter(isItemActionable).length;
+}
+
+function getCompletedCount(items: SectionItem[]): number {
+  return items.filter(isItemCompleted).length;
+}
 
 function formatSubtitle(...values: Array<string | null | undefined>) {
   return values.filter(Boolean).join(" • ");
@@ -199,11 +234,74 @@ function SummaryCard({
   tone: "primary" | "secondary" | "warning" | "success" | "info" | "danger";
 }) {
   return (
-    <div className="col-6 col-lg-3">
+    <div className="col-6 col-sm-4 col-lg">
       <div className="card h-100 border-0 summary-card shadow-sm">
         <div className="card-body py-3">
           <div className={`summary-pill text-bg-${tone}`}>{label}</div>
           <div className="summary-value mt-2">{value}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function WebFocusPanel({ sections }: { sections: TodaySection[] }) {
+  const actionableCount = sections.reduce(
+    (total, section) => total + getActionableCount(section.items),
+    0,
+  );
+  const completedCount = sections.reduce(
+    (total, section) => total + getCompletedCount(section.items),
+    0,
+  );
+  const totalTrackedCount = actionableCount + completedCount;
+  const completionPercent =
+    totalTrackedCount > 0 ? Math.round((completedCount / totalTrackedCount) * 100) : 0;
+  const nextSection = sections.find((section) => getActionableCount(section.items) > 0);
+  const nextItem = nextSection?.items.find(isItemActionable);
+
+  return (
+    <div className="card border-0 shadow-sm mb-3 web-focus-panel">
+      <div className="card-body">
+        <div className="d-flex flex-column flex-lg-row justify-content-between gap-3">
+          <div>
+            <div className="text-uppercase text-muted small fw-semibold">Today's focus</div>
+            <h3 className="h5 mb-1">{nextItem ? nextItem.title : "All clear for now"}</h3>
+            <p className="text-muted mb-0">
+              {nextItem
+                ? `${nextSection?.heading ?? "Today"} is the next section that needs attention.`
+                : "No open actions remain for today."}
+            </p>
+          </div>
+          <div className="focus-progress" aria-label={`${completionPercent}% complete`}>
+            <span className="focus-progress-value">{completionPercent}%</span>
+            <span className="text-muted small">complete</span>
+          </div>
+        </div>
+        <div
+          className="progress my-3"
+          role="progressbar"
+          aria-label="Today completion"
+          aria-valuenow={completionPercent}
+          aria-valuemin={0}
+          aria-valuemax={100}
+        >
+          <div className="progress-bar" style={{ width: `${completionPercent}%` }} />
+        </div>
+        <div className="d-flex gap-2 flex-wrap">
+          {sections.map((section) => {
+            const actionable = getActionableCount(section.items);
+            return (
+              <a
+                key={section.key}
+                className={`btn btn-sm ${actionable > 0 ? "btn-outline-primary" : "btn-outline-secondary"}`}
+                href={`#${section.key}`}
+              >
+                {section.heading}
+                <span className="badge text-bg-light ms-2">{actionable}</span>
+              </a>
+            );
+          })}
         </div>
       </div>
     </div>
@@ -419,11 +517,13 @@ function PlannedItemActions({
 }
 
 function SectionCard({
+  sectionId,
   heading,
   items,
   onRefresh,
   bulkActions,
 }: {
+  sectionId: string;
   heading: string;
   items: SectionItem[];
   onRefresh: () => Promise<void>;
@@ -499,7 +599,7 @@ function SectionCard({
   };
 
   return (
-    <div className="card mb-3">
+    <div className="card mb-3" id={sectionId}>
       <div className="card-header py-2">
         <div className="d-flex flex-column gap-2">
           <div className="d-flex justify-content-between align-items-center gap-2 flex-wrap">
@@ -605,6 +705,77 @@ function SectionCard({
   );
 }
 
+function QuickAddPlanned({ onRefresh }: { onRefresh: () => Promise<void> }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [title, setTitle] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [addError, setAddError] = useState<string | null>(null);
+
+  const todayDate = toIsoDate(dayjs());
+
+  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!title.trim()) return;
+    setIsSubmitting(true);
+    setAddError(null);
+    try {
+      await createPlannedItem({ title: title.trim(), planned_for: todayDate });
+      setTitle("");
+      setIsOpen(false);
+      await onRefresh();
+    } catch (err) {
+      setAddError(err instanceof Error ? err.message : "Failed to add item.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (!isOpen) {
+    return (
+      <button
+        type="button"
+        className="btn btn-outline-secondary btn-sm"
+        onClick={() => setIsOpen(true)}
+      >
+        + Quick add
+      </button>
+    );
+  }
+
+  return (
+    <form className="d-flex gap-2 align-items-start flex-wrap" onSubmit={(e) => void onSubmit(e)}>
+      <input
+        className="form-control form-control-sm flex-grow-1"
+        style={{ minWidth: "12rem" }}
+        value={title}
+        autoFocus
+        placeholder="Plan title for today…"
+        disabled={isSubmitting}
+        onChange={(e) => {
+          setTitle(e.target.value);
+          setAddError(null);
+        }}
+      />
+      <button type="submit" className="btn btn-primary btn-sm" disabled={isSubmitting || !title.trim()}>
+        {isSubmitting ? "Adding…" : "Add"}
+      </button>
+      <button
+        type="button"
+        className="btn btn-outline-secondary btn-sm"
+        disabled={isSubmitting}
+        onClick={() => {
+          setIsOpen(false);
+          setTitle("");
+          setAddError(null);
+        }}
+      >
+        Cancel
+      </button>
+      {addError ? <small className="w-100 text-danger">{addError}</small> : null}
+    </form>
+  );
+}
+
 export function TodayPage() {
   const [today, setToday] = useState<TodayPayload | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -657,20 +828,14 @@ export function TodayPage() {
       key: "routine-done",
       label: "Bulk Done",
       buttonClassName: "btn-success",
-      isAvailable: (item) =>
-        Boolean(
-          item.taskInstanceId && item.taskStatus !== "completed" && item.taskStatus !== "skipped",
-        ),
+      isAvailable: (item) => Boolean(item.taskInstanceId && isItemActionable(item)),
       run: (item) => completeRoutineTask(item.taskInstanceId as number),
     },
     {
       key: "routine-skip",
       label: "Bulk Skip",
       buttonClassName: "btn-outline-secondary",
-      isAvailable: (item) =>
-        Boolean(
-          item.taskInstanceId && item.taskStatus !== "completed" && item.taskStatus !== "skipped",
-        ),
+      isAvailable: (item) => Boolean(item.taskInstanceId && isItemActionable(item)),
       run: (item) => skipRoutineTask(item.taskInstanceId as number),
     },
   ];
@@ -679,24 +844,14 @@ export function TodayPage() {
       key: "chore-done",
       label: "Bulk Done",
       buttonClassName: "btn-success",
-      isAvailable: (item) =>
-        Boolean(
-          item.choreInstanceId &&
-          item.choreStatus !== "completed" &&
-          item.choreStatus !== "skipped",
-        ),
+      isAvailable: (item) => Boolean(item.choreInstanceId && isItemActionable(item)),
       run: (item) => completeChore(item.choreInstanceId as number),
     },
     {
       key: "chore-skip",
       label: "Bulk Skip",
       buttonClassName: "btn-outline-secondary",
-      isAvailable: (item) =>
-        Boolean(
-          item.choreInstanceId &&
-          item.choreStatus !== "completed" &&
-          item.choreStatus !== "skipped",
-        ),
+      isAvailable: (item) => Boolean(item.choreInstanceId && isItemActionable(item)),
       run: (item) => skipChore(item.choreInstanceId as number),
     },
   ];
@@ -705,7 +860,7 @@ export function TodayPage() {
       key: "planned-done",
       label: "Bulk Done",
       buttonClassName: "btn-success",
-      isAvailable: (item) => Boolean(item.plannedItem && !item.plannedItem.is_done),
+      isAvailable: (item) => Boolean(item.plannedItem && isItemActionable(item)),
       run: (item) =>
         updatePlannedItem(item.plannedItem!.id, buildPlannedItemPayload(item.plannedItem!, true)),
     },
@@ -713,19 +868,65 @@ export function TodayPage() {
       key: "planned-undo",
       label: "Bulk Undo",
       buttonClassName: "btn-outline-success",
-      isAvailable: (item) => Boolean(item.plannedItem?.is_done),
+      isAvailable: (item) => Boolean(item.plannedItem && isItemCompleted(item)),
       run: (item) =>
         updatePlannedItem(item.plannedItem!.id, buildPlannedItemPayload(item.plannedItem!, false)),
     },
   ];
 
+  const sections: TodaySection[] = today
+    ? [
+        {
+          key: "medication-today",
+          heading: "Medication Today",
+          items: buildMedicationItems(today.medication),
+        },
+        {
+          key: "medication-history",
+          heading: "Medication History",
+          items: buildMedicationHistoryItems(today.medication_history),
+        },
+        {
+          key: "routines",
+          heading: "Routines",
+          items: buildRoutineItems(today.routines),
+          bulkActions: routineBulkActions,
+        },
+        {
+          key: "overdue",
+          heading: "Overdue",
+          items: buildOverdueItems(today.overdue),
+          bulkActions: choreBulkActions,
+        },
+        {
+          key: "due-today",
+          heading: "Due Today",
+          items: buildDueTodayItems(today.due_today),
+          bulkActions: choreBulkActions,
+        },
+        {
+          key: "upcoming",
+          heading: "Upcoming",
+          items: buildUpcomingItems(today.upcoming),
+          bulkActions: choreBulkActions,
+        },
+        {
+          key: "planned",
+          heading: "Planned",
+          items: buildPlannedItems(today.planned),
+          bulkActions: plannedBulkActions,
+        },
+      ]
+    : [];
+
   return (
     <section>
       <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2 mb-2">
         <h2 className="h4 mb-0">Today</h2>
-        <div className="d-flex gap-2 w-100 w-md-auto">
+        <div className="d-flex gap-2 align-items-start flex-wrap w-100 w-md-auto">
+          <QuickAddPlanned onRefresh={loadToday} />
           <button
-            className="btn btn-outline-primary btn-sm flex-grow-1 flex-md-grow-0"
+            className="btn btn-outline-primary btn-sm flex-md-grow-0"
             type="button"
             disabled={isLoading}
             onClick={() => void loadToday()}
@@ -735,7 +936,7 @@ export function TodayPage() {
         </div>
       </div>
       <p className="text-muted mb-3">
-        Medication, routines, chores, and planned tasks with fast mobile-friendly actions.
+        Medication, routines, chores, and planned tasks — everything due or active today.
       </p>
 
       {isLoading ? <div className="alert alert-info py-2">Loading today...</div> : null}
@@ -766,46 +967,17 @@ export function TodayPage() {
             <SummaryCard label="Open Plans" value={openPlannedCount} tone="primary" />
             <SummaryCard label="Open Routines" value={routineOpenCount} tone="secondary" />
           </div>
-          <SectionCard
-            heading="Medication Today"
-            items={buildMedicationItems(today.medication)}
-            onRefresh={loadToday}
-          />
-          <SectionCard
-            heading="Medication History"
-            items={buildMedicationHistoryItems(today.medication_history)}
-            onRefresh={loadToday}
-          />
-          <SectionCard
-            heading="Routines"
-            items={buildRoutineItems(today.routines)}
-            onRefresh={loadToday}
-            bulkActions={routineBulkActions}
-          />
-          <SectionCard
-            heading="Overdue"
-            items={buildOverdueItems(today.overdue)}
-            onRefresh={loadToday}
-            bulkActions={choreBulkActions}
-          />
-          <SectionCard
-            heading="Due Today"
-            items={buildDueTodayItems(today.due_today)}
-            onRefresh={loadToday}
-            bulkActions={choreBulkActions}
-          />
-          <SectionCard
-            heading="Upcoming"
-            items={buildUpcomingItems(today.upcoming)}
-            onRefresh={loadToday}
-            bulkActions={choreBulkActions}
-          />
-          <SectionCard
-            heading="Planned"
-            items={buildPlannedItems(today.planned)}
-            onRefresh={loadToday}
-            bulkActions={plannedBulkActions}
-          />
+          <WebFocusPanel sections={sections} />
+          {sections.map((section) => (
+            <SectionCard
+              key={section.key}
+              sectionId={section.key}
+              heading={section.heading}
+              items={section.items}
+              onRefresh={loadToday}
+              bulkActions={section.bulkActions}
+            />
+          ))}
         </>
       ) : null}
     </section>
