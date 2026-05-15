@@ -185,7 +185,12 @@ private fun TodayContent(
             items(state.overdue, key = { "overdue_${it.choreInstanceId}" }) { item ->
                 ChoreCard(
                     title = item.title,
-                    subtitle = if (item.overdueSince.isNotEmpty()) stringResource(id = R.string.today_overdue_since, item.overdueSince) else null,
+                    subtitle =
+                        if (item.overdueSince.isNotEmpty()) {
+                            stringResource(id = R.string.today_overdue_since, item.overdueSince)
+                        } else {
+                            null
+                        },
                     onComplete = { onEvent(HomeUiEvent.CompleteChoreClicked(item.choreInstanceId)) },
                     onSkip = { onEvent(HomeUiEvent.SkipChoreClicked(item.choreInstanceId)) },
                 )

@@ -19,15 +19,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -50,6 +45,7 @@ import com.daynest.android.app.navigation.DaynestDestination
 import com.daynest.android.app.navigation.DaynestNavigationScaffold
 import com.daynest.android.data.calendar.CalendarDaySummaryDto
 import com.daynest.android.data.calendar.UnifiedDayItemDto
+import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.format.TextStyle
 import java.util.Locale
@@ -226,27 +222,27 @@ private fun MonthHeader(
     onPrevious: () -> Unit,
     onNext: () -> Unit,
 ) {
+    val monthName = remember(displayMonth) {
+        displayMonth.month.getDisplayName(TextStyle.FULL, Locale.getDefault())
+    }
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        IconButton(onClick = onPrevious) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = stringResource(id = R.string.calendar_prev_month),
-            )
+        TextButton(onClick = onPrevious) {
+            Text(text = stringResource(id = R.string.calendar_prev_month))
         }
         Text(
-            text =
-                "${displayMonth.month.getDisplayName(TextStyle.FULL, Locale.getDefault())} ${displayMonth.year}",
+            text = stringResource(
+                id = R.string.calendar_month_year,
+                monthName,
+                displayMonth.year.toString(),
+            ),
             style = MaterialTheme.typography.titleLarge,
         )
-        IconButton(onClick = onNext) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                contentDescription = stringResource(id = R.string.calendar_next_month),
-            )
+        TextButton(onClick = onNext) {
+            Text(text = stringResource(id = R.string.calendar_next_month))
         }
     }
 }
@@ -259,12 +255,17 @@ private fun MonthGrid(
     selectedDate: String?,
     onDayClick: (String) -> Unit,
 ) {
-    val dayMap = days.associateBy { it.date }
-    val firstDayOfMonth = displayMonth.withDayOfMonth(1)
-    val daysInMonth = displayMonth.lengthOfMonth()
-    val firstWeekday = firstDayOfMonth.dayOfWeek.value % 7
-
-    val dayLabels = listOf("Su", "Mo", "Tu", "We", "Th", "Fr", "Sa")
+    val today = remember { LocalDate.now().toString() }
+    val dayMap = remember(days) { days.associateBy { it.date } }
+    val firstDayOfMonth = remember(displayMonth) { displayMonth.withDayOfMonth(1) }
+    val daysInMonth = remember(displayMonth) { displayMonth.lengthOfMonth() }
+    val firstWeekday = remember(firstDayOfMonth) { firstDayOfMonth.dayOfWeek.value % 7 }
+    val dayLabels = remember {
+        (0 until 7).map { offset ->
+            val dayValue = (DayOfWeek.SUNDAY.value - 1 + offset) % 7 + 1
+            DayOfWeek.of(dayValue).getDisplayName(TextStyle.SHORT, Locale.getDefault())
+        }
+    }
 
     Column {
         Row(modifier = Modifier.fillMaxWidth()) {
@@ -293,7 +294,7 @@ private fun MonthGrid(
                         val date = displayMonth.withDayOfMonth(dayNum).toString()
                         val summary = dayMap[date]
                         val isSelected = date == selectedDate
-                        val isToday = date == LocalDate.now().toString()
+                        val isToday = date == today
                         DayCell(
                             dayNum = dayNum,
                             total = summary?.total ?: 0,
@@ -354,7 +355,11 @@ private fun DayCell(
                             .size(4.dp)
                             .clip(CircleShape)
                             .background(
-                                if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.primary,
+                                if (isSelected) {
+                                    MaterialTheme.colorScheme.onPrimary
+                                } else {
+                                    MaterialTheme.colorScheme.primary
+                                },
                             ),
                 )
             }

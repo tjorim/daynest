@@ -45,6 +45,7 @@
     <string name="calendar_error">Unable to load calendar data.</string>
     <string name="calendar_prev_month">Previous month</string>
     <string name="calendar_next_month">Next month</string>
+    <string name="calendar_month_year">%1$s %2$s</string>
     <string name="calendar_day_detail_header">%1$s</string>
     <string name="calendar_day_empty">No items for this day.</string>
     <string name="calendar_add_planned">+ Add planned</string>
