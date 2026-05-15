@@ -23,6 +23,14 @@ class MarkMedicationTakenRequest(BaseModel):
     medication_dose_id: int = Field(gt=0, description="The medication dose instance ID to mark as taken")
 
 
+class SkipTaskRequest(BaseModel):
+    chore_instance_id: int = Field(gt=0, description="The chore instance ID to skip")
+
+
+class SkipMedicationRequest(BaseModel):
+    medication_dose_id: int = Field(gt=0, description="The medication dose instance ID to skip")
+
+
 class HAActionResult(BaseModel):
     success: bool
     detail: str
@@ -65,3 +73,4 @@ class DashboardReadModel(BaseModel):
     medication_due_count: int
     completion_ratio: float
     next_medication: str | None = None
+    routines_open_count: int = 0

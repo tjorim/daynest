@@ -50,27 +50,27 @@ class TodayRepository
 
         @Suppress("TooGenericExceptionCaught")
         suspend fun completeChore(choreInstanceId: Int): Result<ChoreMutationDto> =
-            runCatching { todayActionsApi.completeChore(choreInstanceId) }
+            safeApiCall { todayActionsApi.completeChore(choreInstanceId) }
 
         @Suppress("TooGenericExceptionCaught", "ktlint:standard:function-signature")
         suspend fun skipChore(choreInstanceId: Int): Result<ChoreMutationDto> =
-            runCatching { todayActionsApi.skipChore(choreInstanceId) }
+            safeApiCall { todayActionsApi.skipChore(choreInstanceId) }
 
         @Suppress("TooGenericExceptionCaught")
         suspend fun completeTask(taskInstanceId: Int): Result<TaskMutationDto> =
-            runCatching { todayActionsApi.completeTask(taskInstanceId) }
+            safeApiCall { todayActionsApi.completeTask(taskInstanceId) }
 
         @Suppress("TooGenericExceptionCaught", "ktlint:standard:function-signature")
         suspend fun skipTask(taskInstanceId: Int): Result<TaskMutationDto> =
-            runCatching { todayActionsApi.skipTask(taskInstanceId) }
+            safeApiCall { todayActionsApi.skipTask(taskInstanceId) }
 
         @Suppress("TooGenericExceptionCaught", "ktlint:standard:function-signature")
         suspend fun takeDose(doseInstanceId: Int): Result<DoseMutationDto> =
-            runCatching { todayActionsApi.takeDose(doseInstanceId) }
+            safeApiCall { todayActionsApi.takeDose(doseInstanceId) }
 
         @Suppress("TooGenericExceptionCaught", "ktlint:standard:function-signature")
         suspend fun skipDose(doseInstanceId: Int): Result<DoseMutationDto> =
-            runCatching { todayActionsApi.skipDose(doseInstanceId) }
+            safeApiCall { todayActionsApi.skipDose(doseInstanceId) }
 
         @Suppress("TooGenericExceptionCaught")
         suspend fun markPlannedDone(
@@ -78,7 +78,7 @@ class TodayRepository
             item: PlannedTodayItemDto,
             isDone: Boolean,
         ): Result<PlannedTodayItemDto> =
-            runCatching {
+            safeApiCall {
                 todayActionsApi.updatePlannedItem(
                     id,
                     PlannedItemUpdateDto(
@@ -93,11 +93,11 @@ class TodayRepository
             }
 
         @Suppress("TooGenericExceptionCaught")
-        suspend fun deletePlannedItem(id: Int): Result<Unit> = runCatching { todayActionsApi.deletePlannedItem(id) }
+        suspend fun deletePlannedItem(id: Int): Result<Unit> = safeApiCall { todayActionsApi.deletePlannedItem(id) }
 
         @Suppress("TooGenericExceptionCaught")
         suspend fun createPlannedItem(request: PlannedItemCreateDto): Result<PlannedTodayItemDto> =
-            runCatching { todayActionsApi.createPlannedItem(request) }
+            safeApiCall { todayActionsApi.createPlannedItem(request) }
 
         private fun TodaySummaryEntity.toDomain() =
             TodaySummary(
@@ -106,4 +106,14 @@ class TodayRepository
                 medicationsCount = medicationsCount,
                 plannedPendingCount = plannedPendingCount,
             )
+
+        @Suppress("TooGenericExceptionCaught")
+        private suspend fun <T> safeApiCall(call: suspend () -> T): Result<T> =
+            try {
+                Result.success(call())
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
     }

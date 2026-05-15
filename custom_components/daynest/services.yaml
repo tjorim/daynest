@@ -35,3 +35,21 @@ mark_medication_taken:
         number:
           min: 1
           mode: box
+
+skip_task:
+  fields:
+    task_id:
+      required: true
+      selector:
+        number:
+          min: 1
+          mode: box
+
+skip_medication:
+  fields:
+    medication_dose_id:
+      required: true
+      selector:
+        number:
+          min: 1
+          mode: box

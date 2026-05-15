@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
+import type { FormEvent } from "react";
 import {
   completeRoutineTask,
   completeChore,
+  createPlannedItem,
   deletePlannedItem,
   fetchToday,
   isRetryableApiError,
@@ -228,7 +230,7 @@ function SummaryCard({
   tone: "primary" | "secondary" | "warning" | "success" | "info" | "danger";
 }) {
   return (
-    <div className="col-6 col-lg-3">
+    <div className="col-6 col-sm-4 col-lg">
       <div className="card h-100 border-0 summary-card shadow-sm">
         <div className="card-body py-3">
           <div className={`summary-pill text-bg-${tone}`}>{label}</div>
@@ -259,12 +261,12 @@ function WebFocusPanel({ sections }: { sections: TodaySection[] }) {
       <div className="card-body">
         <div className="d-flex flex-column flex-lg-row justify-content-between gap-3">
           <div>
-            <div className="text-uppercase text-muted small fw-semibold">Web focus</div>
+            <div className="text-uppercase text-muted small fw-semibold">Today's focus</div>
             <h3 className="h5 mb-1">{nextItem ? nextItem.title : "All clear for now"}</h3>
             <p className="text-muted mb-0">
               {nextItem
                 ? `${nextSection?.heading ?? "Today"} is the next section that needs attention.`
-                : "No open actions remain in today's web dashboard."}
+                : "No open actions remain for today."}
             </p>
           </div>
           <div className="focus-progress" aria-label={`${completionPercent}% complete`}>
@@ -699,6 +701,77 @@ function SectionCard({
   );
 }
 
+function QuickAddPlanned({ onRefresh }: { onRefresh: () => Promise<void> }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [title, setTitle] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [addError, setAddError] = useState<string | null>(null);
+
+  const todayDate = toIsoDate(dayjs());
+
+  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!title.trim()) return;
+    setIsSubmitting(true);
+    setAddError(null);
+    try {
+      await createPlannedItem({ title: title.trim(), planned_for: todayDate });
+      setTitle("");
+      setIsOpen(false);
+      await onRefresh();
+    } catch (err) {
+      setAddError(err instanceof Error ? err.message : "Failed to add item.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (!isOpen) {
+    return (
+      <button
+        type="button"
+        className="btn btn-outline-secondary btn-sm"
+        onClick={() => setIsOpen(true)}
+      >
+        + Quick add
+      </button>
+    );
+  }
+
+  return (
+    <form className="d-flex gap-2 align-items-start flex-wrap" onSubmit={(e) => void onSubmit(e)}>
+      <input
+        className="form-control form-control-sm flex-grow-1"
+        style={{ minWidth: "12rem" }}
+        value={title}
+        autoFocus
+        placeholder="Plan title for today…"
+        disabled={isSubmitting}
+        onChange={(e) => {
+          setTitle(e.target.value);
+          setAddError(null);
+        }}
+      />
+      <button type="submit" className="btn btn-primary btn-sm" disabled={isSubmitting || !title.trim()}>
+        {isSubmitting ? "Adding…" : "Add"}
+      </button>
+      <button
+        type="button"
+        className="btn btn-outline-secondary btn-sm"
+        disabled={isSubmitting}
+        onClick={() => {
+          setIsOpen(false);
+          setTitle("");
+          setAddError(null);
+        }}
+      >
+        Cancel
+      </button>
+      {addError ? <small className="w-100 text-danger">{addError}</small> : null}
+    </form>
+  );
+}
+
 export function TodayPage() {
   const [today, setToday] = useState<TodayPayload | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -862,9 +935,10 @@ export function TodayPage() {
     <section>
       <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2 mb-2">
         <h2 className="h4 mb-0">Today</h2>
-        <div className="d-flex gap-2 w-100 w-md-auto">
+        <div className="d-flex gap-2 align-items-start flex-wrap w-100 w-md-auto">
+          <QuickAddPlanned onRefresh={loadToday} />
           <button
-            className="btn btn-outline-primary btn-sm flex-grow-1 flex-md-grow-0"
+            className="btn btn-outline-primary btn-sm flex-md-grow-0"
             type="button"
             disabled={isLoading}
             onClick={() => void loadToday()}
@@ -874,7 +948,7 @@ export function TodayPage() {
         </div>
       </div>
       <p className="text-muted mb-3">
-        Medication, routines, chores, and planned tasks with fast mobile-friendly actions.
+        Medication, routines, chores, and planned tasks — everything due or active today.
       </p>
 
       {isLoading ? <div className="alert alert-info py-2">Loading today...</div> : null}

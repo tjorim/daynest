@@ -59,6 +59,8 @@ const HA_ENDPOINTS = [
   "POST /api/v1/integrations/home-assistant/actions/complete-task",
   "POST /api/v1/integrations/home-assistant/actions/snooze-task",
   "POST /api/v1/integrations/home-assistant/actions/mark-medication-taken",
+  "POST /api/v1/integrations/home-assistant/actions/skip-task",
+  "POST /api/v1/integrations/home-assistant/actions/skip-medication",
 ];
 
 export function SettingsPage() {
@@ -363,18 +365,13 @@ export function SettingsPage() {
                           {client.scopes.join(", ")} • {client.rate_limit_per_minute}/min
                         </small>
                         <small className="text-muted d-block mt-1">
-                          {client.scopes.includes("ha:read")
-                            ? "Home Assistant dashboard ready."
-                            : ""}
-                          {client.scopes.includes("ha:read") && client.scopes.includes("ha:write")
-                            ? " Actions enabled."
-                            : ""}
-                          {(client.scopes.includes("ha:read") ||
-                            client.scopes.includes("ha:write")) &&
-                          client.scopes.includes("mcp:read")
-                            ? " "
-                            : ""}
-                          {client.scopes.includes("mcp:read") ? "MCP adapter ready." : ""}
+                          {[
+                            client.scopes.includes("ha:read") && "Home Assistant dashboard ready.",
+                            client.scopes.includes("ha:write") && "HA actions enabled.",
+                            client.scopes.includes("mcp:read") && "MCP adapter ready.",
+                          ]
+                            .filter(Boolean)
+                            .join(" ")}
                         </small>
                       </div>
                       <span

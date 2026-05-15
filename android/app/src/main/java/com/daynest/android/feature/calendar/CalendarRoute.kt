@@ -266,9 +266,9 @@ private fun MonthGrid(
     val firstWeekday = remember(firstDayOfMonth) { firstDayOfMonth.dayOfWeek.value % DAYS_IN_WEEK }
     val dayLabels =
         remember {
+            val firstDayOfWeek = DayOfWeek.SUNDAY
             (0 until DAYS_IN_WEEK).map { offset ->
-                val dayValue = (DayOfWeek.SUNDAY.value - 1 + offset) % DAYS_IN_WEEK + 1
-                DayOfWeek.of(dayValue).getDisplayName(TextStyle.SHORT, Locale.getDefault())
+                firstDayOfWeek.plus(offset.toLong()).getDisplayName(TextStyle.SHORT, Locale.getDefault())
             }
         }
 

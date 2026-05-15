@@ -212,6 +212,7 @@ def test_home_assistant_dashboard_contract_is_stable(
         "medication_due_count",
         "completion_ratio",
         "next_medication",
+        "routines_open_count",
     }
     assert isinstance(dashboard_payload["for_date"], str)
     assert isinstance(dashboard_payload["overdue_count"], int)
