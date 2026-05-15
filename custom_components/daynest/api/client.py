@@ -146,18 +146,18 @@ class DaynestApiClient:
             parser=DaynestDashboard.from_dict,
         )
 
-    async def async_complete_task(self, task_id: int) -> dict[str, Any]:
+    async def async_complete_task(self, chore_instance_id: int) -> dict[str, Any]:
         """Complete a chore instance by ID via the HA write endpoint."""
         return await self._post_action(
             path="/api/v1/integrations/home-assistant/actions/complete-task",
-            payload={"task_id": task_id},
+            payload={"chore_instance_id": chore_instance_id},
         )
 
-    async def async_snooze_task(self, task_id: int, days: int = 1) -> dict[str, Any]:
+    async def async_snooze_task(self, chore_instance_id: int, days: int = 1) -> dict[str, Any]:
         """Reschedule a chore instance N days into the future via the HA write endpoint."""
         return await self._post_action(
             path="/api/v1/integrations/home-assistant/actions/snooze-task",
-            payload={"task_id": task_id, "days": days},
+            payload={"chore_instance_id": chore_instance_id, "days": days},
         )
 
     async def async_mark_medication_taken(self, medication_dose_id: int) -> dict[str, Any]:
@@ -167,11 +167,11 @@ class DaynestApiClient:
             payload={"medication_dose_id": medication_dose_id},
         )
 
-    async def async_skip_task(self, task_id: int) -> dict[str, Any]:
+    async def async_skip_task(self, chore_instance_id: int) -> dict[str, Any]:
         """Skip a chore instance via the HA write endpoint."""
         return await self._post_action(
             path="/api/v1/integrations/home-assistant/actions/skip-task",
-            payload={"chore_instance_id": task_id},
+            payload={"chore_instance_id": chore_instance_id},
         )
 
     async def async_skip_medication(self, medication_dose_id: int) -> dict[str, Any]:

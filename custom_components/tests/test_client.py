@@ -256,7 +256,7 @@ class TestDaynestApiClientWriteMethods:
         response = _make_mock_response(200, VALID_ACTION_RESPONSE)
         client = _make_post_client(response)
 
-        result = await client.async_complete_task(task_id=42)
+        result = await client.async_complete_task(chore_instance_id=42)
 
         assert result["success"] is True
         assert "42" in result["detail"]
@@ -266,7 +266,7 @@ class TestDaynestApiClientWriteMethods:
         response = _make_mock_response(200, snooze_response)
         client = _make_post_client(response)
 
-        result = await client.async_snooze_task(task_id=10, days=2)
+        result = await client.async_snooze_task(chore_instance_id=10, days=2)
 
         assert result["success"] is True
 
@@ -284,21 +284,21 @@ class TestDaynestApiClientWriteMethods:
         client = _make_post_client(response)
 
         with pytest.raises(DaynestApiClientAuthenticationError):
-            await client.async_complete_task(task_id=1)
+            await client.async_complete_task(chore_instance_id=1)
 
     async def test_post_action_403_raises_authentication_error(self) -> None:
         response = _make_mock_response(403, {})
         client = _make_post_client(response)
 
         with pytest.raises(DaynestApiClientAuthenticationError):
-            await client.async_complete_task(task_id=1)
+            await client.async_complete_task(chore_instance_id=1)
 
     async def test_post_action_500_raises_server_unavailable_error(self) -> None:
         response = _make_mock_response(500, {})
         client = _make_post_client(response)
 
         with pytest.raises(DaynestApiClientServerUnavailableError):
-            await client.async_complete_task(task_id=1)
+            await client.async_complete_task(chore_instance_id=1)
 
     async def test_post_action_timeout_raises_timeout_error(self) -> None:
         session = MagicMock(spec=aiohttp.ClientSession)
@@ -309,7 +309,7 @@ class TestDaynestApiClientWriteMethods:
         client = DaynestApiClient(session=session, base_url="https://api.example", integration_key="key")
 
         with pytest.raises(DaynestApiClientTimeoutError):
-            await client.async_complete_task(task_id=1)
+            await client.async_complete_task(chore_instance_id=1)
 
     async def test_post_action_connection_error_raises_server_unavailable(self) -> None:
         session = MagicMock(spec=aiohttp.ClientSession)
@@ -320,7 +320,7 @@ class TestDaynestApiClientWriteMethods:
         client = DaynestApiClient(session=session, base_url="https://api.example", integration_key="key")
 
         with pytest.raises(DaynestApiClientServerUnavailableError):
-            await client.async_snooze_task(task_id=1)
+            await client.async_snooze_task(chore_instance_id=1)
 
     async def test_post_action_non_dict_response_raises_malformed_error(self) -> None:
         response = _make_mock_response(200, ["not", "a", "dict"])
@@ -339,7 +339,7 @@ class TestDaynestApiClientWriteMethods:
             integration_key="daynest_write_secret",
         )
 
-        await client.async_complete_task(task_id=5)
+        await client.async_complete_task(chore_instance_id=5)
 
         call_kwargs = session.post.call_args[1]
         assert call_kwargs["headers"]["X-Integration-Key"] == "daynest_write_secret"
@@ -350,8 +350,41 @@ class TestDaynestApiClientWriteMethods:
         session.post = MagicMock(return_value=response)
         client = DaynestApiClient(session=session, base_url="https://api.example", integration_key="key")
 
-        await client.async_snooze_task(task_id=3)
+        await client.async_snooze_task(chore_instance_id=3)
 
         call_kwargs = session.post.call_args[1]
         assert call_kwargs["json"]["days"] == 1
+
+    async def test_complete_task_uses_chore_instance_id_payload(self) -> None:
+        response = _make_mock_response(200, VALID_ACTION_RESPONSE)
+        session = MagicMock(spec=aiohttp.ClientSession)
+        session.post = MagicMock(return_value=response)
+        client = DaynestApiClient(session=session, base_url="https://api.example", integration_key="key")
+
+        await client.async_complete_task(chore_instance_id=6)
+
+        call_kwargs = session.post.call_args[1]
+        assert call_kwargs["json"] == {"chore_instance_id": 6}
+
+    async def test_snooze_task_uses_chore_instance_id_payload(self) -> None:
+        response = _make_mock_response(200, VALID_ACTION_RESPONSE)
+        session = MagicMock(spec=aiohttp.ClientSession)
+        session.post = MagicMock(return_value=response)
+        client = DaynestApiClient(session=session, base_url="https://api.example", integration_key="key")
+
+        await client.async_snooze_task(chore_instance_id=7, days=4)
+
+        call_kwargs = session.post.call_args[1]
+        assert call_kwargs["json"] == {"chore_instance_id": 7, "days": 4}
+
+    async def test_skip_task_uses_chore_instance_id_payload(self) -> None:
+        response = _make_mock_response(200, VALID_ACTION_RESPONSE)
+        session = MagicMock(spec=aiohttp.ClientSession)
+        session.post = MagicMock(return_value=response)
+        client = DaynestApiClient(session=session, base_url="https://api.example", integration_key="key")
+
+        await client.async_skip_task(chore_instance_id=8)
+
+        call_kwargs = session.post.call_args[1]
+        assert call_kwargs["json"] == {"chore_instance_id": 8}
 

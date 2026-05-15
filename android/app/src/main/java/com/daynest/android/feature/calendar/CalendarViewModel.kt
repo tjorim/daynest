@@ -6,6 +6,7 @@ import com.daynest.android.data.calendar.CalendarDaySummaryDto
 import com.daynest.android.data.calendar.CalendarRepository
 import com.daynest.android.data.calendar.UnifiedDayItemDto
 import com.daynest.android.data.today.PlannedItemCreateDto
+import com.daynest.android.data.today.PlannedTodayItemDto
 import com.daynest.android.data.today.TodayRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -141,11 +142,21 @@ class CalendarViewModel
         ) {
             viewModelScope.launch {
                 val result = todayRepository.createPlannedItem(PlannedItemCreateDto(title = title, plannedFor = date))
-                if (result.isSuccess) {
-                    loadDay(date)
-                    val current = _uiState.value
-                    if (current is CalendarUiState.Content) {
-                        loadMonth(current.displayMonth.year, current.displayMonth.monthValue)
+                result.onSuccess { plannedItem ->
+                    _uiState.update { current ->
+                        if (current is CalendarUiState.Content) {
+                            current.copy(
+                                days = current.days.adjustPlannedSummary(date = date, delta = 1),
+                                dayItems =
+                                    if (current.selectedDate == date) {
+                                        current.dayItems + plannedItem.toUnifiedDayItem()
+                                    } else {
+                                        current.dayItems
+                                    },
+                            )
+                        } else {
+                            current
+                        }
                     }
                 }
             }
@@ -158,15 +169,73 @@ class CalendarViewModel
             viewModelScope.launch {
                 val result = todayRepository.deletePlannedItem(id)
                 if (result.isSuccess) {
-                    loadDay(date)
-                    val current = _uiState.value
-                    if (current is CalendarUiState.Content) {
-                        loadMonth(current.displayMonth.year, current.displayMonth.monthValue)
+                    _uiState.update { current ->
+                        if (current is CalendarUiState.Content) {
+                            current.copy(
+                                days = current.days.adjustPlannedSummary(date = date, delta = -1),
+                                dayItems =
+                                    if (current.selectedDate == date) {
+                                        current.dayItems.filterNot { it.itemType == "planned" && it.itemId == id }
+                                    } else {
+                                        current.dayItems
+                                    },
+                            )
+                        } else {
+                            current
+                        }
                     }
                 }
             }
         }
     }
+
+private fun PlannedTodayItemDto.toUnifiedDayItem() =
+    UnifiedDayItemDto(
+        itemType = "planned",
+        itemId = id,
+        title = title,
+        status = if (isDone) "done" else "planned",
+        scheduledDate = plannedFor,
+        detail = notes,
+        moduleKey = moduleKey,
+    )
+
+private fun List<CalendarDaySummaryDto>.adjustPlannedSummary(
+    date: String,
+    delta: Int,
+): List<CalendarDaySummaryDto> {
+    val existing = firstOrNull { it.date == date }
+    if (existing == null) {
+        return if (delta > 0) {
+            (
+                this +
+                    CalendarDaySummaryDto(
+                        date = date,
+                        total = delta,
+                        routines = 0,
+                        chores = 0,
+                        medications = 0,
+                        planned = delta,
+                    )
+            ).sortedBy { it.date }
+        } else {
+            this
+        }
+    }
+
+    val newPlanned = (existing.planned + delta).coerceAtLeast(0)
+    val actualDelta = newPlanned - existing.planned
+    val updated =
+        existing.copy(
+            total = (existing.total + actualDelta).coerceAtLeast(0),
+            planned = newPlanned,
+        )
+    return if (updated.total == 0) {
+        filterNot { it.date == date }
+    } else {
+        map { if (it.date == date) updated else it }
+    }
+}
 
 sealed interface CalendarUiState {
     data object Loading : CalendarUiState

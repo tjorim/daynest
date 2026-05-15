@@ -82,7 +82,7 @@ fun DaynestApp() {
 
 private fun NavHostController.navigateTopLevel(route: String) {
     navigate(route) {
-        popUpTo(graph.findStartDestination().id) {
+        popUpTo(DaynestDestination.HOME) {
             saveState = true
         }
         launchSingleTop = true

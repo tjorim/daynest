@@ -13,7 +13,7 @@ X-Integration-Key: <DAYNEST_API_KEY>
 ```
 
 If the API key is missing the `ha:read` scope, Home Assistant will not be able to fetch Daynest data.
-If the API key is missing the `ha:write` scope, write services (`complete_task`, `snooze_task`, `mark_medication_taken`) will be rejected with `403 Forbidden`.
+If the API key is missing the `ha:write` scope, write services (`complete_task`, `snooze_task`, `mark_medication_taken`, `skip_task`, `skip_medication`) will be rejected with `403 Forbidden`.
 
 ## Base URL Requirements
 
@@ -66,7 +66,7 @@ Expected behavior:
 Used by the `daynest.complete_task` Home Assistant service.
 
 - Requires `ha:write` scope
-- Request body: `{"task_id": <int>}`
+- Request body: `{"chore_instance_id": <int>}`
 - Returns `{"success": true, "detail": "..."}`
 
 ### `POST /api/v1/integrations/home-assistant/actions/snooze-task`
@@ -74,7 +74,7 @@ Used by the `daynest.complete_task` Home Assistant service.
 Used by the `daynest.snooze_task` Home Assistant service.
 
 - Requires `ha:write` scope
-- Request body: `{"task_id": <int>, "days": <int, 1–30, default 1>}`
+- Request body: `{"chore_instance_id": <int>, "days": <int, 1–30, default 1>}`
 - Returns `{"success": true, "detail": "..."}`
 
 ### `POST /api/v1/integrations/home-assistant/actions/mark-medication-taken`
@@ -85,12 +85,28 @@ Used by the `daynest.mark_medication_taken` Home Assistant service.
 - Request body: `{"medication_dose_id": <int>}`
 - Returns `{"success": true, "detail": "..."}`
 
+### `POST /api/v1/integrations/home-assistant/actions/skip-task`
+
+Used by the `daynest.skip_task` Home Assistant service.
+
+- Requires `ha:write` scope
+- Request body: `{"chore_instance_id": <int>}`
+- Returns `{"success": true, "detail": "..."}`
+
+### `POST /api/v1/integrations/home-assistant/actions/skip-medication`
+
+Used by the `daynest.skip_medication` Home Assistant service.
+
+- Requires `ha:write` scope
+- Request body: `{"medication_dose_id": <int>}`
+- Returns `{"success": true, "detail": "..."}`
+
 ## Auth Scopes
 
 | Scope | Required for |
 |-------|-------------|
 | `ha:read` | All GET endpoints (summary, dashboard, entities); required for setup |
-| `ha:write` | All POST action endpoints (complete-task, snooze-task, mark-medication-taken) |
+| `ha:write` | All POST action endpoints (complete-task, snooze-task, mark-medication-taken, skip-task, skip-medication) |
 
 Use least-privilege: create a read-only key (`ha:read`) for sensor-only setups and add `ha:write` only when you need automation write support.
 
