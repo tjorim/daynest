@@ -66,7 +66,15 @@ fun DaynestApp() {
                 TemplatesRoute(onNavigate = navController::navigateTopLevel)
             }
             composable(route = DaynestDestination.SETTINGS) {
-                SettingsRoute(onNavigate = navController::navigateTopLevel)
+                SettingsRoute(
+                    onNavigate = navController::navigateTopLevel,
+                    onSignedOut = {
+                        navController.navigate(DaynestDestination.AUTH) {
+                            popUpTo(navController.graph.findStartDestination().id) { inclusive = true }
+                            launchSingleTop = true
+                        }
+                    },
+                )
             }
         }
     }

@@ -7,6 +7,11 @@ import com.daynest.android.core.network.CertificatePinnerProvider
 import com.daynest.android.core.network.JsonSerializer
 import com.daynest.android.core.network.TokenAuthenticator
 import com.daynest.android.data.auth.AuthApi
+import com.daynest.android.data.calendar.CalendarApi
+import com.daynest.android.data.medication.MedicationApi
+import com.daynest.android.data.settings.SettingsApi
+import com.daynest.android.data.templates.TemplatesApi
+import com.daynest.android.data.today.TodayActionsApi
 import com.daynest.android.data.today.TodayApi
 import dagger.Module
 import dagger.Provides
@@ -73,5 +78,25 @@ object NetworkDiModule {
 
     @Provides
     @Singleton
+    fun provideTodayActionsApi(retrofit: Retrofit): TodayActionsApi = retrofit.create(TodayActionsApi::class.java)
+
+    @Provides
+    @Singleton
     fun provideAuthApi(retrofit: Retrofit): AuthApi = retrofit.create(AuthApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideCalendarApi(retrofit: Retrofit): CalendarApi = retrofit.create(CalendarApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideMedicationApi(retrofit: Retrofit): MedicationApi = retrofit.create(MedicationApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideTemplatesApi(retrofit: Retrofit): TemplatesApi = retrofit.create(TemplatesApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideSettingsApi(retrofit: Retrofit): SettingsApi = retrofit.create(SettingsApi::class.java)
 }

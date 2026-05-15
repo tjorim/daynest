@@ -19,9 +19,21 @@ import com.daynest.android.data.auth.AuthApi
 import com.daynest.android.data.auth.AuthRepository
 import com.daynest.android.data.auth.AuthSessionDto
 import com.daynest.android.data.auth.SignInRequestDto
+import com.daynest.android.core.database.today.TodaySummaryDao
+import com.daynest.android.core.database.today.TodaySummaryEntity
+import com.daynest.android.data.auth.RefreshRequestDto
+import com.daynest.android.data.today.ChoreMutationDto
+import com.daynest.android.data.today.DoseMutationDto
+import com.daynest.android.data.today.PlannedItemCreateDto
+import com.daynest.android.data.today.PlannedItemUpdateDto
+import com.daynest.android.data.today.PlannedTodayItemDto
+import com.daynest.android.data.today.TaskMutationDto
+import com.daynest.android.data.today.TodayActionsApi
 import com.daynest.android.data.today.TodayApi
 import com.daynest.android.data.today.TodayRepository
 import com.daynest.android.data.today.TodayResponseDto
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import com.daynest.android.feature.auth.AuthRoute
 import com.daynest.android.feature.auth.AuthUiEvent
 import com.daynest.android.feature.auth.AuthViewModel
@@ -237,6 +249,26 @@ private fun makeHomeViewModel(): HomeViewModel =
                     object : TodayApi {
                         override suspend fun getToday(): TodayResponseDto = TodayResponseDto()
                     },
+                todayActionsApi =
+                    object : TodayActionsApi {
+                        override suspend fun completeChore(id: Int): ChoreMutationDto = ChoreMutationDto(id, "completed")
+                        override suspend fun skipChore(id: Int): ChoreMutationDto = ChoreMutationDto(id, "skipped")
+                        override suspend fun completeTask(id: Int): TaskMutationDto = TaskMutationDto(id, "completed")
+                        override suspend fun skipTask(id: Int): TaskMutationDto = TaskMutationDto(id, "skipped")
+                        override suspend fun startTask(id: Int): TaskMutationDto = TaskMutationDto(id, "in_progress")
+                        override suspend fun takeDose(id: Int): DoseMutationDto = DoseMutationDto(id, "taken")
+                        override suspend fun skipDose(id: Int): DoseMutationDto = DoseMutationDto(id, "skipped")
+                        override suspend fun updatePlannedItem(id: Int, request: PlannedItemUpdateDto): PlannedTodayItemDto = PlannedTodayItemDto(id, request.title, request.isDone)
+                        override suspend fun deletePlannedItem(id: Int) = Unit
+                        override suspend fun createPlannedItem(request: PlannedItemCreateDto): PlannedTodayItemDto = PlannedTodayItemDto(0, request.title, false)
+                    },
+                todaySummaryDao =
+                    object : TodaySummaryDao {
+                        private val flow = MutableStateFlow<TodaySummaryEntity?>(null)
+                        override fun observe(): Flow<TodaySummaryEntity?> = flow
+                        override suspend fun upsert(entity: TodaySummaryEntity) { flow.value = entity }
+                        override suspend fun clear() { flow.value = null }
+                    },
             ),
     )
 
@@ -247,15 +279,22 @@ private class FakeNavAuthApi(
     override suspend fun signIn(request: SignInRequestDto): AuthSessionDto = signInResult.getOrThrow()
 
     override suspend fun restoreSession(): AuthSessionDto = restoreResult.getOrThrow()
+
+    override suspend fun refresh(request: RefreshRequestDto): AuthSessionDto =
+        throw UnsupportedOperationException("refresh not expected")
 }
 
 private class FakeNavTokenStorage(
     initialToken: String?,
 ) : SecureTokenStorage {
     private var storedToken: String? = initialToken
+    private var storedRefreshToken: String? = null
 
     override val cachedToken: String?
         get() = storedToken
+
+    override val cachedRefreshToken: String?
+        get() = storedRefreshToken
 
     override suspend fun getToken(): String? = storedToken
 
@@ -265,5 +304,15 @@ private class FakeNavTokenStorage(
 
     override suspend fun clearToken() {
         storedToken = null
+    }
+
+    override suspend fun getRefreshToken(): String? = storedRefreshToken
+
+    override suspend fun saveRefreshToken(token: String) {
+        storedRefreshToken = token
+    }
+
+    override suspend fun clearRefreshToken() {
+        storedRefreshToken = null
     }
 }

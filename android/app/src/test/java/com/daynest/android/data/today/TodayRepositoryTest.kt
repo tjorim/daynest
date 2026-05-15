@@ -36,7 +36,7 @@ class TodayRepositoryTest {
                         ),
                     )
                 }
-            val repository = TodayRepository(todayApi = api, todaySummaryDao = dao)
+            val repository = TodayRepository(todayApi = api, todayActionsApi = StubTodayActionsApi(), todaySummaryDao = dao)
 
             repository.observeTodaySummary().test {
                 assertNull(awaitItem())
@@ -76,7 +76,7 @@ class TodayRepositoryTest {
                 FakeTodayApi().apply {
                     enqueueError(RuntimeException("network unavailable"))
                 }
-            val repository = TodayRepository(todayApi = api, todaySummaryDao = dao)
+            val repository = TodayRepository(todayApi = api, todayActionsApi = StubTodayActionsApi(), todaySummaryDao = dao)
 
             repository.observeTodaySummary().test {
                 val cached = awaitItem()
@@ -99,7 +99,7 @@ class TodayRepositoryTest {
                 FakeTodayApi().apply {
                     enqueueError(RuntimeException("no connection"))
                 }
-            val repository = TodayRepository(todayApi = api, todaySummaryDao = dao)
+            val repository = TodayRepository(todayApi = api, todayActionsApi = StubTodayActionsApi(), todaySummaryDao = dao)
 
             repository.observeTodaySummary().test {
                 assertNull(awaitItem())
@@ -158,4 +158,30 @@ private sealed interface FakeApiResponse {
     data class Error(
         val error: Throwable,
     ) : FakeApiResponse
+}
+
+private class StubTodayActionsApi : TodayActionsApi {
+    override suspend fun completeChore(id: Int): ChoreMutationDto = ChoreMutationDto(id, "completed")
+
+    override suspend fun skipChore(id: Int): ChoreMutationDto = ChoreMutationDto(id, "skipped")
+
+    override suspend fun completeTask(id: Int): TaskMutationDto = TaskMutationDto(id, "completed")
+
+    override suspend fun skipTask(id: Int): TaskMutationDto = TaskMutationDto(id, "skipped")
+
+    override suspend fun startTask(id: Int): TaskMutationDto = TaskMutationDto(id, "in_progress")
+
+    override suspend fun takeDose(id: Int): DoseMutationDto = DoseMutationDto(id, "taken")
+
+    override suspend fun skipDose(id: Int): DoseMutationDto = DoseMutationDto(id, "skipped")
+
+    override suspend fun updatePlannedItem(
+        id: Int,
+        request: PlannedItemUpdateDto,
+    ): PlannedTodayItemDto = PlannedTodayItemDto(id, request.title, request.isDone)
+
+    override suspend fun deletePlannedItem(id: Int) = Unit
+
+    override suspend fun createPlannedItem(request: PlannedItemCreateDto): PlannedTodayItemDto =
+        PlannedTodayItemDto(0, request.title, false)
 }

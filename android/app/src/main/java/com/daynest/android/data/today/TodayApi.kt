@@ -28,6 +28,10 @@ data class MedicationTodayItemDto(
     @SerialName("medication_dose_instance_id")
     val medicationDoseInstanceId: Int,
     val name: String,
+    val instructions: String = "",
+    @SerialName("scheduled_at")
+    val scheduledAt: String = "",
+    val status: String = "scheduled",
 )
 
 @Serializable
@@ -35,6 +39,10 @@ data class MedicationHistoryItemDto(
     @SerialName("medication_dose_instance_id")
     val medicationDoseInstanceId: Int,
     val name: String,
+    val instructions: String = "",
+    @SerialName("scheduled_at")
+    val scheduledAt: String = "",
+    val status: String = "taken",
 )
 
 @Serializable
@@ -42,6 +50,9 @@ data class RoutineTodayItemDto(
     @SerialName("task_instance_id")
     val taskInstanceId: Int,
     val title: String,
+    val status: String = "pending",
+    @SerialName("scheduled_date")
+    val scheduledDate: String = "",
 )
 
 @Serializable
@@ -49,6 +60,9 @@ data class OverdueTodayItemDto(
     @SerialName("chore_instance_id")
     val choreInstanceId: Int,
     val title: String,
+    val status: String = "pending",
+    @SerialName("overdue_since")
+    val overdueSince: String = "",
 )
 
 @Serializable
@@ -56,6 +70,9 @@ data class DueTodayItemDto(
     @SerialName("chore_instance_id")
     val choreInstanceId: Int,
     val title: String,
+    val status: String = "pending",
+    @SerialName("scheduled_date")
+    val scheduledDate: String = "",
 )
 
 @Serializable
@@ -63,6 +80,8 @@ data class UpcomingTodayItemDto(
     @SerialName("chore_instance_id")
     val choreInstanceId: Int,
     val title: String,
+    @SerialName("scheduled_date")
+    val scheduledDate: String = "",
 )
 
 @Serializable
@@ -71,4 +90,11 @@ data class PlannedTodayItemDto(
     val title: String,
     @SerialName("is_done")
     val isDone: Boolean,
+    @SerialName("planned_for")
+    val plannedFor: String = "",
+    val notes: String? = null,
+    @SerialName("module_key")
+    val moduleKey: String? = null,
+    @SerialName("recurrence_hint")
+    val recurrenceHint: String? = null,
 )
