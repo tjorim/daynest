@@ -2,8 +2,6 @@
 
 package com.daynest.android.feature.calendar
 
-private const val DAYS_IN_WEEK = 7
-
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -51,6 +49,8 @@ import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.format.TextStyle
 import java.util.Locale
+
+private const val DAYS_IN_WEEK = 7
 
 @Composable
 fun CalendarRoute(
