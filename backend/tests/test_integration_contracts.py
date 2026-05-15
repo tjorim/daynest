@@ -78,3 +78,85 @@ def test_home_assistant_contract_header_and_summary_shape(client: TestClient, db
     }
 
 
+def test_home_assistant_contract_dashboard_shape(client: TestClient, db_session: Session) -> None:
+    user = _create_user(db_session, "contract-ha-dashboard@example.com")
+
+    template = ChoreTemplate(
+        user_id=user.id,
+        name="Contract Dashboard Chore",
+        description=None,
+        start_date=date.today(),
+        every_n_days=1,
+        is_active=True,
+    )
+    db_session.add(template)
+    db_session.commit()
+    db_session.refresh(template)
+
+    db_session.add(
+        ChoreInstance(
+            user_id=user.id,
+            chore_template_id=template.id,
+            title="Contract Dashboard Chore",
+            scheduled_date=date.today(),
+            status=ChoreStatus.pending,
+        )
+    )
+    db_session.commit()
+
+    key = _create_integration_key(db_session, user.id, scopes="ha:read")
+    response = client.get("/api/v1/integrations/home-assistant/dashboard", headers={"X-Integration-Key": key})
+
+    assert response.status_code == 200
+    assert response.headers[INTEGRATION_CONTRACT_HEADER] == integration_contract_header(HOME_ASSISTANT_ADAPTER, HOME_ASSISTANT_CONTRACT_VERSION)
+    payload = response.json()
+    assert set(payload.keys()) == {
+        "for_date",
+        "due_today_count",
+        "overdue_count",
+        "planned_count",
+        "medication_due_count",
+        "completion_ratio",
+        "next_medication",
+        "routines_open_count",
+    }
+
+
+def test_home_assistant_contract_entities_shape(client: TestClient, db_session: Session) -> None:
+    user = _create_user(db_session, "contract-ha-entities@example.com")
+
+    template = ChoreTemplate(
+        user_id=user.id,
+        name="Contract Entities Chore",
+        description=None,
+        start_date=date.today(),
+        every_n_days=1,
+        is_active=True,
+    )
+    db_session.add(template)
+    db_session.commit()
+    db_session.refresh(template)
+
+    db_session.add(
+        ChoreInstance(
+            user_id=user.id,
+            chore_template_id=template.id,
+            title="Contract Entities Chore",
+            scheduled_date=date.today(),
+            status=ChoreStatus.pending,
+        )
+    )
+    db_session.commit()
+
+    key = _create_integration_key(db_session, user.id, scopes="ha:read")
+    response = client.get("/api/v1/integrations/home-assistant/entities", headers={"X-Integration-Key": key})
+
+    assert response.status_code == 200
+    assert response.headers[INTEGRATION_CONTRACT_HEADER] == integration_contract_header(HOME_ASSISTANT_ADAPTER, HOME_ASSISTANT_CONTRACT_VERSION)
+    payload = response.json()
+    assert isinstance(payload, list)
+    assert payload
+
+    for entity in payload:
+        assert set(entity.keys()) == {"entity_id", "state", "attributes"}
+

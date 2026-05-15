@@ -60,6 +60,20 @@ Expected behavior:
   - `medication_due_count`
   - `completion_ratio`
   - `next_medication`
+  - `routines_open_count`
+
+### `GET /api/v1/integrations/home-assistant/entities`
+
+Used by the Home Assistant entity registry bootstrap and diagnostics.
+
+Expected behavior:
+
+- returns `200 OK`
+- returns `X-Integration-Contract: home-assistant; version=ha.v1`
+- returns a JSON array where each entity object contains:
+  - `entity_id`
+  - `state`
+  - `attributes`
 
 ### `POST /api/v1/integrations/home-assistant/actions/complete-task`
 
@@ -159,4 +173,3 @@ Checks:
 - `/dashboard` returns `200 OK`, the contract header, and the expected dashboard payload
 - the integration loads without entity availability errors
 - (optional) API key includes `ha:write` for service automation support
-
