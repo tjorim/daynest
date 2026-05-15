@@ -56,6 +56,35 @@ type BulkAction = {
   run: (item: SectionItem) => Promise<unknown>;
 };
 
+type TodaySection = {
+  key: string;
+  heading: string;
+  items: SectionItem[];
+  bulkActions?: BulkAction[];
+};
+
+function getActionableCount(items: SectionItem[]): number {
+  return items.filter((item) => {
+    if (item.medicationDoseInstanceId) return item.medicationStatus === "scheduled";
+    if (item.taskInstanceId)
+      return item.taskStatus !== "completed" && item.taskStatus !== "skipped";
+    if (item.choreInstanceId)
+      return item.choreStatus !== "completed" && item.choreStatus !== "skipped";
+    if (item.plannedItem) return !item.plannedItem.is_done;
+    return false;
+  }).length;
+}
+
+function getCompletedCount(items: SectionItem[]): number {
+  return items.filter((item) => {
+    if (item.medicationDoseInstanceId) return item.medicationStatus === "taken";
+    if (item.taskInstanceId) return item.taskStatus === "completed";
+    if (item.choreInstanceId) return item.choreStatus === "completed";
+    if (item.plannedItem) return item.plannedItem.is_done;
+    return false;
+  }).length;
+}
+
 function formatSubtitle(...values: Array<string | null | undefined>) {
   return values.filter(Boolean).join(" • ");
 }
@@ -204,6 +233,69 @@ function SummaryCard({
         <div className="card-body py-3">
           <div className={`summary-pill text-bg-${tone}`}>{label}</div>
           <div className="summary-value mt-2">{value}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function WebFocusPanel({ sections }: { sections: TodaySection[] }) {
+  const actionableCount = sections.reduce(
+    (total, section) => total + getActionableCount(section.items),
+    0,
+  );
+  const completedCount = sections.reduce(
+    (total, section) => total + getCompletedCount(section.items),
+    0,
+  );
+  const totalTrackedCount = actionableCount + completedCount;
+  const completionPercent =
+    totalTrackedCount > 0 ? Math.round((completedCount / totalTrackedCount) * 100) : 0;
+  const nextSection = sections.find((section) => getActionableCount(section.items) > 0);
+  const nextItem = nextSection?.items.find((item) => getActionableCount([item]) > 0);
+
+  return (
+    <div className="card border-0 shadow-sm mb-3 web-focus-panel">
+      <div className="card-body">
+        <div className="d-flex flex-column flex-lg-row justify-content-between gap-3">
+          <div>
+            <div className="text-uppercase text-muted small fw-semibold">Web focus</div>
+            <h3 className="h5 mb-1">{nextItem ? nextItem.title : "All clear for now"}</h3>
+            <p className="text-muted mb-0">
+              {nextItem
+                ? `${nextSection?.heading ?? "Today"} is the next section that needs attention.`
+                : "No open actions remain in today's web dashboard."}
+            </p>
+          </div>
+          <div className="focus-progress" aria-label={`${completionPercent}% complete`}>
+            <span className="focus-progress-value">{completionPercent}%</span>
+            <span className="text-muted small">complete</span>
+          </div>
+        </div>
+        <div
+          className="progress my-3"
+          role="progressbar"
+          aria-label="Today completion"
+          aria-valuenow={completionPercent}
+          aria-valuemin={0}
+          aria-valuemax={100}
+        >
+          <div className="progress-bar" style={{ width: `${completionPercent}%` }} />
+        </div>
+        <div className="d-flex gap-2 flex-wrap">
+          {sections.map((section) => {
+            const actionable = getActionableCount(section.items);
+            return (
+              <a
+                key={section.key}
+                className={`btn btn-sm ${actionable > 0 ? "btn-outline-primary" : "btn-outline-secondary"}`}
+                href={`#${section.key}`}
+              >
+                {section.heading}
+                <span className="badge text-bg-light ms-2">{actionable}</span>
+              </a>
+            );
+          })}
         </div>
       </div>
     </div>
@@ -419,11 +511,13 @@ function PlannedItemActions({
 }
 
 function SectionCard({
+  sectionId,
   heading,
   items,
   onRefresh,
   bulkActions,
 }: {
+  sectionId: string;
   heading: string;
   items: SectionItem[];
   onRefresh: () => Promise<void>;
@@ -499,7 +593,7 @@ function SectionCard({
   };
 
   return (
-    <div className="card mb-3">
+    <div className="card mb-3" id={sectionId}>
       <div className="card-header py-2">
         <div className="d-flex flex-column gap-2">
           <div className="d-flex justify-content-between align-items-center gap-2 flex-wrap">
@@ -719,6 +813,51 @@ export function TodayPage() {
     },
   ];
 
+  const sections: TodaySection[] = today
+    ? [
+        {
+          key: "medication-today",
+          heading: "Medication Today",
+          items: buildMedicationItems(today.medication),
+        },
+        {
+          key: "medication-history",
+          heading: "Medication History",
+          items: buildMedicationHistoryItems(today.medication_history),
+        },
+        {
+          key: "routines",
+          heading: "Routines",
+          items: buildRoutineItems(today.routines),
+          bulkActions: routineBulkActions,
+        },
+        {
+          key: "overdue",
+          heading: "Overdue",
+          items: buildOverdueItems(today.overdue),
+          bulkActions: choreBulkActions,
+        },
+        {
+          key: "due-today",
+          heading: "Due Today",
+          items: buildDueTodayItems(today.due_today),
+          bulkActions: choreBulkActions,
+        },
+        {
+          key: "upcoming",
+          heading: "Upcoming",
+          items: buildUpcomingItems(today.upcoming),
+          bulkActions: choreBulkActions,
+        },
+        {
+          key: "planned",
+          heading: "Planned",
+          items: buildPlannedItems(today.planned),
+          bulkActions: plannedBulkActions,
+        },
+      ]
+    : [];
+
   return (
     <section>
       <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2 mb-2">
@@ -766,46 +905,17 @@ export function TodayPage() {
             <SummaryCard label="Open Plans" value={openPlannedCount} tone="primary" />
             <SummaryCard label="Open Routines" value={routineOpenCount} tone="secondary" />
           </div>
-          <SectionCard
-            heading="Medication Today"
-            items={buildMedicationItems(today.medication)}
-            onRefresh={loadToday}
-          />
-          <SectionCard
-            heading="Medication History"
-            items={buildMedicationHistoryItems(today.medication_history)}
-            onRefresh={loadToday}
-          />
-          <SectionCard
-            heading="Routines"
-            items={buildRoutineItems(today.routines)}
-            onRefresh={loadToday}
-            bulkActions={routineBulkActions}
-          />
-          <SectionCard
-            heading="Overdue"
-            items={buildOverdueItems(today.overdue)}
-            onRefresh={loadToday}
-            bulkActions={choreBulkActions}
-          />
-          <SectionCard
-            heading="Due Today"
-            items={buildDueTodayItems(today.due_today)}
-            onRefresh={loadToday}
-            bulkActions={choreBulkActions}
-          />
-          <SectionCard
-            heading="Upcoming"
-            items={buildUpcomingItems(today.upcoming)}
-            onRefresh={loadToday}
-            bulkActions={choreBulkActions}
-          />
-          <SectionCard
-            heading="Planned"
-            items={buildPlannedItems(today.planned)}
-            onRefresh={loadToday}
-            bulkActions={plannedBulkActions}
-          />
+          <WebFocusPanel sections={sections} />
+          {sections.map((section) => (
+            <SectionCard
+              key={section.key}
+              sectionId={section.key}
+              heading={section.heading}
+              items={section.items}
+              onRefresh={loadToday}
+              bulkActions={section.bulkActions}
+            />
+          ))}
         </>
       ) : null}
     </section>
