@@ -13,6 +13,32 @@
     <string name="auth_error_missing_credentials">Enter both email and password.</string>
     <string name="auth_error_sign_in_failed">Unable to sign in. Please try again.</string>
 
+    <string name="calendar_title">Calendar</string>
+    <string name="calendar_subtitle">Month and day planning, matching the web calendar workspace.</string>
+    <string name="calendar_capability_month">Review month-level counts for routines, chores, medication, and planned items.</string>
+    <string name="calendar_capability_day">Open a day detail view that keeps completed, pending, and overdue work visible.</string>
+    <string name="calendar_capability_planned">Create and organize planned items with optional notes and module metadata.</string>
+    <string name="calendar_capability_backup">Export and import planned-item backups from the same product surface.</string>
+
+    <string name="medication_title">Medication</string>
+    <string name="medication_subtitle">Medication planning and dose tracking are available from native navigation.</string>
+    <string name="medication_capability_today">Track today\'s scheduled medication doses alongside the Today checklist.</string>
+    <string name="medication_capability_history">Review dose history statuses such as taken, skipped, and missed.</string>
+    <string name="medication_capability_strict">Keep medication modeled separately from routine chores for safer reminders.</string>
+
+    <string name="templates_title">Templates</string>
+    <string name="templates_subtitle">Reusable routine and chore setup now has a native destination.</string>
+    <string name="templates_capability_routines">Manage routine templates that generate daily task instances.</string>
+    <string name="templates_capability_chores">Manage chore templates for recurring household work.</string>
+    <string name="templates_capability_recurring">Keep recurrence understandable while supporting repeating work.</string>
+
+    <string name="settings_title">Settings</string>
+    <string name="settings_subtitle">Account and integration controls are represented across platforms.</string>
+    <string name="settings_capability_account">Review account session state and future profile preferences.</string>
+    <string name="settings_capability_integrations">Connect integration surfaces such as Home Assistant and MCP clients.</string>
+    <string name="settings_capability_clients">Prepare integration clients with scoped access from one settings area.</string>
+
+    <string name="parity_more_coming">Native editing controls will continue to grow from the same shared API contracts.</string>
 
     <plurals name="home_items_remaining">
         <item quantity="one">You have %1$d item to handle today.</item>

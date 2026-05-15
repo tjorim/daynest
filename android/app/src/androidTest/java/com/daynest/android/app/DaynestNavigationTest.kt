@@ -4,6 +4,8 @@ package com.daynest.android.app
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -23,8 +25,12 @@ import com.daynest.android.data.today.TodayResponseDto
 import com.daynest.android.feature.auth.AuthRoute
 import com.daynest.android.feature.auth.AuthUiEvent
 import com.daynest.android.feature.auth.AuthViewModel
+import com.daynest.android.feature.calendar.CalendarRoute
 import com.daynest.android.feature.home.HomeRoute
 import com.daynest.android.feature.home.HomeViewModel
+import com.daynest.android.feature.medication.MedicationRoute
+import com.daynest.android.feature.settings.SettingsRoute
+import com.daynest.android.feature.templates.TemplatesRoute
 import com.daynest.android.ui.theme.DaynestTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -131,6 +137,41 @@ class DaynestNavigationTest {
 
         assertEquals(DaynestDestination.HOME, navController.currentDestination?.route)
     }
+
+    @Test
+    fun homeBottomNavigation_opensCalendarDestination() {
+        val fakeStorage = FakeNavTokenStorage("valid-token")
+        val fakeApi = FakeNavAuthApi(restoreResult = Result.success(AuthSessionDto("token")))
+        val authRepo = AuthRepository(authApi = fakeApi, secureTokenStorage = fakeStorage)
+        val sessionVm = SessionGateViewModel(authRepo)
+        val authVm = AuthViewModel(authRepo)
+        val homeVm = makeHomeViewModel()
+
+        lateinit var navController: NavHostController
+
+        composeTestRule.setContent {
+            DaynestTheme {
+                navController = rememberNavController()
+                TestNavHost(
+                    navController = navController,
+                    sessionGateViewModel = sessionVm,
+                    authViewModel = authVm,
+                    homeViewModel = homeVm,
+                )
+            }
+        }
+
+        composeTestRule.waitUntil(timeoutMillis = 3_000L) {
+            navController.currentDestination?.route == DaynestDestination.HOME
+        }
+
+        composeTestRule.onNodeWithText("Calendar").performClick()
+        composeTestRule.waitUntil(timeoutMillis = 3_000L) {
+            navController.currentDestination?.route == DaynestDestination.CALENDAR
+        }
+
+        assertEquals(DaynestDestination.CALENDAR, navController.currentDestination?.route)
+    }
 }
 
 @Composable
@@ -171,7 +212,19 @@ private fun TestNavHost(
             )
         }
         composable(route = DaynestDestination.HOME) {
-            HomeRoute(viewModel = homeViewModel)
+            HomeRoute(viewModel = homeViewModel, onNavigate = navController::navigate)
+        }
+        composable(route = DaynestDestination.CALENDAR) {
+            CalendarRoute(onNavigate = navController::navigate)
+        }
+        composable(route = DaynestDestination.MEDICATION) {
+            MedicationRoute(onNavigate = navController::navigate)
+        }
+        composable(route = DaynestDestination.TEMPLATES) {
+            TemplatesRoute(onNavigate = navController::navigate)
+        }
+        composable(route = DaynestDestination.SETTINGS) {
+            SettingsRoute(onNavigate = navController::navigate)
         }
     }
 }

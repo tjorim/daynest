@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -21,15 +20,21 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.daynest.android.R
+import com.daynest.android.app.navigation.DaynestDestination
+import com.daynest.android.app.navigation.DaynestNavigationScaffold
 
 @Composable
 @Suppress("FunctionNaming")
-fun HomeRoute(viewModel: HomeViewModel = hiltViewModel()) {
+fun HomeRoute(
+    onNavigate: (String) -> Unit = {},
+    viewModel: HomeViewModel = hiltViewModel(),
+) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     HomeScreen(
         uiState = uiState,
         onEvent = viewModel::onEvent,
+        onNavigate = onNavigate,
     )
 }
 
@@ -38,8 +43,12 @@ fun HomeRoute(viewModel: HomeViewModel = hiltViewModel()) {
 internal fun HomeScreen(
     uiState: HomeUiState,
     onEvent: (HomeUiEvent) -> Unit,
+    onNavigate: (String) -> Unit = {},
 ) {
-    Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+    DaynestNavigationScaffold(
+        currentRoute = DaynestDestination.HOME,
+        onNavigate = onNavigate,
+    ) { innerPadding ->
         Column(
             modifier =
                 Modifier
