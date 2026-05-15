@@ -67,6 +67,19 @@ okhttp-mockwebserver = { group = "com.squareup.okhttp3", name = "mockwebserver",
 turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 
+[bundles]
+androidx-lifecycle = [
+    "androidx-lifecycle-runtime-ktx",
+    "androidx-lifecycle-runtime-compose",
+    "androidx-lifecycle-viewmodel-ktx",
+    "androidx-lifecycle-viewmodel-compose",
+]
+compose = [
+    "compose-ui",
+    "compose-ui-tooling-preview",
+    "compose-material3",
+]
+
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
