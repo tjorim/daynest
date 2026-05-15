@@ -96,8 +96,8 @@
       "name": "Skip Task",
       "description": "Skips a Daynest chore instance. Requires the integration API key to have the ha:write scope.",
       "fields": {
-        "chore_instance_id": {
-          "name": "Chore Instance ID",
+        "task_id": {
+          "name": "Task ID",
           "description": "The numeric ID of the chore instance to skip."
         }
       }

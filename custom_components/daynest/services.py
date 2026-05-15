@@ -25,7 +25,6 @@ SERVICE_SKIP_TASK = "skip_task"
 SERVICE_SKIP_MEDICATION = "skip_medication"
 
 ATTR_TASK_ID = "task_id"
-ATTR_CHORE_INSTANCE_ID = "chore_instance_id"
 ATTR_MEDICATION_DOSE_ID = "medication_dose_id"
 ATTR_DAYS = "days"
 
@@ -50,7 +49,7 @@ SERVICE_MARK_MEDICATION_TAKEN_SCHEMA = vol.Schema(
 
 SERVICE_SKIP_TASK_SCHEMA = vol.Schema(
     {
-        vol.Required(ATTR_CHORE_INSTANCE_ID): vol.All(int, vol.Range(min=1)),
+        vol.Required(ATTR_TASK_ID): vol.All(int, vol.Range(min=1)),
     }
 )
 
@@ -158,22 +157,22 @@ async def _handle_mark_medication_taken(hass: HomeAssistant, call: ServiceCall) 
 
 async def _handle_skip_task(hass: HomeAssistant, call: ServiceCall) -> None:
     """Skip a chore instance."""
-    chore_instance_id: int = call.data[ATTR_CHORE_INSTANCE_ID]
+    task_id: int = call.data[ATTR_TASK_ID]
     entry = _get_single_entry(hass, "skip_task")
     if entry is None:
         return
     try:
-        await entry.runtime_data.client.async_skip_task(chore_instance_id=chore_instance_id)
+        await entry.runtime_data.client.async_skip_task(task_id=task_id)
     except DaynestApiClientAuthenticationError as err:
-        LOGGER.error("daynest.skip_task: authentication error for chore %s", chore_instance_id)
-        raise HomeAssistantError(f"Authentication error skipping chore {chore_instance_id}") from err
+        LOGGER.error("daynest.skip_task: authentication error for task %s", task_id)
+        raise HomeAssistantError(f"Authentication error skipping task {task_id}") from err
     except DaynestApiClientCommunicationError as err:
-        LOGGER.error("daynest.skip_task: communication error for chore %s: %s", chore_instance_id, err)
-        raise HomeAssistantError(f"Communication error skipping chore {chore_instance_id}") from err
+        LOGGER.error("daynest.skip_task: communication error for task %s: %s", task_id, err)
+        raise HomeAssistantError(f"Communication error skipping task {task_id}") from err
     except DaynestApiClientError as err:
-        LOGGER.error("daynest.skip_task: unexpected error for chore %s: %s", chore_instance_id, err)
-        raise HomeAssistantError(f"Error skipping chore {chore_instance_id}") from err
-    LOGGER.debug("daynest.skip_task: chore %s skipped", chore_instance_id)
+        LOGGER.error("daynest.skip_task: unexpected error for task %s: %s", task_id, err)
+        raise HomeAssistantError(f"Error skipping task {task_id}") from err
+    LOGGER.debug("daynest.skip_task: task %s skipped", task_id)
     await entry.runtime_data.coordinator.async_refresh()
 
 
@@ -230,7 +229,6 @@ def async_unload_services(hass: HomeAssistant) -> None:
 
 __all__ = [
     "ATTR_DAYS",
-    "ATTR_CHORE_INSTANCE_ID",
     "ATTR_MEDICATION_DOSE_ID",
     "ATTR_TASK_ID",
     "SERVICE_COMPLETE_TASK",
