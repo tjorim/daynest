@@ -65,26 +65,30 @@ type TodaySection = {
   bulkActions?: BulkAction[];
 };
 
+function isItemActionable(item: SectionItem): boolean {
+  if (item.medicationDoseInstanceId) return item.medicationStatus === "scheduled";
+  if (item.taskInstanceId)
+    return item.taskStatus !== "completed" && item.taskStatus !== "skipped";
+  if (item.choreInstanceId)
+    return item.choreStatus !== "completed" && item.choreStatus !== "skipped";
+  if (item.plannedItem) return !item.plannedItem.is_done;
+  return false;
+}
+
+function isItemCompleted(item: SectionItem): boolean {
+  if (item.medicationDoseInstanceId) return item.medicationStatus === "taken";
+  if (item.taskInstanceId) return item.taskStatus === "completed";
+  if (item.choreInstanceId) return item.choreStatus === "completed";
+  if (item.plannedItem) return item.plannedItem.is_done;
+  return false;
+}
+
 function getActionableCount(items: SectionItem[]): number {
-  return items.filter((item) => {
-    if (item.medicationDoseInstanceId) return item.medicationStatus === "scheduled";
-    if (item.taskInstanceId)
-      return item.taskStatus !== "completed" && item.taskStatus !== "skipped";
-    if (item.choreInstanceId)
-      return item.choreStatus !== "completed" && item.choreStatus !== "skipped";
-    if (item.plannedItem) return !item.plannedItem.is_done;
-    return false;
-  }).length;
+  return items.filter(isItemActionable).length;
 }
 
 function getCompletedCount(items: SectionItem[]): number {
-  return items.filter((item) => {
-    if (item.medicationDoseInstanceId) return item.medicationStatus === "taken";
-    if (item.taskInstanceId) return item.taskStatus === "completed";
-    if (item.choreInstanceId) return item.choreStatus === "completed";
-    if (item.plannedItem) return item.plannedItem.is_done;
-    return false;
-  }).length;
+  return items.filter(isItemCompleted).length;
 }
 
 function formatSubtitle(...values: Array<string | null | undefined>) {
@@ -254,7 +258,7 @@ function WebFocusPanel({ sections }: { sections: TodaySection[] }) {
   const completionPercent =
     totalTrackedCount > 0 ? Math.round((completedCount / totalTrackedCount) * 100) : 0;
   const nextSection = sections.find((section) => getActionableCount(section.items) > 0);
-  const nextItem = nextSection?.items.find((item) => getActionableCount([item]) > 0);
+  const nextItem = nextSection?.items.find(isItemActionable);
 
   return (
     <div className="card border-0 shadow-sm mb-3 web-focus-panel">
@@ -824,20 +828,14 @@ export function TodayPage() {
       key: "routine-done",
       label: "Bulk Done",
       buttonClassName: "btn-success",
-      isAvailable: (item) =>
-        Boolean(
-          item.taskInstanceId && item.taskStatus !== "completed" && item.taskStatus !== "skipped",
-        ),
+      isAvailable: (item) => Boolean(item.taskInstanceId && isItemActionable(item)),
       run: (item) => completeRoutineTask(item.taskInstanceId as number),
     },
     {
       key: "routine-skip",
       label: "Bulk Skip",
       buttonClassName: "btn-outline-secondary",
-      isAvailable: (item) =>
-        Boolean(
-          item.taskInstanceId && item.taskStatus !== "completed" && item.taskStatus !== "skipped",
-        ),
+      isAvailable: (item) => Boolean(item.taskInstanceId && isItemActionable(item)),
       run: (item) => skipRoutineTask(item.taskInstanceId as number),
     },
   ];
@@ -846,24 +844,14 @@ export function TodayPage() {
       key: "chore-done",
       label: "Bulk Done",
       buttonClassName: "btn-success",
-      isAvailable: (item) =>
-        Boolean(
-          item.choreInstanceId &&
-          item.choreStatus !== "completed" &&
-          item.choreStatus !== "skipped",
-        ),
+      isAvailable: (item) => Boolean(item.choreInstanceId && isItemActionable(item)),
       run: (item) => completeChore(item.choreInstanceId as number),
     },
     {
       key: "chore-skip",
       label: "Bulk Skip",
       buttonClassName: "btn-outline-secondary",
-      isAvailable: (item) =>
-        Boolean(
-          item.choreInstanceId &&
-          item.choreStatus !== "completed" &&
-          item.choreStatus !== "skipped",
-        ),
+      isAvailable: (item) => Boolean(item.choreInstanceId && isItemActionable(item)),
       run: (item) => skipChore(item.choreInstanceId as number),
     },
   ];
@@ -872,7 +860,7 @@ export function TodayPage() {
       key: "planned-done",
       label: "Bulk Done",
       buttonClassName: "btn-success",
-      isAvailable: (item) => Boolean(item.plannedItem && !item.plannedItem.is_done),
+      isAvailable: (item) => Boolean(item.plannedItem && isItemActionable(item)),
       run: (item) =>
         updatePlannedItem(item.plannedItem!.id, buildPlannedItemPayload(item.plannedItem!, true)),
     },
@@ -880,7 +868,7 @@ export function TodayPage() {
       key: "planned-undo",
       label: "Bulk Undo",
       buttonClassName: "btn-outline-success",
-      isAvailable: (item) => Boolean(item.plannedItem?.is_done),
+      isAvailable: (item) => Boolean(item.plannedItem && isItemCompleted(item)),
       run: (item) =>
         updatePlannedItem(item.plannedItem!.id, buildPlannedItemPayload(item.plannedItem!, false)),
     },

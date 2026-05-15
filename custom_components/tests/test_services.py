@@ -12,12 +12,14 @@ from daynest.api.client import (
     DaynestApiClientError,
 )
 from daynest.services import (
+    ATTR_CHORE_INSTANCE_ID,
     ATTR_DAYS,
     ATTR_MEDICATION_DOSE_ID,
     ATTR_TASK_ID,
     SERVICE_COMPLETE_TASK,
     SERVICE_MARK_MEDICATION_TAKEN,
     SERVICE_REFRESH,
+    SERVICE_SKIP_TASK,
     SERVICE_SNOOZE_TASK,
     async_setup_services,
     async_unload_services,
@@ -326,3 +328,29 @@ class TestHandleMarkMedicationTaken:
         with pytest.raises(HomeAssistantError):
             await handler(_make_service_call(**{ATTR_MEDICATION_DOSE_ID: 15}))
         entry.runtime_data.coordinator.async_refresh.assert_not_awaited()
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+class TestHandleSkipTask:
+    """Tests for the skip_task service handler."""
+
+    async def test_success_calls_client_with_chore_instance_id(self) -> None:
+        client = AsyncMock()
+        entry = _make_entry(client=client)
+        hass = _make_hass(entries=[entry])
+        await async_setup_services(hass)
+        handler = await _get_handler(hass, SERVICE_SKIP_TASK)
+        await handler(_make_service_call(**{ATTR_CHORE_INSTANCE_ID: 9}))
+        client.async_skip_task.assert_awaited_once_with(chore_instance_id=9)
+        entry.runtime_data.coordinator.async_refresh.assert_awaited_once()
+
+    async def test_authentication_error_raises_homeassistant_error(self) -> None:
+        client = AsyncMock()
+        client.async_skip_task.side_effect = DaynestApiClientAuthenticationError()
+        entry = _make_entry(client=client)
+        hass = _make_hass(entries=[entry])
+        await async_setup_services(hass)
+        handler = await _get_handler(hass, SERVICE_SKIP_TASK)
+        with pytest.raises(HomeAssistantError, match="Authentication error skipping chore"):
+            await handler(_make_service_call(**{ATTR_CHORE_INSTANCE_ID: 9}))

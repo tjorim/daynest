@@ -38,7 +38,7 @@ mark_medication_taken:
 
 skip_task:
   fields:
-    task_id:
+    chore_instance_id:
       required: true
       selector:
         number:

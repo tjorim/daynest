@@ -1,6 +1,6 @@
 package com.daynest.android.data.templates
 
-import kotlinx.coroutines.CancellationException
+import com.daynest.android.data.safeApiCall
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -10,65 +10,27 @@ class TemplatesRepository
     constructor(
         private val templatesApi: TemplatesApi,
     ) {
-        @Suppress("TooGenericExceptionCaught")
         suspend fun listRoutines(): Result<List<RoutineTemplateDto>> =
-            try {
-                Result.success(templatesApi.listRoutines())
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                Result.failure(e)
-            }
+            safeApiCall { templatesApi.listRoutines() }
 
-        @Suppress("TooGenericExceptionCaught")
         suspend fun createRoutine(request: RoutineTemplateInputDto): Result<RoutineTemplateDto> =
-            try {
-                Result.success(templatesApi.createRoutine(request))
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                Result.failure(e)
-            }
+            safeApiCall { templatesApi.createRoutine(request) }
 
-        @Suppress("TooGenericExceptionCaught")
         suspend fun deleteRoutine(id: Int): Result<Unit> =
-            try {
+            safeApiCall {
                 templatesApi.deleteRoutine(id)
-                Result.success(Unit)
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                Result.failure(e)
+                Unit
             }
 
-        @Suppress("TooGenericExceptionCaught")
         suspend fun listChores(): Result<List<ChoreTemplateDto>> =
-            try {
-                Result.success(templatesApi.listChores())
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                Result.failure(e)
-            }
+            safeApiCall { templatesApi.listChores() }
 
-        @Suppress("TooGenericExceptionCaught")
         suspend fun createChore(request: ChoreTemplateInputDto): Result<ChoreTemplateDto> =
-            try {
-                Result.success(templatesApi.createChore(request))
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                Result.failure(e)
-            }
+            safeApiCall { templatesApi.createChore(request) }
 
-        @Suppress("TooGenericExceptionCaught")
         suspend fun deleteChore(id: Int): Result<Unit> =
-            try {
+            safeApiCall {
                 templatesApi.deleteChore(id)
-                Result.success(Unit)
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                Result.failure(e)
+                Unit
             }
     }

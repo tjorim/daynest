@@ -45,9 +45,9 @@ import com.daynest.android.app.navigation.DaynestDestination
 import com.daynest.android.app.navigation.DaynestNavigationScaffold
 import com.daynest.android.data.calendar.CalendarDaySummaryDto
 import com.daynest.android.data.calendar.UnifiedDayItemDto
-import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.format.TextStyle
+import java.time.temporal.WeekFields
 import java.util.Locale
 
 private const val DAYS_IN_WEEK = 7
@@ -263,10 +263,13 @@ private fun MonthGrid(
     val dayMap = remember(days) { days.associateBy { it.date } }
     val firstDayOfMonth = remember(displayMonth) { displayMonth.withDayOfMonth(1) }
     val daysInMonth = remember(displayMonth) { displayMonth.lengthOfMonth() }
-    val firstWeekday = remember(firstDayOfMonth) { firstDayOfMonth.dayOfWeek.value % DAYS_IN_WEEK }
+    val firstDayOfWeek = remember { WeekFields.of(Locale.getDefault()).firstDayOfWeek }
+    val firstWeekday =
+        remember(firstDayOfMonth, firstDayOfWeek) {
+            Math.floorMod(firstDayOfMonth.dayOfWeek.value - firstDayOfWeek.value, DAYS_IN_WEEK)
+        }
     val dayLabels =
-        remember {
-            val firstDayOfWeek = DayOfWeek.SUNDAY
+        remember(firstDayOfWeek) {
             (0 until DAYS_IN_WEEK).map { offset ->
                 firstDayOfWeek.plus(offset.toLong()).getDisplayName(TextStyle.SHORT, Locale.getDefault())
             }
