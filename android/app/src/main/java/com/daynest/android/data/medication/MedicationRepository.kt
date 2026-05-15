@@ -15,5 +15,8 @@ class MedicationRepository
         suspend fun createPlan(request: MedicationPlanInputDto): Result<MedicationPlanDto> =
             safeApiCall { medicationApi.createPlan(request) }
 
-        suspend fun getHistory(): Result<List<MedicationHistoryItemDto>> = safeApiCall { medicationApi.getHistory().history }
+        suspend fun getHistory(): Result<List<MedicationHistoryItemDto>> =
+            safeApiCall {
+                medicationApi.getHistory().history
+            }
     }
