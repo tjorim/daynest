@@ -138,8 +138,8 @@ def home_assistant_skip_task(
 ) -> HAActionResult:
     """Skip a chore instance via Home Assistant automation."""
     service = TodayService(TodayRepository(db))
-    service.skip_chore(user_id=integration_user.id, chore_instance_id=request.task_id)
-    return HAActionResult(success=True, detail=f"Task {request.task_id} skipped")
+    service.skip_chore(user_id=integration_user.id, chore_instance_id=request.chore_instance_id)
+    return HAActionResult(success=True, detail=f"Task {request.chore_instance_id} skipped")
 
 
 @router.post("/actions/skip-medication", response_model=HAActionResult)

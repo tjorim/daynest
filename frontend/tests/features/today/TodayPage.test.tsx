@@ -92,7 +92,7 @@ describe("TodayPage", () => {
   it("shows the web focus panel with the next actionable item and progress", async () => {
     render(<TodayPage />);
 
-    expect(await screen.findByText("Web focus")).toBeInTheDocument();
+    expect(await screen.findByText("Today's focus")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Morning vitamin" })).toBeInTheDocument();
     expect(screen.getByLabelText("40% complete")).toBeInTheDocument();
     expect(screen.getByRole("progressbar", { name: "Today completion" })).toHaveAttribute(

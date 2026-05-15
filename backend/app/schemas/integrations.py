@@ -24,7 +24,7 @@ class MarkMedicationTakenRequest(BaseModel):
 
 
 class SkipTaskRequest(BaseModel):
-    task_id: int = Field(gt=0, description="The chore instance ID to skip")
+    chore_instance_id: int = Field(gt=0, description="The chore instance ID to skip")
 
 
 class SkipMedicationRequest(BaseModel):

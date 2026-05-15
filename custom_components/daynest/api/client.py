@@ -171,7 +171,7 @@ class DaynestApiClient:
         """Skip a chore instance via the HA write endpoint."""
         return await self._post_action(
             path="/api/v1/integrations/home-assistant/actions/skip-task",
-            payload={"task_id": task_id},
+            payload={"chore_instance_id": task_id},
         )
 
     async def async_skip_medication(self, medication_dose_id: int) -> dict[str, Any]:
