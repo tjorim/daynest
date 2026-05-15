@@ -8,11 +8,11 @@ import com.daynest.android.data.settings.IntegrationClientDto
 import com.daynest.android.data.settings.IntegrationClientInputDto
 import com.daynest.android.data.settings.SettingsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
