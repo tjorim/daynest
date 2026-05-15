@@ -35,8 +35,11 @@
     <string name="action_add">Add</string>
     <string name="action_cancel">Cancel</string>
 
-    <!-- Calendar -->
+    <!-- Top-level destinations -->
+    <string name="today_title">Today</string>
     <string name="calendar_title">Calendar</string>
+
+    <!-- Calendar -->
     <string name="calendar_subtitle">Month and day planning, matching the web calendar workspace.</string>
     <string name="calendar_capability_month">Review month-level counts for routines, chores, medication, and planned items.</string>
     <string name="calendar_capability_day">Open a day detail view that keeps completed, pending, and overdue work visible.</string>

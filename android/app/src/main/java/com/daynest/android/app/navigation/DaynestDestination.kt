@@ -1,5 +1,8 @@
 package com.daynest.android.app.navigation
 
+import androidx.annotation.StringRes
+import com.daynest.android.R
+
 object DaynestDestination {
     const val SESSION_GATE = "session_gate"
     const val AUTH = "auth"
@@ -12,14 +15,14 @@ object DaynestDestination {
 
 data class DaynestTopLevelDestination(
     val route: String,
-    val label: String,
+    @param:StringRes val labelResId: Int,
 )
 
 val daynestTopLevelDestinations =
     listOf(
-        DaynestTopLevelDestination(DaynestDestination.HOME, "Today"),
-        DaynestTopLevelDestination(DaynestDestination.CALENDAR, "Calendar"),
-        DaynestTopLevelDestination(DaynestDestination.MEDICATION, "Medication"),
-        DaynestTopLevelDestination(DaynestDestination.TEMPLATES, "Templates"),
-        DaynestTopLevelDestination(DaynestDestination.SETTINGS, "Settings"),
+        DaynestTopLevelDestination(DaynestDestination.HOME, R.string.today_title),
+        DaynestTopLevelDestination(DaynestDestination.CALENDAR, R.string.calendar_title),
+        DaynestTopLevelDestination(DaynestDestination.MEDICATION, R.string.medication_title),
+        DaynestTopLevelDestination(DaynestDestination.TEMPLATES, R.string.templates_title),
+        DaynestTopLevelDestination(DaynestDestination.SETTINGS, R.string.settings_title),
     )

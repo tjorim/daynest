@@ -9,6 +9,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 
 @Composable
 fun DaynestNavigationScaffold(
@@ -22,11 +23,12 @@ fun DaynestNavigationScaffold(
         bottomBar = {
             NavigationBar {
                 daynestTopLevelDestinations.forEach { destination ->
+                    val label = stringResource(id = destination.labelResId)
                     NavigationBarItem(
                         selected = currentRoute == destination.route,
                         onClick = { onNavigate(destination.route) },
-                        label = { Text(text = destination.label) },
-                        icon = { Text(text = destination.label.take(1)) },
+                        label = { Text(text = label) },
+                        icon = { Text(text = label.take(1)) },
                     )
                 }
             }

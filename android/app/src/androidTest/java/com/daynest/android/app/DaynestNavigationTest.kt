@@ -11,6 +11,8 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.test.platform.app.InstrumentationRegistry
+import com.daynest.android.R
 import com.daynest.android.app.navigation.DaynestDestination
 import com.daynest.android.app.session.SessionGateRoute
 import com.daynest.android.app.session.SessionGateViewModel
@@ -177,7 +179,12 @@ class DaynestNavigationTest {
             navController.currentDestination?.route == DaynestDestination.HOME
         }
 
-        composeTestRule.onNodeWithText("Calendar").performClick()
+        val calendarTitle =
+            InstrumentationRegistry
+                .getInstrumentation()
+                .targetContext
+                .getString(R.string.calendar_title)
+        composeTestRule.onNodeWithText(calendarTitle).performClick()
         composeTestRule.waitUntil(timeoutMillis = 3_000L) {
             navController.currentDestination?.route == DaynestDestination.CALENDAR
         }
