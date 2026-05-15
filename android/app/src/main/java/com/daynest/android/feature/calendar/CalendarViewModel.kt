@@ -80,17 +80,40 @@ class CalendarViewModel
                 val result = calendarRepository.getMonth(year, month)
                 result
                     .onSuccess { monthDto ->
-                        _uiState.value =
-                            CalendarUiState.Content(
-                                displayMonth = displayMonth,
-                                days = monthDto.days,
-                                selectedDate = null,
-                                dayItems = emptyList(),
-                                isLoadingMonth = false,
-                                isLoadingDay = false,
-                            )
+                        _uiState.update { current ->
+                            val currentMonth =
+                                when (current) {
+                                    is CalendarUiState.Content -> current.displayMonth
+                                    is CalendarUiState.Error -> current.displayMonth
+                                    else -> null
+                                }
+                            if (currentMonth == null || currentMonth == displayMonth) {
+                                CalendarUiState.Content(
+                                    displayMonth = displayMonth,
+                                    days = monthDto.days,
+                                    selectedDate = null,
+                                    dayItems = emptyList(),
+                                    isLoadingMonth = false,
+                                    isLoadingDay = false,
+                                )
+                            } else {
+                                current
+                            }
+                        }
                     }.onFailure {
-                        _uiState.value = CalendarUiState.Error(displayMonth = displayMonth)
+                        _uiState.update { current ->
+                            val currentMonth =
+                                when (current) {
+                                    is CalendarUiState.Content -> current.displayMonth
+                                    is CalendarUiState.Error -> current.displayMonth
+                                    else -> null
+                                }
+                            if (currentMonth == null || currentMonth == displayMonth) {
+                                CalendarUiState.Error(displayMonth = displayMonth)
+                            } else {
+                                current
+                            }
+                        }
                     }
             }
         }
@@ -108,7 +131,7 @@ class CalendarViewModel
                 result
                     .onSuccess { dayDto ->
                         _uiState.update { current ->
-                            if (current is CalendarUiState.Content) {
+                            if (current is CalendarUiState.Content && current.selectedDate == date) {
                                 current.copy(dayItems = dayDto.items, isLoadingDay = false)
                             } else {
                                 current
@@ -116,7 +139,7 @@ class CalendarViewModel
                         }
                     }.onFailure {
                         _uiState.update { current ->
-                            if (current is CalendarUiState.Content) {
+                            if (current is CalendarUiState.Content && current.selectedDate == date) {
                                 current.copy(isLoadingDay = false)
                             } else {
                                 current

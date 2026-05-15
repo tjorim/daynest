@@ -37,8 +37,8 @@ class HomeViewModel
                             current
                         } else {
                             when (val c = current) {
-                                is HomeUiState.Content -> c.copy(summary = summary)
-                                else -> HomeUiState.Content(summary = summary)
+                                is HomeUiState.Content -> c.copy(summary = summary, isStale = false)
+                                else -> HomeUiState.Content(summary = summary, isStale = false)
                             }
                         }
                     }
@@ -58,6 +58,7 @@ class HomeViewModel
                                         dueToday = response.dueToday,
                                         upcoming = response.upcoming,
                                         planned = response.planned,
+                                        isStale = false,
                                     )
                                 else ->
                                     HomeUiState.Content(
@@ -150,7 +151,19 @@ class HomeViewModel
                 if (result.isSuccess) {
                     _uiState.update { current ->
                         if (current is HomeUiState.Content) {
-                            current.copy(planned = current.planned.filter { it.id != id })
+                            val deletedItem = current.planned.firstOrNull { it.id == id }
+                            val wasPending = deletedItem?.isDone == false
+                            current.copy(
+                                planned = current.planned.filter { it.id != id },
+                                summary =
+                                    if (wasPending) {
+                                        current.summary.copy(
+                                            plannedPendingCount = maxOf(0, current.summary.plannedPendingCount - 1),
+                                        )
+                                    } else {
+                                        current.summary
+                                    },
+                            )
                         } else {
                             current
                         }

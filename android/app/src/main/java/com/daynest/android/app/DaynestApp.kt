@@ -70,7 +70,7 @@ fun DaynestApp() {
                     onNavigate = navController::navigateTopLevel,
                     onSignedOut = {
                         navController.navigate(DaynestDestination.AUTH) {
-                            popUpTo(navController.graph.findStartDestination().id) { inclusive = true }
+                            popUpTo(DaynestDestination.HOME) { inclusive = true }
                             launchSingleTop = true
                         }
                     },

@@ -18,6 +18,7 @@ from daynest.services import (
     SERVICE_COMPLETE_TASK,
     SERVICE_MARK_MEDICATION_TAKEN,
     SERVICE_REFRESH,
+    SERVICE_SKIP_MEDICATION,
     SERVICE_SKIP_TASK,
     SERVICE_SNOOZE_TASK,
     async_setup_services,
@@ -73,6 +74,8 @@ class TestAsyncSetupServices:
         assert SERVICE_COMPLETE_TASK in hass._registered_services
         assert SERVICE_SNOOZE_TASK in hass._registered_services
         assert SERVICE_MARK_MEDICATION_TAKEN in hass._registered_services
+        assert SERVICE_SKIP_TASK in hass._registered_services
+        assert SERVICE_SKIP_MEDICATION in hass._registered_services
 
     async def test_unload_removes_all_services(self) -> None:
         hass = _make_hass()
@@ -82,6 +85,8 @@ class TestAsyncSetupServices:
         assert SERVICE_COMPLETE_TASK not in hass._registered_services
         assert SERVICE_SNOOZE_TASK not in hass._registered_services
         assert SERVICE_MARK_MEDICATION_TAKEN not in hass._registered_services
+        assert SERVICE_SKIP_TASK not in hass._registered_services
+        assert SERVICE_SKIP_MEDICATION not in hass._registered_services
 
 
 @pytest.mark.unit

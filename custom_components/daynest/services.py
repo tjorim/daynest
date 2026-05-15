@@ -27,10 +27,12 @@ SERVICE_SKIP_MEDICATION = "skip_medication"
 ATTR_CHORE_INSTANCE_ID = "chore_instance_id"
 ATTR_MEDICATION_DOSE_ID = "medication_dose_id"
 ATTR_DAYS = "days"
+ATTR_ENTRY_ID = "entry_id"
 
 SERVICE_COMPLETE_TASK_SCHEMA = vol.Schema(
     {
         vol.Required(ATTR_CHORE_INSTANCE_ID): vol.All(int, vol.Range(min=1)),
+        vol.Optional(ATTR_ENTRY_ID): str,
     }
 )
 
@@ -38,24 +40,28 @@ SERVICE_SNOOZE_TASK_SCHEMA = vol.Schema(
     {
         vol.Required(ATTR_CHORE_INSTANCE_ID): vol.All(int, vol.Range(min=1)),
         vol.Optional(ATTR_DAYS, default=1): vol.All(int, vol.Range(min=1, max=30)),
+        vol.Optional(ATTR_ENTRY_ID): str,
     }
 )
 
 SERVICE_MARK_MEDICATION_TAKEN_SCHEMA = vol.Schema(
     {
         vol.Required(ATTR_MEDICATION_DOSE_ID): vol.All(int, vol.Range(min=1)),
+        vol.Optional(ATTR_ENTRY_ID): str,
     }
 )
 
 SERVICE_SKIP_TASK_SCHEMA = vol.Schema(
     {
         vol.Required(ATTR_CHORE_INSTANCE_ID): vol.All(int, vol.Range(min=1)),
+        vol.Optional(ATTR_ENTRY_ID): str,
     }
 )
 
 SERVICE_SKIP_MEDICATION_SCHEMA = vol.Schema(
     {
         vol.Required(ATTR_MEDICATION_DOSE_ID): vol.All(int, vol.Range(min=1)),
+        vol.Optional(ATTR_ENTRY_ID): str,
     }
 )
 
@@ -65,11 +71,21 @@ def _get_entries(hass: HomeAssistant) -> list[DaynestConfigEntry]:
     return hass.config_entries.async_entries(DOMAIN)  # type: ignore[return-value]
 
 
-def _get_single_entry(hass: HomeAssistant, service_name: str) -> DaynestConfigEntry | None:
-    """Return the single loaded Daynest entry, or None if zero or multiple are loaded."""
+def _get_single_entry(
+    hass: HomeAssistant,
+    service_name: str,
+    entry_id: str | None = None,
+) -> DaynestConfigEntry | None:
+    """Return the matching entry, falling back to single-entry behaviour when entry_id is omitted."""
     entries = _get_entries(hass)
     if not entries:
         LOGGER.warning("daynest.%s called but no Daynest entries are loaded", service_name)
+        return None
+    if entry_id is not None:
+        for entry in entries:
+            if entry.entry_id == entry_id:
+                return entry
+        LOGGER.warning("daynest.%s: entry_id %s not found", service_name, entry_id)
         return None
     if len(entries) != 1:
         LOGGER.warning(
@@ -94,7 +110,7 @@ async def _handle_refresh(hass: HomeAssistant, call: ServiceCall) -> None:
 async def _handle_complete_task(hass: HomeAssistant, call: ServiceCall) -> None:
     """Mark a chore instance as complete."""
     chore_instance_id: int = call.data[ATTR_CHORE_INSTANCE_ID]
-    entry = _get_single_entry(hass, "complete_task")
+    entry = _get_single_entry(hass, "complete_task", call.data.get(ATTR_ENTRY_ID))
     if entry is None:
         return
     try:
@@ -116,7 +132,7 @@ async def _handle_snooze_task(hass: HomeAssistant, call: ServiceCall) -> None:
     """Reschedule a chore instance N days into the future."""
     chore_instance_id: int = call.data[ATTR_CHORE_INSTANCE_ID]
     days: int = call.data[ATTR_DAYS]
-    entry = _get_single_entry(hass, "snooze_task")
+    entry = _get_single_entry(hass, "snooze_task", call.data.get(ATTR_ENTRY_ID))
     if entry is None:
         return
     try:
@@ -137,7 +153,7 @@ async def _handle_snooze_task(hass: HomeAssistant, call: ServiceCall) -> None:
 async def _handle_mark_medication_taken(hass: HomeAssistant, call: ServiceCall) -> None:
     """Mark a medication dose as taken."""
     medication_dose_id: int = call.data[ATTR_MEDICATION_DOSE_ID]
-    entry = _get_single_entry(hass, "mark_medication_taken")
+    entry = _get_single_entry(hass, "mark_medication_taken", call.data.get(ATTR_ENTRY_ID))
     if entry is None:
         return
     try:
@@ -158,7 +174,7 @@ async def _handle_mark_medication_taken(hass: HomeAssistant, call: ServiceCall) 
 async def _handle_skip_task(hass: HomeAssistant, call: ServiceCall) -> None:
     """Skip a chore instance."""
     chore_instance_id: int = call.data[ATTR_CHORE_INSTANCE_ID]
-    entry = _get_single_entry(hass, "skip_task")
+    entry = _get_single_entry(hass, "skip_task", call.data.get(ATTR_ENTRY_ID))
     if entry is None:
         return
     try:
@@ -179,7 +195,7 @@ async def _handle_skip_task(hass: HomeAssistant, call: ServiceCall) -> None:
 async def _handle_skip_medication(hass: HomeAssistant, call: ServiceCall) -> None:
     """Skip a medication dose."""
     medication_dose_id: int = call.data[ATTR_MEDICATION_DOSE_ID]
-    entry = _get_single_entry(hass, "skip_medication")
+    entry = _get_single_entry(hass, "skip_medication", call.data.get(ATTR_ENTRY_ID))
     if entry is None:
         return
     try:
@@ -230,6 +246,7 @@ def async_unload_services(hass: HomeAssistant) -> None:
 __all__ = [
     "ATTR_CHORE_INSTANCE_ID",
     "ATTR_DAYS",
+    "ATTR_ENTRY_ID",
     "ATTR_MEDICATION_DOSE_ID",
     "SERVICE_COMPLETE_TASK",
     "SERVICE_MARK_MEDICATION_TAKEN",

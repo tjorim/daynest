@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -93,8 +94,14 @@ class SettingsViewModel
 
         private fun signOut() {
             viewModelScope.launch {
-                authRepository.signOut()
-                _uiState.value = SettingsUiState.SignedOut
+                try {
+                    authRepository.signOut()
+                    _uiState.value = SettingsUiState.SignedOut
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    // sign-out failed; leave state unchanged so the UI remains responsive
+                }
             }
         }
 

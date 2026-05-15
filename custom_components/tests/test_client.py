@@ -388,3 +388,14 @@ class TestDaynestApiClientWriteMethods:
         call_kwargs = session.post.call_args[1]
         assert call_kwargs["json"] == {"chore_instance_id": 8}
 
+    async def test_skip_medication_uses_medication_dose_id_payload(self) -> None:
+        response = _make_mock_response(200, VALID_ACTION_RESPONSE)
+        session = MagicMock(spec=aiohttp.ClientSession)
+        session.post = MagicMock(return_value=response)
+        client = DaynestApiClient(session=session, base_url="https://api.example", integration_key="key")
+
+        await client.async_skip_medication(medication_dose_id=9)
+
+        call_kwargs = session.post.call_args[1]
+        assert call_kwargs["json"] == {"medication_dose_id": 9}
+

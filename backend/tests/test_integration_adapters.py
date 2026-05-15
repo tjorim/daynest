@@ -236,6 +236,8 @@ def test_home_assistant_write_endpoints_require_ha_write_scope(
         ("/api/v1/integrations/home-assistant/actions/complete-task", {"chore_instance_id": 1}),
         ("/api/v1/integrations/home-assistant/actions/snooze-task", {"chore_instance_id": 1}),
         ("/api/v1/integrations/home-assistant/actions/mark-medication-taken", {"medication_dose_id": 1}),
+        ("/api/v1/integrations/home-assistant/actions/skip-task", {"chore_instance_id": 1}),
+        ("/api/v1/integrations/home-assistant/actions/skip-medication", {"medication_dose_id": 1}),
     ]:
         denied = client.post(path, json=payload, headers={"X-Integration-Key": read_only_key})
         assert denied.status_code == 403, f"Expected 403 for {path} with ha:read scope"

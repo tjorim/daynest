@@ -9,6 +9,7 @@ import com.daynest.android.data.today.TaskMutationDto
 import com.daynest.android.data.today.TodayActionsApi
 
 class StubTodayActionsApi : TodayActionsApi {
+    private var nextId = 1
     override suspend fun completeChore(id: Int): ChoreMutationDto = ChoreMutationDto(id, "completed")
 
     override suspend fun skipChore(id: Int): ChoreMutationDto = ChoreMutationDto(id, "skipped")
@@ -31,5 +32,5 @@ class StubTodayActionsApi : TodayActionsApi {
     override suspend fun deletePlannedItem(id: Int) = Unit
 
     override suspend fun createPlannedItem(request: PlannedItemCreateDto): PlannedTodayItemDto =
-        PlannedTodayItemDto(0, request.title, false)
+        PlannedTodayItemDto(nextId++, request.title, false)
 }

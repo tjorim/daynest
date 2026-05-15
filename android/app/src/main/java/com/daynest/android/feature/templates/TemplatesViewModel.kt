@@ -52,7 +52,12 @@ class TemplatesViewModel
                         TemplatesUiState.Content(
                             routines = routinesResult.getOrElse { emptyList() },
                             chores = choresResult.getOrElse { emptyList() },
-                            selectedTab = TemplateTab.Routines,
+                            selectedTab =
+                                if (routinesResult.isFailure && choresResult.isSuccess) {
+                                    TemplateTab.Chores
+                                } else {
+                                    TemplateTab.Routines
+                                },
                             createForm = null,
                         )
                 } else {

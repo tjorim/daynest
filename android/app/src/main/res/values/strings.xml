@@ -7,8 +7,6 @@
     <string name="home_error_generic">Unable to load today data.</string>
     <string name="home_stale_notice">Showing cached data.</string>
     <string name="home_all_caught_up">You\'re all caught up for today.</string>
-    <string name="home_items_remaining_label">%1$d item(s) remaining</string>
-
     <string name="auth_title">Sign in to Daynest</string>
     <string name="auth_email_label">Email</string>
     <string name="auth_password_label">Password</string>

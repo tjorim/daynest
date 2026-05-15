@@ -42,7 +42,7 @@ class MedicationViewModel
                 val plansResult = repository.listPlans()
                 val historyResult = repository.getHistory()
 
-                if (plansResult.isSuccess) {
+                if (plansResult.isSuccess && historyResult.isSuccess) {
                     _uiState.value =
                         MedicationUiState.Content(
                             plans = plansResult.getOrElse { emptyList() },

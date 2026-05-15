@@ -24,6 +24,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
@@ -142,7 +143,7 @@ private fun TodayContent(
                         if (state.summary.isCaughtUp) {
                             stringResource(id = R.string.home_all_caught_up)
                         } else {
-                            stringResource(id = R.string.home_items_remaining_label, state.summary.remainingCount)
+                            pluralStringResource(id = R.plurals.home_items_remaining, count = state.summary.remainingCount, state.summary.remainingCount)
                         },
                     style = MaterialTheme.typography.bodyLarge,
                 )

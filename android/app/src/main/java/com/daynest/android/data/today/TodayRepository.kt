@@ -30,7 +30,6 @@ class TodayRepository
         suspend fun refresh(): Result<Unit> =
             try {
                 val today = todayApi.getToday()
-                todayResponseFlow.value = today
                 val entity =
                     TodaySummaryEntity(
                         id = 0,
@@ -41,6 +40,7 @@ class TodayRepository
                         lastFetchedEpochMillis = System.currentTimeMillis(),
                     )
                 todaySummaryDao.upsert(entity)
+                todayResponseFlow.value = today
                 Result.success(Unit)
             } catch (e: CancellationException) {
                 throw e
