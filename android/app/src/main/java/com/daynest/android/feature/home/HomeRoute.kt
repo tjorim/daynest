@@ -143,7 +143,11 @@ private fun TodayContent(
                         if (state.summary.isCaughtUp) {
                             stringResource(id = R.string.home_all_caught_up)
                         } else {
-                            pluralStringResource(id = R.plurals.home_items_remaining, count = state.summary.remainingCount, state.summary.remainingCount)
+                            pluralStringResource(
+                                id = R.plurals.home_items_remaining,
+                                count = state.summary.remainingCount,
+                                state.summary.remainingCount,
+                            )
                         },
                     style = MaterialTheme.typography.bodyLarge,
                 )

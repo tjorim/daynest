@@ -175,4 +175,3 @@ private sealed interface FakeApiResponse {
         val error: Throwable,
     ) : FakeApiResponse
 }
-

@@ -92,6 +92,7 @@ class SettingsViewModel
             }
         }
 
+        @Suppress("TooGenericExceptionCaught", "SwallowedException")
         private fun signOut() {
             viewModelScope.launch {
                 try {
