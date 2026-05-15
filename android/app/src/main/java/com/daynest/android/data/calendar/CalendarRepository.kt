@@ -13,9 +13,7 @@ class CalendarRepository
         suspend fun getMonth(
             year: Int,
             month: Int,
-        ): Result<CalendarMonthDto> =
-            safeApiCall { calendarApi.getMonth(year, month) }
+        ): Result<CalendarMonthDto> = safeApiCall { calendarApi.getMonth(year, month) }
 
-        suspend fun getDay(date: String): Result<CalendarDayDto> =
-            safeApiCall { calendarApi.getDay(date) }
+        suspend fun getDay(date: String): Result<CalendarDayDto> = safeApiCall { calendarApi.getDay(date) }
     }

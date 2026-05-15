@@ -10,8 +10,7 @@ class TemplatesRepository
     constructor(
         private val templatesApi: TemplatesApi,
     ) {
-        suspend fun listRoutines(): Result<List<RoutineTemplateDto>> =
-            safeApiCall { templatesApi.listRoutines() }
+        suspend fun listRoutines(): Result<List<RoutineTemplateDto>> = safeApiCall { templatesApi.listRoutines() }
 
         suspend fun createRoutine(request: RoutineTemplateInputDto): Result<RoutineTemplateDto> =
             safeApiCall { templatesApi.createRoutine(request) }
@@ -22,8 +21,7 @@ class TemplatesRepository
                 Unit
             }
 
-        suspend fun listChores(): Result<List<ChoreTemplateDto>> =
-            safeApiCall { templatesApi.listChores() }
+        suspend fun listChores(): Result<List<ChoreTemplateDto>> = safeApiCall { templatesApi.listChores() }
 
         suspend fun createChore(request: ChoreTemplateInputDto): Result<ChoreTemplateDto> =
             safeApiCall { templatesApi.createChore(request) }

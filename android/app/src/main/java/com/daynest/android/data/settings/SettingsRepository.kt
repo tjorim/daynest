@@ -10,8 +10,7 @@ class SettingsRepository
     constructor(
         private val settingsApi: SettingsApi,
     ) {
-        suspend fun listClients(): Result<List<IntegrationClientDto>> =
-            safeApiCall { settingsApi.listClients() }
+        suspend fun listClients(): Result<List<IntegrationClientDto>> = safeApiCall { settingsApi.listClients() }
 
         suspend fun createClient(request: IntegrationClientInputDto): Result<IntegrationClientCreateResponseDto> =
             safeApiCall { settingsApi.createClient(request) }
