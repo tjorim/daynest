@@ -132,5 +132,7 @@ sealed interface SettingsUiEvent {
 
     data object DismissNewKeyDialog : SettingsUiEvent
 
-    data class CreateClient(val input: IntegrationClientInputDto) : SettingsUiEvent
+    data class CreateClient(
+        val input: IntegrationClientInputDto,
+    ) : SettingsUiEvent
 }

@@ -224,9 +224,10 @@ private fun MonthHeader(
     onPrevious: () -> Unit,
     onNext: () -> Unit,
 ) {
-    val monthName = remember(displayMonth) {
-        displayMonth.month.getDisplayName(TextStyle.FULL, Locale.getDefault())
-    }
+    val monthName =
+        remember(displayMonth) {
+            displayMonth.month.getDisplayName(TextStyle.FULL, Locale.getDefault())
+        }
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
@@ -236,11 +237,12 @@ private fun MonthHeader(
             Text(text = stringResource(id = R.string.calendar_prev_month))
         }
         Text(
-            text = stringResource(
-                id = R.string.calendar_month_year,
-                monthName,
-                displayMonth.year.toString(),
-            ),
+            text =
+                stringResource(
+                    id = R.string.calendar_month_year,
+                    monthName,
+                    displayMonth.year.toString(),
+                ),
             style = MaterialTheme.typography.titleLarge,
         )
         TextButton(onClick = onNext) {
@@ -262,12 +264,13 @@ private fun MonthGrid(
     val firstDayOfMonth = remember(displayMonth) { displayMonth.withDayOfMonth(1) }
     val daysInMonth = remember(displayMonth) { displayMonth.lengthOfMonth() }
     val firstWeekday = remember(firstDayOfMonth) { firstDayOfMonth.dayOfWeek.value % DAYS_IN_WEEK }
-    val dayLabels = remember {
-        (0 until DAYS_IN_WEEK).map { offset ->
-            val dayValue = (DayOfWeek.SUNDAY.value - 1 + offset) % DAYS_IN_WEEK + 1
-            DayOfWeek.of(dayValue).getDisplayName(TextStyle.SHORT, Locale.getDefault())
+    val dayLabels =
+        remember {
+            (0 until DAYS_IN_WEEK).map { offset ->
+                val dayValue = (DayOfWeek.SUNDAY.value - 1 + offset) % DAYS_IN_WEEK + 1
+                DayOfWeek.of(dayValue).getDisplayName(TextStyle.SHORT, Locale.getDefault())
+            }
         }
-    }
 
     Column {
         Row(modifier = Modifier.fillMaxWidth()) {

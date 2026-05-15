@@ -105,5 +105,7 @@ sealed interface MedicationUiEvent {
 
     data object DismissCreateForm : MedicationUiEvent
 
-    data class CreatePlanClicked(val input: MedicationPlanInputDto) : MedicationUiEvent
+    data class CreatePlanClicked(
+        val input: MedicationPlanInputDto,
+    ) : MedicationUiEvent
 }

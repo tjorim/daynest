@@ -106,6 +106,7 @@ private fun MedicationScreen(
 }
 
 @Composable
+@Suppress("LongMethod")
 private fun MedicationContent(
     state: MedicationUiState.Content,
     onEvent: (MedicationUiEvent) -> Unit,
@@ -263,6 +264,7 @@ private fun MedicationHistoryCard(item: MedicationHistoryItemDto) {
 }
 
 @Composable
+@Suppress("LongMethod")
 private fun CreateMedicationPlanDialog(
     onConfirm: (MedicationPlanInputDto) -> Unit,
     onDismiss: () -> Unit,

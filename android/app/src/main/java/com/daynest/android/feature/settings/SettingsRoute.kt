@@ -90,6 +90,7 @@ private fun SettingsScreen(
 }
 
 @Composable
+@Suppress("LongMethod")
 private fun SettingsContent(
     state: SettingsUiState.Content,
     onEvent: (SettingsUiEvent) -> Unit,

@@ -10,25 +10,39 @@ import retrofit2.http.Path
 
 interface TodayActionsApi {
     @POST("api/v1/chores/{id}/complete")
-    suspend fun completeChore(@Path("id") id: Int): ChoreMutationDto
+    suspend fun completeChore(
+        @Path("id") id: Int,
+    ): ChoreMutationDto
 
     @POST("api/v1/chores/{id}/skip")
-    suspend fun skipChore(@Path("id") id: Int): ChoreMutationDto
+    suspend fun skipChore(
+        @Path("id") id: Int,
+    ): ChoreMutationDto
 
     @POST("api/v1/tasks/{id}/complete")
-    suspend fun completeTask(@Path("id") id: Int): TaskMutationDto
+    suspend fun completeTask(
+        @Path("id") id: Int,
+    ): TaskMutationDto
 
     @POST("api/v1/tasks/{id}/skip")
-    suspend fun skipTask(@Path("id") id: Int): TaskMutationDto
+    suspend fun skipTask(
+        @Path("id") id: Int,
+    ): TaskMutationDto
 
     @POST("api/v1/tasks/{id}/start")
-    suspend fun startTask(@Path("id") id: Int): TaskMutationDto
+    suspend fun startTask(
+        @Path("id") id: Int,
+    ): TaskMutationDto
 
     @POST("api/v1/medication-doses/{id}/take")
-    suspend fun takeDose(@Path("id") id: Int): DoseMutationDto
+    suspend fun takeDose(
+        @Path("id") id: Int,
+    ): DoseMutationDto
 
     @POST("api/v1/medication-doses/{id}/skip")
-    suspend fun skipDose(@Path("id") id: Int): DoseMutationDto
+    suspend fun skipDose(
+        @Path("id") id: Int,
+    ): DoseMutationDto
 
     @PUT("api/v1/planned-items/{id}")
     suspend fun updatePlannedItem(
@@ -37,10 +51,14 @@ interface TodayActionsApi {
     ): PlannedTodayItemDto
 
     @DELETE("api/v1/planned-items/{id}")
-    suspend fun deletePlannedItem(@Path("id") id: Int)
+    suspend fun deletePlannedItem(
+        @Path("id") id: Int,
+    )
 
     @POST("api/v1/planned-items")
-    suspend fun createPlannedItem(@Body request: PlannedItemCreateDto): PlannedTodayItemDto
+    suspend fun createPlannedItem(
+        @Body request: PlannedItemCreateDto,
+    ): PlannedTodayItemDto
 }
 
 @Serializable

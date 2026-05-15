@@ -202,21 +202,38 @@ sealed interface HomeUiEvent {
 
     data object RefreshRequested : HomeUiEvent
 
-    data class CompleteChoreClicked(val choreInstanceId: Int) : HomeUiEvent
+    data class CompleteChoreClicked(
+        val choreInstanceId: Int,
+    ) : HomeUiEvent
 
-    data class SkipChoreClicked(val choreInstanceId: Int) : HomeUiEvent
+    data class SkipChoreClicked(
+        val choreInstanceId: Int,
+    ) : HomeUiEvent
 
-    data class CompleteTaskClicked(val taskInstanceId: Int) : HomeUiEvent
+    data class CompleteTaskClicked(
+        val taskInstanceId: Int,
+    ) : HomeUiEvent
 
-    data class SkipTaskClicked(val taskInstanceId: Int) : HomeUiEvent
+    data class SkipTaskClicked(
+        val taskInstanceId: Int,
+    ) : HomeUiEvent
 
-    data class TakeMedicationClicked(val doseInstanceId: Int) : HomeUiEvent
+    data class TakeMedicationClicked(
+        val doseInstanceId: Int,
+    ) : HomeUiEvent
 
-    data class SkipMedicationClicked(val doseInstanceId: Int) : HomeUiEvent
+    data class SkipMedicationClicked(
+        val doseInstanceId: Int,
+    ) : HomeUiEvent
 
-    data class MarkPlannedDoneClicked(val id: Int, val isDone: Boolean) : HomeUiEvent
+    data class MarkPlannedDoneClicked(
+        val id: Int,
+        val isDone: Boolean,
+    ) : HomeUiEvent
 
-    data class DeletePlannedClicked(val id: Int) : HomeUiEvent
+    data class DeletePlannedClicked(
+        val id: Int,
+    ) : HomeUiEvent
 }
 
 enum class HomeError {

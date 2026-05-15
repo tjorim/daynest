@@ -180,7 +180,9 @@ sealed interface CalendarUiState {
         val isLoadingDay: Boolean,
     ) : CalendarUiState
 
-    data class Error(val displayMonth: LocalDate) : CalendarUiState
+    data class Error(
+        val displayMonth: LocalDate,
+    ) : CalendarUiState
 }
 
 sealed interface CalendarUiEvent {
@@ -188,13 +190,21 @@ sealed interface CalendarUiEvent {
 
     data object NextMonthClicked : CalendarUiEvent
 
-    data class DaySelected(val date: String) : CalendarUiEvent
+    data class DaySelected(
+        val date: String,
+    ) : CalendarUiEvent
 
     data object DayDeselected : CalendarUiEvent
 
-    data class AddPlannedItem(val title: String, val date: String) : CalendarUiEvent
+    data class AddPlannedItem(
+        val title: String,
+        val date: String,
+    ) : CalendarUiEvent
 
-    data class DeletePlannedItem(val id: Int, val date: String) : CalendarUiEvent
+    data class DeletePlannedItem(
+        val id: Int,
+        val date: String,
+    ) : CalendarUiEvent
 
     data object RetryClicked : CalendarUiEvent
 }

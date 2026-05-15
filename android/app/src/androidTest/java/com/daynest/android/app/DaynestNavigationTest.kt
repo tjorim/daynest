@@ -251,29 +251,43 @@ private fun makeHomeViewModel(): HomeViewModel =
                     },
                 todayActionsApi =
                     object : TodayActionsApi {
-                        override suspend fun completeChore(id: Int): ChoreMutationDto =
-                            ChoreMutationDto(id, "completed")
+                        override suspend fun completeChore(id: Int): ChoreMutationDto = ChoreMutationDto(id, "completed")
+
                         override suspend fun skipChore(id: Int): ChoreMutationDto = ChoreMutationDto(id, "skipped")
+
                         override suspend fun completeTask(id: Int): TaskMutationDto = TaskMutationDto(id, "completed")
+
                         override suspend fun skipTask(id: Int): TaskMutationDto = TaskMutationDto(id, "skipped")
+
                         override suspend fun startTask(id: Int): TaskMutationDto = TaskMutationDto(id, "in_progress")
+
                         override suspend fun takeDose(id: Int): DoseMutationDto = DoseMutationDto(id, "taken")
+
                         override suspend fun skipDose(id: Int): DoseMutationDto = DoseMutationDto(id, "skipped")
+
                         override suspend fun updatePlannedItem(
                             id: Int,
                             request: PlannedItemUpdateDto,
                         ): PlannedTodayItemDto = PlannedTodayItemDto(id, request.title, request.isDone)
+
                         override suspend fun deletePlannedItem(id: Int) = Unit
-                        override suspend fun createPlannedItem(
-                            request: PlannedItemCreateDto,
-                        ): PlannedTodayItemDto = PlannedTodayItemDto(0, request.title, false)
+
+                        override suspend fun createPlannedItem(request: PlannedItemCreateDto): PlannedTodayItemDto =
+                            PlannedTodayItemDto(0, request.title, false)
                     },
                 todaySummaryDao =
                     object : TodaySummaryDao {
                         private val flow = MutableStateFlow<TodaySummaryEntity?>(null)
+
                         override fun observe(): Flow<TodaySummaryEntity?> = flow
-                        override suspend fun upsert(entity: TodaySummaryEntity) { flow.value = entity }
-                        override suspend fun clear() { flow.value = null }
+
+                        override suspend fun upsert(entity: TodaySummaryEntity) {
+                            flow.value = entity
+                        }
+
+                        override suspend fun clear() {
+                            flow.value = null
+                        }
                     },
             ),
     )
@@ -288,8 +302,7 @@ private class FakeNavAuthApi(
 
     override suspend fun restoreSession(): AuthSessionDto = restoreResult.getOrThrow()
 
-    override suspend fun refresh(request: RefreshRequestDto): AuthSessionDto =
-        throw UnsupportedOperationException("refresh not expected")
+    override suspend fun refresh(request: RefreshRequestDto): AuthSessionDto = throw UnsupportedOperationException("refresh not expected")
 }
 
 private class FakeNavTokenStorage(

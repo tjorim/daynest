@@ -154,7 +154,9 @@ sealed interface TemplatesUiState {
 sealed interface TemplatesUiEvent {
     data object RetryClicked : TemplatesUiEvent
 
-    data class TabSelected(val tab: TemplateTab) : TemplatesUiEvent
+    data class TabSelected(
+        val tab: TemplateTab,
+    ) : TemplatesUiEvent
 
     data object ShowCreateRoutineForm : TemplatesUiEvent
 
@@ -162,11 +164,19 @@ sealed interface TemplatesUiEvent {
 
     data object DismissCreateForm : TemplatesUiEvent
 
-    data class CreateRoutine(val input: RoutineTemplateInputDto) : TemplatesUiEvent
+    data class CreateRoutine(
+        val input: RoutineTemplateInputDto,
+    ) : TemplatesUiEvent
 
-    data class CreateChore(val input: ChoreTemplateInputDto) : TemplatesUiEvent
+    data class CreateChore(
+        val input: ChoreTemplateInputDto,
+    ) : TemplatesUiEvent
 
-    data class DeleteRoutine(val id: Int) : TemplatesUiEvent
+    data class DeleteRoutine(
+        val id: Int,
+    ) : TemplatesUiEvent
 
-    data class DeleteChore(val id: Int) : TemplatesUiEvent
+    data class DeleteChore(
+        val id: Int,
+    ) : TemplatesUiEvent
 }
