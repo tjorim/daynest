@@ -251,16 +251,22 @@ private fun makeHomeViewModel(): HomeViewModel =
                     },
                 todayActionsApi =
                     object : TodayActionsApi {
-                        override suspend fun completeChore(id: Int): ChoreMutationDto = ChoreMutationDto(id, "completed")
+                        override suspend fun completeChore(id: Int): ChoreMutationDto =
+                            ChoreMutationDto(id, "completed")
                         override suspend fun skipChore(id: Int): ChoreMutationDto = ChoreMutationDto(id, "skipped")
                         override suspend fun completeTask(id: Int): TaskMutationDto = TaskMutationDto(id, "completed")
                         override suspend fun skipTask(id: Int): TaskMutationDto = TaskMutationDto(id, "skipped")
                         override suspend fun startTask(id: Int): TaskMutationDto = TaskMutationDto(id, "in_progress")
                         override suspend fun takeDose(id: Int): DoseMutationDto = DoseMutationDto(id, "taken")
                         override suspend fun skipDose(id: Int): DoseMutationDto = DoseMutationDto(id, "skipped")
-                        override suspend fun updatePlannedItem(id: Int, request: PlannedItemUpdateDto): PlannedTodayItemDto = PlannedTodayItemDto(id, request.title, request.isDone)
+                        override suspend fun updatePlannedItem(
+                            id: Int,
+                            request: PlannedItemUpdateDto,
+                        ): PlannedTodayItemDto = PlannedTodayItemDto(id, request.title, request.isDone)
                         override suspend fun deletePlannedItem(id: Int) = Unit
-                        override suspend fun createPlannedItem(request: PlannedItemCreateDto): PlannedTodayItemDto = PlannedTodayItemDto(0, request.title, false)
+                        override suspend fun createPlannedItem(
+                            request: PlannedItemCreateDto,
+                        ): PlannedTodayItemDto = PlannedTodayItemDto(0, request.title, false)
                     },
                 todaySummaryDao =
                     object : TodaySummaryDao {
@@ -273,8 +279,10 @@ private fun makeHomeViewModel(): HomeViewModel =
     )
 
 private class FakeNavAuthApi(
-    private val signInResult: Result<AuthSessionDto> = Result.failure(UnsupportedOperationException("signIn not expected")),
-    private val restoreResult: Result<AuthSessionDto> = Result.failure(UnsupportedOperationException("restoreSession not expected")),
+    private val signInResult: Result<AuthSessionDto> =
+        Result.failure(UnsupportedOperationException("signIn not expected")),
+    private val restoreResult: Result<AuthSessionDto> =
+        Result.failure(UnsupportedOperationException("restoreSession not expected")),
 ) : AuthApi {
     override suspend fun signIn(request: SignInRequestDto): AuthSessionDto = signInResult.getOrThrow()
 

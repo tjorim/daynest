@@ -36,7 +36,11 @@ class TodayRepositoryTest {
                         ),
                     )
                 }
-            val repository = TodayRepository(todayApi = api, todayActionsApi = StubTodayActionsApi(), todaySummaryDao = dao)
+            val repository = TodayRepository(
+                todayApi = api,
+                todayActionsApi = StubTodayActionsApi(),
+                todaySummaryDao = dao,
+            )
 
             repository.observeTodaySummary().test {
                 assertNull(awaitItem())
@@ -76,7 +80,11 @@ class TodayRepositoryTest {
                 FakeTodayApi().apply {
                     enqueueError(RuntimeException("network unavailable"))
                 }
-            val repository = TodayRepository(todayApi = api, todayActionsApi = StubTodayActionsApi(), todaySummaryDao = dao)
+            val repository = TodayRepository(
+                todayApi = api,
+                todayActionsApi = StubTodayActionsApi(),
+                todaySummaryDao = dao,
+            )
 
             repository.observeTodaySummary().test {
                 val cached = awaitItem()
@@ -99,7 +107,11 @@ class TodayRepositoryTest {
                 FakeTodayApi().apply {
                     enqueueError(RuntimeException("no connection"))
                 }
-            val repository = TodayRepository(todayApi = api, todayActionsApi = StubTodayActionsApi(), todaySummaryDao = dao)
+            val repository = TodayRepository(
+                todayApi = api,
+                todayActionsApi = StubTodayActionsApi(),
+                todaySummaryDao = dao,
+            )
 
             repository.observeTodaySummary().test {
                 assertNull(awaitItem())

@@ -111,7 +111,11 @@ class HomeViewModelTest {
                     enqueueError(IllegalStateException("initial load failure"))
                     enqueueSuccess(todayResponse(), gate = loadGate)
                 }
-            val repository = TodayRepository(todayApi = api, todayActionsApi = StubTodayActionsApi(), todaySummaryDao = FakeTodaySummaryDao())
+            val repository = TodayRepository(
+                todayApi = api,
+                todayActionsApi = StubTodayActionsApi(),
+                todaySummaryDao = FakeTodaySummaryDao(),
+            )
             val viewModel = HomeViewModel(repository = repository)
 
             advanceUntilIdle()
@@ -137,7 +141,13 @@ class HomeViewModelTest {
                     enqueueSuccess(todayResponse())
                     enqueueError(IllegalStateException("network gone"))
                 }
-            val viewModel = HomeViewModel(repository = TodayRepository(todayApi = api, todayActionsApi = StubTodayActionsApi(), todaySummaryDao = dao))
+            val viewModel = HomeViewModel(
+                repository = TodayRepository(
+                    todayApi = api,
+                    todayActionsApi = StubTodayActionsApi(),
+                    todaySummaryDao = dao,
+                ),
+            )
 
             advanceUntilIdle()
             assertTrue(viewModel.uiState.value is HomeUiState.Content)

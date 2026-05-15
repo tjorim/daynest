@@ -54,7 +54,12 @@ class CalendarViewModel
 
         private fun retryCurrentMonth() {
             val current = _uiState.value
-            val month = if (current is CalendarUiState.Content) current.displayMonth else LocalDate.of(today.year, today.monthValue, 1)
+            val month =
+                if (current is CalendarUiState.Content) {
+                    current.displayMonth
+                } else {
+                    LocalDate.of(today.year, today.monthValue, 1)
+                }
             loadMonth(month.year, month.monthValue)
         }
 
