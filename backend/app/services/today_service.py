@@ -6,7 +6,7 @@ from typing import cast
 
 from fastapi import HTTPException, status
 
-from app.core.config import AppSettings, settings
+from app.core.config import AppSettings
 from app.core.enums import ChoreStatus, MedicationDoseStatus, TaskStatus
 from app.models.chore_instance import ChoreInstance
 from app.models.medication_dose_instance import MedicationDoseInstance
@@ -48,7 +48,7 @@ class _TodayData:
 class TodayService:
     """Read/write service for today's dashboard."""
 
-    def __init__(self, repository: TodayRepository, app_settings: AppSettings = settings):
+    def __init__(self, repository: TodayRepository, app_settings: AppSettings):
         self.repository = repository
         self._upcoming_horizon_days = app_settings.upcoming_horizon_days
         self._medication_missed_grace_minutes = app_settings.medication_missed_grace_minutes
