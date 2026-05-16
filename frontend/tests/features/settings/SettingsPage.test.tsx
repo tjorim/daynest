@@ -9,16 +9,31 @@ const apiMock = vi.hoisted(() => ({
   listIntegrationClients: vi.fn(),
 }));
 
+const pwaMock = vi.hoisted(() => ({
+  getDeferredInstallPrompt: vi.fn(),
+  promptToInstallApp: vi.fn(),
+  subscribeInstallPrompt: vi.fn(),
+}));
+
 vi.mock("@/lib/api/today", () => ({
   createIntegrationClient: apiMock.createIntegrationClient,
   isRetryableApiError: () => false,
   listIntegrationClients: apiMock.listIntegrationClients,
 }));
 
+vi.mock("@/app/pwa/installPrompt", () => ({
+  getDeferredInstallPrompt: pwaMock.getDeferredInstallPrompt,
+  promptToInstallApp: pwaMock.promptToInstallApp,
+  subscribeInstallPrompt: pwaMock.subscribeInstallPrompt,
+}));
+
 describe("SettingsPage", () => {
   beforeEach(() => {
     apiMock.createIntegrationClient.mockReset();
     apiMock.listIntegrationClients.mockReset();
+    pwaMock.getDeferredInstallPrompt.mockReset();
+    pwaMock.promptToInstallApp.mockReset();
+    pwaMock.subscribeInstallPrompt.mockReset();
     apiMock.listIntegrationClients.mockResolvedValue([]);
     apiMock.createIntegrationClient.mockResolvedValue({
       id: 1,
@@ -28,6 +43,9 @@ describe("SettingsPage", () => {
       is_active: true,
       api_key: "daynest_test_key",
     });
+    pwaMock.getDeferredInstallPrompt.mockReturnValue(null);
+    pwaMock.promptToInstallApp.mockResolvedValue(false);
+    pwaMock.subscribeInstallPrompt.mockImplementation(() => () => undefined);
   });
 
   it("shows Home Assistant setup details and the action scope", async () => {
@@ -55,5 +73,48 @@ describe("SettingsPage", () => {
       });
     });
     expect(await screen.findByText("daynest_test_key")).toBeInTheDocument();
+  });
+
+  it("shows the install button when app install is available and prompts on click", async () => {
+    const user = userEvent.setup();
+    pwaMock.getDeferredInstallPrompt.mockReturnValue({
+      prompt: vi.fn(),
+      userChoice: Promise.resolve({ outcome: "dismissed", platform: "web" }),
+    });
+    pwaMock.promptToInstallApp.mockResolvedValue(true);
+
+    render(<SettingsPage />);
+
+    const installButton = await screen.findByRole("button", { name: /install app/i });
+    await user.click(installButton);
+
+    await waitFor(() => {
+      expect(pwaMock.promptToInstallApp).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it("re-enables install button when prompting fails", async () => {
+    const user = userEvent.setup();
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    pwaMock.getDeferredInstallPrompt.mockReturnValue({
+      prompt: vi.fn(),
+      userChoice: Promise.resolve({ outcome: "dismissed", platform: "web" }),
+    });
+    pwaMock.promptToInstallApp.mockRejectedValue(new Error("prompt failed"));
+
+    try {
+      render(<SettingsPage />);
+
+      const installButton = await screen.findByRole("button", { name: /install app/i });
+      await user.click(installButton);
+
+      await waitFor(() => {
+        expect(installButton).toBeEnabled();
+        expect(pwaMock.promptToInstallApp).toHaveBeenCalledTimes(1);
+        expect(consoleErrorSpy).toHaveBeenCalled();
+      });
+    } finally {
+      consoleErrorSpy.mockRestore();
+    }
   });
 });

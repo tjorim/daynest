@@ -4,6 +4,10 @@ import { BrowserRouter, NavLink } from "react-router-dom";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "./app.css";
 
+import {
+  setDeferredInstallPrompt,
+  type BeforeInstallPromptEvent,
+} from "@/app/pwa/installPrompt";
 import { AppRouter } from "@/app/router/AppRouter";
 import { AuthProvider, useAuth } from "@/app/providers/AuthProvider";
 
@@ -92,9 +96,22 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
 );
 
 if ("serviceWorker" in navigator && import.meta.env.PROD) {
+  const appVersion = __APP_VERSION__;
+
+  window.addEventListener("beforeinstallprompt", (event) => {
+    event.preventDefault();
+    setDeferredInstallPrompt(event as BeforeInstallPromptEvent);
+  });
+
+  window.addEventListener("appinstalled", () => {
+    setDeferredInstallPrompt(null);
+  });
+
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/sw.js").catch((err) => {
-      console.error("Service worker registration failed:", err);
-    });
+    navigator.serviceWorker
+      .register(`/sw.js?appVersion=${encodeURIComponent(appVersion)}`)
+      .catch((err) => {
+        console.error("Service worker registration failed:", err);
+      });
   });
 }
