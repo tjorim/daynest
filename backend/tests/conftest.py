@@ -1,4 +1,5 @@
 from collections.abc import Generator
+from contextlib import asynccontextmanager
 
 import pytest
 from fastapi.testclient import TestClient
@@ -9,6 +10,11 @@ from sqlalchemy.pool import StaticPool
 from app.db.base import Base
 from app.db.session import get_db
 from app.main import app
+
+
+@asynccontextmanager
+async def _skip_lifespan(app):
+    yield
 
 
 @pytest.fixture()
@@ -37,7 +43,11 @@ def client(db_session: Session) -> Generator[TestClient, None, None]:
 
     app.dependency_overrides[get_db] = override_get_db
 
-    with TestClient(app, base_url="http://localhost") as test_client:
-        yield test_client
-
-    app.dependency_overrides.pop(get_db, None)
+    original_lifespan_context = app.router.lifespan_context
+    app.router.lifespan_context = _skip_lifespan
+    try:
+        with TestClient(app, base_url="http://localhost") as test_client:
+            yield test_client
+    finally:
+        app.router.lifespan_context = original_lifespan_context
+        app.dependency_overrides.pop(get_db, None)

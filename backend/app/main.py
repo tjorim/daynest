@@ -1,3 +1,5 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
@@ -16,7 +18,19 @@ from app.mcp_server import create_mcp_server
 configure_logging()
 configure_error_tracking()
 
-app = FastAPI(title=settings.app_name, version=settings.version)
+_mcp = create_mcp_server() if settings.feature_mcp else None
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    if _mcp is not None:
+        async with _mcp.session_manager.run():
+            yield
+    else:
+        yield
+
+
+app = FastAPI(title=settings.app_name, version=settings.version, lifespan=lifespan)
 app.middleware("http")(observability_middleware)
 
 if settings.trusted_hosts:
@@ -39,8 +53,8 @@ app.include_router(home_assistant_router, prefix=settings.api_prefix)
 app.include_router(today_router, prefix=settings.api_prefix)
 app.include_router(medications_router, prefix=settings.api_prefix)
 app.include_router(templates_router, prefix=settings.api_prefix)
-if settings.feature_mcp:
-    app.mount("/mcp", create_mcp_server().streamable_http_app())
+if _mcp is not None:
+    app.mount("/mcp", _mcp.streamable_http_app())
 
 
 @app.get("/")
