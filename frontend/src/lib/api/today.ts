@@ -85,6 +85,25 @@ export interface PlannedItemUpdateInput extends PlannedItemInput {
   is_done: boolean;
 }
 
+export type StatusTone = "primary" | "secondary" | "warning" | "success" | "info" | "danger";
+
+export interface SectionItem {
+  id: string;
+  title: string;
+  subtitle?: string;
+  instructions?: string;
+  statusLabel?: string;
+  statusTone?: StatusTone;
+  taskInstanceId?: number;
+  taskStatus?: TaskStatus;
+  choreInstanceId?: number;
+  choreStatus?: string;
+  scheduledDate?: string;
+  medicationDoseInstanceId?: number;
+  medicationStatus?: string;
+  plannedItem?: PlannedTodayItem;
+}
+
 export interface PlannedItemBackupFile {
   exported_at: string;
   source: "daynest";
