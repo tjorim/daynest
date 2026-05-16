@@ -148,14 +148,7 @@ const medicationTodayItemSchema = z.object({
   status: medicationDoseStatusSchema,
 });
 
-const medicationHistoryItemSchema = z.object({
-  medication_dose_instance_id: z.number(),
-  medication_plan_id: z.number(),
-  name: z.string(),
-  instructions: z.string(),
-  scheduled_at: z.string(),
-  status: medicationDoseStatusSchema,
-});
+const medicationHistoryItemSchema = medicationTodayItemSchema;
 
 const routineTodayItemSchema = z.object({
   task_instance_id: z.number(),
@@ -212,22 +205,22 @@ const unifiedDayItemSchema = z.object({
   module_key: plannedItemModuleKeySchema.nullable(),
 });
 
+const calendarMonthDaySummarySchema = z.object({
+  date: z.string(),
+  total: z.number(),
+  routines: z.number(),
+  chores: z.number(),
+  medications: z.number(),
+  planned: z.number(),
+});
+
 export const CalendarMonthResponseSchema = z.object({
   year: z.number(),
   month: z.number(),
-  days: z.array(
-    z.object({
-      date: z.string(),
-      total: z.number(),
-      routines: z.number(),
-      chores: z.number(),
-      medications: z.number(),
-      planned: z.number(),
-    }),
-  ),
+  days: z.array(calendarMonthDaySummarySchema),
 });
 
-export type CalendarMonthDaySummary = z.infer<typeof CalendarMonthResponseSchema>["days"][number];
+export type CalendarMonthDaySummary = z.infer<typeof calendarMonthDaySummarySchema>;
 export type CalendarMonthPayload = z.infer<typeof CalendarMonthResponseSchema>;
 
 export const TodayResponseSchema = z.object({
