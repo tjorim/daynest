@@ -302,6 +302,10 @@ class DaynestApiClient:
         if self._integration_key:
             headers["X-Integration-Key"] = self._integration_key
 
+        if method.lower() not in {"post", "put", "delete"}:
+            msg = f"Unsupported write method: {method}"
+            raise ValueError(msg)
+
         request = getattr(self._session, method.lower())
         request_kwargs: dict[str, Any] = {
             "headers": headers,
