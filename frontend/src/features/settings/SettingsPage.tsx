@@ -1,5 +1,10 @@
 import { useEffect, useState } from "react";
 import {
+  getDeferredInstallPrompt,
+  promptToInstallApp,
+  subscribeInstallPrompt,
+} from "@/app/pwa/installPrompt";
+import {
   createIntegrationClient,
   isRetryableApiError,
   listIntegrationClients,
@@ -73,6 +78,8 @@ export function SettingsPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [copyStatus, setCopyStatus] = useState<string | null>(null);
+  const [isInstalling, setIsInstalling] = useState(false);
+  const [canInstallApp, setCanInstallApp] = useState(() => Boolean(getDeferredInstallPrompt()));
 
   const [name, setName] = useState("Home Assistant");
   const [rateLimit, setRateLimit] = useState("120");
@@ -106,6 +113,8 @@ export function SettingsPage() {
     void loadClients(controller.signal);
     return () => controller.abort();
   }, []);
+
+  useEffect(() => subscribeInstallPrompt(() => setCanInstallApp(Boolean(getDeferredInstallPrompt()))), []);
 
   const toggleScope = (scope: string) => {
     setSelectedScopes((current) =>
@@ -173,18 +182,39 @@ export function SettingsPage() {
     }
   };
 
+  const onInstallApp = async () => {
+    setIsInstalling(true);
+    try {
+      await promptToInstallApp();
+    } finally {
+      setIsInstalling(false);
+    }
+  };
+
   return (
     <section>
       <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2 mb-2">
         <h2 className="h4 mb-0">Settings</h2>
-        <button
-          type="button"
-          className="btn btn-outline-primary btn-sm"
-          disabled={loading}
-          onClick={() => void loadClients()}
-        >
-          Refresh
-        </button>
+        <div className="d-flex gap-2 align-items-center flex-wrap">
+          {canInstallApp ? (
+            <button
+              type="button"
+              className="btn btn-primary btn-sm"
+              disabled={isInstalling}
+              onClick={() => void onInstallApp()}
+            >
+              Install app
+            </button>
+          ) : null}
+          <button
+            type="button"
+            className="btn btn-outline-primary btn-sm"
+            disabled={loading}
+            onClick={() => void loadClients()}
+          >
+            Refresh
+          </button>
+        </div>
       </div>
       <p className="text-muted mb-3">
         Configure integration clients for Home Assistant and MCP consumers. API keys are shown only
