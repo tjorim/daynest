@@ -49,21 +49,91 @@ describe("useTodayActions", () => {
     todayApiMock.updatePlannedItem.mockReset().mockResolvedValue({});
   });
 
-  it("runs key mutation handlers and refreshes by default", async () => {
+  it.each([
+    {
+      label: "startRoutineTask",
+      call: (actions: ReturnType<typeof useTodayActions>) => actions.startRoutineTask(31),
+      verify: () => expect(todayApiMock.startRoutineTask).toHaveBeenCalledWith(31),
+    },
+    {
+      label: "completeRoutineTask",
+      call: (actions: ReturnType<typeof useTodayActions>) => actions.completeRoutineTask(32),
+      verify: () => expect(todayApiMock.completeRoutineTask).toHaveBeenCalledWith(32),
+    },
+    {
+      label: "skipRoutineTask",
+      call: (actions: ReturnType<typeof useTodayActions>) => actions.skipRoutineTask(33),
+      verify: () => expect(todayApiMock.skipRoutineTask).toHaveBeenCalledWith(33),
+    },
+    {
+      label: "completeChore",
+      call: (actions: ReturnType<typeof useTodayActions>) => actions.completeChore(11),
+      verify: () => expect(todayApiMock.completeChore).toHaveBeenCalledWith(11),
+    },
+    {
+      label: "skipChore",
+      call: (actions: ReturnType<typeof useTodayActions>) => actions.skipChore(12),
+      verify: () => expect(todayApiMock.skipChore).toHaveBeenCalledWith(12),
+    },
+    {
+      label: "takeMedicationDose",
+      call: (actions: ReturnType<typeof useTodayActions>) => actions.takeMedicationDose(14),
+      verify: () => expect(todayApiMock.takeMedicationDose).toHaveBeenCalledWith(14),
+    },
+    {
+      label: "skipMedicationDose",
+      call: (actions: ReturnType<typeof useTodayActions>) => actions.skipMedicationDose(16),
+      verify: () => expect(todayApiMock.skipMedicationDose).toHaveBeenCalledWith(16),
+    },
+    {
+      label: "deletePlannedItem",
+      call: (actions: ReturnType<typeof useTodayActions>) => actions.deletePlannedItem(15),
+      verify: () => expect(todayApiMock.deletePlannedItem).toHaveBeenCalledWith(15),
+    },
+  ])("runs $label and refreshes by default", async ({ call, verify }) => {
     const onRefresh = vi.fn().mockResolvedValue(undefined);
     const { result } = renderHook(() => useTodayActions(onRefresh));
 
     await act(async () => {
-      await result.current.completeChore(11);
-      await result.current.skipChore(12);
+      await call(result.current);
+    });
+
+    verify();
+    expect(onRefresh).toHaveBeenCalledTimes(1);
+  });
+
+  it("reschedules chores by one day and refreshes by default", async () => {
+    const onRefresh = vi.fn().mockResolvedValue(undefined);
+    const { result } = renderHook(() => useTodayActions(onRefresh));
+
+    await act(async () => {
       await result.current.rescheduleChoreByOneDay(13, "2026-05-16");
-      await result.current.startRoutineTask(31);
-      await result.current.completeRoutineTask(32);
-      await result.current.skipRoutineTask(33);
-      await result.current.takeMedicationDose(14);
-      await result.current.skipMedicationDose(16);
-      await result.current.deletePlannedItem(15);
+    });
+
+    expect(todayApiMock.rescheduleChore).toHaveBeenCalledWith(13, "2026-05-17");
+    expect(onRefresh).toHaveBeenCalledTimes(1);
+  });
+
+  it("creates planned items via quick add and refreshes by default", async () => {
+    const onRefresh = vi.fn().mockResolvedValue(undefined);
+    const { result } = renderHook(() => useTodayActions(onRefresh));
+
+    await act(async () => {
       await result.current.createPlannedItem("Quick add task", "2026-05-17");
+    });
+
+    expect(todayApiMock.createPlannedItem).toHaveBeenCalledWith({
+      title: "Quick add task",
+      planned_for: "2026-05-17",
+    });
+    expect(onRefresh).toHaveBeenCalledTimes(1);
+  });
+
+  it("toggles planned items with full update payload and refreshes by default", async () => {
+    const onRefresh = vi.fn().mockResolvedValue(undefined);
+    const { result } = renderHook(() => useTodayActions(onRefresh));
+
+    await act(async () => {
       await result.current.togglePlannedItem(
         {
           id: 22,
@@ -80,19 +150,6 @@ describe("useTodayActions", () => {
       );
     });
 
-    expect(todayApiMock.startRoutineTask).toHaveBeenCalledWith(31);
-    expect(todayApiMock.completeRoutineTask).toHaveBeenCalledWith(32);
-    expect(todayApiMock.skipRoutineTask).toHaveBeenCalledWith(33);
-    expect(todayApiMock.completeChore).toHaveBeenCalledWith(11);
-    expect(todayApiMock.skipChore).toHaveBeenCalledWith(12);
-    expect(todayApiMock.rescheduleChore).toHaveBeenCalledWith(13, "2026-05-17");
-    expect(todayApiMock.takeMedicationDose).toHaveBeenCalledWith(14);
-    expect(todayApiMock.skipMedicationDose).toHaveBeenCalledWith(16);
-    expect(todayApiMock.deletePlannedItem).toHaveBeenCalledWith(15);
-    expect(todayApiMock.createPlannedItem).toHaveBeenCalledWith({
-      title: "Quick add task",
-      planned_for: "2026-05-17",
-    });
     expect(todayApiMock.updatePlannedItem).toHaveBeenCalledWith(22, {
       title: "Order groceries",
       planned_for: "2026-05-17",
@@ -103,7 +160,7 @@ describe("useTodayActions", () => {
       linked_ref: "abc",
       is_done: true,
     });
-    expect(onRefresh).toHaveBeenCalledTimes(11);
+    expect(onRefresh).toHaveBeenCalledTimes(1);
   });
 
   it("supports skipping refresh and surfaces action errors", async () => {
