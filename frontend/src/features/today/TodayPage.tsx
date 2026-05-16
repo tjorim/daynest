@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { fetchToday, isRetryableApiError, type TodayPayload } from "@/lib/api/today";
 import { PlannedSection } from "@/features/today/PlannedSection";
 import {
@@ -25,7 +25,7 @@ export function TodayPage() {
   const [error, setError] = useState<string | null>(null);
   const [canRetry, setCanRetry] = useState(false);
 
-  const loadToday = async (signal?: AbortSignal) => {
+  const loadToday = useCallback(async (signal?: AbortSignal) => {
     setIsLoading(true);
     setError(null);
     setCanRetry(false);
@@ -44,7 +44,7 @@ export function TodayPage() {
         setIsLoading(false);
       }
     }
-  };
+  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -52,7 +52,7 @@ export function TodayPage() {
     return () => {
       controller.abort();
     };
-  }, []);
+  }, [loadToday]);
 
   const actions = useTodayActions(loadToday);
   const hasAnyItems = today

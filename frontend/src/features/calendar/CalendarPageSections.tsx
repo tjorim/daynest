@@ -1,4 +1,4 @@
-import type { ChangeEvent, RefObject } from "react";
+import { useMemo, type ChangeEvent, type RefObject } from "react";
 import type { Dayjs } from "dayjs";
 import { capitalize, formatDate, toIsoDate } from "@/lib/dateUtils";
 import { type CalendarDayPayload, type CalendarMonthDaySummary, type PlannedItemModuleKey, type PlannedTodayItem } from "@/lib/api/today";
@@ -77,7 +77,7 @@ export function CalendarMonthGrid({
   const daysInMonth = monthStart.daysInMonth();
   const leadingEmptyDays = (monthStart.day() + 6) % 7;
   const totalCalendarCells = Math.ceil((leadingEmptyDays + daysInMonth) / 7) * 7;
-  const itemsByDate = new Map(monthItems.map((item) => [item.date, item]));
+  const itemsByDate = useMemo(() => new Map(monthItems.map((item) => [item.date, item])), [monthItems]);
 
   return (
     <div className="card">
