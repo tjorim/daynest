@@ -6,6 +6,7 @@ from typing import cast
 
 from fastapi import HTTPException, status
 
+from app.core.config import AppSettings, settings
 from app.core.enums import ChoreStatus, MedicationDoseStatus, TaskStatus
 from app.models.chore_instance import ChoreInstance
 from app.models.medication_dose_instance import MedicationDoseInstance
@@ -47,23 +48,22 @@ class _TodayData:
 class TodayService:
     """Read/write service for today's dashboard."""
 
-    UPCOMING_HORIZON_DAYS = 7
-    MEDICATION_MISSED_GRACE_MINUTES = 30
-
-    def __init__(self, repository: TodayRepository):
+    def __init__(self, repository: TodayRepository, app_settings: AppSettings = settings):
         self.repository = repository
+        self._upcoming_horizon_days = app_settings.upcoming_horizon_days
+        self._medication_missed_grace_minutes = app_settings.medication_missed_grace_minutes
 
     def _fetch_day_data(self, user_id: int, for_date: date) -> _TodayData:
         self.repository.ensure_chore_instances_generated(
             user_id=user_id,
-            through_date=for_date + timedelta(days=self.UPCOMING_HORIZON_DAYS),
+            through_date=for_date + timedelta(days=self._upcoming_horizon_days),
         )
         self.repository.ensure_task_instances_generated(user_id=user_id, through_date=for_date)
         self.repository.ensure_medication_dose_instances_generated(user_id=user_id, through_date=for_date)
         self.repository.mark_due_medications_missed(
             user_id=user_id,
             now=self.repository.utcnow(),
-            grace_minutes=self.MEDICATION_MISSED_GRACE_MINUTES,
+            grace_minutes=self._medication_missed_grace_minutes,
         )
         return _TodayData(
             overdue=self.repository.get_overdue_chores(user_id=user_id, for_date=for_date),
@@ -110,7 +110,7 @@ class TodayService:
     def get_today(self, user_id: int, for_date: date) -> TodayResponse:
         self.repository.ensure_chore_instances_generated(
             user_id=user_id,
-            through_date=for_date + timedelta(days=self.UPCOMING_HORIZON_DAYS),
+            through_date=for_date + timedelta(days=self._upcoming_horizon_days),
         )
         self.repository.ensure_task_instances_generated(user_id=user_id, through_date=for_date)
         self.repository.ensure_medication_dose_instances_generated(
@@ -120,7 +120,7 @@ class TodayService:
         self.repository.mark_due_medications_missed(
             user_id=user_id,
             now=self.repository.utcnow(),
-            grace_minutes=self.MEDICATION_MISSED_GRACE_MINUTES,
+            grace_minutes=self._medication_missed_grace_minutes,
         )
 
         today_medication = self.repository.get_today_medication(user_id=user_id, for_date=for_date)
@@ -131,7 +131,7 @@ class TodayService:
         upcoming_chores = self.repository.get_upcoming_chores(
             user_id=user_id,
             for_date=for_date,
-            horizon_days=self.UPCOMING_HORIZON_DAYS,
+            horizon_days=self._upcoming_horizon_days,
         )
         planned = self.repository.list_planned_items(user_id=user_id, start_date=for_date, end_date=for_date)
 
@@ -229,7 +229,7 @@ class TodayService:
         self.repository.mark_due_medications_missed(
             user_id=user_id,
             now=self.repository.utcnow(),
-            grace_minutes=self.MEDICATION_MISSED_GRACE_MINUTES,
+            grace_minutes=self._medication_missed_grace_minutes,
         )
 
         routines = self.repository.get_today_routines(user_id=user_id, for_date=for_date)
@@ -318,7 +318,7 @@ class TodayService:
         self.repository.mark_due_medications_missed(
             user_id=user_id,
             now=self.repository.utcnow(),
-            grace_minutes=self.MEDICATION_MISSED_GRACE_MINUTES,
+            grace_minutes=self._medication_missed_grace_minutes,
         )
 
         by_day: dict[date, dict[str, int]] = defaultdict(lambda: {"routine": 0, "chore": 0, "medication": 0, "planned": 0})
