@@ -38,6 +38,13 @@ def _safe_float(value: Any, default: float = 0.0) -> float:
         return default
 
 
+def _safe_dict_list(value: Any) -> list[dict[str, Any]]:
+    """Return a list containing only dictionary items."""
+    if not isinstance(value, list):
+        return []
+    return [item for item in value if isinstance(item, dict)]
+
+
 class DaynestDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     """Coordinator that fetches and normalizes Daynest dashboard data."""
 
@@ -78,6 +85,8 @@ class DaynestDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "completion_ratio": completion_ratio,
             "next_medication": next_medication,
             "routines_open_count": max(0, _safe_int(payload.get("routines_open_count"), default=0)),
+            "due_today": _safe_dict_list(payload.get("due_today")),
+            "planned": _safe_dict_list(payload.get("planned")),
             "integration_contract": contract,
         }
 

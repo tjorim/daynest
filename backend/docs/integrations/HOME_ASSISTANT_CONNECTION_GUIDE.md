@@ -46,7 +46,7 @@ Expected behavior:
 
 ### `GET /api/v1/integrations/home-assistant/dashboard`
 
-Used by the Home Assistant sensor entities.
+Used by the Home Assistant sensor entities and the Daynest to-do list entity.
 
 Expected behavior:
 
@@ -60,6 +60,19 @@ Expected behavior:
   - `medication_due_count`
   - `completion_ratio`
   - `next_medication`
+  - `due_today` (optional list of due chore items; used by `todo.daynest_tasks_due_today`)
+  - `planned` (optional list of planned items; used by `todo.daynest_tasks_due_today`)
+
+### Home Assistant to-do entity
+
+The integration now registers:
+
+- `todo.daynest_tasks_due_today`
+
+This entity reads task items from `due_today` and `planned` in the dashboard payload and maps status to Home Assistant to-do states:
+
+- pending / not done → needs action
+- completed / done / skipped / taken → complete
 
 ### `POST /api/v1/integrations/home-assistant/actions/complete-task`
 
@@ -159,4 +172,3 @@ Checks:
 - `/dashboard` returns `200 OK`, the contract header, and the expected dashboard payload
 - the integration loads without entity availability errors
 - (optional) API key includes `ha:write` for service automation support
-

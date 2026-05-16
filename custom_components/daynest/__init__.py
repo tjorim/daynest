@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 
     from .data import DaynestConfigEntry
 
-PLATFORMS: list[Platform] = [Platform.SENSOR]
+PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.TODO]
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
