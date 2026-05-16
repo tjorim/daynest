@@ -95,11 +95,30 @@ class DaynestMcpBackend:
             session.close()
 
     def resolve_user(self, db: Session) -> User:
-        integration_client = self._resolve_authenticated_integration_client(db)
-        if integration_client is not None:
-            if integration_client.user is None or not integration_client.user.is_active:
-                raise ValueError("Authenticated integration owner not found or inactive")
-            return integration_client.user
+        access_token = get_access_token()
+        if access_token is not None:
+            # Integration key auth: client_id is an integer DB id
+            try:
+                client_int_id = int(access_token.client_id)
+            except (TypeError, ValueError):
+                client_int_id = None
+
+            if client_int_id is not None:
+                # verify_token stores only an AccessToken in request context — re-query with joinedload.
+                stmt = select(IntegrationClient).where(IntegrationClient.id == client_int_id).options(joinedload(IntegrationClient.user))
+                client = db.scalar(stmt)
+                if client is None or not client.is_active:
+                    raise ValueError("Authenticated MCP integration client is inactive or missing")
+                if client.user is None or not client.user.is_active:
+                    raise ValueError("Authenticated integration owner not found or inactive")
+                return client.user
+
+            # OIDC auth: client_id is the OIDC subject (sub)
+            subject = access_token.client_id
+            user = db.scalar(select(User).where(User.oidc_subject == subject).where(User.is_active.is_(True)))
+            if user is None:
+                raise ValueError(f"No active user found for OIDC subject: {subject}")
+            return user
 
         configured_email = self.user_email or os.getenv(DAYNEST_USER_EMAIL_ENV)
         if configured_email:
@@ -124,27 +143,6 @@ class DaynestMcpBackend:
                 f"Set {DAYNEST_USER_EMAIL_ENV} to the correct account or inspect active users locally."
             )
         return active_users[0]
-
-    @staticmethod
-    def _resolve_authenticated_integration_client(db: Session) -> IntegrationClient | None:
-        # verify_token stores only an AccessToken (client_id, scopes, resource) in the request
-        # context — it does not retain the IntegrationClient ORM object or its related User.
-        # We must re-query IntegrationClient here (with joinedload of user) to get a
-        # fully-populated, session-bound instance for this request's DB session.
-        access_token = get_access_token()
-        if access_token is None:
-            return None
-
-        try:
-            client_id = int(access_token.client_id)
-        except (TypeError, ValueError) as exc:
-            raise ValueError("Authenticated MCP client id is invalid") from exc
-
-        stmt = select(IntegrationClient).where(IntegrationClient.id == client_id).options(joinedload(IntegrationClient.user))
-        client = db.scalar(stmt)
-        if client is None or not client.is_active:
-            raise ValueError("Authenticated MCP integration client is inactive or missing")
-        return client
 
     def _with_service(self, operation: Callable[[Session, User, TodayService], T]) -> T:
         with self._session_scope() as db:
@@ -322,6 +320,59 @@ class IntegrationKeyTokenVerifier(TokenVerifier):
             session.close()
 
 
+class OIDCMcpTokenVerifier(TokenVerifier):
+    """Validates Keycloak-issued OIDC tokens for MCP access."""
+
+    def __init__(self, session_factory: Callable[[], Session], *, resource_server_url: str | None = None) -> None:
+        self.session_factory = session_factory
+        self.resource_server_url = resource_server_url
+
+    async def verify_token(self, token: str) -> AccessToken | None:
+        from app.core.oidc import OIDCTokenError, decode_oidc_token, get_or_create_local_user
+
+        try:
+            claims = await decode_oidc_token(token)
+        except OIDCTokenError as exc:
+            logger.debug("OIDC token validation failed: %s", exc)
+            return None
+
+        subject: str | None = claims.get("sub")
+        if not subject:
+            return None
+
+        session = self.session_factory()
+        try:
+            user = get_or_create_local_user(subject, claims, session)
+            if not user.is_active:
+                return None
+        except Exception as exc:
+            logger.warning("Failed to resolve MCP user for subject %s: %s", subject, exc)
+            return None
+        finally:
+            session.close()
+
+        return AccessToken(
+            token=token,
+            client_id=subject,
+            scopes=["mcp:read"],
+            resource=self.resource_server_url,
+        )
+
+
+class ComposedTokenVerifier(TokenVerifier):
+    """Tries each verifier in order; returns the first successful result."""
+
+    def __init__(self, *verifiers: TokenVerifier) -> None:
+        self._verifiers = verifiers
+
+    async def verify_token(self, token: str) -> AccessToken | None:
+        for verifier in self._verifiers:
+            result = await verifier.verify_token(token)
+            if result is not None:
+                return result
+        return None
+
+
 def _build_auth_settings(resource_server_url: str) -> AuthSettings:
     issuer_url = os.getenv(DAYNEST_MCP_ISSUER_URL_ENV, resource_server_url)
     return AuthSettings(
@@ -347,7 +398,10 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
         "Daynest",
         json_response=True,
         streamable_http_path="/",  # mounted at /mcp in FastAPI; prefix is stripped before the sub-app sees it
-        token_verifier=IntegrationKeyTokenVerifier(SessionLocal, resource_server_url=resource_server_url),
+        token_verifier=ComposedTokenVerifier(
+            OIDCMcpTokenVerifier(SessionLocal, resource_server_url=resource_server_url),
+            IntegrationKeyTokenVerifier(SessionLocal, resource_server_url=resource_server_url),
+        ),
         auth=_build_auth_settings(resource_server_url),
         transport_security=_build_transport_security(),
     )
