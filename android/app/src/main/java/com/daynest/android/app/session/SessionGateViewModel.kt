@@ -14,18 +14,18 @@ class SessionGateViewModel
     constructor(
         private val oidcAuthService: OidcAuthService,
     ) : ViewModel() {
-    private val _uiState = MutableStateFlow<SessionGateUiState>(SessionGateUiState.Loading)
-    val uiState: StateFlow<SessionGateUiState> = _uiState.asStateFlow()
+        private val _uiState = MutableStateFlow<SessionGateUiState>(SessionGateUiState.Loading)
+        val uiState: StateFlow<SessionGateUiState> = _uiState.asStateFlow()
 
-    init {
-        _uiState.value =
-            if (oidcAuthService.isAuthorized) {
-                SessionGateUiState.GoHome
-            } else {
-                SessionGateUiState.GoAuth
-            }
+        init {
+            _uiState.value =
+                if (oidcAuthService.isAuthorized) {
+                    SessionGateUiState.GoHome
+                } else {
+                    SessionGateUiState.GoAuth
+                }
+        }
     }
-}
 
 sealed interface SessionGateUiState {
     data object Loading : SessionGateUiState
