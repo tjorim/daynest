@@ -79,7 +79,7 @@ class DaynestTodoListEntity(TodoListEntity, DaynestEntity):
         """
         kind, raw_id = self._parse_item_id(item_id)
         if kind != "due":
-            msg = "Only due-today chore items can be updated from Home Assistant."
+            msg = "Only due-today chore items can be updated."
             raise HomeAssistantError(msg)
 
         status = changes.get("status")
@@ -98,7 +98,7 @@ class DaynestTodoListEntity(TodoListEntity, DaynestEntity):
         for item_id in item_ids:
             kind, raw_id = self._parse_item_id(item_id)
             if kind != "due":
-                msg = "Only due-today chore items can be deleted from Home Assistant."
+                msg = "Only due-today chore items can be deleted."
                 raise HomeAssistantError(msg)
             await self.coordinator.config_entry.runtime_data.client.async_skip_task(raw_id)
 
