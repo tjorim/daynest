@@ -1,10 +1,13 @@
 from datetime import date, datetime, time, timezone
+from unittest.mock import MagicMock
 
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from app.core.tokens import create_access_token
+from app.api.dependencies.today import get_today_service
 from app.core.enums import ChoreStatus, MedicationDoseStatus, TaskStatus
+from app.core.tokens import create_access_token
+from app.main import app
 from app.models.chore_instance import ChoreInstance
 from app.models.chore_template import ChoreTemplate
 from app.models.medication_dose_instance import MedicationDoseInstance
@@ -12,6 +15,9 @@ from app.models.medication_plan import MedicationPlan
 from app.models.routine_template import RoutineTemplate
 from app.models.task_instance import TaskInstance
 from app.models.user import User
+from app.repositories.today_repository import TodayRepository
+from app.schemas.today import TodayResponse
+from app.services.today_service import TodayService
 
 
 def _create_user(db_session: Session, email: str) -> User:
@@ -79,6 +85,48 @@ def test_get_today_includes_generated_chore_sections(client: TestClient, db_sess
     assert payload["medication"][0]["instructions"] == "Take with breakfast and water"
     assert payload["routines"][0]["title"] == "Morning reset"
     assert payload["routines"][0]["status"] == "pending"
+
+
+def test_get_today_allows_today_service_dependency_override(client: TestClient, db_session: Session) -> None:
+    user = _create_user(db_session, email="today-override@example.com")
+    token = create_access_token(user_id=user.id, email=user.email)
+
+    class StubTodayService(TodayService):
+        def __init__(self) -> None:
+            super().__init__(MagicMock(spec=TodayRepository))
+
+        def get_today(self, *, user_id: int, for_date: date) -> TodayResponse:
+            assert user_id == user.id
+            assert for_date == date.today()
+            return TodayResponse(
+                medication=[],
+                medication_history=[],
+                routines=[],
+                overdue=[],
+                due_today=[],
+                upcoming=[],
+                planned=[],
+                day_items=[],
+            )
+
+    app.dependency_overrides[get_today_service] = lambda: StubTodayService()
+
+    try:
+        response = client.get("/api/v1/today", headers={"Authorization": f"Bearer {token}"})
+    finally:
+        app.dependency_overrides.pop(get_today_service, None)
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "medication": [],
+        "medication_history": [],
+        "routines": [],
+        "overdue": [],
+        "due_today": [],
+        "upcoming": [],
+        "planned": [],
+        "day_items": [],
+    }
 
 
 def test_chore_mutation_endpoints_complete_skip_and_reschedule(client: TestClient, db_session: Session) -> None:

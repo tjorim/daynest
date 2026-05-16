@@ -1,12 +1,10 @@
 from datetime import date, timedelta
 
 from fastapi import APIRouter, Depends, Response
-from sqlalchemy.orm import Session
 
 from app.api.dependencies.integration_auth import require_integration_scope
-from app.db.session import get_db
+from app.api.dependencies.today import get_today_service
 from app.models.user import User
-from app.repositories.today_repository import TodayRepository
 from app.schemas.integration_contracts import (
     HOME_ASSISTANT_ADAPTER,
     HOME_ASSISTANT_CONTRACT_VERSION,
@@ -38,11 +36,10 @@ def _set_ha_contract_header(response: Response) -> None:
 
 @router.get("/summary")
 def home_assistant_summary(
-    db: Session = Depends(get_db),
+    service: TodayService = Depends(get_today_service),
     integration_user: User = Depends(require_integration_scope("ha:read")),
     _: None = Depends(_set_ha_contract_header),
 ) -> dict[str, str | int | None]:
-    service = TodayService(TodayRepository(db))
     summary = service.get_summary(user_id=integration_user.id, for_date=date.today())
     return {
         "todo_daynest_today": summary.tasks_remaining,
@@ -53,11 +50,10 @@ def home_assistant_summary(
 
 @router.get("/entities", response_model=list[HomeAssistantEntity])
 def home_assistant_entities(
-    db: Session = Depends(get_db),
+    service: TodayService = Depends(get_today_service),
     integration_user: User = Depends(require_integration_scope("ha:read")),
     _: None = Depends(_set_ha_contract_header),
 ) -> list[HomeAssistantEntity]:
-    service = TodayService(TodayRepository(db))
     read_model = service.get_dashboard_read_model(user_id=integration_user.id, for_date=date.today())
     return [
         HomeAssistantEntity(
@@ -85,22 +81,20 @@ def home_assistant_entities(
 
 @router.get("/dashboard", response_model=DashboardReadModel)
 def home_assistant_dashboard(
-    db: Session = Depends(get_db),
+    service: TodayService = Depends(get_today_service),
     integration_user: User = Depends(require_integration_scope("ha:read")),
     _: None = Depends(_set_ha_contract_header),
 ) -> DashboardReadModel:
-    service = TodayService(TodayRepository(db))
     return service.get_dashboard_read_model(user_id=integration_user.id, for_date=date.today())
 
 
 @router.post("/actions/complete-task", response_model=HAActionResult)
 def home_assistant_complete_task(
     request: CompleteTaskRequest,
-    db: Session = Depends(get_db),
+    service: TodayService = Depends(get_today_service),
     integration_user: User = Depends(require_integration_scope("ha:write")),
 ) -> HAActionResult:
     """Mark a chore instance as complete via Home Assistant automation."""
-    service = TodayService(TodayRepository(db))
     service.complete_chore(user_id=integration_user.id, chore_instance_id=request.chore_instance_id)
     return HAActionResult(success=True, detail=f"Task {request.chore_instance_id} marked as complete")
 
@@ -108,11 +102,10 @@ def home_assistant_complete_task(
 @router.post("/actions/snooze-task", response_model=HAActionResult)
 def home_assistant_snooze_task(
     request: SnoozeTaskRequest,
-    db: Session = Depends(get_db),
+    service: TodayService = Depends(get_today_service),
     integration_user: User = Depends(require_integration_scope("ha:write")),
 ) -> HAActionResult:
     """Reschedule a chore instance N days into the future via Home Assistant automation."""
-    service = TodayService(TodayRepository(db))
     new_date = date.today() + timedelta(days=request.days)
     service.reschedule_chore(user_id=integration_user.id, chore_instance_id=request.chore_instance_id, scheduled_date=new_date)
     return HAActionResult(success=True, detail=f"Task {request.chore_instance_id} rescheduled by {request.days} day(s)")
@@ -121,11 +114,10 @@ def home_assistant_snooze_task(
 @router.post("/actions/mark-medication-taken", response_model=HAActionResult)
 def home_assistant_mark_medication_taken(
     request: MarkMedicationTakenRequest,
-    db: Session = Depends(get_db),
+    service: TodayService = Depends(get_today_service),
     integration_user: User = Depends(require_integration_scope("ha:write")),
 ) -> HAActionResult:
     """Mark a medication dose as taken via Home Assistant automation."""
-    service = TodayService(TodayRepository(db))
     service.mutate_medication_status(
         user_id=integration_user.id,
         medication_dose_instance_id=request.medication_dose_id,
@@ -137,11 +129,10 @@ def home_assistant_mark_medication_taken(
 @router.post("/actions/skip-task", response_model=HAActionResult)
 def home_assistant_skip_task(
     request: SkipTaskRequest,
-    db: Session = Depends(get_db),
+    service: TodayService = Depends(get_today_service),
     integration_user: User = Depends(require_integration_scope("ha:write")),
 ) -> HAActionResult:
     """Skip a chore instance via Home Assistant automation."""
-    service = TodayService(TodayRepository(db))
     service.skip_chore(user_id=integration_user.id, chore_instance_id=request.chore_instance_id)
     return HAActionResult(success=True, detail=f"Task {request.chore_instance_id} skipped")
 
@@ -149,11 +140,10 @@ def home_assistant_skip_task(
 @router.post("/actions/skip-medication", response_model=HAActionResult)
 def home_assistant_skip_medication(
     request: SkipMedicationRequest,
-    db: Session = Depends(get_db),
+    service: TodayService = Depends(get_today_service),
     integration_user: User = Depends(require_integration_scope("ha:write")),
 ) -> HAActionResult:
     """Skip a medication dose via Home Assistant automation."""
-    service = TodayService(TodayRepository(db))
     service.mutate_medication_status(
         user_id=integration_user.id,
         medication_dose_instance_id=request.medication_dose_id,
@@ -165,11 +155,10 @@ def home_assistant_skip_medication(
 @router.post("/actions/create-planned-item", response_model=HAActionResult)
 def home_assistant_create_planned_item(
     request: PlannedItemCreateRequest,
-    db: Session = Depends(get_db),
+    service: TodayService = Depends(get_today_service),
     integration_user: User = Depends(require_integration_scope("ha:write")),
 ) -> HAActionResult:
     """Create a planned item via Home Assistant automation."""
-    service = TodayService(TodayRepository(db))
     created = service.create_planned_item(
         user_id=integration_user.id,
         request=TodayPlannedItemCreateRequest(**request.model_dump()),
@@ -181,11 +170,10 @@ def home_assistant_create_planned_item(
 def home_assistant_update_planned_item(
     planned_item_id: int,
     request: PlannedItemUpdateRequest,
-    db: Session = Depends(get_db),
+    service: TodayService = Depends(get_today_service),
     integration_user: User = Depends(require_integration_scope("ha:write")),
 ) -> HAActionResult:
     """Update a planned item via Home Assistant automation."""
-    service = TodayService(TodayRepository(db))
     service.update_planned_item(
         user_id=integration_user.id,
         planned_item_id=planned_item_id,
@@ -197,10 +185,9 @@ def home_assistant_update_planned_item(
 @router.delete("/actions/delete-planned-item/{planned_item_id}", response_model=HAActionResult)
 def home_assistant_delete_planned_item(
     planned_item_id: int,
-    db: Session = Depends(get_db),
+    service: TodayService = Depends(get_today_service),
     integration_user: User = Depends(require_integration_scope("ha:write")),
 ) -> HAActionResult:
     """Delete a planned item via Home Assistant automation."""
-    service = TodayService(TodayRepository(db))
     service.delete_planned_item(user_id=integration_user.id, planned_item_id=planned_item_id)
     return HAActionResult(success=True, detail=f"Planned item {planned_item_id} deleted")
