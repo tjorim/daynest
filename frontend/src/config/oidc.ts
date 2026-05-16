@@ -12,6 +12,7 @@ export const oidcConfig: AuthProviderProps = {
   client_id: OIDC_CLIENT_ID,
   redirect_uri: OIDC_REDIRECT_URI,
   scope: OIDC_SCOPE,
+  automaticSilentRenew: true,
   post_logout_redirect_uri: window.location.origin,
   onSigninCallback: (user) => {
     const returnTo = (user?.state as { returnTo?: string } | undefined)?.returnTo ?? "/";

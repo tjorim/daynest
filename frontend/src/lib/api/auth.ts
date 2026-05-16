@@ -3,6 +3,7 @@ export interface AuthUser {
   email: string;
   full_name: string | null;
   is_active: boolean;
+  roles: string[];
 }
 
 export class AuthApiError extends Error {
