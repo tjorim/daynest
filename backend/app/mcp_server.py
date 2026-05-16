@@ -149,7 +149,7 @@ class DaynestMcpBackend:
     def _with_service(self, operation: Callable[[Session, User, TodayService], T]) -> T:
         with self._session_scope() as db:
             user = self.resolve_user(db)
-            service = TodayService(TodayRepository(db))
+            service = TodayService(TodayRepository(db), app_settings=settings)
             return operation(db, user, service)
 
     def whoami(self) -> dict[str, Any]:

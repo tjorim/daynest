@@ -1,6 +1,7 @@
 from datetime import date, datetime, timezone
 from types import SimpleNamespace
 
+from app.core.config import AppSettings
 from app.core.enums import ChoreStatus, MedicationDoseStatus, TaskStatus
 from app.services.today_service import TodayService
 
@@ -16,6 +17,8 @@ class StubTodayRepository:
         self._planned = planned
         self.generated_through: date | None = None
         self.tasks_generated_through: date | None = None
+        self.grace_minutes: int | None = None
+        self.upcoming_horizon_days: int | None = None
 
     def ensure_chore_instances_generated(self, user_id: int, through_date: date) -> None:
         self.generated_through = through_date
@@ -27,6 +30,7 @@ class StubTodayRepository:
         self.tasks_generated_through = through_date
 
     def mark_due_medications_missed(self, user_id: int, now, grace_minutes: int = 30):
+        self.grace_minutes = grace_minutes
         return None
 
     def utcnow(self):
@@ -50,6 +54,7 @@ class StubTodayRepository:
         return self._due
 
     def get_upcoming_chores(self, user_id: int, for_date: date, horizon_days: int = 7) -> list[SimpleNamespace]:
+        self.upcoming_horizon_days = horizon_days
         return self._upcoming
 
     def get_day_chores(self, user_id: int, target_date: date) -> list[SimpleNamespace]:
@@ -100,12 +105,17 @@ def test_get_today_shapes_chore_sections() -> None:
     ]
 
     repo = StubTodayRepository(tasks=routine_tasks, overdue=overdue, due=due, upcoming=upcoming, medication=medication, medication_history=[], planned=planned)
-    service = TodayService(repository=repo)
+    service = TodayService(
+        repository=repo,
+        app_settings=AppSettings(upcoming_horizon_days=3, medication_missed_grace_minutes=45),
+    )
 
     response = service.get_today(user_id=7, for_date=for_date)
 
-    assert repo.generated_through == date(2026, 4, 30)
+    assert repo.generated_through == date(2026, 4, 26)
     assert repo.tasks_generated_through == for_date
+    assert repo.grace_minutes == 45
+    assert repo.upcoming_horizon_days == 3
 
     assert response.medication[0].medication_dose_instance_id == 55
     assert response.routines[0].task_instance_id == 100

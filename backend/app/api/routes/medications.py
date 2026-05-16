@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.api.dependencies.auth import get_current_user
+from app.core.config import settings
 from app.db.session import get_db
 from app.models.medication_plan import MedicationPlan
 from app.models.user import User
@@ -27,7 +28,7 @@ def _mutate_medication_dose_action(
     current_user: User,
 ) -> MedicationDoseMutationResponse:
     repository = TodayRepository(db)
-    service = TodayService(repository)
+    service = TodayService(repository, app_settings=settings)
     dose = service.mutate_medication_status(
         user_id=current_user.id,
         medication_dose_instance_id=medication_dose_instance_id,

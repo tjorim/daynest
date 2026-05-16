@@ -5,6 +5,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from app.api.dependencies.today import get_today_service
+from app.core.config import settings
 from app.core.enums import ChoreStatus, MedicationDoseStatus, TaskStatus
 from app.core.tokens import create_access_token
 from app.main import app
@@ -93,7 +94,7 @@ def test_get_today_allows_today_service_dependency_override(client: TestClient, 
 
     class StubTodayService(TodayService):
         def __init__(self) -> None:
-            super().__init__(MagicMock(spec=TodayRepository))
+            super().__init__(MagicMock(spec=TodayRepository), app_settings=settings)
 
         def get_today(self, *, user_id: int, for_date: date) -> TodayResponse:
             assert user_id == user.id
