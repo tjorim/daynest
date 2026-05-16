@@ -37,7 +37,6 @@ export async function promptToInstallApp() {
   try {
     await promptEvent.prompt();
     setDeferredInstallPrompt(null);
-    await promptEvent.userChoice.catch(() => undefined);
     return true;
   } catch {
     return false;

@@ -77,7 +77,10 @@ describe("SettingsPage", () => {
 
   it("shows the install button when app install is available and prompts on click", async () => {
     const user = userEvent.setup();
-    pwaMock.getDeferredInstallPrompt.mockReturnValue({ prompt: vi.fn() });
+    pwaMock.getDeferredInstallPrompt.mockReturnValue({
+      prompt: vi.fn(),
+      userChoice: Promise.resolve({ outcome: "dismissed", platform: "web" }),
+    });
     pwaMock.promptToInstallApp.mockResolvedValue(true);
 
     render(<SettingsPage />);
@@ -93,7 +96,10 @@ describe("SettingsPage", () => {
   it("re-enables install button when prompting fails", async () => {
     const user = userEvent.setup();
     const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
-    pwaMock.getDeferredInstallPrompt.mockReturnValue({ prompt: vi.fn() });
+    pwaMock.getDeferredInstallPrompt.mockReturnValue({
+      prompt: vi.fn(),
+      userChoice: Promise.resolve({ outcome: "dismissed", platform: "web" }),
+    });
     pwaMock.promptToInstallApp.mockRejectedValue(new Error("prompt failed"));
 
     try {
