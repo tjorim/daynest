@@ -22,6 +22,7 @@ from typing import Any
 
 import httpx
 import jwt
+from jwt import PyJWKSet
 from jwt.exceptions import ExpiredSignatureError, PyJWTError
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
@@ -35,15 +36,22 @@ _OIDC_ALGORITHMS: list[str] = [a.strip() for a in settings.oidc_algorithms.split
 _OIDC_AUDIENCE: str | None = settings.oidc_audience or None
 _OIDC_ISSUER: str | None = settings.oidc_issuer_url or None
 
+_http_client = httpx.AsyncClient(timeout=10)
+
+
+class OIDCTokenError(Exception):
+    """Raised when a JWT cannot be validated against the OIDC provider."""
+
+
 _jwks_uri_cache: str | None = None
 _jwks_uri_lock = asyncio.Lock()
 
 _jwks_lock = asyncio.Lock()
-_jwks_cache: dict[str, Any] | None = None
+_jwks_cache: PyJWKSet | None = None
 
 
 async def _resolve_jwks_uri() -> str:
-    """Return the JWKS URI, discovering it from the OIDC configuration document if needed."""
+    """Return the JWKS URI, discovering it from the OIDC configuration document."""
     global _jwks_uri_cache  # noqa: PLW0603
     if settings.oidc_jwks_uri:
         return settings.oidc_jwks_uri
@@ -52,40 +60,34 @@ async def _resolve_jwks_uri() -> str:
             return _jwks_uri_cache
         base = (settings.oidc_issuer_url or "").rstrip("/")
         try:
-            async with httpx.AsyncClient(timeout=10) as client:
-                resp = await client.get(f"{base}/.well-known/openid-configuration")
+            resp = await _http_client.get(f"{base}/.well-known/openid-configuration")
             resp.raise_for_status()
             _jwks_uri_cache = resp.json()["jwks_uri"]
             logger.info("Discovered JWKS URI: %s", _jwks_uri_cache)
         except Exception as exc:
-            logger.warning("OIDC discovery failed (%s); falling back to Keycloak JWKS path", exc)
-            _jwks_uri_cache = f"{base}/protocol/openid-connect/certs"
+            raise OIDCTokenError(f"OIDC discovery failed for {base}: {exc}") from exc
         return _jwks_uri_cache
 
 
-async def _fetch_jwks() -> dict[str, Any]:
+async def _fetch_jwks() -> PyJWKSet:
     uri = await _resolve_jwks_uri()
     try:
-        async with httpx.AsyncClient(timeout=10) as client:
-            response = await client.get(uri)
+        response = await _http_client.get(uri)
         response.raise_for_status()
-        result: dict[str, Any] = response.json()
-        return result
+        return PyJWKSet.from_dict(response.json())
+    except OIDCTokenError:
+        raise
     except Exception as exc:
         logger.error("Failed to fetch JWKS from %s: %s", uri, exc)
         raise
 
 
-async def _get_jwks(*, force_refresh: bool = False) -> dict[str, Any]:
+async def _get_jwks(*, force_refresh: bool = False) -> PyJWKSet:
     global _jwks_cache  # noqa: PLW0603
     async with _jwks_lock:
         if _jwks_cache is None or force_refresh:
             _jwks_cache = await _fetch_jwks()
         return _jwks_cache
-
-
-class OIDCTokenError(Exception):
-    """Raised when a JWT cannot be validated against the OIDC provider."""
 
 
 def _extract_roles(claims: dict[str, Any]) -> list[str]:
@@ -97,20 +99,10 @@ def _extract_roles(claims: dict[str, Any]) -> list[str]:
     return roles if isinstance(roles, list) else []
 
 
-def _find_signing_key(jwks_dict: dict[str, Any], kid: str | None) -> Any | None:
-    from jwt import PyJWKSet
-
-    jwks_set = PyJWKSet.from_dict(jwks_dict)
-    return next(
-        (k for k in jwks_set.keys if kid is None or k.key_id == kid),
-        None,
-    )
-
-
 async def decode_oidc_token(token: str) -> dict[str, Any]:
-    """Decode and validate a Keycloak-issued JWT.
+    """Decode and validate an OIDC-issued JWT.
 
-    Tries cached JWKS first; refreshes once on key-not-found to handle rotation.
+    Tries cached JWKS first; refreshes once on key-not-found to handle key rotation.
     """
     options: Any = {
         "verify_aud": _OIDC_AUDIENCE is not None,
@@ -119,10 +111,13 @@ async def decode_oidc_token(token: str) -> dict[str, Any]:
 
     for attempt in range(2):
         try:
-            jwks_dict = await _get_jwks(force_refresh=(attempt == 1))
+            jwks_set = await _get_jwks(force_refresh=(attempt == 1))
             header = jwt.get_unverified_header(token)
             kid = header.get("kid")
-            signing_key = _find_signing_key(jwks_dict, kid)
+            signing_key = next(
+                (k for k in jwks_set.keys if kid is None or k.key_id == kid),
+                None,
+            )
 
             if signing_key is None:
                 if attempt == 0:

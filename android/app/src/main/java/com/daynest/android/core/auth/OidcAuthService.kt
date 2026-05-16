@@ -29,6 +29,7 @@ class OidcAuthService @Inject constructor(
     private val mutex = Mutex()
 
     @Volatile private var authState: AuthState = loadPersistedState()
+    @Volatile private var serviceConfiguration: AuthorizationServiceConfiguration? = null
 
     val isAuthorized: Boolean get() = authState.isAuthorized
     val currentAccessToken: String? get() = authState.accessToken
@@ -77,13 +78,19 @@ class OidcAuthService @Inject constructor(
 
     fun signOut() = clearState()
 
-    private suspend fun discoverServiceConfiguration(): AuthorizationServiceConfiguration =
-        suspendCancellableCoroutine { cont ->
+    private suspend fun discoverServiceConfiguration(): AuthorizationServiceConfiguration {
+        serviceConfiguration?.let { return it }
+        return suspendCancellableCoroutine { cont ->
             AuthorizationServiceConfiguration.fetchFromIssuer(OidcConfig.issuerUri) { config, ex ->
-                if (config != null) cont.resume(config)
-                else cont.resumeWithException(ex ?: IllegalStateException("OIDC discovery failed"))
+                if (config != null) {
+                    serviceConfiguration = config
+                    cont.resume(config)
+                } else {
+                    cont.resumeWithException(ex ?: IllegalStateException("OIDC discovery failed"))
+                }
             }
         }
+    }
 
     private fun loadPersistedState(): AuthState {
         val json = securePreferences.getString(KEY_AUTH_STATE, null) ?: return AuthState()
