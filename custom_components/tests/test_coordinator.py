@@ -28,6 +28,8 @@ VALID_DASHBOARD_PAYLOAD = {
     "medication_due_count": 1,
     "completion_ratio": 0.5,
     "next_medication": "08:00",
+    "due_today": [{"chore_instance_id": 1, "title": "Task A", "status": "pending"}],
+    "planned": [{"id": 2, "title": "Task B", "is_done": False}],
 }
 
 
@@ -115,7 +117,16 @@ class TestNormalizeDashboard:
         assert result["medication_due_count"] == 1
         assert result["completion_ratio"] == 0.5
         assert result["next_medication"] == "08:00"
+        assert result["due_today"] == [{"chore_instance_id": 1, "title": "Task A", "status": "pending"}]
+        assert result["planned"] == [{"id": 2, "title": "Task B", "is_done": False}]
         assert result["integration_contract"] == CONTRACT_VALID
+
+    def test_invalid_due_today_and_planned_default_to_empty_lists(self) -> None:
+        coordinator = _make_coordinator()
+        payload = {**VALID_DASHBOARD_PAYLOAD, "due_today": "invalid", "planned": None}
+        result = coordinator._normalize_dashboard(payload, CONTRACT_VALID)
+        assert result["due_today"] == []
+        assert result["planned"] == []
 
     def test_negative_counts_clamped_to_zero(self) -> None:
         coordinator = _make_coordinator()

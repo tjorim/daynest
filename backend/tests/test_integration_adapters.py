@@ -238,9 +238,26 @@ def test_home_assistant_write_endpoints_require_ha_write_scope(
         ("/api/v1/integrations/home-assistant/actions/mark-medication-taken", {"medication_dose_id": 1}),
         ("/api/v1/integrations/home-assistant/actions/skip-task", {"chore_instance_id": 1}),
         ("/api/v1/integrations/home-assistant/actions/skip-medication", {"medication_dose_id": 1}),
+        (
+            "/api/v1/integrations/home-assistant/actions/create-planned-item",
+            {"title": "Plan snacks", "planned_for": FIXED_TODAY.isoformat()},
+        ),
     ]:
         denied = client.post(path, json=payload, headers={"X-Integration-Key": read_only_key})
         assert denied.status_code == 403, f"Expected 403 for {path} with ha:read scope"
+
+    denied_put = client.put(
+        "/api/v1/integrations/home-assistant/actions/update-planned-item/1",
+        json={"title": "Updated", "planned_for": FIXED_TODAY.isoformat(), "is_done": True},
+        headers={"X-Integration-Key": read_only_key},
+    )
+    assert denied_put.status_code == 403
+
+    denied_delete = client.delete(
+        "/api/v1/integrations/home-assistant/actions/delete-planned-item/1",
+        headers={"X-Integration-Key": read_only_key},
+    )
+    assert denied_delete.status_code == 403
 
 
 def test_home_assistant_complete_task_marks_chore_complete(
@@ -343,3 +360,48 @@ def test_home_assistant_mark_medication_taken(
 
     db_session.refresh(dose)
     assert dose.status == MedicationDoseStatus.taken
+
+
+def test_home_assistant_planned_item_crud_actions(
+    client: TestClient,
+    db_session: Session,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    _freeze_route_today(monkeypatch, "app.api.routes.integrations.home_assistant")
+    user = _create_home_assistant_fixture(db_session, "ha-planned-crud@example.com")
+    write_key = _create_integration_key(db_session, user.id, scopes="ha:write")
+
+    create_response = client.post(
+        "/api/v1/integrations/home-assistant/actions/create-planned-item",
+        json={"title": "Plan dinner", "planned_for": FIXED_TODAY.isoformat(), "notes": "With vegetables"},
+        headers={"X-Integration-Key": write_key},
+    )
+    assert create_response.status_code == 200
+    create_payload = create_response.json()
+    assert create_payload["success"] is True
+    assert "created" in create_payload["detail"]
+    planned_id = int(create_payload["detail"].split()[2])
+
+    update_response = client.put(
+        f"/api/v1/integrations/home-assistant/actions/update-planned-item/{planned_id}",
+        json={
+            "title": "Plan dinner tonight",
+            "planned_for": FIXED_TODAY.isoformat(),
+            "is_done": True,
+            "notes": "Vegetables and rice",
+        },
+        headers={"X-Integration-Key": write_key},
+    )
+    assert update_response.status_code == 200
+    update_payload = update_response.json()
+    assert update_payload["success"] is True
+    assert "updated" in update_payload["detail"]
+
+    delete_response = client.delete(
+        f"/api/v1/integrations/home-assistant/actions/delete-planned-item/{planned_id}",
+        headers={"X-Integration-Key": write_key},
+    )
+    assert delete_response.status_code == 200
+    delete_payload = delete_response.json()
+    assert delete_payload["success"] is True
+    assert "deleted" in delete_payload["detail"]

@@ -46,7 +46,7 @@ Expected behavior:
 
 ### `GET /api/v1/integrations/home-assistant/dashboard`
 
-Used by the Home Assistant sensor entities.
+Used by the Home Assistant sensor entities and the Daynest to-do list entity.
 
 Expected behavior:
 
@@ -60,6 +60,8 @@ Expected behavior:
   - `medication_due_count`
   - `completion_ratio`
   - `next_medication`
+  - `due_today` (optional list of due chore items; used by `todo.daynest_tasks_due_today`)
+  - `planned` (optional list of planned items; used by `todo.daynest_tasks_due_today`)
   - `routines_open_count`
 
 ### `GET /api/v1/integrations/home-assistant/entities`
@@ -74,6 +76,24 @@ Expected behavior:
   - `entity_id`
   - `state`
   - `attributes`
+
+### Home Assistant to-do entity
+
+The integration now registers:
+
+- `todo.daynest_tasks_due_today`
+
+This entity reads task items from `due_today` and `planned` in the dashboard payload and maps status to Home Assistant to-do states:
+
+- pending / not done → needs action
+- completed / done / skipped / taken → complete
+
+Write behavior:
+
+- Mark complete (HA) is supported for `due_today` chore items and maps to `complete-task`.
+- Delete (HA) is supported for `due_today` chore items and maps to `skip-task`.
+- Creating new items in HA creates Daynest `planned` items.
+- Updating/deleting `planned` items from HA is supported via planned-item integration actions.
 
 ### `POST /api/v1/integrations/home-assistant/actions/complete-task`
 
@@ -115,12 +135,35 @@ Used by the `daynest.skip_medication` Home Assistant service.
 - Request body: `{"medication_dose_id": <int>}`
 - Returns `{"success": true, "detail": "..."}`
 
+### `POST /api/v1/integrations/home-assistant/actions/create-planned-item`
+
+Used by the Home Assistant to-do create-item flow.
+
+- Requires `ha:write` scope
+- Request body: `{"title": <str>, "planned_for": <YYYY-MM-DD>, "notes": <str|null>, ...}`
+- Returns `{"success": true, "detail": "Planned item <id> created"}`
+
+### `PUT /api/v1/integrations/home-assistant/actions/update-planned-item/{planned_item_id}`
+
+Used by the Home Assistant to-do update-item flow for planned items.
+
+- Requires `ha:write` scope
+- Request body: `{"title": <str>, "planned_for": <YYYY-MM-DD>, "is_done": <bool>, ...}`
+- Returns `{"success": true, "detail": "Planned item <id> updated"}`
+
+### `DELETE /api/v1/integrations/home-assistant/actions/delete-planned-item/{planned_item_id}`
+
+Used by the Home Assistant to-do delete-item flow for planned items.
+
+- Requires `ha:write` scope
+- Returns `{"success": true, "detail": "Planned item <id> deleted"}`
+
 ## Auth Scopes
 
 | Scope | Required for |
 |-------|-------------|
 | `ha:read` | All GET endpoints (summary, dashboard, entities); required for setup |
-| `ha:write` | All POST action endpoints (complete-task, snooze-task, mark-medication-taken, skip-task, skip-medication) |
+| `ha:write` | All write action endpoints (complete-task, snooze-task, mark-medication-taken, skip-task, skip-medication, create/update/delete planned-item) |
 
 Use least-privilege: create a read-only key (`ha:read`) for sensor-only setups and add `ha:write` only when you need automation write support.
 

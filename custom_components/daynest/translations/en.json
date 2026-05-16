@@ -51,6 +51,11 @@
       "routines_open_count": {
         "name": "Open Routines"
       }
+    },
+    "todo": {
+      "tasks_due_today": {
+        "name": "Tasks Due Today"
+      }
     }
   },
   "services": {

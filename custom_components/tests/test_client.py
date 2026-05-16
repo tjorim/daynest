@@ -399,3 +399,47 @@ class TestDaynestApiClientWriteMethods:
         call_kwargs = session.post.call_args[1]
         assert call_kwargs["json"] == {"medication_dose_id": 9}
 
+    async def test_create_planned_item_uses_expected_payload(self) -> None:
+        response = _make_mock_response(200, {"success": True, "detail": "Planned item 10 created"})
+        session = MagicMock(spec=aiohttp.ClientSession)
+        session.post = MagicMock(return_value=response)
+        client = DaynestApiClient(session=session, base_url="https://api.example", integration_key="key")
+
+        await client.async_create_planned_item(title="Plan dinner", planned_for="2026-01-15", notes="With rice")
+
+        call_kwargs = session.post.call_args[1]
+        assert call_kwargs["json"] == {
+            "title": "Plan dinner",
+            "planned_for": "2026-01-15",
+            "notes": "With rice",
+        }
+
+    async def test_update_planned_item_uses_expected_payload(self) -> None:
+        response = _make_mock_response(200, {"success": True, "detail": "Planned item 10 updated"})
+        session = MagicMock(spec=aiohttp.ClientSession)
+        session.put = MagicMock(return_value=response)
+        client = DaynestApiClient(session=session, base_url="https://api.example", integration_key="key")
+
+        await client.async_update_planned_item(
+            planned_item_id=10,
+            title="Plan dinner",
+            planned_for="2026-01-16",
+            is_done=True,
+            notes="With vegetables",
+        )
+
+        call_kwargs = session.put.call_args[1]
+        assert call_kwargs["json"]["title"] == "Plan dinner"
+        assert call_kwargs["json"]["planned_for"] == "2026-01-16"
+        assert call_kwargs["json"]["is_done"] is True
+
+    async def test_delete_planned_item_uses_expected_endpoint(self) -> None:
+        response = _make_mock_response(200, {"success": True, "detail": "Planned item 10 deleted"})
+        session = MagicMock(spec=aiohttp.ClientSession)
+        session.delete = MagicMock(return_value=response)
+        client = DaynestApiClient(session=session, base_url="https://api.example", integration_key="key")
+
+        await client.async_delete_planned_item(planned_item_id=10)
+
+        call_args = session.delete.call_args[0]
+        assert call_args[0].endswith("/api/v1/integrations/home-assistant/actions/delete-planned-item/10")

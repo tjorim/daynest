@@ -181,6 +181,57 @@ class DaynestApiClient:
             payload={"medication_dose_id": medication_dose_id},
         )
 
+    async def async_create_planned_item(
+        self,
+        *,
+        title: str,
+        planned_for: str,
+        notes: str | None = None,
+    ) -> dict[str, Any]:
+        """Create a planned item via the HA write endpoint."""
+        return await self._post_action(
+            path="/api/v1/integrations/home-assistant/actions/create-planned-item",
+            payload={
+                "title": title,
+                "planned_for": planned_for,
+                "notes": notes,
+            },
+        )
+
+    async def async_update_planned_item(
+        self,
+        *,
+        planned_item_id: int,
+        title: str,
+        planned_for: str,
+        is_done: bool,
+        notes: str | None = None,
+        module_key: str | None = None,
+        recurrence_hint: str | None = None,
+        linked_source: str | None = None,
+        linked_ref: str | None = None,
+    ) -> dict[str, Any]:
+        """Update a planned item via the HA write endpoint."""
+        return await self._put_action(
+            path=f"/api/v1/integrations/home-assistant/actions/update-planned-item/{planned_item_id}",
+            payload={
+                "title": title,
+                "planned_for": planned_for,
+                "is_done": is_done,
+                "notes": notes,
+                "module_key": module_key,
+                "recurrence_hint": recurrence_hint,
+                "linked_source": linked_source,
+                "linked_ref": linked_ref,
+            },
+        )
+
+    async def async_delete_planned_item(self, planned_item_id: int) -> dict[str, Any]:
+        """Delete a planned item via the HA write endpoint."""
+        return await self._delete_action(
+            path=f"/api/v1/integrations/home-assistant/actions/delete-planned-item/{planned_item_id}",
+        )
+
     async def _request_model(
         self,
         path: str,
@@ -227,13 +278,44 @@ class DaynestApiClient:
 
     async def _post_action(self, path: str, payload: dict[str, Any]) -> dict[str, Any]:
         """POST to a write endpoint and return the JSON response body."""
+        return await self._send_action("post", path=path, payload=payload)
+
+    async def _put_action(self, path: str, payload: dict[str, Any]) -> dict[str, Any]:
+        """PUT to a write endpoint and return the JSON response body."""
+        return await self._send_action("put", path=path, payload=payload)
+
+    async def _delete_action(self, path: str) -> dict[str, Any]:
+        """DELETE to a write endpoint and return the JSON response body."""
+        return await self._send_action("delete", path=path)
+
+    async def _send_action(
+        self,
+        method: str,
+        path: str,
+        payload: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Send write action and return the JSON response body."""
         url = urljoin(f"{self._base_url}/", path.lstrip("/"))
-        headers = {"Accept": "application/json", "Content-Type": "application/json"}
+        headers = {"Accept": "application/json"}
+        if payload is not None:
+            headers["Content-Type"] = "application/json"
         if self._integration_key:
             headers["X-Integration-Key"] = self._integration_key
 
+        if method.lower() not in {"post", "put", "delete"}:
+            msg = f"Unsupported write method: {method}"
+            raise ValueError(msg)
+
+        request = getattr(self._session, method.lower())
+        request_kwargs: dict[str, Any] = {
+            "headers": headers,
+            "timeout": REQUEST_TIMEOUT,
+        }
+        if payload is not None:
+            request_kwargs["json"] = payload
+
         try:
-            async with self._session.post(url, json=payload, headers=headers, timeout=REQUEST_TIMEOUT) as response:
+            async with request(url, **request_kwargs) as response:
                 if response.status in (401, 403):
                     msg = f"Authentication failed with status {response.status}"
                     raise DaynestApiClientAuthenticationError(msg)
