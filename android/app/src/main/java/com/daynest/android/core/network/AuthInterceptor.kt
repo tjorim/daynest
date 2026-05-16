@@ -12,18 +12,18 @@ class AuthInterceptor
     constructor(
         private val oidcAuthService: OidcAuthService,
     ) : Interceptor {
-    override fun intercept(chain: Interceptor.Chain): Response {
-        val token = oidcAuthService.currentAccessToken
-        val request =
-            if (!token.isNullOrBlank()) {
-                chain
-                    .request()
-                    .newBuilder()
-                    .header("Authorization", "Bearer $token")
-                    .build()
-            } else {
-                chain.request()
-            }
-        return chain.proceed(request)
+        override fun intercept(chain: Interceptor.Chain): Response {
+            val token = oidcAuthService.currentAccessToken
+            val request =
+                if (!token.isNullOrBlank()) {
+                    chain
+                        .request()
+                        .newBuilder()
+                        .header("Authorization", "Bearer $token")
+                        .build()
+                } else {
+                    chain.request()
+                }
+            return chain.proceed(request)
+        }
     }
-}

@@ -17,30 +17,35 @@ class TokenAuthenticator
     constructor(
         private val oidcAuthService: OidcAuthService,
     ) : Authenticator {
-    private val mutex = Mutex()
+        private val mutex = Mutex()
 
-    @Suppress("ReturnCount")
-    override fun authenticate(route: Route?, response: Response): Request? {
-        if (response.priorResponse != null) return null
-        val authHeader = response.request.header("Authorization") ?: return null
-        val failedToken = authHeader.removePrefix("Bearer ").trim()
+        @Suppress("ReturnCount")
+        override fun authenticate(
+            route: Route?,
+            response: Response,
+        ): Request? {
+            if (response.priorResponse != null) return null
+            val authHeader = response.request.header("Authorization") ?: return null
+            val failedToken = authHeader.removePrefix("Bearer ").trim()
 
-        return runBlocking {
-            mutex.withLock {
-                val currentToken = oidcAuthService.currentAccessToken
-                if (!currentToken.isNullOrBlank() && currentToken != failedToken) {
-                    response.request.newBuilder()
-                        .header("Authorization", "Bearer $currentToken")
-                        .build()
-                } else {
-                    val freshToken = oidcAuthService.getFreshAccessToken()
-                    freshToken?.let { token ->
-                        response.request.newBuilder()
-                            .header("Authorization", "Bearer $token")
+            return runBlocking {
+                mutex.withLock {
+                    val currentToken = oidcAuthService.currentAccessToken
+                    if (!currentToken.isNullOrBlank() && currentToken != failedToken) {
+                        response.request
+                            .newBuilder()
+                            .header("Authorization", "Bearer $currentToken")
                             .build()
+                    } else {
+                        val freshToken = oidcAuthService.getFreshAccessToken()
+                        freshToken?.let { token ->
+                            response.request
+                                .newBuilder()
+                                .header("Authorization", "Bearer $token")
+                                .build()
+                        }
                     }
                 }
             }
         }
     }
-}

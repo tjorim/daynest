@@ -17,44 +17,48 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class AuthViewModel @Inject constructor(
-    private val oidcAuthService: OidcAuthService,
-) : ViewModel() {
-    private val _uiState = MutableStateFlow(AuthUiState())
-    val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
+class AuthViewModel
+    @Inject
+    constructor(
+        private val oidcAuthService: OidcAuthService,
+    ) : ViewModel() {
+        private val _uiState = MutableStateFlow(AuthUiState())
+        val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
 
-    private val _signInIntent = MutableSharedFlow<Intent>(extraBufferCapacity = 1)
-    val signInIntent: SharedFlow<Intent> = _signInIntent.asSharedFlow()
+        private val _signInIntent = MutableSharedFlow<Intent>(extraBufferCapacity = 1)
+        val signInIntent: SharedFlow<Intent> = _signInIntent.asSharedFlow()
 
-    fun onSignInClicked() {
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, error = null) }
-            runCatching { oidcAuthService.buildSignInIntent() }
-                .onSuccess { intent ->
-                    _uiState.update { it.copy(isLoading = false) }
-                    _signInIntent.emit(intent)
-                }
-                .onFailure { ex ->
-                    if (ex is CancellationException) throw ex
-                    _uiState.update { it.copy(isLoading = false, error = AuthError.SignInFailed) }
-                }
+        fun onSignInClicked() {
+            viewModelScope.launch {
+                _uiState.update { it.copy(isLoading = true, error = null) }
+                runCatching { oidcAuthService.buildSignInIntent() }
+                    .onSuccess { intent ->
+                        _uiState.update { it.copy(isLoading = false) }
+                        _signInIntent.emit(intent)
+                    }.onFailure { ex ->
+                        if (ex is CancellationException) throw ex
+                        _uiState.update { it.copy(isLoading = false, error = AuthError.SignInFailed) }
+                    }
+            }
         }
-    }
 
-    fun handleAuthorizationResult(resultCode: Int, data: Intent?) {
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, error = null) }
-            val succeeded = oidcAuthService.handleAuthorizationResult(resultCode, data)
-            _uiState.update {
-                it.copy(
-                    isLoading = false,
-                    isSignedIn = succeeded,
-                    error = if (succeeded) null else AuthError.SignInFailed,
-                )
+        fun handleAuthorizationResult(
+            resultCode: Int,
+            data: Intent?,
+        ) {
+            viewModelScope.launch {
+                _uiState.update { it.copy(isLoading = true, error = null) }
+                val succeeded = oidcAuthService.handleAuthorizationResult(resultCode, data)
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        isSignedIn = succeeded,
+                        error = if (succeeded) null else AuthError.SignInFailed,
+                    )
+                }
             }
         }
     }
-}
 
 data class AuthUiState(
     val isLoading: Boolean = false,
