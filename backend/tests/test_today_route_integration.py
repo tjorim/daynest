@@ -1,4 +1,5 @@
 from datetime import date, datetime, time, timezone
+from unittest.mock import MagicMock
 
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
@@ -14,6 +15,7 @@ from app.models.medication_plan import MedicationPlan
 from app.models.routine_template import RoutineTemplate
 from app.models.task_instance import TaskInstance
 from app.models.user import User
+from app.repositories.today_repository import TodayRepository
 from app.schemas.today import TodayResponse
 from app.services.today_service import TodayService
 
@@ -91,7 +93,7 @@ def test_get_today_allows_today_service_dependency_override(client: TestClient, 
 
     class StubTodayService(TodayService):
         def __init__(self) -> None:
-            pass
+            super().__init__(MagicMock(spec=TodayRepository))
 
         def get_today(self, *, user_id: int, for_date: date) -> TodayResponse:
             assert user_id == user.id
