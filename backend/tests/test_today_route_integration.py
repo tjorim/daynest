@@ -15,6 +15,7 @@ from app.models.routine_template import RoutineTemplate
 from app.models.task_instance import TaskInstance
 from app.models.user import User
 from app.schemas.today import TodayResponse
+from app.services.today_service import TodayService
 
 
 def _create_user(db_session: Session, email: str) -> User:
@@ -88,7 +89,10 @@ def test_get_today_allows_today_service_dependency_override(client: TestClient, 
     user = _create_user(db_session, email="today-override@example.com")
     token = create_access_token(user_id=user.id, email=user.email)
 
-    class StubTodayService:
+    class StubTodayService(TodayService):
+        def __init__(self) -> None:
+            pass
+
         def get_today(self, *, user_id: int, for_date: date) -> TodayResponse:
             assert user_id == user.id
             assert for_date == date.today()
