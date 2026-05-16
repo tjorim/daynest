@@ -114,7 +114,12 @@ export function SettingsPage() {
     return () => controller.abort();
   }, []);
 
-  useEffect(() => subscribeInstallPrompt(() => setCanInstallApp(Boolean(getDeferredInstallPrompt()))), []);
+  useEffect(() => {
+    const unsubscribe = subscribeInstallPrompt(() =>
+      setCanInstallApp(Boolean(getDeferredInstallPrompt())),
+    );
+    return unsubscribe;
+  }, []);
 
   const toggleScope = (scope: string) => {
     setSelectedScopes((current) =>
@@ -186,7 +191,9 @@ export function SettingsPage() {
     setIsInstalling(true);
     try {
       await promptToInstallApp();
-    } catch {} finally {
+    } catch (error) {
+      console.error("PWA install prompt failed:", error);
+    } finally {
       setIsInstalling(false);
     }
   };

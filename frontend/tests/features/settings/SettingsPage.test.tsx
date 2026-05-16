@@ -92,17 +92,23 @@ describe("SettingsPage", () => {
 
   it("re-enables install button when prompting fails", async () => {
     const user = userEvent.setup();
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
     pwaMock.getDeferredInstallPrompt.mockReturnValue({ prompt: vi.fn() });
     pwaMock.promptToInstallApp.mockRejectedValue(new Error("prompt failed"));
 
-    render(<SettingsPage />);
+    try {
+      render(<SettingsPage />);
 
-    const installButton = await screen.findByRole("button", { name: /install app/i });
-    await user.click(installButton);
+      const installButton = await screen.findByRole("button", { name: /install app/i });
+      await user.click(installButton);
 
-    await waitFor(() => {
-      expect(installButton).toBeEnabled();
-      expect(pwaMock.promptToInstallApp).toHaveBeenCalledTimes(1);
-    });
+      await waitFor(() => {
+        expect(installButton).toBeEnabled();
+        expect(pwaMock.promptToInstallApp).toHaveBeenCalledTimes(1);
+        expect(consoleErrorSpy).toHaveBeenCalled();
+      });
+    } finally {
+      consoleErrorSpy.mockRestore();
+    }
   });
 });
