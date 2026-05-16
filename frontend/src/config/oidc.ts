@@ -15,7 +15,9 @@ export const oidcConfig: AuthProviderProps = {
   automaticSilentRenew: true,
   post_logout_redirect_uri: window.location.origin,
   onSigninCallback: (user) => {
-    const returnTo = (user?.state as { returnTo?: string } | undefined)?.returnTo ?? "/";
+    const raw = (user?.state as { returnTo?: string } | undefined)?.returnTo;
+    const returnTo =
+      typeof raw === "string" && raw.startsWith("/") && !raw.startsWith("//") ? raw : "/";
     window.history.replaceState({}, document.title, returnTo);
   },
 };

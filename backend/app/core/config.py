@@ -77,6 +77,8 @@ class AppSettings(BaseSettings):
             raise ValueError("Database password must be provided via DB_PASSWORD or DB_PASSWORD_FILE in non-dev environments")
         if not self.oidc_issuer_url and self.environment != "dev":
             raise ValueError("OIDC_ISSUER_URL must be set in non-dev environments")
+        if not self.oidc_audience and self.oidc_algorithms != "none" and self.environment != "dev":
+            raise ValueError("OIDC_AUDIENCE must be set in non-dev environments when using token verification")
         return self
 
     @property

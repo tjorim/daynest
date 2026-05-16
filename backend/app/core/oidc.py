@@ -79,7 +79,7 @@ async def _fetch_jwks() -> PyJWKSet:
         raise
     except Exception as exc:
         logger.error("Failed to fetch JWKS from %s: %s", uri, exc)
-        raise
+        raise OIDCTokenError(f"Failed to fetch JWKS from {uri}: {exc}") from exc
 
 
 async def _get_jwks(*, force_refresh: bool = False) -> PyJWKSet:
@@ -160,9 +160,10 @@ def get_or_create_local_user(subject: str, claims: dict[str, Any], db: Session) 
     if email:
         existing = db.scalar(select(User).where(User.email == email))
         if existing is not None:
-            existing.oidc_subject = subject
-            db.commit()
-            logger.info("Linked existing user %s to OIDC subject %s", email, subject)
+            if existing.oidc_subject is None:
+                existing.oidc_subject = subject
+                db.commit()
+                logger.info("Linked existing user %s to OIDC subject %s", email, subject)
             return existing
 
     full_name = (

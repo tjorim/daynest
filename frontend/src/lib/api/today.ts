@@ -1,3 +1,6 @@
+import { getOidcAccessToken } from "@/lib/auth/session";
+import { z } from "zod";
+
 export type TaskStatus = "pending" | "in_progress" | "completed" | "skipped";
 export type ChoreStatus = "pending" | "completed" | "skipped";
 export type MedicationDoseStatus = "scheduled" | "taken" | "skipped" | "missed";
@@ -6,8 +9,6 @@ export type PlannedItemModuleKey =
   | "meal_planning"
   | "recurring_grocery"
   | "shared_calendar";
-import { getOidcAccessToken } from "@/lib/auth/session";
-import { z } from "zod";
 
 export interface MedicationTodayItem {
   medication_dose_instance_id: number;
@@ -406,6 +407,9 @@ async function fetchWithAuth(
   retries = 2,
 ): Promise<Response> {
   const token = getOidcAccessToken();
+  if (!token) {
+    throw new ApiError("Not authenticated", 401);
+  }
   return fetchWithRetry(input, withAuthHeader(init, token), retries);
 }
 

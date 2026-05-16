@@ -1,5 +1,4 @@
 from fastapi import Depends, HTTPException, Request, status
-from fastapi.concurrency import run_in_threadpool
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
@@ -26,7 +25,7 @@ async def get_current_user(
     if not subject:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token subject")
 
-    user = await run_in_threadpool(get_or_create_local_user, subject, claims, db)
+    user = get_or_create_local_user(subject, claims, db)
     if not user.is_active:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User account inactive")
 

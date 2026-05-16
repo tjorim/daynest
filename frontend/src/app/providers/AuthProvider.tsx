@@ -27,6 +27,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const accessToken = oidc.user?.access_token;
 
     if (!oidc.isAuthenticated || !accessToken) {
+      setIsFetching(false);
       setUser(null);
       return;
     }

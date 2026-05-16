@@ -24,6 +24,7 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    op.execute("UPDATE users SET password_hash = '' WHERE password_hash IS NULL")
     with op.batch_alter_table("users") as batch_op:
         batch_op.drop_index("ix_users_oidc_subject")
         batch_op.drop_column("oidc_subject")

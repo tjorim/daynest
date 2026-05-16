@@ -104,7 +104,14 @@ extensions.configure<ApplicationExtension> {
             buildConfigField("String", "API_BASE_URL", "\"$url\"")
             buildConfigField("String[]", "PROD_PINS", "new String[]{}")
             buildConfigField("String", "PROD_HOST", "\"\"")
-            buildConfigField("String", "OIDC_ISSUER_URL", "\"http://10.0.2.2:8080/realms/daynest\"")
+            val oidcIssuerUrl =
+                resolveApiUrl(
+                    "oidcIssuerUrl",
+                    "OIDC_ISSUER_URL",
+                    required = false,
+                    default = "http://10.0.2.2:8080/realms/daynest",
+                )
+            buildConfigField("String", "OIDC_ISSUER_URL", "\"$oidcIssuerUrl\"")
             buildConfigField("String", "OIDC_CLIENT_ID", "\"daynest\"")
             buildConfigField("String", "OIDC_REDIRECT_URI", "\"com.daynest.android:/oauth2redirect\"")
         }
