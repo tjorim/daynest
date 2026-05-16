@@ -89,4 +89,20 @@ describe("SettingsPage", () => {
       expect(pwaMock.promptToInstallApp).toHaveBeenCalledTimes(1);
     });
   });
+
+  it("re-enables install button when prompting fails", async () => {
+    const user = userEvent.setup();
+    pwaMock.getDeferredInstallPrompt.mockReturnValue({ prompt: vi.fn() });
+    pwaMock.promptToInstallApp.mockRejectedValue(new Error("prompt failed"));
+
+    render(<SettingsPage />);
+
+    const installButton = await screen.findByRole("button", { name: /install app/i });
+    await user.click(installButton);
+
+    await waitFor(() => {
+      expect(installButton).toBeEnabled();
+      expect(pwaMock.promptToInstallApp).toHaveBeenCalledTimes(1);
+    });
+  });
 });

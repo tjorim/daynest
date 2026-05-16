@@ -186,7 +186,7 @@ export function SettingsPage() {
     setIsInstalling(true);
     try {
       await promptToInstallApp();
-    } finally {
+    } catch {} finally {
       setIsInstalling(false);
     }
   };
