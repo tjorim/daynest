@@ -84,6 +84,27 @@ class TestDaynestTodoListEntity:
         ]
         assert [_item_id(item) for item in items] == ["due:101", "due:102", "planned:201", "planned:202"]
 
+    def test_builds_ids_with_kind_prefix(self) -> None:
+        entity = DaynestTodoListEntity(
+            coordinator=_make_coordinator(),
+            entity_description=ENTITY_DESCRIPTION,
+        )
+        items = entity.todo_items
+        assert _item_id(items[0]) == "due:101"
+        assert _item_id(items[2]) == "planned:201"
+
+    def test_skips_items_missing_required_id_key(self) -> None:
+        data = {
+            **COORDINATOR_DATA,
+            "due_today": [{"title": "No ID", "status": "pending"}],
+            "planned": [{"id": None, "title": "Bad planned", "is_done": False}],
+        }
+        entity = DaynestTodoListEntity(
+            coordinator=_make_coordinator(data=data),
+            entity_description=ENTITY_DESCRIPTION,
+        )
+        assert entity.todo_items == []
+
     def test_maps_status_to_home_assistant_todo_status(self) -> None:
         entity = DaynestTodoListEntity(
             coordinator=_make_coordinator(),

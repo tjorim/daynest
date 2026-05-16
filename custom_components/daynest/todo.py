@@ -110,12 +110,13 @@ class DaynestTodoListEntity(TodoListEntity, DaynestEntity):
             return []
 
         items: list[TodoItem] = []
-        for index, item in enumerate(source):
+        for item in source:
             if not isinstance(item, dict):
                 continue
 
-            raw_id = item.get(id_key, index)
-            item_id = f"{kind}:{raw_id}"
+            item_id = self._format_item_id(kind, item.get(id_key))
+            if item_id is None:
+                continue
             status = self._status_from_item(item)
             summary = str(item.get("title") or "Task")
             due_value = item.get("scheduled_date") or item.get("planned_for")
@@ -134,6 +135,16 @@ class DaynestTodoListEntity(TodoListEntity, DaynestEntity):
                 items.append(TodoItem(uid=item_id, **kwargs))
 
         return items
+
+    def _format_item_id(self, kind: str, raw_id: Any) -> str | None:
+        """Build a stable item ID string from Daynest IDs."""
+        try:
+            parsed_id = int(raw_id)
+        except (TypeError, ValueError):
+            return None
+        if parsed_id <= 0:
+            return None
+        return f"{kind}:{parsed_id}"
 
     def _parse_item_id(self, item_id: str) -> tuple[str, int]:
         """Parse item IDs encoded as '<kind>:<id>'."""
