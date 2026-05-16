@@ -74,6 +74,12 @@ This entity reads task items from `due_today` and `planned` in the dashboard pay
 - pending / not done → needs action
 - completed / done / skipped / taken → complete
 
+Write behavior:
+
+- Mark complete (HA) is supported for `due_today` chore items and maps to `complete-task`.
+- Delete (HA) is supported for `due_today` chore items and maps to `skip-task`.
+- Creating new items and mutating `planned` items is currently not supported via integration endpoints.
+
 ### `POST /api/v1/integrations/home-assistant/actions/complete-task`
 
 Used by the `daynest.complete_task` Home Assistant service.
