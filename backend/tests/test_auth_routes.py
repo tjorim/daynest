@@ -1,12 +1,7 @@
 """Tests for OIDC-based auth – /me endpoint and user provisioning."""
 from __future__ import annotations
 
-from datetime import timedelta, timezone
-from datetime import datetime as dt
-
-import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.dependencies.auth import get_current_user
