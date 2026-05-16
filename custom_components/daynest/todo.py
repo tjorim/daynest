@@ -8,7 +8,6 @@ from typing import TYPE_CHECKING, Any
 from homeassistant.components.todo import TodoItem, TodoItemStatus, TodoListEntity
 from homeassistant.helpers.entity import EntityDescription
 
-from .const import PARALLEL_UPDATES as PARALLEL_UPDATES
 from .entity import DaynestEntity
 
 if TYPE_CHECKING:
@@ -22,7 +21,10 @@ ENTITY_DESCRIPTION = EntityDescription(
     key="tasks_due_today",
     translation_key="tasks_due_today",
 )
-COMPLETE_STATUS = getattr(TodoItemStatus, "COMPLETE", getattr(TodoItemStatus, "COMPLETED"))
+try:
+    COMPLETE_STATUS = TodoItemStatus.COMPLETE
+except AttributeError:  # pragma: no cover - compatibility with enum name changes across HA versions
+    COMPLETE_STATUS = TodoItemStatus.COMPLETED
 
 
 async def async_setup_entry(

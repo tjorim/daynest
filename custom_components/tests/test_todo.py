@@ -6,10 +6,13 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from daynest.todo import DaynestTodoListEntity, ENTITY_DESCRIPTION
+from daynest.todo import ENTITY_DESCRIPTION, DaynestTodoListEntity
 from homeassistant.components.todo import TodoItemStatus
 
-COMPLETE_STATUS = getattr(TodoItemStatus, "COMPLETE", getattr(TodoItemStatus, "COMPLETED"))
+try:
+    COMPLETE_STATUS = TodoItemStatus.COMPLETE
+except AttributeError:
+    COMPLETE_STATUS = TodoItemStatus.COMPLETED
 
 COORDINATOR_DATA = {
     "for_date": "2026-01-15",
