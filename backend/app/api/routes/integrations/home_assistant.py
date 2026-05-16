@@ -19,10 +19,14 @@ from app.schemas.integrations import (
     HAActionResult,
     HomeAssistantEntity,
     MarkMedicationTakenRequest,
+    PlannedItemCreateRequest,
+    PlannedItemUpdateRequest,
     SkipMedicationRequest,
     SkipTaskRequest,
     SnoozeTaskRequest,
 )
+from app.schemas.today import PlannedItemCreateRequest as TodayPlannedItemCreateRequest
+from app.schemas.today import PlannedItemUpdateRequest as TodayPlannedItemUpdateRequest
 from app.services.today_service import TodayService
 
 router = APIRouter(prefix="/integrations/home-assistant", tags=["integrations"])
@@ -156,3 +160,47 @@ def home_assistant_skip_medication(
         action="skip",
     )
     return HAActionResult(success=True, detail=f"Medication dose {request.medication_dose_id} skipped")
+
+
+@router.post("/actions/create-planned-item", response_model=HAActionResult)
+def home_assistant_create_planned_item(
+    request: PlannedItemCreateRequest,
+    db: Session = Depends(get_db),
+    integration_user: User = Depends(require_integration_scope("ha:write")),
+) -> HAActionResult:
+    """Create a planned item via Home Assistant automation."""
+    service = TodayService(TodayRepository(db))
+    created = service.create_planned_item(
+        user_id=integration_user.id,
+        request=TodayPlannedItemCreateRequest(**request.model_dump()),
+    )
+    return HAActionResult(success=True, detail=f"Planned item {created.id} created")
+
+
+@router.put("/actions/update-planned-item/{planned_item_id}", response_model=HAActionResult)
+def home_assistant_update_planned_item(
+    planned_item_id: int,
+    request: PlannedItemUpdateRequest,
+    db: Session = Depends(get_db),
+    integration_user: User = Depends(require_integration_scope("ha:write")),
+) -> HAActionResult:
+    """Update a planned item via Home Assistant automation."""
+    service = TodayService(TodayRepository(db))
+    service.update_planned_item(
+        user_id=integration_user.id,
+        planned_item_id=planned_item_id,
+        request=TodayPlannedItemUpdateRequest(**request.model_dump()),
+    )
+    return HAActionResult(success=True, detail=f"Planned item {planned_item_id} updated")
+
+
+@router.delete("/actions/delete-planned-item/{planned_item_id}", response_model=HAActionResult)
+def home_assistant_delete_planned_item(
+    planned_item_id: int,
+    db: Session = Depends(get_db),
+    integration_user: User = Depends(require_integration_scope("ha:write")),
+) -> HAActionResult:
+    """Delete a planned item via Home Assistant automation."""
+    service = TodayService(TodayRepository(db))
+    service.delete_planned_item(user_id=integration_user.id, planned_item_id=planned_item_id)
+    return HAActionResult(success=True, detail=f"Planned item {planned_item_id} deleted")

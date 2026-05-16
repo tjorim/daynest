@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from daynest.todo import ENTITY_DESCRIPTION, DaynestTodoListEntity
-from homeassistant.components.todo import TodoItemStatus
+from homeassistant.components.todo import TodoItem, TodoItemStatus
 from homeassistant.exceptions import HomeAssistantError
 
 try:
@@ -154,7 +154,30 @@ class TestDaynestTodoListEntity:
             entity_description=ENTITY_DESCRIPTION,
         )
 
-        with pytest.raises(HomeAssistantError, match="Only due-today chore items can be updated"):
+        await entity.async_update_todo_item(
+            "planned:201",
+            {
+                "status": COMPLETE_STATUS,
+                "summary": "Plan meals and snacks",
+            },
+        )
+
+        coordinator.config_entry.runtime_data.client.async_update_planned_item.assert_awaited_once()
+        call_kwargs = coordinator.config_entry.runtime_data.client.async_update_planned_item.await_args.kwargs
+        assert call_kwargs["planned_item_id"] == 201
+        assert call_kwargs["title"] == "Plan meals and snacks"
+        assert call_kwargs["is_done"] is True
+        coordinator.async_request_refresh.assert_awaited_once()
+
+    async def test_update_for_missing_planned_item_raises(self) -> None:
+        coordinator = _make_coordinator()
+        coordinator.data = {**COORDINATOR_DATA, "planned": []}
+        entity = DaynestTodoListEntity(
+            coordinator=coordinator,
+            entity_description=ENTITY_DESCRIPTION,
+        )
+
+        with pytest.raises(HomeAssistantError, match="Unable to locate planned item for id 201"):
             await entity.async_update_todo_item("planned:201", {"status": COMPLETE_STATUS})
 
     async def test_update_with_unsupported_status_raises(self) -> None:
@@ -188,5 +211,39 @@ class TestDaynestTodoListEntity:
             entity_description=ENTITY_DESCRIPTION,
         )
 
-        with pytest.raises(HomeAssistantError, match="Only due-today chore items can be deleted"):
-            await entity.async_delete_todo_items(["planned:201"])
+        await entity.async_delete_todo_items(["planned:201"])
+
+        coordinator.config_entry.runtime_data.client.async_delete_planned_item.assert_awaited_once_with(201)
+        coordinator.async_request_refresh.assert_awaited_once()
+
+    async def test_create_todo_item_creates_planned_item(self) -> None:
+        coordinator = _make_coordinator()
+        entity = DaynestTodoListEntity(
+            coordinator=coordinator,
+            entity_description=ENTITY_DESCRIPTION,
+        )
+
+        await entity.async_create_todo_item(
+            TodoItem(
+                summary="New planned task",
+                due=entity._parse_due("2026-01-16"),
+                status=TodoItemStatus.NEEDS_ACTION,
+            )
+        )
+
+        coordinator.config_entry.runtime_data.client.async_create_planned_item.assert_awaited_once_with(
+            title="New planned task",
+            planned_for="2026-01-16",
+            notes=None,
+        )
+        coordinator.async_request_refresh.assert_awaited_once()
+
+    async def test_create_todo_item_requires_summary(self) -> None:
+        coordinator = _make_coordinator()
+        entity = DaynestTodoListEntity(
+            coordinator=coordinator,
+            entity_description=ENTITY_DESCRIPTION,
+        )
+
+        with pytest.raises(HomeAssistantError, match="Todo item summary is required"):
+            await entity.async_create_todo_item(TodoItem(summary="", status=TodoItemStatus.NEEDS_ACTION))

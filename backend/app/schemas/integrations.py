@@ -1,5 +1,5 @@
 from datetime import date
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -29,6 +29,23 @@ class SkipTaskRequest(BaseModel):
 
 class SkipMedicationRequest(BaseModel):
     medication_dose_id: int = Field(gt=0, description="The medication dose instance ID to skip")
+
+
+PlannedItemModuleKey = Literal["shopping_list", "meal_planning", "recurring_grocery", "shared_calendar"]
+
+
+class PlannedItemCreateRequest(BaseModel):
+    title: str = Field(..., min_length=1, max_length=255)
+    planned_for: date
+    notes: str | None = Field(default=None, max_length=4000)
+    module_key: PlannedItemModuleKey | None = None
+    recurrence_hint: str | None = Field(default=None, max_length=255)
+    linked_source: str | None = Field(default=None, max_length=120)
+    linked_ref: str | None = Field(default=None, max_length=255)
+
+
+class PlannedItemUpdateRequest(PlannedItemCreateRequest):
+    is_done: bool = False
 
 
 class HAActionResult(BaseModel):

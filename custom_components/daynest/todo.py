@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 from typing import TYPE_CHECKING, Any
 
 from homeassistant.components.todo import TodoItem, TodoItemStatus, TodoListEntity, TodoListEntityFeature
@@ -49,6 +49,8 @@ class DaynestTodoListEntity(TodoListEntity, DaynestEntity):
 
     _attr_icon = "mdi:format-list-checks"
     _attr_supported_features = (
+        TodoListEntityFeature.CREATE_TODO_ITEM
+        |
         TodoListEntityFeature.UPDATE_TODO_ITEM
         | TodoListEntityFeature.DELETE_TODO_ITEM
     )
@@ -75,32 +77,76 @@ class DaynestTodoListEntity(TodoListEntity, DaynestEntity):
     async def async_update_todo_item(self, item_id: str, changes: dict[str, Any]) -> None:
         """Update a todo item.
 
-        Supports marking due-today chore items as complete.
+        Supports due chore completion and planned item updates.
         """
         kind, raw_id = self._parse_item_id(item_id)
-        if kind != "due":
-            msg = "Only due-today chore items can be updated."
+        client = self.coordinator.config_entry.runtime_data.client
+
+        if kind == "due":
+            status = changes.get("status")
+            if status != COMPLETE_STATUS:
+                msg = "Only marking due-today chore items as complete is supported."
+                raise HomeAssistantError(msg)
+
+            await client.async_complete_task(raw_id)
+            await self.coordinator.async_request_refresh()
+            return
+
+        planned_item = self._find_planned_item(raw_id)
+        if planned_item is None:
+            msg = f"Unable to locate planned item for id {raw_id}."
             raise HomeAssistantError(msg)
 
         status = changes.get("status")
-        if status != COMPLETE_STATUS:
-            msg = "Only marking due-today chore items as complete is supported."
+        if status is None:
+            status = COMPLETE_STATUS if planned_item.get("is_done") else TodoItemStatus.NEEDS_ACTION
+        summary = str(changes.get("summary", planned_item.get("title") or "Task")).strip()
+        if not summary:
+            msg = "Planned item title cannot be empty."
+            raise HomeAssistantError(msg)
+        planned_for = self._format_due_for_payload(changes.get("due", planned_item.get("planned_for")))
+        notes = changes.get("description", planned_item.get("notes"))
+
+        await client.async_update_planned_item(
+            planned_item_id=raw_id,
+            title=summary,
+            planned_for=planned_for,
+            is_done=self._is_complete_status(status),
+            notes=notes,
+            module_key=planned_item.get("module_key"),
+            recurrence_hint=planned_item.get("recurrence_hint"),
+            linked_source=planned_item.get("linked_source"),
+            linked_ref=planned_item.get("linked_ref"),
+        )
+        await self.coordinator.async_request_refresh()
+
+    async def async_create_todo_item(self, item: TodoItem) -> None:
+        """Create a planned Daynest item from Home Assistant."""
+        summary = str(item.summary or "").strip()
+        if not summary:
+            msg = "Todo item summary is required."
             raise HomeAssistantError(msg)
 
-        await self.coordinator.config_entry.runtime_data.client.async_complete_task(raw_id)
+        await self.coordinator.config_entry.runtime_data.client.async_create_planned_item(
+            title=summary,
+            planned_for=self._format_due_for_payload(item.due),
+            notes=item.description,
+        )
         await self.coordinator.async_request_refresh()
 
     async def async_delete_todo_items(self, item_ids: list[str]) -> None:
         """Delete todo items.
 
         For due-today chore items, delete maps to skip-task.
+        For planned items, delete removes the planned item.
         """
+        client = self.coordinator.config_entry.runtime_data.client
         for item_id in item_ids:
             kind, raw_id = self._parse_item_id(item_id)
-            if kind != "due":
-                msg = "Only due-today chore items can be deleted."
-                raise HomeAssistantError(msg)
-            await self.coordinator.config_entry.runtime_data.client.async_skip_task(raw_id)
+            if kind == "due":
+                await client.async_skip_task(raw_id)
+            else:
+                await client.async_delete_planned_item(raw_id)
 
         await self.coordinator.async_request_refresh()
 
@@ -126,6 +172,9 @@ class DaynestTodoListEntity(TodoListEntity, DaynestEntity):
                 "summary": summary,
                 "status": status,
             }
+            notes = item.get("notes")
+            if isinstance(notes, str) and notes.strip():
+                kwargs["description"] = notes
             if due is not None:
                 kwargs["due"] = due
 
@@ -157,7 +206,54 @@ class DaynestTodoListEntity(TodoListEntity, DaynestEntity):
         except ValueError as err:
             msg = f"Unsupported Daynest to-do item id: {item_id}"
             raise HomeAssistantError(msg) from err
+        if parsed_id <= 0:
+            msg = f"Unsupported Daynest to-do item id: {item_id}"
+            raise HomeAssistantError(msg)
         return kind, parsed_id
+
+    def _is_complete_status(self, status: Any) -> bool:
+        """Return true when status maps to a completed todo item."""
+        if status == COMPLETE_STATUS:
+            return True
+        if isinstance(status, str) and status.lower() in {"completed", "complete"}:
+            return True
+        return False
+
+    def _format_due_for_payload(self, value: Any) -> str:
+        """Serialize due values into YYYY-MM-DD for planned-item write calls."""
+        if isinstance(value, datetime):
+            return value.date().isoformat()
+        if isinstance(value, date):
+            return value.isoformat()
+        if isinstance(value, str):
+            try:
+                return datetime.fromisoformat(value).date().isoformat()
+            except ValueError:
+                try:
+                    return date.fromisoformat(value).isoformat()
+                except ValueError:
+                    pass
+        fallback = self.coordinator.data.get("for_date") if isinstance(self.coordinator.data, dict) else None
+        if isinstance(fallback, str):
+            try:
+                return date.fromisoformat(fallback).isoformat()
+            except ValueError:
+                pass
+        return date.today().isoformat()
+
+    def _find_planned_item(self, planned_item_id: int) -> dict[str, Any] | None:
+        """Find a planned item by ID in the current coordinator payload."""
+        if not isinstance(self.coordinator.data, dict):
+            return None
+        planned_items = self.coordinator.data.get("planned")
+        if not isinstance(planned_items, list):
+            return None
+        for item in planned_items:
+            if not isinstance(item, dict):
+                continue
+            if self._format_item_id("planned", item.get("id")) == f"planned:{planned_item_id}":
+                return item
+        return None
 
     def _status_from_item(self, item: dict[str, Any]) -> TodoItemStatus:
         """Convert Daynest item status to Home Assistant to-do status."""
