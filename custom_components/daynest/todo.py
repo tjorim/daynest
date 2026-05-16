@@ -83,19 +83,17 @@ class DaynestTodoListEntity(TodoListEntity, DaynestEntity):
             due_value = item.get("scheduled_date") or item.get("planned_for")
             due = self._parse_due(due_value)
 
-            fields = set(getattr(TodoItem, "__annotations__", {})) | set(getattr(TodoItem, "__dataclass_fields__", {}))
             kwargs: dict[str, Any] = {
                 "summary": summary,
                 "status": status,
             }
-            if "item_id" in fields:
-                kwargs["item_id"] = item_id
-            else:
-                kwargs["uid"] = item_id
             if due is not None:
                 kwargs["due"] = due
 
-            items.append(TodoItem(**kwargs))
+            try:
+                items.append(TodoItem(item_id=item_id, **kwargs))
+            except TypeError:
+                items.append(TodoItem(uid=item_id, **kwargs))
 
         return items
 
