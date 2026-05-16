@@ -16,6 +16,9 @@ concurrency:
   group: "backend-ci-${{ github.head_ref || github.ref }}"
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   backend-safety:
     runs-on: ubuntu-latest

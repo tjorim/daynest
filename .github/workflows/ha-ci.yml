@@ -16,6 +16,9 @@ concurrency:
   group: "ha-ci-${{ github.head_ref || github.ref }}"
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   ha-safety:
     runs-on: ubuntu-latest

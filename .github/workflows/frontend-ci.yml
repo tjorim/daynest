@@ -16,6 +16,9 @@ concurrency:
   group: "frontend-ci-${{ github.head_ref || github.ref }}"
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   frontend-type-build:
     runs-on: ubuntu-latest
