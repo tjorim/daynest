@@ -1,16 +1,17 @@
 """OIDC/JWT authentication for Daynest backend.
 
-Validates Bearer JWTs issued by Keycloak and auto-provisions local user records
-on first login.
+Validates Bearer JWTs issued by any OIDC-compliant provider (Keycloak, authentik, …)
+and auto-provisions local user records on first login.
 
 Configuration via AppSettings:
-  OIDC_ISSUER_URL   — Keycloak realm URL (e.g. http://localhost:8080/realms/daynest)
+  OIDC_ISSUER_URL   — OIDC issuer URL (e.g. http://localhost:8080/realms/daynest)
   OIDC_AUDIENCE     — Expected audience claim (optional)
-  OIDC_JWKS_URI     — JWKS endpoint override (defaults to {issuer}/protocol/openid-connect/certs)
+  OIDC_JWKS_URI     — JWKS endpoint override (auto-discovered via /.well-known/openid-configuration if omitted)
   OIDC_ALGORITHMS   — Comma-separated accepted algorithms (default RS256)
 
 Token subject claim (``sub``) is the stable identity key.
 On first login, existing users are linked by email to support migration from local auth.
+Realm roles are extracted from the ``realm_access.roles`` JWT claim.
 """
 
 from __future__ import annotations
@@ -34,19 +35,36 @@ _OIDC_ALGORITHMS: list[str] = [a.strip() for a in settings.oidc_algorithms.split
 _OIDC_AUDIENCE: str | None = settings.oidc_audience or None
 _OIDC_ISSUER: str | None = settings.oidc_issuer_url or None
 
+_jwks_uri_cache: str | None = None
+_jwks_uri_lock = asyncio.Lock()
+
 _jwks_lock = asyncio.Lock()
 _jwks_cache: dict[str, Any] | None = None
 
 
-def _get_jwks_uri() -> str:
+async def _resolve_jwks_uri() -> str:
+    """Return the JWKS URI, discovering it from the OIDC configuration document if needed."""
+    global _jwks_uri_cache  # noqa: PLW0603
     if settings.oidc_jwks_uri:
         return settings.oidc_jwks_uri
-    base = (settings.oidc_issuer_url or "").rstrip("/")
-    return f"{base}/protocol/openid-connect/certs"
+    async with _jwks_uri_lock:
+        if _jwks_uri_cache is not None:
+            return _jwks_uri_cache
+        base = (settings.oidc_issuer_url or "").rstrip("/")
+        try:
+            async with httpx.AsyncClient(timeout=10) as client:
+                resp = await client.get(f"{base}/.well-known/openid-configuration")
+            resp.raise_for_status()
+            _jwks_uri_cache = resp.json()["jwks_uri"]
+            logger.info("Discovered JWKS URI: %s", _jwks_uri_cache)
+        except Exception as exc:
+            logger.warning("OIDC discovery failed (%s); falling back to Keycloak JWKS path", exc)
+            _jwks_uri_cache = f"{base}/protocol/openid-connect/certs"
+        return _jwks_uri_cache
 
 
 async def _fetch_jwks() -> dict[str, Any]:
-    uri = _get_jwks_uri()
+    uri = await _resolve_jwks_uri()
     try:
         async with httpx.AsyncClient(timeout=10) as client:
             response = await client.get(uri)
@@ -68,6 +86,15 @@ async def _get_jwks(*, force_refresh: bool = False) -> dict[str, Any]:
 
 class OIDCTokenError(Exception):
     """Raised when a JWT cannot be validated against the OIDC provider."""
+
+
+def _extract_roles(claims: dict[str, Any]) -> list[str]:
+    """Extract realm-level roles from the ``realm_access.roles`` JWT claim."""
+    realm_access = claims.get("realm_access")
+    if not isinstance(realm_access, dict):
+        return []
+    roles = realm_access.get("roles", [])
+    return roles if isinstance(roles, list) else []
 
 
 def _find_signing_key(jwks_dict: dict[str, Any], kid: str | None) -> Any | None:
@@ -150,7 +177,7 @@ def get_or_create_local_user(subject: str, claims: dict[str, Any], db: Session) 
     )
 
     new_user = User(
-        email=email or f"user-{subject[:8]}@keycloak.local",
+        email=email or f"user-{subject[:8]}@oidc.local",
         full_name=full_name,
         oidc_subject=subject,
     )

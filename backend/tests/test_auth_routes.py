@@ -53,6 +53,7 @@ class TestMeEndpoint:
             assert data["email"] == "me@example.com"
             assert data["full_name"] == "Test User"
             assert data["is_active"] is True
+            assert data["roles"] == []
         finally:
             _clear_auth()
 
@@ -114,7 +115,7 @@ class TestGetOrCreateLocalUser:
     def test_provisions_new_user_without_email_claim(self, db_session: Session) -> None:
         result = get_or_create_local_user("sub-no-email", {}, db_session)
         assert result.id is not None
-        assert "keycloak.local" in result.email
+        assert "oidc.local" in result.email
 
     def test_second_call_with_same_subject_returns_same_user(self, db_session: Session) -> None:
         first = get_or_create_local_user("sub-idempotent", {"email": "idem@example.com"}, db_session)

@@ -6,3 +6,4 @@ class UserMeResponse(BaseModel):
     email: str
     full_name: str | None = None
     is_active: bool
+    roles: list[str] = []
