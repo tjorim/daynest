@@ -514,21 +514,25 @@ class TodayService:
         instance = self.repository.get_dose_for_user(user_id=user_id, dose_id=medication_dose_instance_id)
         if instance is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Medication dose instance not found")
-        if instance.status != MedicationDoseStatus.scheduled:
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Medication dose can only be updated from scheduled")
 
         now = self.repository.utcnow()
         if action == "take":
+            if instance.status not in {MedicationDoseStatus.scheduled, MedicationDoseStatus.missed}:
+                raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Medication dose can only be taken from scheduled or missed")
             instance.status = MedicationDoseStatus.taken
             instance.taken_at = now
             instance.skipped_at = None
             instance.missed_at = None
         elif action == "skip":
+            if instance.status not in {MedicationDoseStatus.scheduled, MedicationDoseStatus.missed}:
+                raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Medication dose can only be skipped from scheduled or missed")
             instance.status = MedicationDoseStatus.skipped
             instance.skipped_at = now
             instance.taken_at = None
             instance.missed_at = None
         elif action == "miss":
+            if instance.status != MedicationDoseStatus.scheduled:
+                raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Medication dose can only be marked missed from scheduled")
             instance.status = MedicationDoseStatus.missed
             instance.missed_at = now
             instance.taken_at = None

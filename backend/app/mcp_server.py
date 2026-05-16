@@ -706,13 +706,13 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
 
     @mcp.tool()
     async def take_medication_dose(medication_dose_instance_id: int) -> dict[str, Any]:
-        """Mark a Daynest medication dose as taken."""
+        """Mark a Daynest medication dose as taken. Accepts doses in scheduled or missed status."""
 
         return await to_thread.run_sync(daynest.take_medication_dose, medication_dose_instance_id)
 
     @mcp.tool()
     async def skip_medication_dose(medication_dose_instance_id: int) -> dict[str, Any]:
-        """Mark a Daynest medication dose as skipped."""
+        """Mark a Daynest medication dose as skipped. Accepts doses in scheduled or missed status."""
 
         return await to_thread.run_sync(daynest.skip_medication_dose, medication_dose_instance_id)
 

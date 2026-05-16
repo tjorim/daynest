@@ -318,7 +318,7 @@ function MedicationActions({
 }) {
   const actions = useTodayActions(onRefresh);
 
-  if (!medicationDoseInstanceId || medicationStatus !== "scheduled") {
+  if (!medicationDoseInstanceId || (medicationStatus !== "scheduled" && medicationStatus !== "missed")) {
     return null;
   }
 

@@ -1,13 +1,18 @@
 from datetime import date, datetime, timezone
 from types import SimpleNamespace
 
+import pytest
+from fastapi import HTTPException
+
 from app.core.config import AppSettings
 from app.core.enums import ChoreStatus, MedicationDoseStatus, TaskStatus
 from app.services.today_service import TodayService
 
+_FIXED_NOW = datetime(2026, 4, 23, 10, 0, tzinfo=timezone.utc)
+
 
 class StubTodayRepository:
-    def __init__(self, tasks: list[SimpleNamespace], overdue: list[SimpleNamespace], due: list[SimpleNamespace], upcoming: list[SimpleNamespace], medication: list[SimpleNamespace], medication_history: list[SimpleNamespace], planned: list[SimpleNamespace]):
+    def __init__(self, tasks: list[SimpleNamespace], overdue: list[SimpleNamespace], due: list[SimpleNamespace], upcoming: list[SimpleNamespace], medication: list[SimpleNamespace], medication_history: list[SimpleNamespace], planned: list[SimpleNamespace], dose: SimpleNamespace | None = None):
         self._tasks = tasks
         self._overdue = overdue
         self._due = due
@@ -15,10 +20,12 @@ class StubTodayRepository:
         self._medication = medication
         self._medication_history = medication_history
         self._planned = planned
+        self._dose = dose
         self.generated_through: date | None = None
         self.tasks_generated_through: date | None = None
         self.grace_minutes: int | None = None
         self.upcoming_horizon_days: int | None = None
+        self.saved = False
 
     def ensure_chore_instances_generated(self, user_id: int, through_date: date) -> None:
         self.generated_through = through_date
@@ -34,9 +41,13 @@ class StubTodayRepository:
         return None
 
     def utcnow(self):
-        from datetime import datetime, timezone
+        return _FIXED_NOW
 
-        return datetime.now(timezone.utc)
+    def get_dose_for_user(self, user_id: int, dose_id: int) -> SimpleNamespace | None:
+        return self._dose
+
+    def save(self) -> None:
+        self.saved = True
 
     def get_today_medication(self, user_id: int, for_date: date) -> list[SimpleNamespace]:
         return self._medication
@@ -125,3 +136,107 @@ def test_get_today_shapes_chore_sections() -> None:
     assert response.planned[0].id == 77
     assert response.planned[0].module_key == "meal_planning"
     assert len(response.day_items) == 4
+
+
+def _make_service(dose: SimpleNamespace | None = None) -> tuple[StubTodayRepository, TodayService]:
+    repo = StubTodayRepository(
+        tasks=[],
+        overdue=[],
+        due=[],
+        upcoming=[],
+        medication=[],
+        medication_history=[],
+        planned=[],
+        dose=dose,
+    )
+    service = TodayService(repository=repo, app_settings=AppSettings())
+    return repo, service
+
+
+def _make_dose(status: MedicationDoseStatus) -> SimpleNamespace:
+    return SimpleNamespace(
+        id=1,
+        user_id=7,
+        medication_plan_id=2,
+        name="Vitamin D",
+        instructions="Take with breakfast",
+        scheduled_date=date(2026, 4, 23),
+        scheduled_at=datetime(2026, 4, 23, 9, 0, tzinfo=timezone.utc),
+        status=status,
+        taken_at=None,
+        skipped_at=None,
+        missed_at=None,
+    )
+
+
+def test_mutate_medication_take_from_scheduled() -> None:
+    dose = _make_dose(MedicationDoseStatus.scheduled)
+    repo, service = _make_service(dose)
+
+    result = service.mutate_medication_status(user_id=7, medication_dose_instance_id=1, action="take")
+
+    assert result.status == MedicationDoseStatus.taken
+    assert result.taken_at == _FIXED_NOW
+    assert result.skipped_at is None
+    assert result.missed_at is None
+    assert repo.saved
+
+
+def test_mutate_medication_take_from_missed() -> None:
+    """A missed dose can be retroactively marked as taken."""
+    dose = _make_dose(MedicationDoseStatus.missed)
+    repo, service = _make_service(dose)
+
+    result = service.mutate_medication_status(user_id=7, medication_dose_instance_id=1, action="take")
+
+    assert result.status == MedicationDoseStatus.taken
+    assert result.taken_at == _FIXED_NOW
+    assert result.skipped_at is None
+    assert result.missed_at is None
+    assert repo.saved
+
+
+def test_mutate_medication_skip_from_missed() -> None:
+    """A missed dose can be explicitly skipped."""
+    dose = _make_dose(MedicationDoseStatus.missed)
+    repo, service = _make_service(dose)
+
+    result = service.mutate_medication_status(user_id=7, medication_dose_instance_id=1, action="skip")
+
+    assert result.status == MedicationDoseStatus.skipped
+    assert result.skipped_at == _FIXED_NOW
+    assert result.taken_at is None
+    assert result.missed_at is None
+    assert repo.saved
+
+
+def test_mutate_medication_take_from_taken_raises_conflict() -> None:
+    """Attempting to take an already-taken dose raises 409."""
+    dose = _make_dose(MedicationDoseStatus.taken)
+    _, service = _make_service(dose)
+
+    with pytest.raises(HTTPException) as exc_info:
+        service.mutate_medication_status(user_id=7, medication_dose_instance_id=1, action="take")
+
+    assert exc_info.value.status_code == 409
+
+
+def test_mutate_medication_miss_from_missed_raises_conflict() -> None:
+    """Attempting to mark a missed dose as missed again raises 409."""
+    dose = _make_dose(MedicationDoseStatus.missed)
+    _, service = _make_service(dose)
+
+    with pytest.raises(HTTPException) as exc_info:
+        service.mutate_medication_status(user_id=7, medication_dose_instance_id=1, action="miss")
+
+    assert exc_info.value.status_code == 409
+
+
+def test_mutate_medication_not_found_raises_404() -> None:
+    """Missing dose raises 404."""
+    repo, service = _make_service(dose=None)
+
+    with pytest.raises(HTTPException) as exc_info:
+        service.mutate_medication_status(user_id=7, medication_dose_instance_id=99, action="take")
+
+    assert exc_info.value.status_code == 404
