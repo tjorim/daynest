@@ -97,9 +97,11 @@ class DaynestMcpBackend:
     def resolve_user(self, db: Session) -> User:
         access_token = get_access_token()
         if access_token is not None:
+            client_id = access_token.client_id
+
             # Integration key auth: client_id is an integer DB id
             try:
-                client_int_id = int(access_token.client_id)
+                client_int_id = int(client_id)
             except (TypeError, ValueError):
                 client_int_id = None
 
@@ -107,17 +109,17 @@ class DaynestMcpBackend:
                 # verify_token stores only an AccessToken in request context — re-query with joinedload.
                 stmt = select(IntegrationClient).where(IntegrationClient.id == client_int_id).options(joinedload(IntegrationClient.user))
                 client = db.scalar(stmt)
-                if client is None or not client.is_active:
-                    raise ValueError("Authenticated MCP integration client is inactive or missing")
-                if client.user is None or not client.user.is_active:
-                    raise ValueError("Authenticated integration owner not found or inactive")
-                return client.user
+                if client is not None and client.is_active:
+                    if client.user is None or not client.user.is_active:
+                        raise ValueError("Authenticated integration owner not found or inactive")
+                    return client.user
 
             # OIDC auth: client_id is the OIDC subject (sub)
-            subject = access_token.client_id
-            user = db.scalar(select(User).where(User.oidc_subject == subject).where(User.is_active.is_(True)))
+            if not client_id:
+                raise ValueError("Authenticated MCP access token is missing a client ID")
+            user = db.scalar(select(User).where(User.oidc_subject == client_id).where(User.is_active.is_(True)))
             if user is None:
-                raise ValueError(f"No active user found for OIDC subject: {subject}")
+                raise ValueError(f"No active user or integration found for client ID: {client_id}")
             return user
 
         configured_email = self.user_email or os.getenv(DAYNEST_USER_EMAIL_ENV)

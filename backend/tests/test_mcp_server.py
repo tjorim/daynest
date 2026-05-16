@@ -165,3 +165,32 @@ def test_mcp_backend_uses_authenticated_integration_owner(db_session: Session, m
     whoami = backend.whoami()
 
     assert whoami["email"] == "auth-owner@example.com"
+
+
+def test_mcp_backend_falls_back_to_oidc_for_numeric_subject(db_session: Session, monkeypatch) -> None:
+    user = _create_user(db_session, "numeric-oidc@example.com")
+    user.oidc_subject = "123456"
+    db_session.commit()
+    backend = DaynestMcpBackend(_session_factory(db_session))
+
+    class AccessTokenStub:
+        client_id = "123456"
+
+    monkeypatch.setattr("app.mcp_server.get_access_token", lambda: AccessTokenStub())
+
+    whoami = backend.whoami()
+
+    assert whoami["email"] == "numeric-oidc@example.com"
+
+
+def test_mcp_backend_rejects_authenticated_token_without_client_id(db_session: Session, monkeypatch) -> None:
+    _create_user(db_session, "missing-subject@example.com")
+    backend = DaynestMcpBackend(_session_factory(db_session))
+
+    class AccessTokenStub:
+        client_id = None
+
+    monkeypatch.setattr("app.mcp_server.get_access_token", lambda: AccessTokenStub())
+
+    with pytest.raises(ValueError, match="missing a client ID"):
+        backend.whoami()
