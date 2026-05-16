@@ -1,6 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter, NavLink } from "react-router-dom";
+import { AuthProvider as OidcProvider } from "react-oidc-context";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "./app.css";
 
@@ -10,6 +11,7 @@ import {
 } from "@/app/pwa/installPrompt";
 import { AppRouter } from "@/app/router/AppRouter";
 import { AuthProvider, useAuth } from "@/app/providers/AuthProvider";
+import { oidcConfig } from "@/config/oidc";
 
 function App() {
   const { isAuthenticated, isLoading, logout, user } = useAuth();
@@ -87,11 +89,13 @@ function App() {
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <AuthProvider>
+    <OidcProvider {...oidcConfig}>
       <BrowserRouter>
-        <App />
+        <AuthProvider>
+          <App />
+        </AuthProvider>
       </BrowserRouter>
-    </AuthProvider>
+    </OidcProvider>
   </React.StrictMode>,
 );
 

@@ -1,100 +1,79 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import {
-  fetchMe,
-  login as loginRequest,
-  logout as clearSession,
-  refreshSessionTokens,
-  register as registerRequest,
-  type AuthUser,
-} from "@/lib/api/auth";
-import { getStoredTokens } from "@/lib/auth/session";
+import { useAuth as useOidcAuth } from "react-oidc-context";
+import { fetchMe, type AuthUser } from "@/lib/api/auth";
+import { setOidcAccessToken } from "@/lib/auth/session";
 
 type AuthContextValue = {
   user: AuthUser | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  register: (fullName: string, email: string, password: string) => Promise<void>;
+  login: () => void;
   logout: () => void;
   refreshUser: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-async function hydrateUser() {
-  const tokens = getStoredTokens();
-
-  if (!tokens) {
-    return null;
-  }
-
-  try {
-    return await fetchMe(tokens.accessToken);
-  } catch {
-    const refreshed = await refreshSessionTokens();
-    if (!refreshed) {
-      return null;
-    }
-    try {
-      return await fetchMe(refreshed.accessToken);
-    } catch {
-      return null;
-    }
-  }
-}
-
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const oidc = useOidcAuth();
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isFetching, setIsFetching] = useState(false);
 
   useEffect(() => {
-    let isMounted = true;
+    setOidcAccessToken(oidc.user?.access_token);
+  }, [oidc.user?.access_token]);
 
-    const load = async () => {
-      try {
-        const nextUser = await hydrateUser();
-        if (isMounted) {
-          setUser(nextUser);
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
-      }
-    };
+  useEffect(() => {
+    const accessToken = oidc.user?.access_token;
 
-    void load();
+    if (!oidc.isAuthenticated || !accessToken) {
+      setIsFetching(false);
+      setUser(null);
+      return;
+    }
+
+    let cancelled = false;
+    setIsFetching(true);
+
+    fetchMe(accessToken)
+      .then((nextUser) => {
+        if (!cancelled) setUser(nextUser);
+      })
+      .catch(() => {
+        if (!cancelled) setUser(null);
+      })
+      .finally(() => {
+        if (!cancelled) setIsFetching(false);
+      });
 
     return () => {
-      isMounted = false;
+      cancelled = true;
     };
-  }, []);
+  }, [oidc.isAuthenticated, oidc.user?.access_token]);
 
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
-      isLoading,
-      isAuthenticated: Boolean(user),
-      login: async (email: string, password: string) => {
-        const tokens = await loginRequest({ email, password });
-        const nextUser = await fetchMe(tokens.accessToken);
-        setUser(nextUser);
-      },
-      register: async (fullName: string, email: string, password: string) => {
-        const tokens = await registerRequest({ full_name: fullName, email, password });
-        const nextUser = await fetchMe(tokens.accessToken);
-        setUser(nextUser);
+      isLoading: oidc.isLoading || isFetching,
+      isAuthenticated: oidc.isAuthenticated && user !== null,
+      login: () => {
+        void oidc.signinRedirect({ state: { returnTo: window.location.pathname } });
       },
       logout: () => {
-        clearSession();
-        setUser(null);
+        void oidc.signoutRedirect();
       },
       refreshUser: async () => {
-        const nextUser = await hydrateUser();
-        setUser(nextUser);
+        const accessToken = oidc.user?.access_token;
+        if (!accessToken) return;
+        try {
+          const nextUser = await fetchMe(accessToken);
+          setUser(nextUser);
+        } catch {
+          setUser(null);
+        }
       },
     }),
-    [isLoading, user],
+    [user, oidc, isFetching],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -25,7 +25,6 @@ def _read_secret_file(path: str | None) -> str | None:
 class AppSettings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
     _cached_db_password: str | None = PrivateAttr(default=None)
-    _cached_jwt_secret: str | None = PrivateAttr(default=None)
 
     app_name: str = "Daynest API"
     version: str = "0.1.0"
@@ -41,11 +40,11 @@ class AppSettings(BaseSettings):
     db_password_file: str | None = None
     db_connect_timeout_seconds: int = 5
 
-    jwt_secret_key: str | None = None
-    jwt_secret_file: str | None = None
-    jwt_algorithm: str = "HS256"
-    access_token_expire_minutes: int = 30
-    refresh_token_expire_days: int = 7
+    oidc_issuer_url: str | None = None
+    oidc_audience: str | None = None
+    oidc_jwks_uri: str | None = None
+    oidc_algorithms: str = "RS256"
+
     upcoming_horizon_days: int = 7
     medication_missed_grace_minutes: int = 30
 
@@ -74,24 +73,17 @@ class AppSettings(BaseSettings):
     @model_validator(mode="after")
     def _validate_secrets(self) -> "AppSettings":
         self._cached_db_password = self.db_password or _read_secret_file(self.db_password_file)
-        self._cached_jwt_secret = self.jwt_secret_key or _read_secret_file(self.jwt_secret_file)
-        if not self._cached_jwt_secret and self.environment != "dev":
-            raise ValueError("JWT secret key must be provided via JWT_SECRET_KEY or JWT_SECRET_FILE")
         if not self.database_url and not self._cached_db_password and self.environment != "dev":
             raise ValueError("Database password must be provided via DB_PASSWORD or DB_PASSWORD_FILE in non-dev environments")
+        if not self.oidc_issuer_url and self.environment != "dev":
+            raise ValueError("OIDC_ISSUER_URL must be set in non-dev environments")
+        if not self.oidc_audience and self.oidc_algorithms != "none" and self.environment != "dev":
+            raise ValueError("OIDC_AUDIENCE must be set in non-dev environments when using token verification")
         return self
 
     @property
     def resolved_db_password(self) -> str | None:
         return self._cached_db_password
-
-    @property
-    def resolved_jwt_secret_key(self) -> str:
-        if self._cached_jwt_secret:
-            return self._cached_jwt_secret
-        if self.environment != "dev":
-            raise ValueError("JWT secret key is required in non-dev environments")
-        return "local-dev-secret"
 
     @property
     def resolved_database_url(self) -> str:

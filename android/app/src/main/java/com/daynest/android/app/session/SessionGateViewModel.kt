@@ -2,7 +2,7 @@ package com.daynest.android.app.session
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.daynest.android.data.auth.AuthRepository
+import com.daynest.android.core.auth.OidcAuthService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -14,20 +14,17 @@ import javax.inject.Inject
 class SessionGateViewModel
     @Inject
     constructor(
-        private val authRepository: AuthRepository,
+        private val oidcAuthService: OidcAuthService,
     ) : ViewModel() {
         private val _uiState = MutableStateFlow<SessionGateUiState>(SessionGateUiState.Loading)
         val uiState: StateFlow<SessionGateUiState> = _uiState.asStateFlow()
 
         init {
-            decideRoute()
-        }
-
-        private fun decideRoute() {
             viewModelScope.launch {
                 _uiState.value =
-                    if (authRepository.hasValidSession()) {
-                        SessionGateUiState.GoHome
+                    if (oidcAuthService.isAuthorized) {
+                        val token = oidcAuthService.getFreshAccessToken()
+                        if (token != null) SessionGateUiState.GoHome else SessionGateUiState.GoAuth
                     } else {
                         SessionGateUiState.GoAuth
                     }

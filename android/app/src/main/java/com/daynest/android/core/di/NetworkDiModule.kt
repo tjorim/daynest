@@ -6,7 +6,6 @@ import com.daynest.android.core.network.AuthInterceptor
 import com.daynest.android.core.network.CertificatePinnerProvider
 import com.daynest.android.core.network.JsonSerializer
 import com.daynest.android.core.network.TokenAuthenticator
-import com.daynest.android.data.auth.AuthApi
 import com.daynest.android.data.calendar.CalendarApi
 import com.daynest.android.data.medication.MedicationApi
 import com.daynest.android.data.settings.SettingsApi
@@ -79,10 +78,6 @@ object NetworkDiModule {
     @Provides
     @Singleton
     fun provideTodayActionsApi(retrofit: Retrofit): TodayActionsApi = retrofit.create(TodayActionsApi::class.java)
-
-    @Provides
-    @Singleton
-    fun provideAuthApi(retrofit: Retrofit): AuthApi = retrofit.create(AuthApi::class.java)
 
     @Provides
     @Singleton

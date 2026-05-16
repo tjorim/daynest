@@ -6,6 +6,7 @@ hilt = "2.59.2"
 detekt = "2.0.0-alpha.3"
 ktlint = "14.2.0"
 foojay = "1.0.0"
+appauth = "0.11.1"
 
 compose-bom = "2026.05.00"
 androidx-core = "1.18.0"
@@ -66,6 +67,7 @@ okhttp-logging-interceptor = { group = "com.squareup.okhttp3", name = "logging-i
 okhttp-mockwebserver = { group = "com.squareup.okhttp3", name = "mockwebserver", version.ref = "okhttp" }
 turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
+openid-appauth = { group = "net.openid", name = "appauth", version.ref = "appauth" }
 
 [bundles]
 androidx-lifecycle = [
