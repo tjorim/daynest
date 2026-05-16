@@ -12,9 +12,11 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class TokenAuthenticator @Inject constructor(
-    private val oidcAuthService: OidcAuthService,
-) : Authenticator {
+class TokenAuthenticator
+    @Inject
+    constructor(
+        private val oidcAuthService: OidcAuthService,
+    ) : Authenticator {
     private val mutex = Mutex()
 
     @Suppress("ReturnCount")

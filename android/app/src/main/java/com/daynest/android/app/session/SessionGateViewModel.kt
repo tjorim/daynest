@@ -9,18 +9,21 @@ import kotlinx.coroutines.flow.asStateFlow
 import javax.inject.Inject
 
 @HiltViewModel
-class SessionGateViewModel @Inject constructor(
-    private val oidcAuthService: OidcAuthService,
-) : ViewModel() {
+class SessionGateViewModel
+    @Inject
+    constructor(
+        private val oidcAuthService: OidcAuthService,
+    ) : ViewModel() {
     private val _uiState = MutableStateFlow<SessionGateUiState>(SessionGateUiState.Loading)
     val uiState: StateFlow<SessionGateUiState> = _uiState.asStateFlow()
 
     init {
-        _uiState.value = if (oidcAuthService.isAuthorized) {
-            SessionGateUiState.GoHome
-        } else {
-            SessionGateUiState.GoAuth
-        }
+        _uiState.value =
+            if (oidcAuthService.isAuthorized) {
+                SessionGateUiState.GoHome
+            } else {
+                SessionGateUiState.GoAuth
+            }
     }
 }
 
