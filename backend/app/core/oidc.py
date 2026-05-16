@@ -112,7 +112,7 @@ async def decode_oidc_token(token: str) -> dict[str, Any]:
 
     Tries cached JWKS first; refreshes once on key-not-found to handle rotation.
     """
-    options: dict[str, bool] = {
+    options: Any = {
         "verify_aud": _OIDC_AUDIENCE is not None,
         "verify_iss": _OIDC_ISSUER is not None,
     }
