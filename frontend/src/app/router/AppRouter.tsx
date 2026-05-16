@@ -28,10 +28,15 @@ function RequireAuth() {
   return <Outlet />;
 }
 
+function AuthCallback() {
+  return <div className="alert alert-info py-2">Completing sign in…</div>;
+}
+
 export function AppRouter() {
   return (
     <Routes>
       <Route path="/auth" element={<AuthPage />} />
+      <Route path="/auth/callback" element={<AuthCallback />} />
       <Route element={<RequireAuth />}>
         <Route path="/today" element={<TodayPage />} />
         <Route path="/calendar" element={<CalendarPage />} />

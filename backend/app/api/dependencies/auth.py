@@ -1,16 +1,15 @@
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from jwt import InvalidTokenError
 from sqlalchemy.orm import Session
 
-from app.core.tokens import decode_token
+from app.core.oidc import OIDCTokenError, decode_oidc_token, get_or_create_local_user
 from app.db.session import get_db
 from app.models.user import User
 
 bearer_scheme = HTTPBearer(auto_error=False)
 
 
-def get_current_user(
+async def get_current_user(
     request: Request,
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
     db: Session = Depends(get_db),
@@ -18,20 +17,17 @@ def get_current_user(
     if credentials is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
     try:
-        payload = decode_token(credentials.credentials)
-    except InvalidTokenError as exc:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid authentication token") from exc
+        claims = await decode_oidc_token(credentials.credentials)
+    except OIDCTokenError as exc:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(exc)) from exc
 
-    if payload.get("type") != "access":
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token type")
-
-    user_id = payload.get("sub")
-    if user_id is None:
+    subject: str | None = claims.get("sub")
+    if not subject:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token subject")
 
-    user = db.get(User, int(user_id))
-    if user is None or not user.is_active:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found or inactive")
+    user = get_or_create_local_user(subject, claims, db)
+    if not user.is_active:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User account inactive")
 
     request.state.user_id = user.id
     return user

@@ -1,11 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/auth/session", () => ({
-  getStoredTokens: vi.fn(() => null),
-}));
-
-vi.mock("@/lib/api/auth", () => ({
-  refreshSessionTokens: vi.fn(async () => null),
+  getOidcAccessToken: vi.fn(() => undefined),
 }));
 
 import {

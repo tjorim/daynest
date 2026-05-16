@@ -4,8 +4,9 @@ from fastapi.testclient import TestClient
 from pytest import MonkeyPatch
 from sqlalchemy.orm import Session
 
+from app.api.dependencies.auth import get_current_user
 from app.api.dependencies.integration_auth import hash_integration_key
-from app.core.tokens import create_access_token
+from app.main import app
 from app.schemas.integration_contracts import (
     HOME_ASSISTANT_ADAPTER,
     HOME_ASSISTANT_CONTRACT_VERSION,
@@ -24,6 +25,16 @@ HOME_ASSISTANT_ENDPOINTS = ("summary", "entities", "dashboard")
 FIXED_TODAY = date(2026, 1, 15)
 
 
+def _auth_as(user: User) -> None:
+    async def _dep() -> User:
+        return user
+    app.dependency_overrides[get_current_user] = _dep
+
+
+def _clear_auth() -> None:
+    app.dependency_overrides.pop(get_current_user, None)
+
+
 class FrozenDate(date):
     @classmethod
     def today(cls) -> date:
@@ -35,7 +46,7 @@ def _freeze_route_today(monkeypatch: MonkeyPatch, route_module: str) -> None:
 
 
 def _create_user(db_session: Session, email: str) -> User:
-    user = User(email=email, full_name="Integration User", password_hash="hashed-password", is_active=True)
+    user = User(email=email, full_name="Integration User", is_active=True)
     db_session.add(user)
     db_session.commit()
     db_session.refresh(user)
@@ -101,21 +112,23 @@ def _create_home_assistant_fixture(db_session: Session, email: str) -> User:
 
 def test_create_integration_client_and_list(client: TestClient, db_session: Session) -> None:
     user = _create_user(db_session, "client-create@example.com")
-    token = create_access_token(user_id=user.id, email=user.email)
+    _auth_as(user)
 
-    create_response = client.post(
-        "/api/v1/integrations/clients",
-        headers={"Authorization": f"Bearer {token}"},
-        json={"name": "Home Assistant", "scopes": ["ha:read", "mcp:read"], "rate_limit_per_minute": 80},
-    )
-    assert create_response.status_code == 200
-    payload = create_response.json()
-    assert payload["api_key"].startswith("daynest_")
-    assert payload["scopes"] == ["ha:read", "mcp:read"]
+    try:
+        create_response = client.post(
+            "/api/v1/integrations/clients",
+            json={"name": "Home Assistant", "scopes": ["ha:read", "mcp:read"], "rate_limit_per_minute": 80},
+        )
+        assert create_response.status_code == 200
+        payload = create_response.json()
+        assert payload["api_key"].startswith("daynest_")
+        assert payload["scopes"] == ["ha:read", "mcp:read"]
 
-    list_response = client.get("/api/v1/integrations/clients", headers={"Authorization": f"Bearer {token}"})
-    assert list_response.status_code == 200
-    assert list_response.json()[0]["name"] == "Home Assistant"
+        list_response = client.get("/api/v1/integrations/clients")
+        assert list_response.status_code == 200
+        assert list_response.json()[0]["name"] == "Home Assistant"
+    finally:
+        _clear_auth()
 
 
 def test_home_assistant_routes_enforce_ha_read_scope(
