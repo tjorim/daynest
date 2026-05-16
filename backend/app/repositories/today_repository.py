@@ -247,6 +247,14 @@ class TodayRepository:
         self.db.refresh(plan)
         return plan
 
+    def get_medication_plan_for_user(self, user_id: int, medication_plan_id: int) -> MedicationPlan | None:
+        stmt = select(MedicationPlan).where(MedicationPlan.user_id == user_id).where(MedicationPlan.id == medication_plan_id)
+        return self.db.scalar(stmt)
+
+    def delete_medication_plan(self, plan: MedicationPlan) -> None:
+        self.db.delete(plan)
+        self.db.commit()
+
     def get_dose_for_user(self, user_id: int, dose_id: int) -> MedicationDoseInstance | None:
         stmt = select(MedicationDoseInstance).where(MedicationDoseInstance.user_id == user_id).where(MedicationDoseInstance.id == dose_id)
         return self.db.scalar(stmt)

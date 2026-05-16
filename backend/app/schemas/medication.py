@@ -13,6 +13,15 @@ class MedicationPlanCreateRequest(BaseModel):
     every_n_days: int = Field(default=1, ge=1)
 
 
+class MedicationPlanUpdateRequest(BaseModel):
+    name: str
+    instructions: str
+    start_date: date
+    schedule_time: time
+    every_n_days: int = Field(default=1, ge=1)
+    is_active: bool = True
+
+
 class MedicationPlanResponse(BaseModel):
     id: int
     name: str

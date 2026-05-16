@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
 from app.api.dependencies.auth import get_current_user
@@ -15,10 +15,30 @@ from app.schemas.medication import (
     MedicationHistoryResponse,
     MedicationPlanCreateRequest,
     MedicationPlanResponse,
+    MedicationPlanUpdateRequest,
 )
 from app.services.today_service import TodayService
 
 router = APIRouter(tags=["medications"])
+
+
+def _plan_to_response(plan: MedicationPlan) -> MedicationPlanResponse:
+    return MedicationPlanResponse(
+        id=plan.id,
+        name=plan.name,
+        instructions=plan.instructions,
+        start_date=plan.start_date,
+        schedule_time=plan.schedule_time,
+        every_n_days=plan.every_n_days,
+        is_active=plan.is_active,
+    )
+
+
+def _get_user_medication_plan(repository: TodayRepository, user_id: int, medication_plan_id: int) -> MedicationPlan:
+    plan = repository.get_medication_plan_for_user(user_id=user_id, medication_plan_id=medication_plan_id)
+    if plan is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Medication plan not found")
+    return plan
 
 
 def _mutate_medication_dose_action(
@@ -48,18 +68,7 @@ def list_medications(
 ) -> list[MedicationPlanResponse]:
     repository = TodayRepository(db)
     plans = repository.list_medication_plans(user_id=current_user.id)
-    return [
-        MedicationPlanResponse(
-            id=plan.id,
-            name=plan.name,
-            instructions=plan.instructions,
-            start_date=plan.start_date,
-            schedule_time=plan.schedule_time,
-            every_n_days=plan.every_n_days,
-            is_active=plan.is_active,
-        )
-        for plan in plans
-    ]
+    return [_plan_to_response(plan) for plan in plans]
 
 
 @router.post("/medications", response_model=MedicationPlanResponse)
@@ -80,15 +89,38 @@ def create_medication(
             is_active=True,
         )
     )
-    return MedicationPlanResponse(
-        id=plan.id,
-        name=plan.name,
-        instructions=plan.instructions,
-        start_date=plan.start_date,
-        schedule_time=plan.schedule_time,
-        every_n_days=plan.every_n_days,
-        is_active=plan.is_active,
-    )
+    return _plan_to_response(plan)
+
+
+@router.put("/medications/{medication_plan_id}", response_model=MedicationPlanResponse)
+def update_medication(
+    medication_plan_id: int,
+    request: MedicationPlanUpdateRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> MedicationPlanResponse:
+    repository = TodayRepository(db)
+    plan = _get_user_medication_plan(repository, current_user.id, medication_plan_id)
+    plan.name = request.name
+    plan.instructions = request.instructions
+    plan.start_date = request.start_date
+    plan.schedule_time = request.schedule_time
+    plan.every_n_days = request.every_n_days
+    plan.is_active = request.is_active
+    repository.save()
+    return _plan_to_response(plan)
+
+
+@router.delete("/medications/{medication_plan_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_medication(
+    medication_plan_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> Response:
+    repository = TodayRepository(db)
+    plan = _get_user_medication_plan(repository, current_user.id, medication_plan_id)
+    repository.delete_medication_plan(plan)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.post("/medication-doses/{medication_dose_instance_id}/take", response_model=MedicationDoseMutationResponse)

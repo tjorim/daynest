@@ -6,7 +6,7 @@ import os
 import sys
 from collections.abc import Callable
 from contextlib import contextmanager
-from datetime import date, datetime
+from datetime import date, datetime, time
 from typing import Any, Literal, TypeVar
 
 from anyio import to_thread
@@ -29,8 +29,10 @@ from app.api.dependencies.integration_auth import (
 from app.core.config import settings
 from app.db.session import SessionLocal
 from app.models.integration_client import IntegrationClient
+from app.models.medication_plan import MedicationPlan as MedicationPlanModel
 from app.models.user import User
 from app.repositories.today_repository import TodayRepository
+from app.schemas.medication import MedicationPlanCreateRequest, MedicationPlanUpdateRequest
 from app.schemas.today import PlannedItemCreateRequest, PlannedItemModuleKey, PlannedItemUpdateRequest
 from app.services.today_service import TodayService
 
@@ -272,6 +274,124 @@ class DaynestMcpBackend:
 
     def skip_medication_dose(self, medication_dose_instance_id: int) -> dict[str, Any]:
         return self._mutate_medication(medication_dose_instance_id, "skip")
+
+    def list_medications(self) -> list[dict[str, Any]]:
+        def _operation(_db: Session, user: User, service: TodayService) -> list[dict[str, Any]]:
+            repository = TodayRepository(_db)
+            plans = repository.list_medication_plans(user_id=user.id)
+            return [
+                {
+                    "id": plan.id,
+                    "name": plan.name,
+                    "instructions": plan.instructions,
+                    "start_date": plan.start_date.isoformat(),
+                    "schedule_time": plan.schedule_time.isoformat(),
+                    "every_n_days": plan.every_n_days,
+                    "is_active": plan.is_active,
+                }
+                for plan in plans
+            ]
+
+        return self._with_service(_operation)
+
+    def create_medication(
+        self,
+        name: str,
+        instructions: str,
+        start_date: str,
+        schedule_time: str,
+        every_n_days: int = 1,
+    ) -> dict[str, Any]:
+        parsed_start = date.fromisoformat(start_date)
+        parsed_time = time.fromisoformat(schedule_time)
+
+        def _operation(_db: Session, user: User, service: TodayService) -> dict[str, Any]:
+            repository = TodayRepository(_db)
+            request = MedicationPlanCreateRequest(
+                name=name,
+                instructions=instructions,
+                start_date=parsed_start,
+                schedule_time=parsed_time,
+                every_n_days=every_n_days,
+            )
+            plan = repository.add_medication_plan(
+                MedicationPlanModel(
+                    user_id=user.id,
+                    name=request.name,
+                    instructions=request.instructions,
+                    start_date=request.start_date,
+                    schedule_time=request.schedule_time,
+                    every_n_days=request.every_n_days,
+                    is_active=True,
+                )
+            )
+            return {
+                "id": plan.id,
+                "name": plan.name,
+                "instructions": plan.instructions,
+                "start_date": plan.start_date.isoformat(),
+                "schedule_time": plan.schedule_time.isoformat(),
+                "every_n_days": plan.every_n_days,
+                "is_active": plan.is_active,
+            }
+
+        return self._with_service(_operation)
+
+    def update_medication(
+        self,
+        medication_plan_id: int,
+        name: str,
+        instructions: str,
+        start_date: str,
+        schedule_time: str,
+        every_n_days: int = 1,
+        is_active: bool = True,
+    ) -> dict[str, Any]:
+        parsed_start = date.fromisoformat(start_date)
+        parsed_time = time.fromisoformat(schedule_time)
+
+        def _operation(_db: Session, user: User, service: TodayService) -> dict[str, Any]:
+            repository = TodayRepository(_db)
+            plan = repository.get_medication_plan_for_user(user_id=user.id, medication_plan_id=medication_plan_id)
+            if plan is None:
+                raise ValueError(f"Medication plan {medication_plan_id} not found")
+            request = MedicationPlanUpdateRequest(
+                name=name,
+                instructions=instructions,
+                start_date=parsed_start,
+                schedule_time=parsed_time,
+                every_n_days=every_n_days,
+                is_active=is_active,
+            )
+            plan.name = request.name
+            plan.instructions = request.instructions
+            plan.start_date = request.start_date
+            plan.schedule_time = request.schedule_time
+            plan.every_n_days = request.every_n_days
+            plan.is_active = request.is_active
+            repository.save()
+            return {
+                "id": plan.id,
+                "name": plan.name,
+                "instructions": plan.instructions,
+                "start_date": plan.start_date.isoformat(),
+                "schedule_time": plan.schedule_time.isoformat(),
+                "every_n_days": plan.every_n_days,
+                "is_active": plan.is_active,
+            }
+
+        return self._with_service(_operation)
+
+    def delete_medication(self, medication_plan_id: int) -> dict[str, Any]:
+        def _operation(_db: Session, user: User, service: TodayService) -> dict[str, Any]:
+            repository = TodayRepository(_db)
+            plan = repository.get_medication_plan_for_user(user_id=user.id, medication_plan_id=medication_plan_id)
+            if plan is None:
+                raise ValueError(f"Medication plan {medication_plan_id} not found")
+            repository.delete_medication_plan(plan)
+            return {"deleted": True, "medication_plan_id": medication_plan_id}
+
+        return self._with_service(_operation)
 
     def _mutate_medication(self, medication_dose_instance_id: int, action: str) -> dict[str, Any]:
         def _operation(_db: Session, user: User, service: TodayService) -> dict[str, Any]:
@@ -595,6 +715,78 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
         """Mark a Daynest medication dose as skipped."""
 
         return await to_thread.run_sync(daynest.skip_medication_dose, medication_dose_instance_id)
+
+    @mcp.tool()
+    async def list_medications() -> list[dict[str, Any]]:
+        """List all Daynest medication plans for the active user."""
+
+        return await to_thread.run_sync(daynest.list_medications)
+
+    @mcp.tool()
+    async def create_medication(
+        name: str,
+        instructions: str,
+        start_date: str,
+        schedule_time: str,
+        every_n_days: int = 1,
+    ) -> dict[str, Any]:
+        """Create a new Daynest medication plan.
+
+        Args:
+            name: Medication name (e.g. "Vitamin D").
+            instructions: How to take the medication (e.g. "Take with breakfast").
+            start_date: When to start the plan in YYYY-MM-DD format.
+            schedule_time: Time-of-day for each dose in HH:MM or HH:MM:SS format (e.g. "09:00").
+            every_n_days: Dose frequency — 1 means daily, 2 means every other day, etc.
+        """
+
+        return await to_thread.run_sync(
+            daynest.create_medication,
+            name,
+            instructions,
+            start_date,
+            schedule_time,
+            every_n_days,
+        )
+
+    @mcp.tool()
+    async def update_medication(
+        medication_plan_id: int,
+        name: str,
+        instructions: str,
+        start_date: str,
+        schedule_time: str,
+        every_n_days: int = 1,
+        is_active: bool = True,
+    ) -> dict[str, Any]:
+        """Update an existing Daynest medication plan.
+
+        Args:
+            medication_plan_id: ID of the medication plan to update.
+            name: Updated medication name.
+            instructions: Updated instructions.
+            start_date: Updated start date in YYYY-MM-DD format.
+            schedule_time: Updated time-of-day for each dose in HH:MM or HH:MM:SS format.
+            every_n_days: Updated dose frequency.
+            is_active: Set to false to deactivate (pause) the medication plan.
+        """
+
+        return await to_thread.run_sync(
+            daynest.update_medication,
+            medication_plan_id,
+            name,
+            instructions,
+            start_date,
+            schedule_time,
+            every_n_days,
+            is_active,
+        )
+
+    @mcp.tool()
+    async def delete_medication(medication_plan_id: int) -> dict[str, Any]:
+        """Delete a Daynest medication plan by id."""
+
+        return await to_thread.run_sync(daynest.delete_medication, medication_plan_id)
 
     @mcp.resource("daynest://today/{for_date}")
     async def today_resource(for_date: str) -> str:
