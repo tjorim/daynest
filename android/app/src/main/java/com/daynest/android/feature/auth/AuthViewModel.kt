@@ -1,85 +1,67 @@
 package com.daynest.android.feature.auth
 
+import android.content.Intent
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.daynest.android.data.auth.AuthRepository
+import com.daynest.android.core.auth.OidcAuthService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class AuthViewModel
-    @Inject
-    constructor(
-        private val authRepository: AuthRepository,
-    ) : ViewModel() {
-        private val _uiState = MutableStateFlow(AuthUiState())
-        val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
+class AuthViewModel @Inject constructor(
+    private val oidcAuthService: OidcAuthService,
+) : ViewModel() {
+    private val _uiState = MutableStateFlow(AuthUiState())
+    val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
 
-        fun onEvent(event: AuthUiEvent) {
-            when (event) {
-                is AuthUiEvent.EmailChanged -> _uiState.update { it.copy(email = event.value, error = null) }
-                is AuthUiEvent.PasswordChanged -> _uiState.update { it.copy(password = event.value, error = null) }
-                AuthUiEvent.SignInClicked -> signIn()
-            }
-        }
+    private val _signInIntent = MutableSharedFlow<Intent>(extraBufferCapacity = 1)
+    val signInIntent: SharedFlow<Intent> = _signInIntent.asSharedFlow()
 
-        private fun signIn() {
-            val current = _uiState.value
-            if (current.email.isBlank() || current.password.isBlank()) {
-                _uiState.update { it.copy(error = AuthError.MissingCredentials) }
-                return
-            }
-
-            viewModelScope.launch {
-                _uiState.update { it.copy(isSubmitting = true, error = null) }
-
-                val succeeded =
-                    try {
-                        authRepository.signIn(current.email.trim(), current.password)
-                    } catch (e: CancellationException) {
-                        throw e
-                    } catch (_: Exception) {
-                        false
-                    }
-
-                _uiState.update {
-                    it.copy(
-                        isSubmitting = false,
-                        isSignedIn = succeeded,
-                        error = if (succeeded) null else AuthError.SignInFailed,
-                    )
+    fun onSignInClicked() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, error = null) }
+            runCatching { oidcAuthService.buildSignInIntent() }
+                .onSuccess { intent ->
+                    _uiState.update { it.copy(isLoading = false) }
+                    _signInIntent.emit(intent)
                 }
-            }
+                .onFailure { ex ->
+                    if (ex is CancellationException) throw ex
+                    _uiState.update { it.copy(isLoading = false, error = AuthError.SignInFailed) }
+                }
         }
     }
 
+    fun handleAuthorizationResult(resultCode: Int, data: Intent?) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, error = null) }
+            val succeeded = oidcAuthService.handleAuthorizationResult(resultCode, data)
+            _uiState.update {
+                it.copy(
+                    isLoading = false,
+                    isSignedIn = succeeded,
+                    error = if (succeeded) null else AuthError.SignInFailed,
+                )
+            }
+        }
+    }
+}
+
 data class AuthUiState(
-    val email: String = "",
-    val password: String = "",
-    val isSubmitting: Boolean = false,
+    val isLoading: Boolean = false,
     val isSignedIn: Boolean = false,
     val error: AuthError? = null,
 )
 
-sealed interface AuthUiEvent {
-    data class EmailChanged(
-        val value: String,
-    ) : AuthUiEvent
-
-    data class PasswordChanged(
-        val value: String,
-    ) : AuthUiEvent
-
-    data object SignInClicked : AuthUiEvent
-}
-
 enum class AuthError {
-    MissingCredentials,
     SignInFailed,
 }

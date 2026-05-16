@@ -2,13 +2,12 @@ package com.daynest.android.feature.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.daynest.android.data.auth.AuthRepository
+import com.daynest.android.core.auth.OidcAuthService
 import com.daynest.android.data.settings.IntegrationClientCreateResponseDto
 import com.daynest.android.data.settings.IntegrationClientDto
 import com.daynest.android.data.settings.IntegrationClientInputDto
 import com.daynest.android.data.settings.SettingsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -21,7 +20,7 @@ class SettingsViewModel
     @Inject
     constructor(
         private val settingsRepository: SettingsRepository,
-        private val authRepository: AuthRepository,
+        private val oidcAuthService: OidcAuthService,
     ) : ViewModel() {
         private val _uiState = MutableStateFlow<SettingsUiState>(SettingsUiState.Loading)
         val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
@@ -92,18 +91,9 @@ class SettingsViewModel
             }
         }
 
-        @Suppress("TooGenericExceptionCaught", "SwallowedException")
         private fun signOut() {
-            viewModelScope.launch {
-                try {
-                    authRepository.signOut()
-                    _uiState.value = SettingsUiState.SignedOut
-                } catch (e: CancellationException) {
-                    throw e
-                } catch (e: Exception) {
-                    // sign-out failed; leave state unchanged so the UI remains responsive
-                }
-            }
+            oidcAuthService.signOut()
+            _uiState.value = SettingsUiState.SignedOut
         }
 
         private fun IntegrationClientCreateResponseDto.toDto() =
