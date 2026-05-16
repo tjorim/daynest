@@ -1,4 +1,4 @@
-const APP_VERSION = new URL(self.location.href).searchParams.get("appVersion") || "dev";
+const APP_VERSION = new URL(self.location.href).searchParams.get("appVersion") || `dev-${Date.now()}`;
 const CACHE_NAME = `daynest-shell-v${APP_VERSION}`;
 const SHELL_ASSETS = ["/", "/index.html", "/manifest.webmanifest"];
 const MAX_RUNTIME_ENTRIES = 60;

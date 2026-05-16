@@ -38,7 +38,8 @@ export async function promptToInstallApp() {
     await promptEvent.prompt();
     setDeferredInstallPrompt(null);
     return true;
-  } catch {
+  } catch (error) {
+    console.error("PWA install prompt invocation failed:", error);
     return false;
   }
 }
