@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/auth/session", () => ({
-  getOidcAccessToken: vi.fn(() => undefined),
+  getOidcAccessToken: vi.fn(() => "test-token"),
 }));
 
 import {
