@@ -8,6 +8,7 @@ export type PlannedItemModuleKey =
   | "shared_calendar";
 import { refreshSessionTokens } from "@/lib/api/auth";
 import { getStoredTokens } from "@/lib/auth/session";
+import { z } from "zod";
 
 export interface MedicationTodayItem {
   medication_dose_instance_id: number;
@@ -127,31 +128,120 @@ export interface CalendarDayPayload {
   items: UnifiedDayItem[];
 }
 
-export interface CalendarMonthDaySummary {
-  date: string;
-  total: number;
-  routines: number;
-  chores: number;
-  medications: number;
-  planned: number;
-}
+const plannedItemModuleKeySchema = z.enum([
+  "shopping_list",
+  "meal_planning",
+  "recurring_grocery",
+  "shared_calendar",
+]);
 
-export interface CalendarMonthPayload {
-  year: number;
-  month: number;
-  days: CalendarMonthDaySummary[];
-}
+const taskStatusSchema = z.enum(["pending", "in_progress", "completed", "skipped"]);
+const choreStatusSchema = z.enum(["pending", "completed", "skipped"]);
+const medicationDoseStatusSchema = z.enum(["scheduled", "taken", "skipped", "missed"]);
 
-export interface TodayPayload {
-  medication: MedicationTodayItem[];
-  medication_history: MedicationHistoryItem[];
-  routines: RoutineTodayItem[];
-  overdue: OverdueTodayItem[];
-  due_today: DueTodayItem[];
-  upcoming: UpcomingTodayItem[];
-  planned: PlannedTodayItem[];
-  day_items: UnifiedDayItem[];
-}
+const medicationTodayItemSchema = z.object({
+  medication_dose_instance_id: z.number(),
+  medication_plan_id: z.number(),
+  name: z.string(),
+  instructions: z.string(),
+  scheduled_at: z.string(),
+  status: medicationDoseStatusSchema,
+});
+
+const medicationHistoryItemSchema = z.object({
+  medication_dose_instance_id: z.number(),
+  medication_plan_id: z.number(),
+  name: z.string(),
+  instructions: z.string(),
+  scheduled_at: z.string(),
+  status: medicationDoseStatusSchema,
+});
+
+const routineTodayItemSchema = z.object({
+  task_instance_id: z.number(),
+  routine_template_id: z.number(),
+  title: z.string(),
+  status: taskStatusSchema,
+  scheduled_date: z.string(),
+  due_at: z.string().nullable(),
+});
+
+const overdueTodayItemSchema = z.object({
+  chore_instance_id: z.number(),
+  chore_template_id: z.number(),
+  title: z.string(),
+  status: choreStatusSchema,
+  overdue_since: z.string(),
+});
+
+const dueTodayItemSchema = z.object({
+  chore_instance_id: z.number(),
+  chore_template_id: z.number(),
+  title: z.string(),
+  status: choreStatusSchema,
+  scheduled_date: z.string(),
+});
+
+const upcomingTodayItemSchema = z.object({
+  chore_instance_id: z.number(),
+  chore_template_id: z.number(),
+  title: z.string(),
+  scheduled_date: z.string(),
+});
+
+const plannedTodayItemSchema = z.object({
+  id: z.number(),
+  title: z.string(),
+  planned_for: z.string(),
+  notes: z.string().nullable(),
+  module_key: plannedItemModuleKeySchema.nullable(),
+  recurrence_hint: z.string().nullable(),
+  linked_source: z.string().nullable(),
+  linked_ref: z.string().nullable(),
+  is_done: z.boolean(),
+});
+
+const unifiedDayItemSchema = z.object({
+  item_type: z.enum(["routine", "chore", "medication", "planned"]),
+  item_id: z.number(),
+  title: z.string(),
+  status: z.string(),
+  scheduled_at: z.string().nullable(),
+  scheduled_date: z.string().nullable(),
+  detail: z.string().nullable(),
+  module_key: plannedItemModuleKeySchema.nullable(),
+});
+
+export const CalendarMonthResponseSchema = z.object({
+  year: z.number(),
+  month: z.number(),
+  days: z.array(
+    z.object({
+      date: z.string(),
+      total: z.number(),
+      routines: z.number(),
+      chores: z.number(),
+      medications: z.number(),
+      planned: z.number(),
+    }),
+  ),
+});
+
+export type CalendarMonthDaySummary = z.infer<typeof CalendarMonthResponseSchema>["days"][number];
+export type CalendarMonthPayload = z.infer<typeof CalendarMonthResponseSchema>;
+
+export const TodayResponseSchema = z.object({
+  medication: z.array(medicationTodayItemSchema),
+  medication_history: z.array(medicationHistoryItemSchema),
+  routines: z.array(routineTodayItemSchema),
+  overdue: z.array(overdueTodayItemSchema),
+  due_today: z.array(dueTodayItemSchema),
+  upcoming: z.array(upcomingTodayItemSchema),
+  planned: z.array(plannedTodayItemSchema),
+  day_items: z.array(unifiedDayItemSchema),
+});
+
+export type TodayPayload = z.infer<typeof TodayResponseSchema>;
 
 export interface ChoreMutationResponse {
   chore_instance_id: number;
@@ -352,6 +442,7 @@ async function parseJsonResponse<T>(
   response: Response,
   fallbackMessage = "Request failed",
   isIdempotent = true,
+  schema?: z.ZodType<T>,
 ): Promise<T> {
   if (!response.ok) {
     let message = `${fallbackMessage} (${response.status})`;
@@ -384,7 +475,24 @@ async function parseJsonResponse<T>(
       isIdempotent && isRetryableStatus(response.status),
     );
   }
-  return (await response.json()) as T;
+  const payload = (await response.json()) as unknown;
+
+  if (!schema) {
+    return payload as T;
+  }
+
+  const result = schema.safeParse(payload);
+  if (!result.success) {
+    const details = result.error.issues
+      .map((issue) => {
+        const path = issue.path.length > 0 ? issue.path.join(".") : "response";
+        return `${path}: ${issue.message}`;
+      })
+      .join(", ");
+    throw new ApiError(`Invalid response format: ${details}`, response.status, false);
+  }
+
+  return result.data;
 }
 
 export async function fetchToday(signal?: AbortSignal): Promise<TodayPayload> {
@@ -396,7 +504,7 @@ export async function fetchToday(signal?: AbortSignal): Promise<TodayPayload> {
     },
     1,
   );
-  return parseJsonResponse<TodayPayload>(response, "Unable to load today's data");
+  return parseJsonResponse(response, "Unable to load today's data", true, TodayResponseSchema);
 }
 
 export async function fetchCalendarMonth(
@@ -412,7 +520,7 @@ export async function fetchCalendarMonth(
     },
     1,
   );
-  return parseJsonResponse<CalendarMonthPayload>(response);
+  return parseJsonResponse(response, "Request failed", true, CalendarMonthResponseSchema);
 }
 
 export async function fetchCalendarDay(
