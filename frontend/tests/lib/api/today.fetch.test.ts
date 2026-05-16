@@ -52,7 +52,7 @@ describe("today API response validation", () => {
     });
   });
 
-  it("throws a clear error when calendar month response is invalid", async () => {
+  it("throws a clear error when fetchCalendarMonth response is invalid", async () => {
     const payload: CalendarMonthPayload = {
       year: 2026,
       month: 5,
