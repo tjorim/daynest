@@ -278,85 +278,40 @@ class DaynestApiClient:
 
     async def _post_action(self, path: str, payload: dict[str, Any]) -> dict[str, Any]:
         """POST to a write endpoint and return the JSON response body."""
-        url = urljoin(f"{self._base_url}/", path.lstrip("/"))
-        headers = {"Accept": "application/json", "Content-Type": "application/json"}
-        if self._integration_key:
-            headers["X-Integration-Key"] = self._integration_key
-
-        try:
-            async with self._session.post(url, json=payload, headers=headers, timeout=REQUEST_TIMEOUT) as response:
-                if response.status in (401, 403):
-                    msg = f"Authentication failed with status {response.status}"
-                    raise DaynestApiClientAuthenticationError(msg)
-                if 500 <= response.status < 600:
-                    msg = f"Backend unavailable (status {response.status})"
-                    raise DaynestApiClientServerUnavailableError(msg)
-                response.raise_for_status()
-
-                result = await response.json(content_type=None)
-                if not isinstance(result, dict):
-                    msg = "Malformed response payload: expected JSON object"
-                    raise DaynestApiClientMalformedResponseError(msg)
-                return result
-
-        except TimeoutError as err:
-            msg = f"Request timed out for endpoint {path}"
-            raise DaynestApiClientTimeoutError(msg) from err
-        except aiohttp.ClientConnectionError as err:
-            msg = f"Server unavailable while requesting endpoint {path}: {err}"
-            raise DaynestApiClientServerUnavailableError(msg) from err
-        except aiohttp.ClientError as err:
-            msg = f"Communication error while requesting endpoint {path}: {err}"
-            raise DaynestApiClientCommunicationError(msg) from err
-        except ValueError as err:
-            msg = f"Malformed JSON response for endpoint {path}: {err}"
-            raise DaynestApiClientMalformedResponseError(msg) from err
+        return await self._send_action("post", path=path, payload=payload)
 
     async def _put_action(self, path: str, payload: dict[str, Any]) -> dict[str, Any]:
         """PUT to a write endpoint and return the JSON response body."""
-        url = urljoin(f"{self._base_url}/", path.lstrip("/"))
-        headers = {"Accept": "application/json", "Content-Type": "application/json"}
-        if self._integration_key:
-            headers["X-Integration-Key"] = self._integration_key
-
-        try:
-            async with self._session.put(url, json=payload, headers=headers, timeout=REQUEST_TIMEOUT) as response:
-                if response.status in (401, 403):
-                    msg = f"Authentication failed with status {response.status}"
-                    raise DaynestApiClientAuthenticationError(msg)
-                if 500 <= response.status < 600:
-                    msg = f"Backend unavailable (status {response.status})"
-                    raise DaynestApiClientServerUnavailableError(msg)
-                response.raise_for_status()
-
-                result = await response.json(content_type=None)
-                if not isinstance(result, dict):
-                    msg = "Malformed response payload: expected JSON object"
-                    raise DaynestApiClientMalformedResponseError(msg)
-                return result
-
-        except TimeoutError as err:
-            msg = f"Request timed out for endpoint {path}"
-            raise DaynestApiClientTimeoutError(msg) from err
-        except aiohttp.ClientConnectionError as err:
-            msg = f"Server unavailable while requesting endpoint {path}: {err}"
-            raise DaynestApiClientServerUnavailableError(msg) from err
-        except aiohttp.ClientError as err:
-            msg = f"Communication error while requesting endpoint {path}: {err}"
-            raise DaynestApiClientCommunicationError(msg) from err
-        except ValueError as err:
-            msg = f"Malformed JSON response for endpoint {path}: {err}"
-            raise DaynestApiClientMalformedResponseError(msg) from err
+        return await self._send_action("put", path=path, payload=payload)
 
     async def _delete_action(self, path: str) -> dict[str, Any]:
         """DELETE to a write endpoint and return the JSON response body."""
+        return await self._send_action("delete", path=path)
+
+    async def _send_action(
+        self,
+        method: str,
+        path: str,
+        payload: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Send write action and return the JSON response body."""
         url = urljoin(f"{self._base_url}/", path.lstrip("/"))
         headers = {"Accept": "application/json"}
+        if payload is not None:
+            headers["Content-Type"] = "application/json"
         if self._integration_key:
             headers["X-Integration-Key"] = self._integration_key
 
+        request = getattr(self._session, method.lower())
+        request_kwargs: dict[str, Any] = {
+            "headers": headers,
+            "timeout": REQUEST_TIMEOUT,
+        }
+        if payload is not None:
+            request_kwargs["json"] = payload
+
         try:
-            async with self._session.delete(url, headers=headers, timeout=REQUEST_TIMEOUT) as response:
+            async with request(url, **request_kwargs) as response:
                 if response.status in (401, 403):
                     msg = f"Authentication failed with status {response.status}"
                     raise DaynestApiClientAuthenticationError(msg)
