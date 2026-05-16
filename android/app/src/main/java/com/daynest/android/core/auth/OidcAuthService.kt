@@ -46,9 +46,11 @@ class OidcAuthService @Inject constructor(
     }
 
     suspend fun handleAuthorizationResult(resultCode: Int, data: Intent?): Boolean {
-        if (resultCode != Activity.RESULT_OK || data == null) return false
-        val response = AuthorizationResponse.fromIntent(data) ?: return false
-        AuthorizationException.fromIntent(data)?.let { return false }
+        val response = if (resultCode == Activity.RESULT_OK && data != null) {
+            AuthorizationResponse.fromIntent(data)
+        } else null
+        val exception = data?.let { AuthorizationException.fromIntent(it) }
+        if (response == null || exception != null) return false
         return suspendCancellableCoroutine { cont ->
             authorizationService.performTokenRequest(response.createTokenExchangeRequest()) { tokenResponse, ex ->
                 if (tokenResponse != null) {

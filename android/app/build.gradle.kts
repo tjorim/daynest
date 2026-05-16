@@ -122,12 +122,13 @@ extensions.configure<ApplicationExtension> {
             buildConfigField("String", "API_BASE_URL", "\"$url\"")
             buildConfigField("String[]", "PROD_PINS", "new String[]{}")
             buildConfigField("String", "PROD_HOST", "\"\"")
-            val oidcIssuerUrl = resolveApiUrl(
-                "oidcIssuerUrlStaging",
-                "OIDC_ISSUER_URL_STAGING",
-                required = false,
-                default = "https://staging.placeholder.invalid/realms/daynest",
-            )
+            val oidcIssuerUrl =
+                resolveApiUrl(
+                    "oidcIssuerUrlStaging",
+                    "OIDC_ISSUER_URL_STAGING",
+                    required = false,
+                    default = "https://staging.placeholder.invalid/realms/daynest",
+                )
             buildConfigField("String", "OIDC_ISSUER_URL", "\"$oidcIssuerUrl\"")
             buildConfigField("String", "OIDC_CLIENT_ID", "\"daynest\"")
             buildConfigField("String", "OIDC_REDIRECT_URI", "\"com.daynest.android:/oauth2redirect\"")
@@ -165,12 +166,13 @@ extensions.configure<ApplicationExtension> {
             }
             buildConfigField("String[]", "PROD_PINS", pinsArrayLiteral(pins))
             buildConfigField("String", "PROD_HOST", "\"${prodHost.orEmpty()}\"")
-            val oidcIssuerUrl = resolveApiUrl(
-                "oidcIssuerUrlRelease",
-                "OIDC_ISSUER_URL_RELEASE",
-                required = isRequested,
-                default = if (isRequested) "" else "https://release.placeholder.invalid/realms/daynest",
-            )
+            val oidcIssuerUrl =
+                resolveApiUrl(
+                    "oidcIssuerUrlRelease",
+                    "OIDC_ISSUER_URL_RELEASE",
+                    required = isRequested,
+                    default = if (isRequested) "" else "https://release.placeholder.invalid/realms/daynest",
+                )
             buildConfigField("String", "OIDC_ISSUER_URL", "\"$oidcIssuerUrl\"")
             buildConfigField("String", "OIDC_CLIENT_ID", "\"daynest\"")
             buildConfigField("String", "OIDC_REDIRECT_URI", "\"com.daynest.android:/oauth2redirect\"")
