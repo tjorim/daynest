@@ -39,5 +39,9 @@ jobs:
       - name: Type-check and build frontend
         run: npm run build
 
-      - name: Run frontend tests
-        run: npm test
+      - name: Run frontend tests with coverage
+        run: >
+          npm test -- --coverage
+          --coverage.include=src/features/today/useTodayActions.ts
+          --coverage.include=src/features/today/TodaySections.tsx
+          --coverage.thresholds.lines=80
