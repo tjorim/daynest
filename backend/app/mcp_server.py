@@ -28,10 +28,7 @@ from app.api.dependencies.integration_auth import (
 )
 from app.core.config import settings
 from app.db.session import SessionLocal
-from app.models.chore_template import ChoreTemplate as ChoreTemplateModel
 from app.models.integration_client import IntegrationClient
-from app.models.medication_plan import MedicationPlan as MedicationPlanModel
-from app.models.routine_template import RoutineTemplate as RoutineTemplateModel
 from app.models.user import User
 from app.repositories.today_repository import TodayRepository
 from app.schemas.today import PlannedItemCreateRequest, PlannedItemModuleKey, PlannedItemUpdateRequest
@@ -78,6 +75,41 @@ def _parse_csv_env(name: str, default: list[str]) -> list[str]:
     if not raw:
         return default
     return [item.strip() for item in raw.split(",") if item.strip()]
+
+
+def _routine_template_to_dict(t: Any) -> dict[str, Any]:
+    return {
+        "id": t.id,
+        "name": t.name,
+        "description": t.description,
+        "start_date": t.start_date.isoformat(),
+        "every_n_days": t.every_n_days,
+        "due_time": t.due_time.isoformat() if t.due_time else None,
+        "is_active": t.is_active,
+    }
+
+
+def _chore_template_to_dict(t: Any) -> dict[str, Any]:
+    return {
+        "id": t.id,
+        "name": t.name,
+        "description": t.description,
+        "start_date": t.start_date.isoformat(),
+        "every_n_days": t.every_n_days,
+        "is_active": t.is_active,
+    }
+
+
+def _medication_plan_to_dict(plan: Any) -> dict[str, Any]:
+    return {
+        "id": plan.id,
+        "name": plan.name,
+        "instructions": plan.instructions,
+        "start_date": plan.start_date.isoformat(),
+        "schedule_time": plan.schedule_time.isoformat(),
+        "every_n_days": plan.every_n_days,
+        "is_active": plan.is_active,
+    }
 
 
 class DaynestMcpBackend:
@@ -270,42 +302,10 @@ class DaynestMcpBackend:
     def skip_routine_task(self, task_instance_id: int) -> dict[str, Any]:
         return self._with_service(lambda _db, user, service: _jsonable(service.skip_routine_task(user.id, task_instance_id)))
 
-    def _get_routine_template(self, repository: TodayRepository, user_id: int, routine_template_id: int) -> RoutineTemplateModel:
-        template = repository.get_routine_template_for_user(user_id=user_id, routine_template_id=routine_template_id)
-        if template is None:
-            raise ValueError(f"Routine template {routine_template_id} not found")
-        return template
-
-    def _get_chore_template(self, repository: TodayRepository, user_id: int, chore_template_id: int) -> ChoreTemplateModel:
-        template = repository.get_chore_template_for_user(user_id=user_id, chore_template_id=chore_template_id)
-        if template is None:
-            raise ValueError(f"Chore template {chore_template_id} not found")
-        return template
-
-    def _get_medication_plan(self, repository: TodayRepository, user_id: int, medication_plan_id: int) -> MedicationPlanModel:
-        plan = repository.get_medication_plan_for_user(user_id=user_id, medication_plan_id=medication_plan_id)
-        if plan is None:
-            raise ValueError(f"Medication plan {medication_plan_id} not found")
-        return plan
-
     def list_routines(self) -> list[dict[str, Any]]:
-        def _operation(_db: Session, user: User, service: TodayService) -> list[dict[str, Any]]:
-            repository = TodayRepository(_db)
-            templates = repository.list_routine_templates(user_id=user.id)
-            return [
-                {
-                    "id": t.id,
-                    "name": t.name,
-                    "description": t.description,
-                    "start_date": t.start_date.isoformat(),
-                    "every_n_days": t.every_n_days,
-                    "due_time": t.due_time.isoformat() if t.due_time else None,
-                    "is_active": t.is_active,
-                }
-                for t in templates
-            ]
-
-        return self._with_service(_operation)
+        return self._with_service(
+            lambda _db, user, service: [_routine_template_to_dict(t) for t in service.list_routine_templates(user.id)]
+        )
 
     def create_routine(
         self,
@@ -318,31 +318,19 @@ class DaynestMcpBackend:
     ) -> dict[str, Any]:
         parsed_start = _parse_date(start_date)
         parsed_due_time = time.fromisoformat(due_time) if due_time else None
-
-        def _operation(_db: Session, user: User, service: TodayService) -> dict[str, Any]:
-            repository = TodayRepository(_db)
-            t = repository.add_routine_template(
-                RoutineTemplateModel(
-                    user_id=user.id,
+        return self._with_service(
+            lambda _db, user, service: _routine_template_to_dict(
+                service.create_routine_template(
+                    user.id,
                     name=name,
-                    description=description,
                     start_date=parsed_start,
                     every_n_days=every_n_days,
+                    description=description,
                     due_time=parsed_due_time,
                     is_active=is_active,
                 )
             )
-            return {
-                "id": t.id,
-                "name": t.name,
-                "description": t.description,
-                "start_date": t.start_date.isoformat(),
-                "every_n_days": t.every_n_days,
-                "due_time": t.due_time.isoformat() if t.due_time else None,
-                "is_active": t.is_active,
-            }
-
-        return self._with_service(_operation)
+        )
 
     def update_routine(
         self,
@@ -356,57 +344,29 @@ class DaynestMcpBackend:
     ) -> dict[str, Any]:
         parsed_start = _parse_date(start_date)
         parsed_due_time = time.fromisoformat(due_time) if due_time else None
-
-        def _operation(_db: Session, user: User, service: TodayService) -> dict[str, Any]:
-            repository = TodayRepository(_db)
-            template = self._get_routine_template(repository, user.id, routine_template_id)
-            updated = repository.update_routine_template(
-                template,
-                name=name,
-                description=description,
-                start_date=parsed_start,
-                every_n_days=every_n_days,
-                due_time=parsed_due_time,
-                is_active=is_active,
+        return self._with_service(
+            lambda _db, user, service: _routine_template_to_dict(
+                service.update_routine_template(
+                    user.id,
+                    routine_template_id,
+                    name=name,
+                    start_date=parsed_start,
+                    every_n_days=every_n_days,
+                    description=description,
+                    due_time=parsed_due_time,
+                    is_active=is_active,
+                )
             )
-            return {
-                "id": updated.id,
-                "name": updated.name,
-                "description": updated.description,
-                "start_date": updated.start_date.isoformat(),
-                "every_n_days": updated.every_n_days,
-                "due_time": updated.due_time.isoformat() if updated.due_time else None,
-                "is_active": updated.is_active,
-            }
-
-        return self._with_service(_operation)
+        )
 
     def delete_routine(self, routine_template_id: int) -> dict[str, Any]:
-        def _operation(_db: Session, user: User, service: TodayService) -> dict[str, Any]:
-            repository = TodayRepository(_db)
-            template = self._get_routine_template(repository, user.id, routine_template_id)
-            repository.delete_routine_template(template)
-            return {"deleted": True, "routine_template_id": routine_template_id}
-
-        return self._with_service(_operation)
+        self._with_service(lambda _db, user, service: service.delete_routine_template(user.id, routine_template_id))
+        return {"deleted": True, "routine_template_id": routine_template_id}
 
     def list_chore_templates(self) -> list[dict[str, Any]]:
-        def _operation(_db: Session, user: User, service: TodayService) -> list[dict[str, Any]]:
-            repository = TodayRepository(_db)
-            templates = repository.list_chore_templates(user_id=user.id)
-            return [
-                {
-                    "id": t.id,
-                    "name": t.name,
-                    "description": t.description,
-                    "start_date": t.start_date.isoformat(),
-                    "every_n_days": t.every_n_days,
-                    "is_active": t.is_active,
-                }
-                for t in templates
-            ]
-
-        return self._with_service(_operation)
+        return self._with_service(
+            lambda _db, user, service: [_chore_template_to_dict(t) for t in service.list_chore_templates(user.id)]
+        )
 
     def create_chore_template(
         self,
@@ -417,29 +377,18 @@ class DaynestMcpBackend:
         is_active: bool = True,
     ) -> dict[str, Any]:
         parsed_start = _parse_date(start_date)
-
-        def _operation(_db: Session, user: User, service: TodayService) -> dict[str, Any]:
-            repository = TodayRepository(_db)
-            t = repository.add_chore_template(
-                ChoreTemplateModel(
-                    user_id=user.id,
+        return self._with_service(
+            lambda _db, user, service: _chore_template_to_dict(
+                service.create_chore_template(
+                    user.id,
                     name=name,
-                    description=description,
                     start_date=parsed_start,
                     every_n_days=every_n_days,
+                    description=description,
                     is_active=is_active,
                 )
             )
-            return {
-                "id": t.id,
-                "name": t.name,
-                "description": t.description,
-                "start_date": t.start_date.isoformat(),
-                "every_n_days": t.every_n_days,
-                "is_active": t.is_active,
-            }
-
-        return self._with_service(_operation)
+        )
 
     def update_chore_template(
         self,
@@ -451,37 +400,23 @@ class DaynestMcpBackend:
         is_active: bool = True,
     ) -> dict[str, Any]:
         parsed_start = _parse_date(start_date)
-
-        def _operation(_db: Session, user: User, service: TodayService) -> dict[str, Any]:
-            repository = TodayRepository(_db)
-            template = self._get_chore_template(repository, user.id, chore_template_id)
-            updated = repository.update_chore_template(
-                template,
-                name=name,
-                description=description,
-                start_date=parsed_start,
-                every_n_days=every_n_days,
-                is_active=is_active,
+        return self._with_service(
+            lambda _db, user, service: _chore_template_to_dict(
+                service.update_chore_template(
+                    user.id,
+                    chore_template_id,
+                    name=name,
+                    start_date=parsed_start,
+                    every_n_days=every_n_days,
+                    description=description,
+                    is_active=is_active,
+                )
             )
-            return {
-                "id": updated.id,
-                "name": updated.name,
-                "description": updated.description,
-                "start_date": updated.start_date.isoformat(),
-                "every_n_days": updated.every_n_days,
-                "is_active": updated.is_active,
-            }
-
-        return self._with_service(_operation)
+        )
 
     def delete_chore_template(self, chore_template_id: int) -> dict[str, Any]:
-        def _operation(_db: Session, user: User, service: TodayService) -> dict[str, Any]:
-            repository = TodayRepository(_db)
-            template = self._get_chore_template(repository, user.id, chore_template_id)
-            repository.delete_chore_template(template)
-            return {"deleted": True, "chore_template_id": chore_template_id}
-
-        return self._with_service(_operation)
+        self._with_service(lambda _db, user, service: service.delete_chore_template(user.id, chore_template_id))
+        return {"deleted": True, "chore_template_id": chore_template_id}
 
     def take_medication_dose(self, medication_dose_instance_id: int) -> dict[str, Any]:
         return self._mutate_medication(medication_dose_instance_id, "take")
@@ -490,23 +425,9 @@ class DaynestMcpBackend:
         return self._mutate_medication(medication_dose_instance_id, "skip")
 
     def list_medications(self) -> list[dict[str, Any]]:
-        def _operation(_db: Session, user: User, service: TodayService) -> list[dict[str, Any]]:
-            repository = TodayRepository(_db)
-            plans = repository.list_medication_plans(user_id=user.id)
-            return [
-                {
-                    "id": plan.id,
-                    "name": plan.name,
-                    "instructions": plan.instructions,
-                    "start_date": plan.start_date.isoformat(),
-                    "schedule_time": plan.schedule_time.isoformat(),
-                    "every_n_days": plan.every_n_days,
-                    "is_active": plan.is_active,
-                }
-                for plan in plans
-            ]
-
-        return self._with_service(_operation)
+        return self._with_service(
+            lambda _db, user, service: [_medication_plan_to_dict(p) for p in service.list_medication_plans(user.id)]
+        )
 
     def create_medication(
         self,
@@ -518,31 +439,18 @@ class DaynestMcpBackend:
     ) -> dict[str, Any]:
         parsed_start = date.fromisoformat(start_date)
         parsed_time = time.fromisoformat(schedule_time)
-
-        def _operation(_db: Session, user: User, service: TodayService) -> dict[str, Any]:
-            repository = TodayRepository(_db)
-            plan = repository.add_medication_plan(
-                MedicationPlanModel(
-                    user_id=user.id,
+        return self._with_service(
+            lambda _db, user, service: _medication_plan_to_dict(
+                service.create_medication_plan(
+                    user.id,
                     name=name,
                     instructions=instructions,
                     start_date=parsed_start,
                     schedule_time=parsed_time,
                     every_n_days=every_n_days,
-                    is_active=True,
                 )
             )
-            return {
-                "id": plan.id,
-                "name": plan.name,
-                "instructions": plan.instructions,
-                "start_date": plan.start_date.isoformat(),
-                "schedule_time": plan.schedule_time.isoformat(),
-                "every_n_days": plan.every_n_days,
-                "is_active": plan.is_active,
-            }
-
-        return self._with_service(_operation)
+        )
 
     def update_medication(
         self,
@@ -556,39 +464,24 @@ class DaynestMcpBackend:
     ) -> dict[str, Any]:
         parsed_start = date.fromisoformat(start_date)
         parsed_time = time.fromisoformat(schedule_time)
-
-        def _operation(_db: Session, user: User, service: TodayService) -> dict[str, Any]:
-            repository = TodayRepository(_db)
-            plan = self._get_medication_plan(repository, user.id, medication_plan_id)
-            updated = repository.update_medication_plan(
-                plan,
-                name=name,
-                instructions=instructions,
-                start_date=parsed_start,
-                schedule_time=parsed_time,
-                every_n_days=every_n_days,
-                is_active=is_active,
+        return self._with_service(
+            lambda _db, user, service: _medication_plan_to_dict(
+                service.update_medication_plan(
+                    user.id,
+                    medication_plan_id,
+                    name=name,
+                    instructions=instructions,
+                    start_date=parsed_start,
+                    schedule_time=parsed_time,
+                    every_n_days=every_n_days,
+                    is_active=is_active,
+                )
             )
-            return {
-                "id": updated.id,
-                "name": updated.name,
-                "instructions": updated.instructions,
-                "start_date": updated.start_date.isoformat(),
-                "schedule_time": updated.schedule_time.isoformat(),
-                "every_n_days": updated.every_n_days,
-                "is_active": updated.is_active,
-            }
-
-        return self._with_service(_operation)
+        )
 
     def delete_medication(self, medication_plan_id: int) -> dict[str, Any]:
-        def _operation(_db: Session, user: User, service: TodayService) -> dict[str, Any]:
-            repository = TodayRepository(_db)
-            plan = self._get_medication_plan(repository, user.id, medication_plan_id)
-            repository.delete_medication_plan(plan)
-            return {"deleted": True, "medication_plan_id": medication_plan_id}
-
-        return self._with_service(_operation)
+        self._with_service(lambda _db, user, service: service.delete_medication_plan(user.id, medication_plan_id))
+        return {"deleted": True, "medication_plan_id": medication_plan_id}
 
     def _mutate_medication(self, medication_dose_instance_id: int, action: str) -> dict[str, Any]:
         def _operation(_db: Session, user: User, service: TodayService) -> dict[str, Any]:

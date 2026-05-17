@@ -1,7 +1,7 @@
 from calendar import monthrange
 from collections import defaultdict
 from dataclasses import dataclass
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, time, timedelta, timezone
 from typing import cast
 from zoneinfo import ZoneInfo
 
@@ -10,8 +10,11 @@ from fastapi import HTTPException, status
 from app.core.config import AppSettings
 from app.core.enums import ChoreStatus, MedicationDoseStatus, TaskStatus
 from app.models.chore_instance import ChoreInstance
+from app.models.chore_template import ChoreTemplate
 from app.models.medication_dose_instance import MedicationDoseInstance
+from app.models.medication_plan import MedicationPlan
 from app.models.planned_item import PlannedItem
+from app.models.routine_template import RoutineTemplate
 from app.models.task_instance import TaskInstance
 from app.repositories.today_repository import TodayRepository
 from app.schemas.integrations import DashboardReadModel, HACalendarEvent
@@ -565,6 +568,155 @@ class TodayService:
             due_at=instance.due_at,
             completed_at=instance.completed_at,
         )
+
+    def list_routine_templates(self, user_id: int) -> list[RoutineTemplate]:
+        return self.repository.list_routine_templates(user_id=user_id)
+
+    def create_routine_template(
+        self,
+        user_id: int,
+        *,
+        name: str,
+        start_date: date,
+        every_n_days: int,
+        description: str | None,
+        due_time: time | None,
+        is_active: bool,
+    ) -> RoutineTemplate:
+        return self.repository.add_routine_template(
+            RoutineTemplate(
+                user_id=user_id,
+                name=name,
+                description=description,
+                start_date=start_date,
+                every_n_days=every_n_days,
+                due_time=due_time,
+                is_active=is_active,
+            )
+        )
+
+    def update_routine_template(
+        self,
+        user_id: int,
+        routine_template_id: int,
+        *,
+        name: str,
+        start_date: date,
+        every_n_days: int,
+        description: str | None,
+        due_time: time | None,
+        is_active: bool,
+    ) -> RoutineTemplate:
+        template = self.repository.get_routine_template_for_user(user_id=user_id, routine_template_id=routine_template_id)
+        if template is None:
+            raise ValueError(f"Routine template {routine_template_id} not found")
+        return self.repository.update_routine_template(
+            template, name=name, description=description, start_date=start_date, every_n_days=every_n_days, due_time=due_time, is_active=is_active
+        )
+
+    def delete_routine_template(self, user_id: int, routine_template_id: int) -> None:
+        template = self.repository.get_routine_template_for_user(user_id=user_id, routine_template_id=routine_template_id)
+        if template is None:
+            raise ValueError(f"Routine template {routine_template_id} not found")
+        self.repository.delete_routine_template(template)
+
+    def list_chore_templates(self, user_id: int) -> list[ChoreTemplate]:
+        return self.repository.list_chore_templates(user_id=user_id)
+
+    def create_chore_template(
+        self,
+        user_id: int,
+        *,
+        name: str,
+        start_date: date,
+        every_n_days: int,
+        description: str | None,
+        is_active: bool,
+    ) -> ChoreTemplate:
+        return self.repository.add_chore_template(
+            ChoreTemplate(
+                user_id=user_id,
+                name=name,
+                description=description,
+                start_date=start_date,
+                every_n_days=every_n_days,
+                is_active=is_active,
+            )
+        )
+
+    def update_chore_template(
+        self,
+        user_id: int,
+        chore_template_id: int,
+        *,
+        name: str,
+        start_date: date,
+        every_n_days: int,
+        description: str | None,
+        is_active: bool,
+    ) -> ChoreTemplate:
+        template = self.repository.get_chore_template_for_user(user_id=user_id, chore_template_id=chore_template_id)
+        if template is None:
+            raise ValueError(f"Chore template {chore_template_id} not found")
+        return self.repository.update_chore_template(
+            template, name=name, description=description, start_date=start_date, every_n_days=every_n_days, is_active=is_active
+        )
+
+    def delete_chore_template(self, user_id: int, chore_template_id: int) -> None:
+        template = self.repository.get_chore_template_for_user(user_id=user_id, chore_template_id=chore_template_id)
+        if template is None:
+            raise ValueError(f"Chore template {chore_template_id} not found")
+        self.repository.delete_chore_template(template)
+
+    def list_medication_plans(self, user_id: int) -> list[MedicationPlan]:
+        return self.repository.list_medication_plans(user_id=user_id)
+
+    def create_medication_plan(
+        self,
+        user_id: int,
+        *,
+        name: str,
+        instructions: str,
+        start_date: date,
+        schedule_time: time,
+        every_n_days: int,
+    ) -> MedicationPlan:
+        return self.repository.add_medication_plan(
+            MedicationPlan(
+                user_id=user_id,
+                name=name,
+                instructions=instructions,
+                start_date=start_date,
+                schedule_time=schedule_time,
+                every_n_days=every_n_days,
+                is_active=True,
+            )
+        )
+
+    def update_medication_plan(
+        self,
+        user_id: int,
+        medication_plan_id: int,
+        *,
+        name: str,
+        instructions: str,
+        start_date: date,
+        schedule_time: time,
+        every_n_days: int,
+        is_active: bool,
+    ) -> MedicationPlan:
+        plan = self.repository.get_medication_plan_for_user(user_id=user_id, medication_plan_id=medication_plan_id)
+        if plan is None:
+            raise ValueError(f"Medication plan {medication_plan_id} not found")
+        return self.repository.update_medication_plan(
+            plan, name=name, instructions=instructions, start_date=start_date, schedule_time=schedule_time, every_n_days=every_n_days, is_active=is_active
+        )
+
+    def delete_medication_plan(self, user_id: int, medication_plan_id: int) -> None:
+        plan = self.repository.get_medication_plan_for_user(user_id=user_id, medication_plan_id=medication_plan_id)
+        if plan is None:
+            raise ValueError(f"Medication plan {medication_plan_id} not found")
+        self.repository.delete_medication_plan(plan)
 
     def mutate_medication_status(self, user_id: int, medication_dose_instance_id: int, action: str):
         instance = self.repository.get_dose_for_user(user_id=user_id, dose_id=medication_dose_instance_id)
