@@ -28,8 +28,10 @@ from app.api.dependencies.integration_auth import (
 )
 from app.core.config import settings
 from app.db.session import SessionLocal
+from app.models.chore_template import ChoreTemplate as ChoreTemplateModel
 from app.models.integration_client import IntegrationClient
 from app.models.medication_plan import MedicationPlan as MedicationPlanModel
+from app.models.routine_template import RoutineTemplate as RoutineTemplateModel
 from app.models.user import User
 from app.repositories.today_repository import TodayRepository
 from app.schemas.today import PlannedItemCreateRequest, PlannedItemModuleKey, PlannedItemUpdateRequest
@@ -268,11 +270,218 @@ class DaynestMcpBackend:
     def skip_routine_task(self, task_instance_id: int) -> dict[str, Any]:
         return self._with_service(lambda _db, user, service: _jsonable(service.skip_routine_task(user.id, task_instance_id)))
 
+    def _get_routine_template(self, repository: TodayRepository, user_id: int, routine_template_id: int) -> RoutineTemplateModel:
+        template = repository.get_routine_template_for_user(user_id=user_id, routine_template_id=routine_template_id)
+        if template is None:
+            raise ValueError(f"Routine template {routine_template_id} not found")
+        return template
+
+    def _get_chore_template(self, repository: TodayRepository, user_id: int, chore_template_id: int) -> ChoreTemplateModel:
+        template = repository.get_chore_template_for_user(user_id=user_id, chore_template_id=chore_template_id)
+        if template is None:
+            raise ValueError(f"Chore template {chore_template_id} not found")
+        return template
+
     def _get_medication_plan(self, repository: TodayRepository, user_id: int, medication_plan_id: int) -> MedicationPlanModel:
         plan = repository.get_medication_plan_for_user(user_id=user_id, medication_plan_id=medication_plan_id)
         if plan is None:
             raise ValueError(f"Medication plan {medication_plan_id} not found")
         return plan
+
+    def list_routines(self) -> list[dict[str, Any]]:
+        def _operation(_db: Session, user: User, service: TodayService) -> list[dict[str, Any]]:
+            repository = TodayRepository(_db)
+            templates = repository.list_routine_templates(user_id=user.id)
+            return [
+                {
+                    "id": t.id,
+                    "name": t.name,
+                    "description": t.description,
+                    "start_date": t.start_date.isoformat(),
+                    "every_n_days": t.every_n_days,
+                    "due_time": t.due_time.isoformat() if t.due_time else None,
+                    "is_active": t.is_active,
+                }
+                for t in templates
+            ]
+
+        return self._with_service(_operation)
+
+    def create_routine(
+        self,
+        name: str,
+        start_date: str,
+        every_n_days: int = 1,
+        description: str | None = None,
+        due_time: str | None = None,
+        is_active: bool = True,
+    ) -> dict[str, Any]:
+        parsed_start = _parse_date(start_date)
+        parsed_due_time = time.fromisoformat(due_time) if due_time else None
+
+        def _operation(_db: Session, user: User, service: TodayService) -> dict[str, Any]:
+            repository = TodayRepository(_db)
+            t = repository.add_routine_template(
+                RoutineTemplateModel(
+                    user_id=user.id,
+                    name=name,
+                    description=description,
+                    start_date=parsed_start,
+                    every_n_days=every_n_days,
+                    due_time=parsed_due_time,
+                    is_active=is_active,
+                )
+            )
+            return {
+                "id": t.id,
+                "name": t.name,
+                "description": t.description,
+                "start_date": t.start_date.isoformat(),
+                "every_n_days": t.every_n_days,
+                "due_time": t.due_time.isoformat() if t.due_time else None,
+                "is_active": t.is_active,
+            }
+
+        return self._with_service(_operation)
+
+    def update_routine(
+        self,
+        routine_template_id: int,
+        name: str,
+        start_date: str,
+        every_n_days: int = 1,
+        description: str | None = None,
+        due_time: str | None = None,
+        is_active: bool = True,
+    ) -> dict[str, Any]:
+        parsed_start = _parse_date(start_date)
+        parsed_due_time = time.fromisoformat(due_time) if due_time else None
+
+        def _operation(_db: Session, user: User, service: TodayService) -> dict[str, Any]:
+            repository = TodayRepository(_db)
+            template = self._get_routine_template(repository, user.id, routine_template_id)
+            updated = repository.update_routine_template(
+                template,
+                name=name,
+                description=description,
+                start_date=parsed_start,
+                every_n_days=every_n_days,
+                due_time=parsed_due_time,
+                is_active=is_active,
+            )
+            return {
+                "id": updated.id,
+                "name": updated.name,
+                "description": updated.description,
+                "start_date": updated.start_date.isoformat(),
+                "every_n_days": updated.every_n_days,
+                "due_time": updated.due_time.isoformat() if updated.due_time else None,
+                "is_active": updated.is_active,
+            }
+
+        return self._with_service(_operation)
+
+    def delete_routine(self, routine_template_id: int) -> dict[str, Any]:
+        def _operation(_db: Session, user: User, service: TodayService) -> dict[str, Any]:
+            repository = TodayRepository(_db)
+            template = self._get_routine_template(repository, user.id, routine_template_id)
+            repository.delete_routine_template(template)
+            return {"deleted": True, "routine_template_id": routine_template_id}
+
+        return self._with_service(_operation)
+
+    def list_chore_templates(self) -> list[dict[str, Any]]:
+        def _operation(_db: Session, user: User, service: TodayService) -> list[dict[str, Any]]:
+            repository = TodayRepository(_db)
+            templates = repository.list_chore_templates(user_id=user.id)
+            return [
+                {
+                    "id": t.id,
+                    "name": t.name,
+                    "description": t.description,
+                    "start_date": t.start_date.isoformat(),
+                    "every_n_days": t.every_n_days,
+                    "is_active": t.is_active,
+                }
+                for t in templates
+            ]
+
+        return self._with_service(_operation)
+
+    def create_chore_template(
+        self,
+        name: str,
+        start_date: str,
+        every_n_days: int = 1,
+        description: str | None = None,
+        is_active: bool = True,
+    ) -> dict[str, Any]:
+        parsed_start = _parse_date(start_date)
+
+        def _operation(_db: Session, user: User, service: TodayService) -> dict[str, Any]:
+            repository = TodayRepository(_db)
+            t = repository.add_chore_template(
+                ChoreTemplateModel(
+                    user_id=user.id,
+                    name=name,
+                    description=description,
+                    start_date=parsed_start,
+                    every_n_days=every_n_days,
+                    is_active=is_active,
+                )
+            )
+            return {
+                "id": t.id,
+                "name": t.name,
+                "description": t.description,
+                "start_date": t.start_date.isoformat(),
+                "every_n_days": t.every_n_days,
+                "is_active": t.is_active,
+            }
+
+        return self._with_service(_operation)
+
+    def update_chore_template(
+        self,
+        chore_template_id: int,
+        name: str,
+        start_date: str,
+        every_n_days: int = 1,
+        description: str | None = None,
+        is_active: bool = True,
+    ) -> dict[str, Any]:
+        parsed_start = _parse_date(start_date)
+
+        def _operation(_db: Session, user: User, service: TodayService) -> dict[str, Any]:
+            repository = TodayRepository(_db)
+            template = self._get_chore_template(repository, user.id, chore_template_id)
+            updated = repository.update_chore_template(
+                template,
+                name=name,
+                description=description,
+                start_date=parsed_start,
+                every_n_days=every_n_days,
+                is_active=is_active,
+            )
+            return {
+                "id": updated.id,
+                "name": updated.name,
+                "description": updated.description,
+                "start_date": updated.start_date.isoformat(),
+                "every_n_days": updated.every_n_days,
+                "is_active": updated.is_active,
+            }
+
+        return self._with_service(_operation)
+
+    def delete_chore_template(self, chore_template_id: int) -> dict[str, Any]:
+        def _operation(_db: Session, user: User, service: TodayService) -> dict[str, Any]:
+            repository = TodayRepository(_db)
+            template = self._get_chore_template(repository, user.id, chore_template_id)
+            repository.delete_chore_template(template)
+            return {"deleted": True, "chore_template_id": chore_template_id}
+
+        return self._with_service(_operation)
 
     def take_medication_dose(self, medication_dose_instance_id: int) -> dict[str, Any]:
         return self._mutate_medication(medication_dose_instance_id, "take")
@@ -691,6 +900,122 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
         """Skip a Daynest routine task."""
 
         return await to_thread.run_sync(daynest.skip_routine_task, task_instance_id)
+
+    @mcp.tool()
+    async def list_routines() -> list[dict[str, Any]]:
+        """List all Daynest routine templates for the active user."""
+
+        return await to_thread.run_sync(daynest.list_routines)
+
+    @mcp.tool()
+    async def create_routine(
+        name: str,
+        start_date: str,
+        every_n_days: int = 1,
+        description: str | None = None,
+        due_time: str | None = None,
+        is_active: bool = True,
+    ) -> dict[str, Any]:
+        """Create a new Daynest routine template.
+
+        Args:
+            name: Routine name (e.g. "Morning walk").
+            start_date: When the routine starts in YYYY-MM-DD format or 'today'.
+            every_n_days: Recurrence frequency — 1 means daily, 7 means weekly, etc.
+            description: Optional description of the routine.
+            due_time: Optional time-of-day deadline in HH:MM or HH:MM:SS format.
+            is_active: Whether the routine is currently active.
+        """
+
+        return await to_thread.run_sync(daynest.create_routine, name, start_date, every_n_days, description, due_time, is_active)
+
+    @mcp.tool()
+    async def update_routine(
+        routine_template_id: int,
+        name: str,
+        start_date: str,
+        every_n_days: int = 1,
+        description: str | None = None,
+        due_time: str | None = None,
+        is_active: bool = True,
+    ) -> dict[str, Any]:
+        """Update an existing Daynest routine template.
+
+        Args:
+            routine_template_id: ID of the routine template to update.
+            name: Updated routine name.
+            start_date: Updated start date in YYYY-MM-DD format or 'today'.
+            every_n_days: Updated recurrence frequency.
+            description: Updated description.
+            due_time: Updated time-of-day deadline in HH:MM or HH:MM:SS format, or null to clear.
+            is_active: Set to false to deactivate the routine.
+        """
+
+        return await to_thread.run_sync(
+            daynest.update_routine, routine_template_id, name, start_date, every_n_days, description, due_time, is_active
+        )
+
+    @mcp.tool()
+    async def delete_routine(routine_template_id: int) -> dict[str, Any]:
+        """Delete a Daynest routine template by id."""
+
+        return await to_thread.run_sync(daynest.delete_routine, routine_template_id)
+
+    @mcp.tool()
+    async def list_chore_templates() -> list[dict[str, Any]]:
+        """List all Daynest chore templates for the active user."""
+
+        return await to_thread.run_sync(daynest.list_chore_templates)
+
+    @mcp.tool()
+    async def create_chore_template(
+        name: str,
+        start_date: str,
+        every_n_days: int = 1,
+        description: str | None = None,
+        is_active: bool = True,
+    ) -> dict[str, Any]:
+        """Create a new Daynest chore template.
+
+        Args:
+            name: Chore name (e.g. "Take out trash").
+            start_date: When the chore starts in YYYY-MM-DD format or 'today'.
+            every_n_days: Recurrence frequency — 1 means daily, 7 means weekly, etc.
+            description: Optional description of the chore.
+            is_active: Whether the chore is currently active.
+        """
+
+        return await to_thread.run_sync(daynest.create_chore_template, name, start_date, every_n_days, description, is_active)
+
+    @mcp.tool()
+    async def update_chore_template(
+        chore_template_id: int,
+        name: str,
+        start_date: str,
+        every_n_days: int = 1,
+        description: str | None = None,
+        is_active: bool = True,
+    ) -> dict[str, Any]:
+        """Update an existing Daynest chore template.
+
+        Args:
+            chore_template_id: ID of the chore template to update.
+            name: Updated chore name.
+            start_date: Updated start date in YYYY-MM-DD format or 'today'.
+            every_n_days: Updated recurrence frequency.
+            description: Updated description.
+            is_active: Set to false to deactivate the chore.
+        """
+
+        return await to_thread.run_sync(
+            daynest.update_chore_template, chore_template_id, name, start_date, every_n_days, description, is_active
+        )
+
+    @mcp.tool()
+    async def delete_chore_template(chore_template_id: int) -> dict[str, Any]:
+        """Delete a Daynest chore template by id."""
+
+        return await to_thread.run_sync(daynest.delete_chore_template, chore_template_id)
 
     @mcp.tool()
     async def take_medication_dose(medication_dose_instance_id: int) -> dict[str, Any]:

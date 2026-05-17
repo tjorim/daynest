@@ -97,14 +97,16 @@ def update_routine(
 ) -> RoutineTemplateResponse:
     repository = TodayRepository(db)
     template = _get_user_routine_template(repository, current_user.id, routine_template_id)
-    template.name = request.name
-    template.description = request.description
-    template.start_date = request.start_date
-    template.every_n_days = request.every_n_days
-    template.due_time = request.due_time
-    template.is_active = request.is_active
-    repository.save()
-    return _routine_to_response(template)
+    updated = repository.update_routine_template(
+        template,
+        name=request.name,
+        description=request.description,
+        start_date=request.start_date,
+        every_n_days=request.every_n_days,
+        due_time=request.due_time,
+        is_active=request.is_active,
+    )
+    return _routine_to_response(updated)
 
 
 @router.delete("/routines/{routine_template_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -157,13 +159,15 @@ def update_chore_template(
 ) -> ChoreTemplateResponse:
     repository = TodayRepository(db)
     template = _get_user_chore_template(repository, current_user.id, chore_template_id)
-    template.name = request.name
-    template.description = request.description
-    template.start_date = request.start_date
-    template.every_n_days = request.every_n_days
-    template.is_active = request.is_active
-    repository.save()
-    return _chore_to_response(template)
+    updated = repository.update_chore_template(
+        template,
+        name=request.name,
+        description=request.description,
+        start_date=request.start_date,
+        every_n_days=request.every_n_days,
+        is_active=request.is_active,
+    )
+    return _chore_to_response(updated)
 
 
 @router.delete("/chore-templates/{chore_template_id}", status_code=status.HTTP_204_NO_CONTENT)

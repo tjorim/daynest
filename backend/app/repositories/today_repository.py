@@ -230,6 +230,26 @@ class TodayRepository:
         self.db.delete(template)
         self.db.commit()
 
+    def update_routine_template(
+        self,
+        template: RoutineTemplate,
+        name: str,
+        description: str | None,
+        start_date: date,
+        every_n_days: int,
+        due_time: time | None,
+        is_active: bool,
+    ) -> RoutineTemplate:
+        template.name = name
+        template.description = description
+        template.start_date = start_date
+        template.every_n_days = every_n_days
+        template.due_time = due_time
+        template.is_active = is_active
+        self.db.commit()
+        self.db.refresh(template)
+        return template
+
     def list_chore_templates(self, user_id: int) -> list[ChoreTemplate]:
         stmt = select(ChoreTemplate).where(ChoreTemplate.user_id == user_id).order_by(ChoreTemplate.id.asc())
         return list(self.db.scalars(stmt).all())
@@ -247,6 +267,24 @@ class TodayRepository:
     def delete_chore_template(self, template: ChoreTemplate) -> None:
         self.db.delete(template)
         self.db.commit()
+
+    def update_chore_template(
+        self,
+        template: ChoreTemplate,
+        name: str,
+        description: str | None,
+        start_date: date,
+        every_n_days: int,
+        is_active: bool,
+    ) -> ChoreTemplate:
+        template.name = name
+        template.description = description
+        template.start_date = start_date
+        template.every_n_days = every_n_days
+        template.is_active = is_active
+        self.db.commit()
+        self.db.refresh(template)
+        return template
 
     def add_medication_plan(self, plan: MedicationPlan) -> MedicationPlan:
         self.db.add(plan)

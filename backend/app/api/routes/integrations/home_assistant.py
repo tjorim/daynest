@@ -1,6 +1,6 @@
 from datetime import date, timedelta
 
-from fastapi import APIRouter, Depends, Response
+from fastapi import APIRouter, Depends, Query, Response
 
 from app.api.dependencies.integration_auth import require_integration_scope
 from app.api.dependencies.today import get_today_service
@@ -15,6 +15,7 @@ from app.schemas.integrations import (
     CompleteTaskRequest,
     DashboardReadModel,
     HAActionResult,
+    HACalendarEvent,
     HomeAssistantEntity,
     MarkMedicationTakenRequest,
     PlannedItemCreateRequest,
@@ -40,11 +41,14 @@ def home_assistant_summary(
     integration_user: User = Depends(require_integration_scope("ha:read")),
     _: None = Depends(_set_ha_contract_header),
 ) -> dict[str, str | int | None]:
-    summary = service.get_summary(user_id=integration_user.id, for_date=date.today())
+    read_model = service.get_dashboard_read_model(user_id=integration_user.id, for_date=date.today())
     return {
-        "todo_daynest_today": summary.tasks_remaining,
-        "sensor_daynest_overdue_count": summary.overdue_count,
-        "sensor_daynest_next_medication": summary.next_medication,
+        "sensor_daynest_chores_due": read_model.due_today_count,
+        "sensor_daynest_routines_open": read_model.routines_open_count,
+        "sensor_daynest_medication_due": read_model.medication_due_count,
+        "sensor_daynest_planned_remaining": read_model.planned_remaining_count,
+        "sensor_daynest_overdue_count": read_model.overdue_count,
+        "sensor_daynest_next_medication": read_model.next_medication,
     }
 
 
@@ -57,14 +61,29 @@ def home_assistant_entities(
     read_model = service.get_dashboard_read_model(user_id=integration_user.id, for_date=date.today())
     return [
         HomeAssistantEntity(
-            entity_id="todo.daynest_tasks",
+            entity_id="sensor.daynest_chores_due",
             state=str(read_model.due_today_count),
-            attributes={"friendly_name": "Daynest Tasks Due Today", "unit_of_measurement": "tasks"},
+            attributes={"friendly_name": "Daynest Chores Due Today", "unit_of_measurement": "chores"},
+        ),
+        HomeAssistantEntity(
+            entity_id="sensor.daynest_routines_open",
+            state=str(read_model.routines_open_count),
+            attributes={"friendly_name": "Daynest Routines Open", "unit_of_measurement": "routines"},
+        ),
+        HomeAssistantEntity(
+            entity_id="sensor.daynest_medication_due",
+            state=str(read_model.medication_due_count),
+            attributes={"friendly_name": "Daynest Medication Due", "unit_of_measurement": "doses"},
+        ),
+        HomeAssistantEntity(
+            entity_id="sensor.daynest_planned_remaining",
+            state=str(read_model.planned_remaining_count),
+            attributes={"friendly_name": "Daynest Planned Remaining", "unit_of_measurement": "items"},
         ),
         HomeAssistantEntity(
             entity_id="sensor.daynest_overdue_count",
             state=str(read_model.overdue_count),
-            attributes={"friendly_name": "Daynest Overdue Count"},
+            attributes={"friendly_name": "Daynest Overdue Count", "unit_of_measurement": "items"},
         ),
         HomeAssistantEntity(
             entity_id="sensor.daynest_completion_ratio",
@@ -86,6 +105,18 @@ def home_assistant_dashboard(
     _: None = Depends(_set_ha_contract_header),
 ) -> DashboardReadModel:
     return service.get_dashboard_read_model(user_id=integration_user.id, for_date=date.today())
+
+
+@router.get("/calendar", response_model=list[HACalendarEvent])
+def home_assistant_calendar(
+    start: date = Query(..., description="Inclusive start date in YYYY-MM-DD format"),
+    end: date = Query(..., description="Inclusive end date in YYYY-MM-DD format"),
+    service: TodayService = Depends(get_today_service),
+    integration_user: User = Depends(require_integration_scope("ha:read")),
+    _: None = Depends(_set_ha_contract_header),
+) -> list[HACalendarEvent]:
+    """Return all scheduled events (chores, routines, medication, planned) for a date range."""
+    return service.get_calendar_events(user_id=integration_user.id, start_date=start, end_date=end)
 
 
 @router.post("/actions/complete-task", response_model=HAActionResult)

@@ -163,11 +163,14 @@ def test_home_assistant_summary_contract_is_stable(
     assert summary.headers[INTEGRATION_CONTRACT_HEADER] == expected_contract
     summary_payload = summary.json()
     assert set(summary_payload.keys()) == {
-        "todo_daynest_today",
+        "sensor_daynest_chores_due",
+        "sensor_daynest_routines_open",
+        "sensor_daynest_medication_due",
+        "sensor_daynest_planned_remaining",
         "sensor_daynest_overdue_count",
         "sensor_daynest_next_medication",
     }
-    assert isinstance(summary_payload["todo_daynest_today"], int)
+    assert isinstance(summary_payload["sensor_daynest_chores_due"], int)
     assert isinstance(summary_payload["sensor_daynest_overdue_count"], int)
     assert summary_payload["sensor_daynest_next_medication"] is None or isinstance(
         summary_payload["sensor_daynest_next_medication"],
@@ -191,7 +194,10 @@ def test_home_assistant_entities_contract_is_stable(
     entities_payload = entities.json()
     assert isinstance(entities_payload, list)
     expected_entity_ids = {
-        "todo.daynest_tasks",
+        "sensor.daynest_chores_due",
+        "sensor.daynest_routines_open",
+        "sensor.daynest_medication_due",
+        "sensor.daynest_planned_remaining",
         "sensor.daynest_overdue_count",
         "sensor.daynest_completion_ratio",
         "sensor.daynest_next_medication",
@@ -222,6 +228,7 @@ def test_home_assistant_dashboard_contract_is_stable(
         "overdue_count",
         "due_today_count",
         "planned_count",
+        "planned_remaining_count",
         "medication_due_count",
         "completion_ratio",
         "next_medication",

@@ -14,7 +14,7 @@ from app.models.medication_dose_instance import MedicationDoseInstance
 from app.models.planned_item import PlannedItem
 from app.models.task_instance import TaskInstance
 from app.repositories.today_repository import TodayRepository
-from app.schemas.integrations import DashboardReadModel, TodaySummary
+from app.schemas.integrations import DashboardReadModel, HACalendarEvent, TodaySummary
 from app.schemas.today import (
     CalendarDayResponse,
     CalendarMonthDaySummary,
@@ -108,6 +108,7 @@ class TodayService:
             overdue_count=len(data.overdue),
             due_today_count=len(data.due_today),
             planned_count=len(data.planned),
+            planned_remaining_count=len([item for item in data.planned if not item.is_done]),
             medication_due_count=len([item for item in data.medication if item.status == MedicationDoseStatus.scheduled]),
             completion_ratio=round(completed_count / total if total else 0.0, 3),
             next_medication=self._format_next_medication(data.medication, user_tz),
@@ -358,6 +359,59 @@ class TodayService:
             )
 
         return CalendarMonthResponse(year=year, month=month, days=days)
+
+    def get_calendar_events(self, user_id: int, start_date: date, end_date: date) -> list[HACalendarEvent]:
+        user_tz_str = self.repository.get_user_timezone(user_id)
+        self.repository.ensure_chore_instances_generated(user_id=user_id, through_date=end_date)
+        self.repository.ensure_task_instances_generated(user_id=user_id, through_date=end_date)
+        self.repository.ensure_medication_dose_instances_generated(user_id=user_id, through_date=end_date, user_timezone=user_tz_str)
+
+        events: list[HACalendarEvent] = []
+
+        for chore in self.repository.get_month_chores(user_id=user_id, start_date=start_date, end_date=end_date):
+            events.append(HACalendarEvent(
+                uid=f"daynest_chore_{chore.id}",
+                summary=chore.title,
+                start={"date": chore.scheduled_date.isoformat()},
+                end={"date": (chore.scheduled_date + timedelta(days=1)).isoformat()},
+            ))
+
+        for routine in self.repository.get_month_routines(user_id=user_id, start_date=start_date, end_date=end_date):
+            if routine.due_at:
+                events.append(HACalendarEvent(
+                    uid=f"daynest_routine_{routine.id}",
+                    summary=routine.title,
+                    start={"dateTime": routine.due_at.isoformat()},
+                    end={"dateTime": (routine.due_at + timedelta(hours=1)).isoformat()},
+                ))
+            else:
+                events.append(HACalendarEvent(
+                    uid=f"daynest_routine_{routine.id}",
+                    summary=routine.title,
+                    start={"date": routine.scheduled_date.isoformat()},
+                    end={"date": (routine.scheduled_date + timedelta(days=1)).isoformat()},
+                ))
+
+        for med in self.repository.get_month_medications(user_id=user_id, start_date=start_date, end_date=end_date):
+            events.append(HACalendarEvent(
+                uid=f"daynest_medication_{med.id}",
+                summary=med.name,
+                start={"dateTime": med.scheduled_at.isoformat()},
+                end={"dateTime": (med.scheduled_at + timedelta(minutes=15)).isoformat()},
+                description=med.instructions,
+            ))
+
+        for planned in self.repository.list_planned_items(user_id=user_id, start_date=start_date, end_date=end_date):
+            events.append(HACalendarEvent(
+                uid=f"daynest_planned_{planned.id}",
+                summary=planned.title,
+                start={"date": planned.planned_for.isoformat()},
+                end={"date": (planned.planned_for + timedelta(days=1)).isoformat()},
+                description=planned.notes,
+            ))
+
+        events.sort(key=lambda e: e.start.get("date") or e.start.get("dateTime", ""))
+        return events
 
     def create_planned_item(self, user_id: int, request: PlannedItemCreateRequest) -> PlannedTodayItem:
         item = self.repository.add_planned_item(
