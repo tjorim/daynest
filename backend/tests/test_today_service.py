@@ -93,7 +93,7 @@ def test_get_today_shapes_chore_sections() -> None:
             medication_plan_id=8,
             name="Vitamin D",
             instructions="Take with breakfast",
-            scheduled_at=datetime(2026, 4, 23, 9, 0, tzinfo=timezone.utc),
+            scheduled_at=datetime(2026, 4, 23, 9, 0),
             scheduled_date=for_date,
             status=MedicationDoseStatus.scheduled,
         )
@@ -161,7 +161,7 @@ def _make_dose(status: MedicationDoseStatus) -> SimpleNamespace:
         name="Vitamin D",
         instructions="Take with breakfast",
         scheduled_date=date(2026, 4, 23),
-        scheduled_at=datetime(2026, 4, 23, 9, 0, tzinfo=timezone.utc),
+        scheduled_at=datetime(2026, 4, 23, 9, 0),
         status=status,
         taken_at=None,
         skipped_at=None,

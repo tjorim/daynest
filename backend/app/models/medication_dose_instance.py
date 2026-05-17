@@ -26,7 +26,7 @@ class MedicationDoseInstance(Base):
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     instructions: Mapped[str] = mapped_column(Text, nullable=False)
     scheduled_date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
-    scheduled_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+    scheduled_at: Mapped[datetime] = mapped_column(DateTime(timezone=False), nullable=False, index=True)
     status: Mapped[MedicationDoseStatus] = mapped_column(
         Enum(MedicationDoseStatus, name="medication_dose_status"),
         nullable=False,

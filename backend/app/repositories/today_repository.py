@@ -98,7 +98,7 @@ class TodayRepository:
             cursor = template.start_date if last is None else date.fromordinal(last.toordinal() + step)
 
             while cursor <= through_date:
-                scheduled_at = datetime.combine(cursor, template.schedule_time, tzinfo=timezone.utc)
+                scheduled_at = datetime.combine(cursor, template.schedule_time)
                 new_instances.append(
                     MedicationDoseInstance(
                         user_id=user_id,
@@ -117,7 +117,9 @@ class TodayRepository:
         self.db.commit()
 
     def mark_due_medications_missed(self, user_id: int, now: datetime, grace_minutes: int = 30) -> None:
-        cutoff = now - timedelta(minutes=grace_minutes)
+        # scheduled_at is stored as a naive wall-clock datetime; strip timezone before comparing
+        now_naive = now.replace(tzinfo=None) if now.tzinfo else now
+        cutoff = now_naive - timedelta(minutes=grace_minutes)
         stmt = (
             update(MedicationDoseInstance)
             .where(MedicationDoseInstance.user_id == user_id)

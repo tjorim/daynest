@@ -228,7 +228,7 @@ def test_medication_endpoints_create_list_history_and_mutate_status(client: Test
             name=plan.name,
             instructions=plan.instructions,
             scheduled_date=date(2026, 4, 22),
-            scheduled_at=datetime(2026, 4, 22, 20, 0, tzinfo=timezone.utc),
+            scheduled_at=datetime(2026, 4, 22, 20, 0),
             status=MedicationDoseStatus.scheduled,
         )
         db_session.add(dose)
