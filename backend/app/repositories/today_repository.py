@@ -1,10 +1,12 @@
 from datetime import date, datetime, time, timedelta, timezone
+from zoneinfo import ZoneInfo
 
 from sqlalchemy import and_, func, insert, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
 from app.core.enums import ChoreStatus, MedicationDoseStatus, TaskStatus
+from app.models.user import User
 from app.models.chore_instance import ChoreInstance
 from app.models.chore_template import ChoreTemplate
 from app.models.medication_dose_instance import MedicationDoseInstance
@@ -69,7 +71,11 @@ class TodayRepository:
 
         self.db.commit()
 
-    def ensure_medication_dose_instances_generated(self, user_id: int, through_date: date) -> None:
+    def get_user_timezone(self, user_id: int) -> str:
+        user = self.db.scalar(select(User).where(User.id == user_id))
+        return user.timezone if user else "UTC"
+
+    def ensure_medication_dose_instances_generated(self, user_id: int, through_date: date, user_timezone: str = "UTC") -> None:
         templates = list(
             self.db.scalars(
                 select(MedicationPlan)
@@ -97,8 +103,9 @@ class TodayRepository:
             last = last_generated_map.get(template.id)
             cursor = template.start_date if last is None else date.fromordinal(last.toordinal() + step)
 
+            tz = ZoneInfo(user_timezone)
             while cursor <= through_date:
-                scheduled_at = datetime.combine(cursor, template.schedule_time)
+                scheduled_at = datetime.combine(cursor, template.schedule_time, tzinfo=tz).astimezone(timezone.utc)
                 new_instances.append(
                     MedicationDoseInstance(
                         user_id=user_id,
@@ -117,9 +124,7 @@ class TodayRepository:
         self.db.commit()
 
     def mark_due_medications_missed(self, user_id: int, now: datetime, grace_minutes: int = 30) -> None:
-        # scheduled_at is a naive wall-clock datetime; strip timezone before comparing
-        now_naive = now.replace(tzinfo=None) if now.tzinfo else now
-        cutoff = now_naive - timedelta(minutes=grace_minutes)
+        cutoff = now - timedelta(minutes=grace_minutes)
         stmt = (
             update(MedicationDoseInstance)
             .where(MedicationDoseInstance.user_id == user_id)

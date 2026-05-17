@@ -24,6 +24,7 @@ def upgrade() -> None:
         sa.Column("full_name", sa.String(length=255), nullable=True),
         sa.Column("password_hash", sa.String(length=512), nullable=False),
         sa.Column("is_active", sa.Boolean(), server_default=sa.text("true"), nullable=False),
+        sa.Column("timezone", sa.String(length=100), server_default="UTC", nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
         sa.PrimaryKeyConstraint("id"),
     )
@@ -148,7 +149,7 @@ def upgrade() -> None:
         sa.Column("name", sa.String(length=255), nullable=False),
         sa.Column("instructions", sa.Text(), nullable=False),
         sa.Column("scheduled_date", sa.Date(), nullable=False),
-        sa.Column("scheduled_at", sa.DateTime(timezone=False), nullable=False),
+        sa.Column("scheduled_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("status", dose_status, server_default="scheduled", nullable=False),
         sa.Column("taken_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("skipped_at", sa.DateTime(timezone=True), nullable=True),

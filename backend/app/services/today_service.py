@@ -3,6 +3,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
 from typing import cast
+from zoneinfo import ZoneInfo
 
 from fastapi import HTTPException, status
 
@@ -54,12 +55,13 @@ class TodayService:
         self._medication_missed_grace_minutes = app_settings.medication_missed_grace_minutes
 
     def _fetch_day_data(self, user_id: int, for_date: date) -> _TodayData:
+        user_tz_str = self.repository.get_user_timezone(user_id)
         self.repository.ensure_chore_instances_generated(
             user_id=user_id,
             through_date=for_date + timedelta(days=self._upcoming_horizon_days),
         )
         self.repository.ensure_task_instances_generated(user_id=user_id, through_date=for_date)
-        self.repository.ensure_medication_dose_instances_generated(user_id=user_id, through_date=for_date)
+        self.repository.ensure_medication_dose_instances_generated(user_id=user_id, through_date=for_date, user_timezone=user_tz_str)
         self.repository.mark_due_medications_missed(
             user_id=user_id,
             now=self.repository.utcnow(),
@@ -75,19 +77,24 @@ class TodayService:
         )
 
     @staticmethod
-    def _format_next_medication(medication: list[MedicationDoseInstance]) -> str | None:
+    def _format_next_medication(medication: list[MedicationDoseInstance], user_tz: ZoneInfo) -> str | None:
         next_med = next((item for item in medication if item.status == MedicationDoseStatus.scheduled), None)
-        return f"{next_med.name} @ {next_med.scheduled_at.strftime('%H:%M')}" if next_med else None
+        if next_med is None:
+            return None
+        local_time = next_med.scheduled_at.astimezone(user_tz)
+        return f"{next_med.name} @ {local_time.strftime('%H:%M')}"
 
     def get_summary(self, user_id: int, for_date: date) -> TodaySummary:
+        user_tz = ZoneInfo(self.repository.get_user_timezone(user_id))
         data = self._fetch_day_data(user_id=user_id, for_date=for_date)
         return TodaySummary(
             overdue_count=len(data.overdue),
             tasks_remaining=len(data.due_today) + len([r for r in data.routines if r.status in (TaskStatus.pending, TaskStatus.in_progress)]) + len([item for item in data.planned if not item.is_done]),
-            next_medication=self._format_next_medication(data.medication),
+            next_medication=self._format_next_medication(data.medication, user_tz),
         )
 
     def get_dashboard_read_model(self, user_id: int, for_date: date) -> DashboardReadModel:
+        user_tz = ZoneInfo(self.repository.get_user_timezone(user_id))
         data = self._fetch_day_data(user_id=user_id, for_date=for_date)
         completed_count = (
             len([item for item in data.all_chores if item.status == ChoreStatus.completed])
@@ -103,11 +110,12 @@ class TodayService:
             planned_count=len(data.planned),
             medication_due_count=len([item for item in data.medication if item.status == MedicationDoseStatus.scheduled]),
             completion_ratio=round(completed_count / total if total else 0.0, 3),
-            next_medication=self._format_next_medication(data.medication),
+            next_medication=self._format_next_medication(data.medication, user_tz),
             routines_open_count=len([item for item in data.routines if item.status in (TaskStatus.pending, TaskStatus.in_progress)]),
         )
 
     def get_today(self, user_id: int, for_date: date) -> TodayResponse:
+        user_tz_str = self.repository.get_user_timezone(user_id)
         self.repository.ensure_chore_instances_generated(
             user_id=user_id,
             through_date=for_date + timedelta(days=self._upcoming_horizon_days),
@@ -116,6 +124,7 @@ class TodayService:
         self.repository.ensure_medication_dose_instances_generated(
             user_id=user_id,
             through_date=for_date,
+            user_timezone=user_tz_str,
         )
         self.repository.mark_due_medications_missed(
             user_id=user_id,
@@ -223,9 +232,10 @@ class TodayService:
         )
 
     def get_day_items(self, user_id: int, for_date: date) -> CalendarDayResponse:
+        user_tz_str = self.repository.get_user_timezone(user_id)
         self.repository.ensure_chore_instances_generated(user_id=user_id, through_date=for_date)
         self.repository.ensure_task_instances_generated(user_id=user_id, through_date=for_date)
-        self.repository.ensure_medication_dose_instances_generated(user_id=user_id, through_date=for_date)
+        self.repository.ensure_medication_dose_instances_generated(user_id=user_id, through_date=for_date, user_timezone=user_tz_str)
         self.repository.mark_due_medications_missed(
             user_id=user_id,
             now=self.repository.utcnow(),
@@ -312,9 +322,10 @@ class TodayService:
         start_date = date(year, month, 1)
         end_date = date(year, month, last_day)
 
+        user_tz_str = self.repository.get_user_timezone(user_id)
         self.repository.ensure_chore_instances_generated(user_id=user_id, through_date=end_date)
         self.repository.ensure_task_instances_generated(user_id=user_id, through_date=end_date)
-        self.repository.ensure_medication_dose_instances_generated(user_id=user_id, through_date=end_date)
+        self.repository.ensure_medication_dose_instances_generated(user_id=user_id, through_date=end_date, user_timezone=user_tz_str)
         self.repository.mark_due_medications_missed(
             user_id=user_id,
             now=self.repository.utcnow(),

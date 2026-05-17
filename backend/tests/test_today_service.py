@@ -30,7 +30,10 @@ class StubTodayRepository:
     def ensure_chore_instances_generated(self, user_id: int, through_date: date) -> None:
         self.generated_through = through_date
 
-    def ensure_medication_dose_instances_generated(self, user_id: int, through_date: date) -> None:
+    def get_user_timezone(self, user_id: int) -> str:
+        return "UTC"
+
+    def ensure_medication_dose_instances_generated(self, user_id: int, through_date: date, user_timezone: str = "UTC") -> None:
         return None
 
     def ensure_task_instances_generated(self, user_id: int, through_date: date) -> None:
@@ -93,7 +96,7 @@ def test_get_today_shapes_chore_sections() -> None:
             medication_plan_id=8,
             name="Vitamin D",
             instructions="Take with breakfast",
-            scheduled_at=datetime(2026, 4, 23, 9, 0),
+            scheduled_at=datetime(2026, 4, 23, 9, 0, tzinfo=timezone.utc),
             scheduled_date=for_date,
             status=MedicationDoseStatus.scheduled,
         )
@@ -161,7 +164,7 @@ def _make_dose(status: MedicationDoseStatus) -> SimpleNamespace:
         name="Vitamin D",
         instructions="Take with breakfast",
         scheduled_date=date(2026, 4, 23),
-        scheduled_at=datetime(2026, 4, 23, 9, 0),
+        scheduled_at=datetime(2026, 4, 23, 9, 0, tzinfo=timezone.utc),
         status=status,
         taken_at=None,
         skipped_at=None,
