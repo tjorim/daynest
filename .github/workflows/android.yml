@@ -9,9 +9,25 @@ on:
     paths:
       - 'android/**'
       - '.github/workflows/android.yml'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Build environment'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - release
+          - both
+      release_tag:
+        description: 'Git tag to attach to the GitHub Release (e.g. v1.0.0). Leave empty to skip release creation.'
+        required: false
+        default: ''
+        type: string
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   android:
@@ -53,13 +69,77 @@ jobs:
         working-directory: android
         run: ./gradlew :app:detekt :app:ktlintCheck :app:lintDebug :app:testDebugUnitTest
 
-      - name: Assemble staging debug
-        if: steps.local-properties.outputs.secrets_available == 'true'
+      # ── Steps below only run on manual workflow_dispatch triggers ────────────
+
+      - name: Decode keystore
+        if: github.event_name == 'workflow_dispatch'
+        id: keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: |
+          if [[ -n "${KEYSTORE_BASE64}" ]]; then
+            KEYSTORE_PATH="${RUNNER_TEMP}/release.keystore"
+            echo "${KEYSTORE_BASE64}" | base64 --decode > "${KEYSTORE_PATH}"
+            echo "keystore_path=${KEYSTORE_PATH}" >> "$GITHUB_OUTPUT"
+            echo "signing_available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::KEYSTORE_BASE64 secret is not set. Release APK will be unsigned."
+            echo "signing_available=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Assemble staging APK
+        if: >
+          github.event_name == 'workflow_dispatch' &&
+          steps.local-properties.outputs.secrets_available == 'true' &&
+          (inputs.environment == 'staging' || inputs.environment == 'both')
         working-directory: android
         run: ./gradlew :app:assembleStagingDebug
 
-      - name: Assemble release (smoke check with debug signing)
-        if: steps.local-properties.outputs.secrets_available == 'true'
+      - name: Upload staging APK
+        if: >
+          github.event_name == 'workflow_dispatch' &&
+          steps.local-properties.outputs.secrets_available == 'true' &&
+          (inputs.environment == 'staging' || inputs.environment == 'both')
+        uses: actions/upload-artifact@v4
+        with:
+          name: daynest-staging-debug
+          path: android/app/build/outputs/apk/staging/debug/*.apk
+          if-no-files-found: error
+
+      - name: Assemble release APK
+        if: >
+          github.event_name == 'workflow_dispatch' &&
+          steps.local-properties.outputs.secrets_available == 'true' &&
+          (inputs.environment == 'release' || inputs.environment == 'both')
         working-directory: android
+        env:
+          KEYSTORE_PATH: ${{ steps.keystore.outputs.keystore_path }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
         run: ./gradlew :app:assembleRelease
+
+      - name: Upload release APK
+        if: >
+          github.event_name == 'workflow_dispatch' &&
+          steps.local-properties.outputs.secrets_available == 'true' &&
+          (inputs.environment == 'release' || inputs.environment == 'both')
+        uses: actions/upload-artifact@v4
+        with:
+          name: daynest-release
+          path: android/app/build/outputs/apk/release/*.apk
+          if-no-files-found: error
+
+      - name: Create GitHub Release
+        if: >
+          github.event_name == 'workflow_dispatch' &&
+          inputs.release_tag != '' &&
+          steps.local-properties.outputs.secrets_available == 'true' &&
+          (inputs.environment == 'release' || inputs.environment == 'both')
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.release_tag }}
+          name: ${{ inputs.release_tag }}
+          draft: true
+          files: android/app/build/outputs/apk/release/*.apk
 

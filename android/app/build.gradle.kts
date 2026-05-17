@@ -79,6 +79,25 @@ extensions.configure<ApplicationExtension> {
     namespace = "com.daynest.android"
     compileSdk = 37
 
+    val keystorePath = System.getenv("KEYSTORE_PATH")
+    val keystorePassword = System.getenv("STORE_PASSWORD")
+    val keystoreKeyAlias = System.getenv("KEY_ALIAS")
+    val keystoreKeyPassword = System.getenv("KEY_PASSWORD")
+    signingConfigs {
+        if (!keystorePath.isNullOrBlank() &&
+            !keystorePassword.isNullOrBlank() &&
+            !keystoreKeyAlias.isNullOrBlank() &&
+            !keystoreKeyPassword.isNullOrBlank()
+        ) {
+            create("release") {
+                storeFile = file(keystorePath)
+                storePassword = keystorePassword
+                keyAlias = keystoreKeyAlias
+                keyPassword = keystoreKeyPassword
+            }
+        }
+    }
+
     defaultConfig {
         applicationId = "com.daynest.android"
         minSdk = 26
@@ -143,6 +162,10 @@ extensions.configure<ApplicationExtension> {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
+            val releaseSigningConfig = signingConfigs.findByName("release")
+            if (releaseSigningConfig != null) {
+                signingConfig = releaseSigningConfig
+            }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
