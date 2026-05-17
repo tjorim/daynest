@@ -15,8 +15,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -111,6 +115,22 @@ private fun SettingsContent(
         item {
             HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
             Text(
+                text = stringResource(id = R.string.settings_server_section),
+                style = MaterialTheme.typography.titleMedium,
+            )
+        }
+
+        item {
+            ServerUrlPicker(
+                defaultServerUrl = state.defaultServerUrl,
+                customServerUrl = state.customServerUrl,
+                onServerUrlChanged = { onEvent(SettingsUiEvent.UpdateServerUrl(it)) },
+            )
+        }
+
+        item {
+            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+            Text(
                 text = stringResource(id = R.string.settings_account_section),
                 style = MaterialTheme.typography.titleMedium,
             )
@@ -195,6 +215,86 @@ private fun SettingsContent(
             apiKey = state.newApiKey,
             onDismiss = { onEvent(SettingsUiEvent.DismissNewKeyDialog) },
         )
+    }
+}
+
+@Composable
+private fun ServerUrlPicker(
+    defaultServerUrl: String,
+    customServerUrl: String?,
+    onServerUrlChanged: (String?) -> Unit,
+) {
+    val isCustom = customServerUrl != null
+    var expanded by remember { mutableStateOf(false) }
+    var customInput by remember(customServerUrl) { mutableStateOf(customServerUrl ?: "") }
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        ExposedDropdownMenuBox(
+            expanded = expanded,
+            onExpandedChange = { expanded = it },
+        ) {
+            OutlinedTextField(
+                value =
+                    if (isCustom) {
+                        stringResource(id = R.string.settings_server_custom)
+                    } else {
+                        stringResource(id = R.string.settings_server_default)
+                    },
+                onValueChange = {},
+                readOnly = true,
+                label = { Text(text = stringResource(id = R.string.settings_server_label)) },
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+            )
+            ExposedDropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false },
+            ) {
+                DropdownMenuItem(
+                    text = {
+                        Column {
+                            Text(text = stringResource(id = R.string.settings_server_default))
+                            Text(
+                                text = defaultServerUrl,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.outline,
+                            )
+                        }
+                    },
+                    onClick = {
+                        expanded = false
+                        onServerUrlChanged(null)
+                    },
+                )
+                DropdownMenuItem(
+                    text = { Text(text = stringResource(id = R.string.settings_server_custom)) },
+                    onClick = {
+                        expanded = false
+                        if (!isCustom) onServerUrlChanged("")
+                    },
+                )
+            }
+        }
+
+        if (isCustom) {
+            OutlinedTextField(
+                value = customInput,
+                onValueChange = { customInput = it },
+                label = { Text(text = stringResource(id = R.string.settings_server_url_label)) },
+                placeholder = { Text(text = stringResource(id = R.string.settings_server_url_placeholder)) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            TextButton(
+                onClick = { onServerUrlChanged(customInput.trim().takeIf { it.isNotBlank() }) },
+                enabled = customInput.isNotBlank(),
+            ) {
+                Text(text = stringResource(id = R.string.settings_server_url_apply))
+            }
+        }
     }
 }
 

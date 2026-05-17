@@ -2,7 +2,9 @@ package com.daynest.android.feature.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.daynest.android.BuildConfig
 import com.daynest.android.core.auth.OidcAuthService
+import com.daynest.android.core.storage.preferences.UserPreferencesRepository
 import com.daynest.android.data.settings.IntegrationClientCreateResponseDto
 import com.daynest.android.data.settings.IntegrationClientDto
 import com.daynest.android.data.settings.IntegrationClientInputDto
@@ -11,6 +13,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -21,6 +24,7 @@ class SettingsViewModel
     constructor(
         private val settingsRepository: SettingsRepository,
         private val oidcAuthService: OidcAuthService,
+        private val userPreferencesRepository: UserPreferencesRepository,
     ) : ViewModel() {
         private val _uiState = MutableStateFlow<SettingsUiState>(SettingsUiState.Loading)
         val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
@@ -37,19 +41,23 @@ class SettingsViewModel
                 SettingsUiEvent.DismissCreateClientForm -> dismissCreateForm()
                 SettingsUiEvent.DismissNewKeyDialog -> dismissNewKeyDialog()
                 is SettingsUiEvent.CreateClient -> createClient(event.input)
+                is SettingsUiEvent.UpdateServerUrl -> updateServerUrl(event.url)
             }
         }
 
         private fun load() {
             viewModelScope.launch {
                 _uiState.value = SettingsUiState.Loading
-                val result = settingsRepository.listClients()
+                val prefs = userPreferencesRepository.preferences.first()
+                val clientsResult = settingsRepository.listClients()
                 _uiState.value =
                     SettingsUiState.Content(
-                        clients = result.getOrElse { emptyList() },
+                        clients = clientsResult.getOrElse { emptyList() },
                         showCreateForm = false,
                         newApiKey = null,
-                        loadError = result.isFailure,
+                        loadError = clientsResult.isFailure,
+                        customServerUrl = prefs.customServerUrl,
+                        defaultServerUrl = BuildConfig.API_BASE_URL,
                     )
             }
         }
@@ -91,6 +99,15 @@ class SettingsViewModel
             }
         }
 
+        private fun updateServerUrl(url: String?) {
+            viewModelScope.launch {
+                userPreferencesRepository.updateCustomServerUrl(url)
+                _uiState.update { current ->
+                    if (current is SettingsUiState.Content) current.copy(customServerUrl = url) else current
+                }
+            }
+        }
+
         private fun signOut() {
             oidcAuthService.signOut()
             _uiState.value = SettingsUiState.SignedOut
@@ -114,6 +131,8 @@ sealed interface SettingsUiState {
         val showCreateForm: Boolean,
         val newApiKey: String?,
         val loadError: Boolean,
+        val customServerUrl: String?,
+        val defaultServerUrl: String,
     ) : SettingsUiState
 
     data object SignedOut : SettingsUiState
@@ -133,4 +152,9 @@ sealed interface SettingsUiEvent {
     data class CreateClient(
         val input: IntegrationClientInputDto,
     ) : SettingsUiEvent
+
+    data class UpdateServerUrl(
+        val url: String?,
+    ) : SettingsUiEvent
 }
+

@@ -46,10 +46,12 @@ object NetworkDiModule {
         authInterceptor: AuthInterceptor,
         tokenAuthenticator: TokenAuthenticator,
         certificatePinner: CertificatePinner,
+        dynamicBaseUrlInterceptor: DynamicBaseUrlInterceptor,
     ): OkHttpClient =
         OkHttpClient
             .Builder()
             .certificatePinner(certificatePinner)
+            .addInterceptor(dynamicBaseUrlInterceptor)
             .addInterceptor(authInterceptor)
             .authenticator(tokenAuthenticator)
             .apply {

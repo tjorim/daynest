@@ -100,6 +100,13 @@
     <string name="settings_capability_account">Review account session state and future profile preferences.</string>
     <string name="settings_capability_integrations">Connect integration surfaces such as Home Assistant and MCP clients.</string>
     <string name="settings_capability_clients">Prepare integration clients with scoped access from one settings area.</string>
+    <string name="settings_server_section">Server</string>
+    <string name="settings_server_label">Backend server</string>
+    <string name="settings_server_default">Default</string>
+    <string name="settings_server_custom">Custom (self-hosted)</string>
+    <string name="settings_server_url_label">Server URL</string>
+    <string name="settings_server_url_placeholder">https://your-server.example.com/</string>
+    <string name="settings_server_url_apply">Apply</string>
     <string name="settings_account_section">Account</string>
     <string name="settings_session_active">Signed in</string>
     <string name="settings_sign_out">Sign out</string>
