@@ -273,7 +273,7 @@ private fun ServerUrlPicker(
                     text = { Text(text = stringResource(id = R.string.settings_server_custom)) },
                     onClick = {
                         expanded = false
-                        if (!isCustom) onServerUrlChanged("")
+                        if (!isCustom) onServerUrlChanged(defaultServerUrl)
                     },
                 )
             }
