@@ -317,7 +317,7 @@ class DaynestMcpBackend:
         is_active: bool = True,
     ) -> dict[str, Any]:
         parsed_start = _parse_date(start_date)
-        parsed_due_time = time.fromisoformat(due_time) if due_time else None
+        parsed_due_time = time.fromisoformat(due_time) if due_time and due_time.strip() else None
         return self._with_service(
             lambda _db, user, service: _routine_template_to_dict(
                 service.create_routine_template(
@@ -337,13 +337,13 @@ class DaynestMcpBackend:
         routine_template_id: int,
         name: str,
         start_date: str,
-        every_n_days: int = 1,
+        every_n_days: int | None = None,
         description: str | None = None,
         due_time: str | None = None,
-        is_active: bool = True,
+        is_active: bool | None = None,
     ) -> dict[str, Any]:
         parsed_start = _parse_date(start_date)
-        parsed_due_time = time.fromisoformat(due_time) if due_time else None
+        parsed_due_time = time.fromisoformat(due_time) if due_time and due_time.strip() else None
         return self._with_service(
             lambda _db, user, service: _routine_template_to_dict(
                 service.update_routine_template(
@@ -395,9 +395,9 @@ class DaynestMcpBackend:
         chore_template_id: int,
         name: str,
         start_date: str,
-        every_n_days: int = 1,
+        every_n_days: int | None = None,
         description: str | None = None,
-        is_active: bool = True,
+        is_active: bool | None = None,
     ) -> dict[str, Any]:
         parsed_start = _parse_date(start_date)
         return self._with_service(
@@ -459,8 +459,8 @@ class DaynestMcpBackend:
         instructions: str,
         start_date: str,
         schedule_time: str,
-        every_n_days: int = 1,
-        is_active: bool = True,
+        every_n_days: int | None = None,
+        is_active: bool | None = None,
     ) -> dict[str, Any]:
         parsed_start = date.fromisoformat(start_date)
         parsed_time = time.fromisoformat(schedule_time)
@@ -827,10 +827,10 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
         routine_template_id: int,
         name: str,
         start_date: str,
-        every_n_days: int = 1,
+        every_n_days: int | None = None,
         description: str | None = None,
         due_time: str | None = None,
-        is_active: bool = True,
+        is_active: bool | None = None,
     ) -> dict[str, Any]:
         """Update an existing Daynest routine template.
 
@@ -838,10 +838,10 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
             routine_template_id: ID of the routine template to update.
             name: Updated routine name.
             start_date: Updated start date in YYYY-MM-DD format or 'today'.
-            every_n_days: Updated recurrence frequency.
+            every_n_days: Updated recurrence frequency. Omit to keep the current value.
             description: Updated description.
             due_time: Updated time-of-day deadline in HH:MM or HH:MM:SS format, or null to clear.
-            is_active: Set to false to deactivate the routine.
+            is_active: Set to false to deactivate the routine. Omit to keep the current value.
         """
 
         return await to_thread.run_sync(
@@ -885,9 +885,9 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
         chore_template_id: int,
         name: str,
         start_date: str,
-        every_n_days: int = 1,
+        every_n_days: int | None = None,
         description: str | None = None,
-        is_active: bool = True,
+        is_active: bool | None = None,
     ) -> dict[str, Any]:
         """Update an existing Daynest chore template.
 
@@ -895,9 +895,9 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
             chore_template_id: ID of the chore template to update.
             name: Updated chore name.
             start_date: Updated start date in YYYY-MM-DD format or 'today'.
-            every_n_days: Updated recurrence frequency.
+            every_n_days: Updated recurrence frequency. Omit to keep the current value.
             description: Updated description.
-            is_active: Set to false to deactivate the chore.
+            is_active: Set to false to deactivate the chore. Omit to keep the current value.
         """
 
         return await to_thread.run_sync(
@@ -962,8 +962,8 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
         instructions: str,
         start_date: str,
         schedule_time: str,
-        every_n_days: int = 1,
-        is_active: bool = True,
+        every_n_days: int | None = None,
+        is_active: bool | None = None,
     ) -> dict[str, Any]:
         """Update an existing Daynest medication plan.
 
@@ -973,8 +973,8 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
             instructions: Updated instructions.
             start_date: Updated start date in YYYY-MM-DD format.
             schedule_time: Updated time-of-day for each dose in HH:MM or HH:MM:SS format.
-            every_n_days: Updated dose frequency.
-            is_active: Set to false to deactivate (pause) the medication plan.
+            every_n_days: Updated dose frequency. Omit to keep the current value.
+            is_active: Set to false to deactivate (pause) the medication plan. Omit to keep the current value.
         """
 
         return await to_thread.run_sync(

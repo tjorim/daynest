@@ -30,7 +30,7 @@ export type TodaySection = {
 };
 
 export function isItemActionable(item: SectionItem): boolean {
-  if (item.medicationDoseInstanceId) return item.medicationStatus === "scheduled";
+  if (item.medicationDoseInstanceId) return item.medicationStatus === "scheduled" || item.medicationStatus === "missed";
   if (item.taskInstanceId)
     return item.taskStatus !== "completed" && item.taskStatus !== "skipped";
   if (item.choreInstanceId)

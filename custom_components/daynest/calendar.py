@@ -118,7 +118,7 @@ class DaynestCalendarEntity(CalendarEntity, DaynestEntity):
     async def async_create_calendar_event(self, event: CalendarEvent) -> None:
         """Create a Daynest planned item from a calendar event."""
         client = self.coordinator.config_entry.runtime_data.client
-        planned_for = event.start if isinstance(event.start, date) else event.start.date()
+        planned_for = event.start.date() if isinstance(event.start, datetime) else event.start
         await client.async_create_planned_item(
             title=event.summary or "Event",
             planned_for=planned_for.isoformat(),
