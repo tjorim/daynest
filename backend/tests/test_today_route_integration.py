@@ -305,6 +305,67 @@ def test_calendar_and_planned_endpoints(client: TestClient, db_session: Session)
         _clear_auth()
 
 
+def test_medication_plan_update_and_delete(client: TestClient, db_session: Session) -> None:
+    user = _create_user(db_session, email="med-crud@example.com")
+    _auth_as(user)
+
+    try:
+        create_resp = client.post(
+            "/api/v1/medications",
+            json={
+                "name": "Zinc",
+                "instructions": "Take with food",
+                "start_date": "2026-05-01",
+                "schedule_time": "20:00:00",
+                "every_n_days": 1,
+            },
+        )
+        assert create_resp.status_code == 200
+        plan_id = create_resp.json()["id"]
+
+        update_resp = client.put(
+            f"/api/v1/medications/{plan_id}",
+            json={
+                "name": "Zinc supplement",
+                "instructions": "Take with dinner",
+                "start_date": "2026-05-01",
+                "schedule_time": "21:00:00",
+                "every_n_days": 2,
+                "is_active": False,
+            },
+        )
+        assert update_resp.status_code == 200
+        body = update_resp.json()
+        assert body["name"] == "Zinc supplement"
+        assert body["every_n_days"] == 2
+        assert body["is_active"] is False
+
+        not_found_update = client.put(
+            "/api/v1/medications/9999",
+            json={
+                "name": "Ghost",
+                "instructions": "N/A",
+                "start_date": "2026-05-01",
+                "schedule_time": "09:00:00",
+                "every_n_days": 1,
+                "is_active": True,
+            },
+        )
+        assert not_found_update.status_code == 404
+
+        delete_resp = client.delete(f"/api/v1/medications/{plan_id}")
+        assert delete_resp.status_code == 204
+
+        list_resp = client.get("/api/v1/medications")
+        assert list_resp.status_code == 200
+        assert list_resp.json() == []
+
+        not_found_delete = client.delete("/api/v1/medications/9999")
+        assert not_found_delete.status_code == 404
+    finally:
+        _clear_auth()
+
+
 def test_template_management_endpoints(client: TestClient, db_session: Session) -> None:
     user = _create_user(db_session, email="templates@example.com")
     _auth_as(user)

@@ -148,7 +148,7 @@ def upgrade() -> None:
         sa.Column("name", sa.String(length=255), nullable=False),
         sa.Column("instructions", sa.Text(), nullable=False),
         sa.Column("scheduled_date", sa.Date(), nullable=False),
-        sa.Column("scheduled_at", sa.DateTime(timezone=True), nullable=False),
+        sa.Column("scheduled_at", sa.DateTime(timezone=False), nullable=False),
         sa.Column("status", dose_status, server_default="scheduled", nullable=False),
         sa.Column("taken_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("skipped_at", sa.DateTime(timezone=True), nullable=True),

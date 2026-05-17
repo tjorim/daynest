@@ -1,4 +1,4 @@
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, time, timedelta, timezone
 
 from sqlalchemy import and_, func, insert, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
@@ -117,7 +117,7 @@ class TodayRepository:
         self.db.commit()
 
     def mark_due_medications_missed(self, user_id: int, now: datetime, grace_minutes: int = 30) -> None:
-        # scheduled_at is stored as a naive wall-clock datetime; strip timezone before comparing
+        # scheduled_at is a naive wall-clock datetime; strip timezone before comparing
         now_naive = now.replace(tzinfo=None) if now.tzinfo else now
         cutoff = now_naive - timedelta(minutes=grace_minutes)
         stmt = (
@@ -250,8 +250,32 @@ class TodayRepository:
         return plan
 
     def get_medication_plan_for_user(self, user_id: int, medication_plan_id: int) -> MedicationPlan | None:
-        stmt = select(MedicationPlan).where(MedicationPlan.user_id == user_id).where(MedicationPlan.id == medication_plan_id)
+        stmt = (
+            select(MedicationPlan)
+            .where(MedicationPlan.user_id == user_id)
+            .where(MedicationPlan.id == medication_plan_id)
+        )
         return self.db.scalar(stmt)
+
+    def update_medication_plan(
+        self,
+        plan: MedicationPlan,
+        name: str,
+        instructions: str,
+        start_date: date,
+        schedule_time: time,
+        every_n_days: int,
+        is_active: bool,
+    ) -> MedicationPlan:
+        plan.name = name
+        plan.instructions = instructions
+        plan.start_date = start_date
+        plan.schedule_time = schedule_time
+        plan.every_n_days = every_n_days
+        plan.is_active = is_active
+        self.db.commit()
+        self.db.refresh(plan)
+        return plan
 
     def delete_medication_plan(self, plan: MedicationPlan) -> None:
         self.db.delete(plan)

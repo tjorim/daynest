@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field
 from app.core.enums import MedicationDoseStatus
 
 
-class MedicationPlanCreateRequest(BaseModel):
+class MedicationPlanBase(BaseModel):
     name: str
     instructions: str
     start_date: date
@@ -13,12 +13,11 @@ class MedicationPlanCreateRequest(BaseModel):
     every_n_days: int = Field(default=1, ge=1)
 
 
-class MedicationPlanUpdateRequest(BaseModel):
-    name: str
-    instructions: str
-    start_date: date
-    schedule_time: time
-    every_n_days: int = Field(default=1, ge=1)
+class MedicationPlanCreateRequest(MedicationPlanBase):
+    pass
+
+
+class MedicationPlanUpdateRequest(MedicationPlanBase):
     is_active: bool = True
 
 

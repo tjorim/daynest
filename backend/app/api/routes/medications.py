@@ -101,14 +101,16 @@ def update_medication(
 ) -> MedicationPlanResponse:
     repository = TodayRepository(db)
     plan = _get_user_medication_plan(repository, current_user.id, medication_plan_id)
-    plan.name = request.name
-    plan.instructions = request.instructions
-    plan.start_date = request.start_date
-    plan.schedule_time = request.schedule_time
-    plan.every_n_days = request.every_n_days
-    plan.is_active = request.is_active
-    repository.save()
-    return _plan_to_response(plan)
+    updated = repository.update_medication_plan(
+        plan,
+        name=request.name,
+        instructions=request.instructions,
+        start_date=request.start_date,
+        schedule_time=request.schedule_time,
+        every_n_days=request.every_n_days,
+        is_active=request.is_active,
+    )
+    return _plan_to_response(updated)
 
 
 @router.delete("/medications/{medication_plan_id}", status_code=status.HTTP_204_NO_CONTENT)

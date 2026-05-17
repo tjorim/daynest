@@ -32,7 +32,6 @@ from app.models.integration_client import IntegrationClient
 from app.models.medication_plan import MedicationPlan as MedicationPlanModel
 from app.models.user import User
 from app.repositories.today_repository import TodayRepository
-from app.schemas.medication import MedicationPlanCreateRequest, MedicationPlanUpdateRequest
 from app.schemas.today import PlannedItemCreateRequest, PlannedItemModuleKey, PlannedItemUpdateRequest
 from app.services.today_service import TodayService
 
@@ -269,6 +268,12 @@ class DaynestMcpBackend:
     def skip_routine_task(self, task_instance_id: int) -> dict[str, Any]:
         return self._with_service(lambda _db, user, service: _jsonable(service.skip_routine_task(user.id, task_instance_id)))
 
+    def _get_medication_plan(self, repository: TodayRepository, user_id: int, medication_plan_id: int) -> MedicationPlanModel:
+        plan = repository.get_medication_plan_for_user(user_id=user_id, medication_plan_id=medication_plan_id)
+        if plan is None:
+            raise ValueError(f"Medication plan {medication_plan_id} not found")
+        return plan
+
     def take_medication_dose(self, medication_dose_instance_id: int) -> dict[str, Any]:
         return self._mutate_medication(medication_dose_instance_id, "take")
 
@@ -307,21 +312,14 @@ class DaynestMcpBackend:
 
         def _operation(_db: Session, user: User, service: TodayService) -> dict[str, Any]:
             repository = TodayRepository(_db)
-            request = MedicationPlanCreateRequest(
-                name=name,
-                instructions=instructions,
-                start_date=parsed_start,
-                schedule_time=parsed_time,
-                every_n_days=every_n_days,
-            )
             plan = repository.add_medication_plan(
                 MedicationPlanModel(
                     user_id=user.id,
-                    name=request.name,
-                    instructions=request.instructions,
-                    start_date=request.start_date,
-                    schedule_time=request.schedule_time,
-                    every_n_days=request.every_n_days,
+                    name=name,
+                    instructions=instructions,
+                    start_date=parsed_start,
+                    schedule_time=parsed_time,
+                    every_n_days=every_n_days,
                     is_active=True,
                 )
             )
@@ -352,10 +350,9 @@ class DaynestMcpBackend:
 
         def _operation(_db: Session, user: User, service: TodayService) -> dict[str, Any]:
             repository = TodayRepository(_db)
-            plan = repository.get_medication_plan_for_user(user_id=user.id, medication_plan_id=medication_plan_id)
-            if plan is None:
-                raise ValueError(f"Medication plan {medication_plan_id} not found")
-            request = MedicationPlanUpdateRequest(
+            plan = self._get_medication_plan(repository, user.id, medication_plan_id)
+            updated = repository.update_medication_plan(
+                plan,
                 name=name,
                 instructions=instructions,
                 start_date=parsed_start,
@@ -363,21 +360,14 @@ class DaynestMcpBackend:
                 every_n_days=every_n_days,
                 is_active=is_active,
             )
-            plan.name = request.name
-            plan.instructions = request.instructions
-            plan.start_date = request.start_date
-            plan.schedule_time = request.schedule_time
-            plan.every_n_days = request.every_n_days
-            plan.is_active = request.is_active
-            repository.save()
             return {
-                "id": plan.id,
-                "name": plan.name,
-                "instructions": plan.instructions,
-                "start_date": plan.start_date.isoformat(),
-                "schedule_time": plan.schedule_time.isoformat(),
-                "every_n_days": plan.every_n_days,
-                "is_active": plan.is_active,
+                "id": updated.id,
+                "name": updated.name,
+                "instructions": updated.instructions,
+                "start_date": updated.start_date.isoformat(),
+                "schedule_time": updated.schedule_time.isoformat(),
+                "every_n_days": updated.every_n_days,
+                "is_active": updated.is_active,
             }
 
         return self._with_service(_operation)
@@ -385,9 +375,7 @@ class DaynestMcpBackend:
     def delete_medication(self, medication_plan_id: int) -> dict[str, Any]:
         def _operation(_db: Session, user: User, service: TodayService) -> dict[str, Any]:
             repository = TodayRepository(_db)
-            plan = repository.get_medication_plan_for_user(user_id=user.id, medication_plan_id=medication_plan_id)
-            if plan is None:
-                raise ValueError(f"Medication plan {medication_plan_id} not found")
+            plan = self._get_medication_plan(repository, user.id, medication_plan_id)
             repository.delete_medication_plan(plan)
             return {"deleted": True, "medication_plan_id": medication_plan_id}
 
