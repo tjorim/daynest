@@ -1,13 +1,7 @@
 from datetime import date
-from typing import Any, Literal, Optional
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
-
-
-class TodaySummary(BaseModel):
-    overdue_count: int
-    tasks_remaining: int
-    next_medication: str | None = None
 
 
 class CompleteTaskRequest(BaseModel):
@@ -99,4 +93,4 @@ class HACalendarEvent(BaseModel):
     summary: str
     start: dict[str, str]
     end: dict[str, str]
-    description: Optional[str] = None
+    description: str | None = None

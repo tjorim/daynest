@@ -14,7 +14,7 @@ from app.models.medication_dose_instance import MedicationDoseInstance
 from app.models.planned_item import PlannedItem
 from app.models.task_instance import TaskInstance
 from app.repositories.today_repository import TodayRepository
-from app.schemas.integrations import DashboardReadModel, HACalendarEvent, TodaySummary
+from app.schemas.integrations import DashboardReadModel, HACalendarEvent
 from app.schemas.today import (
     CalendarDayResponse,
     CalendarMonthDaySummary,
@@ -83,15 +83,6 @@ class TodayService:
             return None
         local_time = next_med.scheduled_at.astimezone(user_tz)
         return f"{next_med.name} @ {local_time.strftime('%H:%M')}"
-
-    def get_summary(self, user_id: int, for_date: date) -> TodaySummary:
-        user_tz = ZoneInfo(self.repository.get_user_timezone(user_id))
-        data = self._fetch_day_data(user_id=user_id, for_date=for_date)
-        return TodaySummary(
-            overdue_count=len(data.overdue),
-            tasks_remaining=len(data.due_today) + len([r for r in data.routines if r.status in (TaskStatus.pending, TaskStatus.in_progress)]) + len([item for item in data.planned if not item.is_done]),
-            next_medication=self._format_next_medication(data.medication, user_tz),
-        )
 
     def get_dashboard_read_model(self, user_id: int, for_date: date) -> DashboardReadModel:
         user_tz = ZoneInfo(self.repository.get_user_timezone(user_id))
