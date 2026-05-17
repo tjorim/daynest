@@ -65,9 +65,11 @@ class TestEntityDescriptions:
             "due_today_count",
             "overdue_count",
             "planned_count",
+            "planned_remaining_count",
             "medication_due_count",
             "completion_ratio",
             "next_medication",
+            "routines_open_count",
         }
         assert expected.issubset(keys)
 

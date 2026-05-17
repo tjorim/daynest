@@ -18,9 +18,12 @@ from daynest.api.client import (
 )
 
 VALID_SUMMARY_PAYLOAD = {
-    "todo_daynest_today": 3,
+    "sensor_daynest_chores_due": 2,
+    "sensor_daynest_routines_open": 1,
+    "sensor_daynest_medication_due": 1,
+    "sensor_daynest_planned_remaining": 3,
     "sensor_daynest_overdue_count": 1,
-    "sensor_daynest_next_medication": "08:00",
+    "sensor_daynest_next_medication": "Vitamin D @ 09:00",
 }
 
 VALID_DASHBOARD_PAYLOAD = {
@@ -443,3 +446,122 @@ class TestDaynestApiClientWriteMethods:
 
         call_args = session.delete.call_args[0]
         assert call_args[0].endswith("/api/v1/integrations/home-assistant/actions/delete-planned-item/10")
+
+
+VALID_CALENDAR_PAYLOAD = [
+    {
+        "uid": "chore-1",
+        "summary": "Clean kitchen",
+        "start": {"date": "2026-05-17"},
+        "end": {"date": "2026-05-18"},
+    },
+    {
+        "uid": "med-2",
+        "summary": "Vitamin D",
+        "start": {"dateTime": "2026-05-17T09:00:00"},
+        "end": {"dateTime": "2026-05-17T09:15:00"},
+        "description": "Take with food",
+    },
+]
+
+
+def _make_list_client(response: MagicMock) -> DaynestApiClient:
+    session = MagicMock(spec=aiohttp.ClientSession)
+    session.get = MagicMock(return_value=response)
+    return DaynestApiClient(
+        session=session,
+        base_url="https://api.daynest.example",
+        integration_key="daynest_read_key",
+    )
+
+
+@pytest.mark.unit
+class TestDaynestApiClientCalendarMethods:
+    """Tests for async_get_calendar / _request_list."""
+
+    async def test_get_calendar_returns_list_of_dicts(self) -> None:
+        from datetime import date
+
+        response = _make_mock_response(200, VALID_CALENDAR_PAYLOAD)
+        client = _make_list_client(response)
+
+        result = await client.async_get_calendar(date(2026, 5, 17), date(2026, 5, 31))
+
+        assert isinstance(result, list)
+        assert len(result) == 2
+        assert result[0]["uid"] == "chore-1"
+
+    async def test_get_calendar_url_includes_date_params(self) -> None:
+        from datetime import date
+
+        response = _make_mock_response(200, VALID_CALENDAR_PAYLOAD)
+        session = MagicMock(spec=aiohttp.ClientSession)
+        session.get = MagicMock(return_value=response)
+        client = DaynestApiClient(session=session, base_url="https://api.example", integration_key="key")
+
+        await client.async_get_calendar(date(2026, 5, 1), date(2026, 5, 31))
+
+        call_args = session.get.call_args[0]
+        assert "start=2026-05-01" in call_args[0]
+        assert "end=2026-05-31" in call_args[0]
+
+    async def test_non_list_response_raises_malformed_error(self) -> None:
+        from datetime import date
+
+        response = _make_mock_response(200, {"not": "a list"})
+        client = _make_list_client(response)
+
+        with pytest.raises(DaynestApiClientMalformedResponseError, match="expected JSON array"):
+            await client.async_get_calendar(date(2026, 5, 1), date(2026, 5, 31))
+
+    async def test_non_dict_items_filtered_out(self) -> None:
+        from datetime import date
+
+        mixed_payload = [VALID_CALENDAR_PAYLOAD[0], "not a dict", 42, VALID_CALENDAR_PAYLOAD[1]]
+        response = _make_mock_response(200, mixed_payload)
+        client = _make_list_client(response)
+
+        result = await client.async_get_calendar(date(2026, 5, 1), date(2026, 5, 31))
+
+        assert len(result) == 2
+
+    async def test_calendar_401_raises_authentication_error(self) -> None:
+        from datetime import date
+
+        response = _make_mock_response(401, {})
+        client = _make_list_client(response)
+
+        with pytest.raises(DaynestApiClientAuthenticationError):
+            await client.async_get_calendar(date(2026, 5, 1), date(2026, 5, 31))
+
+    async def test_calendar_500_raises_server_unavailable_error(self) -> None:
+        from datetime import date
+
+        response = _make_mock_response(500, {})
+        client = _make_list_client(response)
+
+        with pytest.raises(DaynestApiClientServerUnavailableError):
+            await client.async_get_calendar(date(2026, 5, 1), date(2026, 5, 31))
+
+    async def test_calendar_timeout_raises_timeout_error(self) -> None:
+        from datetime import date
+
+        session = MagicMock(spec=aiohttp.ClientSession)
+        mock_ctx = MagicMock()
+        mock_ctx.__aenter__ = AsyncMock(side_effect=asyncio.TimeoutError)
+        mock_ctx.__aexit__ = AsyncMock(return_value=False)
+        session.get = MagicMock(return_value=mock_ctx)
+        client = DaynestApiClient(session=session, base_url="https://api.example", integration_key="key")
+
+        with pytest.raises(DaynestApiClientTimeoutError):
+            await client.async_get_calendar(date(2026, 5, 1), date(2026, 5, 31))
+
+    async def test_calendar_empty_list_returned(self) -> None:
+        from datetime import date
+
+        response = _make_mock_response(200, [])
+        client = _make_list_client(response)
+
+        result = await client.async_get_calendar(date(2026, 5, 1), date(2026, 5, 31))
+
+        assert result == []

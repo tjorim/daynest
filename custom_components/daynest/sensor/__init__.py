@@ -79,6 +79,13 @@ ENTITY_DESCRIPTIONS: tuple[DaynestSensorEntityDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         value_key="routines_open_count",
     ),
+    DaynestSensorEntityDescription(
+        key="planned_remaining_count",
+        translation_key="planned_remaining_count",
+        icon="mdi:calendar-check-outline",
+        state_class=SensorStateClass.MEASUREMENT,
+        value_key="planned_remaining_count",
+    ),
 )
 
 
