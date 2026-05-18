@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -56,7 +56,7 @@ class TestParseEvent:
         event = _parse_event(raw)
         assert event is not None
         assert isinstance(event.start, datetime)
-        assert event.start == datetime(2026, 5, 17, 9, 0, 0, tzinfo=timezone.utc)
+        assert event.start == datetime(2026, 5, 17, 9, 0, 0, tzinfo=UTC)
 
     def test_summary_and_uid_preserved(self) -> None:
         raw = {

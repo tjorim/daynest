@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from typing import TYPE_CHECKING
 
 from homeassistant.components.calendar import CalendarEntity, CalendarEntityFeature, CalendarEvent
@@ -57,9 +57,9 @@ def _parse_event(raw: dict) -> CalendarEvent | None:
             start: date | datetime = datetime.fromisoformat(start_obj["dateTime"])
             end: date | datetime = datetime.fromisoformat(end_obj["dateTime"])
             if isinstance(start, datetime) and start.tzinfo is None:
-                start = start.replace(tzinfo=timezone.utc)
+                start = start.replace(tzinfo=UTC)
             if isinstance(end, datetime) and end.tzinfo is None:
-                end = end.replace(tzinfo=timezone.utc)
+                end = end.replace(tzinfo=UTC)
         else:
             start = date.fromisoformat(start_obj["date"])
             end = date.fromisoformat(end_obj["date"])
