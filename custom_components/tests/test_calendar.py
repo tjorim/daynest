@@ -231,8 +231,8 @@ class TestDaynestCalendarEntityCreateEvent:
 
         event = CalendarEvent(
             summary="Morning run",
-            start=datetime(2026, 5, 20, 7, 0),
-            end=datetime(2026, 5, 20, 8, 0),
+            start=datetime(2026, 5, 20, 7, 0, tzinfo=UTC),
+            end=datetime(2026, 5, 20, 8, 0, tzinfo=UTC),
         )
         await entity.async_create_calendar_event(event)
 
