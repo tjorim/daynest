@@ -102,6 +102,14 @@ class TodayService:
             + len([item for item in data.routines if item.status == TaskStatus.completed])
         )
         total = len(data.all_chores) + len(data.planned) + len(data.medication) + len(data.routines)
+
+        overdue_undone_planned = self.repository.list_planned_items(
+            user_id=user_id,
+            end_date=for_date - timedelta(days=1),
+            is_done=False,
+        )
+        todo_planned = [self._planned_item_to_schema(item) for item in overdue_undone_planned + list(data.planned)]
+
         return DashboardReadModel(
             for_date=for_date,
             overdue_count=len(data.overdue),
@@ -112,6 +120,17 @@ class TodayService:
             completion_ratio=round(completed_count / total if total else 0.0, 3),
             next_medication=self._format_next_medication(data.medication, user_tz),
             routines_open_count=len([item for item in data.routines if item.status in (TaskStatus.pending, TaskStatus.in_progress)]),
+            due_today=[
+                DueTodayItem(
+                    chore_instance_id=item.id,
+                    chore_template_id=item.chore_template_id,
+                    title=item.title,
+                    status=item.status,
+                    scheduled_date=item.scheduled_date,
+                )
+                for item in data.due_today
+            ],
+            planned=todo_planned,
         )
 
     def get_today(self, user_id: int, for_date: date) -> TodayResponse:

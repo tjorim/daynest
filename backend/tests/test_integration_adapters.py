@@ -236,6 +236,8 @@ def test_home_assistant_dashboard_contract_is_stable(
         "completion_ratio",
         "next_medication",
         "routines_open_count",
+        "due_today",
+        "planned",
     }
     assert isinstance(dashboard_payload["for_date"], str)
     assert isinstance(dashboard_payload["overdue_count"], int)
@@ -244,6 +246,8 @@ def test_home_assistant_dashboard_contract_is_stable(
     assert isinstance(dashboard_payload["medication_due_count"], int)
     assert isinstance(dashboard_payload["completion_ratio"], float)
     assert dashboard_payload["next_medication"] is None or isinstance(dashboard_payload["next_medication"], str)
+    assert isinstance(dashboard_payload["due_today"], list)
+    assert isinstance(dashboard_payload["planned"], list)
 
 
 def test_home_assistant_write_endpoints_require_ha_write_scope(

@@ -1,7 +1,11 @@
+from __future__ import annotations
+
 from datetime import date
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field
+
+from app.schemas.today import DueTodayItem, PlannedTodayItem
 
 
 class CompleteTaskRequest(BaseModel):
@@ -86,6 +90,8 @@ class DashboardReadModel(BaseModel):
     completion_ratio: float
     next_medication: str | None = None
     routines_open_count: int = 0
+    due_today: list[DueTodayItem] = []
+    planned: list[PlannedTodayItem] = []
 
 
 class HACalendarEvent(BaseModel):
