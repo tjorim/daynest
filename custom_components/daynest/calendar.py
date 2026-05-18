@@ -5,10 +5,10 @@ from __future__ import annotations
 from datetime import UTC, date, datetime
 from typing import TYPE_CHECKING
 
+from daynest import DaynestError
 from homeassistant.components.calendar import CalendarEntity, CalendarEntityFeature, CalendarEvent
 from homeassistant.helpers.entity import EntityDescription
 
-from daynest import DaynestError
 from .const import LOGGER
 from .entity import DaynestEntity
 

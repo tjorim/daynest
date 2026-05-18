@@ -4,15 +4,10 @@ from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock
 
+from daynest.models import DaynestDashboard
 import pytest
 
-from daynest import (
-    DaynestAuthError,
-    DaynestCommunicationError,
-    DaynestError,
-    DaynestMalformedResponseError,
-)
-from daynest.models import DaynestDashboard
+from daynest import DaynestAuthError, DaynestCommunicationError, DaynestError, DaynestMalformedResponseError
 from daynest.coordinator import DaynestDataUpdateCoordinator, _safe_float, _safe_int
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import UpdateFailed

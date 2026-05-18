@@ -4,15 +4,10 @@ from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
+from daynest.models import DaynestSummary
 import pytest
 
-from daynest import (
-    DaynestAuthError,
-    DaynestMalformedResponseError,
-    DaynestServerUnavailableError,
-    DaynestTimeoutError,
-)
-from daynest.models import DaynestSummary
+from daynest import DaynestAuthError, DaynestMalformedResponseError, DaynestServerUnavailableError, DaynestTimeoutError
 from daynest.config_flow import (
     ERROR_AUTH,
     ERROR_CANNOT_CONNECT,

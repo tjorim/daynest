@@ -7,9 +7,9 @@ from typing import TYPE_CHECKING
 
 import voluptuous as vol
 
+from daynest import DaynestAuthError, DaynestCommunicationError, DaynestError
 from homeassistant.exceptions import HomeAssistantError
 
-from daynest import DaynestAuthError, DaynestCommunicationError, DaynestError
 from .const import DOMAIN, LOGGER
 
 if TYPE_CHECKING:

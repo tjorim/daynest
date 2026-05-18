@@ -14,10 +14,9 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from daynest import DaynestClient
     from homeassistant.config_entries import ConfigEntry
     from homeassistant.loader import Integration
-
-    from daynest import DaynestClient
 
     from .coordinator import DaynestDataUpdateCoordinator
 

@@ -6,11 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from daynest import (
-    DaynestAuthError,
-    DaynestCommunicationError,
-    DaynestError,
-)
+from daynest import DaynestAuthError, DaynestCommunicationError, DaynestError
 from daynest.services import (
     ATTR_CHORE_INSTANCE_ID,
     ATTR_DAYS,
