@@ -26,6 +26,7 @@ packages = ["src/daynest"]
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+markers = ["unit: fast, isolated unit tests"]
 
 [tool.pyright]
 include = ["src"]
