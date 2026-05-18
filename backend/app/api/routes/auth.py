@@ -122,7 +122,7 @@ async def revoke_session(
             detail="Could not reach the OIDC provider.",
         ) from exc
 
-    if not resp.is_success and resp.status_code != status.HTTP_204_NO_CONTENT:
+    if not resp.is_success:
         raise HTTPException(
             status_code=resp.status_code,
             detail="Failed to revoke session.",

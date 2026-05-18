@@ -498,6 +498,10 @@ export function SettingsPage() {
                     const lastAccess = session.last_access
                       ? new Date(session.last_access).toLocaleString()
                       : null;
+                    const metaParts = [
+                      session.ip_address ? `IP: ${session.ip_address}` : null,
+                      lastAccess ? `Last active: ${lastAccess}` : null,
+                    ].filter(Boolean);
                     return (
                       <li key={session.id} className="list-group-item py-2">
                         <div className="d-flex justify-content-between align-items-start gap-3">
@@ -505,11 +509,9 @@ export function SettingsPage() {
                             <div className="fw-semibold">
                               {clientNames.length > 0 ? clientNames.join(", ") : "Unknown client"}
                             </div>
-                            <small className="text-muted d-block">
-                              {session.ip_address ? `IP: ${session.ip_address}` : null}
-                              {session.ip_address && lastAccess ? " • " : null}
-                              {lastAccess ? `Last active: ${lastAccess}` : null}
-                            </small>
+                            {metaParts.length > 0 ? (
+                              <small className="text-muted d-block">{metaParts.join(" • ")}</small>
+                            ) : null}
                           </div>
                           <button
                             type="button"
