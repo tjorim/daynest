@@ -108,7 +108,7 @@ class TodayService:
             end_date=for_date - timedelta(days=1),
             is_done=False,
         )
-        todo_planned = [self._planned_item_to_schema(item) for item in overdue_undone_planned + list(data.planned)]
+        todo_planned = [self._planned_item_to_schema(item) for item in overdue_undone_planned + data.planned]
 
         return DashboardReadModel(
             for_date=for_date,

@@ -78,7 +78,7 @@ class StubTodayRepository:
         return self._due
 
     def list_planned_items(self, user_id: int, start_date: date | None = None, end_date: date | None = None, is_done: bool | None = None) -> list[SimpleNamespace]:
-        if is_done is False and start_date is None:
+        if is_done is False and start_date is None and end_date is not None:
             return self._overdue_planned
         return self._planned
 
