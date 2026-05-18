@@ -55,7 +55,7 @@ describe("AuthProvider login returnTo", () => {
 
   it("preserves path, search, and hash for app routes", async () => {
     const user = userEvent.setup();
-    window.history.replaceState({}, "", "/calendar?view=month#day-42");
+    window.history.replaceState({}, "", "/calendar?view=month#event-123");
 
     render(
       <AuthProvider>
@@ -66,7 +66,7 @@ describe("AuthProvider login returnTo", () => {
     await user.click(screen.getByRole("button", { name: /sign in/i }));
 
     expect(authMock.oidc.signinRedirect).toHaveBeenCalledWith({
-      state: { returnTo: "/calendar?view=month#day-42" },
+      state: { returnTo: "/calendar?view=month#event-123" },
     });
   });
 });
