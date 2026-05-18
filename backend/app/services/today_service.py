@@ -1,3 +1,4 @@
+import logging
 from calendar import monthrange
 from collections import defaultdict
 from dataclasses import dataclass
@@ -37,6 +38,10 @@ from app.schemas.today import (
     UnifiedDayItem,
     UpcomingTodayItem,
 )
+
+logger = logging.getLogger(__name__)
+
+MAX_CALENDAR_RANGE_DAYS = 366
 
 
 @dataclass
@@ -355,6 +360,11 @@ class TodayService:
         return CalendarMonthResponse(year=year, month=month, days=days)
 
     def get_calendar_events(self, user_id: int, start_date: date, end_date: date) -> list[HACalendarEvent]:
+        if end_date < start_date:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="end_date must not be before start_date")
+        if (end_date - start_date).days > MAX_CALENDAR_RANGE_DAYS:
+            logger.warning("Calendar range clamped: %s..%s exceeds %d days", start_date, end_date, MAX_CALENDAR_RANGE_DAYS)
+            end_date = start_date + timedelta(days=MAX_CALENDAR_RANGE_DAYS)
         user_tz_str = self.repository.get_user_timezone(user_id)
         self.repository.ensure_chore_instances_generated(user_id=user_id, through_date=end_date)
         self.repository.ensure_task_instances_generated(user_id=user_id, through_date=end_date)
@@ -583,6 +593,8 @@ class TodayService:
         due_time: time | None,
         is_active: bool,
     ) -> RoutineTemplate:
+        if every_n_days < 1:
+            raise ValueError("every_n_days must be >= 1")
         return self.repository.add_routine_template(
             RoutineTemplate(
                 user_id=user_id,
@@ -602,16 +614,24 @@ class TodayService:
         *,
         name: str,
         start_date: date,
-        every_n_days: int,
+        every_n_days: int | None,
         description: str | None,
         due_time: time | None,
-        is_active: bool,
+        is_active: bool | None,
     ) -> RoutineTemplate:
         template = self.repository.get_routine_template_for_user(user_id=user_id, routine_template_id=routine_template_id)
         if template is None:
             raise ValueError(f"Routine template {routine_template_id} not found")
+        if every_n_days is not None and every_n_days < 1:
+            raise ValueError("every_n_days must be >= 1")
         return self.repository.update_routine_template(
-            template, name=name, description=description, start_date=start_date, every_n_days=every_n_days, due_time=due_time, is_active=is_active
+            template,
+            name=name,
+            description=description if description is not None else template.description,
+            start_date=start_date,
+            every_n_days=every_n_days if every_n_days is not None else template.every_n_days,
+            due_time=due_time if due_time is not None else template.due_time,
+            is_active=is_active if is_active is not None else template.is_active,
         )
 
     def delete_routine_template(self, user_id: int, routine_template_id: int) -> None:
@@ -633,6 +653,8 @@ class TodayService:
         description: str | None,
         is_active: bool,
     ) -> ChoreTemplate:
+        if every_n_days < 1:
+            raise ValueError("every_n_days must be >= 1")
         return self.repository.add_chore_template(
             ChoreTemplate(
                 user_id=user_id,
@@ -651,15 +673,22 @@ class TodayService:
         *,
         name: str,
         start_date: date,
-        every_n_days: int,
+        every_n_days: int | None,
         description: str | None,
-        is_active: bool,
+        is_active: bool | None,
     ) -> ChoreTemplate:
         template = self.repository.get_chore_template_for_user(user_id=user_id, chore_template_id=chore_template_id)
         if template is None:
             raise ValueError(f"Chore template {chore_template_id} not found")
+        if every_n_days is not None and every_n_days < 1:
+            raise ValueError("every_n_days must be >= 1")
         return self.repository.update_chore_template(
-            template, name=name, description=description, start_date=start_date, every_n_days=every_n_days, is_active=is_active
+            template,
+            name=name,
+            description=description if description is not None else template.description,
+            start_date=start_date,
+            every_n_days=every_n_days if every_n_days is not None else template.every_n_days,
+            is_active=is_active if is_active is not None else template.is_active,
         )
 
     def delete_chore_template(self, user_id: int, chore_template_id: int) -> None:
@@ -681,6 +710,8 @@ class TodayService:
         schedule_time: time,
         every_n_days: int,
     ) -> MedicationPlan:
+        if every_n_days < 1:
+            raise ValueError("every_n_days must be >= 1")
         return self.repository.add_medication_plan(
             MedicationPlan(
                 user_id=user_id,
@@ -702,14 +733,22 @@ class TodayService:
         instructions: str,
         start_date: date,
         schedule_time: time,
-        every_n_days: int,
-        is_active: bool,
+        every_n_days: int | None,
+        is_active: bool | None,
     ) -> MedicationPlan:
         plan = self.repository.get_medication_plan_for_user(user_id=user_id, medication_plan_id=medication_plan_id)
         if plan is None:
             raise ValueError(f"Medication plan {medication_plan_id} not found")
+        if every_n_days is not None and every_n_days < 1:
+            raise ValueError("every_n_days must be >= 1")
         return self.repository.update_medication_plan(
-            plan, name=name, instructions=instructions, start_date=start_date, schedule_time=schedule_time, every_n_days=every_n_days, is_active=is_active
+            plan,
+            name=name,
+            instructions=instructions,
+            start_date=start_date,
+            schedule_time=schedule_time,
+            every_n_days=every_n_days if every_n_days is not None else plan.every_n_days,
+            is_active=is_active if is_active is not None else plan.is_active,
         )
 
     def delete_medication_plan(self, user_id: int, medication_plan_id: int) -> None:

@@ -12,7 +12,7 @@ _FIXED_NOW = datetime(2026, 4, 23, 10, 0, tzinfo=timezone.utc)
 
 
 class StubTodayRepository:
-    def __init__(self, tasks: list[SimpleNamespace], overdue: list[SimpleNamespace], due: list[SimpleNamespace], upcoming: list[SimpleNamespace], medication: list[SimpleNamespace], medication_history: list[SimpleNamespace], planned: list[SimpleNamespace], dose: SimpleNamespace | None = None):
+    def __init__(self, tasks: list[SimpleNamespace], overdue: list[SimpleNamespace], due: list[SimpleNamespace], upcoming: list[SimpleNamespace], medication: list[SimpleNamespace], medication_history: list[SimpleNamespace], planned: list[SimpleNamespace], dose: SimpleNamespace | None = None, timezone: str = "UTC"):
         self._tasks = tasks
         self._overdue = overdue
         self._due = due
@@ -21,20 +21,22 @@ class StubTodayRepository:
         self._medication_history = medication_history
         self._planned = planned
         self._dose = dose
+        self._timezone = timezone
         self.generated_through: date | None = None
         self.tasks_generated_through: date | None = None
         self.grace_minutes: int | None = None
         self.upcoming_horizon_days: int | None = None
         self.saved = False
+        self.captured_user_timezone: str | None = None
 
     def ensure_chore_instances_generated(self, user_id: int, through_date: date) -> None:
         self.generated_through = through_date
 
     def get_user_timezone(self, user_id: int) -> str:
-        return "UTC"
+        return self._timezone
 
     def ensure_medication_dose_instances_generated(self, user_id: int, through_date: date, user_timezone: str = "UTC") -> None:
-        return None
+        self.captured_user_timezone = user_timezone
 
     def ensure_task_instances_generated(self, user_id: int, through_date: date) -> None:
         self.tasks_generated_through = through_date
@@ -243,3 +245,13 @@ def test_mutate_medication_not_found_raises_404() -> None:
         service.mutate_medication_status(user_id=7, medication_dose_instance_id=99, action="take")
 
     assert exc_info.value.status_code == 404
+
+
+def test_get_today_threads_user_timezone_to_medication_generation() -> None:
+    repo = StubTodayRepository(
+        tasks=[], overdue=[], due=[], upcoming=[], medication=[], medication_history=[], planned=[],
+        timezone="America/New_York",
+    )
+    service = TodayService(repository=repo, app_settings=AppSettings())
+    service.get_today(user_id=7, for_date=date(2026, 4, 23))
+    assert repo.captured_user_timezone == "America/New_York"

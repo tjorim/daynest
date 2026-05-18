@@ -10,7 +10,7 @@ from urllib.parse import urljoin
 
 import aiohttp
 
-from ..const import DEFAULT_API_BASE_URL
+from ..const import DEFAULT_API_BASE_URL, LOGGER
 
 REQUEST_TIMEOUT = aiohttp.ClientTimeout(total=10)
 
@@ -307,7 +307,13 @@ class DaynestApiClient:
                 if not isinstance(payload, list):
                     msg = "Malformed response payload: expected JSON array"
                     raise DaynestApiClientMalformedResponseError(msg)
-                return [item for item in payload if isinstance(item, dict)]
+                result = []
+                for i, item in enumerate(payload):
+                    if isinstance(item, dict):
+                        result.append(item)
+                    else:
+                        LOGGER.warning("Skipping non-dict item at index %d in response for %s: %r", i, path, item)
+                return result
 
         except TimeoutError as err:
             msg = f"Request timed out for endpoint {path}"

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -56,7 +56,7 @@ class TestParseEvent:
         event = _parse_event(raw)
         assert event is not None
         assert isinstance(event.start, datetime)
-        assert event.start == datetime(2026, 5, 17, 9, 0, 0)
+        assert event.start == datetime(2026, 5, 17, 9, 0, 0, tzinfo=UTC)
 
     def test_summary_and_uid_preserved(self) -> None:
         raw = {
@@ -231,8 +231,8 @@ class TestDaynestCalendarEntityCreateEvent:
 
         event = CalendarEvent(
             summary="Morning run",
-            start=datetime(2026, 5, 20, 7, 0),
-            end=datetime(2026, 5, 20, 8, 0),
+            start=datetime(2026, 5, 20, 7, 0, tzinfo=UTC),
+            end=datetime(2026, 5, 20, 8, 0, tzinfo=UTC),
         )
         await entity.async_create_calendar_event(event)
 

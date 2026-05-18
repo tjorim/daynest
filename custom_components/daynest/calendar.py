@@ -2,15 +2,17 @@
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from typing import TYPE_CHECKING
 
 from homeassistant.components.calendar import CalendarEntity, CalendarEntityFeature, CalendarEvent
 from homeassistant.helpers.entity import EntityDescription
 
 from .api import DaynestApiClientError
-from .const import LOGGER, PARALLEL_UPDATES as PARALLEL_UPDATES
+from .const import LOGGER
 from .entity import DaynestEntity
+
+PARALLEL_UPDATES = 0
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
@@ -54,6 +56,10 @@ def _parse_event(raw: dict) -> CalendarEvent | None:
         if "dateTime" in start_obj:
             start: date | datetime = datetime.fromisoformat(start_obj["dateTime"])
             end: date | datetime = datetime.fromisoformat(end_obj["dateTime"])
+            if isinstance(start, datetime) and start.tzinfo is None:
+                start = start.replace(tzinfo=UTC)
+            if isinstance(end, datetime) and end.tzinfo is None:
+                end = end.replace(tzinfo=UTC)
         else:
             start = date.fromisoformat(start_obj["date"])
             end = date.fromisoformat(end_obj["date"])
@@ -65,7 +71,8 @@ def _parse_event(raw: dict) -> CalendarEvent | None:
             uid=uid,
             description=description,
         )
-    except (KeyError, ValueError, TypeError):
+    except (KeyError, ValueError, TypeError) as exc:
+        LOGGER.warning("Failed to parse calendar event %r: %s", raw, exc)
         return None
 
 
@@ -118,7 +125,7 @@ class DaynestCalendarEntity(CalendarEntity, DaynestEntity):
     async def async_create_calendar_event(self, event: CalendarEvent) -> None:
         """Create a Daynest planned item from a calendar event."""
         client = self.coordinator.config_entry.runtime_data.client
-        planned_for = event.start if isinstance(event.start, date) else event.start.date()
+        planned_for = event.start.date() if isinstance(event.start, datetime) else event.start
         await client.async_create_planned_item(
             title=event.summary or "Event",
             planned_for=planned_for.isoformat(),

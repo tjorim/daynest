@@ -26,9 +26,12 @@ CONTRACT_HEADER_VALID = "home-assistant; version=ha.v1"
 CONTRACT_HEADER_UNSUPPORTED = "home-assistant; version=ha.v99"
 
 VALID_SUMMARY_PAYLOAD = {
-    "todo_daynest_today": 2,
+    "sensor_daynest_chores_due": 2,
+    "sensor_daynest_routines_open": 1,
+    "sensor_daynest_medication_due": 1,
+    "sensor_daynest_planned_remaining": 3,
     "sensor_daynest_overdue_count": 1,
-    "sensor_daynest_next_medication": "09:00",
+    "sensor_daynest_next_medication": "Vitamin D @ 09:00",
 }
 
 USER_INPUT = {
