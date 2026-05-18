@@ -11,6 +11,11 @@ import {
   type IntegrationClient,
   type IntegrationClientCreateResponse,
 } from "@/lib/api/today";
+import {
+  listOAuthSessions,
+  revokeOAuthSession,
+  type OAuthSession,
+} from "@/lib/api/auth";
 
 const AVAILABLE_SCOPES = [
   {
@@ -85,6 +90,12 @@ export function SettingsPage() {
   const [rateLimit, setRateLimit] = useState("120");
   const [selectedScopes, setSelectedScopes] = useState<string[]>(["ha:read"]);
 
+  const [oauthSessions, setOauthSessions] = useState<OAuthSession[]>([]);
+  const [sessionsLoading, setSessionsLoading] = useState(true);
+  const [sessionsError, setSessionsError] = useState<string | null>(null);
+  const [revokingSession, setRevokingSession] = useState<string | null>(null);
+  const [revokeError, setRevokeError] = useState<string | null>(null);
+
   const backendBaseUrl = window.location.origin;
 
   const loadClients = async (signal?: AbortSignal) => {
@@ -108,9 +119,47 @@ export function SettingsPage() {
     }
   };
 
+  const loadSessions = async (signal?: AbortSignal) => {
+    setSessionsLoading(true);
+    setSessionsError(null);
+    try {
+      const sessions = await listOAuthSessions();
+      if (!signal?.aborted) {
+        setOauthSessions(sessions);
+      }
+    } catch (err) {
+      if (!signal?.aborted) {
+        setSessionsError(err instanceof Error ? err.message : "Unable to load OAuth sessions.");
+      }
+    } finally {
+      if (!signal?.aborted) {
+        setSessionsLoading(false);
+      }
+    }
+  };
+
+  const onRevokeSession = async (sessionId: string) => {
+    setRevokingSession(sessionId);
+    setRevokeError(null);
+    try {
+      await revokeOAuthSession(sessionId);
+      await loadSessions();
+    } catch (err) {
+      setRevokeError(err instanceof Error ? err.message : "Failed to revoke session.");
+    } finally {
+      setRevokingSession(null);
+    }
+  };
+
   useEffect(() => {
     const controller = new AbortController();
     void loadClients(controller.signal);
+    return () => controller.abort();
+  }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void loadSessions(controller.signal);
     return () => controller.abort();
   }, []);
 
@@ -421,6 +470,67 @@ export function SettingsPage() {
                 ))
               )}
             </ul>
+          </div>
+
+          <div className="card mt-3">
+            <div className="card-header d-flex justify-content-between align-items-center py-2">
+              <span className="fw-semibold">Active OAuth sessions</span>
+              <button
+                type="button"
+                className="btn btn-outline-secondary btn-sm"
+                disabled={sessionsLoading}
+                onClick={() => void loadSessions()}
+              >
+                Refresh
+              </button>
+            </div>
+            {sessionsLoading ? (
+              <div className="card-body py-2 text-muted small">Loading sessions…</div>
+            ) : sessionsError ? (
+              <div className="card-body py-2 text-danger small">{sessionsError}</div>
+            ) : (
+              <ul className="list-group list-group-flush">
+                {oauthSessions.length === 0 ? (
+                  <li className="list-group-item py-2 text-muted">No active OAuth sessions.</li>
+                ) : (
+                  oauthSessions.map((session) => {
+                    const clientNames = Object.values(session.clients);
+                    const lastAccess = session.last_access
+                      ? new Date(session.last_access).toLocaleString()
+                      : null;
+                    const metaParts = [
+                      session.ip_address ? `IP: ${session.ip_address}` : null,
+                      lastAccess ? `Last active: ${lastAccess}` : null,
+                    ].filter(Boolean);
+                    return (
+                      <li key={session.id} className="list-group-item py-2">
+                        <div className="d-flex justify-content-between align-items-start gap-3">
+                          <div>
+                            <div className="fw-semibold">
+                              {clientNames.length > 0 ? clientNames.join(", ") : "Unknown client"}
+                            </div>
+                            {metaParts.length > 0 ? (
+                              <small className="text-muted d-block">{metaParts.join(" • ")}</small>
+                            ) : null}
+                          </div>
+                          <button
+                            type="button"
+                            className="btn btn-outline-danger btn-sm flex-shrink-0"
+                            disabled={revokingSession === session.id}
+                            onClick={() => void onRevokeSession(session.id)}
+                          >
+                            {revokingSession === session.id ? "Revoking…" : "Revoke"}
+                          </button>
+                        </div>
+                      </li>
+                    );
+                  })
+                )}
+              </ul>
+            )}
+            {revokeError ? (
+              <div className="card-footer text-danger py-2 small">{revokeError}</div>
+            ) : null}
           </div>
         </div>
       </div>

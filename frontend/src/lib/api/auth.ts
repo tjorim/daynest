@@ -1,9 +1,20 @@
+import { getOidcAccessToken } from "@/lib/auth/session";
+
 export interface AuthUser {
   id: number;
   email: string;
   full_name: string | null;
   is_active: boolean;
   roles: string[];
+}
+
+export interface OAuthSession {
+  id: string;
+  ip_address: string | null;
+  started: number | null;
+  last_access: number | null;
+  expires: number | null;
+  clients: Record<string, string>;
 }
 
 export class AuthApiError extends Error {
@@ -59,4 +70,34 @@ export async function fetchMe(accessToken: string): Promise<AuthUser> {
   });
 
   return parseJsonResponse<AuthUser>(response, "Unable to load session");
+}
+
+export async function listOAuthSessions(): Promise<OAuthSession[]> {
+  const token = getOidcAccessToken();
+  if (!token) {
+    throw new AuthApiError("Not authenticated", 401);
+  }
+  const response = await fetch("/api/v1/auth/sessions", {
+    headers: {
+      Accept: "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  return parseJsonResponse<OAuthSession[]>(response, "Unable to load OAuth sessions");
+}
+
+export async function revokeOAuthSession(sessionId: string): Promise<void> {
+  const token = getOidcAccessToken();
+  if (!token) {
+    throw new AuthApiError("Not authenticated", 401);
+  }
+  const response = await fetch(`/api/v1/auth/sessions/${encodeURIComponent(sessionId)}`, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  if (!response.ok) {
+    await parseJsonResponse<never>(response, "Failed to revoke session");
+  }
 }
