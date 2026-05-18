@@ -9,7 +9,7 @@ from homeassistant.components.calendar import CalendarEntity, CalendarEntityFeat
 from homeassistant.helpers.entity import EntityDescription
 
 from .api import DaynestApiClientError
-from .const import LOGGER, PARALLEL_UPDATES
+from .const import LOGGER, PARALLEL_UPDATES as PARALLEL_UPDATES
 from .entity import DaynestEntity
 
 if TYPE_CHECKING:

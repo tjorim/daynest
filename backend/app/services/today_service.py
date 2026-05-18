@@ -8,10 +8,6 @@ from zoneinfo import ZoneInfo
 
 from fastapi import HTTPException, status
 
-logger = logging.getLogger(__name__)
-
-MAX_CALENDAR_RANGE_DAYS = 366
-
 from app.core.config import AppSettings
 from app.core.enums import ChoreStatus, MedicationDoseStatus, TaskStatus
 from app.models.chore_instance import ChoreInstance
@@ -42,6 +38,10 @@ from app.schemas.today import (
     UnifiedDayItem,
     UpcomingTodayItem,
 )
+
+logger = logging.getLogger(__name__)
+
+MAX_CALENDAR_RANGE_DAYS = 366
 
 
 @dataclass
@@ -627,7 +627,7 @@ class TodayService:
         return self.repository.update_routine_template(
             template,
             name=name,
-            description=description,
+            description=description if description is not None else template.description,
             start_date=start_date,
             every_n_days=every_n_days if every_n_days is not None else template.every_n_days,
             due_time=due_time if due_time is not None else template.due_time,
@@ -685,7 +685,7 @@ class TodayService:
         return self.repository.update_chore_template(
             template,
             name=name,
-            description=description,
+            description=description if description is not None else template.description,
             start_date=start_date,
             every_n_days=every_n_days if every_n_days is not None else template.every_n_days,
             is_active=is_active if is_active is not None else template.is_active,

@@ -840,7 +840,7 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
             start_date: Updated start date in YYYY-MM-DD format or 'today'.
             every_n_days: Updated recurrence frequency. Omit to keep the current value.
             description: Updated description.
-            due_time: Updated time-of-day deadline in HH:MM or HH:MM:SS format, or null to clear.
+            due_time: Updated time-of-day deadline in HH:MM or HH:MM:SS format. Omit to keep the current value.
             is_active: Set to false to deactivate the routine. Omit to keep the current value.
         """
 
