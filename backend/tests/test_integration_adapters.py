@@ -171,6 +171,9 @@ def test_home_assistant_summary_contract_is_stable(
         "sensor_daynest_next_medication",
     }
     assert isinstance(summary_payload["sensor_daynest_chores_due"], int)
+    assert isinstance(summary_payload["sensor_daynest_routines_open"], int)
+    assert isinstance(summary_payload["sensor_daynest_medication_due"], int)
+    assert isinstance(summary_payload["sensor_daynest_planned_remaining"], int)
     assert isinstance(summary_payload["sensor_daynest_overdue_count"], int)
     assert summary_payload["sensor_daynest_next_medication"] is None or isinstance(
         summary_payload["sensor_daynest_next_medication"],

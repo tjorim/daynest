@@ -1,6 +1,7 @@
 """Unit tests for custom_components.daynest.api.client."""
 
 import asyncio
+from datetime import date
 from unittest.mock import AsyncMock, MagicMock
 
 import aiohttp
@@ -480,7 +481,6 @@ class TestDaynestApiClientCalendarMethods:
     """Tests for async_get_calendar / _request_list."""
 
     async def test_get_calendar_returns_list_of_dicts(self) -> None:
-        from datetime import date
 
         response = _make_mock_response(200, VALID_CALENDAR_PAYLOAD)
         client = _make_list_client(response)
@@ -492,7 +492,6 @@ class TestDaynestApiClientCalendarMethods:
         assert result[0]["uid"] == "chore-1"
 
     async def test_get_calendar_url_includes_date_params(self) -> None:
-        from datetime import date
 
         response = _make_mock_response(200, VALID_CALENDAR_PAYLOAD)
         session = MagicMock(spec=aiohttp.ClientSession)
@@ -506,7 +505,6 @@ class TestDaynestApiClientCalendarMethods:
         assert "end=2026-05-31" in call_args[0]
 
     async def test_non_list_response_raises_malformed_error(self) -> None:
-        from datetime import date
 
         response = _make_mock_response(200, {"not": "a list"})
         client = _make_list_client(response)
@@ -515,7 +513,6 @@ class TestDaynestApiClientCalendarMethods:
             await client.async_get_calendar(date(2026, 5, 1), date(2026, 5, 31))
 
     async def test_non_dict_items_filtered_out(self) -> None:
-        from datetime import date
 
         mixed_payload = [VALID_CALENDAR_PAYLOAD[0], "not a dict", 42, VALID_CALENDAR_PAYLOAD[1]]
         response = _make_mock_response(200, mixed_payload)
@@ -526,7 +523,6 @@ class TestDaynestApiClientCalendarMethods:
         assert len(result) == 2
 
     async def test_calendar_401_raises_authentication_error(self) -> None:
-        from datetime import date
 
         response = _make_mock_response(401, {})
         client = _make_list_client(response)
@@ -535,7 +531,6 @@ class TestDaynestApiClientCalendarMethods:
             await client.async_get_calendar(date(2026, 5, 1), date(2026, 5, 31))
 
     async def test_calendar_500_raises_server_unavailable_error(self) -> None:
-        from datetime import date
 
         response = _make_mock_response(500, {})
         client = _make_list_client(response)
@@ -544,7 +539,6 @@ class TestDaynestApiClientCalendarMethods:
             await client.async_get_calendar(date(2026, 5, 1), date(2026, 5, 31))
 
     async def test_calendar_timeout_raises_timeout_error(self) -> None:
-        from datetime import date
 
         session = MagicMock(spec=aiohttp.ClientSession)
         mock_ctx = MagicMock()
@@ -557,7 +551,6 @@ class TestDaynestApiClientCalendarMethods:
             await client.async_get_calendar(date(2026, 5, 1), date(2026, 5, 31))
 
     async def test_calendar_empty_list_returned(self) -> None:
-        from datetime import date
 
         response = _make_mock_response(200, [])
         client = _make_list_client(response)

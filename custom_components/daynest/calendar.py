@@ -9,7 +9,7 @@ from homeassistant.components.calendar import CalendarEntity, CalendarEntityFeat
 from homeassistant.helpers.entity import EntityDescription
 
 from .api import DaynestApiClientError
-from .const import LOGGER, PARALLEL_UPDATES as PARALLEL_UPDATES
+from .const import LOGGER, PARALLEL_UPDATES
 from .entity import DaynestEntity
 
 if TYPE_CHECKING:
@@ -65,7 +65,8 @@ def _parse_event(raw: dict) -> CalendarEvent | None:
             uid=uid,
             description=description,
         )
-    except (KeyError, ValueError, TypeError):
+    except (KeyError, ValueError, TypeError) as exc:
+        LOGGER.warning("Failed to parse calendar event %r: %s", raw, exc)
         return None
 
 

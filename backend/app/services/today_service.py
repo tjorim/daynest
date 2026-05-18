@@ -1,3 +1,4 @@
+import logging
 from calendar import monthrange
 from collections import defaultdict
 from dataclasses import dataclass
@@ -6,6 +7,10 @@ from typing import cast
 from zoneinfo import ZoneInfo
 
 from fastapi import HTTPException, status
+
+logger = logging.getLogger(__name__)
+
+MAX_CALENDAR_RANGE_DAYS = 366
 
 from app.core.config import AppSettings
 from app.core.enums import ChoreStatus, MedicationDoseStatus, TaskStatus
@@ -355,6 +360,11 @@ class TodayService:
         return CalendarMonthResponse(year=year, month=month, days=days)
 
     def get_calendar_events(self, user_id: int, start_date: date, end_date: date) -> list[HACalendarEvent]:
+        if end_date < start_date:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="end_date must not be before start_date")
+        if (end_date - start_date).days > MAX_CALENDAR_RANGE_DAYS:
+            logger.warning("Calendar range clamped: %s..%s exceeds %d days", start_date, end_date, MAX_CALENDAR_RANGE_DAYS)
+            end_date = start_date + timedelta(days=MAX_CALENDAR_RANGE_DAYS)
         user_tz_str = self.repository.get_user_timezone(user_id)
         self.repository.ensure_chore_instances_generated(user_id=user_id, through_date=end_date)
         self.repository.ensure_task_instances_generated(user_id=user_id, through_date=end_date)
@@ -620,7 +630,7 @@ class TodayService:
             description=description,
             start_date=start_date,
             every_n_days=every_n_days if every_n_days is not None else template.every_n_days,
-            due_time=due_time,
+            due_time=due_time if due_time is not None else template.due_time,
             is_active=is_active if is_active is not None else template.is_active,
         )
 
