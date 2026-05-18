@@ -1,12 +1,21 @@
-from fastapi import APIRouter, Depends, Request
+import logging
+
+import httpx
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi.security import HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 
-from app.api.dependencies.auth import get_current_user
+from app.api.dependencies.auth import bearer_scheme, get_current_user
+from app.core.config import settings
 from app.db.session import get_db
 from app.models.user import User
-from app.schemas.auth import UserMeResponse, UserUpdateRequest
+from app.schemas.auth import OAuthSessionResponse, UserMeResponse, UserUpdateRequest
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+_http_client = httpx.AsyncClient(timeout=10)
 
 
 def _user_to_response(user: User, roles: list[str]) -> UserMeResponse:
@@ -36,3 +45,85 @@ async def update_me(
     db.commit()
     db.refresh(current_user)
     return _user_to_response(current_user, getattr(request.state, "roles", []))
+
+
+@router.get("/sessions", response_model=list[OAuthSessionResponse])
+async def list_sessions(
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+    current_user: User = Depends(get_current_user),
+) -> list[OAuthSessionResponse]:
+    """List active OAuth sessions for the current user via the OIDC provider's Account API."""
+    if not settings.oidc_issuer_url:
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail="OIDC not configured; session listing is unavailable.",
+        )
+    if credentials is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+
+    account_url = f"{settings.oidc_issuer_url.rstrip('/')}/account/sessions"
+    try:
+        resp = await _http_client.get(
+            account_url,
+            headers={"Authorization": f"Bearer {credentials.credentials}", "Accept": "application/json"},
+        )
+    except httpx.RequestError as exc:
+        logger.error("Failed to reach OIDC Account API: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Could not reach the OIDC provider.",
+        ) from exc
+
+    if not resp.is_success:
+        raise HTTPException(
+            status_code=resp.status_code,
+            detail="Failed to retrieve sessions from the OIDC provider.",
+        )
+
+    raw_sessions: list[dict] = resp.json()
+    return [
+        OAuthSessionResponse(
+            id=s.get("id", ""),
+            ip_address=s.get("ipAddress"),
+            started=s.get("started"),
+            last_access=s.get("lastAccess"),
+            expires=s.get("expires"),
+            clients=s.get("clients") or {},
+        )
+        for s in raw_sessions
+    ]
+
+
+@router.delete("/sessions/{session_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def revoke_session(
+    session_id: str,
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+    current_user: User = Depends(get_current_user),
+) -> None:
+    """Revoke a specific OAuth session for the current user via the OIDC provider's Account API."""
+    if not settings.oidc_issuer_url:
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail="OIDC not configured; session revocation is unavailable.",
+        )
+    if credentials is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+
+    account_url = f"{settings.oidc_issuer_url.rstrip('/')}/account/sessions/{session_id}"
+    try:
+        resp = await _http_client.delete(
+            account_url,
+            headers={"Authorization": f"Bearer {credentials.credentials}"},
+        )
+    except httpx.RequestError as exc:
+        logger.error("Failed to reach OIDC Account API: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Could not reach the OIDC provider.",
+        ) from exc
+
+    if not resp.is_success and resp.status_code != status.HTTP_204_NO_CONTENT:
+        raise HTTPException(
+            status_code=resp.status_code,
+            detail="Failed to revoke session.",
+        )

@@ -23,3 +23,14 @@ class UserUpdateRequest(BaseModel):
         except (ZoneInfoNotFoundError, KeyError):
             raise ValueError(f"Unknown timezone: {v!r}. Use an IANA timezone name such as 'Europe/Brussels'.")
         return v
+
+
+class OAuthSessionResponse(BaseModel):
+    """Active OAuth session returned by the Keycloak Account REST API."""
+
+    id: str
+    ip_address: str | None = None
+    started: int | None = None
+    last_access: int | None = None
+    expires: int | None = None
+    clients: dict[str, str] = {}

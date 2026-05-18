@@ -1,6 +1,11 @@
-"""Tests for OIDC-based auth – /me endpoint and user provisioning."""
+"""Tests for OIDC-based auth – /me endpoint, user provisioning, and OAuth sessions."""
 from __future__ import annotations
 
+import json
+from unittest.mock import AsyncMock, MagicMock
+
+import httpx
+import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
@@ -132,3 +137,147 @@ class TestGetOrCreateLocalUser:
             db_session,
         )
         assert result.full_name == "myusername"
+
+
+# ---------------------------------------------------------------------------
+# GET /sessions – list OAuth sessions (proxy to Keycloak Account API)
+# ---------------------------------------------------------------------------
+
+SAMPLE_SESSIONS = [
+    {
+        "id": "session-abc123",
+        "ipAddress": "192.168.1.1",
+        "started": 1700000000000,
+        "lastAccess": 1700001000000,
+        "expires": 1700087400000,
+        "clients": {"claude-ai-mcp": "Claude.ai MCP Connector"},
+    },
+    {
+        "id": "session-def456",
+        "ipAddress": "10.0.0.5",
+        "started": 1700002000000,
+        "lastAccess": 1700002500000,
+        "expires": 1700088800000,
+        "clients": {},
+    },
+]
+
+
+def _make_httpx_response(status_code: int, body) -> httpx.Response:
+    content = json.dumps(body).encode()
+    return httpx.Response(status_code=status_code, content=content)
+
+
+class TestListSessions:
+    def test_returns_sessions_when_oidc_configured(
+        self, client: TestClient, db_session: Session, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        user = _make_user(db_session, email="sessions@example.com", oidc_subject="sub-sessions")
+        _override_auth(user)
+        monkeypatch.setattr("app.api.routes.auth._http_client", MagicMock(
+            get=AsyncMock(return_value=_make_httpx_response(200, SAMPLE_SESSIONS))
+        ))
+        monkeypatch.setattr("app.api.routes.auth.settings.oidc_issuer_url", "http://keycloak/realms/daynest")
+        try:
+            resp = client.get("/api/v1/auth/sessions", headers={"Authorization": "Bearer dummy-token"})
+            assert resp.status_code == 200
+            data = resp.json()
+            assert len(data) == 2
+            assert data[0]["id"] == "session-abc123"
+            assert data[0]["ip_address"] == "192.168.1.1"
+            assert data[0]["clients"] == {"claude-ai-mcp": "Claude.ai MCP Connector"}
+            assert data[1]["id"] == "session-def456"
+        finally:
+            _clear_auth()
+
+    def test_returns_501_when_oidc_not_configured(
+        self, client: TestClient, db_session: Session, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        user = _make_user(db_session, email="nooidc@example.com", oidc_subject="sub-nooidc")
+        _override_auth(user)
+        monkeypatch.setattr("app.api.routes.auth.settings.oidc_issuer_url", None)
+        try:
+            resp = client.get("/api/v1/auth/sessions", headers={"Authorization": "Bearer dummy-token"})
+            assert resp.status_code == 501
+        finally:
+            _clear_auth()
+
+    def test_returns_502_when_oidc_provider_unreachable(
+        self, client: TestClient, db_session: Session, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        user = _make_user(db_session, email="unreachable@example.com", oidc_subject="sub-unreachable")
+        _override_auth(user)
+        monkeypatch.setattr("app.api.routes.auth.settings.oidc_issuer_url", "http://keycloak/realms/daynest")
+        monkeypatch.setattr("app.api.routes.auth._http_client", MagicMock(
+            get=AsyncMock(side_effect=httpx.ConnectError("connection refused"))
+        ))
+        try:
+            resp = client.get("/api/v1/auth/sessions", headers={"Authorization": "Bearer dummy-token"})
+            assert resp.status_code == 502
+        finally:
+            _clear_auth()
+
+    def test_requires_auth(self, client: TestClient) -> None:
+        resp = client.get("/api/v1/auth/sessions")
+        assert resp.status_code == 401
+
+
+# ---------------------------------------------------------------------------
+# DELETE /sessions/{session_id} – revoke an OAuth session
+# ---------------------------------------------------------------------------
+
+class TestRevokeSession:
+    def test_revokes_session_successfully(
+        self, client: TestClient, db_session: Session, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        user = _make_user(db_session, email="revoke@example.com", oidc_subject="sub-revoke")
+        _override_auth(user)
+        monkeypatch.setattr("app.api.routes.auth.settings.oidc_issuer_url", "http://keycloak/realms/daynest")
+        monkeypatch.setattr("app.api.routes.auth._http_client", MagicMock(
+            delete=AsyncMock(return_value=_make_httpx_response(204, ""))
+        ))
+        try:
+            resp = client.delete(
+                "/api/v1/auth/sessions/session-abc123",
+                headers={"Authorization": "Bearer dummy-token"},
+            )
+            assert resp.status_code == 204
+        finally:
+            _clear_auth()
+
+    def test_returns_501_when_oidc_not_configured(
+        self, client: TestClient, db_session: Session, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        user = _make_user(db_session, email="revoke-nooidc@example.com", oidc_subject="sub-revoke-nooidc")
+        _override_auth(user)
+        monkeypatch.setattr("app.api.routes.auth.settings.oidc_issuer_url", None)
+        try:
+            resp = client.delete(
+                "/api/v1/auth/sessions/session-abc123",
+                headers={"Authorization": "Bearer dummy-token"},
+            )
+            assert resp.status_code == 501
+        finally:
+            _clear_auth()
+
+    def test_returns_502_when_oidc_provider_unreachable(
+        self, client: TestClient, db_session: Session, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        user = _make_user(db_session, email="revoke-unreachable@example.com", oidc_subject="sub-revoke-unreach")
+        _override_auth(user)
+        monkeypatch.setattr("app.api.routes.auth.settings.oidc_issuer_url", "http://keycloak/realms/daynest")
+        monkeypatch.setattr("app.api.routes.auth._http_client", MagicMock(
+            delete=AsyncMock(side_effect=httpx.ConnectError("connection refused"))
+        ))
+        try:
+            resp = client.delete(
+                "/api/v1/auth/sessions/session-abc123",
+                headers={"Authorization": "Bearer dummy-token"},
+            )
+            assert resp.status_code == 502
+        finally:
+            _clear_auth()
+
+    def test_requires_auth(self, client: TestClient) -> None:
+        resp = client.delete("/api/v1/auth/sessions/session-abc123")
+        assert resp.status_code == 401
