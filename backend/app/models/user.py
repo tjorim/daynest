@@ -30,6 +30,7 @@ class User(Base):
     password_hash: Mapped[str | None] = mapped_column(String(512), nullable=True)
     oidc_subject: Mapped[str | None] = mapped_column(String(255), unique=True, nullable=True, index=True)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default=sa.text("true"))
+    timezone: Mapped[str] = mapped_column(String(100), nullable=False, default="UTC", server_default="UTC")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
     routine_templates: Mapped[list["RoutineTemplate"]] = relationship(back_populates="user", cascade="all, delete-orphan")

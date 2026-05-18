@@ -81,6 +81,7 @@ class DaynestDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "due_today_count": max(0, _safe_int(payload.get("due_today_count"), default=0)),
             "overdue_count": max(0, _safe_int(payload.get("overdue_count"), default=0)),
             "planned_count": max(0, _safe_int(payload.get("planned_count"), default=0)),
+            "planned_remaining_count": max(0, _safe_int(payload.get("planned_remaining_count"), default=0)),
             "medication_due_count": max(0, _safe_int(payload.get("medication_due_count"), default=0)),
             "completion_ratio": completion_ratio,
             "next_medication": next_medication,

@@ -1,10 +1,12 @@
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, time, timedelta, timezone
+from zoneinfo import ZoneInfo
 
 from sqlalchemy import and_, func, insert, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
 from app.core.enums import ChoreStatus, MedicationDoseStatus, TaskStatus
+from app.models.user import User
 from app.models.chore_instance import ChoreInstance
 from app.models.chore_template import ChoreTemplate
 from app.models.medication_dose_instance import MedicationDoseInstance
@@ -69,7 +71,11 @@ class TodayRepository:
 
         self.db.commit()
 
-    def ensure_medication_dose_instances_generated(self, user_id: int, through_date: date) -> None:
+    def get_user_timezone(self, user_id: int) -> str:
+        user = self.db.scalar(select(User).where(User.id == user_id))
+        return user.timezone if user else "UTC"
+
+    def ensure_medication_dose_instances_generated(self, user_id: int, through_date: date, user_timezone: str = "UTC") -> None:
         templates = list(
             self.db.scalars(
                 select(MedicationPlan)
@@ -97,8 +103,9 @@ class TodayRepository:
             last = last_generated_map.get(template.id)
             cursor = template.start_date if last is None else date.fromordinal(last.toordinal() + step)
 
+            tz = ZoneInfo(user_timezone)
             while cursor <= through_date:
-                scheduled_at = datetime.combine(cursor, template.schedule_time, tzinfo=timezone.utc)
+                scheduled_at = datetime.combine(cursor, template.schedule_time, tzinfo=tz).astimezone(timezone.utc)
                 new_instances.append(
                     MedicationDoseInstance(
                         user_id=user_id,
@@ -223,6 +230,26 @@ class TodayRepository:
         self.db.delete(template)
         self.db.commit()
 
+    def update_routine_template(
+        self,
+        template: RoutineTemplate,
+        name: str,
+        description: str | None,
+        start_date: date,
+        every_n_days: int,
+        due_time: time | None,
+        is_active: bool,
+    ) -> RoutineTemplate:
+        template.name = name
+        template.description = description
+        template.start_date = start_date
+        template.every_n_days = every_n_days
+        template.due_time = due_time
+        template.is_active = is_active
+        self.db.commit()
+        self.db.refresh(template)
+        return template
+
     def list_chore_templates(self, user_id: int) -> list[ChoreTemplate]:
         stmt = select(ChoreTemplate).where(ChoreTemplate.user_id == user_id).order_by(ChoreTemplate.id.asc())
         return list(self.db.scalars(stmt).all())
@@ -241,11 +268,61 @@ class TodayRepository:
         self.db.delete(template)
         self.db.commit()
 
+    def update_chore_template(
+        self,
+        template: ChoreTemplate,
+        name: str,
+        description: str | None,
+        start_date: date,
+        every_n_days: int,
+        is_active: bool,
+    ) -> ChoreTemplate:
+        template.name = name
+        template.description = description
+        template.start_date = start_date
+        template.every_n_days = every_n_days
+        template.is_active = is_active
+        self.db.commit()
+        self.db.refresh(template)
+        return template
+
     def add_medication_plan(self, plan: MedicationPlan) -> MedicationPlan:
         self.db.add(plan)
         self.db.commit()
         self.db.refresh(plan)
         return plan
+
+    def get_medication_plan_for_user(self, user_id: int, medication_plan_id: int) -> MedicationPlan | None:
+        stmt = (
+            select(MedicationPlan)
+            .where(MedicationPlan.user_id == user_id)
+            .where(MedicationPlan.id == medication_plan_id)
+        )
+        return self.db.scalar(stmt)
+
+    def update_medication_plan(
+        self,
+        plan: MedicationPlan,
+        name: str,
+        instructions: str,
+        start_date: date,
+        schedule_time: time,
+        every_n_days: int,
+        is_active: bool,
+    ) -> MedicationPlan:
+        plan.name = name
+        plan.instructions = instructions
+        plan.start_date = start_date
+        plan.schedule_time = schedule_time
+        plan.every_n_days = every_n_days
+        plan.is_active = is_active
+        self.db.commit()
+        self.db.refresh(plan)
+        return plan
+
+    def delete_medication_plan(self, plan: MedicationPlan) -> None:
+        self.db.delete(plan)
+        self.db.commit()
 
     def get_dose_for_user(self, user_id: int, dose_id: int) -> MedicationDoseInstance | None:
         stmt = select(MedicationDoseInstance).where(MedicationDoseInstance.user_id == user_id).where(MedicationDoseInstance.id == dose_id)

@@ -18,6 +18,7 @@ from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import UpdateFailed
 
 CONTRACT_VALID = "ha.v1"
+CONTRACT_VALID_V2 = "ha.v2"
 CONTRACT_UNSUPPORTED = "ha.v99"
 
 VALID_DASHBOARD_PAYLOAD = {
@@ -25,9 +26,11 @@ VALID_DASHBOARD_PAYLOAD = {
     "due_today_count": 3,
     "overdue_count": 1,
     "planned_count": 2,
+    "planned_remaining_count": 2,
     "medication_due_count": 1,
     "completion_ratio": 0.5,
     "next_medication": "08:00",
+    "routines_open_count": 1,
     "due_today": [{"chore_instance_id": 1, "title": "Task A", "status": "pending"}],
     "planned": [{"id": 2, "title": "Task B", "is_done": False}],
 }
@@ -114,12 +117,32 @@ class TestNormalizeDashboard:
         assert result["due_today_count"] == 3
         assert result["overdue_count"] == 1
         assert result["planned_count"] == 2
+        assert result["planned_remaining_count"] == 2
         assert result["medication_due_count"] == 1
         assert result["completion_ratio"] == 0.5
         assert result["next_medication"] == "08:00"
+        assert result["routines_open_count"] == 1
         assert result["due_today"] == [{"chore_instance_id": 1, "title": "Task A", "status": "pending"}]
         assert result["planned"] == [{"id": 2, "title": "Task B", "is_done": False}]
         assert result["integration_contract"] == CONTRACT_VALID
+
+    def test_planned_remaining_count_negative_clamped_to_zero(self) -> None:
+        coordinator = _make_coordinator()
+        payload = {**VALID_DASHBOARD_PAYLOAD, "planned_remaining_count": -3}
+        result = coordinator._normalize_dashboard(payload, CONTRACT_VALID)
+        assert result["planned_remaining_count"] == 0
+
+    def test_routines_open_count_negative_clamped_to_zero(self) -> None:
+        coordinator = _make_coordinator()
+        payload = {**VALID_DASHBOARD_PAYLOAD, "routines_open_count": -1}
+        result = coordinator._normalize_dashboard(payload, CONTRACT_VALID)
+        assert result["routines_open_count"] == 0
+
+    def test_missing_planned_remaining_defaults_to_zero(self) -> None:
+        coordinator = _make_coordinator()
+        payload = {k: v for k, v in VALID_DASHBOARD_PAYLOAD.items() if k != "planned_remaining_count"}
+        result = coordinator._normalize_dashboard(payload, CONTRACT_VALID)
+        assert result["planned_remaining_count"] == 0
 
     def test_invalid_due_today_and_planned_default_to_empty_lists(self) -> None:
         coordinator = _make_coordinator()
@@ -218,6 +241,15 @@ class TestAsyncUpdateData:
         coordinator = _make_coordinator(client)
         with pytest.raises(UpdateFailed, match="Unexpected API error"):
             await coordinator._async_update_data()
+
+    async def test_v2_contract_accepted(self) -> None:
+        client = AsyncMock()
+        client.async_get_dashboard.return_value = _make_dashboard_response(
+            contract="home-assistant; version=ha.v2"
+        )
+        coordinator = _make_coordinator(client)
+        result = await coordinator._async_update_data()
+        assert result["integration_contract"] == CONTRACT_VALID_V2
 
     async def test_unsupported_contract_raises_update_failed(self) -> None:
         client = AsyncMock()

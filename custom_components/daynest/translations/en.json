@@ -29,9 +29,14 @@
     }
   },
   "entity": {
+    "calendar": {
+      "daynest_calendar": {
+        "name": "Daynest"
+      }
+    },
     "sensor": {
       "due_today_count": {
-        "name": "Tasks Due Today"
+        "name": "Chores Due Today"
       },
       "overdue_count": {
         "name": "Overdue Count"
@@ -50,6 +55,9 @@
       },
       "routines_open_count": {
         "name": "Open Routines"
+      },
+      "planned_remaining_count": {
+        "name": "Planned Remaining"
       }
     },
     "todo": {
