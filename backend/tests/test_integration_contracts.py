@@ -104,6 +104,8 @@ def test_home_assistant_contract_dashboard_shape(client: TestClient, db_session:
         "completion_ratio",
         "next_medication",
         "routines_open_count",
+        "due_today",
+        "planned",
     }
 
 

@@ -12,7 +12,7 @@ _FIXED_NOW = datetime(2026, 4, 23, 10, 0, tzinfo=timezone.utc)
 
 
 class StubTodayRepository:
-    def __init__(self, tasks: list[SimpleNamespace], overdue: list[SimpleNamespace], due: list[SimpleNamespace], upcoming: list[SimpleNamespace], medication: list[SimpleNamespace], medication_history: list[SimpleNamespace], planned: list[SimpleNamespace], dose: SimpleNamespace | None = None, timezone: str = "UTC"):
+    def __init__(self, tasks: list[SimpleNamespace], overdue: list[SimpleNamespace], due: list[SimpleNamespace], upcoming: list[SimpleNamespace], medication: list[SimpleNamespace], medication_history: list[SimpleNamespace], planned: list[SimpleNamespace], overdue_planned: list[SimpleNamespace] | None = None, dose: SimpleNamespace | None = None, timezone: str = "UTC"):
         self._tasks = tasks
         self._overdue = overdue
         self._due = due
@@ -20,6 +20,7 @@ class StubTodayRepository:
         self._medication = medication
         self._medication_history = medication_history
         self._planned = planned
+        self._overdue_planned = overdue_planned if overdue_planned is not None else []
         self._dose = dose
         self._timezone = timezone
         self.generated_through: date | None = None
@@ -76,7 +77,9 @@ class StubTodayRepository:
     def get_day_chores(self, user_id: int, target_date: date) -> list[SimpleNamespace]:
         return self._due
 
-    def list_planned_items(self, user_id: int, start_date: date | None = None, end_date: date | None = None) -> list[SimpleNamespace]:
+    def list_planned_items(self, user_id: int, start_date: date | None = None, end_date: date | None = None, is_done: bool | None = None) -> list[SimpleNamespace]:
+        if is_done is False and start_date is None and end_date is not None:
+            return self._overdue_planned
         return self._planned
 
 
@@ -141,6 +144,115 @@ def test_get_today_shapes_chore_sections() -> None:
     assert response.planned[0].id == 77
     assert response.planned[0].module_key == "meal_planning"
     assert len(response.day_items) == 4
+
+
+def test_get_dashboard_read_model_includes_overdue_undone_planned_items() -> None:
+    for_date = date(2026, 4, 23)
+    today_planned = [
+        SimpleNamespace(
+            id=10,
+            title="Today task",
+            planned_for=for_date,
+            notes=None,
+            module_key=None,
+            recurrence_hint=None,
+            linked_source=None,
+            linked_ref=None,
+            is_done=False,
+        )
+    ]
+    overdue_planned = [
+        SimpleNamespace(
+            id=5,
+            title="Overdue task",
+            planned_for=date(2026, 4, 20),
+            notes="Still needed",
+            module_key=None,
+            recurrence_hint=None,
+            linked_source=None,
+            linked_ref=None,
+            is_done=False,
+        )
+    ]
+    repo = StubTodayRepository(
+        tasks=[],
+        overdue=[],
+        due=[],
+        upcoming=[],
+        medication=[],
+        medication_history=[],
+        planned=today_planned,
+        overdue_planned=overdue_planned,
+    )
+    service = TodayService(repository=repo, app_settings=AppSettings())
+
+    model = service.get_dashboard_read_model(user_id=7, for_date=for_date)
+
+    assert model.planned_count == 1
+    assert model.planned_remaining_count == 1
+    assert len(model.planned) == 2
+    planned_ids = {item.id for item in model.planned}
+    assert planned_ids == {5, 10}
+    overdue_item = next(item for item in model.planned if item.id == 5)
+    assert overdue_item.title == "Overdue task"
+    assert overdue_item.planned_for == date(2026, 4, 20)
+
+
+def test_get_dashboard_read_model_excludes_done_overdue_planned_items() -> None:
+    for_date = date(2026, 4, 23)
+    today_planned: list[SimpleNamespace] = []
+    done_overdue_planned: list[SimpleNamespace] = []
+    repo = StubTodayRepository(
+        tasks=[],
+        overdue=[],
+        due=[],
+        upcoming=[],
+        medication=[],
+        medication_history=[],
+        planned=today_planned,
+        overdue_planned=done_overdue_planned,
+    )
+    service = TodayService(repository=repo, app_settings=AppSettings())
+
+    model = service.get_dashboard_read_model(user_id=7, for_date=for_date)
+
+    assert model.planned_count == 0
+    assert len(model.planned) == 0
+
+
+def test_get_dashboard_due_today_includes_overdue_chores() -> None:
+    for_date = date(2026, 4, 23)
+    overdue_chore = SimpleNamespace(
+        id=1, chore_template_id=11, title="Overdue chore", status=ChoreStatus.pending, scheduled_date=date(2026, 4, 20)
+    )
+    today_chore = SimpleNamespace(
+        id=2, chore_template_id=12, title="Today chore", status=ChoreStatus.pending, scheduled_date=for_date
+    )
+    repo = StubTodayRepository(
+        tasks=[], overdue=[overdue_chore], due=[today_chore], upcoming=[], medication=[], medication_history=[], planned=[]
+    )
+    service = TodayService(repository=repo, app_settings=AppSettings())
+
+    model = service.get_dashboard_read_model(user_id=7, for_date=for_date)
+
+    chore_ids = {item.chore_instance_id for item in model.due_today}
+    assert 1 in chore_ids
+    assert 2 in chore_ids
+
+
+def test_get_dashboard_due_today_includes_completed_chores() -> None:
+    for_date = date(2026, 4, 23)
+    completed_chore = SimpleNamespace(
+        id=3, chore_template_id=13, title="Done chore", status=ChoreStatus.completed, scheduled_date=for_date
+    )
+    repo = StubTodayRepository(
+        tasks=[], overdue=[], due=[completed_chore], upcoming=[], medication=[], medication_history=[], planned=[]
+    )
+    service = TodayService(repository=repo, app_settings=AppSettings())
+
+    model = service.get_dashboard_read_model(user_id=7, for_date=for_date)
+
+    assert any(item.chore_instance_id == 3 for item in model.due_today)
 
 
 def _make_service(dose: SimpleNamespace | None = None) -> tuple[StubTodayRepository, TodayService]:
