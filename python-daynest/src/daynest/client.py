@@ -14,6 +14,7 @@ from daynest.exceptions import (
     DaynestAuthError,
     DaynestCommunicationError,
     DaynestMalformedResponseError,
+    DaynestNotFoundError,
     DaynestServerUnavailableError,
     DaynestTimeoutError,
 )
@@ -60,7 +61,7 @@ class DaynestClient:
         self._owned_session = session is None
 
     async def __aenter__(self) -> DaynestClient:
-        if self._owned_session:
+        if self._owned_session and self._session is None:
             self._session = aiohttp.ClientSession()
         return self
 
@@ -187,6 +188,19 @@ class DaynestClient:
             raise RuntimeError(msg)
         return self._session
 
+    @staticmethod
+    def _check_response_status(response: aiohttp.ClientResponse, path: str) -> None:
+        if response.status in (401, 403):
+            msg = f"Authentication failed with status {response.status}"
+            raise DaynestAuthError(msg)
+        if response.status == 404:
+            msg = f"Resource not found at {path}"
+            raise DaynestNotFoundError(msg)
+        if 500 <= response.status < 600:
+            msg = f"Backend unavailable (status {response.status})"
+            raise DaynestServerUnavailableError(msg)
+        response.raise_for_status()
+
     async def _request_model(
         self,
         path: str,
@@ -200,13 +214,7 @@ class DaynestClient:
 
         try:
             async with session.get(url, headers=headers, timeout=REQUEST_TIMEOUT) as response:
-                if response.status in (401, 403):
-                    msg = f"Authentication failed with status {response.status}"
-                    raise DaynestAuthError(msg)
-                if 500 <= response.status < 600:
-                    msg = f"Backend unavailable (status {response.status})"
-                    raise DaynestServerUnavailableError(msg)
-                response.raise_for_status()
+                self._check_response_status(response, path)
 
                 contract = response.headers.get("X-Integration-Contract")
                 payload = await response.json(content_type=None)
@@ -239,13 +247,7 @@ class DaynestClient:
 
         try:
             async with session.get(url, headers=headers, timeout=REQUEST_TIMEOUT) as response:
-                if response.status in (401, 403):
-                    msg = f"Authentication failed with status {response.status}"
-                    raise DaynestAuthError(msg)
-                if 500 <= response.status < 600:
-                    msg = f"Backend unavailable (status {response.status})"
-                    raise DaynestServerUnavailableError(msg)
-                response.raise_for_status()
+                self._check_response_status(response, path)
 
                 payload = await response.json(content_type=None)
                 if not isinstance(payload, list):
@@ -306,13 +308,7 @@ class DaynestClient:
 
         try:
             async with request(url, **request_kwargs) as response:
-                if response.status in (401, 403):
-                    msg = f"Authentication failed with status {response.status}"
-                    raise DaynestAuthError(msg)
-                if 500 <= response.status < 600:
-                    msg = f"Backend unavailable (status {response.status})"
-                    raise DaynestServerUnavailableError(msg)
-                response.raise_for_status()
+                self._check_response_status(response, path)
 
                 result = await response.json(content_type=None)
                 if not isinstance(result, dict):

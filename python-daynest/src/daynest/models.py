@@ -17,6 +17,9 @@ class DaynestSummary:
     @classmethod
     def from_dict(cls, payload: dict[str, Any]) -> DaynestSummary:
         """Build a typed summary model from a raw JSON payload."""
+        if not isinstance(payload, dict):
+            msg = "Malformed summary payload: expected JSON object"
+            raise DaynestMalformedResponseError(msg)
         required_keys = {
             "sensor_daynest_chores_due",
             "sensor_daynest_routines_open",
