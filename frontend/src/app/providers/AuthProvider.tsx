@@ -3,6 +3,16 @@ import { useAuth as useOidcAuth } from "react-oidc-context";
 import { fetchMe, type AuthUser } from "@/lib/api/auth";
 import { setOidcAccessToken } from "@/lib/auth/session";
 
+const AUTH_ROUTE_PATHS = new Set(["/auth", "/auth/callback"]);
+
+function getLoginReturnTo() {
+  if (AUTH_ROUTE_PATHS.has(window.location.pathname)) {
+    return "/today";
+  }
+
+  return `${window.location.pathname}${window.location.search}${window.location.hash}`;
+}
+
 type AuthContextValue = {
   user: AuthUser | null;
   isLoading: boolean;
@@ -57,7 +67,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isLoading: oidc.isLoading || isFetching,
       isAuthenticated: oidc.isAuthenticated && user !== null,
       login: () => {
-        void oidc.signinRedirect({ state: { returnTo: window.location.pathname } });
+        void oidc.signinRedirect({ state: { returnTo: getLoginReturnTo() } });
       },
       logout: () => {
         void oidc.signoutRedirect();
