@@ -15,6 +15,8 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
+# Module-level async client; mirrors the pattern used in app.core.oidc.
+# httpx connections are released automatically on process exit.
 _http_client = httpx.AsyncClient(timeout=10)
 
 
@@ -83,7 +85,7 @@ async def list_sessions(
     raw_sessions: list[dict] = resp.json()
     return [
         OAuthSessionResponse(
-            id=s.get("id", ""),
+            id=s["id"],
             ip_address=s.get("ipAddress"),
             started=s.get("started"),
             last_access=s.get("lastAccess"),
@@ -91,6 +93,7 @@ async def list_sessions(
             clients=s.get("clients") or {},
         )
         for s in raw_sessions
+        if s.get("id")
     ]
 
 
