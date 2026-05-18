@@ -1,4 +1,5 @@
 import logging
+from urllib.parse import quote
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request, status
@@ -15,9 +16,11 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-# Module-level async client; mirrors the pattern used in app.core.oidc.
-# httpx connections are released automatically on process exit.
 _http_client = httpx.AsyncClient(timeout=10)
+
+
+async def close_http_client() -> None:
+    await _http_client.aclose()
 
 
 def _user_to_response(user: User, roles: list[str]) -> UserMeResponse:
@@ -82,7 +85,12 @@ async def list_sessions(
             detail="Failed to retrieve sessions from the OIDC provider.",
         )
 
-    raw_sessions: list[dict] = resp.json()
+    raw_sessions = resp.json()
+    if not isinstance(raw_sessions, list):
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Invalid response from OIDC provider.",
+        )
     return [
         OAuthSessionResponse(
             id=s["id"],
@@ -93,7 +101,7 @@ async def list_sessions(
             clients=s.get("clients") or {},
         )
         for s in raw_sessions
-        if s.get("id")
+        if isinstance(s, dict) and s.get("id")
     ]
 
 
@@ -112,7 +120,7 @@ async def revoke_session(
     if credentials is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
 
-    account_url = f"{settings.oidc_issuer_url.rstrip('/')}/account/sessions/{session_id}"
+    account_url = f"{settings.oidc_issuer_url.rstrip('/')}/account/sessions/{quote(session_id)}"
     try:
         resp = await _http_client.delete(
             account_url,

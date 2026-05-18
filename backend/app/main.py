@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 
+from app.api.routes.auth import close_http_client as close_auth_http_client
 from app.api.routes.auth import router as auth_router
 from app.api.routes.health import router as system_router
 from app.api.routes.integrations.clients import router as integration_clients_router
@@ -23,11 +24,14 @@ _mcp = create_mcp_server() if settings.feature_mcp else None
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    if _mcp is not None:
-        async with _mcp.session_manager.run():
+    try:
+        if _mcp is not None:
+            async with _mcp.session_manager.run():
+                yield
+        else:
             yield
-    else:
-        yield
+    finally:
+        await close_auth_http_client()
 
 
 app = FastAPI(title=settings.app_name, version=settings.version, lifespan=lifespan)
