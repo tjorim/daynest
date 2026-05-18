@@ -62,7 +62,7 @@ Expected behavior:
   - `completion_ratio`
   - `next_medication`
   - `routines_open_count`
-  - `due_today` (list of due chore items for today; used by `todo.daynest_tasks_due_today`)
+  - `due_today` (list of due chore items; includes today's chores and overdue pending chores; used by `todo.daynest_tasks_due_today`)
   - `planned` (list of planned items; includes today's planned items **and** overdue undone planned items; used by `todo.daynest_tasks_due_today`)
 
 ### `GET /api/v1/integrations/home-assistant/entities`

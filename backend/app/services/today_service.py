@@ -128,7 +128,7 @@ class TodayService:
                     status=item.status,
                     scheduled_date=item.scheduled_date,
                 )
-                for item in data.due_today
+                for item in data.overdue + data.all_chores
             ],
             planned=todo_planned,
         )

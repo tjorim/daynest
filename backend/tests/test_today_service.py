@@ -220,6 +220,41 @@ def test_get_dashboard_read_model_excludes_done_overdue_planned_items() -> None:
     assert len(model.planned) == 0
 
 
+def test_get_dashboard_due_today_includes_overdue_chores() -> None:
+    for_date = date(2026, 4, 23)
+    overdue_chore = SimpleNamespace(
+        id=1, chore_template_id=11, title="Overdue chore", status=ChoreStatus.pending, scheduled_date=date(2026, 4, 20)
+    )
+    today_chore = SimpleNamespace(
+        id=2, chore_template_id=12, title="Today chore", status=ChoreStatus.pending, scheduled_date=for_date
+    )
+    repo = StubTodayRepository(
+        tasks=[], overdue=[overdue_chore], due=[today_chore], upcoming=[], medication=[], medication_history=[], planned=[]
+    )
+    service = TodayService(repository=repo, app_settings=AppSettings())
+
+    model = service.get_dashboard_read_model(user_id=7, for_date=for_date)
+
+    chore_ids = {item.chore_instance_id for item in model.due_today}
+    assert 1 in chore_ids
+    assert 2 in chore_ids
+
+
+def test_get_dashboard_due_today_includes_completed_chores() -> None:
+    for_date = date(2026, 4, 23)
+    completed_chore = SimpleNamespace(
+        id=3, chore_template_id=13, title="Done chore", status=ChoreStatus.completed, scheduled_date=for_date
+    )
+    repo = StubTodayRepository(
+        tasks=[], overdue=[], due=[completed_chore], upcoming=[], medication=[], medication_history=[], planned=[]
+    )
+    service = TodayService(repository=repo, app_settings=AppSettings())
+
+    model = service.get_dashboard_read_model(user_id=7, for_date=for_date)
+
+    assert any(item.chore_instance_id == 3 for item in model.due_today)
+
+
 def _make_service(dose: SimpleNamespace | None = None) -> tuple[StubTodayRepository, TodayService]:
     repo = StubTodayRepository(
         tasks=[],
