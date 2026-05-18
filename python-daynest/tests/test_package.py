@@ -1,8 +1,6 @@
 """Smoke tests verifying the package structure is importable."""
 
-import daynest
-from daynest import DaynestClient, DaynestAuthError, DaynestError, DaynestNotFoundError
-from daynest.exceptions import DaynestAuthError, DaynestError, DaynestNotFoundError
+from daynest import DaynestAuthError, DaynestClient, DaynestError, DaynestNotFoundError
 
 
 def test_public_api_importable() -> None:
