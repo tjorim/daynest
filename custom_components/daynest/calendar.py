@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 from homeassistant.components.calendar import CalendarEntity, CalendarEntityFeature, CalendarEvent
 from homeassistant.helpers.entity import EntityDescription
 
-from .api import DaynestApiClientError
+from daynest import DaynestError
 from .const import LOGGER
 from .entity import DaynestEntity
 
@@ -111,7 +111,7 @@ class DaynestCalendarEntity(CalendarEntity, DaynestEntity):
 
         try:
             raw_events = await client.async_get_calendar(start, end)
-        except DaynestApiClientError as err:
+        except DaynestError as err:
             LOGGER.warning("Failed to fetch Daynest calendar events: %s", err)
             return []
 

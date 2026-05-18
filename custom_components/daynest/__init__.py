@@ -9,7 +9,8 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 import homeassistant.helpers.config_validation as cv
 from homeassistant.loader import async_get_loaded_integration
 
-from .api import DaynestApiClient
+from daynest import DaynestClient
+
 from .const import DOMAIN
 from .coordinator import DaynestDataUpdateCoordinator
 from .data import DaynestData
@@ -35,7 +36,7 @@ async def async_setup_entry(
     entry: DaynestConfigEntry,
 ) -> bool:
     """Set up Daynest from a config entry."""
-    client = DaynestApiClient(
+    client = DaynestClient(
         base_url=entry.data[CONF_URL],
         integration_key=entry.data[CONF_API_KEY],
         session=async_get_clientsession(hass),

@@ -6,13 +6,13 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from daynest.api.client import (
-    DaynestApiClientAuthenticationError,
-    DaynestApiClientCommunicationError,
-    DaynestApiClientError,
-    DaynestApiClientMalformedResponseError,
-    DaynestDashboard,
+from daynest import (
+    DaynestAuthError,
+    DaynestCommunicationError,
+    DaynestError,
+    DaynestMalformedResponseError,
 )
+from daynest.models import DaynestDashboard
 from daynest.coordinator import DaynestDataUpdateCoordinator, _safe_float, _safe_int
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import UpdateFailed
@@ -216,28 +216,28 @@ class TestAsyncUpdateData:
 
     async def test_authentication_error_raises_config_entry_auth_failed(self) -> None:
         client = AsyncMock()
-        client.async_get_dashboard.side_effect = DaynestApiClientAuthenticationError()
+        client.async_get_dashboard.side_effect = DaynestAuthError()
         coordinator = _make_coordinator(client)
         with pytest.raises(ConfigEntryAuthFailed):
             await coordinator._async_update_data()
 
     async def test_communication_error_raises_update_failed(self) -> None:
         client = AsyncMock()
-        client.async_get_dashboard.side_effect = DaynestApiClientCommunicationError("timeout")
+        client.async_get_dashboard.side_effect = DaynestCommunicationError("timeout")
         coordinator = _make_coordinator(client)
         with pytest.raises(UpdateFailed, match="Temporary communication failure"):
             await coordinator._async_update_data()
 
     async def test_malformed_response_raises_update_failed(self) -> None:
         client = AsyncMock()
-        client.async_get_dashboard.side_effect = DaynestApiClientMalformedResponseError("bad data")
+        client.async_get_dashboard.side_effect = DaynestMalformedResponseError("bad data")
         coordinator = _make_coordinator(client)
         with pytest.raises(UpdateFailed, match="Malformed dashboard response"):
             await coordinator._async_update_data()
 
     async def test_generic_api_error_raises_update_failed(self) -> None:
         client = AsyncMock()
-        client.async_get_dashboard.side_effect = DaynestApiClientError("unknown")
+        client.async_get_dashboard.side_effect = DaynestError("unknown")
         coordinator = _make_coordinator(client)
         with pytest.raises(UpdateFailed, match="Unexpected API error"):
             await coordinator._async_update_data()

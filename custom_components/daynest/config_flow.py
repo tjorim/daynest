@@ -12,12 +12,12 @@ from homeassistant.helpers import selector
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.loader import async_get_loaded_integration
 
-from .api import (
-    DaynestApiClient,
-    DaynestApiClientAuthenticationError,
-    DaynestApiClientMalformedResponseError,
-    DaynestApiClientServerUnavailableError,
-    DaynestApiClientTimeoutError,
+from daynest import (
+    DaynestAuthError,
+    DaynestClient,
+    DaynestMalformedResponseError,
+    DaynestServerUnavailableError,
+    DaynestTimeoutError,
 )
 from .const import DOMAIN, LOGGER, SUPPORTED_INTEGRATION_CONTRACT_VERSIONS, parse_integration_contract_version
 
@@ -91,24 +91,24 @@ class DaynestConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def _async_validate_user_input(self, user_input: dict[str, str]) -> dict[str, str]:
         """Validate user input by calling Daynest summary endpoint."""
-        client = DaynestApiClient(
-            session=async_get_clientsession(self.hass),
+        client = DaynestClient(
             base_url=user_input[CONF_URL],
             integration_key=user_input[CONF_API_KEY],
+            session=async_get_clientsession(self.hass),
         )
 
         try:
             summary_response = await client.async_get_summary()
-        except DaynestApiClientAuthenticationError as err:
+        except DaynestAuthError as err:
             LOGGER.warning("Failed authentication during Daynest setup: %s", err)
             return {"base": ERROR_AUTH}
-        except DaynestApiClientTimeoutError as err:
+        except DaynestTimeoutError as err:
             LOGGER.warning("Timeout during Daynest setup: %s", err)
             return {"base": ERROR_TIMEOUT}
-        except DaynestApiClientServerUnavailableError as err:
+        except DaynestServerUnavailableError as err:
             LOGGER.warning("Could not connect to Daynest during setup: %s", err)
             return {"base": ERROR_CANNOT_CONNECT}
-        except DaynestApiClientMalformedResponseError as err:
+        except DaynestMalformedResponseError as err:
             LOGGER.warning("Malformed or unsupported Daynest setup response: %s", err)
             return {"base": ERROR_UNSUPPORTED_CONTRACT}
         except Exception as err:  # noqa: BLE001

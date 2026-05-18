@@ -16,8 +16,12 @@ packages = ["daynest"]
 [dependency-groups]
 test = [
     "pytest-homeassistant-custom-component>=0.13.323",
+    "python-daynest",
     "ruff",
 ]
+
+[tool.uv.sources]
+python-daynest = { path = "../python-daynest", editable = true }
 
 [tool.pyright]
 include = ["daynest"]

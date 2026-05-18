@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from daynest.api.client import DaynestApiClientError
+from daynest import DaynestError
 from daynest.calendar import DaynestCalendarEntity, _parse_event
 from homeassistant.components.calendar import CalendarEvent
 from homeassistant.helpers.entity import EntityDescription
@@ -161,7 +161,7 @@ class TestDaynestCalendarEntityGetEvents:
 
     async def test_api_error_returns_empty_list(self) -> None:
         client = MagicMock()
-        client.async_get_calendar = AsyncMock(side_effect=DaynestApiClientError("network fail"))
+        client.async_get_calendar = AsyncMock(side_effect=DaynestError("network fail"))
         entity = _make_entity(client)
         hass = MagicMock()
 
