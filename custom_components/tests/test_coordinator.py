@@ -7,8 +7,8 @@ from unittest.mock import AsyncMock, MagicMock
 from daynest.models import DaynestDashboard
 import pytest
 
+from custom_components.daynest.coordinator import DaynestDataUpdateCoordinator, _safe_float, _safe_int
 from daynest import DaynestAuthError, DaynestCommunicationError, DaynestError, DaynestMalformedResponseError
-from daynest.coordinator import DaynestDataUpdateCoordinator, _safe_float, _safe_int
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import UpdateFailed
 

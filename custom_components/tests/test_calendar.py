@@ -7,8 +7,8 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
+from custom_components.daynest.calendar import DaynestCalendarEntity, _parse_event
 from daynest import DaynestError
-from daynest.calendar import DaynestCalendarEntity, _parse_event
 from homeassistant.components.calendar import CalendarEvent
 from homeassistant.helpers.entity import EntityDescription
 

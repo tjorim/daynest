@@ -2,7 +2,7 @@
 
 import pytest
 
-from daynest.const import parse_integration_contract_version
+from custom_components.daynest.const import parse_integration_contract_version
 
 
 @pytest.mark.unit

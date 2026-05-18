@@ -6,8 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from daynest import DaynestAuthError, DaynestCommunicationError, DaynestError
-from daynest.services import (
+from custom_components.daynest.services import (
     ATTR_CHORE_INSTANCE_ID,
     ATTR_DAYS,
     ATTR_MEDICATION_DOSE_ID,
@@ -20,6 +19,7 @@ from daynest.services import (
     async_setup_services,
     async_unload_services,
 )
+from daynest import DaynestAuthError, DaynestCommunicationError, DaynestError
 from homeassistant.exceptions import HomeAssistantError
 
 
@@ -95,7 +95,7 @@ class TestHandleRefresh:
         await async_setup_services(hass)
         handler = await _get_handler(hass, SERVICE_REFRESH)
         service_call = _make_service_call()
-        with patch("daynest.services.LOGGER") as mock_logger:
+        with patch("custom_components.daynest.services.LOGGER") as mock_logger:
             await handler(service_call)
         mock_logger.warning.assert_called_once()
 
@@ -126,7 +126,7 @@ class TestHandleCompleteTask:
         hass = _make_hass(entries=[])
         await async_setup_services(hass)
         handler = await _get_handler(hass, SERVICE_COMPLETE_TASK)
-        with patch("daynest.services.LOGGER") as mock_logger:
+        with patch("custom_components.daynest.services.LOGGER") as mock_logger:
             await handler(_make_service_call(**{ATTR_CHORE_INSTANCE_ID: 42}))
         mock_logger.warning.assert_called_once()
 
@@ -135,7 +135,7 @@ class TestHandleCompleteTask:
         hass = _make_hass(entries=entries)
         await async_setup_services(hass)
         handler = await _get_handler(hass, SERVICE_COMPLETE_TASK)
-        with patch("daynest.services.LOGGER") as mock_logger:
+        with patch("custom_components.daynest.services.LOGGER") as mock_logger:
             await handler(_make_service_call(**{ATTR_CHORE_INSTANCE_ID: 42}))
         mock_logger.warning.assert_called_once()
         for entry in entries:
@@ -202,7 +202,7 @@ class TestHandleSnoozeTask:
         hass = _make_hass(entries=[])
         await async_setup_services(hass)
         handler = await _get_handler(hass, SERVICE_SNOOZE_TASK)
-        with patch("daynest.services.LOGGER") as mock_logger:
+        with patch("custom_components.daynest.services.LOGGER") as mock_logger:
             await handler(_make_service_call(**{ATTR_CHORE_INSTANCE_ID: 1, ATTR_DAYS: 2}))
         mock_logger.warning.assert_called_once()
 
@@ -211,7 +211,7 @@ class TestHandleSnoozeTask:
         hass = _make_hass(entries=entries)
         await async_setup_services(hass)
         handler = await _get_handler(hass, SERVICE_SNOOZE_TASK)
-        with patch("daynest.services.LOGGER") as mock_logger:
+        with patch("custom_components.daynest.services.LOGGER") as mock_logger:
             await handler(_make_service_call(**{ATTR_CHORE_INSTANCE_ID: 1, ATTR_DAYS: 2}))
         mock_logger.warning.assert_called_once()
 
@@ -265,7 +265,7 @@ class TestHandleMarkMedicationTaken:
         hass = _make_hass(entries=[])
         await async_setup_services(hass)
         handler = await _get_handler(hass, SERVICE_MARK_MEDICATION_TAKEN)
-        with patch("daynest.services.LOGGER") as mock_logger:
+        with patch("custom_components.daynest.services.LOGGER") as mock_logger:
             await handler(_make_service_call(**{ATTR_MEDICATION_DOSE_ID: 10}))
         mock_logger.warning.assert_called_once()
 
@@ -274,7 +274,7 @@ class TestHandleMarkMedicationTaken:
         hass = _make_hass(entries=entries)
         await async_setup_services(hass)
         handler = await _get_handler(hass, SERVICE_MARK_MEDICATION_TAKEN)
-        with patch("daynest.services.LOGGER") as mock_logger:
+        with patch("custom_components.daynest.services.LOGGER") as mock_logger:
             await handler(_make_service_call(**{ATTR_MEDICATION_DOSE_ID: 10}))
         mock_logger.warning.assert_called_once()
 

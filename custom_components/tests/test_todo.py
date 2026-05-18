@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from daynest.todo import ENTITY_DESCRIPTION, DaynestTodoListEntity
+from custom_components.daynest.todo import ENTITY_DESCRIPTION, DaynestTodoListEntity
 from homeassistant.components.todo import TodoItem, TodoItemStatus
 from homeassistant.exceptions import HomeAssistantError
 
