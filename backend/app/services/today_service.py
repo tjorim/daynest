@@ -1,7 +1,8 @@
+import logging
 from calendar import monthrange
 from collections import defaultdict
 from dataclasses import dataclass
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, time, timedelta, timezone
 from typing import cast
 from zoneinfo import ZoneInfo
 
@@ -10,11 +11,14 @@ from fastapi import HTTPException, status
 from app.core.config import AppSettings
 from app.core.enums import ChoreStatus, MedicationDoseStatus, TaskStatus
 from app.models.chore_instance import ChoreInstance
+from app.models.chore_template import ChoreTemplate
 from app.models.medication_dose_instance import MedicationDoseInstance
+from app.models.medication_plan import MedicationPlan
 from app.models.planned_item import PlannedItem
+from app.models.routine_template import RoutineTemplate
 from app.models.task_instance import TaskInstance
 from app.repositories.today_repository import TodayRepository
-from app.schemas.integrations import DashboardReadModel, TodaySummary
+from app.schemas.integrations import DashboardReadModel, HACalendarEvent
 from app.schemas.today import (
     CalendarDayResponse,
     CalendarMonthDaySummary,
@@ -34,6 +38,10 @@ from app.schemas.today import (
     UnifiedDayItem,
     UpcomingTodayItem,
 )
+
+logger = logging.getLogger(__name__)
+
+MAX_CALENDAR_RANGE_DAYS = 366
 
 
 @dataclass
@@ -84,15 +92,6 @@ class TodayService:
         local_time = next_med.scheduled_at.astimezone(user_tz)
         return f"{next_med.name} @ {local_time.strftime('%H:%M')}"
 
-    def get_summary(self, user_id: int, for_date: date) -> TodaySummary:
-        user_tz = ZoneInfo(self.repository.get_user_timezone(user_id))
-        data = self._fetch_day_data(user_id=user_id, for_date=for_date)
-        return TodaySummary(
-            overdue_count=len(data.overdue),
-            tasks_remaining=len(data.due_today) + len([r for r in data.routines if r.status in (TaskStatus.pending, TaskStatus.in_progress)]) + len([item for item in data.planned if not item.is_done]),
-            next_medication=self._format_next_medication(data.medication, user_tz),
-        )
-
     def get_dashboard_read_model(self, user_id: int, for_date: date) -> DashboardReadModel:
         user_tz = ZoneInfo(self.repository.get_user_timezone(user_id))
         data = self._fetch_day_data(user_id=user_id, for_date=for_date)
@@ -108,6 +107,7 @@ class TodayService:
             overdue_count=len(data.overdue),
             due_today_count=len(data.due_today),
             planned_count=len(data.planned),
+            planned_remaining_count=len([item for item in data.planned if not item.is_done]),
             medication_due_count=len([item for item in data.medication if item.status == MedicationDoseStatus.scheduled]),
             completion_ratio=round(completed_count / total if total else 0.0, 3),
             next_medication=self._format_next_medication(data.medication, user_tz),
@@ -359,6 +359,64 @@ class TodayService:
 
         return CalendarMonthResponse(year=year, month=month, days=days)
 
+    def get_calendar_events(self, user_id: int, start_date: date, end_date: date) -> list[HACalendarEvent]:
+        if end_date < start_date:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="end_date must not be before start_date")
+        if (end_date - start_date).days > MAX_CALENDAR_RANGE_DAYS:
+            logger.warning("Calendar range clamped: %s..%s exceeds %d days", start_date, end_date, MAX_CALENDAR_RANGE_DAYS)
+            end_date = start_date + timedelta(days=MAX_CALENDAR_RANGE_DAYS)
+        user_tz_str = self.repository.get_user_timezone(user_id)
+        self.repository.ensure_chore_instances_generated(user_id=user_id, through_date=end_date)
+        self.repository.ensure_task_instances_generated(user_id=user_id, through_date=end_date)
+        self.repository.ensure_medication_dose_instances_generated(user_id=user_id, through_date=end_date, user_timezone=user_tz_str)
+
+        events: list[HACalendarEvent] = []
+
+        for chore in self.repository.get_month_chores(user_id=user_id, start_date=start_date, end_date=end_date):
+            events.append(HACalendarEvent(
+                uid=f"daynest_chore_{chore.id}",
+                summary=chore.title,
+                start={"date": chore.scheduled_date.isoformat()},
+                end={"date": (chore.scheduled_date + timedelta(days=1)).isoformat()},
+            ))
+
+        for routine in self.repository.get_month_routines(user_id=user_id, start_date=start_date, end_date=end_date):
+            if routine.due_at:
+                events.append(HACalendarEvent(
+                    uid=f"daynest_routine_{routine.id}",
+                    summary=routine.title,
+                    start={"dateTime": routine.due_at.isoformat()},
+                    end={"dateTime": (routine.due_at + timedelta(hours=1)).isoformat()},
+                ))
+            else:
+                events.append(HACalendarEvent(
+                    uid=f"daynest_routine_{routine.id}",
+                    summary=routine.title,
+                    start={"date": routine.scheduled_date.isoformat()},
+                    end={"date": (routine.scheduled_date + timedelta(days=1)).isoformat()},
+                ))
+
+        for med in self.repository.get_month_medications(user_id=user_id, start_date=start_date, end_date=end_date):
+            events.append(HACalendarEvent(
+                uid=f"daynest_medication_{med.id}",
+                summary=med.name,
+                start={"dateTime": med.scheduled_at.isoformat()},
+                end={"dateTime": (med.scheduled_at + timedelta(minutes=15)).isoformat()},
+                description=med.instructions,
+            ))
+
+        for planned in self.repository.list_planned_items(user_id=user_id, start_date=start_date, end_date=end_date):
+            events.append(HACalendarEvent(
+                uid=f"daynest_planned_{planned.id}",
+                summary=planned.title,
+                start={"date": planned.planned_for.isoformat()},
+                end={"date": (planned.planned_for + timedelta(days=1)).isoformat()},
+                description=planned.notes,
+            ))
+
+        events.sort(key=lambda e: e.start.get("date") or e.start.get("dateTime", ""))
+        return events
+
     def create_planned_item(self, user_id: int, request: PlannedItemCreateRequest) -> PlannedTodayItem:
         item = self.repository.add_planned_item(
             PlannedItem(
@@ -520,6 +578,184 @@ class TodayService:
             due_at=instance.due_at,
             completed_at=instance.completed_at,
         )
+
+    def list_routine_templates(self, user_id: int) -> list[RoutineTemplate]:
+        return self.repository.list_routine_templates(user_id=user_id)
+
+    def create_routine_template(
+        self,
+        user_id: int,
+        *,
+        name: str,
+        start_date: date,
+        every_n_days: int,
+        description: str | None,
+        due_time: time | None,
+        is_active: bool,
+    ) -> RoutineTemplate:
+        if every_n_days < 1:
+            raise ValueError("every_n_days must be >= 1")
+        return self.repository.add_routine_template(
+            RoutineTemplate(
+                user_id=user_id,
+                name=name,
+                description=description,
+                start_date=start_date,
+                every_n_days=every_n_days,
+                due_time=due_time,
+                is_active=is_active,
+            )
+        )
+
+    def update_routine_template(
+        self,
+        user_id: int,
+        routine_template_id: int,
+        *,
+        name: str,
+        start_date: date,
+        every_n_days: int | None,
+        description: str | None,
+        due_time: time | None,
+        is_active: bool | None,
+    ) -> RoutineTemplate:
+        template = self.repository.get_routine_template_for_user(user_id=user_id, routine_template_id=routine_template_id)
+        if template is None:
+            raise ValueError(f"Routine template {routine_template_id} not found")
+        if every_n_days is not None and every_n_days < 1:
+            raise ValueError("every_n_days must be >= 1")
+        return self.repository.update_routine_template(
+            template,
+            name=name,
+            description=description if description is not None else template.description,
+            start_date=start_date,
+            every_n_days=every_n_days if every_n_days is not None else template.every_n_days,
+            due_time=due_time if due_time is not None else template.due_time,
+            is_active=is_active if is_active is not None else template.is_active,
+        )
+
+    def delete_routine_template(self, user_id: int, routine_template_id: int) -> None:
+        template = self.repository.get_routine_template_for_user(user_id=user_id, routine_template_id=routine_template_id)
+        if template is None:
+            raise ValueError(f"Routine template {routine_template_id} not found")
+        self.repository.delete_routine_template(template)
+
+    def list_chore_templates(self, user_id: int) -> list[ChoreTemplate]:
+        return self.repository.list_chore_templates(user_id=user_id)
+
+    def create_chore_template(
+        self,
+        user_id: int,
+        *,
+        name: str,
+        start_date: date,
+        every_n_days: int,
+        description: str | None,
+        is_active: bool,
+    ) -> ChoreTemplate:
+        if every_n_days < 1:
+            raise ValueError("every_n_days must be >= 1")
+        return self.repository.add_chore_template(
+            ChoreTemplate(
+                user_id=user_id,
+                name=name,
+                description=description,
+                start_date=start_date,
+                every_n_days=every_n_days,
+                is_active=is_active,
+            )
+        )
+
+    def update_chore_template(
+        self,
+        user_id: int,
+        chore_template_id: int,
+        *,
+        name: str,
+        start_date: date,
+        every_n_days: int | None,
+        description: str | None,
+        is_active: bool | None,
+    ) -> ChoreTemplate:
+        template = self.repository.get_chore_template_for_user(user_id=user_id, chore_template_id=chore_template_id)
+        if template is None:
+            raise ValueError(f"Chore template {chore_template_id} not found")
+        if every_n_days is not None and every_n_days < 1:
+            raise ValueError("every_n_days must be >= 1")
+        return self.repository.update_chore_template(
+            template,
+            name=name,
+            description=description if description is not None else template.description,
+            start_date=start_date,
+            every_n_days=every_n_days if every_n_days is not None else template.every_n_days,
+            is_active=is_active if is_active is not None else template.is_active,
+        )
+
+    def delete_chore_template(self, user_id: int, chore_template_id: int) -> None:
+        template = self.repository.get_chore_template_for_user(user_id=user_id, chore_template_id=chore_template_id)
+        if template is None:
+            raise ValueError(f"Chore template {chore_template_id} not found")
+        self.repository.delete_chore_template(template)
+
+    def list_medication_plans(self, user_id: int) -> list[MedicationPlan]:
+        return self.repository.list_medication_plans(user_id=user_id)
+
+    def create_medication_plan(
+        self,
+        user_id: int,
+        *,
+        name: str,
+        instructions: str,
+        start_date: date,
+        schedule_time: time,
+        every_n_days: int,
+    ) -> MedicationPlan:
+        if every_n_days < 1:
+            raise ValueError("every_n_days must be >= 1")
+        return self.repository.add_medication_plan(
+            MedicationPlan(
+                user_id=user_id,
+                name=name,
+                instructions=instructions,
+                start_date=start_date,
+                schedule_time=schedule_time,
+                every_n_days=every_n_days,
+                is_active=True,
+            )
+        )
+
+    def update_medication_plan(
+        self,
+        user_id: int,
+        medication_plan_id: int,
+        *,
+        name: str,
+        instructions: str,
+        start_date: date,
+        schedule_time: time,
+        every_n_days: int | None,
+        is_active: bool | None,
+    ) -> MedicationPlan:
+        plan = self.repository.get_medication_plan_for_user(user_id=user_id, medication_plan_id=medication_plan_id)
+        if plan is None:
+            raise ValueError(f"Medication plan {medication_plan_id} not found")
+        if every_n_days is not None and every_n_days < 1:
+            raise ValueError("every_n_days must be >= 1")
+        return self.repository.update_medication_plan(
+            plan,
+            name=name,
+            instructions=instructions,
+            start_date=start_date,
+            schedule_time=schedule_time,
+            every_n_days=every_n_days if every_n_days is not None else plan.every_n_days,
+            is_active=is_active if is_active is not None else plan.is_active,
+        )
+
+    def delete_medication_plan(self, user_id: int, medication_plan_id: int) -> None:
+        plan = self.repository.get_medication_plan_for_user(user_id=user_id, medication_plan_id=medication_plan_id)
+        if plan is None:
+            raise ValueError(f"Medication plan {medication_plan_id} not found")
+        self.repository.delete_medication_plan(plan)
 
     def mutate_medication_status(self, user_id: int, medication_dose_instance_id: int, action: str):
         instance = self.repository.get_dose_for_user(user_id=user_id, dose_id=medication_dose_instance_id)

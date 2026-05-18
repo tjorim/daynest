@@ -1,7 +1,7 @@
 INTEGRATION_CONTRACT_HEADER = "X-Integration-Contract"
 
 HOME_ASSISTANT_ADAPTER = "home-assistant"
-HOME_ASSISTANT_CONTRACT_VERSION = "ha.v1"
+HOME_ASSISTANT_CONTRACT_VERSION = "ha.v2"
 
 
 def integration_contract_header(adapter: str, version: str) -> str:

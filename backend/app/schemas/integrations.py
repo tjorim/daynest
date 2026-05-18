@@ -4,12 +4,6 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field
 
 
-class TodaySummary(BaseModel):
-    overdue_count: int
-    tasks_remaining: int
-    next_medication: str | None = None
-
-
 class CompleteTaskRequest(BaseModel):
     chore_instance_id: int = Field(gt=0, description="The chore instance ID to mark as complete")
 
@@ -87,7 +81,16 @@ class DashboardReadModel(BaseModel):
     overdue_count: int
     due_today_count: int
     planned_count: int
+    planned_remaining_count: int = 0
     medication_due_count: int
     completion_ratio: float
     next_medication: str | None = None
     routines_open_count: int = 0
+
+
+class HACalendarEvent(BaseModel):
+    uid: str
+    summary: str
+    start: dict[str, str]
+    end: dict[str, str]
+    description: str | None = None

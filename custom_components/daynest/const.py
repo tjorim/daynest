@@ -7,7 +7,7 @@ LOGGER: Logger = getLogger(__package__)
 DOMAIN = "daynest"
 ATTRIBUTION = "Data provided by Daynest"
 DEFAULT_API_BASE_URL = "http://localhost:8000"
-SUPPORTED_INTEGRATION_CONTRACT_VERSIONS = frozenset({"ha.v1"})
+SUPPORTED_INTEGRATION_CONTRACT_VERSIONS = frozenset({"ha.v1", "ha.v2"})
 LEGACY_CONTRACT_VERSION_ALIASES = {"1": "ha.v1"}
 
 PARALLEL_UPDATES = 1

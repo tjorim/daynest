@@ -29,7 +29,6 @@ from app.api.dependencies.integration_auth import (
 from app.core.config import settings
 from app.db.session import SessionLocal
 from app.models.integration_client import IntegrationClient
-from app.models.medication_plan import MedicationPlan as MedicationPlanModel
 from app.models.user import User
 from app.repositories.today_repository import TodayRepository
 from app.schemas.today import PlannedItemCreateRequest, PlannedItemModuleKey, PlannedItemUpdateRequest
@@ -76,6 +75,41 @@ def _parse_csv_env(name: str, default: list[str]) -> list[str]:
     if not raw:
         return default
     return [item.strip() for item in raw.split(",") if item.strip()]
+
+
+def _routine_template_to_dict(t: Any) -> dict[str, Any]:
+    return {
+        "id": t.id,
+        "name": t.name,
+        "description": t.description,
+        "start_date": t.start_date.isoformat(),
+        "every_n_days": t.every_n_days,
+        "due_time": t.due_time.isoformat() if t.due_time else None,
+        "is_active": t.is_active,
+    }
+
+
+def _chore_template_to_dict(t: Any) -> dict[str, Any]:
+    return {
+        "id": t.id,
+        "name": t.name,
+        "description": t.description,
+        "start_date": t.start_date.isoformat(),
+        "every_n_days": t.every_n_days,
+        "is_active": t.is_active,
+    }
+
+
+def _medication_plan_to_dict(plan: Any) -> dict[str, Any]:
+    return {
+        "id": plan.id,
+        "name": plan.name,
+        "instructions": plan.instructions,
+        "start_date": plan.start_date.isoformat(),
+        "schedule_time": plan.schedule_time.isoformat(),
+        "every_n_days": plan.every_n_days,
+        "is_active": plan.is_active,
+    }
 
 
 class DaynestMcpBackend:
@@ -268,11 +302,121 @@ class DaynestMcpBackend:
     def skip_routine_task(self, task_instance_id: int) -> dict[str, Any]:
         return self._with_service(lambda _db, user, service: _jsonable(service.skip_routine_task(user.id, task_instance_id)))
 
-    def _get_medication_plan(self, repository: TodayRepository, user_id: int, medication_plan_id: int) -> MedicationPlanModel:
-        plan = repository.get_medication_plan_for_user(user_id=user_id, medication_plan_id=medication_plan_id)
-        if plan is None:
-            raise ValueError(f"Medication plan {medication_plan_id} not found")
-        return plan
+    def list_routines(self) -> list[dict[str, Any]]:
+        return self._with_service(
+            lambda _db, user, service: [_routine_template_to_dict(t) for t in service.list_routine_templates(user.id)]
+        )
+
+    def create_routine(
+        self,
+        name: str,
+        start_date: str,
+        every_n_days: int = 1,
+        description: str | None = None,
+        due_time: str | None = None,
+        is_active: bool = True,
+    ) -> dict[str, Any]:
+        parsed_start = _parse_date(start_date)
+        parsed_due_time = time.fromisoformat(due_time) if due_time and due_time.strip() else None
+        return self._with_service(
+            lambda _db, user, service: _routine_template_to_dict(
+                service.create_routine_template(
+                    user.id,
+                    name=name,
+                    start_date=parsed_start,
+                    every_n_days=every_n_days,
+                    description=description,
+                    due_time=parsed_due_time,
+                    is_active=is_active,
+                )
+            )
+        )
+
+    def update_routine(
+        self,
+        routine_template_id: int,
+        name: str,
+        start_date: str,
+        every_n_days: int | None = None,
+        description: str | None = None,
+        due_time: str | None = None,
+        is_active: bool | None = None,
+    ) -> dict[str, Any]:
+        parsed_start = _parse_date(start_date)
+        parsed_due_time = time.fromisoformat(due_time) if due_time and due_time.strip() else None
+        return self._with_service(
+            lambda _db, user, service: _routine_template_to_dict(
+                service.update_routine_template(
+                    user.id,
+                    routine_template_id,
+                    name=name,
+                    start_date=parsed_start,
+                    every_n_days=every_n_days,
+                    description=description,
+                    due_time=parsed_due_time,
+                    is_active=is_active,
+                )
+            )
+        )
+
+    def delete_routine(self, routine_template_id: int) -> dict[str, Any]:
+        self._with_service(lambda _db, user, service: service.delete_routine_template(user.id, routine_template_id))
+        return {"deleted": True, "routine_template_id": routine_template_id}
+
+    def list_chore_templates(self) -> list[dict[str, Any]]:
+        return self._with_service(
+            lambda _db, user, service: [_chore_template_to_dict(t) for t in service.list_chore_templates(user.id)]
+        )
+
+    def create_chore_template(
+        self,
+        name: str,
+        start_date: str,
+        every_n_days: int = 1,
+        description: str | None = None,
+        is_active: bool = True,
+    ) -> dict[str, Any]:
+        parsed_start = _parse_date(start_date)
+        return self._with_service(
+            lambda _db, user, service: _chore_template_to_dict(
+                service.create_chore_template(
+                    user.id,
+                    name=name,
+                    start_date=parsed_start,
+                    every_n_days=every_n_days,
+                    description=description,
+                    is_active=is_active,
+                )
+            )
+        )
+
+    def update_chore_template(
+        self,
+        chore_template_id: int,
+        name: str,
+        start_date: str,
+        every_n_days: int | None = None,
+        description: str | None = None,
+        is_active: bool | None = None,
+    ) -> dict[str, Any]:
+        parsed_start = _parse_date(start_date)
+        return self._with_service(
+            lambda _db, user, service: _chore_template_to_dict(
+                service.update_chore_template(
+                    user.id,
+                    chore_template_id,
+                    name=name,
+                    start_date=parsed_start,
+                    every_n_days=every_n_days,
+                    description=description,
+                    is_active=is_active,
+                )
+            )
+        )
+
+    def delete_chore_template(self, chore_template_id: int) -> dict[str, Any]:
+        self._with_service(lambda _db, user, service: service.delete_chore_template(user.id, chore_template_id))
+        return {"deleted": True, "chore_template_id": chore_template_id}
 
     def take_medication_dose(self, medication_dose_instance_id: int) -> dict[str, Any]:
         return self._mutate_medication(medication_dose_instance_id, "take")
@@ -281,23 +425,9 @@ class DaynestMcpBackend:
         return self._mutate_medication(medication_dose_instance_id, "skip")
 
     def list_medications(self) -> list[dict[str, Any]]:
-        def _operation(_db: Session, user: User, service: TodayService) -> list[dict[str, Any]]:
-            repository = TodayRepository(_db)
-            plans = repository.list_medication_plans(user_id=user.id)
-            return [
-                {
-                    "id": plan.id,
-                    "name": plan.name,
-                    "instructions": plan.instructions,
-                    "start_date": plan.start_date.isoformat(),
-                    "schedule_time": plan.schedule_time.isoformat(),
-                    "every_n_days": plan.every_n_days,
-                    "is_active": plan.is_active,
-                }
-                for plan in plans
-            ]
-
-        return self._with_service(_operation)
+        return self._with_service(
+            lambda _db, user, service: [_medication_plan_to_dict(p) for p in service.list_medication_plans(user.id)]
+        )
 
     def create_medication(
         self,
@@ -309,31 +439,18 @@ class DaynestMcpBackend:
     ) -> dict[str, Any]:
         parsed_start = date.fromisoformat(start_date)
         parsed_time = time.fromisoformat(schedule_time)
-
-        def _operation(_db: Session, user: User, service: TodayService) -> dict[str, Any]:
-            repository = TodayRepository(_db)
-            plan = repository.add_medication_plan(
-                MedicationPlanModel(
-                    user_id=user.id,
+        return self._with_service(
+            lambda _db, user, service: _medication_plan_to_dict(
+                service.create_medication_plan(
+                    user.id,
                     name=name,
                     instructions=instructions,
                     start_date=parsed_start,
                     schedule_time=parsed_time,
                     every_n_days=every_n_days,
-                    is_active=True,
                 )
             )
-            return {
-                "id": plan.id,
-                "name": plan.name,
-                "instructions": plan.instructions,
-                "start_date": plan.start_date.isoformat(),
-                "schedule_time": plan.schedule_time.isoformat(),
-                "every_n_days": plan.every_n_days,
-                "is_active": plan.is_active,
-            }
-
-        return self._with_service(_operation)
+        )
 
     def update_medication(
         self,
@@ -342,44 +459,29 @@ class DaynestMcpBackend:
         instructions: str,
         start_date: str,
         schedule_time: str,
-        every_n_days: int = 1,
-        is_active: bool = True,
+        every_n_days: int | None = None,
+        is_active: bool | None = None,
     ) -> dict[str, Any]:
         parsed_start = date.fromisoformat(start_date)
         parsed_time = time.fromisoformat(schedule_time)
-
-        def _operation(_db: Session, user: User, service: TodayService) -> dict[str, Any]:
-            repository = TodayRepository(_db)
-            plan = self._get_medication_plan(repository, user.id, medication_plan_id)
-            updated = repository.update_medication_plan(
-                plan,
-                name=name,
-                instructions=instructions,
-                start_date=parsed_start,
-                schedule_time=parsed_time,
-                every_n_days=every_n_days,
-                is_active=is_active,
+        return self._with_service(
+            lambda _db, user, service: _medication_plan_to_dict(
+                service.update_medication_plan(
+                    user.id,
+                    medication_plan_id,
+                    name=name,
+                    instructions=instructions,
+                    start_date=parsed_start,
+                    schedule_time=parsed_time,
+                    every_n_days=every_n_days,
+                    is_active=is_active,
+                )
             )
-            return {
-                "id": updated.id,
-                "name": updated.name,
-                "instructions": updated.instructions,
-                "start_date": updated.start_date.isoformat(),
-                "schedule_time": updated.schedule_time.isoformat(),
-                "every_n_days": updated.every_n_days,
-                "is_active": updated.is_active,
-            }
-
-        return self._with_service(_operation)
+        )
 
     def delete_medication(self, medication_plan_id: int) -> dict[str, Any]:
-        def _operation(_db: Session, user: User, service: TodayService) -> dict[str, Any]:
-            repository = TodayRepository(_db)
-            plan = self._get_medication_plan(repository, user.id, medication_plan_id)
-            repository.delete_medication_plan(plan)
-            return {"deleted": True, "medication_plan_id": medication_plan_id}
-
-        return self._with_service(_operation)
+        self._with_service(lambda _db, user, service: service.delete_medication_plan(user.id, medication_plan_id))
+        return {"deleted": True, "medication_plan_id": medication_plan_id}
 
     def _mutate_medication(self, medication_dose_instance_id: int, action: str) -> dict[str, Any]:
         def _operation(_db: Session, user: User, service: TodayService) -> dict[str, Any]:
@@ -693,6 +795,122 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
         return await to_thread.run_sync(daynest.skip_routine_task, task_instance_id)
 
     @mcp.tool()
+    async def list_routines() -> list[dict[str, Any]]:
+        """List all Daynest routine templates for the active user."""
+
+        return await to_thread.run_sync(daynest.list_routines)
+
+    @mcp.tool()
+    async def create_routine(
+        name: str,
+        start_date: str,
+        every_n_days: int = 1,
+        description: str | None = None,
+        due_time: str | None = None,
+        is_active: bool = True,
+    ) -> dict[str, Any]:
+        """Create a new Daynest routine template.
+
+        Args:
+            name: Routine name (e.g. "Morning walk").
+            start_date: When the routine starts in YYYY-MM-DD format or 'today'.
+            every_n_days: Recurrence frequency — 1 means daily, 7 means weekly, etc.
+            description: Optional description of the routine.
+            due_time: Optional time-of-day deadline in HH:MM or HH:MM:SS format.
+            is_active: Whether the routine is currently active.
+        """
+
+        return await to_thread.run_sync(daynest.create_routine, name, start_date, every_n_days, description, due_time, is_active)
+
+    @mcp.tool()
+    async def update_routine(
+        routine_template_id: int,
+        name: str,
+        start_date: str,
+        every_n_days: int | None = None,
+        description: str | None = None,
+        due_time: str | None = None,
+        is_active: bool | None = None,
+    ) -> dict[str, Any]:
+        """Update an existing Daynest routine template.
+
+        Args:
+            routine_template_id: ID of the routine template to update.
+            name: Updated routine name.
+            start_date: Updated start date in YYYY-MM-DD format or 'today'.
+            every_n_days: Updated recurrence frequency. Omit to keep the current value.
+            description: Updated description.
+            due_time: Updated time-of-day deadline in HH:MM or HH:MM:SS format. Omit to keep the current value.
+            is_active: Set to false to deactivate the routine. Omit to keep the current value.
+        """
+
+        return await to_thread.run_sync(
+            daynest.update_routine, routine_template_id, name, start_date, every_n_days, description, due_time, is_active
+        )
+
+    @mcp.tool()
+    async def delete_routine(routine_template_id: int) -> dict[str, Any]:
+        """Delete a Daynest routine template by id."""
+
+        return await to_thread.run_sync(daynest.delete_routine, routine_template_id)
+
+    @mcp.tool()
+    async def list_chore_templates() -> list[dict[str, Any]]:
+        """List all Daynest chore templates for the active user."""
+
+        return await to_thread.run_sync(daynest.list_chore_templates)
+
+    @mcp.tool()
+    async def create_chore_template(
+        name: str,
+        start_date: str,
+        every_n_days: int = 1,
+        description: str | None = None,
+        is_active: bool = True,
+    ) -> dict[str, Any]:
+        """Create a new Daynest chore template.
+
+        Args:
+            name: Chore name (e.g. "Take out trash").
+            start_date: When the chore starts in YYYY-MM-DD format or 'today'.
+            every_n_days: Recurrence frequency — 1 means daily, 7 means weekly, etc.
+            description: Optional description of the chore.
+            is_active: Whether the chore is currently active.
+        """
+
+        return await to_thread.run_sync(daynest.create_chore_template, name, start_date, every_n_days, description, is_active)
+
+    @mcp.tool()
+    async def update_chore_template(
+        chore_template_id: int,
+        name: str,
+        start_date: str,
+        every_n_days: int | None = None,
+        description: str | None = None,
+        is_active: bool | None = None,
+    ) -> dict[str, Any]:
+        """Update an existing Daynest chore template.
+
+        Args:
+            chore_template_id: ID of the chore template to update.
+            name: Updated chore name.
+            start_date: Updated start date in YYYY-MM-DD format or 'today'.
+            every_n_days: Updated recurrence frequency. Omit to keep the current value.
+            description: Updated description.
+            is_active: Set to false to deactivate the chore. Omit to keep the current value.
+        """
+
+        return await to_thread.run_sync(
+            daynest.update_chore_template, chore_template_id, name, start_date, every_n_days, description, is_active
+        )
+
+    @mcp.tool()
+    async def delete_chore_template(chore_template_id: int) -> dict[str, Any]:
+        """Delete a Daynest chore template by id."""
+
+        return await to_thread.run_sync(daynest.delete_chore_template, chore_template_id)
+
+    @mcp.tool()
     async def take_medication_dose(medication_dose_instance_id: int) -> dict[str, Any]:
         """Mark a Daynest medication dose as taken. Accepts doses in scheduled or missed status."""
 
@@ -744,8 +962,8 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
         instructions: str,
         start_date: str,
         schedule_time: str,
-        every_n_days: int = 1,
-        is_active: bool = True,
+        every_n_days: int | None = None,
+        is_active: bool | None = None,
     ) -> dict[str, Any]:
         """Update an existing Daynest medication plan.
 
@@ -755,8 +973,8 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
             instructions: Updated instructions.
             start_date: Updated start date in YYYY-MM-DD format.
             schedule_time: Updated time-of-day for each dose in HH:MM or HH:MM:SS format.
-            every_n_days: Updated dose frequency.
-            is_active: Set to false to deactivate (pause) the medication plan.
+            every_n_days: Updated dose frequency. Omit to keep the current value.
+            is_active: Set to false to deactivate (pause) the medication plan. Omit to keep the current value.
         """
 
         return await to_thread.run_sync(

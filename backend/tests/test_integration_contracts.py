@@ -75,7 +75,10 @@ def test_home_assistant_contract_header_and_summary_shape(client: TestClient, db
     assert response.headers[INTEGRATION_CONTRACT_HEADER] == integration_contract_header(HOME_ASSISTANT_ADAPTER, HOME_ASSISTANT_CONTRACT_VERSION)
     payload = response.json()
     assert set(payload.keys()) == {
-        "todo_daynest_today",
+        "sensor_daynest_chores_due",
+        "sensor_daynest_routines_open",
+        "sensor_daynest_medication_due",
+        "sensor_daynest_planned_remaining",
         "sensor_daynest_overdue_count",
         "sensor_daynest_next_medication",
     }
@@ -96,6 +99,7 @@ def test_home_assistant_contract_dashboard_shape(client: TestClient, db_session:
         "due_today_count",
         "overdue_count",
         "planned_count",
+        "planned_remaining_count",
         "medication_due_count",
         "completion_ratio",
         "next_medication",
@@ -115,7 +119,10 @@ def test_home_assistant_contract_entities_shape(client: TestClient, db_session: 
     payload = response.json()
     assert isinstance(payload, list)
     assert {entity["entity_id"] for entity in payload} == {
-        "todo.daynest_tasks",
+        "sensor.daynest_chores_due",
+        "sensor.daynest_routines_open",
+        "sensor.daynest_medication_due",
+        "sensor.daynest_planned_remaining",
         "sensor.daynest_overdue_count",
         "sensor.daynest_completion_ratio",
         "sensor.daynest_next_medication",
@@ -123,3 +130,29 @@ def test_home_assistant_contract_entities_shape(client: TestClient, db_session: 
 
     for entity in payload:
         assert set(entity.keys()) == {"entity_id", "state", "attributes"}
+
+
+def test_home_assistant_contract_calendar_shape(client: TestClient, db_session: Session) -> None:
+    user = _create_user(db_session, "contract-ha-calendar@example.com")
+    _setup_contract_chore(db_session, user, "Calendar Contract Chore")
+
+    key = _create_integration_key(db_session, user.id, scopes="ha:read")
+    today = date.today()
+    response = client.get(
+        "/api/v1/integrations/home-assistant/calendar",
+        params={"start": today.isoformat(), "end": today.isoformat()},
+        headers={"X-Integration-Key": key},
+    )
+
+    assert response.status_code == 200
+    assert response.headers[INTEGRATION_CONTRACT_HEADER] == integration_contract_header(HOME_ASSISTANT_ADAPTER, HOME_ASSISTANT_CONTRACT_VERSION)
+    payload = response.json()
+    assert isinstance(payload, list)
+    assert len(payload) >= 1
+    for event in payload:
+        assert set(event.keys()) >= {"uid", "summary", "start", "end"}
+        assert isinstance(event["uid"], str)
+        assert isinstance(event["summary"], str)
+        assert isinstance(event["start"], dict)
+        assert isinstance(event["end"], dict)
+        assert "date" in event["start"] or "dateTime" in event["start"]

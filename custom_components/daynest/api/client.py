@@ -4,12 +4,13 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import date
 from typing import Any, Generic, TypeVar
 from urllib.parse import urljoin
 
 import aiohttp
 
-from ..const import DEFAULT_API_BASE_URL
+from ..const import DEFAULT_API_BASE_URL, LOGGER
 
 REQUEST_TIMEOUT = aiohttp.ClientTimeout(total=10)
 
@@ -48,7 +49,10 @@ class DaynestSummary:
     def from_dict(cls, payload: dict[str, Any]) -> DaynestSummary:
         """Build a typed summary model from raw JSON payload."""
         required_keys = {
-            "todo_daynest_today",
+            "sensor_daynest_chores_due",
+            "sensor_daynest_routines_open",
+            "sensor_daynest_medication_due",
+            "sensor_daynest_planned_remaining",
             "sensor_daynest_overdue_count",
             "sensor_daynest_next_medication",
         }
@@ -232,6 +236,12 @@ class DaynestApiClient:
             path=f"/api/v1/integrations/home-assistant/actions/delete-planned-item/{planned_item_id}",
         )
 
+    async def async_get_calendar(self, start: date, end: date) -> list[dict[str, Any]]:
+        """Fetch calendar events for an inclusive date range."""
+        return await self._request_list(
+            f"/api/v1/integrations/home-assistant/calendar?start={start.isoformat()}&end={end.isoformat()}"
+        )
+
     async def _request_model(
         self,
         path: str,
@@ -262,6 +272,48 @@ class DaynestApiClient:
 
                 model = parser(payload)
                 return DaynestApiResponse(data=model, integration_contract=contract)
+
+        except TimeoutError as err:
+            msg = f"Request timed out for endpoint {path}"
+            raise DaynestApiClientTimeoutError(msg) from err
+        except aiohttp.ClientConnectionError as err:
+            msg = f"Server unavailable while requesting endpoint {path}: {err}"
+            raise DaynestApiClientServerUnavailableError(msg) from err
+        except aiohttp.ClientError as err:
+            msg = f"Communication error while requesting endpoint {path}: {err}"
+            raise DaynestApiClientCommunicationError(msg) from err
+        except ValueError as err:
+            msg = f"Malformed JSON response for endpoint {path}: {err}"
+            raise DaynestApiClientMalformedResponseError(msg) from err
+
+    async def _request_list(self, path: str) -> list[dict[str, Any]]:
+        """GET a list-returning endpoint and return the parsed items."""
+        url = urljoin(f"{self._base_url}/", path.lstrip("/"))
+        headers = {"Accept": "application/json"}
+        if self._integration_key:
+            headers["X-Integration-Key"] = self._integration_key
+
+        try:
+            async with self._session.get(url, headers=headers, timeout=REQUEST_TIMEOUT) as response:
+                if response.status in (401, 403):
+                    msg = f"Authentication failed with status {response.status}"
+                    raise DaynestApiClientAuthenticationError(msg)
+                if 500 <= response.status < 600:
+                    msg = f"Backend unavailable (status {response.status})"
+                    raise DaynestApiClientServerUnavailableError(msg)
+                response.raise_for_status()
+
+                payload = await response.json(content_type=None)
+                if not isinstance(payload, list):
+                    msg = "Malformed response payload: expected JSON array"
+                    raise DaynestApiClientMalformedResponseError(msg)
+                result = []
+                for i, item in enumerate(payload):
+                    if isinstance(item, dict):
+                        result.append(item)
+                    else:
+                        LOGGER.warning("Skipping non-dict item at index %d in response for %s: %r", i, path, item)
+                return result
 
         except TimeoutError as err:
             msg = f"Request timed out for endpoint {path}"
