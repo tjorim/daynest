@@ -379,17 +379,12 @@ private fun EditRoutineDialog(
         title = stringResource(id = R.string.templates_edit_routine_title),
         initialName = routine.name,
         initialDescription = routine.description.orEmpty(),
+        initialStartDate = routine.startDate,
         initialEveryNDays = routine.everyNDays.toString(),
+        initialDueTime = routine.dueTime?.take(5).orEmpty(),
         initialIsActive = routine.isActive,
         confirmText = stringResource(id = R.string.action_save),
-        onConfirm = {
-            onConfirm(
-                it.copy(
-                    startDate = routine.startDate,
-                    dueTime = routine.dueTime,
-                ),
-            )
-        },
+        onConfirm = onConfirm,
         onDismiss = onDismiss,
     )
 }
@@ -404,16 +399,11 @@ private fun EditChoreDialog(
         title = stringResource(id = R.string.templates_edit_chore_title),
         initialName = chore.name,
         initialDescription = chore.description.orEmpty(),
+        initialStartDate = chore.startDate,
         initialEveryNDays = chore.everyNDays.toString(),
         initialIsActive = chore.isActive,
         confirmText = stringResource(id = R.string.action_save),
-        onConfirm = {
-            onConfirm(
-                it.copy(
-                    startDate = chore.startDate,
-                ),
-            )
-        },
+        onConfirm = onConfirm,
         onDismiss = onDismiss,
     )
 }
@@ -427,7 +417,9 @@ private fun CreateRoutineDialog(
         title = stringResource(id = R.string.templates_create_routine_title),
         initialName = "",
         initialDescription = "",
+        initialStartDate = LocalDate.now().toString(),
         initialEveryNDays = "1",
+        initialDueTime = "",
         initialIsActive = true,
         confirmText = stringResource(id = R.string.action_add),
         onConfirm = onConfirm,
@@ -440,7 +432,9 @@ private fun RoutineTemplateDialog(
     title: String,
     initialName: String,
     initialDescription: String,
+    initialStartDate: String,
     initialEveryNDays: String,
+    initialDueTime: String,
     initialIsActive: Boolean,
     confirmText: String,
     onConfirm: (RoutineTemplateInputDto) -> Unit,
@@ -448,7 +442,9 @@ private fun RoutineTemplateDialog(
 ) {
     var name by remember { mutableStateOf(initialName) }
     var description by remember { mutableStateOf(initialDescription) }
+    var startDate by remember { mutableStateOf(initialStartDate) }
     var everyNDays by remember { mutableStateOf(initialEveryNDays) }
+    var dueTime by remember { mutableStateOf(initialDueTime) }
     var isActive by remember { mutableStateOf(initialIsActive) }
 
     AlertDialog(
@@ -469,9 +465,21 @@ private fun RoutineTemplateDialog(
                     singleLine = true,
                 )
                 OutlinedTextField(
+                    value = startDate,
+                    onValueChange = { startDate = it },
+                    label = { Text(text = stringResource(id = R.string.templates_start_date_label)) },
+                    singleLine = true,
+                )
+                OutlinedTextField(
                     value = everyNDays,
                     onValueChange = { everyNDays = it.filter { c -> c.isDigit() } },
                     label = { Text(text = stringResource(id = R.string.templates_every_n_days_label)) },
+                    singleLine = true,
+                )
+                OutlinedTextField(
+                    value = dueTime,
+                    onValueChange = { dueTime = it },
+                    label = { Text(text = stringResource(id = R.string.templates_due_time_label)) },
                     singleLine = true,
                 )
                 TextButton(onClick = { isActive = !isActive }) {
@@ -494,8 +502,9 @@ private fun RoutineTemplateDialog(
                             RoutineTemplateInputDto(
                                 name = name.trim(),
                                 description = description.trim().ifBlank { null },
-                                startDate = LocalDate.now().toString(),
+                                startDate = startDate.trim().ifBlank { LocalDate.now().toString() },
                                 everyNDays = everyNDays.toIntOrNull() ?: 1,
+                                dueTime = dueTime.trim().ifBlank { null },
                                 isActive = isActive,
                             ),
                         )
@@ -523,6 +532,7 @@ private fun CreateChoreDialog(
         title = stringResource(id = R.string.templates_create_chore_title),
         initialName = "",
         initialDescription = "",
+        initialStartDate = LocalDate.now().toString(),
         initialEveryNDays = "7",
         initialIsActive = true,
         confirmText = stringResource(id = R.string.action_add),
@@ -536,6 +546,7 @@ private fun ChoreTemplateDialog(
     title: String,
     initialName: String,
     initialDescription: String,
+    initialStartDate: String,
     initialEveryNDays: String,
     initialIsActive: Boolean,
     confirmText: String,
@@ -544,6 +555,7 @@ private fun ChoreTemplateDialog(
 ) {
     var name by remember { mutableStateOf(initialName) }
     var description by remember { mutableStateOf(initialDescription) }
+    var startDate by remember { mutableStateOf(initialStartDate) }
     var everyNDays by remember { mutableStateOf(initialEveryNDays) }
     var isActive by remember { mutableStateOf(initialIsActive) }
 
@@ -562,6 +574,12 @@ private fun ChoreTemplateDialog(
                     value = description,
                     onValueChange = { description = it },
                     label = { Text(text = stringResource(id = R.string.templates_description_label)) },
+                    singleLine = true,
+                )
+                OutlinedTextField(
+                    value = startDate,
+                    onValueChange = { startDate = it },
+                    label = { Text(text = stringResource(id = R.string.templates_start_date_label)) },
                     singleLine = true,
                 )
                 OutlinedTextField(
@@ -590,7 +608,7 @@ private fun ChoreTemplateDialog(
                             ChoreTemplateInputDto(
                                 name = name.trim(),
                                 description = description.trim().ifBlank { null },
-                                startDate = LocalDate.now().toString(),
+                                startDate = startDate.trim().ifBlank { LocalDate.now().toString() },
                                 everyNDays = everyNDays.toIntOrNull() ?: 7,
                                 isActive = isActive,
                             ),

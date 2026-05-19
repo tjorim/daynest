@@ -108,6 +108,8 @@
     <string name="templates_description_label">Description (optional)</string>
     <string name="templates_every_n_days_label">Every N days</string>
     <string name="templates_every_n_days">Every %1$d day(s)</string>
+    <string name="templates_start_date_label">Start date (YYYY-MM-DD)</string>
+    <string name="templates_due_time_label">Due time (HH:MM, optional)</string>
     <string name="templates_inactive">Inactive</string>
 
     <!-- Settings -->
