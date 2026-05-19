@@ -49,5 +49,4 @@ class DynamicBaseUrlInterceptorTest {
 
         assertEquals("/api/v1/today", mockWebServer.takeRequest().path)
     }
-
 }
