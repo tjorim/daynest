@@ -69,7 +69,7 @@ class TodayRepository
         suspend fun completeTask(taskInstanceId: Int): Result<TaskMutationDto> =
             safeApiCall { todayActionsApi.completeTask(taskInstanceId) }
 
-        @Suppress("TooGenericExceptionCaught")
+        @Suppress("TooGenericExceptionCaught", "ktlint:standard:function-signature")
         suspend fun startTask(taskInstanceId: Int): Result<TaskMutationDto> =
             safeApiCall { todayActionsApi.startTask(taskInstanceId) }
 

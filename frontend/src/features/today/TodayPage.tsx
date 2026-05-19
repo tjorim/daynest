@@ -158,16 +158,16 @@ export function TodayPage() {
           bulkActions: choreBulkActions,
         },
         {
-          key: "upcoming",
-          heading: "Upcoming",
-          items: buildUpcomingItems(today.upcoming),
-          bulkActions: choreBulkActions,
-        },
-        {
           key: "planned",
           heading: "Planned",
           items: buildPlannedItems(today.planned),
           bulkActions: plannedBulkActions,
+        },
+        {
+          key: "upcoming",
+          heading: "Upcoming",
+          items: buildUpcomingItems(today.upcoming),
+          bulkActions: choreBulkActions,
         },
       ]
     : [];

@@ -163,6 +163,10 @@ private fun TodayContent(
             }
         }
 
+        item {
+            TodaySummaryStrip(state = state)
+        }
+
         if (state.medication.isNotEmpty()) {
             item {
                 SectionHeader(title = stringResource(id = R.string.today_section_medication))
@@ -338,6 +342,71 @@ private data class RescheduleTarget(
     val title: String,
     val scheduledDate: String,
 )
+
+@Composable
+@Suppress("FunctionNaming")
+private fun TodaySummaryStrip(state: HomeUiState.Content) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            SummaryMetricCard(
+                label = stringResource(id = R.string.today_section_overdue),
+                value = state.overdue.size,
+                modifier = Modifier.weight(1f),
+            )
+            SummaryMetricCard(
+                label = stringResource(id = R.string.today_section_due_today),
+                value = state.dueToday.size,
+                modifier = Modifier.weight(1f),
+            )
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            SummaryMetricCard(
+                label = stringResource(id = R.string.today_section_medication),
+                value = state.medication.count { it.status == "scheduled" || it.status == "missed" },
+                modifier = Modifier.weight(1f),
+            )
+            SummaryMetricCard(
+                label = stringResource(id = R.string.today_section_planned),
+                value = state.planned.count { !it.isDone },
+                modifier = Modifier.weight(1f),
+            )
+            SummaryMetricCard(
+                label = stringResource(id = R.string.today_section_routines),
+                value = state.routines.count { it.status == "pending" || it.status == "in_progress" },
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
+}
+
+@Composable
+@Suppress("FunctionNaming")
+private fun SummaryMetricCard(
+    label: String,
+    value: Int,
+    modifier: Modifier = Modifier,
+) {
+    Card(modifier = modifier) {
+        Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.primary,
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = value.toString(),
+                style = MaterialTheme.typography.headlineSmall,
+            )
+        }
+    }
+}
 
 @Composable
 private fun SectionHeader(
@@ -524,7 +593,7 @@ private fun PlannedItemCard(
                             stringResource(id = R.string.action_undo)
                         } else {
                             stringResource(id = R.string.action_done)
-                    },
+                        },
                 )
             }
             TextButton(onClick = onEdit) {
