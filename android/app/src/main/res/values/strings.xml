@@ -77,8 +77,10 @@
     <string name="medication_no_plans">No medication plans yet.</string>
     <string name="medication_no_history">No dose history yet.</string>
     <string name="medication_inactive">Inactive</string>
+    <string name="medication_active">Active</string>
     <string name="medication_add_plan">+ Add plan</string>
     <string name="medication_create_title">Add medication plan</string>
+    <string name="medication_edit_title">Edit medication plan</string>
     <string name="medication_name_label">Name</string>
     <string name="medication_instructions_label">Instructions</string>
     <string name="medication_time_label">Schedule time (HH:MM)</string>
@@ -100,6 +102,8 @@
     <string name="templates_add_chore">+ Add chore</string>
     <string name="templates_create_routine_title">Add routine template</string>
     <string name="templates_create_chore_title">Add chore template</string>
+    <string name="templates_edit_routine_title">Edit routine template</string>
+    <string name="templates_edit_chore_title">Edit chore template</string>
     <string name="templates_name_label">Name</string>
     <string name="templates_description_label">Description (optional)</string>
     <string name="templates_every_n_days_label">Every N days</string>

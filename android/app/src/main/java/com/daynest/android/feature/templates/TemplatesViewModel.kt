@@ -37,6 +37,8 @@ class TemplatesViewModel
                 TemplatesUiEvent.DismissCreateForm -> setCreateForm(null)
                 is TemplatesUiEvent.CreateRoutine -> createRoutine(event.input)
                 is TemplatesUiEvent.CreateChore -> createChore(event.input)
+                is TemplatesUiEvent.UpdateRoutine -> updateRoutine(event.id, event.input)
+                is TemplatesUiEvent.UpdateChore -> updateChore(event.id, event.input)
                 is TemplatesUiEvent.DeleteRoutine -> deleteRoutine(event.id)
                 is TemplatesUiEvent.DeleteChore -> deleteChore(event.id)
             }
@@ -100,6 +102,42 @@ class TemplatesViewModel
                     _uiState.update { current ->
                         if (current is TemplatesUiState.Content) {
                             current.copy(chores = current.chores + newChore, createForm = null)
+                        } else {
+                            current
+                        }
+                    }
+                }
+            }
+        }
+
+        private fun updateRoutine(
+            id: Int,
+            input: RoutineTemplateInputDto,
+        ) {
+            viewModelScope.launch {
+                val result = repository.updateRoutine(id, input)
+                result.onSuccess { updatedRoutine ->
+                    _uiState.update { current ->
+                        if (current is TemplatesUiState.Content) {
+                            current.copy(routines = current.routines.map { if (it.id == id) updatedRoutine else it })
+                        } else {
+                            current
+                        }
+                    }
+                }
+            }
+        }
+
+        private fun updateChore(
+            id: Int,
+            input: ChoreTemplateInputDto,
+        ) {
+            viewModelScope.launch {
+                val result = repository.updateChore(id, input)
+                result.onSuccess { updatedChore ->
+                    _uiState.update { current ->
+                        if (current is TemplatesUiState.Content) {
+                            current.copy(chores = current.chores.map { if (it.id == id) updatedChore else it })
                         } else {
                             current
                         }
@@ -174,6 +212,16 @@ sealed interface TemplatesUiEvent {
     ) : TemplatesUiEvent
 
     data class CreateChore(
+        val input: ChoreTemplateInputDto,
+    ) : TemplatesUiEvent
+
+    data class UpdateRoutine(
+        val id: Int,
+        val input: RoutineTemplateInputDto,
+    ) : TemplatesUiEvent
+
+    data class UpdateChore(
+        val id: Int,
         val input: ChoreTemplateInputDto,
     ) : TemplatesUiEvent
 

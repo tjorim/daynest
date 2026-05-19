@@ -15,6 +15,19 @@ class MedicationRepository
         suspend fun createPlan(request: MedicationPlanInputDto): Result<MedicationPlanDto> =
             safeApiCall { medicationApi.createPlan(request) }
 
+        @Suppress("ktlint:standard:function-signature")
+        suspend fun updatePlan(
+            id: Int,
+            request: MedicationPlanUpdateDto,
+        ): Result<MedicationPlanDto> =
+            safeApiCall { medicationApi.updatePlan(id, request) }
+
+        suspend fun deletePlan(id: Int): Result<Unit> =
+            safeApiCall {
+                medicationApi.deletePlan(id)
+                Unit
+            }
+
         suspend fun getHistory(): Result<List<MedicationHistoryItemDto>> =
             safeApiCall {
                 medicationApi.getHistory().history

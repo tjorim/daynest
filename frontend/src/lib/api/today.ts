@@ -276,6 +276,10 @@ export interface MedicationPlanInput {
   every_n_days: number;
 }
 
+export interface MedicationPlanUpdateInput extends MedicationPlanInput {
+  is_active: boolean;
+}
+
 export interface MedicationHistoryResponse {
   history: MedicationHistoryItem[];
 }
@@ -665,6 +669,32 @@ export async function createMedicationPlan(input: MedicationPlanInput): Promise<
     body: JSON.stringify(input),
   });
   return parseJsonResponse<MedicationPlan>(response, "Request failed", false);
+}
+
+export async function updateMedicationPlan(
+  medicationPlanId: number,
+  input: MedicationPlanUpdateInput,
+): Promise<MedicationPlan> {
+  const response = await fetchWithAuth(`/api/v1/medications/${medicationPlanId}`, {
+    method: "PUT",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(input),
+  });
+  return parseJsonResponse<MedicationPlan>(response, "Request failed", false);
+}
+
+export async function deleteMedicationPlan(medicationPlanId: number): Promise<void> {
+  const response = await fetchWithAuth(`/api/v1/medications/${medicationPlanId}`, {
+    method: "DELETE",
+    headers: { Accept: "application/json" },
+  });
+
+  if (!response.ok) {
+    await parseJsonResponse<never>(response, "Request failed", false);
+  }
 }
 
 export async function fetchMedicationHistory(
