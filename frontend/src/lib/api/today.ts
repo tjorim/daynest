@@ -1,4 +1,5 @@
 import { getOidcAccessToken } from "@/lib/auth/session";
+import { buildApiUrl } from "@/lib/api/serverConfig";
 import { z } from "zod";
 
 export type TaskStatus = "pending" | "in_progress" | "completed" | "skipped";
@@ -420,7 +421,8 @@ async function fetchWithAuth(
   if (!token) {
     throw new ApiError("Not authenticated", 401);
   }
-  return fetchWithRetry(input, withAuthHeader(init, token), retries);
+  const url = typeof input === "string" ? buildApiUrl(input) : input;
+  return fetchWithRetry(url, withAuthHeader(init, token), retries);
 }
 
 async function parseJsonResponse<T>(

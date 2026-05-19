@@ -11,6 +11,7 @@ import {
   startRoutineTask,
   takeMedicationDose,
   updatePlannedItem,
+  type PlannedItemModuleKey,
   type PlannedTodayItem,
 } from "@/lib/api/today";
 import { dayjs, toIsoDate } from "@/lib/dateUtils";
@@ -91,7 +92,7 @@ export function useTodayActions(onRefresh: () => Promise<void>) {
         title: string;
         planned_for: string;
         notes?: string | null;
-        module_key?: string | null;
+        module_key?: PlannedItemModuleKey | null;
         recurrence_hint?: string | null;
         linked_source?: string | null;
         linked_ref?: string | null;
