@@ -25,6 +25,8 @@
     <string name="today_overdue_since">Overdue since %1$s</string>
 
     <!-- Common actions -->
+    <string name="action_snooze">Snooze</string>
+    <string name="home_completion_ratio">Complete</string>
     <string name="action_done">Done</string>
     <string name="action_undo">Undo</string>
     <string name="action_skip">Skip</string>

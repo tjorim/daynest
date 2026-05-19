@@ -12,6 +12,7 @@ import com.daynest.android.data.today.RoutineTodayItemDto
 import com.daynest.android.data.today.TodayRepository
 import com.daynest.android.data.today.UpcomingTodayItemDto
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.time.LocalDate
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -95,6 +96,7 @@ class HomeViewModel
                 is HomeUiEvent.StartTaskClicked -> startTask(event.taskInstanceId)
                 is HomeUiEvent.SkipTaskClicked -> taskAction(event.taskInstanceId, complete = false)
                 is HomeUiEvent.RescheduleChoreClicked -> rescheduleChore(event.choreInstanceId, event.scheduledDate)
+                is HomeUiEvent.SnoozeChoreClicked -> snoozeChore(event.choreInstanceId)
                 is HomeUiEvent.TakeMedicationClicked -> doseAction(event.doseInstanceId, take = true)
                 is HomeUiEvent.SkipMedicationClicked -> doseAction(event.doseInstanceId, take = false)
                 is HomeUiEvent.MarkPlannedDoneClicked -> markPlannedDone(event.id, event.isDone)
@@ -119,6 +121,14 @@ class HomeViewModel
         ) {
             viewModelScope.launch {
                 val result = repository.rescheduleChore(id, scheduledDate)
+                if (result.isSuccess) refresh()
+            }
+        }
+
+        private fun snoozeChore(id: Int) {
+            viewModelScope.launch {
+                val tomorrow = LocalDate.now().plusDays(1).toString()
+                val result = repository.rescheduleChore(id, tomorrow)
                 if (result.isSuccess) refresh()
             }
         }
@@ -265,6 +275,10 @@ sealed interface HomeUiEvent {
     data class RescheduleChoreClicked(
         val choreInstanceId: Int,
         val scheduledDate: String,
+    ) : HomeUiEvent
+
+    data class SnoozeChoreClicked(
+        val choreInstanceId: Int,
     ) : HomeUiEvent
 
     data class TakeMedicationClicked(

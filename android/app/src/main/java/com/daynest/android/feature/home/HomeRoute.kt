@@ -212,6 +212,7 @@ private fun TodayContent(
                         },
                     onComplete = { onEvent(HomeUiEvent.CompleteChoreClicked(item.choreInstanceId)) },
                     onSkip = { onEvent(HomeUiEvent.SkipChoreClicked(item.choreInstanceId)) },
+                    onSnooze = { onEvent(HomeUiEvent.SnoozeChoreClicked(item.choreInstanceId)) },
                     onReschedule = {
                         rescheduleTarget =
                             RescheduleTarget(
@@ -234,6 +235,7 @@ private fun TodayContent(
                     subtitle = null,
                     onComplete = { onEvent(HomeUiEvent.CompleteChoreClicked(item.choreInstanceId)) },
                     onSkip = { onEvent(HomeUiEvent.SkipChoreClicked(item.choreInstanceId)) },
+                    onSnooze = { onEvent(HomeUiEvent.SnoozeChoreClicked(item.choreInstanceId)) },
                     onReschedule = {
                         rescheduleTarget =
                             RescheduleTarget(
@@ -346,6 +348,14 @@ private data class RescheduleTarget(
 @Composable
 @Suppress("FunctionNaming")
 private fun TodaySummaryStrip(state: HomeUiState.Content) {
+    val completedRoutines = state.routines.count { it.status == "completed" || it.status == "skipped" }
+    val completedMedication = state.medication.count { it.status != "scheduled" }
+    val completedPlanned = state.planned.count { it.isDone }
+    val totalItems = state.routines.size + state.medication.size + state.planned.size +
+        state.overdue.size + state.dueToday.size
+    val completedItems = completedRoutines + completedMedication + completedPlanned
+    val completionPct = if (totalItems == 0) 100 else (completedItems * 100 / totalItems)
+
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -359,6 +369,12 @@ private fun TodaySummaryStrip(state: HomeUiState.Content) {
             SummaryMetricCard(
                 label = stringResource(id = R.string.today_section_due_today),
                 value = state.dueToday.size,
+                modifier = Modifier.weight(1f),
+            )
+            SummaryMetricCard(
+                label = stringResource(id = R.string.home_completion_ratio),
+                value = completionPct,
+                valueSuffix = "%",
                 modifier = Modifier.weight(1f),
             )
         }
@@ -391,6 +407,7 @@ private fun SummaryMetricCard(
     label: String,
     value: Int,
     modifier: Modifier = Modifier,
+    valueSuffix: String = "",
 ) {
     Card(modifier = modifier) {
         Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
@@ -401,7 +418,7 @@ private fun SummaryMetricCard(
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = value.toString(),
+                text = "$value$valueSuffix",
                 style = MaterialTheme.typography.headlineSmall,
             )
         }
@@ -517,6 +534,7 @@ private fun ChoreCard(
     onComplete: () -> Unit,
     onSkip: () -> Unit,
     onReschedule: () -> Unit,
+    onSnooze: () -> Unit,
 ) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Row(
@@ -541,6 +559,9 @@ private fun ChoreCard(
             }
             TextButton(onClick = onSkip) {
                 Text(text = stringResource(id = R.string.action_skip))
+            }
+            TextButton(onClick = onSnooze) {
+                Text(text = stringResource(id = R.string.action_snooze))
             }
             TextButton(onClick = onReschedule) {
                 Text(text = stringResource(id = R.string.action_reschedule))
