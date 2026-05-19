@@ -162,4 +162,3 @@ sealed interface SettingsUiEvent {
         val url: String?,
     ) : SettingsUiEvent
 }
-
