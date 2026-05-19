@@ -30,6 +30,7 @@ junit = "4.13.2"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "androidx-core" }
+androidx-lifecycle-process = { group = "androidx.lifecycle", name = "lifecycle-process", version.ref = "androidx-lifecycle" }
 androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "androidx-lifecycle" }
 androidx-lifecycle-runtime-compose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "androidx-lifecycle" }
 androidx-lifecycle-viewmodel-ktx = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-ktx", version.ref = "androidx-lifecycle" }
@@ -71,6 +72,7 @@ openid-appauth = { group = "net.openid", name = "appauth", version.ref = "appaut
 
 [bundles]
 androidx-lifecycle = [
+    "androidx-lifecycle-process",
     "androidx-lifecycle-runtime-ktx",
     "androidx-lifecycle-runtime-compose",
     "androidx-lifecycle-viewmodel-ktx",

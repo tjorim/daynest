@@ -310,7 +310,7 @@ private fun ServerUrlPicker(
                         urlError = true
                     }
                 },
-                enabled = customInput.isNotBlank(),
+                enabled = customInput.trim().isNotBlank(),
                 modifier = Modifier.align(Alignment.End),
             ) {
                 Text(text = stringResource(id = R.string.settings_server_url_apply))

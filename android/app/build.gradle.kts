@@ -79,10 +79,10 @@ extensions.configure<ApplicationExtension> {
     namespace = "com.daynest.android"
     compileSdk = 37
 
-    val keystorePath = System.getenv("KEYSTORE_PATH")
-    val keystorePassword = System.getenv("STORE_PASSWORD")
-    val keystoreKeyAlias = System.getenv("KEY_ALIAS")
-    val keystoreKeyPassword = System.getenv("KEY_PASSWORD")
+    val keystorePath = localProperties.getProperty("keystorePath") ?: System.getenv("KEYSTORE_PATH")
+    val keystorePassword = localProperties.getProperty("keystorePassword") ?: System.getenv("STORE_PASSWORD")
+    val keystoreKeyAlias = localProperties.getProperty("keyAlias") ?: System.getenv("KEY_ALIAS")
+    val keystoreKeyPassword = localProperties.getProperty("keyPassword") ?: System.getenv("KEY_PASSWORD")
     signingConfigs {
         if (!keystorePath.isNullOrBlank() &&
             !keystorePassword.isNullOrBlank() &&

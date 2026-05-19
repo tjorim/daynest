@@ -1,13 +1,12 @@
 package com.daynest.android
 
 import android.app.Application
+import androidx.lifecycle.ProcessLifecycleOwner
+import androidx.lifecycle.lifecycleScope
 import com.daynest.android.core.network.ServerUrlHolder
 import com.daynest.android.core.storage.preferences.UserPreferencesRepository
 import dagger.hilt.android.HiltAndroidApp
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -20,21 +19,12 @@ class DaynestApplication : Application() {
     @Inject
     lateinit var serverUrlHolder: ServerUrlHolder
 
-    private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-
     override fun onCreate() {
         super.onCreate()
-        applicationScope.launch {
+        ProcessLifecycleOwner.get().lifecycleScope.launch(Dispatchers.IO) {
             userPreferencesRepository.preferences
                 .map { it.customServerUrl }
                 .collect { url -> serverUrlHolder.updateUrl(url) }
         }
-    }
-
-    // onTerminate is only called in emulator/test environments, never on real devices.
-    // The cancel here is harmless but kept for correctness in instrumented tests.
-    override fun onTerminate() {
-        super.onTerminate()
-        applicationScope.cancel()
     }
 }
