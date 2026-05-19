@@ -3,6 +3,7 @@ package com.daynest.android.core.di
 import com.daynest.android.BuildConfig
 import com.daynest.android.core.network.ApiConfig
 import com.daynest.android.core.network.AuthInterceptor
+import com.daynest.android.core.network.DynamicBaseUrlInterceptor
 import com.daynest.android.core.network.CertificatePinnerProvider
 import com.daynest.android.core.network.JsonSerializer
 import com.daynest.android.core.network.TokenAuthenticator

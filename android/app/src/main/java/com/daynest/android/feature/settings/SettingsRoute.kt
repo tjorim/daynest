@@ -232,77 +232,23 @@ private fun ServerUrlPicker(
     var urlError by remember(customServerUrl) { mutableStateOf(false) }
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        ExposedDropdownMenuBox(
+        ServerTypeDropdown(
+            isCustom = isCustom,
+            defaultServerUrl = defaultServerUrl,
             expanded = expanded,
             onExpandedChange = { expanded = it },
-        ) {
-            OutlinedTextField(
-                value =
-                    if (isCustom) {
-                        stringResource(id = R.string.settings_server_custom)
-                    } else {
-                        stringResource(id = R.string.settings_server_default)
-                    },
-                onValueChange = {},
-                readOnly = true,
-                label = { Text(text = stringResource(id = R.string.settings_server_label)) },
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .menuAnchor(MenuAnchorType.PrimaryNotEditable),
-            )
-            ExposedDropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false },
-            ) {
-                DropdownMenuItem(
-                    text = {
-                        Column {
-                            Text(text = stringResource(id = R.string.settings_server_default))
-                            Text(
-                                text = defaultServerUrl,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.outline,
-                            )
-                        }
-                    },
-                    onClick = {
-                        expanded = false
-                        onServerUrlChanged(null)
-                    },
-                )
-                DropdownMenuItem(
-                    text = { Text(text = stringResource(id = R.string.settings_server_custom)) },
-                    onClick = {
-                        expanded = false
-                        if (!isCustom) onServerUrlChanged(defaultServerUrl)
-                    },
-                )
-            }
-        }
-
+            onSelectDefault = { onServerUrlChanged(null) },
+            onSelectCustom = { if (!isCustom) onServerUrlChanged(defaultServerUrl) },
+        )
         if (isCustom) {
-            OutlinedTextField(
-                value = customInput,
+            CustomServerUrlInput(
+                customInput = customInput,
+                urlError = urlError,
                 onValueChange = {
                     customInput = it
                     urlError = false
                 },
-                isError = urlError,
-                supportingText =
-                    if (urlError) {
-                        { Text(text = stringResource(id = R.string.settings_server_url_error)) }
-                    } else {
-                        null
-                    },
-                label = { Text(text = stringResource(id = R.string.settings_server_url_label)) },
-                placeholder = { Text(text = stringResource(id = R.string.settings_server_url_placeholder)) },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            TextButton(
-                onClick = {
+                onApply = {
                     val trimmed = customInput.trim()
                     if (isValidUrl(trimmed)) {
                         onServerUrlChanged(trimmed)
@@ -310,11 +256,100 @@ private fun ServerUrlPicker(
                         urlError = true
                     }
                 },
-                enabled = customInput.trim().isNotBlank(),
-                modifier = Modifier.align(Alignment.End),
-            ) {
-                Text(text = stringResource(id = R.string.settings_server_url_apply))
-            }
+            )
+        }
+    }
+}
+
+@Composable
+private fun ServerTypeDropdown(
+    isCustom: Boolean,
+    defaultServerUrl: String,
+    expanded: Boolean,
+    onExpandedChange: (Boolean) -> Unit,
+    onSelectDefault: () -> Unit,
+    onSelectCustom: () -> Unit,
+) {
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = onExpandedChange,
+    ) {
+        OutlinedTextField(
+            value =
+                if (isCustom) {
+                    stringResource(id = R.string.settings_server_custom)
+                } else {
+                    stringResource(id = R.string.settings_server_default)
+                },
+            onValueChange = {},
+            readOnly = true,
+            label = { Text(text = stringResource(id = R.string.settings_server_label)) },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+        )
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { onExpandedChange(false) },
+        ) {
+            DropdownMenuItem(
+                text = {
+                    Column {
+                        Text(text = stringResource(id = R.string.settings_server_default))
+                        Text(
+                            text = defaultServerUrl,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.outline,
+                        )
+                    }
+                },
+                onClick = {
+                    onExpandedChange(false)
+                    onSelectDefault()
+                },
+            )
+            DropdownMenuItem(
+                text = { Text(text = stringResource(id = R.string.settings_server_custom)) },
+                onClick = {
+                    onExpandedChange(false)
+                    onSelectCustom()
+                },
+            )
+        }
+    }
+}
+
+@Composable
+private fun CustomServerUrlInput(
+    customInput: String,
+    urlError: Boolean,
+    onValueChange: (String) -> Unit,
+    onApply: () -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        OutlinedTextField(
+            value = customInput,
+            onValueChange = onValueChange,
+            isError = urlError,
+            supportingText =
+                if (urlError) {
+                    { Text(text = stringResource(id = R.string.settings_server_url_error)) }
+                } else {
+                    null
+                },
+            label = { Text(text = stringResource(id = R.string.settings_server_url_label)) },
+            placeholder = { Text(text = stringResource(id = R.string.settings_server_url_placeholder)) },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        TextButton(
+            onClick = onApply,
+            enabled = customInput.trim().isNotBlank(),
+            modifier = Modifier.align(Alignment.End),
+        ) {
+            Text(text = stringResource(id = R.string.settings_server_url_apply))
         }
     }
 }
