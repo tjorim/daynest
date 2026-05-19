@@ -52,6 +52,7 @@ class AppSettings(BaseSettings):
     trusted_hosts: Annotated[list[str], NoDecode] = Field(default_factory=lambda: ["localhost", "127.0.0.1"])
 
     metrics_secret: str | None = None
+    integration_key_hash_secret: str | None = None
 
     password_hash_iterations: int = 600000
 
@@ -79,7 +80,13 @@ class AppSettings(BaseSettings):
             raise ValueError("OIDC_ISSUER_URL must be set in non-dev environments")
         if not self.oidc_audience and self.oidc_algorithms != "none" and self.environment != "dev":
             raise ValueError("OIDC_AUDIENCE must be set in non-dev environments when using token verification")
+        if not self.integration_key_hash_secret and self.environment != "dev":
+            raise ValueError("INTEGRATION_KEY_HASH_SECRET must be set in non-dev environments")
         return self
+
+    @property
+    def resolved_integration_key_hash_secret(self) -> str:
+        return self.integration_key_hash_secret or "daynest-dev-integration-key-hash-secret"
 
     @property
     def resolved_db_password(self) -> str | None:

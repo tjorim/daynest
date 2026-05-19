@@ -1,4 +1,5 @@
 import asyncio
+from hashlib import sha256
 from datetime import datetime, time, timedelta, timezone
 
 import pytest
@@ -287,6 +288,12 @@ def test_mcp_backend_can_list_integration_clients(db_session: Session) -> None:
     assert clients[0]["name"] == "MCP Client"
     assert clients[0]["scopes"] == ["mcp:read", "ha:read"]
     assert clients[0]["is_active"] is True
+
+
+def test_integration_key_hash_is_not_plain_sha256() -> None:
+    raw_key = "daynest_secret_key"
+
+    assert hash_integration_key(raw_key) != sha256(raw_key.encode("utf-8")).hexdigest()
 
 
 def test_mcp_backend_can_create_integration_client(db_session: Session) -> None:
