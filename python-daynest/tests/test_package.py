@@ -1,6 +1,6 @@
 """Smoke tests verifying the package structure is importable."""
 
-from collections.abc import AsyncContextManager
+from typing import AsyncContextManager
 
 from daynest import (
     DaynestAuthError,

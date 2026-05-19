@@ -3,7 +3,7 @@ name: daynest-lib-release
 on:
   push:
     tags:
-      - 'lib/v*'
+      - 'python-daynest-v*'
 
 permissions:
   contents: read
