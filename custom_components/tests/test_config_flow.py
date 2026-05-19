@@ -4,16 +4,10 @@ from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
+from daynest.models import DaynestSummary
 import pytest
 
-from daynest.api.client import (
-    DaynestApiClientAuthenticationError,
-    DaynestApiClientMalformedResponseError,
-    DaynestApiClientServerUnavailableError,
-    DaynestApiClientTimeoutError,
-    DaynestSummary,
-)
-from daynest.config_flow import (
+from custom_components.daynest.config_flow import (
     ERROR_AUTH,
     ERROR_CANNOT_CONNECT,
     ERROR_TIMEOUT,
@@ -21,6 +15,7 @@ from daynest.config_flow import (
     ERROR_UNSUPPORTED_CONTRACT,
     DaynestConfigFlowHandler,
 )
+from daynest import DaynestAuthError, DaynestMalformedResponseError, DaynestServerUnavailableError, DaynestTimeoutError
 
 CONTRACT_HEADER_VALID = "home-assistant; version=ha.v1"
 CONTRACT_HEADER_UNSUPPORTED = "home-assistant; version=ha.v99"
@@ -60,8 +55,8 @@ class TestConfigFlowValidation:
     async def test_valid_credentials_return_no_errors(self) -> None:
         handler = _make_handler()
         with (
-            patch("daynest.config_flow.async_get_clientsession", return_value=MagicMock()),
-            patch("daynest.config_flow.DaynestApiClient") as MockClient,
+            patch("custom_components.daynest.config_flow.async_get_clientsession", return_value=MagicMock()),
+            patch("custom_components.daynest.config_flow.DaynestClient") as MockClient,
         ):
             MockClient.return_value.async_get_summary = AsyncMock(return_value=_make_summary_response())
             errors = await handler._async_validate_user_input(USER_INPUT)
@@ -70,11 +65,11 @@ class TestConfigFlowValidation:
     async def test_authentication_error_returns_invalid_auth(self) -> None:
         handler = _make_handler()
         with (
-            patch("daynest.config_flow.async_get_clientsession", return_value=MagicMock()),
-            patch("daynest.config_flow.DaynestApiClient") as MockClient,
+            patch("custom_components.daynest.config_flow.async_get_clientsession", return_value=MagicMock()),
+            patch("custom_components.daynest.config_flow.DaynestClient") as MockClient,
         ):
             MockClient.return_value.async_get_summary = AsyncMock(
-                side_effect=DaynestApiClientAuthenticationError()
+                side_effect=DaynestAuthError()
             )
             errors = await handler._async_validate_user_input(USER_INPUT)
         assert errors == {"base": ERROR_AUTH}
@@ -82,11 +77,11 @@ class TestConfigFlowValidation:
     async def test_timeout_error_returns_timeout(self) -> None:
         handler = _make_handler()
         with (
-            patch("daynest.config_flow.async_get_clientsession", return_value=MagicMock()),
-            patch("daynest.config_flow.DaynestApiClient") as MockClient,
+            patch("custom_components.daynest.config_flow.async_get_clientsession", return_value=MagicMock()),
+            patch("custom_components.daynest.config_flow.DaynestClient") as MockClient,
         ):
             MockClient.return_value.async_get_summary = AsyncMock(
-                side_effect=DaynestApiClientTimeoutError()
+                side_effect=DaynestTimeoutError()
             )
             errors = await handler._async_validate_user_input(USER_INPUT)
         assert errors == {"base": ERROR_TIMEOUT}
@@ -94,11 +89,11 @@ class TestConfigFlowValidation:
     async def test_server_unavailable_returns_cannot_connect(self) -> None:
         handler = _make_handler()
         with (
-            patch("daynest.config_flow.async_get_clientsession", return_value=MagicMock()),
-            patch("daynest.config_flow.DaynestApiClient") as MockClient,
+            patch("custom_components.daynest.config_flow.async_get_clientsession", return_value=MagicMock()),
+            patch("custom_components.daynest.config_flow.DaynestClient") as MockClient,
         ):
             MockClient.return_value.async_get_summary = AsyncMock(
-                side_effect=DaynestApiClientServerUnavailableError()
+                side_effect=DaynestServerUnavailableError()
             )
             errors = await handler._async_validate_user_input(USER_INPUT)
         assert errors == {"base": ERROR_CANNOT_CONNECT}
@@ -106,11 +101,11 @@ class TestConfigFlowValidation:
     async def test_malformed_response_returns_unsupported_contract(self) -> None:
         handler = _make_handler()
         with (
-            patch("daynest.config_flow.async_get_clientsession", return_value=MagicMock()),
-            patch("daynest.config_flow.DaynestApiClient") as MockClient,
+            patch("custom_components.daynest.config_flow.async_get_clientsession", return_value=MagicMock()),
+            patch("custom_components.daynest.config_flow.DaynestClient") as MockClient,
         ):
             MockClient.return_value.async_get_summary = AsyncMock(
-                side_effect=DaynestApiClientMalformedResponseError("bad payload")
+                side_effect=DaynestMalformedResponseError("bad payload")
             )
             errors = await handler._async_validate_user_input(USER_INPUT)
         assert errors == {"base": ERROR_UNSUPPORTED_CONTRACT}
@@ -118,8 +113,8 @@ class TestConfigFlowValidation:
     async def test_unexpected_exception_returns_unknown(self) -> None:
         handler = _make_handler()
         with (
-            patch("daynest.config_flow.async_get_clientsession", return_value=MagicMock()),
-            patch("daynest.config_flow.DaynestApiClient") as MockClient,
+            patch("custom_components.daynest.config_flow.async_get_clientsession", return_value=MagicMock()),
+            patch("custom_components.daynest.config_flow.DaynestClient") as MockClient,
         ):
             MockClient.return_value.async_get_summary = AsyncMock(
                 side_effect=RuntimeError("something went very wrong")
@@ -130,8 +125,8 @@ class TestConfigFlowValidation:
     async def test_unsupported_contract_version_returns_error(self) -> None:
         handler = _make_handler()
         with (
-            patch("daynest.config_flow.async_get_clientsession", return_value=MagicMock()),
-            patch("daynest.config_flow.DaynestApiClient") as MockClient,
+            patch("custom_components.daynest.config_flow.async_get_clientsession", return_value=MagicMock()),
+            patch("custom_components.daynest.config_flow.DaynestClient") as MockClient,
         ):
             MockClient.return_value.async_get_summary = AsyncMock(
                 return_value=_make_summary_response(CONTRACT_HEADER_UNSUPPORTED)
@@ -142,8 +137,8 @@ class TestConfigFlowValidation:
     async def test_missing_contract_header_returns_unsupported_contract(self) -> None:
         handler = _make_handler()
         with (
-            patch("daynest.config_flow.async_get_clientsession", return_value=MagicMock()),
-            patch("daynest.config_flow.DaynestApiClient") as MockClient,
+            patch("custom_components.daynest.config_flow.async_get_clientsession", return_value=MagicMock()),
+            patch("custom_components.daynest.config_flow.DaynestClient") as MockClient,
         ):
             MockClient.return_value.async_get_summary = AsyncMock(
                 return_value=_make_summary_response(None)
@@ -154,8 +149,8 @@ class TestConfigFlowValidation:
     async def test_empty_contract_header_returns_unsupported_contract(self) -> None:
         handler = _make_handler()
         with (
-            patch("daynest.config_flow.async_get_clientsession", return_value=MagicMock()),
-            patch("daynest.config_flow.DaynestApiClient") as MockClient,
+            patch("custom_components.daynest.config_flow.async_get_clientsession", return_value=MagicMock()),
+            patch("custom_components.daynest.config_flow.DaynestClient") as MockClient,
         ):
             MockClient.return_value.async_get_summary = AsyncMock(
                 return_value=_make_summary_response("")
@@ -166,8 +161,8 @@ class TestConfigFlowValidation:
     async def test_api_client_receives_correct_base_url(self) -> None:
         handler = _make_handler()
         with (
-            patch("daynest.config_flow.async_get_clientsession", return_value=MagicMock()),
-            patch("daynest.config_flow.DaynestApiClient") as MockClient,
+            patch("custom_components.daynest.config_flow.async_get_clientsession", return_value=MagicMock()),
+            patch("custom_components.daynest.config_flow.DaynestClient") as MockClient,
         ):
             MockClient.return_value.async_get_summary = AsyncMock(return_value=_make_summary_response())
             await handler._async_validate_user_input(USER_INPUT)
@@ -177,8 +172,8 @@ class TestConfigFlowValidation:
     async def test_api_client_receives_correct_integration_key(self) -> None:
         handler = _make_handler()
         with (
-            patch("daynest.config_flow.async_get_clientsession", return_value=MagicMock()),
-            patch("daynest.config_flow.DaynestApiClient") as MockClient,
+            patch("custom_components.daynest.config_flow.async_get_clientsession", return_value=MagicMock()),
+            patch("custom_components.daynest.config_flow.DaynestClient") as MockClient,
         ):
             MockClient.return_value.async_get_summary = AsyncMock(return_value=_make_summary_response())
             await handler._async_validate_user_input(USER_INPUT)

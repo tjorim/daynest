@@ -5,17 +5,17 @@ from __future__ import annotations
 from datetime import timedelta
 from typing import Any
 
+from daynest import (
+    DaynestAuthError,
+    DaynestClient,
+    DaynestCommunicationError,
+    DaynestError,
+    DaynestMalformedResponseError,
+)
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from .api import (
-    DaynestApiClient,
-    DaynestApiClientAuthenticationError,
-    DaynestApiClientCommunicationError,
-    DaynestApiClientError,
-    DaynestApiClientMalformedResponseError,
-)
 from .const import DOMAIN, LOGGER, SUPPORTED_INTEGRATION_CONTRACT_VERSIONS, parse_integration_contract_version
 from .data import DaynestConfigEntry
 
@@ -54,7 +54,7 @@ class DaynestDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self,
         hass: HomeAssistant,
         config_entry: DaynestConfigEntry,
-        client: DaynestApiClient,
+        client: DaynestClient,
     ) -> None:
         """Initialize the coordinator with fixed polling interval."""
         super().__init__(
@@ -95,13 +95,13 @@ class DaynestDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """Fetch dashboard data and map backend errors to HA coordinator errors."""
         try:
             response = await self._client.async_get_dashboard()
-        except DaynestApiClientAuthenticationError as err:
+        except DaynestAuthError as err:
             raise ConfigEntryAuthFailed from err
-        except DaynestApiClientCommunicationError as err:
+        except DaynestCommunicationError as err:
             raise UpdateFailed(f"Temporary communication failure: {err}") from err
-        except DaynestApiClientMalformedResponseError as err:
+        except DaynestMalformedResponseError as err:
             raise UpdateFailed(f"Malformed dashboard response: {err}") from err
-        except DaynestApiClientError as err:
+        except DaynestError as err:
             raise UpdateFailed(f"Unexpected API error while updating dashboard: {err}") from err
 
         parsed_contract = parse_integration_contract_version(response.integration_contract)

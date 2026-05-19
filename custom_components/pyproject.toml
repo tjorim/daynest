@@ -16,8 +16,12 @@ packages = ["daynest"]
 [dependency-groups]
 test = [
     "pytest-homeassistant-custom-component>=0.13.323",
+    "python-daynest",
     "ruff",
 ]
+
+[tool.uv.sources]
+python-daynest = { path = "../python-daynest", editable = true }
 
 [tool.pyright]
 include = ["daynest"]
@@ -41,13 +45,14 @@ reportMissingTypeStubs = "none"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["../python-daynest/src", ".."]
 norecursedirs = [".git", "testing_config"]
 log_format = "%(asctime)s.%(msecs)03d %(levelname)-8s %(threadName)s %(name)s:%(filename)s:%(lineno)s %(message)s"
 log_date_format = "%Y-%m-%d %H:%M:%S"
 asyncio_debug = true
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
-addopts = "-ra -q --strict-markers"
+addopts = "-ra -q --strict-markers --import-mode=importlib"
 markers = [
     "unit: Unit tests (fast, no external dependencies)",
     "integration: Integration tests (may use coordinator/time service)",

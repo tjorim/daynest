@@ -6,12 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from daynest.api.client import (
-    DaynestApiClientAuthenticationError,
-    DaynestApiClientCommunicationError,
-    DaynestApiClientError,
-)
-from daynest.services import (
+from custom_components.daynest.services import (
     ATTR_CHORE_INSTANCE_ID,
     ATTR_DAYS,
     ATTR_MEDICATION_DOSE_ID,
@@ -24,6 +19,7 @@ from daynest.services import (
     async_setup_services,
     async_unload_services,
 )
+from daynest import DaynestAuthError, DaynestCommunicationError, DaynestError
 from homeassistant.exceptions import HomeAssistantError
 
 
@@ -99,7 +95,7 @@ class TestHandleRefresh:
         await async_setup_services(hass)
         handler = await _get_handler(hass, SERVICE_REFRESH)
         service_call = _make_service_call()
-        with patch("daynest.services.LOGGER") as mock_logger:
+        with patch("custom_components.daynest.services.LOGGER") as mock_logger:
             await handler(service_call)
         mock_logger.warning.assert_called_once()
 
@@ -130,7 +126,7 @@ class TestHandleCompleteTask:
         hass = _make_hass(entries=[])
         await async_setup_services(hass)
         handler = await _get_handler(hass, SERVICE_COMPLETE_TASK)
-        with patch("daynest.services.LOGGER") as mock_logger:
+        with patch("custom_components.daynest.services.LOGGER") as mock_logger:
             await handler(_make_service_call(**{ATTR_CHORE_INSTANCE_ID: 42}))
         mock_logger.warning.assert_called_once()
 
@@ -139,7 +135,7 @@ class TestHandleCompleteTask:
         hass = _make_hass(entries=entries)
         await async_setup_services(hass)
         handler = await _get_handler(hass, SERVICE_COMPLETE_TASK)
-        with patch("daynest.services.LOGGER") as mock_logger:
+        with patch("custom_components.daynest.services.LOGGER") as mock_logger:
             await handler(_make_service_call(**{ATTR_CHORE_INSTANCE_ID: 42}))
         mock_logger.warning.assert_called_once()
         for entry in entries:
@@ -157,7 +153,7 @@ class TestHandleCompleteTask:
 
     async def test_authentication_error_raises_homeassistant_error(self) -> None:
         client = AsyncMock()
-        client.async_complete_task.side_effect = DaynestApiClientAuthenticationError()
+        client.async_complete_task.side_effect = DaynestAuthError()
         entry = _make_entry(client=client)
         hass = _make_hass(entries=[entry])
         await async_setup_services(hass)
@@ -167,7 +163,7 @@ class TestHandleCompleteTask:
 
     async def test_communication_error_raises_homeassistant_error(self) -> None:
         client = AsyncMock()
-        client.async_complete_task.side_effect = DaynestApiClientCommunicationError("network down")
+        client.async_complete_task.side_effect = DaynestCommunicationError("network down")
         entry = _make_entry(client=client)
         hass = _make_hass(entries=[entry])
         await async_setup_services(hass)
@@ -177,7 +173,7 @@ class TestHandleCompleteTask:
 
     async def test_generic_api_error_raises_homeassistant_error(self) -> None:
         client = AsyncMock()
-        client.async_complete_task.side_effect = DaynestApiClientError("generic")
+        client.async_complete_task.side_effect = DaynestError("generic")
         entry = _make_entry(client=client)
         hass = _make_hass(entries=[entry])
         await async_setup_services(hass)
@@ -187,7 +183,7 @@ class TestHandleCompleteTask:
 
     async def test_error_does_not_trigger_coordinator_refresh(self) -> None:
         client = AsyncMock()
-        client.async_complete_task.side_effect = DaynestApiClientError("fail")
+        client.async_complete_task.side_effect = DaynestError("fail")
         entry = _make_entry(client=client)
         hass = _make_hass(entries=[entry])
         await async_setup_services(hass)
@@ -206,7 +202,7 @@ class TestHandleSnoozeTask:
         hass = _make_hass(entries=[])
         await async_setup_services(hass)
         handler = await _get_handler(hass, SERVICE_SNOOZE_TASK)
-        with patch("daynest.services.LOGGER") as mock_logger:
+        with patch("custom_components.daynest.services.LOGGER") as mock_logger:
             await handler(_make_service_call(**{ATTR_CHORE_INSTANCE_ID: 1, ATTR_DAYS: 2}))
         mock_logger.warning.assert_called_once()
 
@@ -215,7 +211,7 @@ class TestHandleSnoozeTask:
         hass = _make_hass(entries=entries)
         await async_setup_services(hass)
         handler = await _get_handler(hass, SERVICE_SNOOZE_TASK)
-        with patch("daynest.services.LOGGER") as mock_logger:
+        with patch("custom_components.daynest.services.LOGGER") as mock_logger:
             await handler(_make_service_call(**{ATTR_CHORE_INSTANCE_ID: 1, ATTR_DAYS: 2}))
         mock_logger.warning.assert_called_once()
 
@@ -231,7 +227,7 @@ class TestHandleSnoozeTask:
 
     async def test_authentication_error_raises_homeassistant_error(self) -> None:
         client = AsyncMock()
-        client.async_snooze_task.side_effect = DaynestApiClientAuthenticationError()
+        client.async_snooze_task.side_effect = DaynestAuthError()
         entry = _make_entry(client=client)
         hass = _make_hass(entries=[entry])
         await async_setup_services(hass)
@@ -241,7 +237,7 @@ class TestHandleSnoozeTask:
 
     async def test_communication_error_raises_homeassistant_error(self) -> None:
         client = AsyncMock()
-        client.async_snooze_task.side_effect = DaynestApiClientCommunicationError("err")
+        client.async_snooze_task.side_effect = DaynestCommunicationError("err")
         entry = _make_entry(client=client)
         hass = _make_hass(entries=[entry])
         await async_setup_services(hass)
@@ -251,7 +247,7 @@ class TestHandleSnoozeTask:
 
     async def test_generic_api_error_raises_homeassistant_error(self) -> None:
         client = AsyncMock()
-        client.async_snooze_task.side_effect = DaynestApiClientError("oops")
+        client.async_snooze_task.side_effect = DaynestError("oops")
         entry = _make_entry(client=client)
         hass = _make_hass(entries=[entry])
         await async_setup_services(hass)
@@ -269,7 +265,7 @@ class TestHandleMarkMedicationTaken:
         hass = _make_hass(entries=[])
         await async_setup_services(hass)
         handler = await _get_handler(hass, SERVICE_MARK_MEDICATION_TAKEN)
-        with patch("daynest.services.LOGGER") as mock_logger:
+        with patch("custom_components.daynest.services.LOGGER") as mock_logger:
             await handler(_make_service_call(**{ATTR_MEDICATION_DOSE_ID: 10}))
         mock_logger.warning.assert_called_once()
 
@@ -278,7 +274,7 @@ class TestHandleMarkMedicationTaken:
         hass = _make_hass(entries=entries)
         await async_setup_services(hass)
         handler = await _get_handler(hass, SERVICE_MARK_MEDICATION_TAKEN)
-        with patch("daynest.services.LOGGER") as mock_logger:
+        with patch("custom_components.daynest.services.LOGGER") as mock_logger:
             await handler(_make_service_call(**{ATTR_MEDICATION_DOSE_ID: 10}))
         mock_logger.warning.assert_called_once()
 
@@ -294,7 +290,7 @@ class TestHandleMarkMedicationTaken:
 
     async def test_authentication_error_raises_homeassistant_error(self) -> None:
         client = AsyncMock()
-        client.async_mark_medication_taken.side_effect = DaynestApiClientAuthenticationError()
+        client.async_mark_medication_taken.side_effect = DaynestAuthError()
         entry = _make_entry(client=client)
         hass = _make_hass(entries=[entry])
         await async_setup_services(hass)
@@ -304,7 +300,7 @@ class TestHandleMarkMedicationTaken:
 
     async def test_communication_error_raises_homeassistant_error(self) -> None:
         client = AsyncMock()
-        client.async_mark_medication_taken.side_effect = DaynestApiClientCommunicationError("network")
+        client.async_mark_medication_taken.side_effect = DaynestCommunicationError("network")
         entry = _make_entry(client=client)
         hass = _make_hass(entries=[entry])
         await async_setup_services(hass)
@@ -314,7 +310,7 @@ class TestHandleMarkMedicationTaken:
 
     async def test_generic_api_error_raises_homeassistant_error(self) -> None:
         client = AsyncMock()
-        client.async_mark_medication_taken.side_effect = DaynestApiClientError("fail")
+        client.async_mark_medication_taken.side_effect = DaynestError("fail")
         entry = _make_entry(client=client)
         hass = _make_hass(entries=[entry])
         await async_setup_services(hass)
@@ -324,7 +320,7 @@ class TestHandleMarkMedicationTaken:
 
     async def test_error_does_not_trigger_coordinator_refresh(self) -> None:
         client = AsyncMock()
-        client.async_mark_medication_taken.side_effect = DaynestApiClientError("fail")
+        client.async_mark_medication_taken.side_effect = DaynestError("fail")
         entry = _make_entry(client=client)
         hass = _make_hass(entries=[entry])
         await async_setup_services(hass)
@@ -351,7 +347,7 @@ class TestHandleSkipTask:
 
     async def test_authentication_error_raises_homeassistant_error(self) -> None:
         client = AsyncMock()
-        client.async_skip_task.side_effect = DaynestApiClientAuthenticationError()
+        client.async_skip_task.side_effect = DaynestAuthError()
         entry = _make_entry(client=client)
         hass = _make_hass(entries=[entry])
         await async_setup_services(hass)

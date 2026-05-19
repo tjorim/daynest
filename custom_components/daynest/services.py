@@ -7,9 +7,9 @@ from typing import TYPE_CHECKING
 
 import voluptuous as vol
 
+from daynest import DaynestAuthError, DaynestCommunicationError, DaynestError
 from homeassistant.exceptions import HomeAssistantError
 
-from .api import DaynestApiClientAuthenticationError, DaynestApiClientCommunicationError, DaynestApiClientError
 from .const import DOMAIN, LOGGER
 
 if TYPE_CHECKING:
@@ -115,13 +115,13 @@ async def _handle_complete_task(hass: HomeAssistant, call: ServiceCall) -> None:
         return
     try:
         await entry.runtime_data.client.async_complete_task(chore_instance_id=chore_instance_id)
-    except DaynestApiClientAuthenticationError as err:
+    except DaynestAuthError as err:
         LOGGER.error("daynest.complete_task: authentication error for chore %s", chore_instance_id)
         raise HomeAssistantError(f"Authentication error completing chore {chore_instance_id}") from err
-    except DaynestApiClientCommunicationError as err:
+    except DaynestCommunicationError as err:
         LOGGER.error("daynest.complete_task: communication error for chore %s: %s", chore_instance_id, err)
         raise HomeAssistantError(f"Communication error completing chore {chore_instance_id}") from err
-    except DaynestApiClientError as err:
+    except DaynestError as err:
         LOGGER.error("daynest.complete_task: unexpected error for chore %s: %s", chore_instance_id, err)
         raise HomeAssistantError(f"Error completing chore {chore_instance_id}") from err
     LOGGER.debug("daynest.complete_task: chore %s marked as complete", chore_instance_id)
@@ -137,13 +137,13 @@ async def _handle_snooze_task(hass: HomeAssistant, call: ServiceCall) -> None:
         return
     try:
         await entry.runtime_data.client.async_snooze_task(chore_instance_id=chore_instance_id, days=days)
-    except DaynestApiClientAuthenticationError as err:
+    except DaynestAuthError as err:
         LOGGER.error("daynest.snooze_task: authentication error for chore %s", chore_instance_id)
         raise HomeAssistantError(f"Authentication error snoozing chore {chore_instance_id}") from err
-    except DaynestApiClientCommunicationError as err:
+    except DaynestCommunicationError as err:
         LOGGER.error("daynest.snooze_task: communication error for chore %s: %s", chore_instance_id, err)
         raise HomeAssistantError(f"Communication error snoozing chore {chore_instance_id}") from err
-    except DaynestApiClientError as err:
+    except DaynestError as err:
         LOGGER.error("daynest.snooze_task: unexpected error for chore %s: %s", chore_instance_id, err)
         raise HomeAssistantError(f"Error snoozing chore {chore_instance_id}") from err
     LOGGER.debug("daynest.snooze_task: chore %s snoozed by %s day(s)", chore_instance_id, days)
@@ -158,13 +158,13 @@ async def _handle_mark_medication_taken(hass: HomeAssistant, call: ServiceCall) 
         return
     try:
         await entry.runtime_data.client.async_mark_medication_taken(medication_dose_id=medication_dose_id)
-    except DaynestApiClientAuthenticationError as err:
+    except DaynestAuthError as err:
         LOGGER.error("daynest.mark_medication_taken: authentication error for dose %s", medication_dose_id)
         raise HomeAssistantError(f"Authentication error marking dose {medication_dose_id} taken") from err
-    except DaynestApiClientCommunicationError as err:
+    except DaynestCommunicationError as err:
         LOGGER.error("daynest.mark_medication_taken: communication error for dose %s: %s", medication_dose_id, err)
         raise HomeAssistantError(f"Communication error marking dose {medication_dose_id} taken") from err
-    except DaynestApiClientError as err:
+    except DaynestError as err:
         LOGGER.error("daynest.mark_medication_taken: unexpected error for dose %s: %s", medication_dose_id, err)
         raise HomeAssistantError(f"Error marking dose {medication_dose_id} taken") from err
     LOGGER.debug("daynest.mark_medication_taken: dose %s marked as taken", medication_dose_id)
@@ -179,13 +179,13 @@ async def _handle_skip_task(hass: HomeAssistant, call: ServiceCall) -> None:
         return
     try:
         await entry.runtime_data.client.async_skip_task(chore_instance_id=chore_instance_id)
-    except DaynestApiClientAuthenticationError as err:
+    except DaynestAuthError as err:
         LOGGER.error("daynest.skip_task: authentication error for chore %s", chore_instance_id)
         raise HomeAssistantError(f"Authentication error skipping chore {chore_instance_id}") from err
-    except DaynestApiClientCommunicationError as err:
+    except DaynestCommunicationError as err:
         LOGGER.error("daynest.skip_task: communication error for chore %s: %s", chore_instance_id, err)
         raise HomeAssistantError(f"Communication error skipping chore {chore_instance_id}") from err
-    except DaynestApiClientError as err:
+    except DaynestError as err:
         LOGGER.error("daynest.skip_task: unexpected error for chore %s: %s", chore_instance_id, err)
         raise HomeAssistantError(f"Error skipping chore {chore_instance_id}") from err
     LOGGER.debug("daynest.skip_task: chore %s skipped", chore_instance_id)
@@ -200,13 +200,13 @@ async def _handle_skip_medication(hass: HomeAssistant, call: ServiceCall) -> Non
         return
     try:
         await entry.runtime_data.client.async_skip_medication(medication_dose_id=medication_dose_id)
-    except DaynestApiClientAuthenticationError as err:
+    except DaynestAuthError as err:
         LOGGER.error("daynest.skip_medication: authentication error for dose %s", medication_dose_id)
         raise HomeAssistantError(f"Authentication error skipping dose {medication_dose_id}") from err
-    except DaynestApiClientCommunicationError as err:
+    except DaynestCommunicationError as err:
         LOGGER.error("daynest.skip_medication: communication error for dose %s: %s", medication_dose_id, err)
         raise HomeAssistantError(f"Communication error skipping dose {medication_dose_id}") from err
-    except DaynestApiClientError as err:
+    except DaynestError as err:
         LOGGER.error("daynest.skip_medication: unexpected error for dose %s: %s", medication_dose_id, err)
         raise HomeAssistantError(f"Error skipping dose {medication_dose_id}") from err
     LOGGER.debug("daynest.skip_medication: dose %s skipped", medication_dose_id)

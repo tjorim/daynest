@@ -6,7 +6,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from daynest.sensor import ENTITY_DESCRIPTIONS, DaynestMetricSensor, DaynestSensorEntityDescription
+from custom_components.daynest.sensor import ENTITY_DESCRIPTIONS, DaynestMetricSensor, DaynestSensorEntityDescription
 from homeassistant.components.sensor import SensorStateClass
 
 COORDINATOR_DATA = {
