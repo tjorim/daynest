@@ -2,6 +2,8 @@
 
 package com.daynest.android.feature.templates
 
+private const val DUE_TIME_DISPLAY_LENGTH = 5
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -381,7 +383,7 @@ private fun EditRoutineDialog(
         initialDescription = routine.description.orEmpty(),
         initialStartDate = routine.startDate,
         initialEveryNDays = routine.everyNDays.toString(),
-        initialDueTime = routine.dueTime?.take(5).orEmpty(),
+        initialDueTime = routine.dueTime?.take(DUE_TIME_DISPLAY_LENGTH).orEmpty(),
         initialIsActive = routine.isActive,
         confirmText = stringResource(id = R.string.action_save),
         onConfirm = onConfirm,
@@ -428,6 +430,33 @@ private fun CreateRoutineDialog(
 }
 
 @Composable
+private fun RoutineTemplateFields(
+    name: String,
+    onNameChange: (String) -> Unit,
+    description: String,
+    onDescriptionChange: (String) -> Unit,
+    startDate: String,
+    onStartDateChange: (String) -> Unit,
+    everyNDays: String,
+    onEveryNDaysChange: (String) -> Unit,
+    dueTime: String,
+    onDueTimeChange: (String) -> Unit,
+    isActive: Boolean,
+    onIsActiveToggle: () -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        OutlinedTextField(value = name, onValueChange = onNameChange, label = { Text(stringResource(R.string.templates_name_label)) }, singleLine = true)
+        OutlinedTextField(value = description, onValueChange = onDescriptionChange, label = { Text(stringResource(R.string.templates_description_label)) }, singleLine = true)
+        OutlinedTextField(value = startDate, onValueChange = onStartDateChange, label = { Text(stringResource(R.string.templates_start_date_label)) }, singleLine = true)
+        OutlinedTextField(value = everyNDays, onValueChange = { onEveryNDaysChange(it.filter { c -> c.isDigit() }) }, label = { Text(stringResource(R.string.templates_every_n_days_label)) }, singleLine = true)
+        OutlinedTextField(value = dueTime, onValueChange = onDueTimeChange, label = { Text(stringResource(R.string.templates_due_time_label)) }, singleLine = true)
+        TextButton(onClick = onIsActiveToggle) {
+            Text(text = if (isActive) stringResource(R.string.medication_active) else stringResource(R.string.templates_inactive))
+        }
+    }
+}
+
+@Composable
 private fun RoutineTemplateDialog(
     title: String,
     initialName: String,
@@ -451,48 +480,14 @@ private fun RoutineTemplateDialog(
         onDismissRequest = onDismiss,
         title = { Text(text = title) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    label = { Text(text = stringResource(id = R.string.templates_name_label)) },
-                    singleLine = true,
-                )
-                OutlinedTextField(
-                    value = description,
-                    onValueChange = { description = it },
-                    label = { Text(text = stringResource(id = R.string.templates_description_label)) },
-                    singleLine = true,
-                )
-                OutlinedTextField(
-                    value = startDate,
-                    onValueChange = { startDate = it },
-                    label = { Text(text = stringResource(id = R.string.templates_start_date_label)) },
-                    singleLine = true,
-                )
-                OutlinedTextField(
-                    value = everyNDays,
-                    onValueChange = { everyNDays = it.filter { c -> c.isDigit() } },
-                    label = { Text(text = stringResource(id = R.string.templates_every_n_days_label)) },
-                    singleLine = true,
-                )
-                OutlinedTextField(
-                    value = dueTime,
-                    onValueChange = { dueTime = it },
-                    label = { Text(text = stringResource(id = R.string.templates_due_time_label)) },
-                    singleLine = true,
-                )
-                TextButton(onClick = { isActive = !isActive }) {
-                    Text(
-                        text =
-                            if (isActive) {
-                                stringResource(id = R.string.medication_active)
-                            } else {
-                                stringResource(id = R.string.templates_inactive)
-                            },
-                    )
-                }
-            }
+            RoutineTemplateFields(
+                name = name, onNameChange = { name = it },
+                description = description, onDescriptionChange = { description = it },
+                startDate = startDate, onStartDateChange = { startDate = it },
+                everyNDays = everyNDays, onEveryNDaysChange = { everyNDays = it },
+                dueTime = dueTime, onDueTimeChange = { dueTime = it },
+                isActive = isActive, onIsActiveToggle = { isActive = !isActive },
+            )
         },
         confirmButton = {
             TextButton(
@@ -511,15 +506,9 @@ private fun RoutineTemplateDialog(
                     }
                 },
                 enabled = name.isNotBlank(),
-            ) {
-                Text(text = confirmText)
-            }
+            ) { Text(text = confirmText) }
         },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(text = stringResource(id = R.string.action_cancel))
-            }
-        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
     )
 }
 

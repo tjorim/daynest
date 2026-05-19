@@ -253,9 +253,10 @@ class CalendarViewModel
                     }
                 val imported = results.count { it.isSuccess }
                 val failed = results.count { it.isFailure }
+                val suffix = if (failed > 0) ", $failed failed." else "."
                 _uiState.update { current ->
                     if (current is CalendarUiState.Content) {
-                        current.copy(backupMessage = "Import complete. $imported imported${if (failed > 0) ", $failed failed" else ""}.")
+                        current.copy(backupMessage = "Import complete. $imported imported$suffix")
                     } else {
                         current
                     }

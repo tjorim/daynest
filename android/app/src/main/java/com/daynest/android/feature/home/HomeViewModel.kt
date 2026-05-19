@@ -23,6 +23,7 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
+@Suppress("TooManyFunctions")
 class HomeViewModel
     @Inject
     constructor(
@@ -196,7 +197,7 @@ class HomeViewModel
                 when (type) {
                     SectionType.CHORES -> content.selectedChoreIds.toList()
                     SectionType.ROUTINES -> content.selectedRoutineIds.toList()
-                    SectionType.PLANNED -> return
+                    SectionType.PLANNED -> emptyList()
                 }
             if (ids.isEmpty()) return
             viewModelScope.launch {
@@ -205,7 +206,7 @@ class HomeViewModel
                         when (type) {
                             SectionType.CHORES -> repository.completeChore(id)
                             SectionType.ROUTINES -> repository.completeTask(id)
-                            SectionType.PLANNED -> Result.failure(IllegalStateException())
+                            SectionType.PLANNED -> Result.failure(IllegalStateException("Bulk done not supported for PLANNED"))
                         }
                     }
                 }.awaitAll()
@@ -220,7 +221,7 @@ class HomeViewModel
                 when (type) {
                     SectionType.CHORES -> content.selectedChoreIds.toList()
                     SectionType.ROUTINES -> content.selectedRoutineIds.toList()
-                    SectionType.PLANNED -> return
+                    SectionType.PLANNED -> emptyList()
                 }
             if (ids.isEmpty()) return
             viewModelScope.launch {
@@ -229,7 +230,7 @@ class HomeViewModel
                         when (type) {
                             SectionType.CHORES -> repository.skipChore(id)
                             SectionType.ROUTINES -> repository.skipTask(id)
-                            SectionType.PLANNED -> Result.failure(IllegalStateException())
+                            SectionType.PLANNED -> Result.failure(IllegalStateException("Bulk skip not supported for PLANNED"))
                         }
                     }
                 }.awaitAll()
@@ -239,14 +240,16 @@ class HomeViewModel
         }
 
         private fun bulkUndo(type: SectionType) {
-            if (type != SectionType.PLANNED) return
-            val content = _uiState.value as? HomeUiState.Content ?: return
+            val content = (_uiState.value as? HomeUiState.Content)
+                ?.takeIf { type == SectionType.PLANNED } ?: return
             val ids = content.selectedPlannedIds.toList()
             if (ids.isEmpty()) return
             viewModelScope.launch {
                 ids.map { id ->
                     async {
-                        val item = content.planned.firstOrNull { it.id == id } ?: return@async Result.failure<Unit>(IllegalStateException())
+                        val item =
+                            content.planned.firstOrNull { it.id == id }
+                                ?: return@async Result.failure<Unit>(IllegalStateException("Planned item $id not found"))
                         repository.markPlannedDone(id, item, false)
                     }
                 }.awaitAll()

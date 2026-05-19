@@ -1,4 +1,4 @@
-@file:Suppress("ktlint:standard:function-naming", "FunctionNaming")
+@file:Suppress("ktlint:standard:function-naming", "FunctionNaming", "TooManyFunctions")
 
 package com.daynest.android.feature.home
 
@@ -206,7 +206,9 @@ private fun TodayContent(
                 RoutineCard(
                     item = item,
                     isSelected = state.selectedRoutineIds.contains(item.taskInstanceId),
-                    onToggleSelect = { onEvent(HomeUiEvent.ToggleSelection(SectionType.ROUTINES, item.taskInstanceId)) },
+                    onToggleSelect = {
+                        onEvent(HomeUiEvent.ToggleSelection(SectionType.ROUTINES, item.taskInstanceId))
+                    },
                     onStart = { onEvent(HomeUiEvent.StartTaskClicked(item.taskInstanceId)) },
                     onComplete = { onEvent(HomeUiEvent.CompleteTaskClicked(item.taskInstanceId)) },
                     onSkip = { onEvent(HomeUiEvent.SkipTaskClicked(item.taskInstanceId)) },

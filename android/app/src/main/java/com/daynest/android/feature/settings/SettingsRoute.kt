@@ -55,17 +55,29 @@ private val INTEGRATION_PRESETS =
         IntegrationPreset(
             labelResId = R.string.settings_preset_ha_dashboard,
             descriptionResId = R.string.settings_preset_ha_dashboard_desc,
-            input = IntegrationClientInputDto(name = "Home Assistant", scopes = listOf("ha:read"), rateLimitPerMinute = 120),
+            input = IntegrationClientInputDto(
+                name = "Home Assistant",
+                scopes = listOf("ha:read"),
+                rateLimitPerMinute = 120,
+            ),
         ),
         IntegrationPreset(
             labelResId = R.string.settings_preset_ha_automations,
             descriptionResId = R.string.settings_preset_ha_automations_desc,
-            input = IntegrationClientInputDto(name = "Home Assistant Automations", scopes = listOf("ha:read", "ha:write"), rateLimitPerMinute = 120),
+            input = IntegrationClientInputDto(
+                name = "Home Assistant Automations",
+                scopes = listOf("ha:read", "ha:write"),
+                rateLimitPerMinute = 120,
+            ),
         ),
         IntegrationPreset(
             labelResId = R.string.settings_preset_mcp_readonly,
             descriptionResId = R.string.settings_preset_mcp_readonly_desc,
-            input = IntegrationClientInputDto(name = "MCP Adapter", scopes = listOf("mcp:read"), rateLimitPerMinute = 60),
+            input = IntegrationClientInputDto(
+                name = "MCP Adapter",
+                scopes = listOf("mcp:read"),
+                rateLimitPerMinute = 60,
+            ),
         ),
     )
 
