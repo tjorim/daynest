@@ -9,6 +9,7 @@ import voluptuous as vol
 from daynest import (
     DaynestAuthError,
     DaynestClient,
+    DaynestCommunicationError,
     DaynestMalformedResponseError,
     DaynestServerUnavailableError,
     DaynestTimeoutError,
@@ -107,6 +108,9 @@ class DaynestConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             return {"base": ERROR_TIMEOUT}
         except DaynestServerUnavailableError as err:
             LOGGER.warning("Could not connect to Daynest during setup: %s", err)
+            return {"base": ERROR_CANNOT_CONNECT}
+        except DaynestCommunicationError as err:
+            LOGGER.warning("Communication error during Daynest setup: %s", err)
             return {"base": ERROR_CANNOT_CONNECT}
         except DaynestMalformedResponseError as err:
             LOGGER.warning("Malformed or unsupported Daynest setup response: %s", err)

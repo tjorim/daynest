@@ -59,14 +59,17 @@ class DaynestClient:
         self._integration_key = integration_key if integration_key is not None else password
         self._session = session
         self._owned_session = session is None
+        self._context_depth = 0
 
     async def __aenter__(self) -> DaynestClient:
+        self._context_depth += 1
         if self._owned_session and self._session is None:
             self._session = aiohttp.ClientSession()
         return self
 
     async def __aexit__(self, *args: object) -> None:
-        if self._owned_session and self._session is not None:
+        self._context_depth -= 1
+        if self._owned_session and self._context_depth == 0 and self._session is not None:
             await self._session.close()
             self._session = None
 

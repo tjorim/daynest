@@ -12,6 +12,7 @@ from daynest.exceptions import (
     DaynestAuthError,
     DaynestCommunicationError,
     DaynestMalformedResponseError,
+    DaynestNotFoundError,
     DaynestServerUnavailableError,
     DaynestTimeoutError,
 )
@@ -151,6 +152,22 @@ class TestDaynestClientRequests:
 
         with pytest.raises(DaynestAuthError):
             await client.async_get_summary()
+
+    async def test_404_raises_not_found_error(self) -> None:
+        response = _make_mock_response(404, {})
+        client = _make_client(response)
+
+        with pytest.raises(DaynestNotFoundError):
+            await client.async_get_summary()
+
+    async def test_404_on_dashboard_raises_not_found_error(self) -> None:
+        response = _make_mock_response(404, {})
+        session = MagicMock(spec=aiohttp.ClientSession)
+        session.get = MagicMock(return_value=response)
+        client = DaynestClient(base_url="https://api.example", integration_key="key", session=session)
+
+        with pytest.raises(DaynestNotFoundError):
+            await client.async_get_dashboard()
 
     async def test_500_raises_server_unavailable_error(self) -> None:
         response = _make_mock_response(500, {})
@@ -306,6 +323,13 @@ class TestDaynestClientWriteMethods:
         client = _make_post_client(response)
 
         with pytest.raises(DaynestAuthError):
+            await client.async_complete_task(chore_instance_id=1)
+
+    async def test_post_action_404_raises_not_found_error(self) -> None:
+        response = _make_mock_response(404, {})
+        client = _make_post_client(response)
+
+        with pytest.raises(DaynestNotFoundError):
             await client.async_complete_task(chore_instance_id=1)
 
     async def test_post_action_500_raises_server_unavailable_error(self) -> None:
@@ -534,6 +558,13 @@ class TestDaynestClientCalendarMethods:
         client = _make_list_client(response)
 
         with pytest.raises(DaynestAuthError):
+            await client.async_get_calendar(date(2026, 5, 1), date(2026, 5, 31))
+
+    async def test_calendar_404_raises_not_found_error(self) -> None:
+        response = _make_mock_response(404, {})
+        client = _make_list_client(response)
+
+        with pytest.raises(DaynestNotFoundError):
             await client.async_get_calendar(date(2026, 5, 1), date(2026, 5, 31))
 
     async def test_calendar_500_raises_server_unavailable_error(self) -> None:
