@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -242,7 +243,10 @@ private fun TodayContent(
             item {
                 SectionHeader(title = stringResource(id = R.string.today_section_medication_history))
             }
-            items(state.medicationHistory, key = { "medhist_${it.medicationDoseInstanceId}" }) { item ->
+            itemsIndexed(
+                state.medicationHistory,
+                key = { index, item -> "medhist_${item.medicationDoseInstanceId}_${item.scheduledAt}_$index" },
+            ) { _, item ->
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(12.dp)) {
                         Text(text = item.name, style = MaterialTheme.typography.bodyMedium)
@@ -290,6 +294,8 @@ private fun MedicationTodayCard(
     onTake: () -> Unit,
     onSkip: () -> Unit,
 ) {
+    val isScheduled = item.status == "scheduled"
+
     Card(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier =
@@ -308,11 +314,19 @@ private fun MedicationTodayCard(
                     )
                 }
             }
-            TextButton(onClick = onTake) {
-                Text(text = stringResource(id = R.string.action_take))
-            }
-            TextButton(onClick = onSkip) {
-                Text(text = stringResource(id = R.string.action_skip))
+            if (isScheduled) {
+                TextButton(onClick = onTake) {
+                    Text(text = stringResource(id = R.string.action_take))
+                }
+                TextButton(onClick = onSkip) {
+                    Text(text = stringResource(id = R.string.action_skip))
+                }
+            } else {
+                Text(
+                    text = item.status,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.outline,
+                )
             }
         }
     }

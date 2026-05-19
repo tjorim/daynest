@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -171,7 +172,12 @@ private fun MedicationContent(
                 )
             }
         } else {
-            items(state.history, key = { it.medicationDoseInstanceId }) { item ->
+            itemsIndexed(
+                state.history,
+                key = { index, item ->
+                    "history_${item.medicationDoseInstanceId}_${item.scheduledAt}_$index"
+                },
+            ) { _, item ->
                 MedicationHistoryCard(item = item)
             }
         }

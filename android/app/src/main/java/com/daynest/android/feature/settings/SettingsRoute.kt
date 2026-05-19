@@ -194,7 +194,7 @@ private fun SettingsContent(
                 )
             }
         } else {
-            items(state.clients, key = { it.id }) { client ->
+            items(state.clients, key = { "client_${it.id}" }) { client ->
                 IntegrationClientCard(client = client)
             }
         }

@@ -57,7 +57,12 @@ object NetworkDiModule {
             .authenticator(tokenAuthenticator)
             .apply {
                 if (BuildConfig.DEBUG) {
-                    addInterceptor(HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BODY })
+                    addInterceptor(
+                        HttpLoggingInterceptor().apply {
+                            redactHeader("Authorization")
+                            level = HttpLoggingInterceptor.Level.BODY
+                        },
+                    )
                 }
             }.build()
 
