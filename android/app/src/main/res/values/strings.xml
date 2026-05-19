@@ -66,6 +66,8 @@
     <string name="calendar_planned_linked_source_label">Linked source</string>
     <string name="calendar_planned_linked_ref_label">Linked reference</string>
     <string name="calendar_reschedule_chore_title">Reschedule chore</string>
+    <string name="calendar_export_backup">Export month</string>
+    <string name="calendar_import_backup">Import backup</string>
 
     <!-- Medication -->
     <string name="medication_title">Medication</string>
@@ -152,6 +154,10 @@
     <string name="settings_new_key_title">API Key Created</string>
     <string name="settings_new_key_notice">Copy this key now — it will not be shown again.</string>
     <string name="settings_new_key_dismiss">I\'ve copied it</string>
+    <string name="settings_sessions_section">Active Sessions</string>
+    <string name="settings_no_sessions">No active sessions.</string>
+    <string name="settings_session_last_active">Last active: %1$s</string>
+    <string name="settings_revoke_session">Revoke</string>
 
     <string name="parity_more_coming">Native editing controls will continue to grow from the same shared API contracts.</string>
 

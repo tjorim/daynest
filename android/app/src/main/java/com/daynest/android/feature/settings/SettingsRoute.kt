@@ -38,7 +38,11 @@ import com.daynest.android.app.navigation.DaynestDestination
 import com.daynest.android.app.navigation.DaynestNavigationScaffold
 import com.daynest.android.data.settings.IntegrationClientDto
 import com.daynest.android.data.settings.IntegrationClientInputDto
+import com.daynest.android.data.settings.OAuthSessionDto
 import com.daynest.android.ui.ServerUrlPicker
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 private data class IntegrationPreset(
     val labelResId: Int,
@@ -253,6 +257,31 @@ private fun SettingsContent(
                 IntegrationClientCard(client = client)
             }
         }
+
+        item {
+            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+            Text(
+                text = stringResource(id = R.string.settings_sessions_section),
+                style = MaterialTheme.typography.titleMedium,
+            )
+        }
+
+        if (state.sessions.isEmpty()) {
+            item {
+                Text(
+                    text = stringResource(id = R.string.settings_no_sessions),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.outline,
+                )
+            }
+        } else {
+            items(state.sessions, key = { "session_${it.id}" }) { session ->
+                OAuthSessionCard(
+                    session = session,
+                    onRevoke = { onEvent(SettingsUiEvent.RevokeSessionClicked(session.id)) },
+                )
+            }
+        }
     }
 
     if (state.showCreateForm) {
@@ -268,6 +297,56 @@ private fun SettingsContent(
             apiKey = state.newApiKey,
             onDismiss = { onEvent(SettingsUiEvent.DismissNewKeyDialog) },
         )
+    }
+}
+
+@Composable
+private fun OAuthSessionCard(
+    session: OAuthSessionDto,
+    onRevoke: () -> Unit,
+) {
+    val formatter = remember { DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm").withZone(ZoneId.systemDefault()) }
+    val lastActiveText =
+        remember(session.lastAccess) {
+            session.lastAccess?.let { formatter.format(Instant.ofEpochMilli(it)) }
+        }
+
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                val clientNames = session.clients.values.joinToString(", ").ifBlank { session.id.take(8) }
+                Text(text = clientNames, style = MaterialTheme.typography.bodyMedium)
+                if (!session.ipAddress.isNullOrBlank()) {
+                    Text(
+                        text = session.ipAddress,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.outline,
+                    )
+                }
+                if (lastActiveText != null) {
+                    Text(
+                        text = stringResource(id = R.string.settings_session_last_active, lastActiveText),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.outline,
+                    )
+                }
+            }
+            TextButton(
+                onClick = onRevoke,
+                colors =
+                    androidx.compose.material3.ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error,
+                    ),
+            ) {
+                Text(text = stringResource(id = R.string.settings_revoke_session))
+            }
+        }
     }
 }
 
