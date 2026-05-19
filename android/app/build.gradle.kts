@@ -166,7 +166,10 @@ extensions.configure<ApplicationExtension> {
             if (releaseSigningConfig != null) {
                 signingConfig = releaseSigningConfig
             } else if (isBuildTypeRequested("release")) {
-                error("Release build requested but signing credentials are not set (KEYSTORE_PATH, KEY_ALIAS, KEY_PASSWORD, STORE_PASSWORD).")
+                error(
+                    "Release build requested but signing credentials are not set " +
+                        "(KEYSTORE_PATH, KEY_ALIAS, KEY_PASSWORD, STORE_PASSWORD).",
+                )
             }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
