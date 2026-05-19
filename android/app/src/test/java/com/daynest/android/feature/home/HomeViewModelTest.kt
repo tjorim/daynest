@@ -10,6 +10,7 @@ import com.daynest.android.data.today.MedicationTodayItemDto
 import com.daynest.android.data.today.OverdueTodayItemDto
 import com.daynest.android.data.today.PlannedItemCreateDto
 import com.daynest.android.data.today.PlannedItemUpdateDto
+import com.daynest.android.data.today.RescheduleChoreDto
 import com.daynest.android.data.today.PlannedTodayItemDto
 import com.daynest.android.data.today.RoutineTodayItemDto
 import com.daynest.android.data.today.TaskMutationDto
@@ -245,6 +246,11 @@ private class StubTodayActionsApi : TodayActionsApi {
     override suspend fun completeChore(id: Int): ChoreMutationDto = ChoreMutationDto(id, "completed")
 
     override suspend fun skipChore(id: Int): ChoreMutationDto = ChoreMutationDto(id, "skipped")
+
+    override suspend fun rescheduleChore(
+        id: Int,
+        request: RescheduleChoreDto,
+    ): ChoreMutationDto = ChoreMutationDto(id, "pending")
 
     override suspend fun completeTask(id: Int): TaskMutationDto = TaskMutationDto(id, "completed")
 

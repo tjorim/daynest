@@ -29,6 +29,10 @@
     <string name="action_undo">Undo</string>
     <string name="action_skip">Skip</string>
     <string name="action_take">Take</string>
+    <string name="action_start">Start</string>
+    <string name="action_edit">Edit</string>
+    <string name="action_save">Save</string>
+    <string name="action_reschedule">Reschedule</string>
     <string name="action_delete">Delete</string>
     <string name="action_add">Add</string>
     <string name="action_cancel">Cancel</string>
@@ -51,7 +55,15 @@
     <string name="calendar_day_empty">No items for this day.</string>
     <string name="calendar_add_planned">+ Add planned</string>
     <string name="calendar_add_planned_title">Add planned item</string>
+    <string name="calendar_edit_planned_title">Edit planned item</string>
     <string name="calendar_planned_title_label">Title</string>
+    <string name="calendar_planned_date_label">Date (YYYY-MM-DD)</string>
+    <string name="calendar_planned_notes_label">Notes</string>
+    <string name="calendar_planned_module_label">Module key</string>
+    <string name="calendar_planned_recurrence_label">Recurrence hint</string>
+    <string name="calendar_planned_linked_source_label">Linked source</string>
+    <string name="calendar_planned_linked_ref_label">Linked reference</string>
+    <string name="calendar_reschedule_chore_title">Reschedule chore</string>
 
     <!-- Medication -->
     <string name="medication_title">Medication</string>

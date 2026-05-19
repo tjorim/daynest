@@ -92,10 +92,13 @@ class HomeViewModel
                 is HomeUiEvent.CompleteChoreClicked -> choreAction(event.choreInstanceId, complete = true)
                 is HomeUiEvent.SkipChoreClicked -> choreAction(event.choreInstanceId, complete = false)
                 is HomeUiEvent.CompleteTaskClicked -> taskAction(event.taskInstanceId, complete = true)
+                is HomeUiEvent.StartTaskClicked -> startTask(event.taskInstanceId)
                 is HomeUiEvent.SkipTaskClicked -> taskAction(event.taskInstanceId, complete = false)
+                is HomeUiEvent.RescheduleChoreClicked -> rescheduleChore(event.choreInstanceId, event.scheduledDate)
                 is HomeUiEvent.TakeMedicationClicked -> doseAction(event.doseInstanceId, take = true)
                 is HomeUiEvent.SkipMedicationClicked -> doseAction(event.doseInstanceId, take = false)
                 is HomeUiEvent.MarkPlannedDoneClicked -> markPlannedDone(event.id, event.isDone)
+                is HomeUiEvent.UpdatePlannedClicked -> updatePlanned(event.item)
                 is HomeUiEvent.DeletePlannedClicked -> deletePlanned(event.id)
             }
         }
@@ -106,6 +109,23 @@ class HomeViewModel
         ) {
             viewModelScope.launch {
                 val result = if (complete) repository.completeChore(id) else repository.skipChore(id)
+                if (result.isSuccess) refresh()
+            }
+        }
+
+        private fun rescheduleChore(
+            id: Int,
+            scheduledDate: String,
+        ) {
+            viewModelScope.launch {
+                val result = repository.rescheduleChore(id, scheduledDate)
+                if (result.isSuccess) refresh()
+            }
+        }
+
+        private fun startTask(id: Int) {
+            viewModelScope.launch {
+                val result = repository.startTask(id)
                 if (result.isSuccess) refresh()
             }
         }
@@ -126,6 +146,13 @@ class HomeViewModel
         ) {
             viewModelScope.launch {
                 val result = if (take) repository.takeDose(id) else repository.skipDose(id)
+                if (result.isSuccess) refresh()
+            }
+        }
+
+        private fun updatePlanned(item: PlannedTodayItemDto) {
+            viewModelScope.launch {
+                val result = repository.markPlannedDone(item.id, item, item.isDone)
                 if (result.isSuccess) refresh()
             }
         }
@@ -227,8 +254,17 @@ sealed interface HomeUiEvent {
         val taskInstanceId: Int,
     ) : HomeUiEvent
 
+    data class StartTaskClicked(
+        val taskInstanceId: Int,
+    ) : HomeUiEvent
+
     data class SkipTaskClicked(
         val taskInstanceId: Int,
+    ) : HomeUiEvent
+
+    data class RescheduleChoreClicked(
+        val choreInstanceId: Int,
+        val scheduledDate: String,
     ) : HomeUiEvent
 
     data class TakeMedicationClicked(
@@ -242,6 +278,10 @@ sealed interface HomeUiEvent {
     data class MarkPlannedDoneClicked(
         val id: Int,
         val isDone: Boolean,
+    ) : HomeUiEvent
+
+    data class UpdatePlannedClicked(
+        val item: PlannedTodayItemDto,
     ) : HomeUiEvent
 
     data class DeletePlannedClicked(

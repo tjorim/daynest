@@ -56,9 +56,22 @@ class TodayRepository
         suspend fun skipChore(choreInstanceId: Int): Result<ChoreMutationDto> =
             safeApiCall { todayActionsApi.skipChore(choreInstanceId) }
 
+        @Suppress("TooGenericExceptionCaught", "ktlint:standard:function-signature")
+        suspend fun rescheduleChore(
+            choreInstanceId: Int,
+            scheduledDate: String,
+        ): Result<ChoreMutationDto> =
+            safeApiCall {
+                todayActionsApi.rescheduleChore(choreInstanceId, RescheduleChoreDto(scheduledDate = scheduledDate))
+            }
+
         @Suppress("TooGenericExceptionCaught")
         suspend fun completeTask(taskInstanceId: Int): Result<TaskMutationDto> =
             safeApiCall { todayActionsApi.completeTask(taskInstanceId) }
+
+        @Suppress("TooGenericExceptionCaught")
+        suspend fun startTask(taskInstanceId: Int): Result<TaskMutationDto> =
+            safeApiCall { todayActionsApi.startTask(taskInstanceId) }
 
         @Suppress("TooGenericExceptionCaught", "ktlint:standard:function-signature")
         suspend fun skipTask(taskInstanceId: Int): Result<TaskMutationDto> =
@@ -88,6 +101,8 @@ class TodayRepository
                         notes = item.notes,
                         moduleKey = item.moduleKey,
                         recurrenceHint = item.recurrenceHint,
+                        linkedSource = item.linkedSource,
+                        linkedRef = item.linkedRef,
                     ),
                 )
             }

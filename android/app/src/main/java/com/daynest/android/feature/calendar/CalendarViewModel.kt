@@ -39,7 +39,7 @@ class CalendarViewModel
                 is CalendarUiEvent.NextMonthClicked -> navigateMonth(1)
                 is CalendarUiEvent.DaySelected -> loadDay(event.date)
                 is CalendarUiEvent.DayDeselected -> clearDay()
-                is CalendarUiEvent.AddPlannedItem -> addPlannedItem(event.title, event.date)
+                is CalendarUiEvent.AddPlannedItem -> addPlannedItem(event.input)
                 is CalendarUiEvent.DeletePlannedItem -> deletePlannedItem(event.id, event.date)
                 is CalendarUiEvent.RetryClicked -> retryCurrentMonth()
             }
@@ -159,19 +159,16 @@ class CalendarViewModel
             }
         }
 
-        private fun addPlannedItem(
-            title: String,
-            date: String,
-        ) {
+        private fun addPlannedItem(input: PlannedItemCreateDto) {
             viewModelScope.launch {
-                val result = todayRepository.createPlannedItem(PlannedItemCreateDto(title = title, plannedFor = date))
+                val result = todayRepository.createPlannedItem(input)
                 result.onSuccess { plannedItem ->
                     _uiState.update { current ->
                         if (current is CalendarUiState.Content) {
                             current.copy(
-                                days = current.days.adjustPlannedSummary(date = date, delta = 1),
+                                days = current.days.adjustPlannedSummary(date = input.plannedFor, delta = 1),
                                 dayItems =
-                                    if (current.selectedDate == date) {
+                                    if (current.selectedDate == input.plannedFor) {
                                         current.dayItems + plannedItem.toUnifiedDayItem()
                                     } else {
                                         current.dayItems
@@ -289,8 +286,7 @@ sealed interface CalendarUiEvent {
     data object DayDeselected : CalendarUiEvent
 
     data class AddPlannedItem(
-        val title: String,
-        val date: String,
+        val input: PlannedItemCreateDto,
     ) : CalendarUiEvent
 
     data class DeletePlannedItem(

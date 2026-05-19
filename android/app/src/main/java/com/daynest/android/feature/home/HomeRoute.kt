@@ -14,15 +14,20 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
@@ -120,6 +125,9 @@ private fun TodayContent(
     onEvent: (HomeUiEvent) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    var rescheduleTarget by remember { mutableStateOf<RescheduleTarget?>(null) }
+    var plannedEditTarget by remember { mutableStateOf<PlannedTodayItemDto?>(null) }
+
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
@@ -175,6 +183,7 @@ private fun TodayContent(
             items(state.routines, key = { "routine_${it.taskInstanceId}" }) { item ->
                 RoutineCard(
                     item = item,
+                    onStart = { onEvent(HomeUiEvent.StartTaskClicked(item.taskInstanceId)) },
                     onComplete = { onEvent(HomeUiEvent.CompleteTaskClicked(item.taskInstanceId)) },
                     onSkip = { onEvent(HomeUiEvent.SkipTaskClicked(item.taskInstanceId)) },
                 )
@@ -199,6 +208,14 @@ private fun TodayContent(
                         },
                     onComplete = { onEvent(HomeUiEvent.CompleteChoreClicked(item.choreInstanceId)) },
                     onSkip = { onEvent(HomeUiEvent.SkipChoreClicked(item.choreInstanceId)) },
+                    onReschedule = {
+                        rescheduleTarget =
+                            RescheduleTarget(
+                                id = item.choreInstanceId,
+                                title = item.title,
+                                scheduledDate = item.overdueSince,
+                            )
+                    },
                 )
             }
         }
@@ -213,6 +230,14 @@ private fun TodayContent(
                     subtitle = null,
                     onComplete = { onEvent(HomeUiEvent.CompleteChoreClicked(item.choreInstanceId)) },
                     onSkip = { onEvent(HomeUiEvent.SkipChoreClicked(item.choreInstanceId)) },
+                    onReschedule = {
+                        rescheduleTarget =
+                            RescheduleTarget(
+                                id = item.choreInstanceId,
+                                title = item.title,
+                                scheduledDate = item.scheduledDate,
+                            )
+                    },
                 )
             }
         }
@@ -225,6 +250,7 @@ private fun TodayContent(
                 PlannedItemCard(
                     item = item,
                     onToggleDone = { onEvent(HomeUiEvent.MarkPlannedDoneClicked(item.id, !item.isDone)) },
+                    onEdit = { plannedEditTarget = item },
                     onDelete = { onEvent(HomeUiEvent.DeletePlannedClicked(item.id)) },
                 )
             }
@@ -235,7 +261,17 @@ private fun TodayContent(
                 SectionHeader(title = stringResource(id = R.string.today_section_upcoming))
             }
             items(state.upcoming, key = { "upcoming_${it.choreInstanceId}" }) { item ->
-                UpcomingChoreCard(item = item)
+                UpcomingChoreCard(
+                    item = item,
+                    onReschedule = {
+                        rescheduleTarget =
+                            RescheduleTarget(
+                                id = item.choreInstanceId,
+                                title = item.title,
+                                scheduledDate = item.scheduledDate,
+                            )
+                    },
+                )
             }
         }
 
@@ -272,7 +308,36 @@ private fun TodayContent(
             }
         }
     }
+
+    rescheduleTarget?.let { target ->
+        RescheduleChoreDialog(
+            target = target,
+            onConfirm = { scheduledDate ->
+                onEvent(HomeUiEvent.RescheduleChoreClicked(target.id, scheduledDate))
+                rescheduleTarget = null
+            },
+            onDismiss = { rescheduleTarget = null },
+        )
+    }
+
+    plannedEditTarget?.let { item ->
+        PlannedItemDialog(
+            titleRes = R.string.calendar_edit_planned_title,
+            item = item,
+            onConfirm = {
+                onEvent(HomeUiEvent.UpdatePlannedClicked(it))
+                plannedEditTarget = null
+            },
+            onDismiss = { plannedEditTarget = null },
+        )
+    }
 }
+
+private data class RescheduleTarget(
+    val id: Int,
+    val title: String,
+    val scheduledDate: String,
+)
 
 @Composable
 private fun SectionHeader(
@@ -336,10 +401,14 @@ private fun MedicationTodayCard(
 @Suppress("FunctionNaming")
 private fun RoutineCard(
     item: RoutineTodayItemDto,
+    onStart: () -> Unit,
     onComplete: () -> Unit,
     onSkip: () -> Unit,
 ) {
     val isDone = item.status == "completed"
+    val isSkipped = item.status == "skipped"
+    val canStart = item.status == "pending"
+    val canMutate = !isDone && !isSkipped
     Card(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier =
@@ -354,7 +423,12 @@ private fun RoutineCard(
                 textDecoration = if (isDone) TextDecoration.LineThrough else TextDecoration.None,
                 modifier = Modifier.weight(1f),
             )
-            if (!isDone) {
+            if (canMutate) {
+                if (canStart) {
+                    TextButton(onClick = onStart) {
+                        Text(text = stringResource(id = R.string.action_start))
+                    }
+                }
                 TextButton(onClick = onComplete) {
                     Text(text = stringResource(id = R.string.action_done))
                 }
@@ -373,6 +447,7 @@ private fun ChoreCard(
     subtitle: String?,
     onComplete: () -> Unit,
     onSkip: () -> Unit,
+    onReschedule: () -> Unit,
 ) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Row(
@@ -398,6 +473,9 @@ private fun ChoreCard(
             TextButton(onClick = onSkip) {
                 Text(text = stringResource(id = R.string.action_skip))
             }
+            TextButton(onClick = onReschedule) {
+                Text(text = stringResource(id = R.string.action_reschedule))
+            }
         }
     }
 }
@@ -407,6 +485,7 @@ private fun ChoreCard(
 private fun PlannedItemCard(
     item: PlannedTodayItemDto,
     onToggleDone: () -> Unit,
+    onEdit: () -> Unit,
     onDelete: () -> Unit,
 ) {
     Card(modifier = Modifier.fillMaxWidth()) {
@@ -445,8 +524,11 @@ private fun PlannedItemCard(
                             stringResource(id = R.string.action_undo)
                         } else {
                             stringResource(id = R.string.action_done)
-                        },
+                    },
                 )
+            }
+            TextButton(onClick = onEdit) {
+                Text(text = stringResource(id = R.string.action_edit))
             }
             TextButton(
                 onClick = onDelete,
@@ -463,7 +545,10 @@ private fun PlannedItemCard(
 
 @Composable
 @Suppress("FunctionNaming")
-private fun UpcomingChoreCard(item: UpcomingTodayItemDto) {
+private fun UpcomingChoreCard(
+    item: UpcomingTodayItemDto,
+    onReschedule: () -> Unit,
+) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier =
@@ -484,6 +569,139 @@ private fun UpcomingChoreCard(item: UpcomingTodayItemDto) {
                     color = MaterialTheme.colorScheme.outline,
                 )
             }
+            TextButton(onClick = onReschedule) {
+                Text(text = stringResource(id = R.string.action_reschedule))
+            }
         }
     }
+}
+
+@Composable
+private fun RescheduleChoreDialog(
+    target: RescheduleTarget,
+    onConfirm: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var scheduledDate by remember(target) { mutableStateOf(target.scheduledDate) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(text = stringResource(id = R.string.calendar_reschedule_chore_title)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(text = target.title, style = MaterialTheme.typography.bodyMedium)
+                OutlinedTextField(
+                    value = scheduledDate,
+                    onValueChange = { scheduledDate = it },
+                    label = { Text(text = stringResource(id = R.string.calendar_planned_date_label)) },
+                    singleLine = true,
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onConfirm(scheduledDate.trim()) },
+                enabled = scheduledDate.isNotBlank(),
+            ) {
+                Text(text = stringResource(id = R.string.action_save))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(text = stringResource(id = R.string.action_cancel))
+            }
+        },
+    )
+}
+
+@Composable
+@Suppress("LongMethod")
+private fun PlannedItemDialog(
+    titleRes: Int,
+    item: PlannedTodayItemDto,
+    onConfirm: (PlannedTodayItemDto) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var title by remember(item) { mutableStateOf(item.title) }
+    var plannedFor by remember(item) { mutableStateOf(item.plannedFor) }
+    var notes by remember(item) { mutableStateOf(item.notes.orEmpty()) }
+    var moduleKey by remember(item) { mutableStateOf(item.moduleKey.orEmpty()) }
+    var recurrenceHint by remember(item) { mutableStateOf(item.recurrenceHint.orEmpty()) }
+    var linkedSource by remember(item) { mutableStateOf(item.linkedSource.orEmpty()) }
+    var linkedRef by remember(item) { mutableStateOf(item.linkedRef.orEmpty()) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(text = stringResource(id = titleRes)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = title,
+                    onValueChange = { title = it },
+                    label = { Text(text = stringResource(id = R.string.calendar_planned_title_label)) },
+                    singleLine = true,
+                )
+                OutlinedTextField(
+                    value = plannedFor,
+                    onValueChange = { plannedFor = it },
+                    label = { Text(text = stringResource(id = R.string.calendar_planned_date_label)) },
+                    singleLine = true,
+                )
+                OutlinedTextField(
+                    value = notes,
+                    onValueChange = { notes = it },
+                    label = { Text(text = stringResource(id = R.string.calendar_planned_notes_label)) },
+                )
+                OutlinedTextField(
+                    value = moduleKey,
+                    onValueChange = { moduleKey = it },
+                    label = { Text(text = stringResource(id = R.string.calendar_planned_module_label)) },
+                    singleLine = true,
+                )
+                OutlinedTextField(
+                    value = recurrenceHint,
+                    onValueChange = { recurrenceHint = it },
+                    label = { Text(text = stringResource(id = R.string.calendar_planned_recurrence_label)) },
+                    singleLine = true,
+                )
+                OutlinedTextField(
+                    value = linkedSource,
+                    onValueChange = { linkedSource = it },
+                    label = { Text(text = stringResource(id = R.string.calendar_planned_linked_source_label)) },
+                    singleLine = true,
+                )
+                OutlinedTextField(
+                    value = linkedRef,
+                    onValueChange = { linkedRef = it },
+                    label = { Text(text = stringResource(id = R.string.calendar_planned_linked_ref_label)) },
+                    singleLine = true,
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    onConfirm(
+                        item.copy(
+                            title = title.trim(),
+                            plannedFor = plannedFor.trim(),
+                            notes = notes.trim().ifBlank { null },
+                            moduleKey = moduleKey.trim().ifBlank { null },
+                            recurrenceHint = recurrenceHint.trim().ifBlank { null },
+                            linkedSource = linkedSource.trim().ifBlank { null },
+                            linkedRef = linkedRef.trim().ifBlank { null },
+                        ),
+                    )
+                },
+                enabled = title.isNotBlank() && plannedFor.isNotBlank(),
+            ) {
+                Text(text = stringResource(id = R.string.action_save))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(text = stringResource(id = R.string.action_cancel))
+            }
+        },
+    )
 }

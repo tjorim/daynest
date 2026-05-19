@@ -45,6 +45,7 @@ import com.daynest.android.app.navigation.DaynestDestination
 import com.daynest.android.app.navigation.DaynestNavigationScaffold
 import com.daynest.android.data.calendar.CalendarDaySummaryDto
 import com.daynest.android.data.calendar.UnifiedDayItemDto
+import com.daynest.android.data.today.PlannedItemCreateDto
 import java.time.LocalDate
 import java.time.format.TextStyle
 import java.time.temporal.WeekFields
@@ -214,8 +215,9 @@ private fun CalendarContent(
 
     if (showAddDialog && state.selectedDate != null) {
         AddPlannedItemDialog(
-            onConfirm = { title ->
-                onEvent(CalendarUiEvent.AddPlannedItem(title, state.selectedDate))
+            selectedDate = state.selectedDate,
+            onConfirm = { input ->
+                onEvent(CalendarUiEvent.AddPlannedItem(input))
                 showAddDialog = false
             },
             onDismiss = { showAddDialog = false },
@@ -431,25 +433,82 @@ private fun DayItemCard(
 
 @Composable
 private fun AddPlannedItemDialog(
-    onConfirm: (String) -> Unit,
+    selectedDate: String,
+    onConfirm: (PlannedItemCreateDto) -> Unit,
     onDismiss: () -> Unit,
 ) {
     var title by remember { mutableStateOf("") }
+    var plannedFor by remember(selectedDate) { mutableStateOf(selectedDate) }
+    var notes by remember { mutableStateOf("") }
+    var moduleKey by remember { mutableStateOf("") }
+    var recurrenceHint by remember { mutableStateOf("") }
+    var linkedSource by remember { mutableStateOf("") }
+    var linkedRef by remember { mutableStateOf("") }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(text = stringResource(id = R.string.calendar_add_planned_title)) },
         text = {
-            OutlinedTextField(
-                value = title,
-                onValueChange = { title = it },
-                label = { Text(text = stringResource(id = R.string.calendar_planned_title_label)) },
-                singleLine = true,
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = title,
+                    onValueChange = { title = it },
+                    label = { Text(text = stringResource(id = R.string.calendar_planned_title_label)) },
+                    singleLine = true,
+                )
+                OutlinedTextField(
+                    value = plannedFor,
+                    onValueChange = { plannedFor = it },
+                    label = { Text(text = stringResource(id = R.string.calendar_planned_date_label)) },
+                    singleLine = true,
+                )
+                OutlinedTextField(
+                    value = notes,
+                    onValueChange = { notes = it },
+                    label = { Text(text = stringResource(id = R.string.calendar_planned_notes_label)) },
+                )
+                OutlinedTextField(
+                    value = moduleKey,
+                    onValueChange = { moduleKey = it },
+                    label = { Text(text = stringResource(id = R.string.calendar_planned_module_label)) },
+                    singleLine = true,
+                )
+                OutlinedTextField(
+                    value = recurrenceHint,
+                    onValueChange = { recurrenceHint = it },
+                    label = { Text(text = stringResource(id = R.string.calendar_planned_recurrence_label)) },
+                    singleLine = true,
+                )
+                OutlinedTextField(
+                    value = linkedSource,
+                    onValueChange = { linkedSource = it },
+                    label = { Text(text = stringResource(id = R.string.calendar_planned_linked_source_label)) },
+                    singleLine = true,
+                )
+                OutlinedTextField(
+                    value = linkedRef,
+                    onValueChange = { linkedRef = it },
+                    label = { Text(text = stringResource(id = R.string.calendar_planned_linked_ref_label)) },
+                    singleLine = true,
+                )
+            }
         },
         confirmButton = {
             TextButton(
-                onClick = { if (title.isNotBlank()) onConfirm(title.trim()) },
-                enabled = title.isNotBlank(),
+                onClick = {
+                    onConfirm(
+                        PlannedItemCreateDto(
+                            title = title.trim(),
+                            plannedFor = plannedFor.trim(),
+                            notes = notes.trim().ifBlank { null },
+                            moduleKey = moduleKey.trim().ifBlank { null },
+                            recurrenceHint = recurrenceHint.trim().ifBlank { null },
+                            linkedSource = linkedSource.trim().ifBlank { null },
+                            linkedRef = linkedRef.trim().ifBlank { null },
+                        ),
+                    )
+                },
+                enabled = title.isNotBlank() && plannedFor.isNotBlank(),
             ) {
                 Text(text = stringResource(id = R.string.action_add))
             }
