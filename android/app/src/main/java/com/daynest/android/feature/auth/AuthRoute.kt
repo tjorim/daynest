@@ -21,9 +21,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.daynest.android.R
+import com.daynest.android.ui.ServerUrlPicker
 
 @Composable
 fun AuthRoute(
@@ -49,13 +50,18 @@ fun AuthRoute(
         if (uiState.isSignedIn) onSignedIn()
     }
 
-    AuthScreen(uiState = uiState, onSignInClicked = viewModel::onSignInClicked)
+    AuthScreen(
+        uiState = uiState,
+        onSignInClicked = viewModel::onSignInClicked,
+        onServerUrlChanged = viewModel::updateServerUrl,
+    )
 }
 
 @Composable
 internal fun AuthScreen(
     uiState: AuthUiState,
     onSignInClicked: () -> Unit,
+    onServerUrlChanged: (String?) -> Unit,
 ) {
     Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
         Column(
@@ -70,6 +76,12 @@ internal fun AuthScreen(
             Text(
                 text = stringResource(R.string.auth_title),
                 style = MaterialTheme.typography.headlineMedium,
+            )
+            ServerUrlPicker(
+                defaultServerUrl = uiState.defaultServerUrl,
+                customServerUrl = uiState.customServerUrl,
+                onServerUrlChanged = onServerUrlChanged,
+                modifier = Modifier.padding(top = 24.dp),
             )
             if (uiState.error != null) {
                 Text(
