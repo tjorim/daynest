@@ -24,8 +24,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.daynest.android.R
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 
-fun isValidServerUrl(url: String): Boolean = url.startsWith("https://") || url.startsWith("http://")
+fun isValidServerUrl(url: String): Boolean = url.toHttpUrlOrNull() != null
 
 @Composable
 fun ServerUrlPicker(

@@ -149,7 +149,7 @@ private fun MedicationContent(
                 )
             }
         } else {
-            items(state.plans, key = { it.id }) { plan ->
+            items(state.plans, key = { "plan_${it.id}" }) { plan ->
                 MedicationPlanCard(plan = plan)
             }
         }

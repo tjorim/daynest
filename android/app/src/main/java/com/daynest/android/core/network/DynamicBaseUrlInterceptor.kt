@@ -17,13 +17,20 @@ class DynamicBaseUrlInterceptor
             val newBase =
                 serverUrlHolder.currentUrl.toHttpUrlOrNull()
                     ?: return chain.proceed(request)
+            val basePath = newBase.encodedPath.trimEnd('/')
+            val requestPath = request.url.encodedPath
+            // Avoid duplicating the base path prefix when request path already includes it
+            // (e.g. base "/api/" + request "/api/v1" must not produce "/api/api/v1").
+            val mergedPath =
+                if (basePath.isEmpty() || requestPath.startsWith("$basePath/")) requestPath
+                else "$basePath$requestPath"
             val newUrl =
                 request.url
                     .newBuilder()
                     .scheme(newBase.scheme)
                     .host(newBase.host)
                     .port(newBase.port)
-                    .encodedPath(newBase.encodedPath.trimEnd('/') + request.url.encodedPath)
+                    .encodedPath(mergedPath)
                     .build()
             return chain.proceed(request.newBuilder().url(newUrl).build())
         }

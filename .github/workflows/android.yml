@@ -95,7 +95,7 @@ jobs:
             echo "keystore_path=${KEYSTORE_PATH}" >> "$GITHUB_OUTPUT"
             echo "signing_available=true" >> "$GITHUB_OUTPUT"
           else
-            echo "::warning::KEYSTORE_BASE64 secret is not set. Release APK will be unsigned."
+            echo "::warning::KEYSTORE_BASE64 secret is not set. Release APK build will be skipped."
             echo "signing_available=false" >> "$GITHUB_OUTPUT"
           fi
 

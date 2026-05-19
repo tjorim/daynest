@@ -59,5 +59,5 @@ data class MedicationHistoryItemDto(
     val instructions: String = "",
     @SerialName("scheduled_at")
     val scheduledAt: String = "",
-    val status: String,
+    val status: String = "",
 )

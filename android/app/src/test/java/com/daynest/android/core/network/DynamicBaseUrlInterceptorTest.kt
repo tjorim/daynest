@@ -32,9 +32,9 @@ class DynamicBaseUrlInterceptorTest {
         serverUrlHolder.updateUrl(serverUrl)
 
         val request = Request.Builder().url("https://original.example.com/api/v1/today").build()
-        val response = client.newCall(request).execute()
-
-        assertEquals(200, response.code)
+        client.newCall(request).execute().use { response ->
+            assertEquals(200, response.code)
+        }
         val recorded = mockWebServer.takeRequest()
         assertEquals("/api/v1/today", recorded.path)
     }
@@ -45,7 +45,18 @@ class DynamicBaseUrlInterceptorTest {
         serverUrlHolder.updateUrl(mockWebServer.url("/api/").toString())
 
         val request = Request.Builder().url("https://original.example.com/v1/today").build()
-        client.newCall(request).execute()
+        client.newCall(request).execute().close()
+
+        assertEquals("/api/v1/today", mockWebServer.takeRequest().path)
+    }
+
+    @Test
+    fun `overlapping base path segment is not duplicated`() {
+        mockWebServer.enqueue(MockResponse().setResponseCode(200))
+        serverUrlHolder.updateUrl(mockWebServer.url("/api/").toString())
+
+        val request = Request.Builder().url("https://original.example.com/api/v1/today").build()
+        client.newCall(request).execute().close()
 
         assertEquals("/api/v1/today", mockWebServer.takeRequest().path)
     }

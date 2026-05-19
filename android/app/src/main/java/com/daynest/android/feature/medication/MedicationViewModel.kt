@@ -1,5 +1,6 @@
 package com.daynest.android.feature.medication
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.daynest.android.data.medication.MedicationHistoryItemDto
@@ -50,6 +51,8 @@ class MedicationViewModel
                             showCreateForm = false,
                         )
                 } else {
+                    plansResult.exceptionOrNull()?.let { Log.e("MedicationViewModel", "listPlans failed", it) }
+                    historyResult.exceptionOrNull()?.let { Log.e("MedicationViewModel", "getHistory failed", it) }
                     _uiState.value = MedicationUiState.Error
                 }
             }
