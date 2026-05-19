@@ -56,4 +56,10 @@ data class UnifiedDayItemDto(
     val detail: String? = null,
     @SerialName("module_key")
     val moduleKey: String? = null,
+    @SerialName("recurrence_hint")
+    val recurrenceHint: String? = null,
+    @SerialName("linked_source")
+    val linkedSource: String? = null,
+    @SerialName("linked_ref")
+    val linkedRef: String? = null,
 )

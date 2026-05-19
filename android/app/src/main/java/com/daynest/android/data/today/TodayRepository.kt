@@ -108,6 +108,12 @@ class TodayRepository
             }
 
         @Suppress("TooGenericExceptionCaught")
+        suspend fun updatePlannedItem(
+            id: Int,
+            input: PlannedItemUpdateDto,
+        ): Result<PlannedTodayItemDto> = safeApiCall { todayActionsApi.updatePlannedItem(id, input) }
+
+        @Suppress("TooGenericExceptionCaught")
         suspend fun deletePlannedItem(id: Int): Result<Unit> = safeApiCall { todayActionsApi.deletePlannedItem(id) }
 
         @Suppress("TooGenericExceptionCaught")

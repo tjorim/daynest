@@ -127,6 +127,13 @@
     <string name="settings_account_section">Account</string>
     <string name="settings_session_active">Signed in</string>
     <string name="settings_sign_out">Sign out</string>
+    <string name="settings_presets_section">Integration presets</string>
+    <string name="settings_preset_ha_dashboard">Home Assistant dashboard</string>
+    <string name="settings_preset_ha_dashboard_desc">Sensors, dashboard metrics, setup validation, and entity reads.</string>
+    <string name="settings_preset_ha_automations">Home Assistant automations</string>
+    <string name="settings_preset_ha_automations_desc">Everything in dashboard mode plus write services for household automations.</string>
+    <string name="settings_preset_mcp_readonly">MCP read-only</string>
+    <string name="settings_preset_mcp_readonly_desc">Least-privilege read access for MCP consumers.</string>
     <string name="settings_integrations_section">Integration Clients</string>
     <string name="settings_new_client">+ New client</string>
     <string name="settings_no_clients">No integration clients configured.</string>

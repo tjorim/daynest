@@ -121,6 +121,9 @@ export interface UnifiedDayItem {
   scheduled_date: string | null;
   detail: string | null;
   module_key: PlannedItemModuleKey | null;
+  recurrence_hint?: string | null;
+  linked_source?: string | null;
+  linked_ref?: string | null;
 }
 
 export interface CalendarDayPayload {
@@ -203,6 +206,9 @@ const unifiedDayItemSchema = z.object({
   scheduled_date: z.string().nullable(),
   detail: z.string().nullable(),
   module_key: plannedItemModuleKeySchema.nullable(),
+  recurrence_hint: z.string().nullable().optional(),
+  linked_source: z.string().nullable().optional(),
+  linked_ref: z.string().nullable().optional(),
 });
 
 const calendarMonthDaySummarySchema = z.object({

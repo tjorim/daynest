@@ -6,6 +6,7 @@ import com.daynest.android.data.calendar.CalendarDaySummaryDto
 import com.daynest.android.data.calendar.CalendarRepository
 import com.daynest.android.data.calendar.UnifiedDayItemDto
 import com.daynest.android.data.today.PlannedItemCreateDto
+import com.daynest.android.data.today.PlannedItemUpdateDto
 import com.daynest.android.data.today.PlannedTodayItemDto
 import com.daynest.android.data.today.TodayRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -40,6 +41,7 @@ class CalendarViewModel
                 is CalendarUiEvent.DaySelected -> loadDay(event.date)
                 is CalendarUiEvent.DayDeselected -> clearDay()
                 is CalendarUiEvent.AddPlannedItem -> addPlannedItem(event.input)
+                is CalendarUiEvent.UpdatePlannedItem -> updatePlannedItem(event.id, event.date, event.input)
                 is CalendarUiEvent.DeletePlannedItem -> deletePlannedItem(event.id, event.date)
                 is CalendarUiEvent.RetryClicked -> retryCurrentMonth()
             }
@@ -155,6 +157,42 @@ class CalendarViewModel
                     current.copy(selectedDate = null, dayItems = emptyList())
                 } else {
                     current
+                }
+            }
+        }
+
+        private fun updatePlannedItem(
+            id: Int,
+            date: String,
+            input: PlannedItemUpdateDto,
+        ) {
+            viewModelScope.launch {
+                val result = todayRepository.updatePlannedItem(id, input)
+                result.onSuccess { updated ->
+                    _uiState.update { current ->
+                        if (current is CalendarUiState.Content && current.selectedDate == date) {
+                            current.copy(
+                                dayItems =
+                                    current.dayItems.map { item ->
+                                        if (item.itemType == "planned" && item.itemId == id) {
+                                            item.copy(
+                                                title = updated.title,
+                                                status = if (updated.isDone) "done" else "planned",
+                                                detail = updated.notes,
+                                                moduleKey = updated.moduleKey,
+                                                recurrenceHint = updated.recurrenceHint,
+                                                linkedSource = updated.linkedSource,
+                                                linkedRef = updated.linkedRef,
+                                            )
+                                        } else {
+                                            item
+                                        }
+                                    },
+                            )
+                        } else {
+                            current
+                        }
+                    }
                 }
             }
         }
@@ -287,6 +325,12 @@ sealed interface CalendarUiEvent {
 
     data class AddPlannedItem(
         val input: PlannedItemCreateDto,
+    ) : CalendarUiEvent
+
+    data class UpdatePlannedItem(
+        val id: Int,
+        val date: String,
+        val input: PlannedItemUpdateDto,
     ) : CalendarUiEvent
 
     data class DeletePlannedItem(

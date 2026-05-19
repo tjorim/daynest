@@ -85,6 +85,27 @@ export function useTodayActions(onRefresh: () => Promise<void>) {
       runAction(() => deletePlannedItem(plannedItemId), options),
     createPlannedItem: (title: string, plannedFor: string, options?: MutationOptions) =>
       runAction(() => createPlannedItem({ title, planned_for: plannedFor }), options),
+    editPlannedItem: (
+      item: PlannedTodayItem,
+      updates: {
+        title: string;
+        planned_for: string;
+        notes?: string | null;
+        module_key?: string | null;
+        recurrence_hint?: string | null;
+        linked_source?: string | null;
+        linked_ref?: string | null;
+      },
+      options?: MutationOptions,
+    ) =>
+      runAction(
+        () =>
+          updatePlannedItem(item.id, {
+            ...updates,
+            is_done: item.is_done,
+          }),
+        options,
+      ),
   };
 }
 

@@ -46,6 +46,7 @@ import com.daynest.android.app.navigation.DaynestNavigationScaffold
 import com.daynest.android.data.calendar.CalendarDaySummaryDto
 import com.daynest.android.data.calendar.UnifiedDayItemDto
 import com.daynest.android.data.today.PlannedItemCreateDto
+import com.daynest.android.data.today.PlannedItemUpdateDto
 import java.time.LocalDate
 import java.time.format.TextStyle
 import java.time.temporal.WeekFields
@@ -131,6 +132,7 @@ private fun CalendarContent(
     modifier: Modifier = Modifier,
 ) {
     var showAddDialog by remember(state.selectedDate) { mutableStateOf(false) }
+    var editingItem by remember(state.selectedDate) { mutableStateOf<UnifiedDayItemDto?>(null) }
 
     LazyColumn(
         modifier = modifier.fillMaxSize(),
@@ -201,6 +203,12 @@ private fun CalendarContent(
                 ) { _, item ->
                     DayItemCard(
                         item = item,
+                        onEdit =
+                            if (item.itemType == "planned") {
+                                { editingItem = item }
+                            } else {
+                                null
+                            },
                         onDelete =
                             if (item.itemType == "planned") {
                                 { onEvent(CalendarUiEvent.DeletePlannedItem(item.itemId, state.selectedDate)) }
@@ -221,6 +229,18 @@ private fun CalendarContent(
                 showAddDialog = false
             },
             onDismiss = { showAddDialog = false },
+        )
+    }
+
+    val currentEditingItem = editingItem
+    if (currentEditingItem != null && state.selectedDate != null) {
+        EditPlannedItemDialog(
+            item = currentEditingItem,
+            onConfirm = { input ->
+                onEvent(CalendarUiEvent.UpdatePlannedItem(currentEditingItem.itemId, state.selectedDate, input))
+                editingItem = null
+            },
+            onDismiss = { editingItem = null },
         )
     }
 }
@@ -312,7 +332,10 @@ private fun MonthGrid(
                         val isToday = date == today
                         DayCell(
                             dayNum = dayNum,
-                            total = summary?.total ?: 0,
+                            routines = summary?.routines ?: 0,
+                            chores = summary?.chores ?: 0,
+                            medications = summary?.medications ?: 0,
+                            planned = summary?.planned ?: 0,
                             isSelected = isSelected,
                             isToday = isToday,
                             onClick = { onDayClick(date) },
@@ -328,7 +351,10 @@ private fun MonthGrid(
 @Composable
 private fun DayCell(
     dayNum: Int,
-    total: Int,
+    routines: Int,
+    chores: Int,
+    medications: Int,
+    planned: Int,
     isSelected: Boolean,
     isToday: Boolean,
     onClick: () -> Unit,
@@ -347,6 +373,16 @@ private fun DayCell(
             else -> MaterialTheme.colorScheme.onSurface
         }
 
+    val dotColors =
+        remember(isSelected, routines, chores, medications, planned) {
+            buildList {
+                if (routines > 0) add(0)
+                if (chores > 0) add(1)
+                if (medications > 0) add(2)
+                if (planned > 0) add(3)
+            }
+        }
+
     Box(
         modifier =
             modifier
@@ -363,20 +399,31 @@ private fun DayCell(
                 style = MaterialTheme.typography.bodySmall,
                 color = textColor,
             )
-            if (total > 0) {
-                Box(
-                    modifier =
-                        Modifier
-                            .size(4.dp)
-                            .clip(CircleShape)
-                            .background(
-                                if (isSelected) {
-                                    MaterialTheme.colorScheme.onPrimary
-                                } else {
-                                    MaterialTheme.colorScheme.primary
-                                },
-                            ),
-                )
+            if (dotColors.isNotEmpty()) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
+                    dotColors.forEach { typeIndex ->
+                        val dotColor =
+                            if (isSelected) {
+                                MaterialTheme.colorScheme.onPrimary
+                            } else {
+                                when (typeIndex) {
+                                    0 -> MaterialTheme.colorScheme.primary
+                                    1 -> MaterialTheme.colorScheme.secondary
+                                    2 -> MaterialTheme.colorScheme.tertiary
+                                    else -> MaterialTheme.colorScheme.outline
+                                }
+                            }
+                        Box(
+                            modifier =
+                                Modifier
+                                    .size(3.dp)
+                                    .clip(CircleShape)
+                                    .background(dotColor),
+                        )
+                    }
+                }
             }
         }
     }
@@ -385,6 +432,7 @@ private fun DayCell(
 @Composable
 private fun DayItemCard(
     item: UnifiedDayItemDto,
+    onEdit: (() -> Unit)?,
     onDelete: (() -> Unit)?,
 ) {
     Card(modifier = Modifier.fillMaxWidth()) {
@@ -419,6 +467,11 @@ private fun DayItemCard(
                     )
                 }
             }
+            if (onEdit != null) {
+                TextButton(onClick = onEdit) {
+                    Text(text = stringResource(id = R.string.action_edit))
+                }
+            }
             if (onDelete != null) {
                 TextButton(onClick = onDelete) {
                     Text(
@@ -429,6 +482,97 @@ private fun DayItemCard(
             }
         }
     }
+}
+
+@Composable
+private fun EditPlannedItemDialog(
+    item: UnifiedDayItemDto,
+    onConfirm: (PlannedItemUpdateDto) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var title by remember(item.itemId) { mutableStateOf(item.title) }
+    var plannedFor by remember(item.itemId) { mutableStateOf(item.scheduledDate.orEmpty()) }
+    var notes by remember(item.itemId) { mutableStateOf(item.detail.orEmpty()) }
+    var moduleKey by remember(item.itemId) { mutableStateOf(item.moduleKey.orEmpty()) }
+    var recurrenceHint by remember(item.itemId) { mutableStateOf(item.recurrenceHint.orEmpty()) }
+    var linkedSource by remember(item.itemId) { mutableStateOf(item.linkedSource.orEmpty()) }
+    var linkedRef by remember(item.itemId) { mutableStateOf(item.linkedRef.orEmpty()) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(text = stringResource(id = R.string.calendar_edit_planned_title)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = title,
+                    onValueChange = { title = it },
+                    label = { Text(text = stringResource(id = R.string.calendar_planned_title_label)) },
+                    singleLine = true,
+                )
+                OutlinedTextField(
+                    value = plannedFor,
+                    onValueChange = { plannedFor = it },
+                    label = { Text(text = stringResource(id = R.string.calendar_planned_date_label)) },
+                    singleLine = true,
+                )
+                OutlinedTextField(
+                    value = notes,
+                    onValueChange = { notes = it },
+                    label = { Text(text = stringResource(id = R.string.calendar_planned_notes_label)) },
+                )
+                OutlinedTextField(
+                    value = moduleKey,
+                    onValueChange = { moduleKey = it },
+                    label = { Text(text = stringResource(id = R.string.calendar_planned_module_label)) },
+                    singleLine = true,
+                )
+                OutlinedTextField(
+                    value = recurrenceHint,
+                    onValueChange = { recurrenceHint = it },
+                    label = { Text(text = stringResource(id = R.string.calendar_planned_recurrence_label)) },
+                    singleLine = true,
+                )
+                OutlinedTextField(
+                    value = linkedSource,
+                    onValueChange = { linkedSource = it },
+                    label = { Text(text = stringResource(id = R.string.calendar_planned_linked_source_label)) },
+                    singleLine = true,
+                )
+                OutlinedTextField(
+                    value = linkedRef,
+                    onValueChange = { linkedRef = it },
+                    label = { Text(text = stringResource(id = R.string.calendar_planned_linked_ref_label)) },
+                    singleLine = true,
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    onConfirm(
+                        PlannedItemUpdateDto(
+                            title = title.trim(),
+                            plannedFor = plannedFor.trim(),
+                            isDone = item.status == "done",
+                            notes = notes.trim().ifBlank { null },
+                            moduleKey = moduleKey.trim().ifBlank { null },
+                            recurrenceHint = recurrenceHint.trim().ifBlank { null },
+                            linkedSource = linkedSource.trim().ifBlank { null },
+                            linkedRef = linkedRef.trim().ifBlank { null },
+                        ),
+                    )
+                },
+                enabled = title.isNotBlank() && plannedFor.isNotBlank(),
+            ) {
+                Text(text = stringResource(id = R.string.action_save))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(text = stringResource(id = R.string.action_cancel))
+            }
+        },
+    )
 }
 
 @Composable
