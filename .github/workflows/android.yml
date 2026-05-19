@@ -105,7 +105,7 @@ jobs:
           steps.local-properties.outputs.staging_available == 'true' &&
           (inputs.environment == 'staging' || inputs.environment == 'both')
         working-directory: android
-        run: ./gradlew :app:assembleStagingDebug
+        run: ./gradlew :app:assembleStaging
 
       - name: Upload staging APK
         if: >
@@ -115,7 +115,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: daynest-staging-debug
-          path: android/app/build/outputs/apk/staging/debug/*.apk
+          path: android/app/build/outputs/apk/staging/*.apk
           if-no-files-found: error
 
       - name: Assemble release APK
