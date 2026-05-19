@@ -2,8 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { useAuth as useOidcAuth } from "react-oidc-context";
 import { fetchMe, type AuthUser } from "@/lib/api/auth";
 import { setOidcAccessToken } from "@/lib/auth/session";
-
-const AUTH_ROUTE_PATHS = new Set(["/auth", "/auth/callback"]);
+import { AUTH_ROUTE_PATHS } from "@/config/oidc";
 
 function getLoginReturnTo() {
   if (AUTH_ROUTE_PATHS.has(window.location.pathname)) {

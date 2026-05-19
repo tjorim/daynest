@@ -6,11 +6,12 @@ const OIDC_CLIENT_ID = import.meta.env.VITE_OIDC_CLIENT_ID ?? "daynest";
 const OIDC_REDIRECT_URI =
   import.meta.env.VITE_OIDC_REDIRECT_URI ?? `${window.location.origin}/auth/callback`;
 const OIDC_SCOPE = import.meta.env.VITE_OIDC_SCOPE ?? "openid profile email";
-const AUTH_ROUTE_PATHS = new Set(["/auth", "/auth/callback"]);
+export const AUTH_ROUTE_PATHS = new Set(["/auth", "/auth/callback"]);
 
 function resolveReturnTo(raw: unknown): string {
   if (typeof raw === "string" && raw.startsWith("/") && !raw.startsWith("//")) {
-    return AUTH_ROUTE_PATHS.has(raw) ? "/today" : raw;
+    const pathname = raw.split(/[?#]/)[0];
+    return AUTH_ROUTE_PATHS.has(pathname) ? "/today" : raw;
   }
 
   return "/today";
