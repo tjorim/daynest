@@ -9,6 +9,8 @@ import com.daynest.android.data.today.PlannedItemCreateDto
 import com.daynest.android.data.today.PlannedItemUpdateDto
 import com.daynest.android.data.today.PlannedTodayItemDto
 import com.daynest.android.data.today.TodayRepository
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -44,6 +46,8 @@ class CalendarViewModel
                 is CalendarUiEvent.UpdatePlannedItem -> updatePlannedItem(event.id, event.date, event.input)
                 is CalendarUiEvent.DeletePlannedItem -> deletePlannedItem(event.id, event.date)
                 is CalendarUiEvent.RetryClicked -> retryCurrentMonth()
+                is CalendarUiEvent.ExportMonthBackup -> exportMonthBackup(event.onReady)
+                is CalendarUiEvent.ImportBackup -> importBackup(event.items)
             }
         }
 
@@ -220,6 +224,46 @@ class CalendarViewModel
             }
         }
 
+        private fun exportMonthBackup(onReady: (PlannedItemBackupDto) -> Unit) {
+            val current = _uiState.value as? CalendarUiState.Content ?: return
+            val startDate = current.displayMonth.withDayOfMonth(1).toString()
+            val endDate = current.displayMonth.withDayOfMonth(current.displayMonth.lengthOfMonth()).toString()
+            viewModelScope.launch {
+                val result = todayRepository.listPlannedItems(startDate, endDate)
+                result.onSuccess { items ->
+                    onReady(
+                        PlannedItemBackupDto(
+                            source = "daynest",
+                            schemaVersion = 1,
+                            exportedAt = java.time.Instant.now().toString(),
+                            items = items,
+                        ),
+                    )
+                }
+            }
+        }
+
+        private fun importBackup(items: List<PlannedItemCreateDto>) {
+            viewModelScope.launch {
+                val results =
+                    items.chunked(5).flatMap { batch ->
+                        batch
+                            .map { item -> async { todayRepository.createPlannedItem(item) } }
+                            .awaitAll()
+                    }
+                val imported = results.count { it.isSuccess }
+                val failed = results.count { it.isFailure }
+                _uiState.update { current ->
+                    if (current is CalendarUiState.Content) {
+                        current.copy(backupMessage = "Import complete. $imported imported${if (failed > 0) ", $failed failed" else ""}.")
+                    } else {
+                        current
+                    }
+                }
+                retryCurrentMonth()
+            }
+        }
+
         private fun deletePlannedItem(
             id: Int,
             date: String,
@@ -305,6 +349,7 @@ sealed interface CalendarUiState {
         val dayItems: List<UnifiedDayItemDto>,
         val isLoadingMonth: Boolean,
         val isLoadingDay: Boolean,
+        val backupMessage: String? = null,
     ) : CalendarUiState
 
     data class Error(
@@ -339,4 +384,19 @@ sealed interface CalendarUiEvent {
     ) : CalendarUiEvent
 
     data object RetryClicked : CalendarUiEvent
+
+    data class ExportMonthBackup(
+        val onReady: (PlannedItemBackupDto) -> Unit,
+    ) : CalendarUiEvent
+
+    data class ImportBackup(
+        val items: List<PlannedItemCreateDto>,
+    ) : CalendarUiEvent
 }
+
+data class PlannedItemBackupDto(
+    val source: String,
+    val schemaVersion: Int,
+    val exportedAt: String,
+    val items: List<PlannedTodayItemDto>,
+)

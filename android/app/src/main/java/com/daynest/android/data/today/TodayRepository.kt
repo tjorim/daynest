@@ -120,6 +120,12 @@ class TodayRepository
         suspend fun createPlannedItem(request: PlannedItemCreateDto): Result<PlannedTodayItemDto> =
             safeApiCall { todayActionsApi.createPlannedItem(request) }
 
+        @Suppress("TooGenericExceptionCaught")
+        suspend fun listPlannedItems(
+            startDate: String?,
+            endDate: String?,
+        ): Result<List<PlannedTodayItemDto>> = safeApiCall { todayActionsApi.listPlannedItems(startDate, endDate) }
+
         private fun TodaySummaryEntity.toDomain() =
             TodaySummary(
                 routinesCount = routinesCount,

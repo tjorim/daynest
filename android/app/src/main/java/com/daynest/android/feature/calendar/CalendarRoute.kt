@@ -16,6 +16,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
@@ -37,9 +39,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import org.json.JSONArray
+import org.json.JSONObject
 import com.daynest.android.R
 import com.daynest.android.app.navigation.DaynestDestination
 import com.daynest.android.app.navigation.DaynestNavigationScaffold
@@ -47,6 +52,7 @@ import com.daynest.android.data.calendar.CalendarDaySummaryDto
 import com.daynest.android.data.calendar.UnifiedDayItemDto
 import com.daynest.android.data.today.PlannedItemCreateDto
 import com.daynest.android.data.today.PlannedItemUpdateDto
+import com.daynest.android.feature.calendar.PlannedItemBackupDto
 import java.time.LocalDate
 import java.time.format.TextStyle
 import java.time.temporal.WeekFields
@@ -133,6 +139,32 @@ private fun CalendarContent(
 ) {
     var showAddDialog by remember(state.selectedDate) { mutableStateOf(false) }
     var editingItem by remember(state.selectedDate) { mutableStateOf<UnifiedDayItemDto?>(null) }
+    val context = LocalContext.current
+
+    var pendingBackup by remember { mutableStateOf<PlannedItemBackupDto?>(null) }
+    val exportLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
+            val backup = pendingBackup ?: return@rememberLauncherForActivityResult
+            if (uri != null) {
+                runCatching {
+                    context.contentResolver.openOutputStream(uri)?.use { stream ->
+                        stream.write(backup.toJson().toByteArray())
+                    }
+                }
+            }
+            pendingBackup = null
+        }
+
+    val importLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+            if (uri == null) return@rememberLauncherForActivityResult
+            val raw =
+                runCatching {
+                    context.contentResolver.openInputStream(uri)?.use { it.reader().readText() }
+                }.getOrNull() ?: return@rememberLauncherForActivityResult
+            val items = parsePlannedItemBackup(raw) ?: return@rememberLauncherForActivityResult
+            onEvent(CalendarUiEvent.ImportBackup(items))
+        }
 
     LazyColumn(
         modifier = modifier.fillMaxSize(),
@@ -144,7 +176,30 @@ private fun CalendarContent(
                 displayMonth = state.displayMonth,
                 onPrevious = { onEvent(CalendarUiEvent.PreviousMonthClicked) },
                 onNext = { onEvent(CalendarUiEvent.NextMonthClicked) },
+                onExport = {
+                    onEvent(
+                        CalendarUiEvent.ExportMonthBackup { backup ->
+                            pendingBackup = backup
+                            val fileName =
+                                "daynest-backup-${state.displayMonth.year}-${
+                                    state.displayMonth.monthValue.toString().padStart(2, '0')
+                                }.json"
+                            exportLauncher.launch(fileName)
+                        },
+                    )
+                },
+                onImport = { importLauncher.launch(arrayOf("application/json")) },
             )
+        }
+
+        if (!state.backupMessage.isNullOrBlank()) {
+            item {
+                Text(
+                    text = state.backupMessage,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.outline,
+                )
+            }
         }
 
         item {
@@ -250,30 +305,45 @@ private fun MonthHeader(
     displayMonth: LocalDate,
     onPrevious: () -> Unit,
     onNext: () -> Unit,
+    onExport: () -> Unit,
+    onImport: () -> Unit,
 ) {
     val monthName =
         remember(displayMonth) {
             displayMonth.month.getDisplayName(TextStyle.FULL, Locale.getDefault())
         }
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
-        TextButton(onClick = onPrevious) {
-            Text(text = stringResource(id = R.string.calendar_prev_month))
+    Column {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            TextButton(onClick = onPrevious) {
+                Text(text = stringResource(id = R.string.calendar_prev_month))
+            }
+            Text(
+                text =
+                    stringResource(
+                        id = R.string.calendar_month_year,
+                        monthName,
+                        displayMonth.year.toString(),
+                    ),
+                style = MaterialTheme.typography.titleLarge,
+            )
+            TextButton(onClick = onNext) {
+                Text(text = stringResource(id = R.string.calendar_next_month))
+            }
         }
-        Text(
-            text =
-                stringResource(
-                    id = R.string.calendar_month_year,
-                    monthName,
-                    displayMonth.year.toString(),
-                ),
-            style = MaterialTheme.typography.titleLarge,
-        )
-        TextButton(onClick = onNext) {
-            Text(text = stringResource(id = R.string.calendar_next_month))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End,
+        ) {
+            TextButton(onClick = onExport) {
+                Text(text = stringResource(id = R.string.calendar_export_backup))
+            }
+            TextButton(onClick = onImport) {
+                Text(text = stringResource(id = R.string.calendar_import_backup))
+            }
         }
     }
 }
@@ -664,3 +734,46 @@ private fun AddPlannedItemDialog(
         },
     )
 }
+
+private fun PlannedItemBackupDto.toJson(): String {
+    val itemsArray = JSONArray()
+    items.forEach { item ->
+        val obj =
+            JSONObject().apply {
+                put("title", item.title)
+                put("planned_for", item.plannedFor)
+                item.notes?.let { put("notes", it) }
+                item.moduleKey?.let { put("module_key", it) }
+                item.recurrenceHint?.let { put("recurrence_hint", it) }
+                item.linkedSource?.let { put("linked_source", it) }
+                item.linkedRef?.let { put("linked_ref", it) }
+            }
+        itemsArray.put(obj)
+    }
+    return JSONObject()
+        .apply {
+            put("source", source)
+            put("schema_version", schemaVersion)
+            put("exported_at", exportedAt)
+            put("items", itemsArray)
+        }.toString(2)
+}
+
+private fun parsePlannedItemBackup(raw: String): List<PlannedItemCreateDto>? =
+    runCatching {
+        val root = JSONObject(raw)
+        if (root.getString("source") != "daynest" || root.getInt("schema_version") != 1) return null
+        val array = root.getJSONArray("items")
+        (0 until array.length()).map { i ->
+            val obj = array.getJSONObject(i)
+            PlannedItemCreateDto(
+                title = obj.getString("title"),
+                plannedFor = obj.getString("planned_for"),
+                notes = obj.optString("notes").ifBlank { null },
+                moduleKey = obj.optString("module_key").ifBlank { null },
+                recurrenceHint = obj.optString("recurrence_hint").ifBlank { null },
+                linkedSource = obj.optString("linked_source").ifBlank { null },
+                linkedRef = obj.optString("linked_ref").ifBlank { null },
+            )
+        }
+    }.getOrNull()

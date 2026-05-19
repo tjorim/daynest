@@ -4,9 +4,11 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import retrofit2.http.Body
 import retrofit2.http.DELETE
+import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.Path
+import retrofit2.http.Query
 
 interface TodayActionsApi {
     @POST("api/v1/chores/{id}/complete")
@@ -65,6 +67,12 @@ interface TodayActionsApi {
     suspend fun createPlannedItem(
         @Body request: PlannedItemCreateDto,
     ): PlannedTodayItemDto
+
+    @GET("api/v1/planned-items")
+    suspend fun listPlannedItems(
+        @Query("start_date") startDate: String?,
+        @Query("end_date") endDate: String?,
+    ): List<PlannedTodayItemDto>
 }
 
 @Serializable
