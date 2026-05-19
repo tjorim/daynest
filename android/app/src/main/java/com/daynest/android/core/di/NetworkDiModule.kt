@@ -4,6 +4,7 @@ import com.daynest.android.BuildConfig
 import com.daynest.android.core.network.ApiConfig
 import com.daynest.android.core.network.AuthInterceptor
 import com.daynest.android.core.network.CertificatePinnerProvider
+import com.daynest.android.core.network.DynamicBaseUrlInterceptor
 import com.daynest.android.core.network.JsonSerializer
 import com.daynest.android.core.network.TokenAuthenticator
 import com.daynest.android.data.calendar.CalendarApi
@@ -46,15 +47,22 @@ object NetworkDiModule {
         authInterceptor: AuthInterceptor,
         tokenAuthenticator: TokenAuthenticator,
         certificatePinner: CertificatePinner,
+        dynamicBaseUrlInterceptor: DynamicBaseUrlInterceptor,
     ): OkHttpClient =
         OkHttpClient
             .Builder()
             .certificatePinner(certificatePinner)
+            .addInterceptor(dynamicBaseUrlInterceptor)
             .addInterceptor(authInterceptor)
             .authenticator(tokenAuthenticator)
             .apply {
                 if (BuildConfig.DEBUG) {
-                    addInterceptor(HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BODY })
+                    addInterceptor(
+                        HttpLoggingInterceptor().apply {
+                            redactHeader("Authorization")
+                            level = HttpLoggingInterceptor.Level.BODY
+                        },
+                    )
                 }
             }.build()
 

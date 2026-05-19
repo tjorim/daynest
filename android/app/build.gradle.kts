@@ -79,6 +79,25 @@ extensions.configure<ApplicationExtension> {
     namespace = "com.daynest.android"
     compileSdk = 37
 
+    val keystorePath = localProperties.getProperty("keystorePath") ?: System.getenv("KEYSTORE_PATH")
+    val keystorePassword = localProperties.getProperty("keystorePassword") ?: System.getenv("STORE_PASSWORD")
+    val keystoreKeyAlias = localProperties.getProperty("keyAlias") ?: System.getenv("KEY_ALIAS")
+    val keystoreKeyPassword = localProperties.getProperty("keyPassword") ?: System.getenv("KEY_PASSWORD")
+    signingConfigs {
+        if (!keystorePath.isNullOrBlank() &&
+            !keystorePassword.isNullOrBlank() &&
+            !keystoreKeyAlias.isNullOrBlank() &&
+            !keystoreKeyPassword.isNullOrBlank()
+        ) {
+            create("release") {
+                storeFile = file(keystorePath)
+                storePassword = keystorePassword
+                keyAlias = keystoreKeyAlias
+                keyPassword = keystoreKeyPassword
+            }
+        }
+    }
+
     defaultConfig {
         applicationId = "com.daynest.android"
         minSdk = 26
@@ -143,6 +162,15 @@ extensions.configure<ApplicationExtension> {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
+            val releaseSigningConfig = signingConfigs.findByName("release")
+            if (releaseSigningConfig != null) {
+                signingConfig = releaseSigningConfig
+            } else if (isBuildTypeRequested("release")) {
+                error(
+                    "Release build requested but signing credentials are not set " +
+                        "(KEYSTORE_PATH, KEY_ALIAS, KEY_PASSWORD, STORE_PASSWORD).",
+                )
+            }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
@@ -230,6 +258,7 @@ dependencies {
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.hilt.navigation.compose)
+    implementation(libs.androidx.hilt.lifecycle.viewmodel.compose)
     implementation(libs.hilt.android)
     ksp(libs.hilt.android.compiler)
 

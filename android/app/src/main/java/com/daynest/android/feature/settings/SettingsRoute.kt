@@ -30,13 +30,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.daynest.android.R
 import com.daynest.android.app.navigation.DaynestDestination
 import com.daynest.android.app.navigation.DaynestNavigationScaffold
 import com.daynest.android.data.settings.IntegrationClientDto
 import com.daynest.android.data.settings.IntegrationClientInputDto
+import com.daynest.android.ui.ServerUrlPicker
 
 @Composable
 fun SettingsRoute(
@@ -111,6 +112,22 @@ private fun SettingsContent(
         item {
             HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
             Text(
+                text = stringResource(id = R.string.settings_server_section),
+                style = MaterialTheme.typography.titleMedium,
+            )
+        }
+
+        item {
+            ServerUrlPicker(
+                defaultServerUrl = state.defaultServerUrl,
+                customServerUrl = state.customServerUrl,
+                onServerUrlChanged = { onEvent(SettingsUiEvent.UpdateServerUrl(it)) },
+            )
+        }
+
+        item {
+            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+            Text(
                 text = stringResource(id = R.string.settings_account_section),
                 style = MaterialTheme.typography.titleMedium,
             )
@@ -177,7 +194,7 @@ private fun SettingsContent(
                 )
             }
         } else {
-            items(state.clients, key = { it.id }) { client ->
+            items(state.clients, key = { "client_${it.id}" }) { client ->
                 IntegrationClientCard(client = client)
             }
         }

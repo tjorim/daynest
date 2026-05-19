@@ -4,6 +4,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.longPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
@@ -19,6 +20,7 @@ class UserPreferencesRepository
             dataStore.data.map { prefs ->
                 UserPreferences(
                     lastTodayFetchEpochMillis = prefs[LAST_TODAY_FETCH] ?: 0L,
+                    customServerUrl = prefs[CUSTOM_SERVER_URL],
                 )
             }
 
@@ -28,7 +30,18 @@ class UserPreferencesRepository
             }
         }
 
+        suspend fun updateCustomServerUrl(url: String?) {
+            dataStore.edit { prefs ->
+                if (url != null) {
+                    prefs[CUSTOM_SERVER_URL] = url
+                } else {
+                    prefs.remove(CUSTOM_SERVER_URL)
+                }
+            }
+        }
+
         private companion object {
             val LAST_TODAY_FETCH = longPreferencesKey("last_today_fetch_epoch_millis")
+            val CUSTOM_SERVER_URL = stringPreferencesKey("custom_server_url")
         }
     }

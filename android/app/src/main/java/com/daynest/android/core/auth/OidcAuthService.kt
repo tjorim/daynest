@@ -24,7 +24,7 @@ import kotlin.coroutines.resumeWithException
 class OidcAuthService
     @Inject
     constructor(
-        @ApplicationContext private val context: Context,
+        @param:ApplicationContext private val context: Context,
         private val securePreferences: SharedPreferences,
     ) {
         private val authorizationService = AuthorizationService(context)

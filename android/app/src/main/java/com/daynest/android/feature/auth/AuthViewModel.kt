@@ -3,7 +3,9 @@ package com.daynest.android.feature.auth
 import android.content.Intent
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.daynest.android.BuildConfig
 import com.daynest.android.core.auth.OidcAuthService
+import com.daynest.android.core.storage.preferences.UserPreferencesRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -12,6 +14,7 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -21,9 +24,18 @@ class AuthViewModel
     @Inject
     constructor(
         private val oidcAuthService: OidcAuthService,
+        private val userPreferencesRepository: UserPreferencesRepository,
     ) : ViewModel() {
-        private val _uiState = MutableStateFlow(AuthUiState())
+        private val _uiState =
+            MutableStateFlow(AuthUiState(defaultServerUrl = BuildConfig.API_BASE_URL))
         val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
+
+        init {
+            viewModelScope.launch {
+                val prefs = userPreferencesRepository.preferences.first()
+                _uiState.update { it.copy(customServerUrl = prefs.customServerUrl) }
+            }
+        }
 
         private val _signInIntent = MutableSharedFlow<Intent>(extraBufferCapacity = 1)
         val signInIntent: SharedFlow<Intent> = _signInIntent.asSharedFlow()
@@ -38,6 +50,15 @@ class AuthViewModel
                     }.onFailure { ex ->
                         if (ex is CancellationException) throw ex
                         _uiState.update { it.copy(isLoading = false, error = AuthError.SignInFailed) }
+                    }
+            }
+        }
+
+        fun updateServerUrl(url: String?) {
+            viewModelScope.launch {
+                runCatching { userPreferencesRepository.updateCustomServerUrl(url) }
+                    .onSuccess {
+                        _uiState.update { it.copy(customServerUrl = url) }
                     }
             }
         }
@@ -64,6 +85,8 @@ data class AuthUiState(
     val isLoading: Boolean = false,
     val isSignedIn: Boolean = false,
     val error: AuthError? = null,
+    val customServerUrl: String? = null,
+    val defaultServerUrl: String = "",
 )
 
 enum class AuthError {

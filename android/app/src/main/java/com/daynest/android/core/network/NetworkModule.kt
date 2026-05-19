@@ -21,7 +21,12 @@ class NetworkModule(
             .Builder()
             .apply {
                 if (isDebug) {
-                    addInterceptor(HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BASIC })
+                    addInterceptor(
+                        HttpLoggingInterceptor().apply {
+                            redactHeader("Authorization")
+                            level = HttpLoggingInterceptor.Level.BASIC
+                        },
+                    )
                 }
             }.build()
 
