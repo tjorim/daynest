@@ -10,6 +10,7 @@ import com.daynest.android.data.settings.IntegrationClientDto
 import com.daynest.android.data.settings.IntegrationClientInputDto
 import com.daynest.android.data.settings.SettingsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -48,8 +49,10 @@ class SettingsViewModel
         private fun load() {
             viewModelScope.launch {
                 _uiState.value = SettingsUiState.Loading
-                val prefs = userPreferencesRepository.preferences.first()
-                val clientsResult = settingsRepository.listClients()
+                val prefsDeferred = async { userPreferencesRepository.preferences.first() }
+                val clientsDeferred = async { settingsRepository.listClients() }
+                val prefs = prefsDeferred.await()
+                val clientsResult = clientsDeferred.await()
                 _uiState.value =
                     SettingsUiState.Content(
                         clients = clientsResult.getOrElse { emptyList() },
@@ -101,9 +104,11 @@ class SettingsViewModel
 
         private fun updateServerUrl(url: String?) {
             viewModelScope.launch {
-                userPreferencesRepository.updateCustomServerUrl(url)
-                _uiState.update { current ->
-                    if (current is SettingsUiState.Content) current.copy(customServerUrl = url) else current
+                val result = runCatching { userPreferencesRepository.updateCustomServerUrl(url) }
+                if (result.isSuccess) {
+                    _uiState.update { current ->
+                        if (current is SettingsUiState.Content) current.copy(customServerUrl = url) else current
+                    }
                 }
             }
         }

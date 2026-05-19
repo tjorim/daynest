@@ -218,6 +218,8 @@ private fun SettingsContent(
     }
 }
 
+private fun isValidUrl(url: String): Boolean = url.startsWith("https://") || url.startsWith("http://")
+
 @Composable
 private fun ServerUrlPicker(
     defaultServerUrl: String,
@@ -227,6 +229,7 @@ private fun ServerUrlPicker(
     val isCustom = customServerUrl != null
     var expanded by remember { mutableStateOf(false) }
     var customInput by remember(customServerUrl) { mutableStateOf(customServerUrl ?: "") }
+    var urlError by remember(customServerUrl) { mutableStateOf(false) }
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         ExposedDropdownMenuBox(
@@ -282,15 +285,33 @@ private fun ServerUrlPicker(
         if (isCustom) {
             OutlinedTextField(
                 value = customInput,
-                onValueChange = { customInput = it },
+                onValueChange = {
+                    customInput = it
+                    urlError = false
+                },
+                isError = urlError,
+                supportingText =
+                    if (urlError) {
+                        { Text(text = stringResource(id = R.string.settings_server_url_error)) }
+                    } else {
+                        null
+                    },
                 label = { Text(text = stringResource(id = R.string.settings_server_url_label)) },
                 placeholder = { Text(text = stringResource(id = R.string.settings_server_url_placeholder)) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
             TextButton(
-                onClick = { onServerUrlChanged(customInput.trim().takeIf { it.isNotBlank() }) },
+                onClick = {
+                    val trimmed = customInput.trim()
+                    if (isValidUrl(trimmed)) {
+                        onServerUrlChanged(trimmed)
+                    } else {
+                        urlError = true
+                    }
+                },
                 enabled = customInput.isNotBlank(),
+                modifier = Modifier.align(Alignment.End),
             ) {
                 Text(text = stringResource(id = R.string.settings_server_url_apply))
             }

@@ -22,6 +22,7 @@ class DynamicBaseUrlInterceptor
                     .scheme(newBase.scheme)
                     .host(newBase.host)
                     .port(newBase.port)
+                    .encodedPath(newBase.encodedPath.trimEnd('/') + request.url.encodedPath)
                     .build()
             return chain.proceed(request.newBuilder().url(newUrl).build())
         }

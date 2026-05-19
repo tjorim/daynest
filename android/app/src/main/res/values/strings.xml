@@ -107,6 +107,7 @@
     <string name="settings_server_url_label">Server URL</string>
     <string name="settings_server_url_placeholder">https://your-server.example.com/</string>
     <string name="settings_server_url_apply">Apply</string>
+    <string name="settings_server_url_error">Must start with https:// or http://</string>
     <string name="settings_account_section">Account</string>
     <string name="settings_session_active">Signed in</string>
     <string name="settings_sign_out">Sign out</string>

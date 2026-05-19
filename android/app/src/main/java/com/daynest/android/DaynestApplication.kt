@@ -31,6 +31,8 @@ class DaynestApplication : Application() {
         }
     }
 
+    // onTerminate is only called in emulator/test environments, never on real devices.
+    // The cancel here is harmless but kept for correctness in instrumented tests.
     override fun onTerminate() {
         super.onTerminate()
         applicationScope.cancel()

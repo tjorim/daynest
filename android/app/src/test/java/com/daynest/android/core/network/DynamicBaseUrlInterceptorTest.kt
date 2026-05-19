@@ -1,5 +1,6 @@
 package com.daynest.android.core.network
 
+import com.daynest.android.BuildConfig
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.mockwebserver.MockResponse
@@ -42,9 +43,8 @@ class DynamicBaseUrlInterceptorTest {
     @Test
     fun `ServerUrlHolder defaults to BuildConfig API_BASE_URL`() {
         val holder = ServerUrlHolder()
-        // The default should match the compiled BuildConfig value (with trailing slash)
-        val url = holder.currentUrl
-        assert(url.endsWith("/")) { "Default URL must end with '/'" }
+        val expected = BuildConfig.API_BASE_URL.trimEnd('/') + "/"
+        assertEquals(expected, holder.currentUrl)
     }
 
     @Test
@@ -54,8 +54,19 @@ class DynamicBaseUrlInterceptorTest {
         assertEquals("https://custom.example.com/", holder.currentUrl)
 
         holder.updateUrl(null)
-        // Should restore to the BuildConfig default (ends with /)
-        assert(holder.currentUrl.endsWith("/")) { "Reset URL must end with '/'" }
+        val expected = BuildConfig.API_BASE_URL.trimEnd('/') + "/"
+        assertEquals(expected, holder.currentUrl)
+    }
+
+    @Test
+    fun `base URL path prefix is prepended to request path`() {
+        mockWebServer.enqueue(MockResponse().setResponseCode(200))
+        serverUrlHolder.updateUrl(mockWebServer.url("/api/").toString())
+
+        val request = Request.Builder().url("https://original.example.com/v1/today").build()
+        client.newCall(request).execute()
+
+        assertEquals("/api/v1/today", mockWebServer.takeRequest().path)
     }
 
     @Test

@@ -27,11 +27,13 @@ on:
         type: string
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   android:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # required for Create GitHub Release step on workflow_dispatch
 
     steps:
       - name: Checkout
@@ -110,6 +112,7 @@ jobs:
         if: >
           github.event_name == 'workflow_dispatch' &&
           steps.local-properties.outputs.secrets_available == 'true' &&
+          steps.keystore.outputs.signing_available == 'true' &&
           (inputs.environment == 'release' || inputs.environment == 'both')
         working-directory: android
         env:
@@ -123,6 +126,7 @@ jobs:
         if: >
           github.event_name == 'workflow_dispatch' &&
           steps.local-properties.outputs.secrets_available == 'true' &&
+          steps.keystore.outputs.signing_available == 'true' &&
           (inputs.environment == 'release' || inputs.environment == 'both')
         uses: actions/upload-artifact@v4
         with:
@@ -135,6 +139,7 @@ jobs:
           github.event_name == 'workflow_dispatch' &&
           inputs.release_tag != '' &&
           steps.local-properties.outputs.secrets_available == 'true' &&
+          steps.keystore.outputs.signing_available == 'true' &&
           (inputs.environment == 'release' || inputs.environment == 'both')
         uses: softprops/action-gh-release@v2
         with:
