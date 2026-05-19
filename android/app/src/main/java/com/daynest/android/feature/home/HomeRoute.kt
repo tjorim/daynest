@@ -18,6 +18,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -43,6 +44,7 @@ import com.daynest.android.data.today.MedicationTodayItemDto
 import com.daynest.android.data.today.PlannedTodayItemDto
 import com.daynest.android.data.today.RoutineTodayItemDto
 import com.daynest.android.data.today.UpcomingTodayItemDto
+import com.daynest.android.feature.home.SectionType
 
 @Composable
 @Suppress("FunctionNaming")
@@ -181,12 +183,30 @@ private fun TodayContent(
         }
 
         if (state.routines.isNotEmpty()) {
+            val routineIds = state.routines.map { it.taskInstanceId }
+            val allRoutinesSelected = routineIds.isNotEmpty() && state.selectedRoutineIds.containsAll(routineIds)
             item {
-                SectionHeader(title = stringResource(id = R.string.today_section_routines))
+                BulkSectionHeader(
+                    title = stringResource(id = R.string.today_section_routines),
+                    selectedCount = state.selectedRoutineIds.size,
+                    allSelected = allRoutinesSelected,
+                    onSelectAll = {
+                        if (allRoutinesSelected) {
+                            onEvent(HomeUiEvent.ClearSelection(SectionType.ROUTINES))
+                        } else {
+                            onEvent(HomeUiEvent.SelectAll(SectionType.ROUTINES, routineIds))
+                        }
+                    },
+                    onBulkDone = { onEvent(HomeUiEvent.BulkDone(SectionType.ROUTINES)) },
+                    onBulkSkip = { onEvent(HomeUiEvent.BulkSkip(SectionType.ROUTINES)) },
+                    onBulkUndo = null,
+                )
             }
             items(state.routines, key = { "routine_${it.taskInstanceId}" }) { item ->
                 RoutineCard(
                     item = item,
+                    isSelected = state.selectedRoutineIds.contains(item.taskInstanceId),
+                    onToggleSelect = { onEvent(HomeUiEvent.ToggleSelection(SectionType.ROUTINES, item.taskInstanceId)) },
                     onStart = { onEvent(HomeUiEvent.StartTaskClicked(item.taskInstanceId)) },
                     onComplete = { onEvent(HomeUiEvent.CompleteTaskClicked(item.taskInstanceId)) },
                     onSkip = { onEvent(HomeUiEvent.SkipTaskClicked(item.taskInstanceId)) },
@@ -195,10 +215,26 @@ private fun TodayContent(
         }
 
         if (state.overdue.isNotEmpty()) {
+            val overdueIds = state.overdue.map { it.choreInstanceId }
+            val dueIds = state.dueToday.map { it.choreInstanceId }
+            val allChoreIds = overdueIds + dueIds
+            val allChoresSelected = allChoreIds.isNotEmpty() && state.selectedChoreIds.containsAll(allChoreIds)
             item {
-                SectionHeader(
+                BulkSectionHeader(
                     title = stringResource(id = R.string.today_section_overdue),
                     titleColor = MaterialTheme.colorScheme.error,
+                    selectedCount = state.selectedChoreIds.count { it in overdueIds },
+                    allSelected = overdueIds.isNotEmpty() && state.selectedChoreIds.containsAll(overdueIds),
+                    onSelectAll = {
+                        if (state.selectedChoreIds.containsAll(overdueIds)) {
+                            onEvent(HomeUiEvent.ClearSelection(SectionType.CHORES))
+                        } else {
+                            onEvent(HomeUiEvent.SelectAll(SectionType.CHORES, allChoreIds))
+                        }
+                    },
+                    onBulkDone = { onEvent(HomeUiEvent.BulkDone(SectionType.CHORES)) },
+                    onBulkSkip = { onEvent(HomeUiEvent.BulkSkip(SectionType.CHORES)) },
+                    onBulkUndo = null,
                 )
             }
             items(state.overdue, key = { "overdue_${it.choreInstanceId}" }) { item ->
@@ -210,6 +246,8 @@ private fun TodayContent(
                         } else {
                             null
                         },
+                    isSelected = state.selectedChoreIds.contains(item.choreInstanceId),
+                    onToggleSelect = { onEvent(HomeUiEvent.ToggleSelection(SectionType.CHORES, item.choreInstanceId)) },
                     onComplete = { onEvent(HomeUiEvent.CompleteChoreClicked(item.choreInstanceId)) },
                     onSkip = { onEvent(HomeUiEvent.SkipChoreClicked(item.choreInstanceId)) },
                     onSnooze = { onEvent(HomeUiEvent.SnoozeChoreClicked(item.choreInstanceId)) },
@@ -226,13 +264,32 @@ private fun TodayContent(
         }
 
         if (state.dueToday.isNotEmpty()) {
+            val dueTodayIds = state.dueToday.map { it.choreInstanceId }
+            val overdueIdsForDue = state.overdue.map { it.choreInstanceId }
+            val allChoreIdsForDue = overdueIdsForDue + dueTodayIds
             item {
-                SectionHeader(title = stringResource(id = R.string.today_section_due_today))
+                BulkSectionHeader(
+                    title = stringResource(id = R.string.today_section_due_today),
+                    selectedCount = state.selectedChoreIds.count { it in dueTodayIds },
+                    allSelected = dueTodayIds.isNotEmpty() && state.selectedChoreIds.containsAll(dueTodayIds),
+                    onSelectAll = {
+                        if (state.selectedChoreIds.containsAll(dueTodayIds)) {
+                            onEvent(HomeUiEvent.ClearSelection(SectionType.CHORES))
+                        } else {
+                            onEvent(HomeUiEvent.SelectAll(SectionType.CHORES, allChoreIdsForDue))
+                        }
+                    },
+                    onBulkDone = { onEvent(HomeUiEvent.BulkDone(SectionType.CHORES)) },
+                    onBulkSkip = { onEvent(HomeUiEvent.BulkSkip(SectionType.CHORES)) },
+                    onBulkUndo = null,
+                )
             }
             items(state.dueToday, key = { "due_${it.choreInstanceId}" }) { item ->
                 ChoreCard(
                     title = item.title,
                     subtitle = null,
+                    isSelected = state.selectedChoreIds.contains(item.choreInstanceId),
+                    onToggleSelect = { onEvent(HomeUiEvent.ToggleSelection(SectionType.CHORES, item.choreInstanceId)) },
                     onComplete = { onEvent(HomeUiEvent.CompleteChoreClicked(item.choreInstanceId)) },
                     onSkip = { onEvent(HomeUiEvent.SkipChoreClicked(item.choreInstanceId)) },
                     onSnooze = { onEvent(HomeUiEvent.SnoozeChoreClicked(item.choreInstanceId)) },
@@ -249,12 +306,30 @@ private fun TodayContent(
         }
 
         if (state.planned.isNotEmpty()) {
+            val plannedIds = state.planned.map { it.id }
+            val allPlannedSelected = plannedIds.isNotEmpty() && state.selectedPlannedIds.containsAll(plannedIds)
             item {
-                SectionHeader(title = stringResource(id = R.string.today_section_planned))
+                BulkSectionHeader(
+                    title = stringResource(id = R.string.today_section_planned),
+                    selectedCount = state.selectedPlannedIds.size,
+                    allSelected = allPlannedSelected,
+                    onSelectAll = {
+                        if (allPlannedSelected) {
+                            onEvent(HomeUiEvent.ClearSelection(SectionType.PLANNED))
+                        } else {
+                            onEvent(HomeUiEvent.SelectAll(SectionType.PLANNED, plannedIds))
+                        }
+                    },
+                    onBulkDone = { onEvent(HomeUiEvent.BulkDone(SectionType.PLANNED)) },
+                    onBulkSkip = null,
+                    onBulkUndo = { onEvent(HomeUiEvent.BulkUndo(SectionType.PLANNED)) },
+                )
             }
             items(state.planned, key = { "planned_${it.id}" }) { item ->
                 PlannedItemCard(
                     item = item,
+                    isSelected = state.selectedPlannedIds.contains(item.id),
+                    onToggleSelect = { onEvent(HomeUiEvent.ToggleSelection(SectionType.PLANNED, item.id)) },
                     onToggleDone = { onEvent(HomeUiEvent.MarkPlannedDoneClicked(item.id, !item.isDone)) },
                     onEdit = { plannedEditTarget = item },
                     onDelete = { onEvent(HomeUiEvent.DeletePlannedClicked(item.id)) },
@@ -440,6 +515,56 @@ private fun SectionHeader(
 
 @Composable
 @Suppress("FunctionNaming")
+private fun BulkSectionHeader(
+    title: String,
+    selectedCount: Int,
+    allSelected: Boolean,
+    onSelectAll: () -> Unit,
+    onBulkDone: (() -> Unit)?,
+    onBulkSkip: (() -> Unit)?,
+    onBulkUndo: (() -> Unit)?,
+    titleColor: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.onSurface,
+) {
+    Column(modifier = Modifier.padding(top = 4.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Checkbox(checked = allSelected, onCheckedChange = { onSelectAll() })
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleSmall,
+                color = titleColor,
+                modifier = Modifier.weight(1f),
+            )
+        }
+        if (selectedCount > 0) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+            ) {
+                if (onBulkDone != null) {
+                    TextButton(onClick = onBulkDone) {
+                        Text(text = stringResource(id = R.string.action_done))
+                    }
+                }
+                if (onBulkSkip != null) {
+                    TextButton(onClick = onBulkSkip) {
+                        Text(text = stringResource(id = R.string.action_skip))
+                    }
+                }
+                if (onBulkUndo != null) {
+                    TextButton(onClick = onBulkUndo) {
+                        Text(text = stringResource(id = R.string.action_undo))
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+@Suppress("FunctionNaming")
 private fun MedicationTodayCard(
     item: MedicationTodayItemDto,
     onTake: () -> Unit,
@@ -487,6 +612,8 @@ private fun MedicationTodayCard(
 @Suppress("FunctionNaming")
 private fun RoutineCard(
     item: RoutineTodayItemDto,
+    isSelected: Boolean,
+    onToggleSelect: () -> Unit,
     onStart: () -> Unit,
     onComplete: () -> Unit,
     onSkip: () -> Unit,
@@ -503,6 +630,7 @@ private fun RoutineCard(
                     .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            Checkbox(checked = isSelected, onCheckedChange = { onToggleSelect() })
             Text(
                 text = item.title,
                 style = MaterialTheme.typography.bodyMedium,
@@ -531,6 +659,8 @@ private fun RoutineCard(
 private fun ChoreCard(
     title: String,
     subtitle: String?,
+    isSelected: Boolean,
+    onToggleSelect: () -> Unit,
     onComplete: () -> Unit,
     onSkip: () -> Unit,
     onReschedule: () -> Unit,
@@ -544,6 +674,7 @@ private fun ChoreCard(
                     .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            Checkbox(checked = isSelected, onCheckedChange = { onToggleSelect() })
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = title, style = MaterialTheme.typography.bodyMedium)
                 if (subtitle != null) {
@@ -574,6 +705,8 @@ private fun ChoreCard(
 @Suppress("FunctionNaming")
 private fun PlannedItemCard(
     item: PlannedTodayItemDto,
+    isSelected: Boolean,
+    onToggleSelect: () -> Unit,
     onToggleDone: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
@@ -586,6 +719,7 @@ private fun PlannedItemCard(
                     .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            Checkbox(checked = isSelected, onCheckedChange = { onToggleSelect() })
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = item.title,

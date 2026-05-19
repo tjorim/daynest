@@ -13,6 +13,8 @@ import com.daynest.android.data.today.TodayRepository
 import com.daynest.android.data.today.UpcomingTodayItemDto
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.LocalDate
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -97,6 +99,12 @@ class HomeViewModel
                 is HomeUiEvent.SkipTaskClicked -> taskAction(event.taskInstanceId, complete = false)
                 is HomeUiEvent.RescheduleChoreClicked -> rescheduleChore(event.choreInstanceId, event.scheduledDate)
                 is HomeUiEvent.SnoozeChoreClicked -> snoozeChore(event.choreInstanceId)
+                is HomeUiEvent.ToggleSelection -> toggleSelection(event.type, event.id)
+                is HomeUiEvent.SelectAll -> selectAll(event.type, event.ids)
+                is HomeUiEvent.ClearSelection -> clearSelection(event.type)
+                is HomeUiEvent.BulkDone -> bulkDone(event.type)
+                is HomeUiEvent.BulkSkip -> bulkSkip(event.type)
+                is HomeUiEvent.BulkUndo -> bulkUndo(event.type)
                 is HomeUiEvent.TakeMedicationClicked -> doseAction(event.doseInstanceId, take = true)
                 is HomeUiEvent.SkipMedicationClicked -> doseAction(event.doseInstanceId, take = false)
                 is HomeUiEvent.MarkPlannedDoneClicked -> markPlannedDone(event.id, event.isDone)
@@ -122,6 +130,128 @@ class HomeViewModel
             viewModelScope.launch {
                 val result = repository.rescheduleChore(id, scheduledDate)
                 if (result.isSuccess) refresh()
+            }
+        }
+
+        private fun toggleSelection(
+            type: SectionType,
+            id: Int,
+        ) {
+            _uiState.update { current ->
+                if (current is HomeUiState.Content) {
+                    when (type) {
+                        SectionType.CHORES ->
+                            current.copy(
+                                selectedChoreIds = current.selectedChoreIds.toggle(id),
+                            )
+                        SectionType.ROUTINES ->
+                            current.copy(
+                                selectedRoutineIds = current.selectedRoutineIds.toggle(id),
+                            )
+                        SectionType.PLANNED ->
+                            current.copy(
+                                selectedPlannedIds = current.selectedPlannedIds.toggle(id),
+                            )
+                    }
+                } else {
+                    current
+                }
+            }
+        }
+
+        private fun selectAll(
+            type: SectionType,
+            ids: List<Int>,
+        ) {
+            _uiState.update { current ->
+                if (current is HomeUiState.Content) {
+                    when (type) {
+                        SectionType.CHORES -> current.copy(selectedChoreIds = ids.toSet())
+                        SectionType.ROUTINES -> current.copy(selectedRoutineIds = ids.toSet())
+                        SectionType.PLANNED -> current.copy(selectedPlannedIds = ids.toSet())
+                    }
+                } else {
+                    current
+                }
+            }
+        }
+
+        private fun clearSelection(type: SectionType) {
+            _uiState.update { current ->
+                if (current is HomeUiState.Content) {
+                    when (type) {
+                        SectionType.CHORES -> current.copy(selectedChoreIds = emptySet())
+                        SectionType.ROUTINES -> current.copy(selectedRoutineIds = emptySet())
+                        SectionType.PLANNED -> current.copy(selectedPlannedIds = emptySet())
+                    }
+                } else {
+                    current
+                }
+            }
+        }
+
+        private fun bulkDone(type: SectionType) {
+            val content = _uiState.value as? HomeUiState.Content ?: return
+            val ids =
+                when (type) {
+                    SectionType.CHORES -> content.selectedChoreIds.toList()
+                    SectionType.ROUTINES -> content.selectedRoutineIds.toList()
+                    SectionType.PLANNED -> return
+                }
+            if (ids.isEmpty()) return
+            viewModelScope.launch {
+                ids.map { id ->
+                    async {
+                        when (type) {
+                            SectionType.CHORES -> repository.completeChore(id)
+                            SectionType.ROUTINES -> repository.completeTask(id)
+                            SectionType.PLANNED -> Result.failure(IllegalStateException())
+                        }
+                    }
+                }.awaitAll()
+                clearSelection(type)
+                refresh()
+            }
+        }
+
+        private fun bulkSkip(type: SectionType) {
+            val content = _uiState.value as? HomeUiState.Content ?: return
+            val ids =
+                when (type) {
+                    SectionType.CHORES -> content.selectedChoreIds.toList()
+                    SectionType.ROUTINES -> content.selectedRoutineIds.toList()
+                    SectionType.PLANNED -> return
+                }
+            if (ids.isEmpty()) return
+            viewModelScope.launch {
+                ids.map { id ->
+                    async {
+                        when (type) {
+                            SectionType.CHORES -> repository.skipChore(id)
+                            SectionType.ROUTINES -> repository.skipTask(id)
+                            SectionType.PLANNED -> Result.failure(IllegalStateException())
+                        }
+                    }
+                }.awaitAll()
+                clearSelection(type)
+                refresh()
+            }
+        }
+
+        private fun bulkUndo(type: SectionType) {
+            if (type != SectionType.PLANNED) return
+            val content = _uiState.value as? HomeUiState.Content ?: return
+            val ids = content.selectedPlannedIds.toList()
+            if (ids.isEmpty()) return
+            viewModelScope.launch {
+                ids.map { id ->
+                    async {
+                        val item = content.planned.firstOrNull { it.id == id } ?: return@async Result.failure<Unit>(IllegalStateException())
+                        repository.markPlannedDone(id, item, false)
+                    }
+                }.awaitAll()
+                clearSelection(SectionType.PLANNED)
+                refresh()
             }
         }
 
@@ -240,6 +370,9 @@ sealed interface HomeUiState {
         val upcoming: List<UpcomingTodayItemDto> = emptyList(),
         val planned: List<PlannedTodayItemDto> = emptyList(),
         val isStale: Boolean = false,
+        val selectedChoreIds: Set<Int> = emptySet(),
+        val selectedRoutineIds: Set<Int> = emptySet(),
+        val selectedPlannedIds: Set<Int> = emptySet(),
     ) : HomeUiState
 
     data class Error(
@@ -301,7 +434,37 @@ sealed interface HomeUiEvent {
     data class DeletePlannedClicked(
         val id: Int,
     ) : HomeUiEvent
+
+    data class ToggleSelection(
+        val type: SectionType,
+        val id: Int,
+    ) : HomeUiEvent
+
+    data class SelectAll(
+        val type: SectionType,
+        val ids: List<Int>,
+    ) : HomeUiEvent
+
+    data class ClearSelection(
+        val type: SectionType,
+    ) : HomeUiEvent
+
+    data class BulkDone(
+        val type: SectionType,
+    ) : HomeUiEvent
+
+    data class BulkSkip(
+        val type: SectionType,
+    ) : HomeUiEvent
+
+    data class BulkUndo(
+        val type: SectionType,
+    ) : HomeUiEvent
 }
+
+enum class SectionType { CHORES, ROUTINES, PLANNED }
+
+private fun Set<Int>.toggle(id: Int): Set<Int> = if (contains(id)) this - id else this + id
 
 enum class HomeError {
     LoadTodayFailed,
