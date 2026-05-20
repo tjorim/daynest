@@ -3,14 +3,8 @@ name: CodeQL
 on:
   push:
     branches: [main]
-    paths:
-      - 'android/**'
-      - '.github/workflows/codeql.yml'
   pull_request:
     branches: [main]
-    paths:
-      - 'android/**'
-      - '.github/workflows/codeql.yml'
   schedule:
     - cron: '0 3 * * 1'
 
@@ -19,11 +13,22 @@ permissions:
 
 jobs:
   analyze:
-    name: Analyze (java-kotlin)
+    name: Analyze (${{ matrix.language }})
     runs-on: ubuntu-latest
     permissions:
       security-events: write
       actions: read
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: java-kotlin
+            build-mode: manual
+          - language: python
+            build-mode: none
+          - language: javascript-typescript
+            build-mode: none
 
     steps:
       - name: Checkout
@@ -32,19 +37,24 @@ jobs:
       - name: Initialize CodeQL
         uses: github/codeql-action/init@458d36d7d4f47d0dd16ca424c1d3cda0060f1360 # v3.35.5
         with:
-          languages: java-kotlin
-          build-mode: manual
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+
+      # ── java-kotlin manual build steps ───────────────────────────────────────
 
       - name: Set up JDK 17
+        if: matrix.language == 'java-kotlin'
         uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5
         with:
           distribution: temurin
           java-version: '17'
 
       - name: Set up Gradle cache
+        if: matrix.language == 'java-kotlin'
         uses: gradle/actions/setup-gradle@50e97c2cd7a37755bbfafc9c5b7cafaece252f6e # v6
 
       - name: Write placeholder local.properties
+        if: matrix.language == 'java-kotlin'
         working-directory: android
         run: |
           {
@@ -55,10 +65,13 @@ jobs:
           } >> local.properties
 
       - name: Build for analysis
+        if: matrix.language == 'java-kotlin'
         working-directory: android
         run: ./gradlew :app:compileDebugKotlin
+
+      # ─────────────────────────────────────────────────────────────────────────
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@458d36d7d4f47d0dd16ca424c1d3cda0060f1360 # v3.35.5
         with:
-          category: /language:java-kotlin
+          category: /language:${{ matrix.language }}
