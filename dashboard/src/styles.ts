@@ -70,4 +70,39 @@ export const cardStyles = css`
     color: var(--primary-text-color);
     font-size: 0.85rem;
   }
+
+  .task-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  .task-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--divider-color);
+  }
+
+  .task-item.done {
+    color: var(--secondary-text-color);
+    text-decoration: line-through;
+  }
+
+  .task-actions {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex-shrink: 0;
+  }
+
+  .task-group-header {
+    color: var(--secondary-text-color);
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-top: 4px;
+  }
 `;
