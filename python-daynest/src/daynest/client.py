@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import inspect
 import time
 from collections.abc import Awaitable, Callable, Mapping
 from datetime import date
@@ -100,7 +101,7 @@ class DaynestClient:
         if self._access_token_getter is None:
             return None
         token = self._access_token_getter()
-        if isinstance(token, Awaitable):
+        if inspect.isawaitable(token):
             token = await token
         if not token:
             return None

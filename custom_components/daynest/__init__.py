@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 import inspect
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -69,6 +70,14 @@ def _should_replace_token_url(token_url: str | None, legacy_token_url: str, clie
     return not token_url or (token_url == legacy_token_url and client_id == "home-assistant")
 
 
+def _resolve_auth_mode(data: Mapping[str, Any]) -> str:
+    """Resolve auth mode for an entry, including compatibility fallback."""
+    configured = str(data.get(CONF_AUTH_MODE) or "").strip()
+    if configured:
+        return configured
+    return AUTH_MODE_OAUTH_REDIRECT if "token" in data else AUTH_MODE_CLIENT_CREDENTIALS
+
+
 async def async_migrate_entry(hass: HomeAssistant, entry: DaynestConfigEntry) -> bool:
     """Migrate old config entries to the current OAuth credentials shape."""
     if entry.version == 1:
@@ -100,7 +109,7 @@ async def async_migrate_entry(hass: HomeAssistant, entry: DaynestConfigEntry) ->
     if entry.version == 3:
         data = dict(entry.data)
         base_url = str(data.get(CONF_URL) or DEFAULT_API_BASE_URL).strip().rstrip("/")
-        if "token" in data:
+        if _resolve_auth_mode(data) == AUTH_MODE_OAUTH_REDIRECT:
             data.setdefault(CONF_AUTH_MODE, AUTH_MODE_OAUTH_REDIRECT)
             data.setdefault(CONF_AUTHORIZATION_URL, build_oidc_authorization_url(base_url))
             data.setdefault(CONF_TOKEN_URL, build_oidc_token_url(base_url))
@@ -118,11 +127,7 @@ async def async_setup_entry(
 ) -> bool:
     """Set up Daynest from a config entry."""
     base_url = str(entry.data[CONF_URL]).strip().rstrip("/")
-    # Keep this runtime fallback for safety: entries can still be loaded before migration
-    # runs in edge cases (e.g. partial restores or manually edited storage).
-    auth_mode = str(entry.data.get(CONF_AUTH_MODE) or "").strip() or (
-        AUTH_MODE_OAUTH_REDIRECT if "token" in entry.data else AUTH_MODE_CLIENT_CREDENTIALS
-    )
+    auth_mode = _resolve_auth_mode(entry.data)
 
     if auth_mode == AUTH_MODE_OAUTH_REDIRECT:
         authorization_url = str(entry.data.get(CONF_AUTHORIZATION_URL) or "").strip().rstrip("/")
