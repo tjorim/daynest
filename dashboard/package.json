@@ -7,7 +7,7 @@
     "dev": "rollup -c rollup.config.mjs --watch"
   },
   "devDependencies": {
-    "@rollup/plugin-node-resolve": "^15.0.0",
+    "@rollup/plugin-node-resolve": "^16.0.3",
     "@rollup/plugin-terser": "^1.0.0",
     "@rollup/plugin-typescript": "^11.0.0",
     "custom-card-helpers": "^2.0.0",
