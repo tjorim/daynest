@@ -20,6 +20,31 @@ from custom_components.daynest.const import (
 from homeassistant.const import CONF_API_KEY, CONF_CLIENT_ID, CONF_CLIENT_SECRET, CONF_URL
 
 
+class _ResourceCollection:
+    """Minimal Lovelace resource collection fake."""
+
+    def __init__(self, items: list[dict] | None = None) -> None:
+        self.items = items or []
+        self.async_get_info = AsyncMock(return_value={"resources": len(self.items)})
+        self.async_create_item = AsyncMock(side_effect=self._create_item)
+        self.async_update_item = AsyncMock(side_effect=self._update_item)
+
+    def async_items(self) -> list[dict]:
+        return self.items
+
+    async def _create_item(self, data: dict) -> dict:
+        item = {"id": "resource-id", "type": data["res_type"], "url": data["url"]}
+        self.items.append(item)
+        return item
+
+    async def _update_item(self, item_id: str, updates: dict) -> dict:
+        for item in self.items:
+            if item["id"] == item_id:
+                item.update({"type": updates["res_type"], "url": updates["url"]})
+                return item
+        raise KeyError(item_id)
+
+
 @pytest.mark.unit
 class TestMigrateEntry:
     async def test_migrates_v1_entry_to_daynest_token_endpoint(self) -> None:
@@ -218,3 +243,54 @@ class TestSetupEntry:
         access_token_getter = kwargs["access_token_getter"]
         assert await access_token_getter() == "oidc_access_token"
         oauth_session.async_ensure_token_valid.assert_awaited()
+
+
+@pytest.mark.unit
+class TestLovelaceResource:
+    async def test_registers_daynest_card_resource(self) -> None:
+        resources = _ResourceCollection()
+        hass = MagicMock()
+        hass.data = {
+            "lovelace": MagicMock(
+                resources=resources,
+            )
+        }
+
+        with patch("custom_components.daynest.ResourceStorageCollection", _ResourceCollection):
+            await integration._async_register_lovelace_resource(
+                hass,
+                "/daynest/static/daynest-card.js?v=1.0.0",
+            )
+
+        resources.async_create_item.assert_awaited_once_with(
+            {
+                "res_type": "module",
+                CONF_URL: "/daynest/static/daynest-card.js?v=1.0.0",
+            }
+        )
+
+    async def test_updates_existing_daynest_card_resource(self) -> None:
+        resources = _ResourceCollection(
+            [{"id": "resource-id", "type": "module", "url": "/daynest/static/daynest-card.js?v=0.1.0"}]
+        )
+        hass = MagicMock()
+        hass.data = {
+            "lovelace": MagicMock(
+                resources=resources,
+            )
+        }
+
+        with patch("custom_components.daynest.ResourceStorageCollection", _ResourceCollection):
+            await integration._async_register_lovelace_resource(
+                hass,
+                "/daynest/static/daynest-card.js?v=1.0.0",
+            )
+
+        resources.async_create_item.assert_not_awaited()
+        resources.async_update_item.assert_awaited_once_with(
+            "resource-id",
+            {
+                "res_type": "module",
+                CONF_URL: "/daynest/static/daynest-card.js?v=1.0.0",
+            },
+        )

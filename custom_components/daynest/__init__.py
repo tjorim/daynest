@@ -10,8 +10,17 @@ from typing import TYPE_CHECKING, Any
 from daynest import DaynestClient
 from homeassistant.components.frontend import add_extra_js_url, remove_extra_js_url
 from homeassistant.components.http import StaticPathConfig
+from homeassistant.components.lovelace.resources import ResourceStorageCollection
 from homeassistant.config_entries import ConfigEntryState
-from homeassistant.const import CONF_API_KEY, CONF_CLIENT_ID, CONF_CLIENT_SECRET, CONF_URL, Platform
+from homeassistant.const import (
+    CONF_API_KEY,
+    CONF_CLIENT_ID,
+    CONF_CLIENT_SECRET,
+    CONF_URL,
+    EVENT_COMPONENT_LOADED,
+    Platform,
+)
+from homeassistant.core import Event
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers import config_entry_oauth2_flow
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
@@ -55,7 +64,10 @@ if TYPE_CHECKING:
 
 PLATFORMS: list[Platform] = [Platform.CALENDAR, Platform.SENSOR, Platform.TODO]
 FRONTEND_DIR = Path(__file__).parent / "frontend"
-CARD_URL = "/daynest/frontend/daynest-card.js"
+CARD_URL = "/daynest/static/daynest-card.js"
+CARD_RESOURCE_TYPE = "module"
+CARD_DEFERRED = "card_deferred"
+CARD_REGISTERED = "card_registered"
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
@@ -63,6 +75,76 @@ CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     """Set up the Daynest domain."""
     return True
+
+
+async def _async_register_lovelace_resource(hass: HomeAssistant, resource_url: str) -> bool:
+    """Add or update the Daynest card as a Lovelace dashboard resource."""
+    lovelace_data = hass.data.get("lovelace")
+    if lovelace_data is None:
+        LOGGER.debug("Lovelace is not loaded; deferring Daynest card resource registration")
+        return False
+
+    resources = lovelace_data.resources if hasattr(lovelace_data, "resources") else lovelace_data["resources"]
+    if not isinstance(resources, ResourceStorageCollection):
+        LOGGER.debug("Lovelace resources are not storage-backed; loading Daynest card as extra JS: %s", resource_url)
+        add_extra_js_url(hass, resource_url)
+        return True
+
+    await resources.async_get_info()
+    for item in resources.async_items() or []:
+        url = str(item.get(CONF_URL, ""))
+        if url.partition("?")[0] != CARD_URL:
+            continue
+
+        if url != resource_url or item.get("res_type", item.get("type")) != CARD_RESOURCE_TYPE:
+            item_id = item.get("id")
+            if not isinstance(item_id, str):
+                continue
+            await resources.async_update_item(
+                item_id,
+                {"res_type": CARD_RESOURCE_TYPE, CONF_URL: resource_url},
+            )
+        return True
+
+    await resources.async_create_item(
+        {"res_type": CARD_RESOURCE_TYPE, CONF_URL: resource_url},
+    )
+    return True
+
+
+async def _async_register_or_defer_lovelace_resource(hass: HomeAssistant, resource_url: str) -> None:
+    """Register the Daynest Lovelace resource now, or retry when Lovelace loads."""
+    frontend_data = hass.data.setdefault(DOMAIN, {})
+    if await _async_register_lovelace_resource(hass, resource_url):
+        frontend_data[CARD_REGISTERED] = True
+        frontend_data[CARD_DEFERRED] = False
+        return
+
+    if frontend_data.get(CARD_DEFERRED):
+        return
+
+    frontend_data[CARD_DEFERRED] = True
+    unsubscribe: Any = None
+
+    async def _on_lovelace_loaded(event: Event) -> None:
+        if event.data.get("component") != "lovelace":
+            return
+        if unsubscribe is not None:
+            unsubscribe()
+        try:
+            registered = await _async_register_lovelace_resource(hass, resource_url)
+        except Exception as err:  # noqa: BLE001
+            LOGGER.debug("Deferred Daynest card resource registration failed: %s", err)
+            registered = False
+        frontend_data[CARD_REGISTERED] = registered
+        frontend_data[CARD_DEFERRED] = False
+
+    unsubscribe = hass.bus.async_listen(EVENT_COMPONENT_LOADED, _on_lovelace_loaded)
+
+    if hass.data.get("lovelace"):
+        unsubscribe()
+        frontend_data[CARD_REGISTERED] = await _async_register_lovelace_resource(hass, resource_url)
+        frontend_data[CARD_DEFERRED] = False
 
 
 def _should_replace_token_url(token_url: str | None, legacy_token_url: str, client_id: str | None) -> bool:
@@ -207,12 +289,12 @@ async def async_setup_entry(
         await async_setup_services(hass)
 
     frontend_data = hass.data.setdefault(DOMAIN, {})
-    if not frontend_data.get("card_registered"):
-        frontend_data["card_registered"] = True
+    if not frontend_data.get(CARD_REGISTERED):
+        frontend_data[CARD_REGISTERED] = True
         card_path = FRONTEND_DIR / "daynest-card.js"
         if not card_path.exists():
             LOGGER.warning("daynest-card.js not found; dashboard card will not be available")
-            frontend_data["card_registered"] = False
+            frontend_data[CARD_REGISTERED] = False
         else:
             version = entry.runtime_data.integration.version or "0"
             versioned_url = f"{CARD_URL}?v={version}"
@@ -220,7 +302,7 @@ async def async_setup_entry(
                 hass,
                 [StaticPathConfig(CARD_URL, str(card_path), cache_headers=True)],
             )
-            add_extra_js_url(hass, versioned_url)
+            await _async_register_or_defer_lovelace_resource(hass, versioned_url)
             frontend_data["versioned_url"] = versioned_url
 
     return True
@@ -240,9 +322,9 @@ async def async_unload_entry(
     ]
     if unload_ok and not remaining_loaded:
         frontend_data = hass.data.setdefault(DOMAIN, {})
-        if frontend_data.get("card_registered"):
+        if frontend_data.get(CARD_REGISTERED):
             remove_extra_js_url(hass, frontend_data.get("versioned_url", CARD_URL))
-            frontend_data["card_registered"] = False
+            frontend_data[CARD_REGISTERED] = False
         async_unload_services(hass)
     return unload_ok
 
