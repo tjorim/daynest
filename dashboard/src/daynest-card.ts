@@ -110,7 +110,7 @@ class DaynestCard extends LitElement {
     return 4;
   }
 
-  getGridOptions() {
+  getGridOptions(): { columns: number; rows: number; min_columns: number; min_rows: number } {
     return { columns: 12, rows: 4, min_columns: 6, min_rows: 3 };
   }
 
