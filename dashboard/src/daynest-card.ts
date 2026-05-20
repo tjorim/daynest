@@ -44,6 +44,10 @@ function isServicePrefix(prefix: string): prefix is ServicePrefix {
   return prefix in serviceMap;
 }
 
+function isSnoozablePrefix(prefix: string): boolean {
+  return prefix === "due" || prefix === "overdue";
+}
+
 type WindowWithCustomCards = Window & {
   customCards?: Array<{
     type: string;
@@ -168,7 +172,7 @@ class DaynestCard extends LitElement {
   private _renderTaskItem(item: TodoItem) {
     const { prefix } = parseUid(item.uid);
     const canSkip = prefix !== "planned";
-    const canSnooze = prefix === "due" || prefix === "overdue";
+    const canSnooze = isSnoozablePrefix(prefix);
     const isDone = item.status === "completed";
     return html`
       <div class=${`task-item${isDone ? " done" : ""}`}>
@@ -242,7 +246,7 @@ class DaynestCard extends LitElement {
 
   private async _snooze(item: TodoItem) {
     const { prefix, id } = parseUid(item.uid);
-    if (prefix !== "due" && prefix !== "overdue") return;
+    if (!isSnoozablePrefix(prefix)) return;
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
     try {
