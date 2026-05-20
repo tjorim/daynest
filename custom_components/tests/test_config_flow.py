@@ -6,15 +6,8 @@ import base64
 import json
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import pytest
-from daynest import (
-    DaynestAuthError,
-    DaynestMalformedResponseError,
-    DaynestNotFoundError,
-    DaynestServerUnavailableError,
-    DaynestTimeoutError,
-)
 from daynest.models import DaynestSummary
+import pytest
 
 from custom_components.daynest.config_flow import (
     ERROR_AUTH,
@@ -33,6 +26,13 @@ from custom_components.daynest.const import (
     CONF_TOKEN_URL,
     build_oidc_authorization_url,
     build_oidc_token_url,
+)
+from daynest import (
+    DaynestAuthError,
+    DaynestMalformedResponseError,
+    DaynestNotFoundError,
+    DaynestServerUnavailableError,
+    DaynestTimeoutError,
 )
 from homeassistant import config_entries
 from homeassistant.const import CONF_URL
