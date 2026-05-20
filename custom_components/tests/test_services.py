@@ -358,3 +358,79 @@ class TestHandleSkipTask:
         handler = await _get_handler(hass, SERVICE_SKIP_TASK)
         with pytest.raises(HomeAssistantError, match="Authentication error in daynest.skip_task"):
             await handler(_make_service_call(**{ATTR_CHORE_INSTANCE_ID: 9}))
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+class TestHandleMarkPlannedDone:
+    """Tests for the mark_planned_done service handler."""
+
+    async def test_no_entries_logs_warning_and_returns(self) -> None:
+        hass = _make_hass(entries=[])
+        await async_setup_services(hass)
+        handler = await _get_handler(hass, SERVICE_MARK_PLANNED_DONE)
+        with patch("custom_components.daynest.services.LOGGER") as mock_logger:
+            await handler(_make_service_call(**{ATTR_PLANNED_ITEM_ID: 5}))
+        mock_logger.warning.assert_called_once()
+
+    async def test_multiple_entries_logs_warning_and_returns(self) -> None:
+        entries = [_make_entry(entry_id="e1"), _make_entry(entry_id="e2")]
+        hass = _make_hass(entries=entries)
+        await async_setup_services(hass)
+        handler = await _get_handler(hass, SERVICE_MARK_PLANNED_DONE)
+        with patch("custom_components.daynest.services.LOGGER") as mock_logger:
+            await handler(_make_service_call(**{ATTR_PLANNED_ITEM_ID: 5}))
+        mock_logger.warning.assert_called_once()
+        for entry in entries:
+            entry.runtime_data.client.async_mark_planned_done.assert_not_awaited()
+
+    async def test_success_calls_client_and_refreshes_coordinator(self) -> None:
+        client = AsyncMock()
+        entry = _make_entry(client=client)
+        hass = _make_hass(entries=[entry])
+        await async_setup_services(hass)
+        handler = await _get_handler(hass, SERVICE_MARK_PLANNED_DONE)
+        await handler(_make_service_call(**{ATTR_PLANNED_ITEM_ID: 42}))
+        client.async_mark_planned_done.assert_awaited_once_with(planned_item_id=42)
+        entry.runtime_data.coordinator.async_refresh.assert_awaited_once()
+
+    async def test_authentication_error_raises_homeassistant_error(self) -> None:
+        client = AsyncMock()
+        client.async_mark_planned_done.side_effect = DaynestAuthError()
+        entry = _make_entry(client=client)
+        hass = _make_hass(entries=[entry])
+        await async_setup_services(hass)
+        handler = await _get_handler(hass, SERVICE_MARK_PLANNED_DONE)
+        with pytest.raises(HomeAssistantError, match="Authentication error in daynest.mark_planned_done"):
+            await handler(_make_service_call(**{ATTR_PLANNED_ITEM_ID: 42}))
+
+    async def test_communication_error_raises_homeassistant_error(self) -> None:
+        client = AsyncMock()
+        client.async_mark_planned_done.side_effect = DaynestCommunicationError("network")
+        entry = _make_entry(client=client)
+        hass = _make_hass(entries=[entry])
+        await async_setup_services(hass)
+        handler = await _get_handler(hass, SERVICE_MARK_PLANNED_DONE)
+        with pytest.raises(HomeAssistantError, match="Communication error in daynest.mark_planned_done"):
+            await handler(_make_service_call(**{ATTR_PLANNED_ITEM_ID: 42}))
+
+    async def test_generic_api_error_raises_homeassistant_error(self) -> None:
+        client = AsyncMock()
+        client.async_mark_planned_done.side_effect = DaynestError("fail")
+        entry = _make_entry(client=client)
+        hass = _make_hass(entries=[entry])
+        await async_setup_services(hass)
+        handler = await _get_handler(hass, SERVICE_MARK_PLANNED_DONE)
+        with pytest.raises(HomeAssistantError, match="Error in daynest.mark_planned_done"):
+            await handler(_make_service_call(**{ATTR_PLANNED_ITEM_ID: 42}))
+
+    async def test_error_does_not_trigger_coordinator_refresh(self) -> None:
+        client = AsyncMock()
+        client.async_mark_planned_done.side_effect = DaynestError("fail")
+        entry = _make_entry(client=client)
+        hass = _make_hass(entries=[entry])
+        await async_setup_services(hass)
+        handler = await _get_handler(hass, SERVICE_MARK_PLANNED_DONE)
+        with pytest.raises(HomeAssistantError):
+            await handler(_make_service_call(**{ATTR_PLANNED_ITEM_ID: 42}))
+        entry.runtime_data.coordinator.async_refresh.assert_not_awaited()
