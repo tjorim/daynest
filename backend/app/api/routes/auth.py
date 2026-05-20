@@ -40,10 +40,12 @@ def oidc_config() -> OidcDiscoveryConfig:
     if not settings.oidc_issuer_url:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="OIDC not configured on this server")
     issuer = settings.oidc_issuer_url.rstrip("/")
-    return OidcDiscoveryConfig(
-        issuer=issuer,
-        authorization_url=f"{issuer}/protocol/openid-connect/auth",
-        token_url=f"{issuer}/protocol/openid-connect/token",
+    return OidcDiscoveryConfig.model_validate(
+        {
+            "issuer": issuer,
+            "authorization_url": f"{issuer}/protocol/openid-connect/auth",
+            "token_url": f"{issuer}/protocol/openid-connect/token",
+        }
     )
 
 
