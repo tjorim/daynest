@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 import voluptuous as vol
+
 from daynest import (
     DaynestAuthError,
     DaynestClient,
@@ -19,7 +20,13 @@ from homeassistant.helpers import selector
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.loader import async_get_loaded_integration
 
-from .const import CONF_TOKEN_URL, DOMAIN, LOGGER, SUPPORTED_INTEGRATION_CONTRACT_VERSIONS, parse_integration_contract_version
+from .const import (
+    CONF_TOKEN_URL,
+    DOMAIN,
+    LOGGER,
+    SUPPORTED_INTEGRATION_CONTRACT_VERSIONS,
+    parse_integration_contract_version,
+)
 
 ERROR_AUTH = "invalid_auth"
 ERROR_CANNOT_CONNECT = "cannot_connect"
