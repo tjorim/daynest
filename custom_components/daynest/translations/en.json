@@ -2,28 +2,31 @@
   "config": {
     "step": {
       "user": {
-        "description": "If you need help with the configuration have a look at the [documentation]({documentation_url}).",
+        "description": "Enter your Daynest base URL to start browser-based OAuth setup. Home Assistant will open the Daynest sign-in page automatically. If you need help, have a look at the [documentation]({documentation_url}).",
         "data": {
-          "url": "Daynest base URL",
-          "token_url": "Keycloak token URL",
-          "client_id": "Client ID",
-          "client_secret": "Client secret"
-        },
-        "data_description": {
-          "token_url": "e.g. https://auth.example.com/realms/daynest/protocol/openid-connect/token",
-          "client_id": "The Keycloak client ID with service account and ha:read scope enabled"
+          "url": "Daynest base URL"
         }
+      },
+      "reauth_confirm": {
+        "title": "Re-authenticate with Daynest",
+        "description": "Your Daynest session has expired or been revoked. Click Submit to sign in again."
       }
     },
     "error": {
-      "invalid_auth": "Authentication failed. Check the client ID, secret, and that the Keycloak client has the ha:read scope.",
+      "invalid_auth": "Authentication failed. Verify your Daynest account has Home Assistant access and try signing in again.",
       "cannot_connect": "Unable to reach the Daynest host.",
       "timeout": "Connection to Daynest timed out.",
       "unsupported_contract": "The Daynest server contract version is not supported by this integration.",
       "unknown": "Unknown error occurred."
     },
     "abort": {
-      "already_configured": "This entry is already configured."
+      "already_configured": "This entry is already configured.",
+      "reauth_successful": "Re-authentication was successful.",
+      "invalid_auth": "Authentication failed while validating the Daynest OAuth token.",
+      "cannot_connect": "Unable to reach the Daynest host.",
+      "timeout": "Connection to Daynest timed out.",
+      "unsupported_contract": "The Daynest server contract version is not supported by this integration.",
+      "unknown": "Unknown error occurred."
     }
   },
   "exceptions": {
@@ -79,7 +82,7 @@
     },
     "complete_task": {
       "name": "Complete Task",
-      "description": "Marks a Daynest chore instance as complete. Requires the integration API key to have the ha:write scope.",
+      "description": "Marks a Daynest chore instance as complete. Requires the Daynest Home Assistant client to have the ha:write scope.",
       "fields": {
         "chore_instance_id": {
           "name": "Chore Instance ID",
@@ -89,7 +92,7 @@
     },
     "snooze_task": {
       "name": "Snooze Task",
-      "description": "Reschedules a Daynest chore instance to a later date. Requires the integration API key to have the ha:write scope.",
+      "description": "Reschedules a Daynest chore instance to a later date. Requires the Daynest Home Assistant client to have the ha:write scope.",
       "fields": {
         "chore_instance_id": {
           "name": "Chore Instance ID",
@@ -103,7 +106,7 @@
     },
     "mark_medication_taken": {
       "name": "Mark Medication Taken",
-      "description": "Marks a scheduled medication dose as taken. Requires the integration API key to have the ha:write scope.",
+      "description": "Marks a scheduled medication dose as taken. Requires the Daynest Home Assistant client to have the ha:write scope.",
       "fields": {
         "medication_dose_id": {
           "name": "Medication Dose ID",
@@ -113,7 +116,7 @@
     },
     "skip_task": {
       "name": "Skip Task",
-      "description": "Skips a Daynest chore instance. Requires the integration API key to have the ha:write scope.",
+      "description": "Skips a Daynest chore instance. Requires the Daynest Home Assistant client to have the ha:write scope.",
       "fields": {
         "chore_instance_id": {
           "name": "Chore Instance ID",
@@ -123,7 +126,7 @@
     },
     "skip_medication": {
       "name": "Skip Medication Dose",
-      "description": "Skips a scheduled medication dose. Requires the integration API key to have the ha:write scope.",
+      "description": "Skips a scheduled medication dose. Requires the Daynest Home Assistant client to have the ha:write scope.",
       "fields": {
         "medication_dose_id": {
           "name": "Medication Dose ID",

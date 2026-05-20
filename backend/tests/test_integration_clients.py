@@ -1,9 +1,11 @@
+import jwt
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from app.api.dependencies.auth import get_current_user
 from app.api.dependencies.integration_auth import hash_integration_key
+from app.core.config import settings
 from app.main import app
 from app.models.integration_client import IntegrationClient
 from app.models.user import User
@@ -74,7 +76,7 @@ class TestListIntegrationClients:
 
 
 class TestCreateIntegrationClient:
-    def test_creates_and_returns_api_key(self, client: TestClient, db_session: Session) -> None:
+    def test_creates_and_returns_oauth_bundle(self, client: TestClient, db_session: Session) -> None:
         user = _create_user(db_session, "create@example.com")
         _auth_as(user)
 
@@ -87,6 +89,9 @@ class TestCreateIntegrationClient:
         body = response.json()
         assert body["name"] == "New Client"
         assert body["api_key"].startswith("daynest_")
+        assert body["client_id"]
+        assert body["client_secret"] == body["api_key"]
+        assert body["token_url"].endswith("/api/v1/integrations/clients/token")
         assert "ha:read" in body["scopes"]
 
     def test_api_key_is_hashed_in_db(self, client: TestClient, db_session: Session) -> None:
@@ -118,6 +123,9 @@ class TestRotateIntegrationClient:
         body = response.json()
         assert body["id"] == ic.id
         assert body["api_key"].startswith("daynest_")
+        assert body["client_id"] == str(ic.id)
+        assert body["client_secret"] == body["api_key"]
+        assert body["token_url"].endswith("/api/v1/integrations/clients/token")
 
         db_session.refresh(ic)
         assert ic.key_hash != original_hash
@@ -171,3 +179,103 @@ class TestRevokeIntegrationClient:
         response = client.delete("/api/v1/integrations/clients/99999")
 
         assert response.status_code == 404
+
+
+class TestExchangeIntegrationClientToken:
+    def test_returns_bearer_token_for_valid_client_credentials(
+        self,
+        client: TestClient,
+        db_session: Session,
+    ) -> None:
+        user = _create_user(db_session, "oauth@example.com")
+        _auth_as(user)
+
+        create_response = client.post(
+            "/api/v1/integrations/clients",
+            json={"name": "OAuth Client", "scopes": ["ha:read"], "rate_limit_per_minute": 120},
+        )
+        assert create_response.status_code == 200
+        created = create_response.json()
+
+        token_response = client.post(
+            "/api/v1/integrations/clients/token",
+            data={
+                "grant_type": "client_credentials",
+                "client_id": created["client_id"],
+                "client_secret": created["client_secret"],
+            },
+        )
+
+        assert token_response.status_code == 200
+        body = token_response.json()
+        assert body["token_type"] == "Bearer"
+        assert body["expires_in"] == 300
+        assert body["scope"] == "ha:read"
+        # access_token must be a short-lived JWT, not the long-lived client_secret
+        assert body["access_token"] != created["client_secret"]
+        claims = jwt.decode(
+            body["access_token"],
+            settings.resolved_integration_key_hash_secret,
+            algorithms=["HS256"],
+            issuer="daynest-integration",
+            options={"require": ["exp", "iss", "sub", "scope"]},
+        )
+        assert claims["scope"] == "ha:read"
+        assert claims["sub"] == created["client_id"]
+
+    def test_rejects_invalid_client_secret(self, client: TestClient, db_session: Session) -> None:
+        user = _create_user(db_session, "oauth-invalid@example.com")
+        _auth_as(user)
+        created = client.post(
+            "/api/v1/integrations/clients",
+            json={"name": "OAuth Client", "scopes": ["ha:read"], "rate_limit_per_minute": 120},
+        ).json()
+
+        token_response = client.post(
+            "/api/v1/integrations/clients/token",
+            data={
+                "grant_type": "client_credentials",
+                "client_id": created["client_id"],
+                "client_secret": "not-the-right-secret",
+            },
+        )
+
+        assert token_response.status_code == 401
+
+    def test_rejects_mismatched_client_id(self, client: TestClient, db_session: Session) -> None:
+        user = _create_user(db_session, "oauth-mismatch@example.com")
+        _auth_as(user)
+        created = client.post(
+            "/api/v1/integrations/clients",
+            json={"name": "OAuth Client", "scopes": ["ha:read"], "rate_limit_per_minute": 120},
+        ).json()
+
+        token_response = client.post(
+            "/api/v1/integrations/clients/token",
+            data={
+                "grant_type": "client_credentials",
+                "client_id": "wrong-client-id",
+                "client_secret": created["client_secret"],
+            },
+        )
+
+        assert token_response.status_code == 401
+
+    def test_rejects_unsupported_grant_type(self, client: TestClient, db_session: Session) -> None:
+        user = _create_user(db_session, "oauth-grant@example.com")
+        _auth_as(user)
+        created = client.post(
+            "/api/v1/integrations/clients",
+            json={"name": "OAuth Client", "scopes": ["ha:read"], "rate_limit_per_minute": 120},
+        ).json()
+
+        token_response = client.post(
+            "/api/v1/integrations/clients/token",
+            data={
+                "grant_type": "authorization_code",
+                "client_id": created["client_id"],
+                "client_secret": created["client_secret"],
+            },
+        )
+
+        assert token_response.status_code == 400

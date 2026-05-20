@@ -68,6 +68,16 @@ class IntegrationClientCreateResponse(BaseModel):
     scopes: list[str]
     rate_limit_per_minute: int
     api_key: str
+    client_id: str
+    client_secret: str
+    token_url: str
+
+
+class IntegrationClientTokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "Bearer"
+    expires_in: int
+    scope: str
 
 
 class IntegrationClientResponse(BaseModel):

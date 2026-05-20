@@ -4,16 +4,15 @@ This guide describes the backend contract expected by the Daynest Home Assistant
 
 ## Authentication Requirements
 
-- Use an API key with the required scope: `ha:read`
-- For write operations (services), the API key must also include `ha:write`
-- Send the API key using the `X-Integration-Key` header
-
-```http
-X-Integration-Key: <DAYNEST_API_KEY>
-```
-
-If the API key is missing the `ha:read` scope, Home Assistant will not be able to fetch Daynest data.
-If the API key is missing the `ha:write` scope, write services (`complete_task`, `snooze_task`, `mark_medication_taken`, `skip_task`, `skip_medication`) will be rejected with `403 Forbidden`.
+- Home Assistant now uses a browser-based OAuth redirect flow and opens the Daynest sign-in page automatically during setup.
+- The integration starts from only the Daynest base URL and derives the OIDC endpoints:
+  - `/realms/daynest/protocol/openid-connect/auth`
+  - `/realms/daynest/protocol/openid-connect/token`
+- The OAuth client ID used by the integration is `home-assistant` (PKCE flow).
+- The authenticated token must include:
+  - `ha:read`
+  - `ha:write` (required for write services/actions)
+- Legacy integration-client keys remain supported for older consumers through `X-Integration-Key` and the integration client token endpoint.
 
 ## Base URL Requirements
 
@@ -170,18 +169,22 @@ Use least-privilege: create a read-only key (`ha:read`) for sensor-only setups a
 
 ## Common Errors
 
-### Invalid API Key
+### Invalid OAuth Client Credentials
 
 Typical symptoms:
 
 - setup fails with `401` or `403`
 - entities remain unavailable
 
-Checks:
+Checks for the automatic OAuth redirect setup:
 
-1. Verify the key is copied exactly.
-2. Verify the key includes `ha:read` (and `ha:write` for write services).
-3. Regenerate the key and update the integration if needed.
+1. Sign out of Daynest in the browser and retry the integration setup to get a fresh token.
+
+Checks for the legacy/manual client credentials setup:
+
+1. Verify the client ID and secret are copied exactly.
+2. Verify the client includes `ha:read` (and `ha:write` for write services).
+3. Rotate the client secret in Daynest and update Home Assistant if needed.
 
 ### Network Errors
 
@@ -211,9 +214,10 @@ Checks:
 
 ## Validation Checklist
 
-- API key includes `ha:read`
+- OAuth client includes `ha:read`
 - base URL is reachable from Home Assistant
+- token URL is reachable from Home Assistant
 - `/summary` returns `200 OK`, the contract header, and required summary fields
 - `/dashboard` returns `200 OK`, the contract header, and the expected dashboard payload
 - the integration loads without entity availability errors
-- (optional) API key includes `ha:write` for service automation support
+- (optional) OAuth client includes `ha:write` for service automation support

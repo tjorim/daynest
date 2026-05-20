@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import logging
+import inspect
 import time
-from collections.abc import Callable, Mapping
+from collections.abc import Awaitable, Callable, Mapping
 from datetime import date
 from typing import Any, TypeVar
 from urllib.parse import urljoin
@@ -56,6 +57,7 @@ class DaynestClient:
         client_id: str | None = None,
         client_secret: str | None = None,
         token_url: str | None = None,
+        access_token_getter: Callable[[], str | None | Awaitable[str | None]] | None = None,
     ) -> None:
         if base_url is not None and not base_url.strip():
             msg = "A base URL is required to initialize DaynestClient"
@@ -65,6 +67,7 @@ class DaynestClient:
         self._client_id = client_id
         self._client_secret = client_secret
         self._token_url = token_url
+        self._access_token_getter = access_token_getter
         self._cached_token: str | None = None
         self._token_expires_at: float = 0.0
         self._session = session
@@ -92,6 +95,17 @@ class DaynestClient:
     def has_oauth_credentials(self) -> bool:
         """Return whether the client has OAuth client credentials configured."""
         return bool(self._client_id and self._client_secret and self._token_url)
+
+    async def _get_external_access_token(self) -> str | None:
+        """Return an externally managed OAuth access token, if configured."""
+        if self._access_token_getter is None:
+            return None
+        token = self._access_token_getter()
+        if inspect.isawaitable(token):
+            token = await token
+        if not token:
+            return None
+        return token
 
     async def _fetch_oauth_token(self) -> str:
         """Exchange client credentials for an access token."""
@@ -136,6 +150,8 @@ class DaynestClient:
 
     async def _get_auth_headers(self) -> dict[str, str]:
         """Return auth headers for an API request."""
+        if external_token := await self._get_external_access_token():
+            return {"Authorization": f"Bearer {external_token}"}
         if self.has_oauth_credentials:
             if not self._cached_token or time.monotonic() >= self._token_expires_at:
                 await self._fetch_oauth_token()
