@@ -72,29 +72,37 @@ private fun ChoreTemplateFields(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         OutlinedTextField(
-            value = name, onValueChange = onNameChange,
-            label = { Text(text = stringResource(id = R.string.templates_name_label)) }, singleLine = true,
+            value = name,
+            onValueChange = onNameChange,
+            label = { Text(text = stringResource(id = R.string.templates_name_label)) },
+            singleLine = true,
         )
         OutlinedTextField(
-            value = description, onValueChange = onDescriptionChange,
-            label = { Text(text = stringResource(id = R.string.templates_description_label)) }, singleLine = true,
+            value = description,
+            onValueChange = onDescriptionChange,
+            label = { Text(text = stringResource(id = R.string.templates_description_label)) },
+            singleLine = true,
         )
         OutlinedTextField(
-            value = startDate, onValueChange = onStartDateChange,
-            label = { Text(text = stringResource(id = R.string.templates_start_date_label)) }, singleLine = true,
+            value = startDate,
+            onValueChange = onStartDateChange,
+            label = { Text(text = stringResource(id = R.string.templates_start_date_label)) },
+            singleLine = true,
         )
         OutlinedTextField(
             value = everyNDays,
             onValueChange = { onEveryNDaysChange(it.filter { c -> c.isDigit() }) },
-            label = { Text(text = stringResource(id = R.string.templates_every_n_days_label)) }, singleLine = true,
+            label = { Text(text = stringResource(id = R.string.templates_every_n_days_label)) },
+            singleLine = true,
         )
         TextButton(onClick = onIsActiveToggle) {
             Text(
-                text = if (isActive) {
-                    stringResource(id = R.string.medication_active)
-                } else {
-                    stringResource(id = R.string.templates_inactive)
-                },
+                text =
+                    if (isActive) {
+                        stringResource(id = R.string.medication_active)
+                    } else {
+                        stringResource(id = R.string.templates_inactive)
+                    },
             )
         }
     }
@@ -123,11 +131,16 @@ private fun ChoreTemplateDialog(
         title = { Text(text = title) },
         text = {
             ChoreTemplateFields(
-                name = name, onNameChange = { name = it },
-                description = description, onDescriptionChange = { description = it },
-                startDate = startDate, onStartDateChange = { startDate = it },
-                everyNDays = everyNDays, onEveryNDaysChange = { everyNDays = it },
-                isActive = isActive, onIsActiveToggle = { isActive = !isActive },
+                name = name,
+                onNameChange = { name = it },
+                description = description,
+                onDescriptionChange = { description = it },
+                startDate = startDate,
+                onStartDateChange = { startDate = it },
+                everyNDays = everyNDays,
+                onEveryNDaysChange = { everyNDays = it },
+                isActive = isActive,
+                onIsActiveToggle = { isActive = !isActive },
             )
         },
         confirmButton = {

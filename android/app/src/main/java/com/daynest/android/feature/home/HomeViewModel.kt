@@ -7,13 +7,12 @@ import com.daynest.android.data.today.DueTodayItemDto
 import com.daynest.android.data.today.MedicationHistoryItemDto
 import com.daynest.android.data.today.MedicationTodayItemDto
 import com.daynest.android.data.today.OverdueTodayItemDto
+import com.daynest.android.data.today.PlannedItemRepository
 import com.daynest.android.data.today.PlannedTodayItemDto
 import com.daynest.android.data.today.RoutineTodayItemDto
-import com.daynest.android.data.today.PlannedItemRepository
 import com.daynest.android.data.today.TodayRepository
 import com.daynest.android.data.today.UpcomingTodayItemDto
 import dagger.hilt.android.lifecycle.HiltViewModel
-import java.time.LocalDate
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,6 +20,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 import javax.inject.Inject
 
 @HiltViewModel
@@ -204,7 +204,7 @@ class HomeViewModel
                 }
             if (ids.isEmpty()) return
             viewModelScope.launch {
-                ids.map { id ->
+                val deferred = ids.map { id ->
                     async {
                         when (type) {
                             SectionType.CHORES -> repository.completeChore(id)
@@ -213,7 +213,8 @@ class HomeViewModel
                                 Result.failure(IllegalStateException("Bulk done not supported for PLANNED"))
                         }
                     }
-                }.awaitAll()
+                }
+                deferred.awaitAll()
                 clearSelection(type)
                 refresh()
             }
@@ -229,7 +230,7 @@ class HomeViewModel
                 }
             if (ids.isEmpty()) return
             viewModelScope.launch {
-                ids.map { id ->
+                val deferred = ids.map { id ->
                     async {
                         when (type) {
                             SectionType.CHORES -> repository.skipChore(id)
@@ -238,19 +239,21 @@ class HomeViewModel
                                 Result.failure(IllegalStateException("Bulk skip not supported for PLANNED"))
                         }
                     }
-                }.awaitAll()
+                }
+                deferred.awaitAll()
                 clearSelection(type)
                 refresh()
             }
         }
 
         private fun bulkUndo(type: SectionType) {
-            val content = (_uiState.value as? HomeUiState.Content)
-                ?.takeIf { type == SectionType.PLANNED } ?: return
+            val content =
+                (_uiState.value as? HomeUiState.Content)
+                    ?.takeIf { type == SectionType.PLANNED } ?: return
             val ids = content.selectedPlannedIds.toList()
             if (ids.isEmpty()) return
             viewModelScope.launch {
-                ids.map { id ->
+                val deferred = ids.map { id ->
                     async {
                         val item =
                             content.planned.firstOrNull { it.id == id }
@@ -259,7 +262,8 @@ class HomeViewModel
                                 )
                         plannedItemRepository.markPlannedDone(id, item, false)
                     }
-                }.awaitAll()
+                }
+                deferred.awaitAll()
                 clearSelection(SectionType.PLANNED)
                 refresh()
             }

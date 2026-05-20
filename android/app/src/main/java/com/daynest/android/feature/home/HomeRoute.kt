@@ -422,8 +422,9 @@ private fun TodaySummaryStrip(state: HomeUiState.Content) {
     val completedRoutines = state.routines.count { it.status == "completed" || it.status == "skipped" }
     val completedMedication = state.medication.count { it.status != "scheduled" }
     val completedPlanned = state.planned.count { it.isDone }
-    val totalItems = state.routines.size + state.medication.size + state.planned.size +
-        state.overdue.size + state.dueToday.size
+    val totalItems =
+        state.routines.size + state.medication.size + state.planned.size +
+            state.overdue.size + state.dueToday.size
     val completedItems = completedRoutines + completedMedication + completedPlanned
     val completionPct = if (totalItems == 0) 100 else (completedItems * 100 / totalItems)
 

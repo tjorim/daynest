@@ -426,25 +426,34 @@ private fun RoutineTemplateFields(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         OutlinedTextField(
-            value = name, onValueChange = onNameChange,
-            label = { Text(stringResource(R.string.templates_name_label)) }, singleLine = true,
+            value = name,
+            onValueChange = onNameChange,
+            label = { Text(stringResource(R.string.templates_name_label)) },
+            singleLine = true,
         )
         OutlinedTextField(
-            value = description, onValueChange = onDescriptionChange,
-            label = { Text(stringResource(R.string.templates_description_label)) }, singleLine = true,
+            value = description,
+            onValueChange = onDescriptionChange,
+            label = { Text(stringResource(R.string.templates_description_label)) },
+            singleLine = true,
         )
         OutlinedTextField(
-            value = startDate, onValueChange = onStartDateChange,
-            label = { Text(stringResource(R.string.templates_start_date_label)) }, singleLine = true,
+            value = startDate,
+            onValueChange = onStartDateChange,
+            label = { Text(stringResource(R.string.templates_start_date_label)) },
+            singleLine = true,
         )
         OutlinedTextField(
             value = everyNDays,
             onValueChange = { onEveryNDaysChange(it.filter { c -> c.isDigit() }) },
-            label = { Text(stringResource(R.string.templates_every_n_days_label)) }, singleLine = true,
+            label = { Text(stringResource(R.string.templates_every_n_days_label)) },
+            singleLine = true,
         )
         OutlinedTextField(
-            value = dueTime, onValueChange = onDueTimeChange,
-            label = { Text(stringResource(R.string.templates_due_time_label)) }, singleLine = true,
+            value = dueTime,
+            onValueChange = onDueTimeChange,
+            label = { Text(stringResource(R.string.templates_due_time_label)) },
+            singleLine = true,
         )
         TextButton(onClick = onIsActiveToggle) {
             Text(
