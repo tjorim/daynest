@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Any
 from daynest import DaynestClient
 from homeassistant.components.frontend import add_extra_js_url, remove_extra_js_url
 from homeassistant.components.http import StaticPathConfig
+from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import CONF_API_KEY, CONF_URL, Platform
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 import homeassistant.helpers.config_validation as cv
@@ -80,16 +81,17 @@ async def async_setup_entry(
 
     frontend_data = hass.data.setdefault(DOMAIN, {})
     if not frontend_data.get("card_registered"):
+        frontend_data["card_registered"] = True
         card_path = FRONTEND_DIR / "daynest-card.js"
         if not card_path.exists():
             LOGGER.warning("daynest-card.js not found; dashboard card will not be available")
+            frontend_data["card_registered"] = False
         else:
             await async_register_static_paths(
                 hass,
                 [StaticPathConfig(CARD_URL, str(card_path), cache_headers=False)],
             )
             add_extra_js_url(hass, CARD_URL)
-            frontend_data["card_registered"] = True
 
     return True
 
@@ -103,7 +105,10 @@ async def async_unload_entry(
     remaining = [
         e for e in hass.config_entries.async_entries(DOMAIN) if e.entry_id != entry.entry_id
     ]
-    if unload_ok and not remaining:
+    remaining_loaded = [
+        e for e in remaining if e.state is ConfigEntryState.LOADED
+    ]
+    if unload_ok and not remaining_loaded:
         frontend_data = hass.data.setdefault(DOMAIN, {})
         if frontend_data.get("card_registered"):
             remove_extra_js_url(hass, CARD_URL)
