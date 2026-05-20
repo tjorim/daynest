@@ -177,6 +177,7 @@ private fun CalendarContent(
             onEvent(CalendarUiEvent.ImportBackup(items))
         }
 
+    val backupMessageText = state.backupMessage?.asText()
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
@@ -203,7 +204,6 @@ private fun CalendarContent(
             )
         }
 
-        val backupMessageText = state.backupMessage?.asText()
         if (!backupMessageText.isNullOrBlank()) {
             item {
                 Text(
