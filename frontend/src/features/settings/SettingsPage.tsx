@@ -9,6 +9,7 @@ import {
   isRetryableApiError,
   listIntegrationClients,
   revokeIntegrationClient,
+  rotateIntegrationClient,
   type IntegrationClient,
   type IntegrationClientCreateResponse,
 } from "@/lib/api/today";
@@ -94,6 +95,8 @@ export function SettingsPage() {
 
   const [revokingClient, setRevokingClient] = useState<number | null>(null);
   const [revokeClientError, setRevokeClientError] = useState<string | null>(null);
+  const [rotatingClient, setRotatingClient] = useState<number | null>(null);
+  const [rotateClientError, setRotateClientError] = useState<string | null>(null);
 
   const [oauthSessions, setOauthSessions] = useState<OAuthSession[]>([]);
   const [sessionsLoading, setSessionsLoading] = useState(true);
@@ -172,6 +175,22 @@ export function SettingsPage() {
       if (!signal?.aborted) {
         setSessionsLoading(false);
       }
+    }
+  };
+
+  const onRotateClient = async (clientId: number) => {
+    setRotatingClient(clientId);
+    setRotateClientError(null);
+    try {
+      const rotated = await rotateIntegrationClient(clientId);
+      setCreatedClient(rotated);
+      setCopyStatus(null);
+      setSuccessMessage("API key rotated. Copy the new key now; it will not be shown again.");
+      await loadClients();
+    } catch (err) {
+      setRotateClientError(err instanceof Error ? err.message : "Failed to rotate integration client key.");
+    } finally {
+      setRotatingClient(null);
     }
   };
 
@@ -515,7 +534,9 @@ export function SettingsPage() {
 
           {createdClient ? (
             <div className="card">
-              <div className="card-header fw-semibold py-2">New API key</div>
+              <div className="card-header fw-semibold py-2">
+                {createdClient.name} — API key
+              </div>
               <div className="card-body">
                 <div className="alert alert-warning py-2">
                   This key is shown once. Store it in your integration client before leaving this
@@ -564,7 +585,7 @@ export function SettingsPage() {
                             .join(" ")}
                         </small>
                       </div>
-                      <div className="d-flex align-items-center gap-2">
+                      <div className="d-flex align-items-center gap-2 flex-wrap justify-content-end">
                         <span
                           className={`badge ${client.is_active ? "text-bg-success" : "text-bg-secondary"}`}
                         >
@@ -572,8 +593,16 @@ export function SettingsPage() {
                         </span>
                         <button
                           type="button"
+                          className="btn btn-outline-secondary btn-sm"
+                          disabled={rotatingClient === client.id || revokingClient === client.id}
+                          onClick={() => void onRotateClient(client.id)}
+                        >
+                          {rotatingClient === client.id ? "Rotating…" : "Rotate key"}
+                        </button>
+                        <button
+                          type="button"
                           className="btn btn-outline-danger btn-sm"
-                          disabled={revokingClient === client.id}
+                          disabled={revokingClient === client.id || rotatingClient === client.id}
                           onClick={() => void onRevokeClient(client.id)}
                         >
                           {revokingClient === client.id ? "Revoking…" : "Revoke"}
@@ -586,6 +615,9 @@ export function SettingsPage() {
             </ul>
             {revokeClientError ? (
               <div className="card-footer text-danger py-2 small">{revokeClientError}</div>
+            ) : null}
+            {rotateClientError ? (
+              <div className="card-footer text-danger py-2 small">{rotateClientError}</div>
             ) : null}
           </div>
 

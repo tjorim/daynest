@@ -739,6 +739,14 @@ export async function createIntegrationClient(
   return parseJsonResponse<IntegrationClientCreateResponse>(response, "Request failed", false);
 }
 
+export async function rotateIntegrationClient(clientId: number): Promise<IntegrationClientCreateResponse> {
+  const response = await fetchWithAuth(`/api/v1/integrations/clients/${clientId}/rotate`, {
+    method: "POST",
+    headers: { Accept: "application/json" },
+  });
+  return parseJsonResponse<IntegrationClientCreateResponse>(response, "Failed to rotate integration client");
+}
+
 export async function revokeIntegrationClient(clientId: number): Promise<void> {
   const response = await fetchWithAuth(`/api/v1/integrations/clients/${clientId}`, {
     method: "DELETE",

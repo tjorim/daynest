@@ -64,6 +64,33 @@ def create_integration_client(
     )
 
 
+@router.post("/{client_id}/rotate", response_model=IntegrationClientCreateResponse)
+def rotate_integration_client(
+    client_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> IntegrationClientCreateResponse:
+    client = db.scalar(
+        select(IntegrationClient).where(
+            IntegrationClient.id == client_id,
+            IntegrationClient.user_id == current_user.id,
+        )
+    )
+    if client is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Integration client not found")
+    raw_key = f"daynest_{token_urlsafe(30)}"
+    client.key_hash = hash_integration_key(raw_key)
+    db.commit()
+    db.refresh(client)
+    return IntegrationClientCreateResponse(
+        id=client.id,
+        name=client.name,
+        scopes=[scope for scope in client.scopes_csv.split(",") if scope],
+        rate_limit_per_minute=client.rate_limit_per_minute,
+        api_key=raw_key,
+    )
+
+
 @router.delete("/{client_id}", status_code=status.HTTP_204_NO_CONTENT)
 def revoke_integration_client(
     client_id: int,
