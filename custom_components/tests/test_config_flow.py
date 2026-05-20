@@ -63,8 +63,9 @@ def _make_jwt(payload: dict) -> str:
 def _make_handler(*, source: str = "user") -> DaynestConfigFlowHandler:
     handler = DaynestConfigFlowHandler.__new__(DaynestConfigFlowHandler)
     handler.hass = MagicMock()
-    handler.source = source
+    # source is a read-only property on FlowHandler backed by context["source"]
     handler.context = {
+        "source": source,
         CONF_URL: BASE_URL,
         CONF_AUTHORIZATION_URL: build_oidc_authorization_url(BASE_URL),
         CONF_TOKEN_URL: build_oidc_token_url(BASE_URL),
