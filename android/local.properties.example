@@ -16,3 +16,4 @@
 # Release API base URL (required for :app:assembleRelease builds).
 # Must end with a trailing slash.
 # apiBaseUrlRelease=https://api.daynest.com/
+

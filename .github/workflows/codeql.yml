@@ -62,8 +62,6 @@ jobs:
           {
             echo "apiBaseUrlStaging=https://staging.placeholder.invalid/"
             echo "apiBaseUrlRelease=https://release.placeholder.invalid/"
-            echo "oidcIssuerUrlStaging=https://staging.placeholder.invalid/realms/daynest"
-            echo "oidcIssuerUrlRelease=https://release.placeholder.invalid/realms/daynest"
           } >> local.properties
 
       - name: Build for analysis

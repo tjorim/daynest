@@ -25,6 +25,12 @@ class UserUpdateRequest(BaseModel):
         return v
 
 
+class OidcDiscoveryConfig(BaseModel):
+    issuer: str
+    authorization_url: str
+    token_url: str
+
+
 class OAuthSessionClient(BaseModel):
     """A client entry within a Keycloak session."""
 

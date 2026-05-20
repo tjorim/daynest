@@ -11,7 +11,7 @@ import {
 } from "@/app/pwa/installPrompt";
 import { AppRouter } from "@/app/router/AppRouter";
 import { AuthProvider, useAuth } from "@/app/providers/AuthProvider";
-import { oidcConfig } from "@/config/oidc";
+import { fetchOidcConfig } from "@/config/oidc";
 
 function App() {
   const { isAuthenticated, isLoading, logout, user } = useAuth();
@@ -87,17 +87,33 @@ function App() {
   );
 }
 
-ReactDOM.createRoot(document.getElementById("root")!).render(
-  <React.StrictMode>
-    <OidcProvider {...oidcConfig}>
-      <BrowserRouter>
-        <AuthProvider>
-          <App />
-        </AuthProvider>
-      </BrowserRouter>
-    </OidcProvider>
-  </React.StrictMode>,
-);
+async function bootstrap() {
+  let oidcConfig;
+  try {
+    oidcConfig = await fetchOidcConfig();
+  } catch {
+    const root = document.getElementById("root");
+    if (root) {
+      root.textContent =
+        "Cannot connect to Daynest server. Please check your connection and try again.";
+    }
+    return;
+  }
+
+  ReactDOM.createRoot(document.getElementById("root")!).render(
+    <React.StrictMode>
+      <OidcProvider {...oidcConfig}>
+        <BrowserRouter>
+          <AuthProvider>
+            <App />
+          </AuthProvider>
+        </BrowserRouter>
+      </OidcProvider>
+    </React.StrictMode>,
+  );
+}
+
+bootstrap();
 
 if ("serviceWorker" in navigator && import.meta.env.PROD) {
   const appVersion = __APP_VERSION__;
