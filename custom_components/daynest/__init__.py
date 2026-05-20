@@ -2,18 +2,31 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from daynest import DaynestClient
+from homeassistant.components.frontend import add_extra_js_url, remove_extra_js_url
+from homeassistant.components.http import StaticPathConfig
 from homeassistant.const import CONF_API_KEY, CONF_URL, Platform
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 import homeassistant.helpers.config_validation as cv
 from homeassistant.loader import async_get_loaded_integration
 
-from .const import DOMAIN
+from .const import DOMAIN, LOGGER
 from .coordinator import DaynestDataUpdateCoordinator
 from .data import DaynestData
 from .services import async_setup_services, async_unload_services
+
+try:
+    from homeassistant.components.frontend import async_register_static_paths
+except ImportError:
+    async def async_register_static_paths(
+        hass: HomeAssistant,
+        static_paths: list[StaticPathConfig],
+    ) -> None:
+        """Register static paths on older Home Assistant versions."""
+        await hass.http.async_register_static_paths(static_paths)
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
@@ -21,6 +34,8 @@ if TYPE_CHECKING:
     from .data import DaynestConfigEntry
 
 PLATFORMS: list[Platform] = [Platform.CALENDAR, Platform.SENSOR, Platform.TODO]
+FRONTEND_DIR = Path(__file__).parent / "frontend"
+CARD_URL = "/daynest/frontend/daynest-card.js"
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
@@ -60,6 +75,19 @@ async def async_setup_entry(
     if not hass.services.has_service(DOMAIN, "refresh"):
         await async_setup_services(hass)
 
+    frontend_data = hass.data.setdefault(DOMAIN, {})
+    if not frontend_data.get("card_registered"):
+        card_path = FRONTEND_DIR / "daynest-card.js"
+        if not card_path.exists():
+            LOGGER.warning("daynest-card.js not found; dashboard card will not be available")
+        else:
+            await async_register_static_paths(
+                hass,
+                [StaticPathConfig(CARD_URL, str(card_path), cache_headers=False)],
+            )
+            add_extra_js_url(hass, CARD_URL)
+            frontend_data["card_registered"] = True
+
     return True
 
 
@@ -73,6 +101,10 @@ async def async_unload_entry(
         e for e in hass.config_entries.async_entries(DOMAIN) if e.entry_id != entry.entry_id
     ]
     if unload_ok and not remaining:
+        frontend_data = hass.data.setdefault(DOMAIN, {})
+        if frontend_data.get("card_registered"):
+            remove_extra_js_url(hass, CARD_URL)
+            frontend_data["card_registered"] = False
         async_unload_services(hass)
     return unload_ok
 
