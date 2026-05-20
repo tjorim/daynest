@@ -132,6 +132,13 @@ class DaynestClient:
             payload={"medication_dose_id": medication_dose_id},
         )
 
+    async def async_mark_planned_done(self, planned_item_id: int) -> dict[str, Any]:
+        """Mark a planned item as done."""
+        return await self._post_action(
+            path="/api/v1/integrations/home-assistant/actions/mark-planned-done",
+            payload={"planned_item_id": planned_item_id},
+        )
+
     async def async_create_planned_item(
         self,
         *,

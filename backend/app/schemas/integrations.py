@@ -29,6 +29,10 @@ class SkipMedicationRequest(BaseModel):
     medication_dose_id: int = Field(gt=0, description="The medication dose instance ID to skip")
 
 
+class MarkPlannedDoneRequest(BaseModel):
+    planned_item_id: int = Field(gt=0, description="The planned item ID to mark as done")
+
+
 PlannedItemModuleKey = Literal["shopping_list", "meal_planning", "recurring_grocery", "shared_calendar"]
 
 

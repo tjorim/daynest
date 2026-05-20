@@ -87,11 +87,14 @@ async def async_setup_entry(
             LOGGER.warning("daynest-card.js not found; dashboard card will not be available")
             frontend_data["card_registered"] = False
         else:
+            version = entry.runtime_data.integration.version or "0"
+            versioned_url = f"{CARD_URL}?v={version}"
             await async_register_static_paths(
                 hass,
-                [StaticPathConfig(CARD_URL, str(card_path), cache_headers=False)],
+                [StaticPathConfig(CARD_URL, str(card_path), cache_headers=True)],
             )
-            add_extra_js_url(hass, CARD_URL)
+            add_extra_js_url(hass, versioned_url)
+            frontend_data["versioned_url"] = versioned_url
 
     return True
 
@@ -111,7 +114,7 @@ async def async_unload_entry(
     if unload_ok and not remaining_loaded:
         frontend_data = hass.data.setdefault(DOMAIN, {})
         if frontend_data.get("card_registered"):
-            remove_extra_js_url(hass, CARD_URL)
+            remove_extra_js_url(hass, frontend_data.get("versioned_url", CARD_URL))
             frontend_data["card_registered"] = False
         async_unload_services(hass)
     return unload_ok

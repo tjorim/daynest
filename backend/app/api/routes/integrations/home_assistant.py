@@ -18,6 +18,7 @@ from app.schemas.integrations import (
     HACalendarEvent,
     HomeAssistantEntity,
     MarkMedicationTakenRequest,
+    MarkPlannedDoneRequest,
     PlannedItemCreateRequest,
     PlannedItemUpdateRequest,
     SkipMedicationRequest,
@@ -181,6 +182,17 @@ def home_assistant_skip_medication(
         action="skip",
     )
     return HAActionResult(success=True, detail=f"Medication dose {request.medication_dose_id} skipped")
+
+
+@router.post("/actions/mark-planned-done", response_model=HAActionResult)
+def home_assistant_mark_planned_done(
+    request: MarkPlannedDoneRequest,
+    service: TodayService = Depends(get_today_service),
+    integration_user: User = Depends(require_integration_scope("ha:write")),
+) -> HAActionResult:
+    """Mark a planned item as done via Home Assistant automation."""
+    service.mark_planned_done(user_id=integration_user.id, planned_item_id=request.planned_item_id)
+    return HAActionResult(success=True, detail=f"Planned item {request.planned_item_id} marked as done")
 
 
 @router.post("/actions/create-planned-item", response_model=HAActionResult)
