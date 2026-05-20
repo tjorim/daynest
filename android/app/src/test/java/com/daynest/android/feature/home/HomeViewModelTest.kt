@@ -123,10 +123,11 @@ class HomeViewModelTest {
                     todayActionsApi = StubTodayActionsApi(),
                     todaySummaryDao = FakeTodaySummaryDao(),
                 )
-            val viewModel = HomeViewModel(
-                repository = repository,
-                plannedItemRepository = PlannedItemRepository(StubPlannedItemApi()),
-            )
+            val viewModel =
+                HomeViewModel(
+                    repository = repository,
+                    plannedItemRepository = PlannedItemRepository(StubPlannedItemApi()),
+                )
 
             advanceUntilIdle()
             assertTrue(viewModel.uiState.value is HomeUiState.Error)
