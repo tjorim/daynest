@@ -7,7 +7,7 @@ import pytest
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.api.dependencies.integration_auth import hash_integration_key
-from app.mcp_server import DaynestMcpAccessToken, DaynestMcpBackend, IntegrationKeyTokenVerifier, OIDCMcpTokenVerifier, create_mcp_server
+from app.mcp_server import MCP_WRITE_SCOPE, DaynestMcpAccessToken, DaynestMcpBackend, IntegrationKeyTokenVerifier, OIDCMcpTokenVerifier, create_mcp_server
 from app.models.chore_template import ChoreTemplate
 from app.models.integration_client import IntegrationClient
 from app.models.medication_dose_instance import MedicationDoseInstance
@@ -644,6 +644,50 @@ def test_mcp_backend_delete_chore_template_raises_for_missing(db_session: Sessio
 
     with pytest.raises(ValueError, match="not found"):
         backend.delete_chore_template(9999)
+
+
+def test_mcp_write_ops_require_write_scope(db_session: Session, monkeypatch) -> None:
+    user = _create_user(db_session, "write-scope@example.com")
+    client = _create_integration_client(db_session, user, raw_key="daynest_read_only_key", scopes="mcp:read")
+    backend = DaynestMcpBackend(_session_factory(db_session))
+
+    # Token with only mcp:read — no mcp:write
+    read_only_token = DaynestMcpAccessToken(
+        token="token",
+        client_id=str(client.id),
+        scopes=["mcp:read"],
+        auth_source="integration",
+        integration_client_id=client.id,
+    )
+    monkeypatch.setattr("app.mcp_server.get_access_token", lambda: read_only_token)
+
+    write_ops = [
+        lambda: backend.complete_chore(1),
+        lambda: backend.skip_chore(1),
+        lambda: backend.reschedule_chore(1, "2026-01-01"),
+        lambda: backend.start_routine_task(1),
+        lambda: backend.complete_routine_task(1),
+        lambda: backend.skip_routine_task(1),
+        lambda: backend.create_planned_item(title="T", planned_for="2026-01-01"),
+        lambda: backend.update_planned_item(1, title="T", planned_for="2026-01-01"),
+        lambda: backend.delete_planned_item(1),
+        lambda: backend.take_medication_dose(1),
+        lambda: backend.skip_medication_dose(1),
+        lambda: backend.create_routine(name="R", start_date="2026-01-01"),
+        lambda: backend.update_routine(1, name="R", start_date="2026-01-01"),
+        lambda: backend.delete_routine(1),
+        lambda: backend.create_chore_template(name="C", start_date="2026-01-01"),
+        lambda: backend.update_chore_template(1, name="C", start_date="2026-01-01"),
+        lambda: backend.delete_chore_template(1),
+        lambda: backend.create_medication(name="M", instructions="I", start_date="2026-01-01", schedule_time="09:00"),
+        lambda: backend.update_medication(1, name="M", instructions="I", start_date="2026-01-01", schedule_time="09:00"),
+        lambda: backend.delete_medication(1),
+        lambda: backend.create_integration_client(name="C", scopes=[MCP_WRITE_SCOPE]),
+    ]
+
+    for op in write_ops:
+        with pytest.raises(PermissionError, match=MCP_WRITE_SCOPE):
+            op()
 
 
 def test_create_mcp_server_uses_backend_session_factory(db_session: Session) -> None:

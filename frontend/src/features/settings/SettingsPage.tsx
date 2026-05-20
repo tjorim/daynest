@@ -34,8 +34,13 @@ const AVAILABLE_SCOPES = [
   },
   {
     key: "mcp:read",
-    label: "MCP Adapter",
-    description: "Allows MCP-compatible reads for Today and Calendar day data.",
+    label: "MCP Adapter (read)",
+    description: "Allows MCP read tools: today view, calendar, planned items, routines, chores, medications.",
+  },
+  {
+    key: "mcp:write",
+    label: "MCP Adapter (write)",
+    description: "Allows MCP write tools: complete/skip/reschedule tasks, create/update/delete planned items, routines, chores, and medications.",
   },
 ];
 
@@ -63,6 +68,14 @@ const INTEGRATION_PRESETS = [
     scopes: ["mcp:read"],
     rateLimit: "60",
     description: "Least-privilege read access for MCP consumers.",
+  },
+  {
+    key: "mcp-full",
+    label: "MCP read + write",
+    name: "MCP Adapter",
+    scopes: ["mcp:read", "mcp:write"],
+    rateLimit: "60",
+    description: "Full MCP access including write tools (complete tasks, manage items, etc.).",
   },
 ];
 
