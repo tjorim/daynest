@@ -83,16 +83,13 @@ const metricSensorDefinitions = [
 
 type MetricSensorSuffix = (typeof metricSensorDefinitions)[number]["suffix"];
 
-const metricSensorSuffixes: MetricSensorSuffix[] = metricSensorDefinitions.map(
-  (metric) => metric.suffix,
-);
-
 type WindowWithCustomCards = Window & {
   customCards?: Array<{
     type: string;
     name: string;
     description: string;
     preview: boolean;
+    documentationURL?: string;
   }>;
 };
 
@@ -157,7 +154,12 @@ class DaynestCard extends LitElement {
   }
 
   protected updated(changedProps: PropertyValues<this>) {
-    if (changedProps.has("hass") && this._items.length === 0) {
+    if (!changedProps.has("hass")) return;
+    const todoEntity = this._config?.todo_entity ?? "todo.daynest_today";
+    const prevHass = changedProps.get("hass") as HomeAssistant | undefined;
+    const prevLastChanged = prevHass?.states[todoEntity]?.last_changed;
+    const currLastChanged = this.hass?.states[todoEntity]?.last_changed;
+    if (prevLastChanged !== currLastChanged) {
       void this._fetchItems();
     }
   }
@@ -324,13 +326,10 @@ class DaynestCard extends LitElement {
   }
 
   private async _refresh() {
-    const prefix = this._config.sensor_prefix ?? DEFAULT_SENSOR_PREFIX;
     try {
-      await this.hass.callService("homeassistant", "update_entity", {
-        entity_id: metricSensorSuffixes.map((suffix) => prefix + suffix),
-      });
+      await this.hass.callService("daynest", "refresh", {});
     } catch (error) {
-      console.error("Failed to refresh Daynest sensors", error);
+      console.error("Failed to refresh Daynest data", error);
     }
     await this._fetchItems();
   }
@@ -344,5 +343,6 @@ if (!daynestWindow.customCards.some((card) => card.type === "daynest-card")) {
     name: "Daynest Card",
     description: "Today summary, task list, and medication tracking for Daynest.",
     preview: true,
+    documentationURL: "https://github.com/tjorim/daynest",
   });
 }
