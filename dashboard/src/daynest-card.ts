@@ -157,8 +157,8 @@ class DaynestCard extends LitElement {
     if (!changedProps.has("hass")) return;
     const todoEntity = this._config?.todo_entity ?? "todo.daynest_today";
     const prevHass = changedProps.get("hass") as HomeAssistant | undefined;
-    const prevLastChanged = prevHass?.states[todoEntity]?.last_changed;
-    const currLastChanged = this.hass?.states[todoEntity]?.last_changed;
+    const prevLastChanged = prevHass?.states[todoEntity]?.last_updated;
+    const currLastChanged = this.hass?.states[todoEntity]?.last_updated;
     if (prevLastChanged !== currLastChanged) {
       void this._fetchItems();
     }

@@ -1,9 +1,11 @@
+import jwt
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from app.api.dependencies.auth import get_current_user
 from app.api.dependencies.integration_auth import hash_integration_key
+from app.core.config import settings
 from app.main import app
 from app.models.integration_client import IntegrationClient
 from app.models.user import User
@@ -205,12 +207,21 @@ class TestExchangeIntegrationClientToken:
         )
 
         assert token_response.status_code == 200
-        assert token_response.json() == {
-            "access_token": created["client_secret"],
-            "token_type": "Bearer",
-            "expires_in": 300,
-            "scope": "ha:read",
-        }
+        body = token_response.json()
+        assert body["token_type"] == "Bearer"
+        assert body["expires_in"] == 300
+        assert body["scope"] == "ha:read"
+        # access_token must be a short-lived JWT, not the long-lived client_secret
+        assert body["access_token"] != created["client_secret"]
+        claims = jwt.decode(
+            body["access_token"],
+            settings.resolved_integration_key_hash_secret,
+            algorithms=["HS256"],
+            issuer="daynest-integration",
+            options={"require": ["exp", "iss", "sub", "scope"]},
+        )
+        assert claims["scope"] == "ha:read"
+        assert claims["sub"] == created["client_id"]
 
     def test_rejects_invalid_client_secret(self, client: TestClient, db_session: Session) -> None:
         user = _create_user(db_session, "oauth-invalid@example.com")

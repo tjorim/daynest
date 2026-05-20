@@ -176,7 +176,11 @@ Typical symptoms:
 - setup fails with `401` or `403`
 - entities remain unavailable
 
-Checks:
+Checks for the automatic OAuth redirect setup:
+
+1. Sign out of Daynest in the browser and retry the integration setup to get a fresh token.
+
+Checks for the legacy/manual client credentials setup:
 
 1. Verify the client ID and secret are copied exactly.
 2. Verify the client includes `ha:read` (and `ha:write` for write services).

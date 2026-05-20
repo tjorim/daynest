@@ -1,11 +1,14 @@
+from datetime import datetime, timedelta, timezone
 from secrets import token_urlsafe
 
+import jwt
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.dependencies.auth import get_current_user
 from app.api.dependencies.integration_auth import get_integration_client_by_token_hash, hash_integration_key
+from app.core.config import settings
 from app.db.session import get_db
 from app.models.integration_client import IntegrationClient
 from app.models.user import User
@@ -19,6 +22,19 @@ from app.schemas.integrations import (
 router = APIRouter(prefix="/integrations/clients", tags=["integrations"])
 LEGACY_HOME_ASSISTANT_CLIENT_ID = "home-assistant"
 TOKEN_EXPIRES_IN_SECONDS = 300
+_INTEGRATION_JWT_ISSUER = "daynest-integration"
+
+
+def _create_integration_token(client: IntegrationClient) -> str:
+    now = datetime.now(timezone.utc)
+    payload = {
+        "iss": _INTEGRATION_JWT_ISSUER,
+        "sub": str(client.id),
+        "scope": " ".join(s for s in client.scopes_csv.split(",") if s),
+        "iat": now,
+        "exp": now + timedelta(seconds=TOKEN_EXPIRES_IN_SECONDS),
+    }
+    return jwt.encode(payload, settings.resolved_integration_key_hash_secret, algorithm="HS256")
 
 
 def _integration_client_id(client: IntegrationClient) -> str:
@@ -151,7 +167,7 @@ def exchange_integration_client_token(
         )
 
     return IntegrationClientTokenResponse(
-        access_token=client_secret,
+        access_token=_create_integration_token(client),
         expires_in=TOKEN_EXPIRES_IN_SECONDS,
         scope=" ".join(scope for scope in client.scopes_csv.split(",") if scope),
     )

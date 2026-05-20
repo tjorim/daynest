@@ -4,6 +4,7 @@ from collections.abc import Callable
 from datetime import datetime, timedelta, timezone
 from hmac import digest
 
+import jwt
 from anyio import from_thread
 from fastapi import Depends, Header, HTTPException, status
 from sqlalchemy import select
@@ -14,6 +15,8 @@ from app.core.oidc import OIDCTokenError, decode_oidc_token, get_or_create_local
 from app.db.session import get_db
 from app.models.integration_client import IntegrationClient
 from app.models.user import User
+
+_INTEGRATION_JWT_ISSUER = "daynest-integration"
 
 # In-process only: does not work correctly with multiple Uvicorn/Gunicorn workers.
 # Replace with a distributed store (e.g. Redis) before scaling beyond a single process.
@@ -62,10 +65,43 @@ def require_integration_scope(scope: str) -> Callable:
         x_integration_key: str | None = Header(default=None, alias="X-Integration-Key"),
         db: Session = Depends(get_db),
     ) -> User:
-        # OIDC path: Bearer token that looks like a JWT (two dots = three segments)
+        # JWT path: Bearer token with three segments (two dots)
         if authorization and authorization.lower().startswith("bearer "):
             raw_token = authorization[len("bearer "):].strip()
             if raw_token.count(".") == 2:
+                # Integration JWT path (HS256, issued by this server's token endpoint)
+                try:
+                    int_claims = jwt.decode(
+                        raw_token,
+                        settings.resolved_integration_key_hash_secret,
+                        algorithms=["HS256"],
+                        issuer=_INTEGRATION_JWT_ISSUER,
+                        options={"require": ["exp", "iss", "sub", "scope"]},
+                    )
+                    token_scopes = set(int_claims.get("scope", "").split())
+                    if scope not in token_scopes:
+                        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"Missing scope: {scope}")
+                    try:
+                        client_id_int = int(int_claims["sub"])
+                    except (ValueError, KeyError):
+                        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid integration token")
+                    int_client = db.scalar(
+                        select(IntegrationClient).where(IntegrationClient.id == client_id_int).options(joinedload(IntegrationClient.user))
+                    )
+                    if int_client is None or not int_client.is_active:
+                        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Integration client not found or inactive")
+                    enforce_integration_rate_limit(int_client)
+                    if int_client.user is None:
+                        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Integration owner not found")
+                    return int_client.user
+                except jwt.ExpiredSignatureError as exc:
+                    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Integration token has expired") from exc
+                except jwt.InvalidIssuerError:
+                    pass  # Not an integration JWT — fall through to OIDC
+                except jwt.PyJWTError:
+                    pass  # Not a valid integration JWT — fall through to OIDC
+
+                # OIDC path
                 try:
                     claims = from_thread.run(decode_oidc_token, raw_token)
                 except OIDCTokenError as exc:
