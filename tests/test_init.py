@@ -71,11 +71,13 @@ class TestInitSetup:
         coordinator = MagicMock()
         coordinator.async_config_entry_first_refresh = AsyncMock()
 
+        mock_integration = MagicMock()
+        mock_integration.version = "1.0.0"
         with (
             patch("custom_components.daynest.DaynestClient"),
             patch("custom_components.daynest.async_get_clientsession"),
             patch("custom_components.daynest.DaynestDataUpdateCoordinator", return_value=coordinator),
-            patch("custom_components.daynest.async_get_loaded_integration", return_value=MagicMock()),
+            patch("custom_components.daynest.async_get_loaded_integration", return_value=mock_integration),
             patch("custom_components.daynest.async_setup_services", new=AsyncMock()),
             patch("custom_components.daynest.Path.exists", return_value=True),
             patch("custom_components.daynest.async_register_static_paths", new=AsyncMock()) as mock_register,
@@ -87,13 +89,15 @@ class TestInitSetup:
         static_path = mock_register.await_args.args[1][0]
         assert static_path.url_path == CARD_URL
         assert static_path.path.endswith("daynest-card.js")
-        assert static_path.cache_headers is False
-        mock_add_js.assert_called_once_with(hass, CARD_URL)
+        assert static_path.cache_headers is True
+        mock_add_js.assert_called_once_with(hass, f"{CARD_URL}?v=1.0.0")
         assert hass.data[DOMAIN]["card_registered"] is True
+        assert hass.data[DOMAIN]["versioned_url"] == f"{CARD_URL}?v=1.0.0"
 
     async def test_unload_entry_removes_injected_card_when_last_entry(self) -> None:
+        versioned_url = f"{CARD_URL}?v=1.0.0"
         hass = _make_hass()
-        hass.data = {DOMAIN: {"card_registered": True}}
+        hass.data = {DOMAIN: {"card_registered": True, "versioned_url": versioned_url}}
         entry = _make_entry()
         hass.config_entries.async_entries.return_value = []
 
@@ -103,7 +107,7 @@ class TestInitSetup:
         ):
             assert await async_unload_entry(hass, entry) is True
 
-        mock_remove_js.assert_called_once_with(hass, CARD_URL)
+        mock_remove_js.assert_called_once_with(hass, versioned_url)
         assert hass.data[DOMAIN]["card_registered"] is False
 
     async def test_unload_entry_keeps_injected_card_when_another_entry_loaded(self) -> None:

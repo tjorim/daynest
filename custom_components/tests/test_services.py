@@ -10,8 +10,10 @@ from custom_components.daynest.services import (
     ATTR_CHORE_INSTANCE_ID,
     ATTR_DAYS,
     ATTR_MEDICATION_DOSE_ID,
+    ATTR_PLANNED_ITEM_ID,
     SERVICE_COMPLETE_TASK,
     SERVICE_MARK_MEDICATION_TAKEN,
+    SERVICE_MARK_PLANNED_DONE,
     SERVICE_REFRESH,
     SERVICE_SKIP_MEDICATION,
     SERVICE_SKIP_TASK,
@@ -70,6 +72,7 @@ class TestAsyncSetupServices:
         assert SERVICE_COMPLETE_TASK in hass._registered_services
         assert SERVICE_SNOOZE_TASK in hass._registered_services
         assert SERVICE_MARK_MEDICATION_TAKEN in hass._registered_services
+        assert SERVICE_MARK_PLANNED_DONE in hass._registered_services
         assert SERVICE_SKIP_TASK in hass._registered_services
         assert SERVICE_SKIP_MEDICATION in hass._registered_services
 
@@ -81,6 +84,7 @@ class TestAsyncSetupServices:
         assert SERVICE_COMPLETE_TASK not in hass._registered_services
         assert SERVICE_SNOOZE_TASK not in hass._registered_services
         assert SERVICE_MARK_MEDICATION_TAKEN not in hass._registered_services
+        assert SERVICE_MARK_PLANNED_DONE not in hass._registered_services
         assert SERVICE_SKIP_TASK not in hass._registered_services
         assert SERVICE_SKIP_MEDICATION not in hass._registered_services
 
@@ -158,7 +162,7 @@ class TestHandleCompleteTask:
         hass = _make_hass(entries=[entry])
         await async_setup_services(hass)
         handler = await _get_handler(hass, SERVICE_COMPLETE_TASK)
-        with pytest.raises(HomeAssistantError, match="Authentication error completing chore"):
+        with pytest.raises(HomeAssistantError, match="Authentication error in daynest.complete_task"):
             await handler(_make_service_call(**{ATTR_CHORE_INSTANCE_ID: 7}))
 
     async def test_communication_error_raises_homeassistant_error(self) -> None:
@@ -168,7 +172,7 @@ class TestHandleCompleteTask:
         hass = _make_hass(entries=[entry])
         await async_setup_services(hass)
         handler = await _get_handler(hass, SERVICE_COMPLETE_TASK)
-        with pytest.raises(HomeAssistantError, match="Communication error completing chore"):
+        with pytest.raises(HomeAssistantError, match="Communication error in daynest.complete_task"):
             await handler(_make_service_call(**{ATTR_CHORE_INSTANCE_ID: 7}))
 
     async def test_generic_api_error_raises_homeassistant_error(self) -> None:
@@ -178,7 +182,7 @@ class TestHandleCompleteTask:
         hass = _make_hass(entries=[entry])
         await async_setup_services(hass)
         handler = await _get_handler(hass, SERVICE_COMPLETE_TASK)
-        with pytest.raises(HomeAssistantError, match="Error completing chore"):
+        with pytest.raises(HomeAssistantError, match="Error in daynest.complete_task"):
             await handler(_make_service_call(**{ATTR_CHORE_INSTANCE_ID: 7}))
 
     async def test_error_does_not_trigger_coordinator_refresh(self) -> None:
@@ -232,7 +236,7 @@ class TestHandleSnoozeTask:
         hass = _make_hass(entries=[entry])
         await async_setup_services(hass)
         handler = await _get_handler(hass, SERVICE_SNOOZE_TASK)
-        with pytest.raises(HomeAssistantError, match="Authentication error snoozing chore"):
+        with pytest.raises(HomeAssistantError, match="Authentication error in daynest.snooze_task"):
             await handler(_make_service_call(**{ATTR_CHORE_INSTANCE_ID: 3, ATTR_DAYS: 2}))
 
     async def test_communication_error_raises_homeassistant_error(self) -> None:
@@ -242,7 +246,7 @@ class TestHandleSnoozeTask:
         hass = _make_hass(entries=[entry])
         await async_setup_services(hass)
         handler = await _get_handler(hass, SERVICE_SNOOZE_TASK)
-        with pytest.raises(HomeAssistantError, match="Communication error snoozing chore"):
+        with pytest.raises(HomeAssistantError, match="Communication error in daynest.snooze_task"):
             await handler(_make_service_call(**{ATTR_CHORE_INSTANCE_ID: 3, ATTR_DAYS: 2}))
 
     async def test_generic_api_error_raises_homeassistant_error(self) -> None:
@@ -252,7 +256,7 @@ class TestHandleSnoozeTask:
         hass = _make_hass(entries=[entry])
         await async_setup_services(hass)
         handler = await _get_handler(hass, SERVICE_SNOOZE_TASK)
-        with pytest.raises(HomeAssistantError, match="Error snoozing chore"):
+        with pytest.raises(HomeAssistantError, match="Error in daynest.snooze_task"):
             await handler(_make_service_call(**{ATTR_CHORE_INSTANCE_ID: 3, ATTR_DAYS: 2}))
 
 
@@ -295,7 +299,7 @@ class TestHandleMarkMedicationTaken:
         hass = _make_hass(entries=[entry])
         await async_setup_services(hass)
         handler = await _get_handler(hass, SERVICE_MARK_MEDICATION_TAKEN)
-        with pytest.raises(HomeAssistantError, match="Authentication error marking dose"):
+        with pytest.raises(HomeAssistantError, match="Authentication error in daynest.mark_medication_taken"):
             await handler(_make_service_call(**{ATTR_MEDICATION_DOSE_ID: 15}))
 
     async def test_communication_error_raises_homeassistant_error(self) -> None:
@@ -305,7 +309,7 @@ class TestHandleMarkMedicationTaken:
         hass = _make_hass(entries=[entry])
         await async_setup_services(hass)
         handler = await _get_handler(hass, SERVICE_MARK_MEDICATION_TAKEN)
-        with pytest.raises(HomeAssistantError, match="Communication error marking dose"):
+        with pytest.raises(HomeAssistantError, match="Communication error in daynest.mark_medication_taken"):
             await handler(_make_service_call(**{ATTR_MEDICATION_DOSE_ID: 15}))
 
     async def test_generic_api_error_raises_homeassistant_error(self) -> None:
@@ -315,7 +319,7 @@ class TestHandleMarkMedicationTaken:
         hass = _make_hass(entries=[entry])
         await async_setup_services(hass)
         handler = await _get_handler(hass, SERVICE_MARK_MEDICATION_TAKEN)
-        with pytest.raises(HomeAssistantError, match="Error marking dose"):
+        with pytest.raises(HomeAssistantError, match="Error in daynest.mark_medication_taken"):
             await handler(_make_service_call(**{ATTR_MEDICATION_DOSE_ID: 15}))
 
     async def test_error_does_not_trigger_coordinator_refresh(self) -> None:
@@ -352,5 +356,5 @@ class TestHandleSkipTask:
         hass = _make_hass(entries=[entry])
         await async_setup_services(hass)
         handler = await _get_handler(hass, SERVICE_SKIP_TASK)
-        with pytest.raises(HomeAssistantError, match="Authentication error skipping chore"):
+        with pytest.raises(HomeAssistantError, match="Authentication error in daynest.skip_task"):
             await handler(_make_service_call(**{ATTR_CHORE_INSTANCE_ID: 9}))
