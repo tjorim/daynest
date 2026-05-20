@@ -29,7 +29,7 @@ from .const import (
     DOMAIN,
     LOGGER,
     SUPPORTED_INTEGRATION_CONTRACT_VERSIONS,
-    build_authorization_url,
+    build_oidc_authorization_url,
     build_oidc_token_url,
     parse_integration_contract_version,
 )
@@ -83,7 +83,7 @@ class DaynestConfigFlowHandler(config_entry_oauth2_flow.AbstractOAuth2FlowHandle
 
         if user_input is not None:
             base_url = str(user_input[CONF_URL]).strip().rstrip("/")
-            authorization_url = build_authorization_url(base_url)
+            authorization_url = build_oidc_authorization_url(base_url)
             oidc_token_url = build_oidc_token_url(base_url)
 
             self.flow_impl = config_entry_oauth2_flow.LocalOAuth2ImplementationWithPkce(

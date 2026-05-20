@@ -12,8 +12,8 @@ from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import CONF_API_KEY, CONF_CLIENT_ID, CONF_CLIENT_SECRET, CONF_URL, Platform
 from homeassistant.exceptions import ConfigEntryAuthFailed
-from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers import config_entry_oauth2_flow
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 import homeassistant.helpers.config_validation as cv
 from homeassistant.loader import async_get_loaded_integration
 
@@ -27,7 +27,7 @@ from .const import (
     DEFAULT_OIDC_CLIENT_ID,
     DOMAIN,
     LOGGER,
-    build_authorization_url,
+    build_oidc_authorization_url,
     build_oidc_token_url,
     build_token_url,
 )
@@ -102,7 +102,7 @@ async def async_migrate_entry(hass: HomeAssistant, entry: DaynestConfigEntry) ->
         base_url = str(data.get(CONF_URL) or DEFAULT_API_BASE_URL).strip().rstrip("/")
         if "token" in data:
             data.setdefault(CONF_AUTH_MODE, AUTH_MODE_OAUTH_REDIRECT)
-            data.setdefault(CONF_AUTHORIZATION_URL, build_authorization_url(base_url))
+            data.setdefault(CONF_AUTHORIZATION_URL, build_oidc_authorization_url(base_url))
             data.setdefault(CONF_TOKEN_URL, build_oidc_token_url(base_url))
         else:
             data.setdefault(CONF_AUTH_MODE, AUTH_MODE_CLIENT_CREDENTIALS)
@@ -118,6 +118,8 @@ async def async_setup_entry(
 ) -> bool:
     """Set up Daynest from a config entry."""
     base_url = str(entry.data[CONF_URL]).strip().rstrip("/")
+    # Keep this runtime fallback for safety: entries can still be loaded before migration
+    # runs in edge cases (e.g. partial restores or manually edited storage).
     auth_mode = str(entry.data.get(CONF_AUTH_MODE) or "").strip() or (
         AUTH_MODE_OAUTH_REDIRECT if "token" in entry.data else AUTH_MODE_CLIENT_CREDENTIALS
     )
@@ -126,7 +128,7 @@ async def async_setup_entry(
         authorization_url = str(entry.data.get(CONF_AUTHORIZATION_URL) or "").strip().rstrip("/")
         token_url = str(entry.data.get(CONF_TOKEN_URL) or "").strip().rstrip("/")
         if not authorization_url:
-            authorization_url = build_authorization_url(base_url)
+            authorization_url = build_oidc_authorization_url(base_url)
         if not token_url:
             token_url = build_oidc_token_url(base_url)
         if (

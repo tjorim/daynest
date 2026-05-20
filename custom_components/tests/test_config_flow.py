@@ -21,7 +21,7 @@ from custom_components.daynest.const import (
     CONF_AUTH_MODE,
     CONF_AUTHORIZATION_URL,
     CONF_TOKEN_URL,
-    build_authorization_url,
+    build_oidc_authorization_url,
     build_oidc_token_url,
 )
 from daynest import DaynestAuthError, DaynestMalformedResponseError, DaynestServerUnavailableError, DaynestTimeoutError
@@ -55,7 +55,7 @@ def _make_handler() -> DaynestConfigFlowHandler:
     handler.hass = MagicMock()
     handler.context = {
         CONF_URL: BASE_URL,
-        CONF_AUTHORIZATION_URL: build_authorization_url(BASE_URL),
+        CONF_AUTHORIZATION_URL: build_oidc_authorization_url(BASE_URL),
         CONF_TOKEN_URL: build_oidc_token_url(BASE_URL),
     }
     handler.async_abort = MagicMock(side_effect=lambda **kwargs: {"type": "abort", **kwargs})
@@ -157,5 +157,5 @@ class TestConfigFlowValidation:
         entry_data = result["data"]
         assert entry_data[CONF_URL] == BASE_URL
         assert entry_data[CONF_AUTH_MODE] == AUTH_MODE_OAUTH_REDIRECT
-        assert entry_data[CONF_AUTHORIZATION_URL] == build_authorization_url(BASE_URL)
+        assert entry_data[CONF_AUTHORIZATION_URL] == build_oidc_authorization_url(BASE_URL)
         assert entry_data[CONF_TOKEN_URL] == build_oidc_token_url(BASE_URL)

@@ -13,7 +13,7 @@ from custom_components.daynest.const import (
     CONF_AUTH_MODE,
     CONF_AUTHORIZATION_URL,
     CONF_TOKEN_URL,
-    build_authorization_url,
+    build_oidc_authorization_url,
     build_oidc_token_url,
     build_token_url,
 )
@@ -83,7 +83,7 @@ class TestMigrateEntry:
         _, kwargs = hass.config_entries.async_update_entry.call_args
         assert kwargs["version"] == 4
         assert kwargs["data"][CONF_AUTH_MODE] == AUTH_MODE_OAUTH_REDIRECT
-        assert kwargs["data"][CONF_AUTHORIZATION_URL] == build_authorization_url("https://api.daynest.example")
+        assert kwargs["data"][CONF_AUTHORIZATION_URL] == build_oidc_authorization_url("https://api.daynest.example")
         assert kwargs["data"][CONF_TOKEN_URL] == build_oidc_token_url("https://api.daynest.example")
 
 
@@ -140,7 +140,7 @@ class TestSetupEntry:
             data={
                 CONF_URL: "https://api.daynest.example",
                 CONF_AUTH_MODE: AUTH_MODE_OAUTH_REDIRECT,
-                CONF_AUTHORIZATION_URL: build_authorization_url("https://api.daynest.example"),
+                CONF_AUTHORIZATION_URL: build_oidc_authorization_url("https://api.daynest.example"),
                 CONF_TOKEN_URL: build_oidc_token_url("https://api.daynest.example"),
                 "token": {"access_token": "oidc_access_token", "expires_at": 9999999999},
                 "auth_implementation": "daynest",
