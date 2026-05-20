@@ -255,6 +255,49 @@ class TestDaynestClientRequests:
         call_kwargs = session.get.call_args[1]
         assert "X-Integration-Key" not in call_kwargs["headers"]
 
+    async def test_oauth_token_response_builds_bearer_header(self) -> None:
+        response = _make_mock_response(200, {"access_token": "access-token", "expires_in": "300"})
+        session = MagicMock(spec=aiohttp.ClientSession)
+        session.post = MagicMock(return_value=response)
+        client = DaynestClient(
+            base_url="https://api.example",
+            client_id="integration-client",
+            client_secret="client-secret",
+            token_url="https://auth.example/token",
+            session=session,
+        )
+
+        assert await client._get_auth_headers() == {"Authorization": "Bearer access-token"}
+
+    async def test_oauth_token_non_object_response_raises_auth_error(self) -> None:
+        response = _make_mock_response(200, ["not", "an", "object"])
+        session = MagicMock(spec=aiohttp.ClientSession)
+        session.post = MagicMock(return_value=response)
+        client = DaynestClient(
+            base_url="https://api.example",
+            client_id="integration-client",
+            client_secret="client-secret",
+            token_url="https://auth.example/token",
+            session=session,
+        )
+
+        with pytest.raises(DaynestAuthError, match="malformed payload"):
+            await client._get_auth_headers()
+
+    async def test_oauth_token_invalid_expires_in_falls_back_to_default(self) -> None:
+        response = _make_mock_response(200, {"access_token": "access-token", "expires_in": "soon"})
+        session = MagicMock(spec=aiohttp.ClientSession)
+        session.post = MagicMock(return_value=response)
+        client = DaynestClient(
+            base_url="https://api.example",
+            client_id="integration-client",
+            client_secret="client-secret",
+            token_url="https://auth.example/token",
+            session=session,
+        )
+
+        assert await client._get_auth_headers() == {"Authorization": "Bearer access-token"}
+
     async def test_client_error_raises_communication_error(self) -> None:
         session = MagicMock(spec=aiohttp.ClientSession)
         mock_ctx = MagicMock()

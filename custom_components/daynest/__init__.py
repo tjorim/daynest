@@ -10,12 +10,13 @@ from daynest import DaynestClient
 from homeassistant.components.frontend import add_extra_js_url, remove_extra_js_url
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntryState
-from homeassistant.const import CONF_CLIENT_ID, CONF_CLIENT_SECRET, CONF_URL, Platform
+from homeassistant.const import CONF_API_KEY, CONF_CLIENT_ID, CONF_CLIENT_SECRET, CONF_URL, Platform
+from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 import homeassistant.helpers.config_validation as cv
 from homeassistant.loader import async_get_loaded_integration
 
-from .const import CONF_TOKEN_URL, DOMAIN, LOGGER
+from .const import CONF_TOKEN_URL, DEFAULT_API_BASE_URL, DOMAIN, LOGGER
 from .coordinator import DaynestDataUpdateCoordinator
 from .data import DaynestData
 from .services import async_setup_services, async_unload_services
@@ -49,11 +50,40 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     return True
 
 
+async def async_migrate_entry(hass: HomeAssistant, entry: DaynestConfigEntry) -> bool:
+    """Migrate old config entries to the current OAuth credentials shape."""
+    if entry.version == 1:
+        data = dict(entry.data)
+        base_url = str(data.get(CONF_URL) or DEFAULT_API_BASE_URL).strip().rstrip("/")
+        legacy_secret = data.get(CONF_API_KEY) or data.get("api_key") or data.get("integration_key")
+
+        data[CONF_URL] = base_url
+        data.setdefault(CONF_CLIENT_ID, "home-assistant")
+        if legacy_secret is not None:
+            data.setdefault(CONF_CLIENT_SECRET, str(legacy_secret))
+        data.setdefault(CONF_TOKEN_URL, f"{base_url}/realms/daynest/protocol/openid-connect/token")
+
+        hass.config_entries.async_update_entry(entry, data=data, version=2)
+        LOGGER.warning("Migrated legacy Daynest entry; reconfigure OAuth credentials if setup fails")
+        return True
+
+    return entry.version == 2
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: DaynestConfigEntry,
 ) -> bool:
     """Set up Daynest from a config entry."""
+    missing_keys = [
+        key
+        for key in (CONF_CLIENT_ID, CONF_CLIENT_SECRET, CONF_TOKEN_URL)
+        if not entry.data.get(key)
+    ]
+    if missing_keys:
+        msg = "Daynest entry is missing OAuth credentials; reconfigure the integration"
+        raise ConfigEntryAuthFailed(msg)
+
     client = DaynestClient(
         base_url=entry.data[CONF_URL],
         client_id=entry.data[CONF_CLIENT_ID],

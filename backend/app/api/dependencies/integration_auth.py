@@ -4,6 +4,7 @@ from collections.abc import Callable
 from datetime import datetime, timedelta, timezone
 from hmac import digest
 
+from anyio import from_thread
 from fastapi import Depends, Header, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
@@ -56,7 +57,7 @@ def enforce_integration_rate_limit(client: IntegrationClient) -> None:
 
 
 def require_integration_scope(scope: str) -> Callable:
-    async def dependency(
+    def dependency(
         authorization: str | None = Header(default=None, alias="Authorization"),
         x_integration_key: str | None = Header(default=None, alias="X-Integration-Key"),
         db: Session = Depends(get_db),
@@ -66,7 +67,7 @@ def require_integration_scope(scope: str) -> Callable:
             raw_token = authorization[len("bearer "):].strip()
             if raw_token.count(".") == 2:
                 try:
-                    claims = await decode_oidc_token(raw_token)
+                    claims = from_thread.run(decode_oidc_token, raw_token)
                 except OIDCTokenError as exc:
                     raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired OIDC token") from exc
                 token_scopes = set(claims.get("scope", "").split())

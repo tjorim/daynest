@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from datetime import date
 from typing import Any, TypeVar
 from urllib.parse import urljoin
@@ -111,12 +111,22 @@ class DaynestClient:
                     msg = "OAuth client credentials rejected by token endpoint"
                     raise DaynestAuthError(msg)
                 response.raise_for_status()
-                body = await response.json(content_type=None)
-                token = body.get("access_token")
-                if not token:
-                    msg = "Token endpoint returned no access_token"
-                    raise DaynestAuthError(msg)
-                expires_in = int(body.get("expires_in", 300))
+                try:
+                    body = await response.json(content_type=None)
+                    if not isinstance(body, Mapping):
+                        msg = "Token endpoint response was not a JSON object"
+                        raise ValueError(msg)
+                    token = body.get("access_token")
+                    if not isinstance(token, str) or not token:
+                        msg = "Token endpoint returned no access_token"
+                        raise ValueError(msg)
+                    try:
+                        expires_in = int(body.get("expires_in", 300))
+                    except (TypeError, ValueError):
+                        expires_in = 300
+                except ValueError as err:
+                    msg = f"Token endpoint returned malformed payload: {err}"
+                    raise DaynestAuthError(msg) from err
                 self._cached_token = token
                 self._token_expires_at = time.monotonic() + expires_in - TOKEN_EXPIRY_BUFFER
                 return token

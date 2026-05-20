@@ -744,7 +744,7 @@ export async function rotateIntegrationClient(clientId: number): Promise<Integra
     method: "POST",
     headers: { Accept: "application/json" },
   });
-  return parseJsonResponse<IntegrationClientCreateResponse>(response, "Failed to rotate integration client");
+  return parseJsonResponse<IntegrationClientCreateResponse>(response, "Failed to rotate integration client", false);
 }
 
 export async function revokeIntegrationClient(clientId: number): Promise<void> {
