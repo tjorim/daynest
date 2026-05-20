@@ -11,6 +11,13 @@ interface TodoItem {
   description?: string;
 }
 
+type CardGridOptions = {
+  columns: number;
+  rows: number;
+  min_columns: number;
+  min_rows: number;
+};
+
 function parseUid(uid: string): { prefix: string; id: number } {
   const [prefix, rawId] = uid.split(":");
   return { prefix, id: parseInt(rawId, 10) };
@@ -110,7 +117,7 @@ class DaynestCard extends LitElement {
     return 4;
   }
 
-  getGridOptions(): { columns: number; rows: number; min_columns: number; min_rows: number } {
+  getGridOptions(): CardGridOptions {
     return { columns: 12, rows: 4, min_columns: 6, min_rows: 3 };
   }
 
