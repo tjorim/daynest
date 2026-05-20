@@ -7,6 +7,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from custom_components.daynest import CARD_URL, DOMAIN, async_setup_entry, async_unload_entry
+from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import CONF_API_KEY, CONF_URL
 
 
@@ -104,3 +105,20 @@ class TestInitSetup:
 
         mock_remove_js.assert_called_once_with(hass, CARD_URL)
         assert hass.data[DOMAIN]["card_registered"] is False
+
+    async def test_unload_entry_keeps_injected_card_when_another_entry_loaded(self) -> None:
+        hass = _make_hass()
+        hass.data = {DOMAIN: {"card_registered": True}}
+        entry = _make_entry()
+        loaded_entry = _make_entry("entry-2")
+        loaded_entry.state = ConfigEntryState.LOADED
+        hass.config_entries.async_entries.return_value = [loaded_entry]
+
+        with (
+            patch("custom_components.daynest.async_unload_services"),
+            patch("custom_components.daynest.remove_extra_js_url") as mock_remove_js,
+        ):
+            assert await async_unload_entry(hass, entry) is True
+
+        mock_remove_js.assert_not_called()
+        assert hass.data[DOMAIN]["card_registered"] is True

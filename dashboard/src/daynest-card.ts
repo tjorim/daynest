@@ -20,11 +20,6 @@ type CardGridOptions = {
 
 const DEFAULT_SENSOR_PREFIX = "sensor.daynest_";
 
-function parseUid(uid: string): { prefix: string; id: number } {
-  const [prefix, rawId] = uid.split(":");
-  return { prefix, id: parseInt(rawId, 10) };
-}
-
 const serviceMap = {
   due: {
     done: { service: "complete_task", dataKey: "chore_instance_id" },
@@ -47,22 +42,24 @@ const serviceMap = {
   },
 } as const;
 
-const metricSensorSuffixes = [
-  "due_today_count",
-  "overdue_count",
-  "planned_count",
-  "medication_due_count",
-  "completion_ratio",
-  "next_medication",
-  "routines_open_count",
-  "planned_remaining_count",
-];
-
 type ServicePrefix = keyof typeof serviceMap;
 type SkippablePrefix = Exclude<ServicePrefix, "planned">;
 
 function isServicePrefix(prefix: string): prefix is ServicePrefix {
   return prefix in serviceMap;
+}
+
+function parseUid(uid: string): { prefix: ServicePrefix; id: number } | null {
+  const parts = uid.split(":");
+  if (parts.length !== 2) return null;
+
+  const [prefix, rawId] = parts;
+  const id = Number(rawId);
+  if (!isServicePrefix(prefix) || rawId.trim() === "" || !Number.isInteger(id)) {
+    return null;
+  }
+
+  return { prefix, id };
 }
 
 function isSnoozablePrefix(prefix: string): boolean {
@@ -72,6 +69,23 @@ function isSnoozablePrefix(prefix: string): boolean {
 function isSkippablePrefix(prefix: string): prefix is SkippablePrefix {
   return isServicePrefix(prefix) && prefix !== "planned";
 }
+
+const metricSensorDefinitions = [
+  { suffix: "due_today_count", label: "Due today" },
+  { suffix: "overdue_count", label: "Overdue" },
+  { suffix: "planned_count", label: "Planned" },
+  { suffix: "medication_due_count", label: "Medication due" },
+  { suffix: "completion_ratio", label: "Completion" },
+  { suffix: "next_medication", label: "Next medication" },
+  { suffix: "routines_open_count", label: "Routines open" },
+  { suffix: "planned_remaining_count", label: "Planned left" },
+] as const;
+
+type MetricSensorSuffix = (typeof metricSensorDefinitions)[number]["suffix"];
+
+const metricSensorSuffixes: MetricSensorSuffix[] = metricSensorDefinitions.map(
+  (metric) => metric.suffix,
+);
 
 type WindowWithCustomCards = Window & {
   customCards?: Array<{
@@ -152,19 +166,10 @@ class DaynestCard extends LitElement {
     if (!this.hass || !this._config) return html``;
 
     const prefix = this._config.sensor_prefix ?? DEFAULT_SENSOR_PREFIX;
-    const routinesTotal = sensorNum(this.hass, prefix + "routines_count");
-    const routinesDone = sensorNum(this.hass, prefix + "routines_completed_today");
-    const choresTotal = sensorNum(this.hass, prefix + "chores_count");
-    const choresDone = sensorNum(this.hass, prefix + "chores_completed_today");
-    const medTotal = sensorNum(this.hass, prefix + "medications_count");
-    const medDone = sensorNum(this.hass, prefix + "medications_taken_today");
-    const plannedTotal = sensorNum(this.hass, prefix + "planned_pending_count");
-    const plannedDone = sensorNum(this.hass, prefix + "planned_done_today");
-    const total = routinesTotal + choresTotal + medTotal + plannedTotal;
-    const done = routinesDone + choresDone + medDone + plannedDone;
-    const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+    const metricValue = (suffix: MetricSensorSuffix) => sensorNum(this.hass, prefix + suffix);
+    const pct = Math.max(0, Math.min(100, Math.round(metricValue("completion_ratio"))));
 
-    const nextMed = sensorStr(this.hass, prefix + "next_medication_time");
+    const nextMed = sensorStr(this.hass, prefix + "next_medication");
     const showMed = nextMed && nextMed !== "unavailable" && nextMed !== "unknown";
 
     return html`
@@ -175,10 +180,12 @@ class DaynestCard extends LitElement {
         </div>
         <div class="ratio-bar"><div class="ratio-fill" style=${`width:${pct}%`}></div></div>
         <div class="metrics-bar">
-          ${this._metricTile(routinesDone, routinesTotal, "Routines")}
-          ${this._metricTile(choresDone, choresTotal, "Chores")}
-          ${this._metricTile(medDone, medTotal, "Medication")}
-          ${this._metricTile(plannedDone, plannedTotal, "Planned")}
+          ${metricSensorDefinitions
+            .filter(
+              (metric) =>
+                metric.suffix !== "completion_ratio" && metric.suffix !== "next_medication",
+            )
+            .map((metric) => this._metricTile(metricValue(metric.suffix), metric.label))}
         </div>
         ${showMed ? html`<div class="med-chip">💊 Next: ${nextMed}</div>` : ""}
         <div class="task-list">
@@ -204,10 +211,10 @@ class DaynestCard extends LitElement {
     `;
   }
 
-  private _metricTile(done: number, total: number, label: string) {
+  private _metricTile(value: number, label: string) {
     return html`
       <div class="metric-tile">
-        <span class="metric-value">${done}/${total}</span>
+        <span class="metric-value">${value}</span>
         <span class="metric-label">${label}</span>
       </div>
     `;
@@ -224,14 +231,14 @@ class DaynestCard extends LitElement {
   }
 
   private _renderTaskItem(item: TodoItem) {
-    const { prefix } = parseUid(item.uid);
-    const canSkip = prefix !== "planned";
-    const canSnooze = isSnoozablePrefix(prefix);
+    const parsedUid = parseUid(item.uid);
+    const canSkip = parsedUid !== null && isSkippablePrefix(parsedUid.prefix);
+    const canSnooze = parsedUid !== null && isSnoozablePrefix(parsedUid.prefix);
     const isDone = item.status === "completed";
     return html`
       <div class=${`task-item${isDone ? " done" : ""}`}>
         <span>${item.summary}</span>
-        ${isDone
+        ${isDone || parsedUid === null
           ? html``
           : html`
               <div class="task-actions">
@@ -274,8 +281,9 @@ class DaynestCard extends LitElement {
   }
 
   private async _done(item: TodoItem) {
-    const { prefix, id } = parseUid(item.uid);
-    if (!isServicePrefix(prefix)) return;
+    const parsedUid = parseUid(item.uid);
+    if (parsedUid === null) return;
+    const { prefix, id } = parsedUid;
     const { service, dataKey } = serviceMap[prefix].done;
     try {
       await this.hass.callService("daynest", service, { [dataKey]: id });
@@ -286,7 +294,9 @@ class DaynestCard extends LitElement {
   }
 
   private async _skip(item: TodoItem) {
-    const { prefix, id } = parseUid(item.uid);
+    const parsedUid = parseUid(item.uid);
+    if (parsedUid === null) return;
+    const { prefix, id } = parsedUid;
     if (!isSkippablePrefix(prefix)) return;
     const action = serviceMap[prefix].skip;
     try {
@@ -298,7 +308,9 @@ class DaynestCard extends LitElement {
   }
 
   private async _snooze(item: TodoItem) {
-    const { prefix, id } = parseUid(item.uid);
+    const parsedUid = parseUid(item.uid);
+    if (parsedUid === null) return;
+    const { prefix, id } = parsedUid;
     if (!isSnoozablePrefix(prefix)) return;
     try {
       await this.hass.callService("daynest", "snooze_task", {
