@@ -1,8 +1,48 @@
-import { LitElement, html } from "lit";
+import { LitElement, PropertyValues, html } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { HomeAssistant } from "custom-card-helpers";
 import { DaynestCardConfig, sensorNum, sensorStr } from "./types";
 import { cardStyles } from "./styles";
+
+interface TodoItem {
+  uid: string;
+  summary: string;
+  status: "needs_action" | "completed";
+  description?: string;
+}
+
+function parseUid(uid: string): { prefix: string; id: number } {
+  const [prefix, rawId] = uid.split(":");
+  return { prefix, id: parseInt(rawId, 10) };
+}
+
+const serviceMap = {
+  due: {
+    done: { service: "complete_chore", dataKey: "chore_instance_id" },
+    skip: { service: "skip_chore", dataKey: "chore_instance_id" },
+  },
+  overdue: {
+    done: { service: "complete_chore", dataKey: "chore_instance_id" },
+    skip: { service: "skip_chore", dataKey: "chore_instance_id" },
+  },
+  routine: {
+    done: { service: "complete_routine_task", dataKey: "task_instance_id" },
+    skip: { service: "skip_routine_task", dataKey: "task_instance_id" },
+  },
+  medication: {
+    done: { service: "take_medication_dose", dataKey: "dose_instance_id" },
+    skip: { service: "skip_medication_dose", dataKey: "dose_instance_id" },
+  },
+  planned: {
+    done: { service: "mark_planned_done", dataKey: "id" },
+  },
+} as const;
+
+type ServicePrefix = keyof typeof serviceMap;
+
+function isServicePrefix(prefix: string): prefix is ServicePrefix {
+  return prefix in serviceMap;
+}
 
 type WindowWithCustomCards = Window & {
   customCards?: Array<{
@@ -19,6 +59,12 @@ class DaynestCard extends LitElement {
 
   @property({ attribute: false }) public hass!: HomeAssistant;
   @state() private _config!: DaynestCardConfig;
+  @state() private _items: TodoItem[] = [];
+
+  connectedCallback() {
+    super.connectedCallback();
+    void this._fetchItems();
+  }
 
   static getConfigElement() {
     return document.createElement("daynest-card-editor");
@@ -35,6 +81,16 @@ class DaynestCard extends LitElement {
   setConfig(config: DaynestCardConfig) {
     if (!config) throw new Error("Invalid configuration");
     this._config = config;
+    void this._fetchItems();
+  }
+
+  protected updated(changedProps: PropertyValues<this>) {
+    if (
+      (changedProps.has("hass") || (changedProps as Map<string, unknown>).has("_config")) &&
+      this._items.length === 0
+    ) {
+      void this._fetchItems();
+    }
   }
 
   render() {
@@ -70,7 +126,25 @@ class DaynestCard extends LitElement {
           ${this._metricTile(plannedDone, plannedTotal, "Planned")}
         </div>
         ${showMed ? html`<div class="med-chip">💊 Next: ${nextMed}</div>` : ""}
-        <!-- task list added by tjorim/daynest#207 -->
+        <div class="task-list">
+          ${this._renderTaskGroup(
+            "Overdue",
+            this._items.filter((item) => item.uid.startsWith("overdue:")),
+          )}
+          ${this._renderTaskGroup(
+            "Today",
+            this._items.filter(
+              (item) =>
+                item.uid.startsWith("due:") ||
+                item.uid.startsWith("routine:") ||
+                item.uid.startsWith("medication:"),
+            ),
+          )}
+          ${this._renderTaskGroup(
+            "Planned",
+            this._items.filter((item) => item.uid.startsWith("planned:")),
+          )}
+        </div>
       </ha-card>
     `;
   }
@@ -84,7 +158,93 @@ class DaynestCard extends LitElement {
     `;
   }
 
-  private _refresh() {
+  private _renderTaskGroup(label: string, items: TodoItem[]) {
+    if (items.length === 0) return html``;
+    return html`
+      <div class="task-group">
+        <div class="task-group-header">${label}</div>
+        ${items.map((item) => this._renderTaskItem(item))}
+      </div>
+    `;
+  }
+
+  private _renderTaskItem(item: TodoItem) {
+    const { prefix } = parseUid(item.uid);
+    const canSkip = prefix !== "planned";
+    const canSnooze = prefix === "due" || prefix === "overdue";
+    const isDone = item.status === "completed";
+    return html`
+      <div class=${`task-item${isDone ? " done" : ""}`}>
+        <span>${item.summary}</span>
+        ${isDone
+          ? html``
+          : html`
+              <div class="task-actions">
+                <ha-icon-button
+                  icon="mdi:check"
+                  label="Done"
+                  @click=${() => this._done(item)}
+                ></ha-icon-button>
+                ${canSkip
+                  ? html`<ha-icon-button
+                      icon="mdi:close"
+                      label="Skip"
+                      @click=${() => this._skip(item)}
+                    ></ha-icon-button>`
+                  : ""}
+                ${canSnooze
+                  ? html`<ha-icon-button
+                      icon="mdi:clock-outline"
+                      label="Snooze"
+                      @click=${() => this._snooze(item)}
+                    ></ha-icon-button>`
+                  : ""}
+              </div>
+            `}
+      </div>
+    `;
+  }
+
+  private async _fetchItems() {
+    if (!this.hass || !this._config) return;
+    const result = await this.hass.connection.sendMessagePromise<{ items: TodoItem[] }>({
+      type: "todo/item/list",
+      entity_id: this._config.todo_entity ?? "todo.daynest_today",
+    });
+    this._items = result.items;
+  }
+
+  private async _done(item: TodoItem) {
+    const { prefix, id } = parseUid(item.uid);
+    if (!isServicePrefix(prefix)) return;
+    const { service, dataKey } = serviceMap[prefix].done;
+    await this.hass.callService("daynest", service, { [dataKey]: id });
+    await this._fetchItems();
+  }
+
+  private async _skip(item: TodoItem) {
+    const { prefix, id } = parseUid(item.uid);
+    if (!isServicePrefix(prefix) || prefix === "planned") return;
+    const action = serviceMap[prefix].skip;
+    if (!action) return;
+    await this.hass.callService("daynest", action.service, { [action.dataKey]: id });
+    await this._fetchItems();
+  }
+
+  private async _snooze(item: TodoItem) {
+    const { prefix, id } = parseUid(item.uid);
+    if (prefix !== "due" && prefix !== "overdue") return;
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    await this.hass.callService("daynest", "reschedule_chore", {
+      chore_instance_id: id,
+      scheduled_date: tomorrow.toISOString().slice(0, 10),
+    });
+    await this._fetchItems();
+  }
+
+  private async _refresh() {
+    await this._fetchItems();
     this.requestUpdate();
   }
 }
