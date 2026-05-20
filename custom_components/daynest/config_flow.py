@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import base64
+from collections.abc import Mapping
 import json
 import logging
-from collections.abc import Mapping
 from typing import Any
 
 import voluptuous as vol
@@ -181,7 +181,7 @@ class DaynestConfigFlowHandler(config_entry_oauth2_flow.AbstractOAuth2FlowHandle
             return self.async_abort(reason=errors["base"])
 
         sub = _decode_id_token_sub(str(data["token"].get("id_token") or ""))
-        await self.async_set_unique_id(sub if sub else base_url)
+        await self.async_set_unique_id(sub or base_url)
 
         if self.source == config_entries.SOURCE_REAUTH:
             reauth_entry = self._get_reauth_entry()
