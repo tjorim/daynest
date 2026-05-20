@@ -6,8 +6,7 @@ from datetime import UTC, date, datetime
 from typing import TYPE_CHECKING
 
 from daynest import DaynestError
-from homeassistant.components.calendar import CalendarEntity, CalendarEntityFeature, CalendarEvent
-from homeassistant.helpers.entity import EntityDescription
+from homeassistant.components.calendar import CalendarEntity, CalendarEntityDescription, CalendarEntityFeature, CalendarEvent
 
 from .const import LOGGER
 from .entity import DaynestEntity
@@ -21,7 +20,7 @@ if TYPE_CHECKING:
     from .coordinator import DaynestDataUpdateCoordinator
     from .data import DaynestConfigEntry
 
-ENTITY_DESCRIPTION = EntityDescription(
+ENTITY_DESCRIPTION = CalendarEntityDescription(
     key="daynest_calendar",
     translation_key="daynest_calendar",
 )
@@ -85,7 +84,7 @@ class DaynestCalendarEntity(CalendarEntity, DaynestEntity):
     def __init__(
         self,
         coordinator: DaynestDataUpdateCoordinator,
-        entity_description: EntityDescription,
+        entity_description: CalendarEntityDescription,
     ) -> None:
         """Initialize the calendar entity."""
         super().__init__(coordinator, entity_description)

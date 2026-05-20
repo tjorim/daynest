@@ -45,7 +45,7 @@
     },
     "sensor": {
       "due_today_count": {
-        "name": "Chores Due Today"
+        "name": "Due Today Count"
       },
       "overdue_count": {
         "name": "Overdue Count"
@@ -63,15 +63,15 @@
         "name": "Next Medication"
       },
       "routines_open_count": {
-        "name": "Open Routines"
+        "name": "Routines Open Count"
       },
       "planned_remaining_count": {
-        "name": "Planned Remaining"
+        "name": "Planned Remaining Count"
       }
     },
     "todo": {
       "tasks_due_today": {
-        "name": "Tasks Due Today"
+        "name": "Today"
       }
     }
   },

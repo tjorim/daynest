@@ -225,7 +225,7 @@ class DaynestConfigFlowHandler(config_entry_oauth2_flow.AbstractOAuth2FlowHandle
 
         self._abort_if_unique_id_configured()
         return self.async_create_entry(
-            title=base_url,
+            title="Daynest",
             data={
                 **data,
                 CONF_URL: base_url,
