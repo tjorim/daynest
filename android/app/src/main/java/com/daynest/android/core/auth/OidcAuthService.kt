@@ -24,6 +24,7 @@ import okhttp3.Request
 import org.json.JSONObject
 import java.io.IOException
 import javax.inject.Inject
+import javax.inject.Named
 import javax.inject.Singleton
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
@@ -35,14 +36,15 @@ class OidcAuthService
         @param:ApplicationContext private val context: Context,
         private val securePreferences: SharedPreferences,
         private val serverUrlHolder: ServerUrlHolder,
+        @Named("discovery") private val discoveryClient: OkHttpClient,
     ) {
         private val authorizationService = AuthorizationService(context)
         private val mutex = Mutex()
-        private val discoveryClient = OkHttpClient()
 
         @Volatile private var authState: AuthState = loadPersistedState()
 
         @Volatile private var serviceConfiguration: AuthorizationServiceConfiguration? = null
+
         @Volatile private var cachedIssuerUri: Uri? = null
 
         val isAuthorized: Boolean get() = authState.isAuthorized
@@ -105,14 +107,16 @@ class OidcAuthService
         private suspend fun resolveIssuerUri(): Uri {
             cachedIssuerUri?.let { return it }
             val url = "${serverUrlHolder.currentUrl.trimEnd('/')}/$OIDC_CONFIG_PATH"
-            val issuer = withContext(Dispatchers.IO) {
-                val request = Request.Builder().url(url).build()
-                discoveryClient.newCall(request).execute().use { response ->
-                    val body = response.body?.string()
-                        ?: throw IOException("Empty response from OIDC config endpoint")
-                    JSONObject(body).getString("issuer")
+            val issuer =
+                withContext(Dispatchers.IO) {
+                    val request = Request.Builder().url(url).build()
+                    discoveryClient.newCall(request).execute().use { response ->
+                        val body =
+                            response.body?.string()
+                                ?: throw IOException("Empty response from OIDC config endpoint")
+                        JSONObject(body).getString("issuer")
+                    }
                 }
-            }
             return Uri.parse(issuer).also { cachedIssuerUri = it }
         }
 

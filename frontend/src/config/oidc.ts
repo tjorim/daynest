@@ -34,11 +34,17 @@ interface OidcDiscovery {
 
 export async function fetchOidcConfig(): Promise<AuthProviderProps> {
   const cached = sessionStorage.getItem(DISCOVERY_CACHE_KEY);
-  let discovery: OidcDiscovery;
+  let discovery: OidcDiscovery | undefined;
 
   if (cached) {
-    discovery = JSON.parse(cached) as OidcDiscovery;
-  } else {
+    try {
+      discovery = JSON.parse(cached) as OidcDiscovery;
+    } catch {
+      sessionStorage.removeItem(DISCOVERY_CACHE_KEY);
+    }
+  }
+
+  if (!discovery) {
     const response = await fetch(buildApiUrl("/api/v1/auth/oidc-config"));
     if (!response.ok) {
       throw new Error(`OIDC discovery failed: ${response.status}`);

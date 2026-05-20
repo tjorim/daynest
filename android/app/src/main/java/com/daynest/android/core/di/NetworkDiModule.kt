@@ -25,6 +25,7 @@ import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
+import javax.inject.Named
 import javax.inject.Singleton
 
 @Module
@@ -41,6 +42,15 @@ object NetworkDiModule {
             host = BuildConfig.PROD_HOST,
             pins = BuildConfig.PROD_PINS.toList(),
         ).get()
+
+    @Provides
+    @Singleton
+    @Named("discovery")
+    fun provideDiscoveryOkHttpClient(certificatePinner: CertificatePinner): OkHttpClient =
+        OkHttpClient
+            .Builder()
+            .certificatePinner(certificatePinner)
+            .build()
 
     @Provides
     @Singleton
