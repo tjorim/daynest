@@ -108,6 +108,12 @@ class DashboardReadModel(BaseModel):
     planned: list[PlannedTodayItem] = []
 
 
+class HomeAssistantOIDCConfig(BaseModel):
+    authorization_url: str
+    token_url: str
+    client_id: str
+
+
 class HACalendarEvent(BaseModel):
     uid: str
     summary: str

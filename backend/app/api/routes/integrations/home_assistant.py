@@ -1,9 +1,10 @@
 from datetime import date, timedelta
 
-from fastapi import APIRouter, Depends, Query, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 
 from app.api.dependencies.integration_auth import require_integration_scope
 from app.api.dependencies.today import get_today_service
+from app.core.config import settings
 from app.models.user import User
 from app.schemas.integration_contracts import (
     HOME_ASSISTANT_ADAPTER,
@@ -17,6 +18,7 @@ from app.schemas.integrations import (
     HAActionResult,
     HACalendarEvent,
     HomeAssistantEntity,
+    HomeAssistantOIDCConfig,
     MarkMedicationTakenRequest,
     MarkPlannedDoneRequest,
     PlannedItemCreateRequest,
@@ -29,11 +31,26 @@ from app.schemas.today import PlannedItemCreateRequest as TodayPlannedItemCreate
 from app.schemas.today import PlannedItemUpdateRequest as TodayPlannedItemUpdateRequest
 from app.services.today_service import TodayService
 
+_HA_OIDC_CLIENT_ID = "home-assistant"
+
 router = APIRouter(prefix="/integrations/home-assistant", tags=["integrations"])
 
 
 def _set_ha_contract_header(response: Response) -> None:
     response.headers[INTEGRATION_CONTRACT_HEADER] = integration_contract_header(HOME_ASSISTANT_ADAPTER, HOME_ASSISTANT_CONTRACT_VERSION)
+
+
+@router.get("/oidc-config", response_model=HomeAssistantOIDCConfig)
+def home_assistant_oidc_config() -> HomeAssistantOIDCConfig:
+    """Return OIDC endpoint URLs for the Home Assistant integration config flow (unauthenticated)."""
+    if not settings.oidc_issuer_url:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="OIDC not configured on this server")
+    issuer = settings.oidc_issuer_url.rstrip("/")
+    return HomeAssistantOIDCConfig(
+        authorization_url=f"{issuer}/protocol/openid-connect/auth",
+        token_url=f"{issuer}/protocol/openid-connect/token",
+        client_id=_HA_OIDC_CLIENT_ID,
+    )
 
 
 @router.get("/summary")

@@ -8,6 +8,7 @@ import json
 import logging
 from typing import Any
 
+import aiohttp
 import voluptuous as vol
 
 from daynest import (
@@ -15,6 +16,7 @@ from daynest import (
     DaynestClient,
     DaynestCommunicationError,
     DaynestMalformedResponseError,
+    DaynestNotFoundError,
     DaynestServerUnavailableError,
     DaynestTimeoutError,
 )
@@ -92,6 +94,19 @@ class DaynestConfigFlowHandler(config_entry_oauth2_flow.AbstractOAuth2FlowHandle
         """Request Daynest scopes needed by the integration."""
         return {"scope": "openid profile email offline_access ha:read ha:write"}
 
+    async def _async_fetch_oidc_config(self, base_url: str) -> tuple[str, str, str] | None:
+        """Fetch OIDC endpoints from the Daynest backend. Returns (authorization_url, token_url, client_id) or None on failure."""
+        url = f"{base_url}/api/v1/integrations/home-assistant/oidc-config"
+        try:
+            session = async_get_clientsession(self.hass)
+            async with session.get(url, timeout=aiohttp.ClientTimeout(total=10)) as resp:
+                if resp.status == 200:
+                    data = await resp.json()
+                    return data["authorization_url"], data["token_url"], data.get("client_id", DEFAULT_OIDC_CLIENT_ID)
+        except Exception:  # noqa: BLE001
+            pass
+        return None
+
     async def async_step_user(
         self,
         user_input: dict[str, Any] | None = None,
@@ -101,28 +116,31 @@ class DaynestConfigFlowHandler(config_entry_oauth2_flow.AbstractOAuth2FlowHandle
 
         if user_input is not None:
             base_url = str(user_input[CONF_URL]).strip().rstrip("/")
-            authorization_url = build_oidc_authorization_url(base_url)
-            oidc_token_url = build_oidc_token_url(base_url)
 
-            self.flow_impl = config_entry_oauth2_flow.LocalOAuth2ImplementationWithPkce(
-                self.hass,
-                DOMAIN,
-                DEFAULT_OIDC_CLIENT_ID,
-                authorization_url,
-                oidc_token_url,
-            )
-            self.context.update(
-                {
-                    CONF_URL: base_url,
-                    CONF_AUTHORIZATION_URL: authorization_url,
-                    CONF_TOKEN_URL: oidc_token_url,
-                }
-            )
+            oidc = await self._async_fetch_oidc_config(base_url)
+            if oidc is None:
+                errors[CONF_URL] = ERROR_CANNOT_CONNECT
+            else:
+                authorization_url, oidc_token_url, client_id = oidc
+                self.flow_impl = config_entry_oauth2_flow.LocalOAuth2ImplementationWithPkce(
+                    self.hass,
+                    DOMAIN,
+                    client_id,
+                    authorization_url,
+                    oidc_token_url,
+                )
+                self.context.update(
+                    {
+                        CONF_URL: base_url,
+                        CONF_AUTHORIZATION_URL: authorization_url,
+                        CONF_TOKEN_URL: oidc_token_url,
+                    }
+                )
 
-            # Preliminary guard: abort immediately if this URL is already configured.
-            await self.async_set_unique_id(base_url)
-            self._abort_if_unique_id_configured()
-            return await self.async_step_auth()
+                # Preliminary guard: abort immediately if this URL is already configured.
+                await self.async_set_unique_id(base_url)
+                self._abort_if_unique_id_configured()
+                return await self.async_step_auth()
 
         integration = async_get_loaded_integration(self.hass, DOMAIN)
         return self.async_show_form(
@@ -149,18 +167,26 @@ class DaynestConfigFlowHandler(config_entry_oauth2_flow.AbstractOAuth2FlowHandle
 
         reauth_entry = self._get_reauth_entry()
         base_url = str(reauth_entry.data[CONF_URL]).strip().rstrip("/")
-        authorization_url = (
-            str(reauth_entry.data.get(CONF_AUTHORIZATION_URL) or "").strip()
-            or build_oidc_authorization_url(base_url)
-        )
-        token_url = (
-            str(reauth_entry.data.get(CONF_TOKEN_URL) or "").strip()
-            or build_oidc_token_url(base_url)
-        )
+
+        oidc = await self._async_fetch_oidc_config(base_url)
+        if oidc is not None:
+            authorization_url, token_url, client_id = oidc
+        else:
+            # Fall back to stored values or derived URLs if backend is unreachable.
+            authorization_url = (
+                str(reauth_entry.data.get(CONF_AUTHORIZATION_URL) or "").strip()
+                or build_oidc_authorization_url(base_url)
+            )
+            token_url = (
+                str(reauth_entry.data.get(CONF_TOKEN_URL) or "").strip()
+                or build_oidc_token_url(base_url)
+            )
+            client_id = DEFAULT_OIDC_CLIENT_ID
+
         self.flow_impl = config_entry_oauth2_flow.LocalOAuth2ImplementationWithPkce(
             self.hass,
             DOMAIN,
-            DEFAULT_OIDC_CLIENT_ID,
+            client_id,
             authorization_url,
             token_url,
         )
@@ -229,6 +255,9 @@ class DaynestConfigFlowHandler(config_entry_oauth2_flow.AbstractOAuth2FlowHandle
         except DaynestTimeoutError as err:
             LOGGER.warning("Timeout during Daynest setup: %s", err)
             return {"base": ERROR_TIMEOUT}
+        except DaynestNotFoundError as err:
+            LOGGER.warning("Daynest summary endpoint not found — wrong base URL?: %s", err)
+            return {"base": ERROR_CANNOT_CONNECT}
         except DaynestServerUnavailableError as err:
             LOGGER.warning("Could not connect to Daynest during setup: %s", err)
             return {"base": ERROR_CANNOT_CONNECT}

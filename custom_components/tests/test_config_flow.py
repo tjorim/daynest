@@ -27,7 +27,7 @@ from custom_components.daynest.const import (
     build_oidc_authorization_url,
     build_oidc_token_url,
 )
-from daynest import DaynestAuthError, DaynestMalformedResponseError, DaynestServerUnavailableError, DaynestTimeoutError
+from daynest import DaynestAuthError, DaynestMalformedResponseError, DaynestNotFoundError, DaynestServerUnavailableError, DaynestTimeoutError
 from homeassistant import config_entries
 from homeassistant.const import CONF_URL
 
@@ -139,6 +139,16 @@ class TestConfigFlowValidation:
             mock_client.return_value.async_get_summary = AsyncMock(side_effect=DaynestMalformedResponseError("bad payload"))
             errors = await handler._async_validate_oauth_token(BASE_URL, TOKEN)
         assert errors == {"base": ERROR_UNSUPPORTED_CONTRACT}
+
+    async def test_not_found_error_returns_cannot_connect(self) -> None:
+        handler = _make_handler()
+        with (
+            patch("custom_components.daynest.config_flow.async_get_clientsession", return_value=MagicMock()),
+            patch("custom_components.daynest.config_flow.DaynestClient") as mock_client,
+        ):
+            mock_client.return_value.async_get_summary = AsyncMock(side_effect=DaynestNotFoundError("not found"))
+            errors = await handler._async_validate_oauth_token(BASE_URL, TOKEN)
+        assert errors == {"base": ERROR_CANNOT_CONNECT}
 
     async def test_unexpected_exception_returns_unknown(self) -> None:
         handler = _make_handler()
