@@ -1,4 +1,4 @@
-@file:Suppress("ktlint:standard:function-naming", "FunctionNaming")
+@file:Suppress("ktlint:standard:function-naming", "FunctionNaming", "TooManyFunctions")
 
 package com.daynest.android.feature.calendar
 

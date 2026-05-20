@@ -1,4 +1,4 @@
-@file:Suppress("ktlint:standard:function-naming", "FunctionNaming")
+@file:Suppress("ktlint:standard:function-naming", "FunctionNaming", "TooManyFunctions")
 
 package com.daynest.android.feature.templates
 
@@ -445,13 +445,35 @@ private fun RoutineTemplateFields(
     onIsActiveToggle: () -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        OutlinedTextField(value = name, onValueChange = onNameChange, label = { Text(stringResource(R.string.templates_name_label)) }, singleLine = true)
-        OutlinedTextField(value = description, onValueChange = onDescriptionChange, label = { Text(stringResource(R.string.templates_description_label)) }, singleLine = true)
-        OutlinedTextField(value = startDate, onValueChange = onStartDateChange, label = { Text(stringResource(R.string.templates_start_date_label)) }, singleLine = true)
-        OutlinedTextField(value = everyNDays, onValueChange = { onEveryNDaysChange(it.filter { c -> c.isDigit() }) }, label = { Text(stringResource(R.string.templates_every_n_days_label)) }, singleLine = true)
-        OutlinedTextField(value = dueTime, onValueChange = onDueTimeChange, label = { Text(stringResource(R.string.templates_due_time_label)) }, singleLine = true)
+        OutlinedTextField(
+            value = name, onValueChange = onNameChange,
+            label = { Text(stringResource(R.string.templates_name_label)) }, singleLine = true,
+        )
+        OutlinedTextField(
+            value = description, onValueChange = onDescriptionChange,
+            label = { Text(stringResource(R.string.templates_description_label)) }, singleLine = true,
+        )
+        OutlinedTextField(
+            value = startDate, onValueChange = onStartDateChange,
+            label = { Text(stringResource(R.string.templates_start_date_label)) }, singleLine = true,
+        )
+        OutlinedTextField(
+            value = everyNDays,
+            onValueChange = { onEveryNDaysChange(it.filter { c -> c.isDigit() }) },
+            label = { Text(stringResource(R.string.templates_every_n_days_label)) }, singleLine = true,
+        )
+        OutlinedTextField(
+            value = dueTime, onValueChange = onDueTimeChange,
+            label = { Text(stringResource(R.string.templates_due_time_label)) }, singleLine = true,
+        )
         TextButton(onClick = onIsActiveToggle) {
-            Text(text = if (isActive) stringResource(R.string.medication_active) else stringResource(R.string.templates_inactive))
+            Text(
+                text = if (isActive) {
+                    stringResource(R.string.medication_active)
+                } else {
+                    stringResource(R.string.templates_inactive)
+                },
+            )
         }
     }
 }
@@ -531,6 +553,49 @@ private fun CreateChoreDialog(
 }
 
 @Composable
+private fun ChoreTemplateFields(
+    name: String,
+    onNameChange: (String) -> Unit,
+    description: String,
+    onDescriptionChange: (String) -> Unit,
+    startDate: String,
+    onStartDateChange: (String) -> Unit,
+    everyNDays: String,
+    onEveryNDaysChange: (String) -> Unit,
+    isActive: Boolean,
+    onIsActiveToggle: () -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        OutlinedTextField(
+            value = name, onValueChange = onNameChange,
+            label = { Text(text = stringResource(id = R.string.templates_name_label)) }, singleLine = true,
+        )
+        OutlinedTextField(
+            value = description, onValueChange = onDescriptionChange,
+            label = { Text(text = stringResource(id = R.string.templates_description_label)) }, singleLine = true,
+        )
+        OutlinedTextField(
+            value = startDate, onValueChange = onStartDateChange,
+            label = { Text(text = stringResource(id = R.string.templates_start_date_label)) }, singleLine = true,
+        )
+        OutlinedTextField(
+            value = everyNDays,
+            onValueChange = { onEveryNDaysChange(it.filter { c -> c.isDigit() }) },
+            label = { Text(text = stringResource(id = R.string.templates_every_n_days_label)) }, singleLine = true,
+        )
+        TextButton(onClick = onIsActiveToggle) {
+            Text(
+                text = if (isActive) {
+                    stringResource(id = R.string.medication_active)
+                } else {
+                    stringResource(id = R.string.templates_inactive)
+                },
+            )
+        }
+    }
+}
+
+@Composable
 private fun ChoreTemplateDialog(
     title: String,
     initialName: String,
@@ -552,42 +617,13 @@ private fun ChoreTemplateDialog(
         onDismissRequest = onDismiss,
         title = { Text(text = title) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    label = { Text(text = stringResource(id = R.string.templates_name_label)) },
-                    singleLine = true,
-                )
-                OutlinedTextField(
-                    value = description,
-                    onValueChange = { description = it },
-                    label = { Text(text = stringResource(id = R.string.templates_description_label)) },
-                    singleLine = true,
-                )
-                OutlinedTextField(
-                    value = startDate,
-                    onValueChange = { startDate = it },
-                    label = { Text(text = stringResource(id = R.string.templates_start_date_label)) },
-                    singleLine = true,
-                )
-                OutlinedTextField(
-                    value = everyNDays,
-                    onValueChange = { everyNDays = it.filter { c -> c.isDigit() } },
-                    label = { Text(text = stringResource(id = R.string.templates_every_n_days_label)) },
-                    singleLine = true,
-                )
-                TextButton(onClick = { isActive = !isActive }) {
-                    Text(
-                        text =
-                            if (isActive) {
-                                stringResource(id = R.string.medication_active)
-                            } else {
-                                stringResource(id = R.string.templates_inactive)
-                            },
-                    )
-                }
-            }
+            ChoreTemplateFields(
+                name = name, onNameChange = { name = it },
+                description = description, onDescriptionChange = { description = it },
+                startDate = startDate, onStartDateChange = { startDate = it },
+                everyNDays = everyNDays, onEveryNDaysChange = { everyNDays = it },
+                isActive = isActive, onIsActiveToggle = { isActive = !isActive },
+            )
         },
         confirmButton = {
             TextButton(

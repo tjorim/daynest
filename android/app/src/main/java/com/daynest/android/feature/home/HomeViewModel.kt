@@ -89,6 +89,7 @@ class HomeViewModel
             refresh()
         }
 
+        @Suppress("CyclomaticComplexMethod")
         fun onEvent(event: HomeUiEvent) {
             when (event) {
                 HomeUiEvent.RetryClicked -> refresh()
@@ -206,7 +207,8 @@ class HomeViewModel
                         when (type) {
                             SectionType.CHORES -> repository.completeChore(id)
                             SectionType.ROUTINES -> repository.completeTask(id)
-                            SectionType.PLANNED -> Result.failure(IllegalStateException("Bulk done not supported for PLANNED"))
+                            SectionType.PLANNED ->
+                                Result.failure(IllegalStateException("Bulk done not supported for PLANNED"))
                         }
                     }
                 }.awaitAll()
@@ -230,7 +232,8 @@ class HomeViewModel
                         when (type) {
                             SectionType.CHORES -> repository.skipChore(id)
                             SectionType.ROUTINES -> repository.skipTask(id)
-                            SectionType.PLANNED -> Result.failure(IllegalStateException("Bulk skip not supported for PLANNED"))
+                            SectionType.PLANNED ->
+                                Result.failure(IllegalStateException("Bulk skip not supported for PLANNED"))
                         }
                     }
                 }.awaitAll()
@@ -249,7 +252,9 @@ class HomeViewModel
                     async {
                         val item =
                             content.planned.firstOrNull { it.id == id }
-                                ?: return@async Result.failure<Unit>(IllegalStateException("Planned item $id not found"))
+                                ?: return@async Result.failure<Unit>(
+                                    IllegalStateException("Planned item $id not found"),
+                                )
                         repository.markPlannedDone(id, item, false)
                     }
                 }.awaitAll()

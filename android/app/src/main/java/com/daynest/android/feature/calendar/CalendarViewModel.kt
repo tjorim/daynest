@@ -23,6 +23,7 @@ import java.time.LocalDate
 import javax.inject.Inject
 
 @HiltViewModel
+@Suppress("TooManyFunctions")
 class CalendarViewModel
     @Inject
     constructor(
