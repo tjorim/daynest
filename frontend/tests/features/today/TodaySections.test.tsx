@@ -333,7 +333,7 @@ describe("build item helpers", () => {
 
   it("buildDueTodayItems uses success tone for completed status", () => {
     const [item] = buildDueTodayItems([{ chore_instance_id: 1, chore_template_id: 1, title: "T", status: "completed", scheduled_date: "2026-05-20" }]);
-    expect(item.statusTone).toBe("success");
+    expect(item!.statusTone).toBe("success");
   });
 
   it("buildRoutineItems maps task fields", () => {
