@@ -204,16 +204,17 @@ class HomeViewModel
                 }
             if (ids.isEmpty()) return
             viewModelScope.launch {
-                val deferred = ids.map { id ->
-                    async {
-                        when (type) {
-                            SectionType.CHORES -> repository.completeChore(id)
-                            SectionType.ROUTINES -> repository.completeTask(id)
-                            SectionType.PLANNED ->
-                                Result.failure(IllegalStateException("Bulk done not supported for PLANNED"))
+                val deferred =
+                    ids.map { id ->
+                        async {
+                            when (type) {
+                                SectionType.CHORES -> repository.completeChore(id)
+                                SectionType.ROUTINES -> repository.completeTask(id)
+                                SectionType.PLANNED ->
+                                    Result.failure(IllegalStateException("Bulk done not supported for PLANNED"))
+                            }
                         }
                     }
-                }
                 deferred.awaitAll()
                 clearSelection(type)
                 refresh()
@@ -230,16 +231,17 @@ class HomeViewModel
                 }
             if (ids.isEmpty()) return
             viewModelScope.launch {
-                val deferred = ids.map { id ->
-                    async {
-                        when (type) {
-                            SectionType.CHORES -> repository.skipChore(id)
-                            SectionType.ROUTINES -> repository.skipTask(id)
-                            SectionType.PLANNED ->
-                                Result.failure(IllegalStateException("Bulk skip not supported for PLANNED"))
+                val deferred =
+                    ids.map { id ->
+                        async {
+                            when (type) {
+                                SectionType.CHORES -> repository.skipChore(id)
+                                SectionType.ROUTINES -> repository.skipTask(id)
+                                SectionType.PLANNED ->
+                                    Result.failure(IllegalStateException("Bulk skip not supported for PLANNED"))
+                            }
                         }
                     }
-                }
                 deferred.awaitAll()
                 clearSelection(type)
                 refresh()
@@ -253,16 +255,17 @@ class HomeViewModel
             val ids = content.selectedPlannedIds.toList()
             if (ids.isEmpty()) return
             viewModelScope.launch {
-                val deferred = ids.map { id ->
-                    async {
-                        val item =
-                            content.planned.firstOrNull { it.id == id }
-                                ?: return@async Result.failure<Unit>(
-                                    IllegalStateException("Planned item $id not found"),
-                                )
-                        plannedItemRepository.markPlannedDone(id, item, false)
+                val deferred =
+                    ids.map { id ->
+                        async {
+                            val item =
+                                content.planned.firstOrNull { it.id == id }
+                                    ?: return@async Result.failure<Unit>(
+                                        IllegalStateException("Planned item $id not found"),
+                                    )
+                            plannedItemRepository.markPlannedDone(id, item, false)
+                        }
                     }
-                }
                 deferred.awaitAll()
                 clearSelection(SectionType.PLANNED)
                 refresh()

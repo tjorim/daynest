@@ -457,11 +457,12 @@ private fun RoutineTemplateFields(
         )
         TextButton(onClick = onIsActiveToggle) {
             Text(
-                text = if (isActive) {
-                    stringResource(R.string.medication_active)
-                } else {
-                    stringResource(R.string.templates_inactive)
-                },
+                text =
+                    if (isActive) {
+                        stringResource(R.string.medication_active)
+                    } else {
+                        stringResource(R.string.templates_inactive)
+                    },
             )
         }
     }
@@ -492,12 +493,18 @@ private fun RoutineTemplateDialog(
         title = { Text(text = title) },
         text = {
             RoutineTemplateFields(
-                name = name, onNameChange = { name = it },
-                description = description, onDescriptionChange = { description = it },
-                startDate = startDate, onStartDateChange = { startDate = it },
-                everyNDays = everyNDays, onEveryNDaysChange = { everyNDays = it },
-                dueTime = dueTime, onDueTimeChange = { dueTime = it },
-                isActive = isActive, onIsActiveToggle = { isActive = !isActive },
+                name = name,
+                onNameChange = { name = it },
+                description = description,
+                onDescriptionChange = { description = it },
+                startDate = startDate,
+                onStartDateChange = { startDate = it },
+                everyNDays = everyNDays,
+                onEveryNDaysChange = { everyNDays = it },
+                dueTime = dueTime,
+                onDueTimeChange = { dueTime = it },
+                isActive = isActive,
+                onIsActiveToggle = { isActive = !isActive },
             )
         },
         confirmButton = {
