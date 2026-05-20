@@ -204,19 +204,27 @@ class DaynestCard extends LitElement {
 
   private async _fetchItems() {
     if (!this.hass || !this._config) return;
-    const result = await this.hass.connection.sendMessagePromise<{ items: TodoItem[] }>({
-      type: "todo/item/list",
-      entity_id: this._config.todo_entity ?? "todo.daynest_today",
-    });
-    this._items = result.items;
+    try {
+      const result = await this.hass.connection.sendMessagePromise<{ items: TodoItem[] }>({
+        type: "todo/item/list",
+        entity_id: this._config.todo_entity ?? "todo.daynest_today",
+      });
+      this._items = result.items;
+    } catch (error) {
+      console.error("Failed to fetch Daynest todo items", error);
+    }
   }
 
   private async _done(item: TodoItem) {
     const { prefix, id } = parseUid(item.uid);
     if (!isServicePrefix(prefix)) return;
     const { service, dataKey } = serviceMap[prefix].done;
-    await this.hass.callService("daynest", service, { [dataKey]: id });
-    await this._fetchItems();
+    try {
+      await this.hass.callService("daynest", service, { [dataKey]: id });
+      await this._fetchItems();
+    } catch (error) {
+      console.error("Failed to mark Daynest todo item as done", error);
+    }
   }
 
   private async _skip(item: TodoItem) {
@@ -224,8 +232,12 @@ class DaynestCard extends LitElement {
     if (!isServicePrefix(prefix) || prefix === "planned") return;
     const action = serviceMap[prefix].skip;
     if (!action) return;
-    await this.hass.callService("daynest", action.service, { [action.dataKey]: id });
-    await this._fetchItems();
+    try {
+      await this.hass.callService("daynest", action.service, { [action.dataKey]: id });
+      await this._fetchItems();
+    } catch (error) {
+      console.error("Failed to skip Daynest todo item", error);
+    }
   }
 
   private async _snooze(item: TodoItem) {
@@ -233,11 +245,15 @@ class DaynestCard extends LitElement {
     if (prefix !== "due" && prefix !== "overdue") return;
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
-    await this.hass.callService("daynest", "reschedule_chore", {
-      chore_instance_id: id,
-      scheduled_date: tomorrow.toISOString().slice(0, 10),
-    });
-    await this._fetchItems();
+    try {
+      await this.hass.callService("daynest", "reschedule_chore", {
+        chore_instance_id: id,
+        scheduled_date: tomorrow.toISOString().slice(0, 10),
+      });
+      await this._fetchItems();
+    } catch (error) {
+      console.error("Failed to snooze Daynest todo item", error);
+    }
   }
 
   private async _refresh() {
