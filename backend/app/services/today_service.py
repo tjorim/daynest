@@ -478,6 +478,13 @@ class TodayService:
             for item in self.repository.list_planned_items(user_id=user_id, start_date=start_date, end_date=end_date)
         ]
 
+    def mark_planned_done(self, user_id: int, planned_item_id: int) -> None:
+        item = self._get_user_planned_item(user_id=user_id, planned_item_id=planned_item_id)
+        if not item.is_done:
+            item.is_done = True
+            item.completed_at = self.repository.utcnow()
+            self.repository.save()
+
     def delete_planned_item(self, user_id: int, planned_item_id: int) -> None:
         item = self._get_user_planned_item(user_id=user_id, planned_item_id=planned_item_id)
         self.repository.delete_planned_item(item)
