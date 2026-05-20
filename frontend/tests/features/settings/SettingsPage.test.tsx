@@ -56,7 +56,9 @@ describe("SettingsPage", () => {
 
     expect(await screen.findByText("Home Assistant connection details")).toBeInTheDocument();
     expect(screen.getByText("home-assistant; version=ha.v1")).toBeInTheDocument();
-    expect(screen.getByText("https://my.home-assistant.io/redirect/oauth")).toBeInTheDocument();
+    expect(
+      screen.getByText(/the current home assistant setup flow is manual/i),
+    ).toBeInTheDocument();
     expect(screen.getByLabelText(/home assistant actions/i)).toBeInTheDocument();
   });
 
@@ -77,6 +79,7 @@ describe("SettingsPage", () => {
     });
     expect(await screen.findByText("daynest_test_key")).toBeInTheDocument();
     expect(screen.getByText("http://localhost/api/v1/integrations/clients/token")).toBeInTheDocument();
+    expect(screen.getByText(/home assistant manual setup values/i)).toBeInTheDocument();
   });
 
   it("shows the install button when app install is available and prompts on click", async () => {

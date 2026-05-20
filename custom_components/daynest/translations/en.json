@@ -2,7 +2,7 @@
   "config": {
     "step": {
       "user": {
-        "description": "Create a Home Assistant integration client in Daynest first, then paste the generated OAuth client ID and secret here. If you need help, have a look at the [documentation]({documentation_url}).",
+        "description": "Create a Home Assistant integration client in Daynest first, then paste the generated client ID and secret here. This setup is manual and does not open a Daynest sign-in page yet. If you need help, have a look at the [documentation]({documentation_url}).",
         "data": {
           "url": "Daynest base URL",
           "client_id": "Client ID",

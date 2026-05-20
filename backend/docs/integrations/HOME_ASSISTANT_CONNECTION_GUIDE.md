@@ -10,13 +10,8 @@ This guide describes the backend contract expected by the Daynest Home Assistant
   - `client_id`
   - `client_secret`
   - `token_url`
-- The standard Home Assistant callback URI is:
-
-```text
-https://my.home-assistant.io/redirect/oauth
-```
-
-The Daynest token endpoint accepts the OAuth 2.0 `client_credentials` grant and returns a Bearer token that Home Assistant can send to the integration endpoints.
+- The current custom integration setup is still a manual form: it does **not** open a Daynest auth page yet. Paste the generated base URL, client ID, and client secret into the Home Assistant config flow.
+- The Daynest token endpoint accepts the OAuth 2.0 `client_credentials` grant and returns a Bearer token that Home Assistant can send to the integration endpoints.
 The generated secret also remains compatible with the legacy `X-Integration-Key` header for older consumers, but OAuth is the preferred setup path for the custom integration.
 
 ## Base URL Requirements
