@@ -307,6 +307,9 @@ export interface IntegrationClientInput {
 
 export interface IntegrationClientCreateResponse extends IntegrationClient {
   api_key: string;
+  client_id: string;
+  client_secret: string;
+  token_url: string;
 }
 
 export interface RoutineTemplate {

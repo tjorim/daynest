@@ -14,8 +14,9 @@ from custom_components.daynest.config_flow import (
     ERROR_UNKNOWN,
     ERROR_UNSUPPORTED_CONTRACT,
     DaynestConfigFlowHandler,
+    _user_schema,
 )
-from custom_components.daynest.const import CONF_TOKEN_URL
+from custom_components.daynest.const import build_token_url
 from daynest import DaynestAuthError, DaynestMalformedResponseError, DaynestServerUnavailableError, DaynestTimeoutError
 from homeassistant.const import CONF_CLIENT_ID, CONF_CLIENT_SECRET, CONF_URL
 
@@ -33,7 +34,6 @@ VALID_SUMMARY_PAYLOAD = {
 
 USER_INPUT = {
     CONF_URL: "https://api.daynest.example",
-    CONF_TOKEN_URL: "https://auth.daynest.example/realms/daynest/protocol/openid-connect/token",
     CONF_CLIENT_ID: "integration-client",
     CONF_CLIENT_SECRET: "valid_secret",
 }
@@ -55,6 +55,10 @@ def _make_handler() -> DaynestConfigFlowHandler:
 @pytest.mark.unit
 class TestConfigFlowValidation:
     """Tests for DaynestConfigFlowHandler._async_validate_user_input."""
+
+    def test_user_schema_omits_manual_token_url_field(self) -> None:
+        schema_keys = {key.schema for key in _user_schema().schema}
+        assert schema_keys == {CONF_URL, CONF_CLIENT_ID, CONF_CLIENT_SECRET}
 
     async def test_valid_credentials_return_no_errors(self) -> None:
         handler = _make_handler()
@@ -182,6 +186,17 @@ class TestConfigFlowValidation:
             MockClient.return_value.async_get_summary = AsyncMock(return_value=_make_summary_response())
             await handler._async_validate_user_input(USER_INPUT)
         _, kwargs = MockClient.call_args
-        assert kwargs["token_url"] == USER_INPUT[CONF_TOKEN_URL]
+        assert kwargs["token_url"] == build_token_url(USER_INPUT[CONF_URL])
         assert kwargs["client_id"] == USER_INPUT[CONF_CLIENT_ID]
         assert kwargs["client_secret"] == USER_INPUT[CONF_CLIENT_SECRET]
+
+    async def test_config_flow_derives_token_url_from_base_url(self) -> None:
+        handler = _make_handler()
+        with (
+            patch("custom_components.daynest.config_flow.async_get_clientsession", return_value=MagicMock()),
+            patch("custom_components.daynest.config_flow.DaynestClient") as MockClient,
+        ):
+            MockClient.return_value.async_get_summary = AsyncMock(return_value=_make_summary_response())
+            await handler._async_validate_user_input(USER_INPUT)
+        _, kwargs = MockClient.call_args
+        assert kwargs["token_url"] == build_token_url(USER_INPUT[CONF_URL])

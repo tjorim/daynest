@@ -1,11 +1,11 @@
 from secrets import token_urlsafe
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.dependencies.auth import get_current_user
-from app.api.dependencies.integration_auth import hash_integration_key
+from app.api.dependencies.integration_auth import get_integration_client_by_token_hash, hash_integration_key
 from app.db.session import get_db
 from app.models.integration_client import IntegrationClient
 from app.models.user import User
@@ -13,9 +13,38 @@ from app.schemas.integrations import (
     IntegrationClientCreateRequest,
     IntegrationClientCreateResponse,
     IntegrationClientResponse,
+    IntegrationClientTokenResponse,
 )
 
 router = APIRouter(prefix="/integrations/clients", tags=["integrations"])
+TOKEN_EXPIRES_IN_SECONDS = 300
+
+
+def _integration_client_id(client: IntegrationClient) -> str:
+    return str(client.id)
+
+
+def _token_url(request: Request) -> str:
+    return str(request.url_for("exchange_integration_client_token"))
+
+
+def _create_response(
+    request: Request,
+    client: IntegrationClient,
+    raw_key: str,
+    *,
+    scopes: list[str],
+) -> IntegrationClientCreateResponse:
+    return IntegrationClientCreateResponse(
+        id=client.id,
+        name=client.name,
+        scopes=scopes,
+        rate_limit_per_minute=client.rate_limit_per_minute,
+        api_key=raw_key,
+        client_id=_integration_client_id(client),
+        client_secret=raw_key,
+        token_url=_token_url(request),
+    )
 
 
 @router.get("", response_model=list[IntegrationClientResponse])
@@ -39,6 +68,7 @@ def list_integration_clients(
 
 @router.post("", response_model=IntegrationClientCreateResponse)
 def create_integration_client(
+    request: Request,
     payload: IntegrationClientCreateRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -55,18 +85,13 @@ def create_integration_client(
     db.add(client)
     db.commit()
     db.refresh(client)
-    return IntegrationClientCreateResponse(
-        id=client.id,
-        name=client.name,
-        scopes=scopes,
-        rate_limit_per_minute=client.rate_limit_per_minute,
-        api_key=raw_key,
-    )
+    return _create_response(request, client, raw_key, scopes=scopes)
 
 
 @router.post("/{client_id}/rotate", response_model=IntegrationClientCreateResponse)
 def rotate_integration_client(
     client_id: int,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> IntegrationClientCreateResponse:
@@ -82,12 +107,43 @@ def rotate_integration_client(
     client.key_hash = hash_integration_key(raw_key)
     db.commit()
     db.refresh(client)
-    return IntegrationClientCreateResponse(
-        id=client.id,
-        name=client.name,
+    return _create_response(
+        request,
+        client,
+        raw_key,
         scopes=[scope for scope in client.scopes_csv.split(",") if scope],
-        rate_limit_per_minute=client.rate_limit_per_minute,
-        api_key=raw_key,
+    )
+
+
+@router.post("/token", response_model=IntegrationClientTokenResponse, name="exchange_integration_client_token")
+def exchange_integration_client_token(
+    grant_type: str = Form(...),
+    client_id: str = Form(...),
+    client_secret: str = Form(...),
+    db: Session = Depends(get_db),
+) -> IntegrationClientTokenResponse:
+    if grant_type != "client_credentials":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Unsupported grant_type; expected client_credentials",
+        )
+    if not client_id.strip() or not client_secret:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid OAuth client credentials",
+        )
+
+    client = get_integration_client_by_token_hash(db, hash_integration_key(client_secret))
+    if client is None or not client.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid OAuth client credentials",
+        )
+
+    return IntegrationClientTokenResponse(
+        access_token=client_secret,
+        expires_in=TOKEN_EXPIRES_IN_SECONDS,
+        scope=" ".join(scope for scope in client.scopes_csv.split(",") if scope),
     )
 
 

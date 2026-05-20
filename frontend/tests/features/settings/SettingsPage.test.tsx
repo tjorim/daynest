@@ -42,6 +42,9 @@ describe("SettingsPage", () => {
       rate_limit_per_minute: 120,
       is_active: true,
       api_key: "daynest_test_key",
+      client_id: "1",
+      client_secret: "daynest_test_key",
+      token_url: "http://localhost/api/v1/integrations/clients/token",
     });
     pwaMock.getDeferredInstallPrompt.mockReturnValue(null);
     pwaMock.promptToInstallApp.mockResolvedValue(false);
@@ -53,7 +56,7 @@ describe("SettingsPage", () => {
 
     expect(await screen.findByText("Home Assistant connection details")).toBeInTheDocument();
     expect(screen.getByText("home-assistant; version=ha.v1")).toBeInTheDocument();
-    expect(screen.getByText("X-Integration-Key")).toBeInTheDocument();
+    expect(screen.getByText("https://my.home-assistant.io/redirect/oauth")).toBeInTheDocument();
     expect(screen.getByLabelText(/home assistant actions/i)).toBeInTheDocument();
   });
 
@@ -73,6 +76,7 @@ describe("SettingsPage", () => {
       });
     });
     expect(await screen.findByText("daynest_test_key")).toBeInTheDocument();
+    expect(screen.getByText("http://localhost/api/v1/integrations/clients/token")).toBeInTheDocument();
   });
 
   it("shows the install button when app install is available and prompts on click", async () => {

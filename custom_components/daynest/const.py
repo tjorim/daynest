@@ -17,6 +17,11 @@ DEFAULT_UPDATE_INTERVAL_HOURS = 1
 DEFAULT_ENABLE_DEBUGGING = False
 
 
+def build_token_url(base_url: str) -> str:
+    """Build the Daynest OAuth token URL for Home Assistant."""
+    return f"{base_url.rstrip('/')}/api/v1/integrations/clients/token"
+
+
 def parse_integration_contract_version(contract: str | None) -> str | None:
     """Extract and normalize the version token from a contract header value."""
     if contract is None:

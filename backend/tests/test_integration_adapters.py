@@ -122,6 +122,8 @@ def test_create_integration_client_and_list(client: TestClient, db_session: Sess
         assert create_response.status_code == 200
         payload = create_response.json()
         assert payload["api_key"].startswith("daynest_")
+        assert payload["client_secret"] == payload["api_key"]
+        assert payload["token_url"].endswith("/api/v1/integrations/clients/token")
         assert payload["scopes"] == ["ha:read", "mcp:read"]
 
         list_response = client.get("/api/v1/integrations/clients")

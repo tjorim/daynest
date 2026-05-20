@@ -25,6 +25,7 @@ from .const import (
     DOMAIN,
     LOGGER,
     SUPPORTED_INTEGRATION_CONTRACT_VERSIONS,
+    build_token_url,
     parse_integration_contract_version,
 )
 
@@ -49,14 +50,6 @@ def _user_schema(defaults: dict[str, Any] | None = None) -> vol.Schema:
                 ),
             ),
             vol.Required(
-                CONF_TOKEN_URL,
-                default=defaults.get(CONF_TOKEN_URL, vol.UNDEFINED),
-            ): selector.TextSelector(
-                selector.TextSelectorConfig(
-                    type=selector.TextSelectorType.URL,
-                ),
-            ),
-            vol.Required(
                 CONF_CLIENT_ID,
                 default=defaults.get(CONF_CLIENT_ID, vol.UNDEFINED),
             ): selector.TextSelector(),
@@ -72,7 +65,7 @@ def _user_schema(defaults: dict[str, Any] | None = None) -> vol.Schema:
 class DaynestConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Daynest."""
 
-    VERSION = 2
+    VERSION = 3
 
     async def async_step_user(
         self,
@@ -84,10 +77,10 @@ class DaynestConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             sanitized_input = {
                 CONF_URL: str(user_input[CONF_URL]).strip().rstrip("/"),
-                CONF_TOKEN_URL: str(user_input[CONF_TOKEN_URL]).strip().rstrip("/"),
                 CONF_CLIENT_ID: str(user_input[CONF_CLIENT_ID]).strip(),
                 CONF_CLIENT_SECRET: str(user_input[CONF_CLIENT_SECRET]),
             }
+            sanitized_input[CONF_TOKEN_URL] = build_token_url(sanitized_input[CONF_URL])
 
             errors = await self._async_validate_user_input(sanitized_input)
             if not errors:
@@ -111,11 +104,12 @@ class DaynestConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def _async_validate_user_input(self, user_input: dict[str, str]) -> dict[str, str]:
         """Validate credentials by calling the Daynest summary endpoint."""
+        token_url = user_input.get(CONF_TOKEN_URL) or build_token_url(user_input[CONF_URL])
         client = DaynestClient(
             base_url=user_input[CONF_URL],
             client_id=user_input[CONF_CLIENT_ID],
             client_secret=user_input[CONF_CLIENT_SECRET],
-            token_url=user_input[CONF_TOKEN_URL],
+            token_url=token_url,
             session=async_get_clientsession(self.hass),
         )
 

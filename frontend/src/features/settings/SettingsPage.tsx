@@ -89,6 +89,8 @@ const HA_ENDPOINTS = [
   "POST /api/v1/integrations/home-assistant/actions/skip-medication",
 ];
 
+const HOME_ASSISTANT_REDIRECT_URI = "https://my.home-assistant.io/redirect/oauth";
+
 export function SettingsPage() {
   const [clients, setClients] = useState<IntegrationClient[]>([]);
   const [createdClient, setCreatedClient] = useState<IntegrationClientCreateResponse | null>(null);
@@ -198,7 +200,7 @@ export function SettingsPage() {
       const rotated = await rotateIntegrationClient(clientId);
       setCreatedClient(rotated);
       setCopyStatus(null);
-      setSuccessMessage("API key rotated. Copy the new key now; it will not be shown again.");
+      setSuccessMessage("OAuth client secret rotated. Copy the new secret now; it will not be shown again.");
       await loadClients();
     } catch (err) {
       setRotateClientError(err instanceof Error ? err.message : "Failed to rotate integration client key.");
@@ -296,7 +298,7 @@ export function SettingsPage() {
       });
       setCreatedClient(created);
       setSuccessMessage(
-        "Integration client created. Copy the API key now; it will not be shown again.",
+        "Integration client created. Copy the OAuth client secret now; it will not be shown again.",
       );
       await loadClients();
     } catch (err) {
@@ -307,12 +309,12 @@ export function SettingsPage() {
   };
 
   const copyApiKey = async () => {
-    if (!createdClient?.api_key) {
+    if (!createdClient?.client_secret) {
       return;
     }
     try {
-      await navigator.clipboard.writeText(createdClient.api_key);
-      setCopyStatus("API key copied.");
+      await navigator.clipboard.writeText(createdClient.client_secret);
+      setCopyStatus("Client secret copied.");
     } catch {
       setCopyStatus("Clipboard copy failed.");
     }
@@ -355,8 +357,8 @@ export function SettingsPage() {
         </div>
       </div>
       <p className="text-muted mb-3">
-        Configure integration clients for Home Assistant and MCP consumers. API keys are shown only
-        once when created.
+        Configure integration clients for Home Assistant and MCP consumers. OAuth client secrets are
+        shown only once when created.
       </p>
 
       {loading ? <div className="alert alert-info py-2">Loading settings...</div> : null}
@@ -523,9 +525,13 @@ export function SettingsPage() {
                 <dd className="col-sm-8">
                   <code>{backendBaseUrl}</code>
                 </dd>
-                <dt className="col-sm-4">Header</dt>
+                <dt className="col-sm-4">Token URL</dt>
                 <dd className="col-sm-8">
-                  <code>X-Integration-Key</code>
+                  <code>{`${backendBaseUrl}/api/v1/integrations/clients/token`}</code>
+                </dd>
+                <dt className="col-sm-4">OAuth callback</dt>
+                <dd className="col-sm-8">
+                  <code>{HOME_ASSISTANT_REDIRECT_URI}</code>
                 </dd>
                 <dt className="col-sm-4">Contract</dt>
                 <dd className="col-sm-8">
@@ -548,21 +554,38 @@ export function SettingsPage() {
           {createdClient ? (
             <div className="card">
               <div className="card-header fw-semibold py-2">
-                {createdClient.name} — API key
+                {createdClient.name} — Home Assistant OAuth details
               </div>
               <div className="card-body">
                 <div className="alert alert-warning py-2">
-                  This key is shown once. Store it in your integration client before leaving this
+                  This client secret is shown once. Store it in Home Assistant before leaving this
                   page.
                 </div>
-                <code className="settings-api-key">{createdClient.api_key}</code>
+                <dl className="row small mb-0">
+                  <dt className="col-sm-4">Client ID</dt>
+                  <dd className="col-sm-8">
+                    <code>{createdClient.client_id}</code>
+                  </dd>
+                  <dt className="col-sm-4">Client secret</dt>
+                  <dd className="col-sm-8">
+                    <code className="settings-api-key">{createdClient.client_secret}</code>
+                  </dd>
+                  <dt className="col-sm-4">Token URL</dt>
+                  <dd className="col-sm-8">
+                    <code>{createdClient.token_url}</code>
+                  </dd>
+                  <dt className="col-sm-4">Fallback key header</dt>
+                  <dd className="col-sm-8">
+                    <code>X-Integration-Key</code>
+                  </dd>
+                </dl>
                 <div className="d-flex gap-2 mt-3 flex-wrap">
                   <button
                     type="button"
                     className="btn btn-outline-primary btn-sm"
                     onClick={() => void copyApiKey()}
                   >
-                    Copy key
+                    Copy client secret
                   </button>
                   {copyStatus ? (
                     <small className="text-muted align-self-center">{copyStatus}</small>
@@ -610,7 +633,7 @@ export function SettingsPage() {
                           disabled={rotatingClient === client.id || revokingClient === client.id}
                           onClick={() => void onRotateClient(client.id)}
                         >
-                          {rotatingClient === client.id ? "Rotating…" : "Rotate key"}
+                          {rotatingClient === client.id ? "Rotating…" : "Rotate secret"}
                         </button>
                         <button
                           type="button"
