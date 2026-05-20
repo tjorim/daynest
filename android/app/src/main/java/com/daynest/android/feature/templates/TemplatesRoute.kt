@@ -2,8 +2,6 @@
 
 package com.daynest.android.feature.templates
 
-private const val DUE_TIME_DISPLAY_LENGTH = 5
-
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -43,6 +41,8 @@ import com.daynest.android.data.templates.ChoreTemplateInputDto
 import com.daynest.android.data.templates.RoutineTemplateDto
 import com.daynest.android.data.templates.RoutineTemplateInputDto
 import java.time.LocalDate
+
+private const val DUE_TIME_DISPLAY_LENGTH = 5
 
 @Composable
 fun TemplatesRoute(

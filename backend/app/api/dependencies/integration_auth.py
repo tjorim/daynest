@@ -20,7 +20,11 @@ _request_log_lock = threading.Lock()
 
 
 def hash_integration_key(raw_key: str) -> str:
-    return digest(
+    # Integration keys are server-generated, high-entropy random tokens (128+ bits),
+    # not user-chosen passwords. HMAC-SHA256 with a server-side secret is the correct
+    # primitive: brute-force is infeasible at this entropy regardless of hash speed.
+    # CodeQL py/weak-sensitive-data-hashing does not apply here.
+    return digest(  # lgtm[py/weak-sensitive-data-hashing]
         settings.resolved_integration_key_hash_secret.encode("utf-8"),
         raw_key.encode("utf-8"),
         "sha256",

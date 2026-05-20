@@ -189,4 +189,81 @@ describe("Today section components", () => {
     });
     expect(screen.getByText("Bulk Done updated 1 item and failed for 1.")).toBeInTheDocument();
   });
+
+  it("selects all items via the select-all checkbox", async () => {
+    const user = userEvent.setup();
+    const onRefresh = vi.fn().mockResolvedValue(undefined);
+    const runBulkDone = vi.fn().mockResolvedValue(undefined);
+    const items: SectionItem[] = [
+      { id: "item-1", title: "Water plants", choreInstanceId: 1, choreStatus: "pending" },
+      { id: "item-2", title: "Laundry", choreInstanceId: 2, choreStatus: "pending" },
+    ];
+    const bulkActions: BulkAction[] = [
+      {
+        key: "bulk-done",
+        label: "Bulk Done",
+        buttonClassName: "btn-success",
+        isAvailable: () => true,
+        run: runBulkDone,
+      },
+    ];
+
+    render(
+      <SectionCard
+        sectionId="due-today"
+        heading="Due Today"
+        items={items}
+        onRefresh={onRefresh}
+        bulkActions={bulkActions}
+      />,
+    );
+
+    const selectAll = screen.getByRole("checkbox", { name: "Select all" });
+    expect(selectAll).not.toBeChecked();
+
+    await user.click(selectAll);
+    expect(screen.getByLabelText("Select Water plants")).toBeChecked();
+    expect(screen.getByLabelText("Select Laundry")).toBeChecked();
+
+    await user.click(selectAll);
+    expect(screen.getByLabelText("Select Water plants")).not.toBeChecked();
+    expect(screen.getByLabelText("Select Laundry")).not.toBeChecked();
+  });
+
+  it("shows a warning when no selected items are eligible for a bulk action", async () => {
+    const user = userEvent.setup();
+    const onRefresh = vi.fn().mockResolvedValue(undefined);
+    const runBulkDone = vi.fn();
+    const items: SectionItem[] = [
+      { id: "item-1", title: "Water plants", choreInstanceId: 1, choreStatus: "pending" },
+    ];
+    const bulkActions: BulkAction[] = [
+      {
+        key: "bulk-done",
+        label: "Bulk Done",
+        buttonClassName: "btn-success",
+        isAvailable: () => false,
+        run: runBulkDone,
+      },
+    ];
+
+    render(
+      <SectionCard
+        sectionId="due-today"
+        heading="Due Today"
+        items={items}
+        onRefresh={onRefresh}
+        bulkActions={bulkActions}
+      />,
+    );
+
+    await user.click(screen.getByLabelText("Select Water plants"));
+    await user.click(screen.getByRole("button", { name: "Bulk Done" }));
+
+    expect(runBulkDone).not.toHaveBeenCalled();
+    expect(onRefresh).not.toHaveBeenCalled();
+    expect(
+      screen.getByText("None of the selected items are eligible for bulk done."),
+    ).toBeInTheDocument();
+  });
 });

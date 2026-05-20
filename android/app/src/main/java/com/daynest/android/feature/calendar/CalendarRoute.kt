@@ -462,9 +462,8 @@ private fun DayCell(
             isToday -> MaterialTheme.colorScheme.onPrimaryContainer
             else -> MaterialTheme.colorScheme.onSurface
         }
-
-    val dotColors =
-        remember(isSelected, routines, chores, medications, planned) {
+    val dotTypes =
+        remember(routines, chores, medications, planned) {
             buildList {
                 if (routines > 0) add(ITEM_TYPE_ROUTINE)
                 if (chores > 0) add(ITEM_TYPE_CHORE)
@@ -489,32 +488,36 @@ private fun DayCell(
                 style = MaterialTheme.typography.bodySmall,
                 color = textColor,
             )
-            if (dotColors.isNotEmpty()) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(2.dp),
-                ) {
-                    dotColors.forEach { typeIndex ->
-                        val dotColor =
-                            if (isSelected) {
-                                MaterialTheme.colorScheme.onPrimary
-                            } else {
-                                when (typeIndex) {
-                                    ITEM_TYPE_ROUTINE -> MaterialTheme.colorScheme.primary
-                                    ITEM_TYPE_CHORE -> MaterialTheme.colorScheme.secondary
-                                    ITEM_TYPE_MEDICATION -> MaterialTheme.colorScheme.tertiary
-                                    else -> MaterialTheme.colorScheme.outline
-                                }
-                            }
-                        Box(
-                            modifier =
-                                Modifier
-                                    .size(3.dp)
-                                    .clip(CircleShape)
-                                    .background(dotColor),
-                        )
+            if (dotTypes.isNotEmpty()) {
+                DayCellDots(dotTypes = dotTypes, isSelected = isSelected)
+            }
+        }
+    }
+}
+
+@Composable
+private fun DayCellDots(dotTypes: List<Int>, isSelected: Boolean) {
+    val colorScheme = MaterialTheme.colorScheme
+    Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+        dotTypes.forEach { typeIndex ->
+            val dotColor =
+                if (isSelected) {
+                    colorScheme.onPrimary
+                } else {
+                    when (typeIndex) {
+                        ITEM_TYPE_ROUTINE -> colorScheme.primary
+                        ITEM_TYPE_CHORE -> colorScheme.secondary
+                        ITEM_TYPE_MEDICATION -> colorScheme.tertiary
+                        else -> colorScheme.outline
                     }
                 }
-            }
+            Box(
+                modifier =
+                    Modifier
+                        .size(3.dp)
+                        .clip(CircleShape)
+                        .background(dotColor),
+            )
         }
     }
 }
