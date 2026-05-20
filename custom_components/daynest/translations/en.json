@@ -6,6 +6,10 @@
         "data": {
           "url": "Daynest base URL"
         }
+      },
+      "reauth_confirm": {
+        "title": "Re-authenticate with Daynest",
+        "description": "Your Daynest session has expired or been revoked. Click Submit to sign in again."
       }
     },
     "error": {
@@ -17,6 +21,7 @@
     },
     "abort": {
       "already_configured": "This entry is already configured.",
+      "reauth_successful": "Re-authentication was successful.",
       "invalid_auth": "Authentication failed while validating the Daynest OAuth token.",
       "cannot_connect": "Unable to reach the Daynest host.",
       "timeout": "Connection to Daynest timed out.",

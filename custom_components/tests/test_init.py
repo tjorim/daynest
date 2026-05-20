@@ -36,13 +36,13 @@ class TestMigrateEntry:
         migrated = await integration.async_migrate_entry(hass, entry)
 
         assert migrated is True
-        _, kwargs = hass.config_entries.async_update_entry.call_args
-        assert kwargs["version"] == 4
-        assert kwargs["data"][CONF_URL] == "https://api.daynest.example"
-        assert kwargs["data"][CONF_CLIENT_ID] == "home-assistant"
-        assert kwargs["data"][CONF_CLIENT_SECRET] == "daynest_legacy_key"
-        assert kwargs["data"][CONF_TOKEN_URL] == build_token_url("https://api.daynest.example")
-        assert kwargs["data"][CONF_AUTH_MODE] == AUTH_MODE_CLIENT_CREDENTIALS
+        first_call_kwargs = hass.config_entries.async_update_entry.call_args_list[0][1]
+        assert first_call_kwargs["version"] == 4
+        assert first_call_kwargs["data"][CONF_URL] == "https://api.daynest.example"
+        assert first_call_kwargs["data"][CONF_CLIENT_ID] == "home-assistant"
+        assert first_call_kwargs["data"][CONF_CLIENT_SECRET] == "daynest_legacy_key"
+        assert first_call_kwargs["data"][CONF_TOKEN_URL] == build_token_url("https://api.daynest.example")
+        assert first_call_kwargs["data"][CONF_AUTH_MODE] == AUTH_MODE_CLIENT_CREDENTIALS
 
     async def test_migrates_v2_keycloak_token_url_to_daynest_token_endpoint(self) -> None:
         hass = MagicMock()
@@ -60,10 +60,10 @@ class TestMigrateEntry:
         migrated = await integration.async_migrate_entry(hass, entry)
 
         assert migrated is True
-        _, kwargs = hass.config_entries.async_update_entry.call_args
-        assert kwargs["version"] == 4
-        assert kwargs["data"][CONF_TOKEN_URL] == build_token_url("https://api.daynest.example")
-        assert kwargs["data"][CONF_AUTH_MODE] == AUTH_MODE_CLIENT_CREDENTIALS
+        first_call_kwargs = hass.config_entries.async_update_entry.call_args_list[0][1]
+        assert first_call_kwargs["version"] == 4
+        assert first_call_kwargs["data"][CONF_TOKEN_URL] == build_token_url("https://api.daynest.example")
+        assert first_call_kwargs["data"][CONF_AUTH_MODE] == AUTH_MODE_CLIENT_CREDENTIALS
 
     async def test_migrates_v3_oauth_redirect_entry_to_v4(self) -> None:
         hass = MagicMock()
@@ -80,8 +80,50 @@ class TestMigrateEntry:
         migrated = await integration.async_migrate_entry(hass, entry)
 
         assert migrated is True
+        first_call_kwargs = hass.config_entries.async_update_entry.call_args_list[0][1]
+        assert first_call_kwargs["version"] == 4
+        assert first_call_kwargs["data"][CONF_AUTH_MODE] == AUTH_MODE_OAUTH_REDIRECT
+        assert first_call_kwargs["data"][CONF_AUTHORIZATION_URL] == build_oidc_authorization_url("https://api.daynest.example")
+        assert first_call_kwargs["data"][CONF_TOKEN_URL] == build_oidc_token_url("https://api.daynest.example")
+
+    async def test_migrates_v4_client_credentials_normalizes_token_url(self) -> None:
+        hass = MagicMock()
+        hass.config_entries.async_update_entry = MagicMock()
+        entry = MagicMock(
+            version=4,
+            data={
+                CONF_URL: "https://api.daynest.example",
+                CONF_CLIENT_ID: "home-assistant",
+                CONF_CLIENT_SECRET: "daynest_secret",
+                CONF_TOKEN_URL: "https://api.daynest.example/realms/daynest/protocol/openid-connect/token",
+            },
+        )
+
+        migrated = await integration.async_migrate_entry(hass, entry)
+
+        assert migrated is True
         _, kwargs = hass.config_entries.async_update_entry.call_args
-        assert kwargs["version"] == 4
+        assert kwargs["version"] == 5
+        assert kwargs["data"][CONF_TOKEN_URL] == build_token_url("https://api.daynest.example")
+        assert kwargs["data"][CONF_AUTH_MODE] == AUTH_MODE_CLIENT_CREDENTIALS
+
+    async def test_migrates_v4_oauth_redirect_sets_missing_urls(self) -> None:
+        hass = MagicMock()
+        hass.config_entries.async_update_entry = MagicMock()
+        entry = MagicMock(
+            version=4,
+            data={
+                CONF_URL: "https://api.daynest.example",
+                "token": {"access_token": "token", "expires_at": 9999999999},
+                "auth_implementation": "daynest",
+            },
+        )
+
+        migrated = await integration.async_migrate_entry(hass, entry)
+
+        assert migrated is True
+        _, kwargs = hass.config_entries.async_update_entry.call_args
+        assert kwargs["version"] == 5
         assert kwargs["data"][CONF_AUTH_MODE] == AUTH_MODE_OAUTH_REDIRECT
         assert kwargs["data"][CONF_AUTHORIZATION_URL] == build_oidc_authorization_url("https://api.daynest.example")
         assert kwargs["data"][CONF_TOKEN_URL] == build_oidc_token_url("https://api.daynest.example")
@@ -89,19 +131,21 @@ class TestMigrateEntry:
 
 @pytest.mark.unit
 class TestSetupEntry:
-    async def test_setup_entry_normalizes_legacy_token_url(self) -> None:
+    async def test_setup_entry_client_credentials_uses_token_url_from_entry(self) -> None:
         hass = MagicMock()
         hass.config_entries.async_update_entry = MagicMock()
         hass.config_entries.async_forward_entry_setups = AsyncMock()
         hass.services.has_service.return_value = True
         hass.data = {}
 
+        token_url = build_token_url("https://api.daynest.example")
         entry = MagicMock(
             data={
                 CONF_URL: "https://api.daynest.example",
                 CONF_CLIENT_ID: "home-assistant",
                 CONF_CLIENT_SECRET: "daynest_secret",
-                CONF_TOKEN_URL: "https://api.daynest.example/realms/daynest/protocol/openid-connect/token",
+                CONF_TOKEN_URL: token_url,
+                CONF_AUTH_MODE: AUTH_MODE_CLIENT_CREDENTIALS,
             },
             domain="daynest",
             add_update_listener=MagicMock(return_value=MagicMock()),
@@ -125,9 +169,8 @@ class TestSetupEntry:
 
         assert loaded is True
         _, kwargs = client_cls.call_args
-        assert kwargs["token_url"] == build_token_url("https://api.daynest.example")
-        _, update_kwargs = hass.config_entries.async_update_entry.call_args
-        assert update_kwargs["data"][CONF_TOKEN_URL] == build_token_url("https://api.daynest.example")
+        assert kwargs["token_url"] == token_url
+        hass.config_entries.async_update_entry.assert_not_called()
 
     async def test_setup_entry_with_oauth_redirect_uses_oauth2_session_token(self) -> None:
         hass = MagicMock()
