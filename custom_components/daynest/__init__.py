@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+import inspect
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from daynest import DaynestClient
 from homeassistant.components.frontend import add_extra_js_url, remove_extra_js_url
@@ -22,11 +23,13 @@ try:
     from homeassistant.components.frontend import async_register_static_paths
 except ImportError:
     async def async_register_static_paths(
-        hass: HomeAssistant,
+        hass: Any,
         static_paths: list[StaticPathConfig],
     ) -> None:
         """Register static paths on older Home Assistant versions."""
-        await hass.http.async_register_static_paths(static_paths)
+        maybe_awaitable = hass.http.async_register_static_paths(static_paths)
+        if inspect.isawaitable(maybe_awaitable):
+            await maybe_awaitable
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant

@@ -1,4 +1,4 @@
-"""Unit tests for custom_components.daynest.__init__."""
+"""Unit tests for Daynest integration setup/unload."""
 
 from __future__ import annotations
 
