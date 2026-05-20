@@ -151,7 +151,7 @@ jobs:
           steps.local-properties.outputs.release_available == 'true' &&
           steps.keystore.outputs.signing_available == 'true' &&
           (inputs.environment == 'release' || inputs.environment == 'both')
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ inputs.release_tag }}
           name: ${{ inputs.release_tag }}
