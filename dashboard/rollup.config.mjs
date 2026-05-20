@@ -8,5 +8,5 @@ export default {
     file: "../custom_components/daynest/frontend/daynest-card.js",
     format: "es",
   },
-  plugins: [nodeResolve(), typescript(), terser()],
+  plugins: [nodeResolve(), typescript(), !process.env.ROLLUP_WATCH && terser()].filter(Boolean),
 };
