@@ -16,9 +16,16 @@ from custom_components.daynest.config_flow import (
     DaynestConfigFlowHandler,
     _user_schema,
 )
-from custom_components.daynest.const import build_token_url
+from custom_components.daynest.const import (
+    AUTH_MODE_OAUTH_REDIRECT,
+    CONF_AUTH_MODE,
+    CONF_AUTHORIZATION_URL,
+    CONF_TOKEN_URL,
+    build_authorization_url,
+    build_oidc_token_url,
+)
 from daynest import DaynestAuthError, DaynestMalformedResponseError, DaynestServerUnavailableError, DaynestTimeoutError
-from homeassistant.const import CONF_CLIENT_ID, CONF_CLIENT_SECRET, CONF_URL
+from homeassistant.const import CONF_URL
 
 CONTRACT_HEADER_VALID = "home-assistant; version=ha.v1"
 CONTRACT_HEADER_UNSUPPORTED = "home-assistant; version=ha.v99"
@@ -32,11 +39,8 @@ VALID_SUMMARY_PAYLOAD = {
     "sensor_daynest_next_medication": "Vitamin D @ 09:00",
 }
 
-USER_INPUT = {
-    CONF_URL: "https://api.daynest.example",
-    CONF_CLIENT_ID: "integration-client",
-    CONF_CLIENT_SECRET: "valid_secret",
-}
+BASE_URL = "https://api.daynest.example"
+TOKEN = {"access_token": "valid_access_token"}
 
 
 def _make_summary_response(contract: str | None = CONTRACT_HEADER_VALID) -> MagicMock:
@@ -49,154 +53,109 @@ def _make_summary_response(contract: str | None = CONTRACT_HEADER_VALID) -> Magi
 def _make_handler() -> DaynestConfigFlowHandler:
     handler = DaynestConfigFlowHandler.__new__(DaynestConfigFlowHandler)
     handler.hass = MagicMock()
+    handler.context = {
+        CONF_URL: BASE_URL,
+        CONF_AUTHORIZATION_URL: build_authorization_url(BASE_URL),
+        CONF_TOKEN_URL: build_oidc_token_url(BASE_URL),
+    }
+    handler.async_abort = MagicMock(side_effect=lambda **kwargs: {"type": "abort", **kwargs})
+    handler.async_create_entry = MagicMock(side_effect=lambda **kwargs: {"type": "create_entry", **kwargs})
     return handler
 
 
 @pytest.mark.unit
 class TestConfigFlowValidation:
-    """Tests for DaynestConfigFlowHandler._async_validate_user_input."""
+    """Tests for DaynestConfigFlowHandler token validation."""
 
-    def test_user_schema_omits_manual_token_url_field(self) -> None:
+    def test_user_schema_only_requests_base_url(self) -> None:
         schema_keys = {key.schema for key in _user_schema().schema}
-        assert schema_keys == {CONF_URL, CONF_CLIENT_ID, CONF_CLIENT_SECRET}
+        assert schema_keys == {CONF_URL}
 
-    async def test_valid_credentials_return_no_errors(self) -> None:
+    async def test_valid_oauth_token_returns_no_errors(self) -> None:
         handler = _make_handler()
         with (
             patch("custom_components.daynest.config_flow.async_get_clientsession", return_value=MagicMock()),
-            patch("custom_components.daynest.config_flow.DaynestClient") as MockClient,
+            patch("custom_components.daynest.config_flow.DaynestClient") as mock_client,
         ):
-            MockClient.return_value.async_get_summary = AsyncMock(return_value=_make_summary_response())
-            errors = await handler._async_validate_user_input(USER_INPUT)
+            mock_client.return_value.async_get_summary = AsyncMock(return_value=_make_summary_response())
+            errors = await handler._async_validate_oauth_token(BASE_URL, TOKEN)
         assert errors == {}
+
+    async def test_missing_access_token_returns_invalid_auth(self) -> None:
+        handler = _make_handler()
+        errors = await handler._async_validate_oauth_token(BASE_URL, {})
+        assert errors == {"base": ERROR_AUTH}
 
     async def test_authentication_error_returns_invalid_auth(self) -> None:
         handler = _make_handler()
         with (
             patch("custom_components.daynest.config_flow.async_get_clientsession", return_value=MagicMock()),
-            patch("custom_components.daynest.config_flow.DaynestClient") as MockClient,
+            patch("custom_components.daynest.config_flow.DaynestClient") as mock_client,
         ):
-            MockClient.return_value.async_get_summary = AsyncMock(
-                side_effect=DaynestAuthError()
-            )
-            errors = await handler._async_validate_user_input(USER_INPUT)
+            mock_client.return_value.async_get_summary = AsyncMock(side_effect=DaynestAuthError())
+            errors = await handler._async_validate_oauth_token(BASE_URL, TOKEN)
         assert errors == {"base": ERROR_AUTH}
 
     async def test_timeout_error_returns_timeout(self) -> None:
         handler = _make_handler()
         with (
             patch("custom_components.daynest.config_flow.async_get_clientsession", return_value=MagicMock()),
-            patch("custom_components.daynest.config_flow.DaynestClient") as MockClient,
+            patch("custom_components.daynest.config_flow.DaynestClient") as mock_client,
         ):
-            MockClient.return_value.async_get_summary = AsyncMock(
-                side_effect=DaynestTimeoutError()
-            )
-            errors = await handler._async_validate_user_input(USER_INPUT)
+            mock_client.return_value.async_get_summary = AsyncMock(side_effect=DaynestTimeoutError())
+            errors = await handler._async_validate_oauth_token(BASE_URL, TOKEN)
         assert errors == {"base": ERROR_TIMEOUT}
 
     async def test_server_unavailable_returns_cannot_connect(self) -> None:
         handler = _make_handler()
         with (
             patch("custom_components.daynest.config_flow.async_get_clientsession", return_value=MagicMock()),
-            patch("custom_components.daynest.config_flow.DaynestClient") as MockClient,
+            patch("custom_components.daynest.config_flow.DaynestClient") as mock_client,
         ):
-            MockClient.return_value.async_get_summary = AsyncMock(
-                side_effect=DaynestServerUnavailableError()
-            )
-            errors = await handler._async_validate_user_input(USER_INPUT)
+            mock_client.return_value.async_get_summary = AsyncMock(side_effect=DaynestServerUnavailableError())
+            errors = await handler._async_validate_oauth_token(BASE_URL, TOKEN)
         assert errors == {"base": ERROR_CANNOT_CONNECT}
 
     async def test_malformed_response_returns_unsupported_contract(self) -> None:
         handler = _make_handler()
         with (
             patch("custom_components.daynest.config_flow.async_get_clientsession", return_value=MagicMock()),
-            patch("custom_components.daynest.config_flow.DaynestClient") as MockClient,
+            patch("custom_components.daynest.config_flow.DaynestClient") as mock_client,
         ):
-            MockClient.return_value.async_get_summary = AsyncMock(
-                side_effect=DaynestMalformedResponseError("bad payload")
-            )
-            errors = await handler._async_validate_user_input(USER_INPUT)
+            mock_client.return_value.async_get_summary = AsyncMock(side_effect=DaynestMalformedResponseError("bad payload"))
+            errors = await handler._async_validate_oauth_token(BASE_URL, TOKEN)
         assert errors == {"base": ERROR_UNSUPPORTED_CONTRACT}
 
     async def test_unexpected_exception_returns_unknown(self) -> None:
         handler = _make_handler()
         with (
             patch("custom_components.daynest.config_flow.async_get_clientsession", return_value=MagicMock()),
-            patch("custom_components.daynest.config_flow.DaynestClient") as MockClient,
+            patch("custom_components.daynest.config_flow.DaynestClient") as mock_client,
         ):
-            MockClient.return_value.async_get_summary = AsyncMock(
-                side_effect=RuntimeError("something went very wrong")
-            )
-            errors = await handler._async_validate_user_input(USER_INPUT)
+            mock_client.return_value.async_get_summary = AsyncMock(side_effect=RuntimeError("something went wrong"))
+            errors = await handler._async_validate_oauth_token(BASE_URL, TOKEN)
         assert errors == {"base": ERROR_UNKNOWN}
 
     async def test_unsupported_contract_version_returns_error(self) -> None:
         handler = _make_handler()
         with (
             patch("custom_components.daynest.config_flow.async_get_clientsession", return_value=MagicMock()),
-            patch("custom_components.daynest.config_flow.DaynestClient") as MockClient,
+            patch("custom_components.daynest.config_flow.DaynestClient") as mock_client,
         ):
-            MockClient.return_value.async_get_summary = AsyncMock(
+            mock_client.return_value.async_get_summary = AsyncMock(
                 return_value=_make_summary_response(CONTRACT_HEADER_UNSUPPORTED)
             )
-            errors = await handler._async_validate_user_input(USER_INPUT)
+            errors = await handler._async_validate_oauth_token(BASE_URL, TOKEN)
         assert errors == {"base": ERROR_UNSUPPORTED_CONTRACT}
 
-    async def test_missing_contract_header_returns_unsupported_contract(self) -> None:
+    async def test_oauth_create_entry_persists_redirect_auth_metadata(self) -> None:
         handler = _make_handler()
-        with (
-            patch("custom_components.daynest.config_flow.async_get_clientsession", return_value=MagicMock()),
-            patch("custom_components.daynest.config_flow.DaynestClient") as MockClient,
-        ):
-            MockClient.return_value.async_get_summary = AsyncMock(
-                return_value=_make_summary_response(None)
-            )
-            errors = await handler._async_validate_user_input(USER_INPUT)
-        assert errors == {"base": ERROR_UNSUPPORTED_CONTRACT}
+        with patch.object(handler, "_async_validate_oauth_token", AsyncMock(return_value={})):
+            result = await handler.async_oauth_create_entry({"token": TOKEN, "auth_implementation": "daynest"})
 
-    async def test_empty_contract_header_returns_unsupported_contract(self) -> None:
-        handler = _make_handler()
-        with (
-            patch("custom_components.daynest.config_flow.async_get_clientsession", return_value=MagicMock()),
-            patch("custom_components.daynest.config_flow.DaynestClient") as MockClient,
-        ):
-            MockClient.return_value.async_get_summary = AsyncMock(
-                return_value=_make_summary_response("")
-            )
-            errors = await handler._async_validate_user_input(USER_INPUT)
-        assert errors == {"base": ERROR_UNSUPPORTED_CONTRACT}
-
-    async def test_api_client_receives_correct_base_url(self) -> None:
-        handler = _make_handler()
-        with (
-            patch("custom_components.daynest.config_flow.async_get_clientsession", return_value=MagicMock()),
-            patch("custom_components.daynest.config_flow.DaynestClient") as MockClient,
-        ):
-            MockClient.return_value.async_get_summary = AsyncMock(return_value=_make_summary_response())
-            await handler._async_validate_user_input(USER_INPUT)
-        _, kwargs = MockClient.call_args
-        assert kwargs["base_url"] == USER_INPUT[CONF_URL]
-
-    async def test_api_client_receives_oauth_client_credentials(self) -> None:
-        handler = _make_handler()
-        with (
-            patch("custom_components.daynest.config_flow.async_get_clientsession", return_value=MagicMock()),
-            patch("custom_components.daynest.config_flow.DaynestClient") as MockClient,
-        ):
-            MockClient.return_value.async_get_summary = AsyncMock(return_value=_make_summary_response())
-            await handler._async_validate_user_input(USER_INPUT)
-        _, kwargs = MockClient.call_args
-        assert kwargs["token_url"] == build_token_url(USER_INPUT[CONF_URL])
-        assert kwargs["client_id"] == USER_INPUT[CONF_CLIENT_ID]
-        assert kwargs["client_secret"] == USER_INPUT[CONF_CLIENT_SECRET]
-
-    async def test_config_flow_derives_token_url_from_base_url(self) -> None:
-        handler = _make_handler()
-        with (
-            patch("custom_components.daynest.config_flow.async_get_clientsession", return_value=MagicMock()),
-            patch("custom_components.daynest.config_flow.DaynestClient") as MockClient,
-        ):
-            MockClient.return_value.async_get_summary = AsyncMock(return_value=_make_summary_response())
-            await handler._async_validate_user_input(USER_INPUT)
-        _, kwargs = MockClient.call_args
-        assert kwargs["token_url"] == build_token_url(USER_INPUT[CONF_URL])
+        assert result["type"] == "create_entry"
+        entry_data = result["data"]
+        assert entry_data[CONF_URL] == BASE_URL
+        assert entry_data[CONF_AUTH_MODE] == AUTH_MODE_OAUTH_REDIRECT
+        assert entry_data[CONF_AUTHORIZATION_URL] == build_authorization_url(BASE_URL)
+        assert entry_data[CONF_TOKEN_URL] == build_oidc_token_url(BASE_URL)

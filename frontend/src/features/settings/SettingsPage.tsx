@@ -89,6 +89,8 @@ const HA_ENDPOINTS = [
   "POST /api/v1/integrations/home-assistant/actions/skip-medication",
 ];
 
+const HOME_ASSISTANT_REDIRECT_URI = "https://my.home-assistant.io/redirect/oauth";
+
 export function SettingsPage() {
   const [clients, setClients] = useState<IntegrationClient[]>([]);
   const [createdClient, setCreatedClient] = useState<IntegrationClientCreateResponse | null>(null);
@@ -516,18 +518,17 @@ export function SettingsPage() {
             <div className="card-header fw-semibold py-2">Home Assistant connection details</div>
             <div className="card-body">
               <p className="text-muted small mb-2">
-                The current Home Assistant setup flow is manual. It does not open a Daynest auth
-                page yet, so paste these values into the custom integration form in Home
-                Assistant.
+                Setup now uses browser-based OAuth redirect. Enter the Daynest base URL in Home
+                Assistant and it will open the Daynest sign-in page automatically.
               </p>
               <dl className="row small mb-0">
                 <dt className="col-sm-4">Base URL</dt>
                 <dd className="col-sm-8">
                   <code>{backendBaseUrl}</code>
                 </dd>
-                <dt className="col-sm-4">Token URL</dt>
+                <dt className="col-sm-4">OAuth callback</dt>
                 <dd className="col-sm-8">
-                  <code>{`${backendBaseUrl}/api/v1/integrations/clients/token`}</code>
+                  <code>{HOME_ASSISTANT_REDIRECT_URI}</code>
                 </dd>
                 <dt className="col-sm-4">Contract</dt>
                 <dd className="col-sm-8">
@@ -550,12 +551,13 @@ export function SettingsPage() {
           {createdClient ? (
             <div className="card">
               <div className="card-header fw-semibold py-2">
-                {createdClient.name} — Home Assistant manual setup values
+                {createdClient.name} — Legacy integration client fallback
               </div>
               <div className="card-body">
                 <div className="alert alert-warning py-2">
-                  The custom integration currently expects you to paste these values into Home
-                  Assistant. The client secret is shown once, so store it before leaving this page.
+                  The Home Assistant integration now uses browser OAuth redirect and does not
+                  require these values for normal setup. Keep this secret only for legacy
+                  compatibility.
                 </div>
                 <dl className="row small mb-0">
                   <dt className="col-sm-4">Client ID</dt>

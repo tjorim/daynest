@@ -15,17 +15,22 @@ from daynest import (
     DaynestTimeoutError,
 )
 from homeassistant import config_entries
-from homeassistant.const import CONF_CLIENT_ID, CONF_CLIENT_SECRET, CONF_URL
-from homeassistant.helpers import selector
+from homeassistant.const import CONF_URL
+from homeassistant.helpers import config_entry_oauth2_flow, selector
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.loader import async_get_loaded_integration
 
 from .const import (
+    AUTH_MODE_OAUTH_REDIRECT,
+    CONF_AUTH_MODE,
+    CONF_AUTHORIZATION_URL,
     CONF_TOKEN_URL,
+    DEFAULT_OIDC_CLIENT_ID,
     DOMAIN,
     LOGGER,
     SUPPORTED_INTEGRATION_CONTRACT_VERSIONS,
-    build_token_url,
+    build_authorization_url,
+    build_oidc_token_url,
     parse_integration_contract_version,
 )
 
@@ -49,23 +54,25 @@ def _user_schema(defaults: dict[str, Any] | None = None) -> vol.Schema:
                     type=selector.TextSelectorType.URL,
                 ),
             ),
-            vol.Required(
-                CONF_CLIENT_ID,
-                default=defaults.get(CONF_CLIENT_ID, vol.UNDEFINED),
-            ): selector.TextSelector(),
-            vol.Required(CONF_CLIENT_SECRET): selector.TextSelector(
-                selector.TextSelectorConfig(
-                    type=selector.TextSelectorType.PASSWORD,
-                ),
-            ),
         }
     )
 
 
-class DaynestConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
+class DaynestConfigFlowHandler(config_entry_oauth2_flow.AbstractOAuth2FlowHandler, domain=DOMAIN):
     """Handle a config flow for Daynest."""
 
-    VERSION = 3
+    DOMAIN = DOMAIN
+    VERSION = 4
+
+    @property
+    def logger(self) -> Any:
+        """Return integration logger for OAuth helper."""
+        return LOGGER
+
+    @property
+    def extra_authorize_data(self) -> dict[str, str]:
+        """Request Daynest scopes needed by the integration."""
+        return {"scope": "openid profile email offline_access ha:read ha:write"}
 
     async def async_step_user(
         self,
@@ -75,24 +82,30 @@ class DaynestConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            sanitized_input = {
-                CONF_URL: str(user_input[CONF_URL]).strip().rstrip("/"),
-                CONF_CLIENT_ID: str(user_input[CONF_CLIENT_ID]).strip(),
-                CONF_CLIENT_SECRET: str(user_input[CONF_CLIENT_SECRET]),
-            }
-            sanitized_input[CONF_TOKEN_URL] = build_token_url(sanitized_input[CONF_URL])
+            base_url = str(user_input[CONF_URL]).strip().rstrip("/")
+            authorization_url = build_authorization_url(base_url)
+            oidc_token_url = build_oidc_token_url(base_url)
 
-            errors = await self._async_validate_user_input(sanitized_input)
-            if not errors:
-                await self.async_set_unique_id(sanitized_input[CONF_URL])
-                self._abort_if_unique_id_configured()
-                return self.async_create_entry(
-                    title=sanitized_input[CONF_URL],
-                    data=sanitized_input,
-                )
+            self.flow_impl = config_entry_oauth2_flow.LocalOAuth2ImplementationWithPkce(
+                self.hass,
+                DOMAIN,
+                DEFAULT_OIDC_CLIENT_ID,
+                authorization_url,
+                oidc_token_url,
+            )
+            self.context.update(
+                {
+                    CONF_URL: base_url,
+                    CONF_AUTHORIZATION_URL: authorization_url,
+                    CONF_TOKEN_URL: oidc_token_url,
+                }
+            )
+
+            await self.async_set_unique_id(base_url)
+            self._abort_if_unique_id_configured()
+            return await self.async_step_auth()
 
         integration = async_get_loaded_integration(self.hass, DOMAIN)
-
         return self.async_show_form(
             step_id="user",
             data_schema=_user_schema(user_input),
@@ -102,14 +115,33 @@ class DaynestConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             },
         )
 
-    async def _async_validate_user_input(self, user_input: dict[str, str]) -> dict[str, str]:
-        """Validate credentials by calling the Daynest summary endpoint."""
-        token_url = user_input.get(CONF_TOKEN_URL) or build_token_url(user_input[CONF_URL])
+    async def async_oauth_create_entry(self, data: dict[str, Any]) -> config_entries.ConfigFlowResult:
+        """Create config entry after OAuth redirect is complete."""
+        base_url = str(self.context[CONF_URL])
+        errors = await self._async_validate_oauth_token(base_url, data["token"])
+        if errors:
+            return self.async_abort(reason=errors["base"])
+
+        return self.async_create_entry(
+            title=base_url,
+            data={
+                **data,
+                CONF_URL: base_url,
+                CONF_AUTH_MODE: AUTH_MODE_OAUTH_REDIRECT,
+                CONF_AUTHORIZATION_URL: str(self.context[CONF_AUTHORIZATION_URL]),
+                CONF_TOKEN_URL: str(self.context[CONF_TOKEN_URL]),
+            },
+        )
+
+    async def _async_validate_oauth_token(self, base_url: str, token: dict[str, Any]) -> dict[str, str]:
+        """Validate OAuth token by calling the Daynest summary endpoint."""
+        access_token = token.get("access_token")
+        if not isinstance(access_token, str) or not access_token:
+            return {"base": ERROR_AUTH}
+
         client = DaynestClient(
-            base_url=user_input[CONF_URL],
-            client_id=user_input[CONF_CLIENT_ID],
-            client_secret=user_input[CONF_CLIENT_SECRET],
-            token_url=token_url,
+            base_url=base_url,
+            access_token_getter=lambda: access_token,
             session=async_get_clientsession(self.hass),
         )
 

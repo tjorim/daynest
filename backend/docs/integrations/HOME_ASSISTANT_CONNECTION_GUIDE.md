@@ -4,15 +4,15 @@ This guide describes the backend contract expected by the Daynest Home Assistant
 
 ## Authentication Requirements
 
-- Create a Daynest integration client with the required scope: `ha:read`
-- For write operations (services), the client must also include `ha:write`
-- Home Assistant should use the Daynest-managed OAuth client bundle returned when the client is created or rotated:
-  - `client_id`
-  - `client_secret`
-  - `token_url`
-- The current custom integration setup is still a manual form: it does **not** open a Daynest auth page yet. Paste the generated base URL, client ID, and client secret into the Home Assistant config flow.
-- The Daynest token endpoint accepts the OAuth 2.0 `client_credentials` grant and returns a Bearer token that Home Assistant can send to the integration endpoints.
-The generated secret also remains compatible with the legacy `X-Integration-Key` header for older consumers, but OAuth is the preferred setup path for the custom integration.
+- Home Assistant now uses a browser-based OAuth redirect flow and opens the Daynest sign-in page automatically during setup.
+- The integration starts from only the Daynest base URL and derives the OIDC endpoints:
+  - `/realms/daynest/protocol/openid-connect/auth`
+  - `/realms/daynest/protocol/openid-connect/token`
+- The OAuth client ID used by the integration is `home-assistant` (PKCE flow).
+- The authenticated token must include:
+  - `ha:read`
+  - `ha:write` (required for write services/actions)
+- Legacy integration-client keys remain supported for older consumers through `X-Integration-Key` and the integration client token endpoint.
 
 ## Base URL Requirements
 

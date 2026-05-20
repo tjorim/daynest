@@ -2,27 +2,26 @@
   "config": {
     "step": {
       "user": {
-        "description": "Create a Home Assistant integration client in Daynest first, then paste the generated client ID and secret here. This setup is manual and does not open a Daynest sign-in page yet. If you need help, have a look at the [documentation]({documentation_url}).",
+        "description": "Enter your Daynest base URL to start browser-based OAuth setup. Home Assistant will open the Daynest sign-in page automatically. If you need help, have a look at the [documentation]({documentation_url}).",
         "data": {
-          "url": "Daynest base URL",
-          "client_id": "Client ID",
-          "client_secret": "Client secret"
-        },
-        "data_description": {
-          "client_id": "Use the client ID shown in Daynest Settings → Integration clients when you create a Home Assistant client.",
-          "client_secret": "Use the generated client secret from Daynest. This is shown once when the client is created or rotated."
+          "url": "Daynest base URL"
         }
       }
     },
     "error": {
-      "invalid_auth": "Authentication failed. Check the Daynest-managed client ID and secret, then rotate the client in Daynest if needed.",
+      "invalid_auth": "Authentication failed. Verify your Daynest account has Home Assistant access and try signing in again.",
       "cannot_connect": "Unable to reach the Daynest host.",
       "timeout": "Connection to Daynest timed out.",
       "unsupported_contract": "The Daynest server contract version is not supported by this integration.",
       "unknown": "Unknown error occurred."
     },
     "abort": {
-      "already_configured": "This entry is already configured."
+      "already_configured": "This entry is already configured.",
+      "invalid_auth": "Authentication failed while validating the Daynest OAuth token.",
+      "cannot_connect": "Unable to reach the Daynest host.",
+      "timeout": "Connection to Daynest timed out.",
+      "unsupported_contract": "The Daynest server contract version is not supported by this integration.",
+      "unknown": "Unknown error occurred."
     }
   },
   "exceptions": {

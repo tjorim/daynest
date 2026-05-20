@@ -298,6 +298,36 @@ class TestDaynestClientRequests:
 
         assert await client._get_auth_headers() == {"Authorization": "Bearer access-token"}
 
+    async def test_external_access_token_getter_is_used_before_other_auth_modes(self) -> None:
+        response = _make_mock_response(200, {"access_token": "ignored-token", "expires_in": "300"})
+        session = MagicMock(spec=aiohttp.ClientSession)
+        session.post = MagicMock(return_value=response)
+        client = DaynestClient(
+            base_url="https://api.example",
+            integration_key="legacy-key",
+            client_id="integration-client",
+            client_secret="client-secret",
+            token_url="https://auth.example/token",
+            access_token_getter=lambda: "oidc-access-token",
+            session=session,
+        )
+
+        assert await client._get_auth_headers() == {"Authorization": "Bearer oidc-access-token"}
+        session.post.assert_not_called()
+
+    async def test_external_access_token_getter_supports_async_callback(self) -> None:
+        async def _token() -> str:
+            return "async-token"
+
+        session = MagicMock(spec=aiohttp.ClientSession)
+        client = DaynestClient(
+            base_url="https://api.example",
+            access_token_getter=_token,
+            session=session,
+        )
+
+        assert await client._get_auth_headers() == {"Authorization": "Bearer async-token"}
+
     async def test_client_error_raises_communication_error(self) -> None:
         session = MagicMock(spec=aiohttp.ClientSession)
         mock_ctx = MagicMock()

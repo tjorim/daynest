@@ -13,10 +13,24 @@ from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import CONF_API_KEY, CONF_CLIENT_ID, CONF_CLIENT_SECRET, CONF_URL, Platform
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers import config_entry_oauth2_flow
 import homeassistant.helpers.config_validation as cv
 from homeassistant.loader import async_get_loaded_integration
 
-from .const import CONF_TOKEN_URL, DEFAULT_API_BASE_URL, DOMAIN, LOGGER, build_token_url
+from .const import (
+    AUTH_MODE_CLIENT_CREDENTIALS,
+    AUTH_MODE_OAUTH_REDIRECT,
+    CONF_AUTH_MODE,
+    CONF_AUTHORIZATION_URL,
+    CONF_TOKEN_URL,
+    DEFAULT_API_BASE_URL,
+    DEFAULT_OIDC_CLIENT_ID,
+    DOMAIN,
+    LOGGER,
+    build_authorization_url,
+    build_oidc_token_url,
+    build_token_url,
+)
 from .coordinator import DaynestDataUpdateCoordinator
 from .data import DaynestData
 from .services import async_setup_services, async_unload_services
@@ -67,8 +81,9 @@ async def async_migrate_entry(hass: HomeAssistant, entry: DaynestConfigEntry) ->
         if legacy_secret is not None:
             data.setdefault(CONF_CLIENT_SECRET, str(legacy_secret))
         data[CONF_TOKEN_URL] = build_token_url(base_url)
+        data[CONF_AUTH_MODE] = AUTH_MODE_CLIENT_CREDENTIALS
 
-        hass.config_entries.async_update_entry(entry, data=data, version=3)
+        hass.config_entries.async_update_entry(entry, data=data, version=4)
         LOGGER.warning("Migrated legacy Daynest entry to the Daynest-managed OAuth token endpoint")
         return True
 
@@ -78,10 +93,23 @@ async def async_migrate_entry(hass: HomeAssistant, entry: DaynestConfigEntry) ->
         legacy_token_url = f"{base_url}/realms/daynest/protocol/openid-connect/token"
         if _should_replace_token_url(data.get(CONF_TOKEN_URL), legacy_token_url, data.get(CONF_CLIENT_ID)):
             data[CONF_TOKEN_URL] = build_token_url(base_url)
-        hass.config_entries.async_update_entry(entry, data=data, version=3)
+        data[CONF_AUTH_MODE] = AUTH_MODE_CLIENT_CREDENTIALS
+        hass.config_entries.async_update_entry(entry, data=data, version=4)
         return True
 
-    return entry.version == 3
+    if entry.version == 3:
+        data = dict(entry.data)
+        base_url = str(data.get(CONF_URL) or DEFAULT_API_BASE_URL).strip().rstrip("/")
+        if "token" in data:
+            data.setdefault(CONF_AUTH_MODE, AUTH_MODE_OAUTH_REDIRECT)
+            data.setdefault(CONF_AUTHORIZATION_URL, build_authorization_url(base_url))
+            data.setdefault(CONF_TOKEN_URL, build_oidc_token_url(base_url))
+        else:
+            data.setdefault(CONF_AUTH_MODE, AUTH_MODE_CLIENT_CREDENTIALS)
+        hass.config_entries.async_update_entry(entry, data=data, version=4)
+        return True
+
+    return entry.version == 4
 
 
 async def async_setup_entry(
@@ -89,33 +117,79 @@ async def async_setup_entry(
     entry: DaynestConfigEntry,
 ) -> bool:
     """Set up Daynest from a config entry."""
-    missing_keys = [
-        key
-        for key in (CONF_CLIENT_ID, CONF_CLIENT_SECRET)
-        if not entry.data.get(key)
-    ]
-    if missing_keys:
-        msg = "Daynest entry is missing OAuth credentials; reconfigure the integration"
-        raise ConfigEntryAuthFailed(msg)
-
     base_url = str(entry.data[CONF_URL]).strip().rstrip("/")
-    token_url = str(entry.data.get(CONF_TOKEN_URL) or "").strip().rstrip("/")
-    legacy_token_url = f"{base_url}/realms/daynest/protocol/openid-connect/token"
-    if _should_replace_token_url(token_url, legacy_token_url, entry.data.get(CONF_CLIENT_ID)):
-        token_url = build_token_url(base_url)
-        if entry.data.get(CONF_TOKEN_URL) != token_url:
+    auth_mode = str(entry.data.get(CONF_AUTH_MODE) or "").strip() or (
+        AUTH_MODE_OAUTH_REDIRECT if "token" in entry.data else AUTH_MODE_CLIENT_CREDENTIALS
+    )
+
+    if auth_mode == AUTH_MODE_OAUTH_REDIRECT:
+        authorization_url = str(entry.data.get(CONF_AUTHORIZATION_URL) or "").strip().rstrip("/")
+        token_url = str(entry.data.get(CONF_TOKEN_URL) or "").strip().rstrip("/")
+        if not authorization_url:
+            authorization_url = build_authorization_url(base_url)
+        if not token_url:
+            token_url = build_oidc_token_url(base_url)
+        if (
+            entry.data.get(CONF_AUTHORIZATION_URL) != authorization_url
+            or entry.data.get(CONF_TOKEN_URL) != token_url
+            or entry.data.get(CONF_AUTH_MODE) != AUTH_MODE_OAUTH_REDIRECT
+        ):
             hass.config_entries.async_update_entry(
                 entry,
-                data={**entry.data, CONF_TOKEN_URL: token_url},
+                data={
+                    **entry.data,
+                    CONF_AUTH_MODE: AUTH_MODE_OAUTH_REDIRECT,
+                    CONF_AUTHORIZATION_URL: authorization_url,
+                    CONF_TOKEN_URL: token_url,
+                },
             )
 
-    client = DaynestClient(
-        base_url=base_url,
-        client_id=entry.data[CONF_CLIENT_ID],
-        client_secret=entry.data[CONF_CLIENT_SECRET],
-        token_url=token_url,
-        session=async_get_clientsession(hass),
-    )
+        oauth_impl = config_entry_oauth2_flow.LocalOAuth2ImplementationWithPkce(
+            hass,
+            DOMAIN,
+            DEFAULT_OIDC_CLIENT_ID,
+            authorization_url,
+            token_url,
+        )
+        oauth_session = config_entry_oauth2_flow.OAuth2Session(hass, entry, oauth_impl)
+
+        async def _access_token_getter() -> str | None:
+            await oauth_session.async_ensure_token_valid()
+            token = oauth_session.token.get("access_token")
+            return token if isinstance(token, str) else None
+
+        client = DaynestClient(
+            base_url=base_url,
+            access_token_getter=_access_token_getter,
+            session=async_get_clientsession(hass),
+        )
+    else:
+        missing_keys = [
+            key
+            for key in (CONF_CLIENT_ID, CONF_CLIENT_SECRET)
+            if not entry.data.get(key)
+        ]
+        if missing_keys:
+            msg = "Daynest entry is missing OAuth credentials; reconfigure the integration"
+            raise ConfigEntryAuthFailed(msg)
+
+        token_url = str(entry.data.get(CONF_TOKEN_URL) or "").strip().rstrip("/")
+        legacy_token_url = f"{base_url}/realms/daynest/protocol/openid-connect/token"
+        if _should_replace_token_url(token_url, legacy_token_url, entry.data.get(CONF_CLIENT_ID)):
+            token_url = build_token_url(base_url)
+            if entry.data.get(CONF_TOKEN_URL) != token_url or entry.data.get(CONF_AUTH_MODE) != AUTH_MODE_CLIENT_CREDENTIALS:
+                hass.config_entries.async_update_entry(
+                    entry,
+                    data={**entry.data, CONF_TOKEN_URL: token_url, CONF_AUTH_MODE: AUTH_MODE_CLIENT_CREDENTIALS},
+                )
+
+        client = DaynestClient(
+            base_url=base_url,
+            client_id=entry.data[CONF_CLIENT_ID],
+            client_secret=entry.data[CONF_CLIENT_SECRET],
+            token_url=token_url,
+            session=async_get_clientsession(hass),
+        )
 
     coordinator = DaynestDataUpdateCoordinator(
         hass=hass,
