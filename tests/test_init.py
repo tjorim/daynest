@@ -7,8 +7,9 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from custom_components.daynest import CARD_URL, DOMAIN, async_setup_entry, async_unload_entry
+from custom_components.daynest.const import CONF_TOKEN_URL
 from homeassistant.config_entries import ConfigEntryState
-from homeassistant.const import CONF_API_KEY, CONF_URL
+from homeassistant.const import CONF_CLIENT_ID, CONF_CLIENT_SECRET, CONF_URL
 
 
 def _make_hass() -> MagicMock:
@@ -25,7 +26,9 @@ def _make_entry(entry_id: str = "entry-1") -> MagicMock:
     entry = MagicMock()
     entry.data = {
         CONF_URL: "http://localhost:8000",
-        CONF_API_KEY: "api-key",
+        CONF_TOKEN_URL: "http://localhost:8000/realms/daynest/protocol/openid-connect/token",
+        CONF_CLIENT_ID: "integration-client",
+        CONF_CLIENT_SECRET: "client-secret",
     }
     entry.domain = DOMAIN
     entry.entry_id = entry_id
