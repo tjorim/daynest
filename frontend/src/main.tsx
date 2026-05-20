@@ -91,7 +91,8 @@ async function bootstrap() {
   let oidcConfig;
   try {
     oidcConfig = await fetchOidcConfig();
-  } catch {
+  } catch (err) {
+    console.error("Failed to fetch OIDC config", err);
     const root = document.getElementById("root");
     if (root) {
       root.textContent =

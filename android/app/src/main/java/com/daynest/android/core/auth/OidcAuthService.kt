@@ -111,9 +111,15 @@ class OidcAuthService
                 withContext(Dispatchers.IO) {
                     val request = Request.Builder().url(url).build()
                     discoveryClient.newCall(request).execute().use { response ->
-                        val body =
-                            response.body?.string()
-                                ?: throw IOException("Empty response from OIDC config endpoint")
+                        val body = response.body.string()
+                        if (!response.isSuccessful) {
+                            throw IOException(
+                                "OIDC config endpoint returned HTTP ${response.code} ${response.message}: $body",
+                            )
+                        }
+                        if (body.isBlank()) {
+                            throw IOException("Empty response from OIDC config endpoint")
+                        }
                         JSONObject(body).getString("issuer")
                     }
                 }

@@ -1,6 +1,6 @@
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, HttpUrl, field_validator
 
 
 class UserMeResponse(BaseModel):
@@ -26,9 +26,9 @@ class UserUpdateRequest(BaseModel):
 
 
 class OidcDiscoveryConfig(BaseModel):
-    issuer: str
-    authorization_url: str
-    token_url: str
+    issuer: HttpUrl
+    authorization_url: HttpUrl
+    token_url: HttpUrl
 
 
 class OAuthSessionClient(BaseModel):
