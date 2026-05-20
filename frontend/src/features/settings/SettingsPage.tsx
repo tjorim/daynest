@@ -8,6 +8,7 @@ import {
   createIntegrationClient,
   isRetryableApiError,
   listIntegrationClients,
+  revokeIntegrationClient,
   type IntegrationClient,
   type IntegrationClientCreateResponse,
 } from "@/lib/api/today";
@@ -91,6 +92,9 @@ export function SettingsPage() {
   const [rateLimit, setRateLimit] = useState("120");
   const [selectedScopes, setSelectedScopes] = useState<string[]>(["ha:read"]);
 
+  const [revokingClient, setRevokingClient] = useState<number | null>(null);
+  const [revokeClientError, setRevokeClientError] = useState<string | null>(null);
+
   const [oauthSessions, setOauthSessions] = useState<OAuthSession[]>([]);
   const [sessionsLoading, setSessionsLoading] = useState(true);
   const [sessionsError, setSessionsError] = useState<string | null>(null);
@@ -168,6 +172,19 @@ export function SettingsPage() {
       if (!signal?.aborted) {
         setSessionsLoading(false);
       }
+    }
+  };
+
+  const onRevokeClient = async (clientId: number) => {
+    setRevokingClient(clientId);
+    setRevokeClientError(null);
+    try {
+      await revokeIntegrationClient(clientId);
+      await loadClients();
+    } catch (err) {
+      setRevokeClientError(err instanceof Error ? err.message : "Failed to revoke integration client.");
+    } finally {
+      setRevokingClient(null);
     }
   };
 
@@ -547,16 +564,29 @@ export function SettingsPage() {
                             .join(" ")}
                         </small>
                       </div>
-                      <span
-                        className={`badge ${client.is_active ? "text-bg-success" : "text-bg-secondary"}`}
-                      >
-                        {client.is_active ? "Active" : "Inactive"}
-                      </span>
+                      <div className="d-flex align-items-center gap-2">
+                        <span
+                          className={`badge ${client.is_active ? "text-bg-success" : "text-bg-secondary"}`}
+                        >
+                          {client.is_active ? "Active" : "Inactive"}
+                        </span>
+                        <button
+                          type="button"
+                          className="btn btn-outline-danger btn-sm"
+                          disabled={revokingClient === client.id}
+                          onClick={() => void onRevokeClient(client.id)}
+                        >
+                          {revokingClient === client.id ? "Revoking…" : "Revoke"}
+                        </button>
+                      </div>
                     </div>
                   </li>
                 ))
               )}
             </ul>
+            {revokeClientError ? (
+              <div className="card-footer text-danger py-2 small">{revokeClientError}</div>
+            ) : null}
           </div>
 
           <div className="card mt-3">
@@ -581,7 +611,7 @@ export function SettingsPage() {
                   <li className="list-group-item py-2 text-muted">No active OAuth sessions.</li>
                 ) : (
                   oauthSessions.map((session) => {
-                    const clientNames = Object.values(session.clients);
+                    const clientNames = session.clients.map((c) => c.clientName ?? c.clientId);
                     const lastAccess = session.last_access
                       ? new Date(session.last_access).toLocaleString()
                       : null;

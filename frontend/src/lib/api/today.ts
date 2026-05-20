@@ -739,6 +739,15 @@ export async function createIntegrationClient(
   return parseJsonResponse<IntegrationClientCreateResponse>(response, "Request failed", false);
 }
 
+export async function revokeIntegrationClient(clientId: number): Promise<void> {
+  const response = await fetchWithAuth(`/api/v1/integrations/clients/${clientId}`, {
+    method: "DELETE",
+  });
+  if (!response.ok) {
+    await parseJsonResponse<never>(response, "Failed to revoke integration client");
+  }
+}
+
 export async function listRoutineTemplates(signal?: AbortSignal): Promise<RoutineTemplate[]> {
   const response = await fetchWithAuth("/api/v1/routines", {
     headers: { Accept: "application/json" },

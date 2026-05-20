@@ -98,7 +98,7 @@ async def list_sessions(
             started=s.get("started"),
             last_access=s.get("lastAccess"),
             expires=s.get("expires"),
-            clients=s.get("clients") or {},
+            clients=s.get("clients") or [],
         )
         for s in raw_sessions
         if isinstance(s, dict) and s.get("id")
