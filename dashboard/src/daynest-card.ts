@@ -11,6 +11,15 @@ interface TodoItem {
   description?: string;
 }
 
+type CardGridOptions = {
+  columns: number;
+  rows: number;
+  min_columns: number;
+  min_rows: number;
+};
+
+const DEFAULT_SENSOR_PREFIX = "sensor.daynest_";
+
 function parseUid(uid: string): { prefix: string; id: number } {
   const [prefix, rawId] = uid.split(":");
   return { prefix, id: parseInt(rawId, 10) };
@@ -18,27 +27,39 @@ function parseUid(uid: string): { prefix: string; id: number } {
 
 const serviceMap = {
   due: {
-    done: { service: "complete_chore", dataKey: "chore_instance_id" },
-    skip: { service: "skip_chore", dataKey: "chore_instance_id" },
+    done: { service: "complete_task", dataKey: "chore_instance_id" },
+    skip: { service: "skip_task", dataKey: "chore_instance_id" },
   },
   overdue: {
-    done: { service: "complete_chore", dataKey: "chore_instance_id" },
-    skip: { service: "skip_chore", dataKey: "chore_instance_id" },
+    done: { service: "complete_task", dataKey: "chore_instance_id" },
+    skip: { service: "skip_task", dataKey: "chore_instance_id" },
   },
   routine: {
-    done: { service: "complete_routine_task", dataKey: "task_instance_id" },
-    skip: { service: "skip_routine_task", dataKey: "task_instance_id" },
+    done: { service: "complete_task", dataKey: "chore_instance_id" },
+    skip: { service: "skip_task", dataKey: "chore_instance_id" },
   },
   medication: {
-    done: { service: "take_medication_dose", dataKey: "dose_instance_id" },
-    skip: { service: "skip_medication_dose", dataKey: "dose_instance_id" },
+    done: { service: "mark_medication_taken", dataKey: "medication_dose_id" },
+    skip: { service: "skip_medication", dataKey: "medication_dose_id" },
   },
   planned: {
     done: { service: "mark_planned_done", dataKey: "id" },
   },
 } as const;
 
+const metricSensorSuffixes = [
+  "due_today_count",
+  "overdue_count",
+  "planned_count",
+  "medication_due_count",
+  "completion_ratio",
+  "next_medication",
+  "routines_open_count",
+  "planned_remaining_count",
+];
+
 type ServicePrefix = keyof typeof serviceMap;
+type SkippablePrefix = Exclude<ServicePrefix, "planned">;
 
 function isServicePrefix(prefix: string): prefix is ServicePrefix {
   return prefix in serviceMap;
@@ -46,6 +67,10 @@ function isServicePrefix(prefix: string): prefix is ServicePrefix {
 
 function isSnoozablePrefix(prefix: string): boolean {
   return prefix === "due" || prefix === "overdue";
+}
+
+function isSkippablePrefix(prefix: string): prefix is SkippablePrefix {
+  return isServicePrefix(prefix) && prefix !== "planned";
 }
 
 type WindowWithCustomCards = Window & {
@@ -70,14 +95,35 @@ class DaynestCard extends LitElement {
     void this._fetchItems();
   }
 
-  static getConfigElement() {
-    return document.createElement("daynest-card-editor");
+  static getConfigForm() {
+    return {
+      schema: [
+        {
+          name: "name",
+          label: "Card name",
+          selector: { text: {} },
+          default: "Today",
+        },
+        {
+          name: "sensor_prefix",
+          label: "Sensor prefix",
+          selector: { text: {} },
+          default: DEFAULT_SENSOR_PREFIX,
+        },
+        {
+          name: "todo_entity",
+          label: "Todo entity",
+          selector: { entity: { domain: "todo" } },
+          default: "todo.daynest_today",
+        },
+      ],
+    };
   }
 
   static getStubConfig(): DaynestCardConfig {
     return {
       type: "custom:daynest-card",
-      sensor_prefix: "sensor.daynest_",
+      sensor_prefix: DEFAULT_SENSOR_PREFIX,
       todo_entity: "todo.daynest_today",
     };
   }
@@ -86,6 +132,14 @@ class DaynestCard extends LitElement {
     if (!config) throw new Error("Invalid configuration");
     this._config = config;
     void this._fetchItems();
+  }
+
+  getCardSize(): number {
+    return 4;
+  }
+
+  getGridOptions(): CardGridOptions {
+    return { columns: 12, rows: 4, min_columns: 6, min_rows: 3 };
   }
 
   protected updated(changedProps: PropertyValues<this>) {
@@ -97,7 +151,7 @@ class DaynestCard extends LitElement {
   render() {
     if (!this.hass || !this._config) return html``;
 
-    const prefix = this._config.sensor_prefix ?? "sensor.daynest_";
+    const prefix = this._config.sensor_prefix ?? DEFAULT_SENSOR_PREFIX;
     const routinesTotal = sensorNum(this.hass, prefix + "routines_count");
     const routinesDone = sensorNum(this.hass, prefix + "routines_completed_today");
     const choresTotal = sensorNum(this.hass, prefix + "chores_count");
@@ -233,9 +287,8 @@ class DaynestCard extends LitElement {
 
   private async _skip(item: TodoItem) {
     const { prefix, id } = parseUid(item.uid);
-    if (!isServicePrefix(prefix) || prefix === "planned") return;
+    if (!isSkippablePrefix(prefix)) return;
     const action = serviceMap[prefix].skip;
-    if (!action) return;
     try {
       await this.hass.callService("daynest", action.service, { [action.dataKey]: id });
       await this._fetchItems();
@@ -247,12 +300,10 @@ class DaynestCard extends LitElement {
   private async _snooze(item: TodoItem) {
     const { prefix, id } = parseUid(item.uid);
     if (!isSnoozablePrefix(prefix)) return;
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
     try {
-      await this.hass.callService("daynest", "reschedule_chore", {
+      await this.hass.callService("daynest", "snooze_task", {
         chore_instance_id: id,
-        scheduled_date: tomorrow.toISOString().slice(0, 10),
+        days: 1,
       });
       await this._fetchItems();
     } catch (error) {
@@ -261,16 +312,25 @@ class DaynestCard extends LitElement {
   }
 
   private async _refresh() {
+    const prefix = this._config.sensor_prefix ?? DEFAULT_SENSOR_PREFIX;
+    try {
+      await this.hass.callService("homeassistant", "update_entity", {
+        entity_id: metricSensorSuffixes.map((suffix) => prefix + suffix),
+      });
+    } catch (error) {
+      console.error("Failed to refresh Daynest sensors", error);
+    }
     await this._fetchItems();
-    this.requestUpdate();
   }
 }
 
 const daynestWindow = window as WindowWithCustomCards;
 daynestWindow.customCards = daynestWindow.customCards ?? [];
-daynestWindow.customCards.push({
-  type: "daynest-card",
-  name: "Daynest Card",
-  description: "Today summary, task list, and medication tracking for Daynest.",
-  preview: true,
-});
+if (!daynestWindow.customCards.some((card) => card.type === "daynest-card")) {
+  daynestWindow.customCards.push({
+    type: "daynest-card",
+    name: "Daynest Card",
+    description: "Today summary, task list, and medication tracking for Daynest.",
+    preview: true,
+  });
+}
