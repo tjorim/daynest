@@ -1,6 +1,6 @@
 """Smoke tests verifying the package structure is importable."""
 
-from collections.abc import AsyncContextManager
+from contextlib import AbstractAsyncContextManager
 
 from daynest import (
     DaynestAuthError,
@@ -36,4 +36,4 @@ def test_exception_hierarchy() -> None:
 
 def test_client_context_manager_protocol() -> None:
     client = DaynestClient(base_url="https://api.example", integration_key="key")
-    assert isinstance(client, AsyncContextManager)
+    assert isinstance(client, AbstractAsyncContextManager)
