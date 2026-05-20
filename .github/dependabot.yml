@@ -18,6 +18,24 @@ updates:
       - "npm"
     versioning-strategy: "increase"
 
+  # Monitor npm dependencies for the Lovelace card
+  - package-ecosystem: "npm"
+    directory: "/dashboard"
+    schedule:
+      interval: "weekly"
+      day: "friday"
+      time: "18:00"
+      timezone: "Etc/UTC"
+    assignees:
+      - "tjorim"
+    commit-message:
+      prefix: "deps"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "npm"
+    versioning-strategy: "increase"
+
   # Monitor Android Gradle dependencies and wrapper versions
   - package-ecosystem: "gradle"
     directory: "/android"
@@ -51,6 +69,23 @@ updates:
     labels:
       - "dependencies"
       - "backend"
+      - "python"
+
+  # Monitor uv-managed Python dependencies for the python-daynest library
+  - package-ecosystem: "uv"
+    directory: "/python-daynest"
+    schedule:
+      interval: "weekly"
+      day: "friday"
+      time: "18:00"
+      timezone: "Etc/UTC"
+    assignees:
+      - "tjorim"
+    commit-message:
+      prefix: "deps(lib)"
+      include: "scope"
+    labels:
+      - "dependencies"
       - "python"
 
   # Monitor GitHub Actions
