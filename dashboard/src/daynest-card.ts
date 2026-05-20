@@ -70,8 +70,26 @@ class DaynestCard extends LitElement {
     void this._fetchItems();
   }
 
-  static getConfigElement() {
-    return document.createElement("daynest-card-editor");
+  static getConfigForm() {
+    return {
+      schema: [
+        {
+          name: "name",
+          label: "Card name",
+          selector: { text: {} },
+        },
+        {
+          name: "sensor_prefix",
+          label: "Sensor prefix",
+          selector: { text: {} },
+        },
+        {
+          name: "todo_entity",
+          label: "Todo entity",
+          selector: { entity: { domain: "todo" } },
+        },
+      ],
+    };
   }
 
   static getStubConfig(): DaynestCardConfig {
@@ -86,6 +104,14 @@ class DaynestCard extends LitElement {
     if (!config) throw new Error("Invalid configuration");
     this._config = config;
     void this._fetchItems();
+  }
+
+  getCardSize(): number {
+    return 4;
+  }
+
+  getGridOptions() {
+    return { columns: 12, rows: 4, min_columns: 6, min_rows: 3 };
   }
 
   protected updated(changedProps: PropertyValues<this>) {
