@@ -9,6 +9,7 @@ import com.daynest.android.data.today.MedicationTodayItemDto
 import com.daynest.android.data.today.OverdueTodayItemDto
 import com.daynest.android.data.today.PlannedTodayItemDto
 import com.daynest.android.data.today.RoutineTodayItemDto
+import com.daynest.android.data.today.PlannedItemRepository
 import com.daynest.android.data.today.TodayRepository
 import com.daynest.android.data.today.UpcomingTodayItemDto
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -28,6 +29,7 @@ class HomeViewModel
     @Inject
     constructor(
         private val repository: TodayRepository,
+        private val plannedItemRepository: PlannedItemRepository,
     ) : ViewModel() {
         private val _uiState = MutableStateFlow<HomeUiState>(HomeUiState.Loading)
 
@@ -255,7 +257,7 @@ class HomeViewModel
                                 ?: return@async Result.failure<Unit>(
                                     IllegalStateException("Planned item $id not found"),
                                 )
-                        repository.markPlannedDone(id, item, false)
+                        plannedItemRepository.markPlannedDone(id, item, false)
                     }
                 }.awaitAll()
                 clearSelection(SectionType.PLANNED)
@@ -300,7 +302,7 @@ class HomeViewModel
 
         private fun updatePlanned(item: PlannedTodayItemDto) {
             viewModelScope.launch {
-                val result = repository.markPlannedDone(item.id, item, item.isDone)
+                val result = plannedItemRepository.markPlannedDone(item.id, item, item.isDone)
                 if (result.isSuccess) refresh()
             }
         }
@@ -315,14 +317,14 @@ class HomeViewModel
                     ?.firstOrNull { it.id == id }
                     ?: return
             viewModelScope.launch {
-                val result = repository.markPlannedDone(id, currentPlanned, isDone)
+                val result = plannedItemRepository.markPlannedDone(id, currentPlanned, isDone)
                 if (result.isSuccess) refresh()
             }
         }
 
         private fun deletePlanned(id: Int) {
             viewModelScope.launch {
-                val result = repository.deletePlannedItem(id)
+                val result = plannedItemRepository.deletePlannedItem(id)
                 if (result.isSuccess) {
                     _uiState.update { current ->
                         if (current is HomeUiState.Content) {

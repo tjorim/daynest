@@ -6,9 +6,9 @@ import com.daynest.android.data.calendar.CalendarDaySummaryDto
 import com.daynest.android.data.calendar.CalendarRepository
 import com.daynest.android.data.calendar.UnifiedDayItemDto
 import com.daynest.android.data.today.PlannedItemCreateDto
+import com.daynest.android.data.today.PlannedItemRepository
 import com.daynest.android.data.today.PlannedItemUpdateDto
 import com.daynest.android.data.today.PlannedTodayItemDto
-import com.daynest.android.data.today.TodayRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -25,7 +25,7 @@ class CalendarViewModel
     @Inject
     constructor(
         private val calendarRepository: CalendarRepository,
-        private val todayRepository: TodayRepository,
+        private val plannedItemRepository: PlannedItemRepository,
     ) : ViewModel() {
         private val _uiState = MutableStateFlow<CalendarUiState>(CalendarUiState.Loading)
         val uiState: StateFlow<CalendarUiState> = _uiState.asStateFlow()
@@ -35,7 +35,7 @@ class CalendarViewModel
         private val backupHandler =
             CalendarBackupHandler(
                 scope = viewModelScope,
-                todayRepository = todayRepository,
+                plannedItemRepository = plannedItemRepository,
                 uiState = _uiState,
                 onRefresh = ::retryCurrentMonth,
             )
@@ -180,7 +180,7 @@ class CalendarViewModel
             input: PlannedItemUpdateDto,
         ) {
             viewModelScope.launch {
-                val result = todayRepository.updatePlannedItem(id, input)
+                val result = plannedItemRepository.updatePlannedItem(id, input)
                 result.onSuccess { updated ->
                     _uiState.update { current ->
                         if (current is CalendarUiState.Content && current.selectedDate == date) {
@@ -212,7 +212,7 @@ class CalendarViewModel
 
         private fun addPlannedItem(input: PlannedItemCreateDto) {
             viewModelScope.launch {
-                val result = todayRepository.createPlannedItem(input)
+                val result = plannedItemRepository.createPlannedItem(input)
                 result.onSuccess { plannedItem ->
                     _uiState.update { current ->
                         if (current is CalendarUiState.Content) {
@@ -238,7 +238,7 @@ class CalendarViewModel
             date: String,
         ) {
             viewModelScope.launch {
-                val result = todayRepository.deletePlannedItem(id)
+                val result = plannedItemRepository.deletePlannedItem(id)
                 if (result.isSuccess) {
                     _uiState.update { current ->
                         if (current is CalendarUiState.Content) {

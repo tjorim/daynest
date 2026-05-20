@@ -11,6 +11,7 @@ import com.daynest.android.data.calendar.CalendarApi
 import com.daynest.android.data.medication.MedicationApi
 import com.daynest.android.data.settings.SettingsApi
 import com.daynest.android.data.templates.TemplatesApi
+import com.daynest.android.data.today.PlannedItemApi
 import com.daynest.android.data.today.TodayActionsApi
 import com.daynest.android.data.today.TodayApi
 import dagger.Module
@@ -86,6 +87,10 @@ object NetworkDiModule {
     @Provides
     @Singleton
     fun provideTodayActionsApi(retrofit: Retrofit): TodayActionsApi = retrofit.create(TodayActionsApi::class.java)
+
+    @Provides
+    @Singleton
+    fun providePlannedItemApi(retrofit: Retrofit): PlannedItemApi = retrofit.create(PlannedItemApi::class.java)
 
     @Provides
     @Singleton

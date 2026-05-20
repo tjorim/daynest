@@ -1,4 +1,4 @@
-@file:Suppress("ktlint:standard:function-naming", "FunctionNaming", "TooManyFunctions")
+@file:Suppress("ktlint:standard:function-naming", "FunctionNaming")
 
 package com.daynest.android.feature.home
 
@@ -16,7 +16,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
@@ -33,23 +32,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.daynest.android.R
 import com.daynest.android.app.navigation.DaynestDestination
 import com.daynest.android.app.navigation.DaynestNavigationScaffold
-import com.daynest.android.data.today.MedicationTodayItemDto
 import com.daynest.android.data.today.PlannedTodayItemDto
-import com.daynest.android.data.today.RoutineTodayItemDto
-import com.daynest.android.data.today.UpcomingTodayItemDto
 import com.daynest.android.feature.home.SectionType
 import com.daynest.android.ui.PlannedItemFormDialog
 import com.daynest.android.ui.PlannedItemFormState
 
 @Composable
-@Suppress("FunctionNaming")
 fun HomeRoute(
     onNavigate: (String) -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel(),
@@ -64,7 +58,6 @@ fun HomeRoute(
 }
 
 @Composable
-@Suppress("FunctionNaming", "LongMethod", "CyclomaticComplexMethod")
 internal fun HomeScreen(
     uiState: HomeUiState,
     onEvent: (HomeUiEvent) -> Unit,
@@ -123,7 +116,7 @@ internal fun HomeScreen(
 }
 
 @Composable
-@Suppress("FunctionNaming", "LongMethod", "CyclomaticComplexMethod")
+@Suppress("LongMethod", "CyclomaticComplexMethod")
 private fun TodayContent(
     state: HomeUiState.Content,
     onEvent: (HomeUiEvent) -> Unit,
@@ -425,7 +418,6 @@ private data class RescheduleTarget(
 )
 
 @Composable
-@Suppress("FunctionNaming")
 private fun TodaySummaryStrip(state: HomeUiState.Content) {
     val completedRoutines = state.routines.count { it.status == "completed" || it.status == "skipped" }
     val completedMedication = state.medication.count { it.status != "scheduled" }
@@ -481,7 +473,6 @@ private fun TodaySummaryStrip(state: HomeUiState.Content) {
 }
 
 @Composable
-@Suppress("FunctionNaming")
 private fun SummaryMetricCard(
     label: String,
     value: Int,
@@ -518,7 +509,6 @@ private fun SectionHeader(
 }
 
 @Composable
-@Suppress("FunctionNaming")
 private fun BulkSectionHeader(
     title: String,
     selectedCount: Int,
@@ -562,243 +552,6 @@ private fun BulkSectionHeader(
                         Text(text = stringResource(id = R.string.action_undo))
                     }
                 }
-            }
-        }
-    }
-}
-
-@Composable
-@Suppress("FunctionNaming")
-private fun MedicationTodayCard(
-    item: MedicationTodayItemDto,
-    onTake: () -> Unit,
-    onSkip: () -> Unit,
-) {
-    val isScheduled = item.status == "scheduled"
-
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(text = item.name, style = MaterialTheme.typography.bodyMedium)
-                if (item.instructions.isNotEmpty()) {
-                    Text(
-                        text = item.instructions,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline,
-                    )
-                }
-            }
-            if (isScheduled) {
-                TextButton(onClick = onTake) {
-                    Text(text = stringResource(id = R.string.action_take))
-                }
-                TextButton(onClick = onSkip) {
-                    Text(text = stringResource(id = R.string.action_skip))
-                }
-            } else {
-                Text(
-                    text = item.status,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.outline,
-                )
-            }
-        }
-    }
-}
-
-@Composable
-@Suppress("FunctionNaming")
-private fun RoutineCard(
-    item: RoutineTodayItemDto,
-    isSelected: Boolean,
-    onToggleSelect: () -> Unit,
-    onStart: () -> Unit,
-    onComplete: () -> Unit,
-    onSkip: () -> Unit,
-) {
-    val isDone = item.status == "completed"
-    val isSkipped = item.status == "skipped"
-    val canStart = item.status == "pending"
-    val canMutate = !isDone && !isSkipped
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Checkbox(checked = isSelected, onCheckedChange = { onToggleSelect() })
-            Text(
-                text = item.title,
-                style = MaterialTheme.typography.bodyMedium,
-                textDecoration = if (isDone) TextDecoration.LineThrough else TextDecoration.None,
-                modifier = Modifier.weight(1f),
-            )
-            if (canMutate) {
-                if (canStart) {
-                    TextButton(onClick = onStart) {
-                        Text(text = stringResource(id = R.string.action_start))
-                    }
-                }
-                TextButton(onClick = onComplete) {
-                    Text(text = stringResource(id = R.string.action_done))
-                }
-                TextButton(onClick = onSkip) {
-                    Text(text = stringResource(id = R.string.action_skip))
-                }
-            }
-        }
-    }
-}
-
-@Composable
-@Suppress("FunctionNaming")
-private fun ChoreCard(
-    title: String,
-    subtitle: String?,
-    isSelected: Boolean,
-    onToggleSelect: () -> Unit,
-    onComplete: () -> Unit,
-    onSkip: () -> Unit,
-    onReschedule: () -> Unit,
-    onSnooze: () -> Unit,
-) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Checkbox(checked = isSelected, onCheckedChange = { onToggleSelect() })
-            Column(modifier = Modifier.weight(1f)) {
-                Text(text = title, style = MaterialTheme.typography.bodyMedium)
-                if (subtitle != null) {
-                    Text(
-                        text = subtitle,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline,
-                    )
-                }
-            }
-            TextButton(onClick = onComplete) {
-                Text(text = stringResource(id = R.string.action_done))
-            }
-            TextButton(onClick = onSkip) {
-                Text(text = stringResource(id = R.string.action_skip))
-            }
-            TextButton(onClick = onSnooze) {
-                Text(text = stringResource(id = R.string.action_snooze))
-            }
-            TextButton(onClick = onReschedule) {
-                Text(text = stringResource(id = R.string.action_reschedule))
-            }
-        }
-    }
-}
-
-@Composable
-@Suppress("FunctionNaming")
-private fun PlannedItemCard(
-    item: PlannedTodayItemDto,
-    isSelected: Boolean,
-    onToggleSelect: () -> Unit,
-    onToggleDone: () -> Unit,
-    onEdit: () -> Unit,
-    onDelete: () -> Unit,
-) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Checkbox(checked = isSelected, onCheckedChange = { onToggleSelect() })
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = item.title,
-                    style = MaterialTheme.typography.bodyMedium,
-                    textDecoration = if (item.isDone) TextDecoration.LineThrough else TextDecoration.None,
-                )
-                if (!item.notes.isNullOrBlank()) {
-                    Text(
-                        text = item.notes,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline,
-                    )
-                }
-                if (!item.moduleKey.isNullOrBlank()) {
-                    Text(
-                        text = item.moduleKey,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                }
-            }
-            TextButton(onClick = onToggleDone) {
-                Text(
-                    text =
-                        if (item.isDone) {
-                            stringResource(id = R.string.action_undo)
-                        } else {
-                            stringResource(id = R.string.action_done)
-                        },
-                )
-            }
-            TextButton(onClick = onEdit) {
-                Text(text = stringResource(id = R.string.action_edit))
-            }
-            TextButton(
-                onClick = onDelete,
-                colors =
-                    ButtonDefaults.textButtonColors(
-                        contentColor = MaterialTheme.colorScheme.error,
-                    ),
-            ) {
-                Text(text = stringResource(id = R.string.action_delete))
-            }
-        }
-    }
-}
-
-@Composable
-@Suppress("FunctionNaming")
-private fun UpcomingChoreCard(
-    item: UpcomingTodayItemDto,
-    onReschedule: () -> Unit,
-) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = item.title,
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.weight(1f),
-            )
-            if (item.scheduledDate.isNotEmpty()) {
-                Text(
-                    text = item.scheduledDate,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.outline,
-                )
-            }
-            TextButton(onClick = onReschedule) {
-                Text(text = stringResource(id = R.string.action_reschedule))
             }
         }
     }

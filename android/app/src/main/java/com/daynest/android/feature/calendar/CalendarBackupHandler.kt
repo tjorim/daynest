@@ -1,8 +1,8 @@
 package com.daynest.android.feature.calendar
 
 import com.daynest.android.data.today.PlannedItemCreateDto
+import com.daynest.android.data.today.PlannedItemRepository
 import com.daynest.android.data.today.PlannedTodayItemDto
-import com.daynest.android.data.today.TodayRepository
 import java.time.Instant
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.async
@@ -13,7 +13,7 @@ import kotlinx.coroutines.launch
 
 internal class CalendarBackupHandler(
     private val scope: CoroutineScope,
-    private val todayRepository: TodayRepository,
+    private val plannedItemRepository: PlannedItemRepository,
     private val uiState: MutableStateFlow<CalendarUiState>,
     private val onRefresh: () -> Unit,
 ) {
@@ -22,7 +22,7 @@ internal class CalendarBackupHandler(
         val startDate = current.displayMonth.withDayOfMonth(1).toString()
         val endDate = current.displayMonth.withDayOfMonth(current.displayMonth.lengthOfMonth()).toString()
         scope.launch {
-            val result = todayRepository.listPlannedItems(startDate, endDate)
+            val result = plannedItemRepository.listPlannedItems(startDate, endDate)
             result.onSuccess { items ->
                 onReady(
                     PlannedItemBackupDto(
@@ -41,7 +41,7 @@ internal class CalendarBackupHandler(
             val results =
                 items.chunked(5).flatMap { batch ->
                     batch
-                        .map { item -> async { todayRepository.createPlannedItem(item) } }
+                        .map { item -> async { plannedItemRepository.createPlannedItem(item) } }
                         .awaitAll()
                 }
             val imported = results.count { it.isSuccess }
