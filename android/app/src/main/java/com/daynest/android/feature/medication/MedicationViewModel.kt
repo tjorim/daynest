@@ -98,27 +98,28 @@ class MedicationViewModel
         ) {
             viewModelScope.launch {
                 val result = repository.updatePlan(id, input)
-                result.onSuccess { updatedPlan ->
-                    _uiState.update { current ->
-                        if (current is MedicationUiState.Content) {
-                            current.copy(
-                                plans = current.plans.map { if (it.id == id) updatedPlan else it },
-                                operationError = null,
-                            )
-                        } else {
-                            current
+                result
+                    .onSuccess { updatedPlan ->
+                        _uiState.update { current ->
+                            if (current is MedicationUiState.Content) {
+                                current.copy(
+                                    plans = current.plans.map { if (it.id == id) updatedPlan else it },
+                                    operationError = null,
+                                )
+                            } else {
+                                current
+                            }
+                        }
+                    }.onFailure { error ->
+                        Log.e("MedicationViewModel", "updatePlan failed", error)
+                        _uiState.update { current ->
+                            if (current is MedicationUiState.Content) {
+                                current.copy(operationError = error.message ?: "Failed to update medication plan.")
+                            } else {
+                                MedicationUiState.Error
+                            }
                         }
                     }
-                }.onFailure { error ->
-                    Log.e("MedicationViewModel", "updatePlan failed", error)
-                    _uiState.update { current ->
-                        if (current is MedicationUiState.Content) {
-                            current.copy(operationError = error.message ?: "Failed to update medication plan.")
-                        } else {
-                            MedicationUiState.Error
-                        }
-                    }
-                }
             }
         }
 

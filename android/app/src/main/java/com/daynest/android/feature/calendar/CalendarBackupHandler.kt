@@ -11,6 +11,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.Instant
 
+private const val IMPORT_BATCH_SIZE = 5
+
 internal class CalendarBackupHandler(
     private val scope: CoroutineScope,
     private val plannedItemRepository: PlannedItemRepository,
@@ -39,7 +41,7 @@ internal class CalendarBackupHandler(
     fun importBackup(items: List<PlannedItemCreateDto>) {
         scope.launch {
             val results = mutableListOf<Result<PlannedTodayItemDto>>()
-            for (batch in items.chunked(5)) {
+            for (batch in items.chunked(IMPORT_BATCH_SIZE)) {
                 results +=
                     batch
                         .map { item -> async { plannedItemRepository.createPlannedItem(item) } }

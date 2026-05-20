@@ -41,6 +41,8 @@ import com.daynest.android.data.medication.MedicationPlanInputDto
 import com.daynest.android.data.medication.MedicationPlanUpdateDto
 import java.time.LocalDate
 
+private const val SCHEDULE_TIME_DISPLAY_LENGTH = 5
+
 @Composable
 fun MedicationRoute(
     onNavigate: (String) -> Unit = {},
@@ -325,7 +327,7 @@ private fun EditMedicationPlanDialog(
     var name by remember(plan) { mutableStateOf(plan.name) }
     var instructions by remember(plan) { mutableStateOf(plan.instructions) }
     var startDate by remember(plan) { mutableStateOf(plan.startDate) }
-    var scheduleTime by remember(plan) { mutableStateOf(plan.scheduleTime.take(5)) }
+    var scheduleTime by remember(plan) { mutableStateOf(plan.scheduleTime.take(SCHEDULE_TIME_DISPLAY_LENGTH)) }
     var everyNDays by remember(plan) { mutableStateOf(plan.everyNDays.toString()) }
     var isActive by remember(plan) { mutableStateOf(plan.isActive) }
 
@@ -385,7 +387,10 @@ private fun EditMedicationPlanDialog(
                                 name = name.trim(),
                                 instructions = instructions.trim(),
                                 startDate = startDate.trim().ifBlank { plan.startDate },
-                                scheduleTime = scheduleTime.trim().ifBlank { plan.scheduleTime.take(5) },
+                                scheduleTime =
+                                    scheduleTime.trim().ifBlank {
+                                        plan.scheduleTime.take(SCHEDULE_TIME_DISPLAY_LENGTH)
+                                    },
                                 everyNDays = everyNDays.toIntOrNull() ?: plan.everyNDays,
                                 isActive = isActive,
                             ),

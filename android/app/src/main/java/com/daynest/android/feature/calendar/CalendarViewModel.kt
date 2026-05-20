@@ -184,42 +184,7 @@ class CalendarViewModel
                 result.onSuccess { updated ->
                     _uiState.update { current ->
                         if (current is CalendarUiState.Content) {
-                            val sourceDate = date
-                            val targetDate = updated.plannedFor
-                            val moved = sourceDate != targetDate
-                            current.copy(
-                                days =
-                                    if (moved) {
-                                        var adjustedDays = current.days
-                                        if (sourceDate.isInMonth(current.displayMonth)) {
-                                            adjustedDays = adjustedDays.adjustPlannedSummary(date = sourceDate, delta = -1)
-                                        }
-                                        if (targetDate.isInMonth(current.displayMonth)) {
-                                            adjustedDays = adjustedDays.adjustPlannedSummary(date = targetDate, delta = 1)
-                                        }
-                                        adjustedDays
-                                    } else {
-                                        current.days
-                                    },
-                                dayItems =
-                                    when {
-                                        !moved && current.selectedDate == sourceDate ->
-                                            current.dayItems.map { item ->
-                                                if (item.itemType == "planned" && item.itemId == id) {
-                                                    updated.toUnifiedDayItem()
-                                                } else {
-                                                    item
-                                                }
-                                            }
-                                        moved && current.selectedDate == sourceDate ->
-                                            current.dayItems.filterNot { it.itemType == "planned" && it.itemId == id }
-                                        moved && current.selectedDate == targetDate ->
-                                            current.dayItems
-                                                .filterNot { it.itemType == "planned" && it.itemId == id } +
-                                                updated.toUnifiedDayItem()
-                                        else -> current.dayItems
-                                    },
-                            )
+                            current.withUpdatedPlannedItem(id = id, sourceDate = date, updated = updated)
                         } else {
                             current
                         }
@@ -291,6 +256,66 @@ private fun PlannedTodayItemDto.toUnifiedDayItem() =
         linkedSource = linkedSource,
         linkedRef = linkedRef,
     )
+
+private fun CalendarUiState.Content.withUpdatedPlannedItem(
+    id: Int,
+    sourceDate: String,
+    updated: PlannedTodayItemDto,
+): CalendarUiState.Content {
+    val targetDate = updated.plannedFor
+    val moved = sourceDate != targetDate
+    return copy(
+        days = days.adjustForPlannedMove(sourceDate, targetDate, displayMonth, moved),
+        dayItems = dayItems.updatePlannedDayItems(id, sourceDate, targetDate, selectedDate, moved, updated),
+    )
+}
+
+private fun List<CalendarDaySummaryDto>.adjustForPlannedMove(
+    sourceDate: String,
+    targetDate: String,
+    displayMonth: LocalDate,
+    moved: Boolean,
+): List<CalendarDaySummaryDto> {
+    if (!moved) return this
+    var adjustedDays = this
+    if (sourceDate.isInMonth(displayMonth)) {
+        adjustedDays = adjustedDays.adjustPlannedSummary(date = sourceDate, delta = -1)
+    }
+    if (targetDate.isInMonth(displayMonth)) {
+        adjustedDays = adjustedDays.adjustPlannedSummary(date = targetDate, delta = 1)
+    }
+    return adjustedDays
+}
+
+private fun List<UnifiedDayItemDto>.updatePlannedDayItems(
+    id: Int,
+    sourceDate: String,
+    targetDate: String,
+    selectedDate: String?,
+    moved: Boolean,
+    updated: PlannedTodayItemDto,
+): List<UnifiedDayItemDto> =
+    when {
+        !moved && selectedDate == sourceDate -> replacePlannedItem(id, updated)
+        moved && selectedDate == sourceDate -> removePlannedItem(id)
+        moved && selectedDate == targetDate -> removePlannedItem(id) + updated.toUnifiedDayItem()
+        else -> this
+    }
+
+private fun List<UnifiedDayItemDto>.replacePlannedItem(
+    id: Int,
+    updated: PlannedTodayItemDto,
+): List<UnifiedDayItemDto> =
+    map { item ->
+        if (item.itemType == "planned" && item.itemId == id) {
+            updated.toUnifiedDayItem()
+        } else {
+            item
+        }
+    }
+
+private fun List<UnifiedDayItemDto>.removePlannedItem(id: Int): List<UnifiedDayItemDto> =
+    filterNot { it.itemType == "planned" && it.itemId == id }
 
 private fun String.isInMonth(displayMonth: LocalDate): Boolean =
     runCatching {

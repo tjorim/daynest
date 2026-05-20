@@ -68,8 +68,10 @@ class HomeViewModel
                                         isStale = false,
                                         selectedChoreIds =
                                             c.selectedChoreIds.intersect(
-                                                (response.overdue.map { it.choreInstanceId } +
-                                                    response.dueToday.map { it.choreInstanceId }).toSet(),
+                                                (
+                                                    response.overdue.map { it.choreInstanceId } +
+                                                        response.dueToday.map { it.choreInstanceId }
+                                                ).toSet(),
                                             ),
                                         selectedRoutineIds =
                                             c.selectedRoutineIds.intersect(

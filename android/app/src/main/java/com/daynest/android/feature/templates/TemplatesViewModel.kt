@@ -117,27 +117,28 @@ class TemplatesViewModel
         ) {
             viewModelScope.launch {
                 val result = repository.updateRoutine(id, input)
-                result.onSuccess { updatedRoutine ->
-                    _uiState.update { current ->
-                        if (current is TemplatesUiState.Content) {
-                            current.copy(
-                                routines = current.routines.map { if (it.id == id) updatedRoutine else it },
-                                operationError = null,
-                            )
-                        } else {
-                            current
+                result
+                    .onSuccess { updatedRoutine ->
+                        _uiState.update { current ->
+                            if (current is TemplatesUiState.Content) {
+                                current.copy(
+                                    routines = current.routines.map { if (it.id == id) updatedRoutine else it },
+                                    operationError = null,
+                                )
+                            } else {
+                                current
+                            }
+                        }
+                    }.onFailure { error ->
+                        Log.e("TemplatesViewModel", "updateRoutine failed", error)
+                        _uiState.update { current ->
+                            if (current is TemplatesUiState.Content) {
+                                current.copy(operationError = error.message ?: "Failed to update routine.")
+                            } else {
+                                TemplatesUiState.Error
+                            }
                         }
                     }
-                }.onFailure { error ->
-                    Log.e("TemplatesViewModel", "updateRoutine failed", error)
-                    _uiState.update { current ->
-                        if (current is TemplatesUiState.Content) {
-                            current.copy(operationError = error.message ?: "Failed to update routine.")
-                        } else {
-                            TemplatesUiState.Error
-                        }
-                    }
-                }
             }
         }
 
@@ -147,27 +148,28 @@ class TemplatesViewModel
         ) {
             viewModelScope.launch {
                 val result = repository.updateChore(id, input)
-                result.onSuccess { updatedChore ->
-                    _uiState.update { current ->
-                        if (current is TemplatesUiState.Content) {
-                            current.copy(
-                                chores = current.chores.map { if (it.id == id) updatedChore else it },
-                                operationError = null,
-                            )
-                        } else {
-                            current
+                result
+                    .onSuccess { updatedChore ->
+                        _uiState.update { current ->
+                            if (current is TemplatesUiState.Content) {
+                                current.copy(
+                                    chores = current.chores.map { if (it.id == id) updatedChore else it },
+                                    operationError = null,
+                                )
+                            } else {
+                                current
+                            }
+                        }
+                    }.onFailure { error ->
+                        Log.e("TemplatesViewModel", "updateChore failed", error)
+                        _uiState.update { current ->
+                            if (current is TemplatesUiState.Content) {
+                                current.copy(operationError = error.message ?: "Failed to update chore.")
+                            } else {
+                                TemplatesUiState.Error
+                            }
                         }
                     }
-                }.onFailure { error ->
-                    Log.e("TemplatesViewModel", "updateChore failed", error)
-                    _uiState.update { current ->
-                        if (current is TemplatesUiState.Content) {
-                            current.copy(operationError = error.message ?: "Failed to update chore.")
-                        } else {
-                            TemplatesUiState.Error
-                        }
-                    }
-                }
             }
         }
 
