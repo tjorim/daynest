@@ -45,6 +45,8 @@ import com.daynest.android.data.today.PlannedTodayItemDto
 import com.daynest.android.data.today.RoutineTodayItemDto
 import com.daynest.android.data.today.UpcomingTodayItemDto
 import com.daynest.android.feature.home.SectionType
+import com.daynest.android.ui.PlannedItemFormDialog
+import com.daynest.android.ui.PlannedItemFormState
 
 @Composable
 @Suppress("FunctionNaming")
@@ -841,93 +843,38 @@ private fun RescheduleChoreDialog(
 }
 
 @Composable
-@Suppress("LongMethod")
 private fun PlannedItemDialog(
     titleRes: Int,
     item: PlannedTodayItemDto,
     onConfirm: (PlannedTodayItemDto) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    var title by remember(item) { mutableStateOf(item.title) }
-    var plannedFor by remember(item) { mutableStateOf(item.plannedFor) }
-    var notes by remember(item) { mutableStateOf(item.notes.orEmpty()) }
-    var moduleKey by remember(item) { mutableStateOf(item.moduleKey.orEmpty()) }
-    var recurrenceHint by remember(item) { mutableStateOf(item.recurrenceHint.orEmpty()) }
-    var linkedSource by remember(item) { mutableStateOf(item.linkedSource.orEmpty()) }
-    var linkedRef by remember(item) { mutableStateOf(item.linkedRef.orEmpty()) }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(text = stringResource(id = titleRes)) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
-                    value = title,
-                    onValueChange = { title = it },
-                    label = { Text(text = stringResource(id = R.string.calendar_planned_title_label)) },
-                    singleLine = true,
-                )
-                OutlinedTextField(
-                    value = plannedFor,
-                    onValueChange = { plannedFor = it },
-                    label = { Text(text = stringResource(id = R.string.calendar_planned_date_label)) },
-                    singleLine = true,
-                )
-                OutlinedTextField(
-                    value = notes,
-                    onValueChange = { notes = it },
-                    label = { Text(text = stringResource(id = R.string.calendar_planned_notes_label)) },
-                )
-                OutlinedTextField(
-                    value = moduleKey,
-                    onValueChange = { moduleKey = it },
-                    label = { Text(text = stringResource(id = R.string.calendar_planned_module_label)) },
-                    singleLine = true,
-                )
-                OutlinedTextField(
-                    value = recurrenceHint,
-                    onValueChange = { recurrenceHint = it },
-                    label = { Text(text = stringResource(id = R.string.calendar_planned_recurrence_label)) },
-                    singleLine = true,
-                )
-                OutlinedTextField(
-                    value = linkedSource,
-                    onValueChange = { linkedSource = it },
-                    label = { Text(text = stringResource(id = R.string.calendar_planned_linked_source_label)) },
-                    singleLine = true,
-                )
-                OutlinedTextField(
-                    value = linkedRef,
-                    onValueChange = { linkedRef = it },
-                    label = { Text(text = stringResource(id = R.string.calendar_planned_linked_ref_label)) },
-                    singleLine = true,
-                )
-            }
+    PlannedItemFormDialog(
+        titleRes = titleRes,
+        confirmTextRes = R.string.action_save,
+        initialState =
+            PlannedItemFormState(
+                title = item.title,
+                plannedFor = item.plannedFor,
+                notes = item.notes,
+                moduleKey = item.moduleKey,
+                recurrenceHint = item.recurrenceHint,
+                linkedSource = item.linkedSource,
+                linkedRef = item.linkedRef,
+            ),
+        onConfirm = { form ->
+            onConfirm(
+                item.copy(
+                    title = form.title,
+                    plannedFor = form.plannedFor,
+                    notes = form.notes,
+                    moduleKey = form.moduleKey,
+                    recurrenceHint = form.recurrenceHint,
+                    linkedSource = form.linkedSource,
+                    linkedRef = form.linkedRef,
+                ),
+            )
         },
-        confirmButton = {
-            TextButton(
-                onClick = {
-                    onConfirm(
-                        item.copy(
-                            title = title.trim(),
-                            plannedFor = plannedFor.trim(),
-                            notes = notes.trim().ifBlank { null },
-                            moduleKey = moduleKey.trim().ifBlank { null },
-                            recurrenceHint = recurrenceHint.trim().ifBlank { null },
-                            linkedSource = linkedSource.trim().ifBlank { null },
-                            linkedRef = linkedRef.trim().ifBlank { null },
-                        ),
-                    )
-                },
-                enabled = title.isNotBlank() && plannedFor.isNotBlank(),
-            ) {
-                Text(text = stringResource(id = R.string.action_save))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(text = stringResource(id = R.string.action_cancel))
-            }
-        },
+        onDismiss = onDismiss,
     )
 }

@@ -68,6 +68,9 @@
     <string name="calendar_reschedule_chore_title">Reschedule chore</string>
     <string name="calendar_export_backup">Export month</string>
     <string name="calendar_import_backup">Import backup</string>
+    <string name="calendar_import_backup_invalid">Unable to import backup. Choose a valid Daynest backup file.</string>
+    <string name="calendar_import_backup_complete">Import complete. %1$s.</string>
+    <string name="calendar_import_backup_complete_with_failures">Import complete. %1$s, %2$s.</string>
 
     <!-- Medication -->
     <string name="medication_title">Medication</string>
@@ -164,5 +167,13 @@
     <plurals name="home_items_remaining">
         <item quantity="one">You have %1$d item to handle today.</item>
         <item quantity="other">You have %1$d items to handle today.</item>
+    </plurals>
+    <plurals name="calendar_import_backup_imported">
+        <item quantity="one">%1$d item imported</item>
+        <item quantity="other">%1$d items imported</item>
+    </plurals>
+    <plurals name="calendar_import_backup_failed">
+        <item quantity="one">%1$d item failed</item>
+        <item quantity="other">%1$d items failed</item>
     </plurals>
 </resources>

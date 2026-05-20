@@ -21,12 +21,10 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -37,14 +35,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import org.json.JSONArray
-import org.json.JSONObject
 import com.daynest.android.R
 import com.daynest.android.app.navigation.DaynestDestination
 import com.daynest.android.app.navigation.DaynestNavigationScaffold
@@ -52,13 +49,27 @@ import com.daynest.android.data.calendar.CalendarDaySummaryDto
 import com.daynest.android.data.calendar.UnifiedDayItemDto
 import com.daynest.android.data.today.PlannedItemCreateDto
 import com.daynest.android.data.today.PlannedItemUpdateDto
-import com.daynest.android.feature.calendar.PlannedItemBackupDto
+import com.daynest.android.ui.PlannedItemFormDialog
+import com.daynest.android.ui.PlannedItemFormState
 import java.time.LocalDate
 import java.time.format.TextStyle
 import java.time.temporal.WeekFields
 import java.util.Locale
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 
 private const val DAYS_IN_WEEK = 7
+private const val ITEM_TYPE_ROUTINE = "routine"
+private const val ITEM_TYPE_CHORE = "chore"
+private const val ITEM_TYPE_MEDICATION = "medication"
+private const val ITEM_TYPE_PLANNED = "planned"
+
+private val plannedItemBackupJson =
+    Json {
+        ignoreUnknownKeys = true
+        prettyPrint = true
+    }
 
 @Composable
 fun CalendarRoute(
@@ -148,7 +159,7 @@ private fun CalendarContent(
             if (uri != null) {
                 runCatching {
                     context.contentResolver.openOutputStream(uri)?.use { stream ->
-                        stream.write(backup.toJson().toByteArray())
+                        stream.write(backup.toJson().toByteArray(Charsets.UTF_8))
                     }
                 }
             }
@@ -160,9 +171,17 @@ private fun CalendarContent(
             if (uri == null) return@rememberLauncherForActivityResult
             val raw =
                 runCatching {
-                    context.contentResolver.openInputStream(uri)?.use { it.reader().readText() }
-                }.getOrNull() ?: return@rememberLauncherForActivityResult
-            val items = parsePlannedItemBackup(raw) ?: return@rememberLauncherForActivityResult
+                    context.contentResolver.openInputStream(uri)?.use { it.reader(Charsets.UTF_8).readText() }
+                }.getOrNull()
+            if (raw == null) {
+                onEvent(CalendarUiEvent.BackupMessageChanged(CalendarBackupMessage.InvalidImport))
+                return@rememberLauncherForActivityResult
+            }
+            val items = parsePlannedItemBackup(raw)
+            if (items == null) {
+                onEvent(CalendarUiEvent.BackupMessageChanged(CalendarBackupMessage.InvalidImport))
+                return@rememberLauncherForActivityResult
+            }
             onEvent(CalendarUiEvent.ImportBackup(items))
         }
 
@@ -192,10 +211,11 @@ private fun CalendarContent(
             )
         }
 
-        if (!state.backupMessage.isNullOrBlank()) {
+        val backupMessageText = state.backupMessage?.asText()
+        if (!backupMessageText.isNullOrBlank()) {
             item {
                 Text(
-                    text = state.backupMessage,
+                    text = backupMessageText,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.outline,
                 )
@@ -446,10 +466,10 @@ private fun DayCell(
     val dotColors =
         remember(isSelected, routines, chores, medications, planned) {
             buildList {
-                if (routines > 0) add(0)
-                if (chores > 0) add(1)
-                if (medications > 0) add(2)
-                if (planned > 0) add(3)
+                if (routines > 0) add(ITEM_TYPE_ROUTINE)
+                if (chores > 0) add(ITEM_TYPE_CHORE)
+                if (medications > 0) add(ITEM_TYPE_MEDICATION)
+                if (planned > 0) add(ITEM_TYPE_PLANNED)
             }
         }
 
@@ -479,9 +499,9 @@ private fun DayCell(
                                 MaterialTheme.colorScheme.onPrimary
                             } else {
                                 when (typeIndex) {
-                                    0 -> MaterialTheme.colorScheme.primary
-                                    1 -> MaterialTheme.colorScheme.secondary
-                                    2 -> MaterialTheme.colorScheme.tertiary
+                                    ITEM_TYPE_ROUTINE -> MaterialTheme.colorScheme.primary
+                                    ITEM_TYPE_CHORE -> MaterialTheme.colorScheme.secondary
+                                    ITEM_TYPE_MEDICATION -> MaterialTheme.colorScheme.tertiary
                                     else -> MaterialTheme.colorScheme.outline
                                 }
                             }
@@ -560,88 +580,34 @@ private fun EditPlannedItemDialog(
     onConfirm: (PlannedItemUpdateDto) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    var title by remember(item.itemId) { mutableStateOf(item.title) }
-    var plannedFor by remember(item.itemId) { mutableStateOf(item.scheduledDate.orEmpty()) }
-    var notes by remember(item.itemId) { mutableStateOf(item.detail.orEmpty()) }
-    var moduleKey by remember(item.itemId) { mutableStateOf(item.moduleKey.orEmpty()) }
-    var recurrenceHint by remember(item.itemId) { mutableStateOf(item.recurrenceHint.orEmpty()) }
-    var linkedSource by remember(item.itemId) { mutableStateOf(item.linkedSource.orEmpty()) }
-    var linkedRef by remember(item.itemId) { mutableStateOf(item.linkedRef.orEmpty()) }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(text = stringResource(id = R.string.calendar_edit_planned_title)) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
-                    value = title,
-                    onValueChange = { title = it },
-                    label = { Text(text = stringResource(id = R.string.calendar_planned_title_label)) },
-                    singleLine = true,
-                )
-                OutlinedTextField(
-                    value = plannedFor,
-                    onValueChange = { plannedFor = it },
-                    label = { Text(text = stringResource(id = R.string.calendar_planned_date_label)) },
-                    singleLine = true,
-                )
-                OutlinedTextField(
-                    value = notes,
-                    onValueChange = { notes = it },
-                    label = { Text(text = stringResource(id = R.string.calendar_planned_notes_label)) },
-                )
-                OutlinedTextField(
-                    value = moduleKey,
-                    onValueChange = { moduleKey = it },
-                    label = { Text(text = stringResource(id = R.string.calendar_planned_module_label)) },
-                    singleLine = true,
-                )
-                OutlinedTextField(
-                    value = recurrenceHint,
-                    onValueChange = { recurrenceHint = it },
-                    label = { Text(text = stringResource(id = R.string.calendar_planned_recurrence_label)) },
-                    singleLine = true,
-                )
-                OutlinedTextField(
-                    value = linkedSource,
-                    onValueChange = { linkedSource = it },
-                    label = { Text(text = stringResource(id = R.string.calendar_planned_linked_source_label)) },
-                    singleLine = true,
-                )
-                OutlinedTextField(
-                    value = linkedRef,
-                    onValueChange = { linkedRef = it },
-                    label = { Text(text = stringResource(id = R.string.calendar_planned_linked_ref_label)) },
-                    singleLine = true,
-                )
-            }
+    PlannedItemFormDialog(
+        titleRes = R.string.calendar_edit_planned_title,
+        confirmTextRes = R.string.action_save,
+        initialState =
+            PlannedItemFormState(
+                title = item.title,
+                plannedFor = item.scheduledDate.orEmpty(),
+                notes = item.detail,
+                moduleKey = item.moduleKey,
+                recurrenceHint = item.recurrenceHint,
+                linkedSource = item.linkedSource,
+                linkedRef = item.linkedRef,
+            ),
+        onConfirm = { form ->
+            onConfirm(
+                PlannedItemUpdateDto(
+                    title = form.title,
+                    plannedFor = form.plannedFor,
+                    isDone = item.status == "done",
+                    notes = form.notes,
+                    moduleKey = form.moduleKey,
+                    recurrenceHint = form.recurrenceHint,
+                    linkedSource = form.linkedSource,
+                    linkedRef = form.linkedRef,
+                ),
+            )
         },
-        confirmButton = {
-            TextButton(
-                onClick = {
-                    onConfirm(
-                        PlannedItemUpdateDto(
-                            title = title.trim(),
-                            plannedFor = plannedFor.trim(),
-                            isDone = item.status == "done",
-                            notes = notes.trim().ifBlank { null },
-                            moduleKey = moduleKey.trim().ifBlank { null },
-                            recurrenceHint = recurrenceHint.trim().ifBlank { null },
-                            linkedSource = linkedSource.trim().ifBlank { null },
-                            linkedRef = linkedRef.trim().ifBlank { null },
-                        ),
-                    )
-                },
-                enabled = title.isNotBlank() && plannedFor.isNotBlank(),
-            ) {
-                Text(text = stringResource(id = R.string.action_save))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(text = stringResource(id = R.string.action_cancel))
-            }
-        },
+        onDismiss = onDismiss,
     )
 }
 
@@ -651,129 +617,69 @@ private fun AddPlannedItemDialog(
     onConfirm: (PlannedItemCreateDto) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    var title by remember { mutableStateOf("") }
-    var plannedFor by remember(selectedDate) { mutableStateOf(selectedDate) }
-    var notes by remember { mutableStateOf("") }
-    var moduleKey by remember { mutableStateOf("") }
-    var recurrenceHint by remember { mutableStateOf("") }
-    var linkedSource by remember { mutableStateOf("") }
-    var linkedRef by remember { mutableStateOf("") }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(text = stringResource(id = R.string.calendar_add_planned_title)) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
-                    value = title,
-                    onValueChange = { title = it },
-                    label = { Text(text = stringResource(id = R.string.calendar_planned_title_label)) },
-                    singleLine = true,
-                )
-                OutlinedTextField(
-                    value = plannedFor,
-                    onValueChange = { plannedFor = it },
-                    label = { Text(text = stringResource(id = R.string.calendar_planned_date_label)) },
-                    singleLine = true,
-                )
-                OutlinedTextField(
-                    value = notes,
-                    onValueChange = { notes = it },
-                    label = { Text(text = stringResource(id = R.string.calendar_planned_notes_label)) },
-                )
-                OutlinedTextField(
-                    value = moduleKey,
-                    onValueChange = { moduleKey = it },
-                    label = { Text(text = stringResource(id = R.string.calendar_planned_module_label)) },
-                    singleLine = true,
-                )
-                OutlinedTextField(
-                    value = recurrenceHint,
-                    onValueChange = { recurrenceHint = it },
-                    label = { Text(text = stringResource(id = R.string.calendar_planned_recurrence_label)) },
-                    singleLine = true,
-                )
-                OutlinedTextField(
-                    value = linkedSource,
-                    onValueChange = { linkedSource = it },
-                    label = { Text(text = stringResource(id = R.string.calendar_planned_linked_source_label)) },
-                    singleLine = true,
-                )
-                OutlinedTextField(
-                    value = linkedRef,
-                    onValueChange = { linkedRef = it },
-                    label = { Text(text = stringResource(id = R.string.calendar_planned_linked_ref_label)) },
-                    singleLine = true,
-                )
-            }
+    PlannedItemFormDialog(
+        titleRes = R.string.calendar_add_planned_title,
+        confirmTextRes = R.string.action_add,
+        initialState = PlannedItemFormState(title = "", plannedFor = selectedDate),
+        onConfirm = { form ->
+            onConfirm(
+                PlannedItemCreateDto(
+                    title = form.title,
+                    plannedFor = form.plannedFor,
+                    notes = form.notes,
+                    moduleKey = form.moduleKey,
+                    recurrenceHint = form.recurrenceHint,
+                    linkedSource = form.linkedSource,
+                    linkedRef = form.linkedRef,
+                ),
+            )
         },
-        confirmButton = {
-            TextButton(
-                onClick = {
-                    onConfirm(
-                        PlannedItemCreateDto(
-                            title = title.trim(),
-                            plannedFor = plannedFor.trim(),
-                            notes = notes.trim().ifBlank { null },
-                            moduleKey = moduleKey.trim().ifBlank { null },
-                            recurrenceHint = recurrenceHint.trim().ifBlank { null },
-                            linkedSource = linkedSource.trim().ifBlank { null },
-                            linkedRef = linkedRef.trim().ifBlank { null },
-                        ),
-                    )
-                },
-                enabled = title.isNotBlank() && plannedFor.isNotBlank(),
-            ) {
-                Text(text = stringResource(id = R.string.action_add))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(text = stringResource(id = R.string.action_cancel))
-            }
-        },
+        onDismiss = onDismiss,
     )
 }
 
-private fun PlannedItemBackupDto.toJson(): String {
-    val itemsArray = JSONArray()
-    items.forEach { item ->
-        val obj =
-            JSONObject().apply {
-                put("title", item.title)
-                put("planned_for", item.plannedFor)
-                item.notes?.let { put("notes", it) }
-                item.moduleKey?.let { put("module_key", it) }
-                item.recurrenceHint?.let { put("recurrence_hint", it) }
-                item.linkedSource?.let { put("linked_source", it) }
-                item.linkedRef?.let { put("linked_ref", it) }
+@Composable
+private fun CalendarBackupMessage.asText(): String =
+    when (this) {
+        CalendarBackupMessage.InvalidImport -> stringResource(id = R.string.calendar_import_backup_invalid)
+        is CalendarBackupMessage.ImportComplete -> {
+            val importedText =
+                pluralStringResource(
+                    id = R.plurals.calendar_import_backup_imported,
+                    count = imported,
+                    imported,
+                )
+            if (failed > 0) {
+                val failedText =
+                    pluralStringResource(
+                        id = R.plurals.calendar_import_backup_failed,
+                        count = failed,
+                        failed,
+                    )
+                stringResource(id = R.string.calendar_import_backup_complete_with_failures, importedText, failedText)
+            } else {
+                stringResource(id = R.string.calendar_import_backup_complete, importedText)
             }
-        itemsArray.put(obj)
+        }
     }
-    return JSONObject()
-        .apply {
-            put("source", source)
-            put("schema_version", schemaVersion)
-            put("exported_at", exportedAt)
-            put("items", itemsArray)
-        }.toString(2)
+
+private fun PlannedItemBackupDto.toJson(): String {
+    return plannedItemBackupJson.encodeToString(this)
 }
 
 private fun parsePlannedItemBackup(raw: String): List<PlannedItemCreateDto>? =
     runCatching {
-        val root = JSONObject(raw)
-        if (root.getString("source") != "daynest" || root.getInt("schema_version") != 1) return null
-        val array = root.getJSONArray("items")
-        (0 until array.length()).map { i ->
-            val obj = array.getJSONObject(i)
+        val backup = plannedItemBackupJson.decodeFromString<PlannedItemBackupDto>(raw)
+        if (backup.source != "daynest" || backup.schemaVersion != 1) return null
+        backup.items.map { item ->
             PlannedItemCreateDto(
-                title = obj.getString("title"),
-                plannedFor = obj.getString("planned_for"),
-                notes = obj.optString("notes").ifBlank { null },
-                moduleKey = obj.optString("module_key").ifBlank { null },
-                recurrenceHint = obj.optString("recurrence_hint").ifBlank { null },
-                linkedSource = obj.optString("linked_source").ifBlank { null },
-                linkedRef = obj.optString("linked_ref").ifBlank { null },
+                title = item.title,
+                plannedFor = item.plannedFor,
+                notes = item.notes,
+                moduleKey = item.moduleKey,
+                recurrenceHint = item.recurrenceHint,
+                linkedSource = item.linkedSource,
+                linkedRef = item.linkedRef,
             )
         }
     }.getOrNull()

@@ -9,14 +9,16 @@ import com.daynest.android.data.today.PlannedItemCreateDto
 import com.daynest.android.data.today.PlannedItemUpdateDto
 import com.daynest.android.data.today.PlannedTodayItemDto
 import com.daynest.android.data.today.TodayRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 import java.time.LocalDate
 import javax.inject.Inject
 
@@ -48,6 +50,7 @@ class CalendarViewModel
                 is CalendarUiEvent.RetryClicked -> retryCurrentMonth()
                 is CalendarUiEvent.ExportMonthBackup -> exportMonthBackup(event.onReady)
                 is CalendarUiEvent.ImportBackup -> importBackup(event.items)
+                is CalendarUiEvent.BackupMessageChanged -> updateBackupMessage(event.message)
             }
         }
 
@@ -236,7 +239,7 @@ class CalendarViewModel
                             source = "daynest",
                             schemaVersion = 1,
                             exportedAt = java.time.Instant.now().toString(),
-                            items = items,
+                            items = items.map { it.toBackupItem() },
                         ),
                     )
                 }
@@ -253,15 +256,24 @@ class CalendarViewModel
                     }
                 val imported = results.count { it.isSuccess }
                 val failed = results.count { it.isFailure }
-                val suffix = if (failed > 0) ", $failed failed." else "."
                 _uiState.update { current ->
                     if (current is CalendarUiState.Content) {
-                        current.copy(backupMessage = "Import complete. $imported imported$suffix")
+                        current.copy(backupMessage = CalendarBackupMessage.ImportComplete(imported, failed))
                     } else {
                         current
                     }
                 }
                 retryCurrentMonth()
+            }
+        }
+
+        private fun updateBackupMessage(message: CalendarBackupMessage) {
+            _uiState.update { current ->
+                if (current is CalendarUiState.Content) {
+                    current.copy(backupMessage = message)
+                } else {
+                    current
+                }
             }
         }
 
@@ -301,6 +313,17 @@ private fun PlannedTodayItemDto.toUnifiedDayItem() =
         scheduledDate = plannedFor,
         detail = notes,
         moduleKey = moduleKey,
+    )
+
+private fun PlannedTodayItemDto.toBackupItem() =
+    PlannedItemBackupItemDto(
+        title = title,
+        plannedFor = plannedFor,
+        notes = notes,
+        moduleKey = moduleKey,
+        recurrenceHint = recurrenceHint,
+        linkedSource = linkedSource,
+        linkedRef = linkedRef,
     )
 
 private fun List<CalendarDaySummaryDto>.adjustPlannedSummary(
@@ -350,7 +373,7 @@ sealed interface CalendarUiState {
         val dayItems: List<UnifiedDayItemDto>,
         val isLoadingMonth: Boolean,
         val isLoadingDay: Boolean,
-        val backupMessage: String? = null,
+        val backupMessage: CalendarBackupMessage? = null,
     ) : CalendarUiState
 
     data class Error(
@@ -393,11 +416,43 @@ sealed interface CalendarUiEvent {
     data class ImportBackup(
         val items: List<PlannedItemCreateDto>,
     ) : CalendarUiEvent
+
+    data class BackupMessageChanged(
+        val message: CalendarBackupMessage,
+    ) : CalendarUiEvent
 }
 
+sealed interface CalendarBackupMessage {
+    data object InvalidImport : CalendarBackupMessage
+
+    data class ImportComplete(
+        val imported: Int,
+        val failed: Int,
+    ) : CalendarBackupMessage
+}
+
+@Serializable
 data class PlannedItemBackupDto(
     val source: String,
+    @SerialName("schema_version")
     val schemaVersion: Int,
+    @SerialName("exported_at")
     val exportedAt: String,
-    val items: List<PlannedTodayItemDto>,
+    val items: List<PlannedItemBackupItemDto>,
+)
+
+@Serializable
+data class PlannedItemBackupItemDto(
+    val title: String,
+    @SerialName("planned_for")
+    val plannedFor: String,
+    val notes: String? = null,
+    @SerialName("module_key")
+    val moduleKey: String? = null,
+    @SerialName("recurrence_hint")
+    val recurrenceHint: String? = null,
+    @SerialName("linked_source")
+    val linkedSource: String? = null,
+    @SerialName("linked_ref")
+    val linkedRef: String? = null,
 )
