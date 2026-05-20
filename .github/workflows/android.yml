@@ -55,8 +55,6 @@ jobs:
         env:
           API_BASE_URL_STAGING: ${{ secrets.API_BASE_URL_STAGING }}
           API_BASE_URL_RELEASE: ${{ secrets.API_BASE_URL_RELEASE }}
-          OIDC_ISSUER_URL_STAGING: ${{ secrets.OIDC_ISSUER_URL_STAGING }}
-          OIDC_ISSUER_URL_RELEASE: ${{ secrets.OIDC_ISSUER_URL_RELEASE }}
         run: |
           if [[ -n "${API_BASE_URL_STAGING}" ]]; then
             echo "staging_available=true" >> "$GITHUB_OUTPUT"
@@ -74,8 +72,6 @@ jobs:
             # .invalid TLD is an RFC 2606 reserved domain intentionally unusable in production
             echo "apiBaseUrlStaging=${API_BASE_URL_STAGING:-https://staging.placeholder.invalid/}"
             echo "apiBaseUrlRelease=${API_BASE_URL_RELEASE:-https://release.placeholder.invalid/}"
-            echo "oidcIssuerUrlStaging=${OIDC_ISSUER_URL_STAGING:-https://staging.placeholder.invalid/realms/daynest}"
-            echo "oidcIssuerUrlRelease=${OIDC_ISSUER_URL_RELEASE:-https://release.placeholder.invalid/realms/daynest}"
           } >> local.properties
 
       - name: Run Android checks

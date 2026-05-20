@@ -96,13 +96,13 @@ class DaynestConfigFlowHandler(config_entry_oauth2_flow.AbstractOAuth2FlowHandle
 
     async def _async_fetch_oidc_config(self, base_url: str) -> tuple[str, str, str] | None:
         """Fetch OIDC endpoints from the Daynest backend. Returns (authorization_url, token_url, client_id) or None on failure."""
-        url = f"{base_url}/api/v1/integrations/home-assistant/oidc-config"
+        url = f"{base_url}/api/v1/auth/oidc-config"
         try:
             session = async_get_clientsession(self.hass)
             async with session.get(url, timeout=aiohttp.ClientTimeout(total=10)) as resp:
                 if resp.status == 200:
                     data = await resp.json()
-                    return data["authorization_url"], data["token_url"], data.get("client_id", DEFAULT_OIDC_CLIENT_ID)
+                    return data["authorization_url"], data["token_url"], DEFAULT_OIDC_CLIENT_ID
         except Exception:  # noqa: BLE001
             pass
         return None

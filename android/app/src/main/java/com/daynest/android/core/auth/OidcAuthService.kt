@@ -4,10 +4,14 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
+import android.net.Uri
+import com.daynest.android.core.network.ServerUrlHolder
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import net.openid.appauth.AuthState
 import net.openid.appauth.AuthorizationException
 import net.openid.appauth.AuthorizationRequest
@@ -15,7 +19,12 @@ import net.openid.appauth.AuthorizationResponse
 import net.openid.appauth.AuthorizationService
 import net.openid.appauth.AuthorizationServiceConfiguration
 import net.openid.appauth.ResponseTypeValues
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import org.json.JSONObject
+import java.io.IOException
 import javax.inject.Inject
+import javax.inject.Named
 import javax.inject.Singleton
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
@@ -26,6 +35,8 @@ class OidcAuthService
     constructor(
         @param:ApplicationContext private val context: Context,
         private val securePreferences: SharedPreferences,
+        private val serverUrlHolder: ServerUrlHolder,
+        @Named("discovery") private val discoveryClient: OkHttpClient,
     ) {
         private val authorizationService = AuthorizationService(context)
         private val mutex = Mutex()
@@ -33,6 +44,8 @@ class OidcAuthService
         @Volatile private var authState: AuthState = loadPersistedState()
 
         @Volatile private var serviceConfiguration: AuthorizationServiceConfiguration? = null
+
+        @Volatile private var cachedIssuerUri: Uri? = null
 
         val isAuthorized: Boolean get() = authState.isAuthorized
         val currentAccessToken: String? get() = authState.accessToken
@@ -91,10 +104,33 @@ class OidcAuthService
 
         fun signOut() = clearState()
 
+        private suspend fun resolveIssuerUri(): Uri {
+            cachedIssuerUri?.let { return it }
+            val url = "${serverUrlHolder.currentUrl.trimEnd('/')}/$OIDC_CONFIG_PATH"
+            val issuer =
+                withContext(Dispatchers.IO) {
+                    val request = Request.Builder().url(url).build()
+                    discoveryClient.newCall(request).execute().use { response ->
+                        val body = response.body.string()
+                        if (!response.isSuccessful) {
+                            throw IOException(
+                                "OIDC config endpoint returned HTTP ${response.code} ${response.message}: $body",
+                            )
+                        }
+                        if (body.isBlank()) {
+                            throw IOException("Empty response from OIDC config endpoint")
+                        }
+                        JSONObject(body).getString("issuer")
+                    }
+                }
+            return Uri.parse(issuer).also { cachedIssuerUri = it }
+        }
+
         private suspend fun discoverServiceConfiguration(): AuthorizationServiceConfiguration {
             serviceConfiguration?.let { return it }
+            val issuerUri = resolveIssuerUri()
             return suspendCancellableCoroutine { cont ->
-                AuthorizationServiceConfiguration.fetchFromIssuer(OidcConfig.issuerUri) { config, ex ->
+                AuthorizationServiceConfiguration.fetchFromIssuer(issuerUri) { config, ex ->
                     if (config != null) {
                         serviceConfiguration = config
                         cont.resume(config)
@@ -122,5 +158,6 @@ class OidcAuthService
 
         companion object {
             private const val KEY_AUTH_STATE = "oidc_auth_state"
+            private const val OIDC_CONFIG_PATH = "api/v1/auth/oidc-config"
         }
     }

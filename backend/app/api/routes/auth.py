@@ -10,7 +10,7 @@ from app.api.dependencies.auth import bearer_scheme, get_current_user
 from app.core.config import settings
 from app.db.session import get_db
 from app.models.user import User
-from app.schemas.auth import OAuthSessionResponse, UserMeResponse, UserUpdateRequest
+from app.schemas.auth import OAuthSessionResponse, OidcDiscoveryConfig, UserMeResponse, UserUpdateRequest
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +31,21 @@ def _user_to_response(user: User, roles: list[str]) -> UserMeResponse:
         is_active=user.is_active,
         timezone=user.timezone,
         roles=roles,
+    )
+
+
+@router.get("/oidc-config", response_model=OidcDiscoveryConfig)
+def oidc_config() -> OidcDiscoveryConfig:
+    """Return OIDC discovery config (unauthenticated). All clients use this to discover Keycloak endpoints."""
+    if not settings.oidc_issuer_url:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="OIDC not configured on this server")
+    issuer = settings.oidc_issuer_url.rstrip("/")
+    return OidcDiscoveryConfig.model_validate(
+        {
+            "issuer": issuer,
+            "authorization_url": f"{issuer}/protocol/openid-connect/auth",
+            "token_url": f"{issuer}/protocol/openid-connect/token",
+        }
     )
 
 

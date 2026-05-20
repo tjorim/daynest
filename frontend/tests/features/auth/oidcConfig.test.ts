@@ -1,14 +1,14 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from "vitest";
-import { oidcConfig } from "@/config/oidc";
+import { onSigninCallback } from "@/config/oidc";
 
-describe("oidcConfig.onSigninCallback", () => {
+describe("onSigninCallback", () => {
   it("replaces auth return paths with /today and dispatches popstate", () => {
     const replaceStateSpy = vi.spyOn(window.history, "replaceState");
     const popstateListener = vi.fn();
     window.addEventListener("popstate", popstateListener);
 
-    oidcConfig.onSigninCallback?.({ state: { returnTo: "/auth" } } as never);
+    onSigninCallback({ state: { returnTo: "/auth" } });
 
     expect(replaceStateSpy).toHaveBeenCalledWith({}, document.title, "/today");
     expect(popstateListener).toHaveBeenCalledTimes(1);
@@ -19,7 +19,7 @@ describe("oidcConfig.onSigninCallback", () => {
   it("keeps safe non-auth return paths", () => {
     const replaceStateSpy = vi.spyOn(window.history, "replaceState");
 
-    oidcConfig.onSigninCallback?.({ state: { returnTo: "/calendar?view=month#2026-05" } } as never);
+    onSigninCallback({ state: { returnTo: "/calendar?view=month#2026-05" } });
 
     expect(replaceStateSpy).toHaveBeenCalledWith(
       {},
@@ -31,7 +31,7 @@ describe("oidcConfig.onSigninCallback", () => {
   it("falls back to /today for invalid return paths", () => {
     const replaceStateSpy = vi.spyOn(window.history, "replaceState");
 
-    oidcConfig.onSigninCallback?.({ state: { returnTo: "https://evil.example" } } as never);
+    onSigninCallback({ state: { returnTo: "https://evil.example" } });
 
     expect(replaceStateSpy).toHaveBeenCalledWith({}, document.title, "/today");
   });

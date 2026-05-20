@@ -26,9 +26,6 @@ For hosted use, run the MCP server with Streamable HTTP:
 ```powershell
 $env:DAYNEST_MCP_TRANSPORT = "streamable-http"
 $env:DAYNEST_MCP_RESOURCE_SERVER_URL = "https://your-domain.example/mcp"
-$env:DAYNEST_MCP_ISSUER_URL = "https://your-domain.example/mcp"
-$env:DAYNEST_MCP_ALLOWED_HOSTS = "your-domain.example"
-$env:DAYNEST_MCP_ALLOWED_ORIGINS = "https://your-domain.example"
 uv run python -m app.mcp_server
 ```
 
@@ -36,9 +33,6 @@ uv run python -m app.mcp_server
 ```bash
 export DAYNEST_MCP_TRANSPORT="streamable-http"
 export DAYNEST_MCP_RESOURCE_SERVER_URL="https://your-domain.example/mcp"
-export DAYNEST_MCP_ISSUER_URL="https://your-domain.example/mcp"
-export DAYNEST_MCP_ALLOWED_HOSTS="your-domain.example"
-export DAYNEST_MCP_ALLOWED_ORIGINS="https://your-domain.example"
 uv run python -m app.mcp_server
 ```
 

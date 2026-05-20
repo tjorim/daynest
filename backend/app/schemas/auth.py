@@ -1,6 +1,6 @@
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, HttpUrl, field_validator
 
 
 class UserMeResponse(BaseModel):
@@ -23,6 +23,12 @@ class UserUpdateRequest(BaseModel):
         except (ZoneInfoNotFoundError, KeyError):
             raise ValueError(f"Unknown timezone: {v!r}. Use an IANA timezone name such as 'Europe/Brussels'.")
         return v
+
+
+class OidcDiscoveryConfig(BaseModel):
+    issuer: HttpUrl
+    authorization_url: HttpUrl
+    token_url: HttpUrl
 
 
 class OAuthSessionClient(BaseModel):

@@ -42,9 +42,6 @@ if not logger.handlers:
 
 DAYNEST_USER_EMAIL_ENV = "DAYNEST_USER_EMAIL"
 DAYNEST_MCP_RESOURCE_SERVER_URL_ENV = "DAYNEST_MCP_RESOURCE_SERVER_URL"
-DAYNEST_MCP_ISSUER_URL_ENV = "DAYNEST_MCP_ISSUER_URL"
-DAYNEST_MCP_ALLOWED_ORIGINS_ENV = "DAYNEST_MCP_ALLOWED_ORIGINS"
-DAYNEST_MCP_ALLOWED_HOSTS_ENV = "DAYNEST_MCP_ALLOWED_HOSTS"
 
 T = TypeVar("T")
 MCP_READ_SCOPE = "mcp:read"
@@ -72,11 +69,6 @@ def _jsonable(value: Any) -> Any:
     return value
 
 
-def _parse_csv_env(name: str, default: list[str]) -> list[str]:
-    raw = os.getenv(name)
-    if not raw:
-        return default
-    return [item.strip() for item in raw.split(",") if item.strip()]
 
 
 def _routine_template_to_dict(t: Any) -> dict[str, Any]:
@@ -744,7 +736,7 @@ class ComposedTokenVerifier(TokenVerifier):
 
 
 def _build_auth_settings(resource_server_url: str) -> AuthSettings:
-    issuer_url = os.getenv(DAYNEST_MCP_ISSUER_URL_ENV, resource_server_url)
+    issuer_url = settings.oidc_issuer_url or resource_server_url
     return AuthSettings(
         issuer_url=AnyHttpUrl(issuer_url),
         resource_server_url=AnyHttpUrl(resource_server_url),
@@ -755,8 +747,8 @@ def _build_auth_settings(resource_server_url: str) -> AuthSettings:
 def _build_transport_security() -> TransportSecuritySettings:
     return TransportSecuritySettings(
         enable_dns_rebinding_protection=True,
-        allowed_hosts=_parse_csv_env(DAYNEST_MCP_ALLOWED_HOSTS_ENV, settings.trusted_hosts),
-        allowed_origins=_parse_csv_env(DAYNEST_MCP_ALLOWED_ORIGINS_ENV, settings.cors_allow_origins),
+        allowed_hosts=settings.trusted_hosts,
+        allowed_origins=settings.cors_allow_origins,
     )
 
 

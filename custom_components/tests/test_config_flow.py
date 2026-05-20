@@ -27,7 +27,13 @@ from custom_components.daynest.const import (
     build_oidc_authorization_url,
     build_oidc_token_url,
 )
-from daynest import DaynestAuthError, DaynestMalformedResponseError, DaynestNotFoundError, DaynestServerUnavailableError, DaynestTimeoutError
+from daynest import (
+    DaynestAuthError,
+    DaynestMalformedResponseError,
+    DaynestNotFoundError,
+    DaynestServerUnavailableError,
+    DaynestTimeoutError,
+)
 from homeassistant import config_entries
 from homeassistant.const import CONF_URL
 
