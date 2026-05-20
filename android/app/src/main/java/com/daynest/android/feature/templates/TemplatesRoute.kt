@@ -1,4 +1,4 @@
-@file:Suppress("ktlint:standard:function-naming", "FunctionNaming", "TooManyFunctions")
+@file:Suppress("ktlint:standard:function-naming", "FunctionNaming")
 
 package com.daynest.android.feature.templates
 
@@ -37,7 +37,6 @@ import com.daynest.android.R
 import com.daynest.android.app.navigation.DaynestDestination
 import com.daynest.android.app.navigation.DaynestNavigationScaffold
 import com.daynest.android.data.templates.ChoreTemplateDto
-import com.daynest.android.data.templates.ChoreTemplateInputDto
 import com.daynest.android.data.templates.RoutineTemplateDto
 import com.daynest.android.data.templates.RoutineTemplateInputDto
 import java.time.LocalDate
@@ -392,25 +391,6 @@ private fun EditRoutineDialog(
 }
 
 @Composable
-private fun EditChoreDialog(
-    chore: ChoreTemplateDto,
-    onConfirm: (ChoreTemplateInputDto) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    ChoreTemplateDialog(
-        title = stringResource(id = R.string.templates_edit_chore_title),
-        initialName = chore.name,
-        initialDescription = chore.description.orEmpty(),
-        initialStartDate = chore.startDate,
-        initialEveryNDays = chore.everyNDays.toString(),
-        initialIsActive = chore.isActive,
-        confirmText = stringResource(id = R.string.action_save),
-        onConfirm = onConfirm,
-        onDismiss = onDismiss,
-    )
-}
-
-@Composable
 private fun CreateRoutineDialog(
     onConfirm: (RoutineTemplateInputDto) -> Unit,
     onDismiss: () -> Unit,
@@ -534,121 +514,3 @@ private fun RoutineTemplateDialog(
     )
 }
 
-@Composable
-private fun CreateChoreDialog(
-    onConfirm: (ChoreTemplateInputDto) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    ChoreTemplateDialog(
-        title = stringResource(id = R.string.templates_create_chore_title),
-        initialName = "",
-        initialDescription = "",
-        initialStartDate = LocalDate.now().toString(),
-        initialEveryNDays = "7",
-        initialIsActive = true,
-        confirmText = stringResource(id = R.string.action_add),
-        onConfirm = onConfirm,
-        onDismiss = onDismiss,
-    )
-}
-
-@Composable
-private fun ChoreTemplateFields(
-    name: String,
-    onNameChange: (String) -> Unit,
-    description: String,
-    onDescriptionChange: (String) -> Unit,
-    startDate: String,
-    onStartDateChange: (String) -> Unit,
-    everyNDays: String,
-    onEveryNDaysChange: (String) -> Unit,
-    isActive: Boolean,
-    onIsActiveToggle: () -> Unit,
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        OutlinedTextField(
-            value = name, onValueChange = onNameChange,
-            label = { Text(text = stringResource(id = R.string.templates_name_label)) }, singleLine = true,
-        )
-        OutlinedTextField(
-            value = description, onValueChange = onDescriptionChange,
-            label = { Text(text = stringResource(id = R.string.templates_description_label)) }, singleLine = true,
-        )
-        OutlinedTextField(
-            value = startDate, onValueChange = onStartDateChange,
-            label = { Text(text = stringResource(id = R.string.templates_start_date_label)) }, singleLine = true,
-        )
-        OutlinedTextField(
-            value = everyNDays,
-            onValueChange = { onEveryNDaysChange(it.filter { c -> c.isDigit() }) },
-            label = { Text(text = stringResource(id = R.string.templates_every_n_days_label)) }, singleLine = true,
-        )
-        TextButton(onClick = onIsActiveToggle) {
-            Text(
-                text = if (isActive) {
-                    stringResource(id = R.string.medication_active)
-                } else {
-                    stringResource(id = R.string.templates_inactive)
-                },
-            )
-        }
-    }
-}
-
-@Composable
-private fun ChoreTemplateDialog(
-    title: String,
-    initialName: String,
-    initialDescription: String,
-    initialStartDate: String,
-    initialEveryNDays: String,
-    initialIsActive: Boolean,
-    confirmText: String,
-    onConfirm: (ChoreTemplateInputDto) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    var name by remember { mutableStateOf(initialName) }
-    var description by remember { mutableStateOf(initialDescription) }
-    var startDate by remember { mutableStateOf(initialStartDate) }
-    var everyNDays by remember { mutableStateOf(initialEveryNDays) }
-    var isActive by remember { mutableStateOf(initialIsActive) }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(text = title) },
-        text = {
-            ChoreTemplateFields(
-                name = name, onNameChange = { name = it },
-                description = description, onDescriptionChange = { description = it },
-                startDate = startDate, onStartDateChange = { startDate = it },
-                everyNDays = everyNDays, onEveryNDaysChange = { everyNDays = it },
-                isActive = isActive, onIsActiveToggle = { isActive = !isActive },
-            )
-        },
-        confirmButton = {
-            TextButton(
-                onClick = {
-                    if (name.isNotBlank()) {
-                        onConfirm(
-                            ChoreTemplateInputDto(
-                                name = name.trim(),
-                                description = description.trim().ifBlank { null },
-                                startDate = startDate.trim().ifBlank { LocalDate.now().toString() },
-                                everyNDays = everyNDays.toIntOrNull() ?: 7,
-                                isActive = isActive,
-                            ),
-                        )
-                    }
-                },
-                enabled = name.isNotBlank(),
-            ) {
-                Text(text = confirmText)
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(text = stringResource(id = R.string.action_cancel))
-            }
-        },
-    )
-}

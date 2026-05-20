@@ -10,8 +10,6 @@ import com.daynest.android.data.today.PlannedItemUpdateDto
 import com.daynest.android.data.today.PlannedTodayItemDto
 import com.daynest.android.data.today.TodayRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -23,7 +21,6 @@ import java.time.LocalDate
 import javax.inject.Inject
 
 @HiltViewModel
-@Suppress("TooManyFunctions")
 class CalendarViewModel
     @Inject
     constructor(
@@ -34,6 +31,14 @@ class CalendarViewModel
         val uiState: StateFlow<CalendarUiState> = _uiState.asStateFlow()
 
         private val today = LocalDate.now()
+
+        private val backupHandler =
+            CalendarBackupHandler(
+                scope = viewModelScope,
+                todayRepository = todayRepository,
+                uiState = _uiState,
+                onRefresh = ::retryCurrentMonth,
+            )
 
         init {
             loadMonth(today.year, today.monthValue)
@@ -49,9 +54,9 @@ class CalendarViewModel
                 is CalendarUiEvent.UpdatePlannedItem -> updatePlannedItem(event.id, event.date, event.input)
                 is CalendarUiEvent.DeletePlannedItem -> deletePlannedItem(event.id, event.date)
                 is CalendarUiEvent.RetryClicked -> retryCurrentMonth()
-                is CalendarUiEvent.ExportMonthBackup -> exportMonthBackup(event.onReady)
-                is CalendarUiEvent.ImportBackup -> importBackup(event.items)
-                is CalendarUiEvent.BackupMessageChanged -> updateBackupMessage(event.message)
+                is CalendarUiEvent.ExportMonthBackup -> backupHandler.exportMonthBackup(event.onReady)
+                is CalendarUiEvent.ImportBackup -> backupHandler.importBackup(event.items)
+                is CalendarUiEvent.BackupMessageChanged -> backupHandler.updateBackupMessage(event.message)
             }
         }
 
@@ -228,56 +233,6 @@ class CalendarViewModel
             }
         }
 
-        private fun exportMonthBackup(onReady: (PlannedItemBackupDto) -> Unit) {
-            val current = _uiState.value as? CalendarUiState.Content ?: return
-            val startDate = current.displayMonth.withDayOfMonth(1).toString()
-            val endDate = current.displayMonth.withDayOfMonth(current.displayMonth.lengthOfMonth()).toString()
-            viewModelScope.launch {
-                val result = todayRepository.listPlannedItems(startDate, endDate)
-                result.onSuccess { items ->
-                    onReady(
-                        PlannedItemBackupDto(
-                            source = "daynest",
-                            schemaVersion = 1,
-                            exportedAt = java.time.Instant.now().toString(),
-                            items = items.map { it.toBackupItem() },
-                        ),
-                    )
-                }
-            }
-        }
-
-        private fun importBackup(items: List<PlannedItemCreateDto>) {
-            viewModelScope.launch {
-                val results =
-                    items.chunked(5).flatMap { batch ->
-                        batch
-                            .map { item -> async { todayRepository.createPlannedItem(item) } }
-                            .awaitAll()
-                    }
-                val imported = results.count { it.isSuccess }
-                val failed = results.count { it.isFailure }
-                _uiState.update { current ->
-                    if (current is CalendarUiState.Content) {
-                        current.copy(backupMessage = CalendarBackupMessage.ImportComplete(imported, failed))
-                    } else {
-                        current
-                    }
-                }
-                retryCurrentMonth()
-            }
-        }
-
-        private fun updateBackupMessage(message: CalendarBackupMessage) {
-            _uiState.update { current ->
-                if (current is CalendarUiState.Content) {
-                    current.copy(backupMessage = message)
-                } else {
-                    current
-                }
-            }
-        }
-
         private fun deletePlannedItem(
             id: Int,
             date: String,
@@ -314,17 +269,6 @@ private fun PlannedTodayItemDto.toUnifiedDayItem() =
         scheduledDate = plannedFor,
         detail = notes,
         moduleKey = moduleKey,
-    )
-
-private fun PlannedTodayItemDto.toBackupItem() =
-    PlannedItemBackupItemDto(
-        title = title,
-        plannedFor = plannedFor,
-        notes = notes,
-        moduleKey = moduleKey,
-        recurrenceHint = recurrenceHint,
-        linkedSource = linkedSource,
-        linkedRef = linkedRef,
     )
 
 private fun List<CalendarDaySummaryDto>.adjustPlannedSummary(
