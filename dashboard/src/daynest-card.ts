@@ -85,10 +85,7 @@ class DaynestCard extends LitElement {
   }
 
   protected updated(changedProps: PropertyValues<this>) {
-    if (
-      (changedProps.has("hass") || (changedProps as Map<string, unknown>).has("_config")) &&
-      this._items.length === 0
-    ) {
+    if (changedProps.has("hass") && this._items.length === 0) {
       void this._fetchItems();
     }
   }
