@@ -45,6 +45,18 @@ const serviceMap = {
   },
 } as const;
 
+const metricSensorSuffixes = [
+  "routines_count",
+  "routines_completed_today",
+  "chores_count",
+  "chores_completed_today",
+  "medications_count",
+  "medications_taken_today",
+  "planned_pending_count",
+  "planned_done_today",
+  "next_medication_time",
+];
+
 type ServicePrefix = keyof typeof serviceMap;
 
 function isServicePrefix(prefix: string): prefix is ServicePrefix {
@@ -84,16 +96,19 @@ class DaynestCard extends LitElement {
           name: "name",
           label: "Card name",
           selector: { text: {} },
+          default: "Today",
         },
         {
           name: "sensor_prefix",
           label: "Sensor prefix",
           selector: { text: {} },
+          default: "sensor.daynest_",
         },
         {
           name: "todo_entity",
           label: "Todo entity",
           selector: { entity: { domain: "todo" } },
+          default: "todo.daynest_today",
         },
       ],
     };
@@ -268,7 +283,6 @@ class DaynestCard extends LitElement {
     const { prefix, id } = parseUid(item.uid);
     if (!isServicePrefix(prefix) || prefix === "planned") return;
     const action = serviceMap[prefix].skip;
-    if (!action) return;
     try {
       await this.hass.callService("daynest", action.service, { [action.dataKey]: id });
       await this._fetchItems();
@@ -282,10 +296,14 @@ class DaynestCard extends LitElement {
     if (!isSnoozablePrefix(prefix)) return;
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
+    const year = tomorrow.getFullYear();
+    const month = String(tomorrow.getMonth() + 1).padStart(2, "0");
+    const day = String(tomorrow.getDate()).padStart(2, "0");
+    const scheduledDate = `${year}-${month}-${day}`;
     try {
       await this.hass.callService("daynest", "reschedule_chore", {
         chore_instance_id: id,
-        scheduled_date: tomorrow.toISOString().slice(0, 10),
+        scheduled_date: scheduledDate,
       });
       await this._fetchItems();
     } catch (error) {
@@ -294,16 +312,25 @@ class DaynestCard extends LitElement {
   }
 
   private async _refresh() {
+    const prefix = this._config.sensor_prefix ?? "sensor.daynest_";
+    try {
+      await this.hass.callService("homeassistant", "update_entity", {
+        entity_id: metricSensorSuffixes.map((suffix) => prefix + suffix),
+      });
+    } catch (error) {
+      console.error("Failed to refresh Daynest sensors", error);
+    }
     await this._fetchItems();
-    this.requestUpdate();
   }
 }
 
 const daynestWindow = window as WindowWithCustomCards;
 daynestWindow.customCards = daynestWindow.customCards ?? [];
-daynestWindow.customCards.push({
-  type: "daynest-card",
-  name: "Daynest Card",
-  description: "Today summary, task list, and medication tracking for Daynest.",
-  preview: true,
-});
+if (!daynestWindow.customCards.some((card) => card.type === "daynest-card")) {
+  daynestWindow.customCards.push({
+    type: "daynest-card",
+    name: "Daynest Card",
+    description: "Today summary, task list, and medication tracking for Daynest.",
+    preview: true,
+  });
+}
