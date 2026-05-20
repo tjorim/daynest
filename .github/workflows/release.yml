@@ -86,14 +86,9 @@ jobs:
             custom_components/daynest/manifest.json > /tmp/manifest.json
           mv /tmp/manifest.json custom_components/daynest/manifest.json
 
-      - name: Stage HACS package
-        run: |
-          mkdir -p release/custom_components
-          cp -R custom_components/daynest release/custom_components/daynest
-
       - name: Create HACS release archive
-        working-directory: release
-        run: zip -r ../daynest.zip .
+        working-directory: custom_components/daynest
+        run: zip -r ../../daynest.zip .
 
       - name: Upload HACS artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
