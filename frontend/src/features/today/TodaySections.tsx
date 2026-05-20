@@ -564,14 +564,6 @@ export function SectionCard({
 
   const runBulkAction = async (action: BulkAction) => {
     const applicableItems = selectedItems.filter((item) => action.isAvailable(item));
-    if (applicableItems.length === 0) {
-      setBulkFeedback({
-        tone: "warning",
-        text: `None of the selected items are eligible for ${action.label.toLowerCase()}.`,
-      });
-      return;
-    }
-
     setIsBulkSubmitting(true);
     setBulkFeedback(null);
     const results = await Promise.allSettled(applicableItems.map((item) => action.run(item)));
