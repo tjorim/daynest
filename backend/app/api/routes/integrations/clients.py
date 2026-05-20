@@ -17,6 +17,7 @@ from app.schemas.integrations import (
 )
 
 router = APIRouter(prefix="/integrations/clients", tags=["integrations"])
+LEGACY_HOME_ASSISTANT_CLIENT_ID = "home-assistant"
 TOKEN_EXPIRES_IN_SECONDS = 300
 
 
@@ -25,7 +26,7 @@ def _integration_client_id(client: IntegrationClient) -> str:
 
 
 def _valid_client_ids(client: IntegrationClient) -> set[str]:
-    return {_integration_client_id(client), "home-assistant"}
+    return {_integration_client_id(client), LEGACY_HOME_ASSISTANT_CLIENT_ID}
 
 
 def _token_url(request: Request) -> str:

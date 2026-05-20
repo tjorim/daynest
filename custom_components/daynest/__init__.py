@@ -50,6 +50,11 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     return True
 
 
+def _should_replace_token_url(token_url: str | None, legacy_token_url: str, client_id: str | None) -> bool:
+    """Return whether an entry should move to the Daynest-managed token endpoint."""
+    return not token_url or (token_url == legacy_token_url and client_id == "home-assistant")
+
+
 async def async_migrate_entry(hass: HomeAssistant, entry: DaynestConfigEntry) -> bool:
     """Migrate old config entries to the current OAuth credentials shape."""
     if entry.version == 1:
@@ -71,9 +76,7 @@ async def async_migrate_entry(hass: HomeAssistant, entry: DaynestConfigEntry) ->
         data = dict(entry.data)
         base_url = str(data.get(CONF_URL) or DEFAULT_API_BASE_URL).strip().rstrip("/")
         legacy_token_url = f"{base_url}/realms/daynest/protocol/openid-connect/token"
-        if data.get(CONF_TOKEN_URL) in (None, "") or (
-            data.get(CONF_TOKEN_URL) == legacy_token_url and data.get(CONF_CLIENT_ID) == "home-assistant"
-        ):
+        if _should_replace_token_url(data.get(CONF_TOKEN_URL), legacy_token_url, data.get(CONF_CLIENT_ID)):
             data[CONF_TOKEN_URL] = build_token_url(base_url)
         hass.config_entries.async_update_entry(entry, data=data, version=3)
         return True
@@ -98,9 +101,7 @@ async def async_setup_entry(
     base_url = str(entry.data[CONF_URL]).strip().rstrip("/")
     token_url = str(entry.data.get(CONF_TOKEN_URL) or "").strip().rstrip("/")
     legacy_token_url = f"{base_url}/realms/daynest/protocol/openid-connect/token"
-    if not token_url or (
-        token_url == legacy_token_url and entry.data.get(CONF_CLIENT_ID) == "home-assistant"
-    ):
+    if _should_replace_token_url(token_url, legacy_token_url, entry.data.get(CONF_CLIENT_ID)):
         token_url = build_token_url(base_url)
         if entry.data.get(CONF_TOKEN_URL) != token_url:
             hass.config_entries.async_update_entry(
