@@ -71,7 +71,9 @@ async def async_migrate_entry(hass: HomeAssistant, entry: DaynestConfigEntry) ->
         data = dict(entry.data)
         base_url = str(data.get(CONF_URL) or DEFAULT_API_BASE_URL).strip().rstrip("/")
         legacy_token_url = f"{base_url}/realms/daynest/protocol/openid-connect/token"
-        if data.get(CONF_TOKEN_URL) in (None, "", legacy_token_url):
+        if data.get(CONF_TOKEN_URL) in (None, "") or (
+            data.get(CONF_TOKEN_URL) == legacy_token_url and data.get(CONF_CLIENT_ID) == "home-assistant"
+        ):
             data[CONF_TOKEN_URL] = build_token_url(base_url)
         hass.config_entries.async_update_entry(entry, data=data, version=3)
         return True
@@ -96,7 +98,9 @@ async def async_setup_entry(
     base_url = str(entry.data[CONF_URL]).strip().rstrip("/")
     token_url = str(entry.data.get(CONF_TOKEN_URL) or "").strip().rstrip("/")
     legacy_token_url = f"{base_url}/realms/daynest/protocol/openid-connect/token"
-    if not token_url or token_url == legacy_token_url:
+    if not token_url or (
+        token_url == legacy_token_url and entry.data.get(CONF_CLIENT_ID) == "home-assistant"
+    ):
         token_url = build_token_url(base_url)
         if entry.data.get(CONF_TOKEN_URL) != token_url:
             hass.config_entries.async_update_entry(

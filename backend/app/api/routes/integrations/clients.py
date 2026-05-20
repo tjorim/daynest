@@ -24,6 +24,10 @@ def _integration_client_id(client: IntegrationClient) -> str:
     return str(client.id)
 
 
+def _valid_client_ids(client: IntegrationClient) -> set[str]:
+    return {_integration_client_id(client), "home-assistant"}
+
+
 def _token_url(request: Request) -> str:
     return str(request.url_for("exchange_integration_client_token"))
 
@@ -135,6 +139,11 @@ def exchange_integration_client_token(
 
     client = get_integration_client_by_token_hash(db, hash_integration_key(client_secret))
     if client is None or not client.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid OAuth client credentials",
+        )
+    if client_id.strip() not in _valid_client_ids(client):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid OAuth client credentials",

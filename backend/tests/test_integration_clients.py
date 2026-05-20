@@ -231,6 +231,25 @@ class TestExchangeIntegrationClientToken:
 
         assert token_response.status_code == 401
 
+    def test_rejects_mismatched_client_id(self, client: TestClient, db_session: Session) -> None:
+        user = _create_user(db_session, "oauth-mismatch@example.com")
+        _auth_as(user)
+        created = client.post(
+            "/api/v1/integrations/clients",
+            json={"name": "OAuth Client", "scopes": ["ha:read"], "rate_limit_per_minute": 120},
+        ).json()
+
+        token_response = client.post(
+            "/api/v1/integrations/clients/token",
+            data={
+                "grant_type": "client_credentials",
+                "client_id": "wrong-client-id",
+                "client_secret": created["client_secret"],
+            },
+        )
+
+        assert token_response.status_code == 401
+
     def test_rejects_unsupported_grant_type(self, client: TestClient, db_session: Session) -> None:
         user = _create_user(db_session, "oauth-grant@example.com")
         _auth_as(user)
