@@ -5,6 +5,7 @@ from logging import Logger, getLogger
 LOGGER: Logger = getLogger(__package__)
 
 DOMAIN = "daynest"
+CONF_TOKEN_URL = "token_url"
 ATTRIBUTION = "Data provided by Daynest"
 DEFAULT_API_BASE_URL = "http://localhost:8000"
 SUPPORTED_INTEGRATION_CONTRACT_VERSIONS = frozenset({"ha.v1", "ha.v2"})

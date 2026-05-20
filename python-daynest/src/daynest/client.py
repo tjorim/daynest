@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from collections.abc import Callable
 from datetime import date
 from typing import Any, TypeVar
@@ -22,6 +23,7 @@ from daynest.models import DaynestApiResponse, DaynestDashboard, DaynestSummary
 
 DEFAULT_API_BASE_URL = "http://localhost:8000"
 REQUEST_TIMEOUT = aiohttp.ClientTimeout(total=10)
+TOKEN_EXPIRY_BUFFER = 30  # seconds before expiry to refresh proactively
 
 logger = logging.getLogger(__name__)
 
@@ -51,12 +53,20 @@ class DaynestClient:
         *,
         session: aiohttp.ClientSession | None = None,
         password: str | None = None,
+        client_id: str | None = None,
+        client_secret: str | None = None,
+        token_url: str | None = None,
     ) -> None:
         if base_url is not None and not base_url.strip():
             msg = "A base URL is required to initialize DaynestClient"
             raise ValueError(msg)
         self._base_url = (base_url or DEFAULT_API_BASE_URL).strip().rstrip("/")
         self._integration_key = integration_key if integration_key is not None else password
+        self._client_id = client_id
+        self._client_secret = client_secret
+        self._token_url = token_url
+        self._cached_token: str | None = None
+        self._token_expires_at: float = 0.0
         self._session = session
         self._owned_session = session is None
         self._context_depth = 0
@@ -77,6 +87,52 @@ class DaynestClient:
     def has_integration_key(self) -> bool:
         """Return whether the client has an integration key configured."""
         return bool(self._integration_key)
+
+    @property
+    def has_oauth_credentials(self) -> bool:
+        """Return whether the client has OAuth client credentials configured."""
+        return bool(self._client_id and self._client_secret and self._token_url)
+
+    async def _fetch_oauth_token(self) -> str:
+        """Exchange client credentials for an access token."""
+        session = self._session_or_raise()
+        data = {
+            "grant_type": "client_credentials",
+            "client_id": self._client_id,
+            "client_secret": self._client_secret,
+        }
+        try:
+            async with session.post(
+                self._token_url,  # type: ignore[arg-type]
+                data=data,
+                timeout=REQUEST_TIMEOUT,
+            ) as response:
+                if response.status in (401, 403):
+                    msg = "OAuth client credentials rejected by token endpoint"
+                    raise DaynestAuthError(msg)
+                response.raise_for_status()
+                body = await response.json(content_type=None)
+                token = body.get("access_token")
+                if not token:
+                    msg = "Token endpoint returned no access_token"
+                    raise DaynestAuthError(msg)
+                expires_in = int(body.get("expires_in", 300))
+                self._cached_token = token
+                self._token_expires_at = time.monotonic() + expires_in - TOKEN_EXPIRY_BUFFER
+                return token
+        except aiohttp.ClientError as err:
+            msg = f"Failed to reach token endpoint: {err}"
+            raise DaynestCommunicationError(msg) from err
+
+    async def _get_auth_headers(self) -> dict[str, str]:
+        """Return auth headers for an API request."""
+        if self.has_oauth_credentials:
+            if not self._cached_token or time.monotonic() >= self._token_expires_at:
+                await self._fetch_oauth_token()
+            return {"Authorization": f"Bearer {self._cached_token}"}
+        if self._integration_key:
+            return {"X-Integration-Key": self._integration_key}
+        return {}
 
     async def async_get_data(self) -> dict[str, Any]:
         """Fetch summary data as the coordinator's primary payload."""
@@ -218,9 +274,7 @@ class DaynestClient:
     ) -> DaynestApiResponse[ModelT]:
         session = self._session_or_raise()
         url = urljoin(f"{self._base_url}/", path.lstrip("/"))
-        headers = {"Accept": "application/json"}
-        if self._integration_key:
-            headers["X-Integration-Key"] = self._integration_key
+        headers = {"Accept": "application/json", **await self._get_auth_headers()}
 
         try:
             async with session.get(url, headers=headers, timeout=REQUEST_TIMEOUT) as response:
@@ -251,9 +305,7 @@ class DaynestClient:
     async def _request_list(self, path: str) -> list[dict[str, Any]]:
         session = self._session_or_raise()
         url = urljoin(f"{self._base_url}/", path.lstrip("/"))
-        headers = {"Accept": "application/json"}
-        if self._integration_key:
-            headers["X-Integration-Key"] = self._integration_key
+        headers = {"Accept": "application/json", **await self._get_auth_headers()}
 
         try:
             async with session.get(url, headers=headers, timeout=REQUEST_TIMEOUT) as response:
@@ -301,11 +353,9 @@ class DaynestClient:
     ) -> dict[str, Any]:
         session = self._session_or_raise()
         url = urljoin(f"{self._base_url}/", path.lstrip("/"))
-        headers = {"Accept": "application/json"}
+        headers = {"Accept": "application/json", **await self._get_auth_headers()}
         if payload is not None:
             headers["Content-Type"] = "application/json"
-        if self._integration_key:
-            headers["X-Integration-Key"] = self._integration_key
 
         if method.lower() not in {"post", "put", "delete"}:
             msg = f"Unsupported write method: {method}"

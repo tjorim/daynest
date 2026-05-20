@@ -10,12 +10,12 @@ from daynest import DaynestClient
 from homeassistant.components.frontend import add_extra_js_url, remove_extra_js_url
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntryState
-from homeassistant.const import CONF_API_KEY, CONF_URL, Platform
+from homeassistant.const import CONF_CLIENT_ID, CONF_CLIENT_SECRET, CONF_URL, Platform
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 import homeassistant.helpers.config_validation as cv
 from homeassistant.loader import async_get_loaded_integration
 
-from .const import DOMAIN, LOGGER
+from .const import CONF_TOKEN_URL, DOMAIN, LOGGER
 from .coordinator import DaynestDataUpdateCoordinator
 from .data import DaynestData
 from .services import async_setup_services, async_unload_services
@@ -56,7 +56,9 @@ async def async_setup_entry(
     """Set up Daynest from a config entry."""
     client = DaynestClient(
         base_url=entry.data[CONF_URL],
-        integration_key=entry.data[CONF_API_KEY],
+        client_id=entry.data[CONF_CLIENT_ID],
+        client_secret=entry.data[CONF_CLIENT_SECRET],
+        token_url=entry.data[CONF_TOKEN_URL],
         session=async_get_clientsession(hass),
     )
 

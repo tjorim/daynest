@@ -9,6 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
 from app.core.config import settings
+from app.core.oidc import OIDCTokenError, decode_oidc_token, get_or_create_local_user
 from app.db.session import get_db
 from app.models.integration_client import IntegrationClient
 from app.models.user import User
@@ -55,11 +56,31 @@ def enforce_integration_rate_limit(client: IntegrationClient) -> None:
 
 
 def require_integration_scope(scope: str) -> Callable:
-    def dependency(
+    async def dependency(
         authorization: str | None = Header(default=None, alias="Authorization"),
         x_integration_key: str | None = Header(default=None, alias="X-Integration-Key"),
         db: Session = Depends(get_db),
     ) -> User:
+        # OIDC path: Bearer token that looks like a JWT (two dots = three segments)
+        if authorization and authorization.lower().startswith("bearer "):
+            raw_token = authorization[len("bearer "):].strip()
+            if raw_token.count(".") == 2:
+                try:
+                    claims = await decode_oidc_token(raw_token)
+                except OIDCTokenError as exc:
+                    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired OIDC token") from exc
+                token_scopes = set(claims.get("scope", "").split())
+                if scope not in token_scopes:
+                    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"Missing scope: {scope}")
+                subject = claims.get("sub")
+                if not subject:
+                    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="OIDC token missing sub claim")
+                user = get_or_create_local_user(subject, claims, db)
+                if not user.is_active:
+                    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User account is inactive")
+                return user
+
+        # Integration key path
         raw_key: str | None = None
         if authorization and authorization.lower().startswith("bearer "):
             raw_key = authorization[len("bearer "):].strip()
