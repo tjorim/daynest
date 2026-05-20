@@ -37,10 +37,11 @@ import com.daynest.android.R
 import com.daynest.android.app.navigation.DaynestDestination
 import com.daynest.android.app.navigation.DaynestNavigationScaffold
 import com.daynest.android.data.templates.ChoreTemplateDto
-import com.daynest.android.data.templates.ChoreTemplateInputDto
 import com.daynest.android.data.templates.RoutineTemplateDto
 import com.daynest.android.data.templates.RoutineTemplateInputDto
 import java.time.LocalDate
+
+private const val DUE_TIME_DISPLAY_LENGTH = 5
 
 @Composable
 fun TemplatesRoute(
@@ -115,6 +116,9 @@ private fun TemplatesContent(
     onEvent: (TemplatesUiEvent) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    var editRoutineTarget by remember { mutableStateOf<RoutineTemplateDto?>(null) }
+    var editChoreTarget by remember { mutableStateOf<ChoreTemplateDto?>(null) }
+
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
@@ -125,6 +129,16 @@ private fun TemplatesContent(
                 text = stringResource(id = R.string.templates_title),
                 style = MaterialTheme.typography.headlineMedium,
             )
+        }
+
+        state.operationError?.let { message ->
+            item {
+                Text(
+                    text = message,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
         }
 
         item {
@@ -171,6 +185,7 @@ private fun TemplatesContent(
                     items(state.routines, key = { "routine_${it.id}" }) { routine ->
                         RoutineTemplateCard(
                             routine = routine,
+                            onEdit = { editRoutineTarget = routine },
                             onDelete = { onEvent(TemplatesUiEvent.DeleteRoutine(routine.id)) },
                         )
                     }
@@ -205,6 +220,7 @@ private fun TemplatesContent(
                     items(state.chores, key = { "chore_${it.id}" }) { chore ->
                         ChoreTemplateCard(
                             chore = chore,
+                            onEdit = { editChoreTarget = chore },
                             onDelete = { onEvent(TemplatesUiEvent.DeleteChore(chore.id)) },
                         )
                     }
@@ -228,11 +244,34 @@ private fun TemplatesContent(
 
         null -> Unit
     }
+
+    editRoutineTarget?.let { routine ->
+        EditRoutineDialog(
+            routine = routine,
+            onConfirm = {
+                onEvent(TemplatesUiEvent.UpdateRoutine(routine.id, it))
+                editRoutineTarget = null
+            },
+            onDismiss = { editRoutineTarget = null },
+        )
+    }
+
+    editChoreTarget?.let { chore ->
+        EditChoreDialog(
+            chore = chore,
+            onConfirm = {
+                onEvent(TemplatesUiEvent.UpdateChore(chore.id, it))
+                editChoreTarget = null
+            },
+            onDismiss = { editChoreTarget = null },
+        )
+    }
 }
 
 @Composable
 private fun RoutineTemplateCard(
     routine: RoutineTemplateDto,
+    onEdit: () -> Unit,
     onDelete: () -> Unit,
 ) {
     Card(modifier = Modifier.fillMaxWidth()) {
@@ -269,6 +308,9 @@ private fun RoutineTemplateCard(
                     )
                 }
             }
+            TextButton(onClick = onEdit) {
+                Text(text = stringResource(id = R.string.action_edit))
+            }
             TextButton(
                 onClick = onDelete,
                 colors =
@@ -285,6 +327,7 @@ private fun RoutineTemplateCard(
 @Composable
 private fun ChoreTemplateCard(
     chore: ChoreTemplateDto,
+    onEdit: () -> Unit,
     onDelete: () -> Unit,
 ) {
     Card(modifier = Modifier.fillMaxWidth()) {
@@ -321,6 +364,9 @@ private fun ChoreTemplateCard(
                     )
                 }
             }
+            TextButton(onClick = onEdit) {
+                Text(text = stringResource(id = R.string.action_edit))
+            }
             TextButton(
                 onClick = onDelete,
                 colors =
@@ -335,125 +381,166 @@ private fun ChoreTemplateCard(
 }
 
 @Composable
-private fun CreateRoutineDialog(
+private fun EditRoutineDialog(
+    routine: RoutineTemplateDto,
     onConfirm: (RoutineTemplateInputDto) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    var name by remember { mutableStateOf("") }
-    var description by remember { mutableStateOf("") }
-    var everyNDays by remember { mutableStateOf("1") }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(text = stringResource(id = R.string.templates_create_routine_title)) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    label = { Text(text = stringResource(id = R.string.templates_name_label)) },
-                    singleLine = true,
-                )
-                OutlinedTextField(
-                    value = description,
-                    onValueChange = { description = it },
-                    label = { Text(text = stringResource(id = R.string.templates_description_label)) },
-                    singleLine = true,
-                )
-                OutlinedTextField(
-                    value = everyNDays,
-                    onValueChange = { everyNDays = it.filter { c -> c.isDigit() } },
-                    label = { Text(text = stringResource(id = R.string.templates_every_n_days_label)) },
-                    singleLine = true,
-                )
-            }
-        },
-        confirmButton = {
-            TextButton(
-                onClick = {
-                    if (name.isNotBlank()) {
-                        onConfirm(
-                            RoutineTemplateInputDto(
-                                name = name.trim(),
-                                description = description.trim().ifBlank { null },
-                                startDate = LocalDate.now().toString(),
-                                everyNDays = everyNDays.toIntOrNull() ?: 1,
-                                isActive = true,
-                            ),
-                        )
-                    }
-                },
-                enabled = name.isNotBlank(),
-            ) {
-                Text(text = stringResource(id = R.string.action_add))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(text = stringResource(id = R.string.action_cancel))
-            }
-        },
+    RoutineTemplateDialog(
+        title = stringResource(id = R.string.templates_edit_routine_title),
+        initialName = routine.name,
+        initialDescription = routine.description.orEmpty(),
+        initialStartDate = routine.startDate,
+        initialEveryNDays = routine.everyNDays.toString(),
+        initialDueTime = routine.dueTime?.take(DUE_TIME_DISPLAY_LENGTH).orEmpty(),
+        initialIsActive = routine.isActive,
+        isEditing = true,
+        confirmText = stringResource(id = R.string.action_save),
+        onConfirm = onConfirm,
+        onDismiss = onDismiss,
     )
 }
 
 @Composable
-private fun CreateChoreDialog(
-    onConfirm: (ChoreTemplateInputDto) -> Unit,
+private fun CreateRoutineDialog(
+    onConfirm: (RoutineTemplateInputDto) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    var name by remember { mutableStateOf("") }
-    var description by remember { mutableStateOf("") }
-    var everyNDays by remember { mutableStateOf("7") }
+    RoutineTemplateDialog(
+        title = stringResource(id = R.string.templates_create_routine_title),
+        initialName = "",
+        initialDescription = "",
+        initialStartDate = LocalDate.now().toString(),
+        initialEveryNDays = "1",
+        initialDueTime = "",
+        initialIsActive = true,
+        isEditing = false,
+        confirmText = stringResource(id = R.string.action_add),
+        onConfirm = onConfirm,
+        onDismiss = onDismiss,
+    )
+}
+
+@Composable
+private fun RoutineTemplateFields(
+    name: String,
+    onNameChange: (String) -> Unit,
+    description: String,
+    onDescriptionChange: (String) -> Unit,
+    startDate: String,
+    onStartDateChange: (String) -> Unit,
+    everyNDays: String,
+    onEveryNDaysChange: (String) -> Unit,
+    dueTime: String,
+    onDueTimeChange: (String) -> Unit,
+    isActive: Boolean,
+    onIsActiveToggle: () -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        OutlinedTextField(
+            value = name,
+            onValueChange = onNameChange,
+            label = { Text(stringResource(R.string.templates_name_label)) },
+            singleLine = true,
+        )
+        OutlinedTextField(
+            value = description,
+            onValueChange = onDescriptionChange,
+            label = { Text(stringResource(R.string.templates_description_label)) },
+            singleLine = true,
+        )
+        OutlinedTextField(
+            value = startDate,
+            onValueChange = onStartDateChange,
+            label = { Text(stringResource(R.string.templates_start_date_label)) },
+            singleLine = true,
+        )
+        OutlinedTextField(
+            value = everyNDays,
+            onValueChange = { onEveryNDaysChange(it.filter { c -> c.isDigit() }) },
+            label = { Text(stringResource(R.string.templates_every_n_days_label)) },
+            singleLine = true,
+        )
+        OutlinedTextField(
+            value = dueTime,
+            onValueChange = onDueTimeChange,
+            label = { Text(stringResource(R.string.templates_due_time_label)) },
+            singleLine = true,
+        )
+        TextButton(onClick = onIsActiveToggle) {
+            Text(
+                text =
+                    if (isActive) {
+                        stringResource(R.string.medication_active)
+                    } else {
+                        stringResource(R.string.templates_inactive)
+                    },
+            )
+        }
+    }
+}
+
+@Composable
+private fun RoutineTemplateDialog(
+    title: String,
+    initialName: String,
+    initialDescription: String,
+    initialStartDate: String,
+    initialEveryNDays: String,
+    initialDueTime: String,
+    initialIsActive: Boolean,
+    isEditing: Boolean,
+    confirmText: String,
+    onConfirm: (RoutineTemplateInputDto) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var name by remember { mutableStateOf(initialName) }
+    var description by remember { mutableStateOf(initialDescription) }
+    var startDate by remember { mutableStateOf(initialStartDate) }
+    var everyNDays by remember { mutableStateOf(initialEveryNDays) }
+    var dueTime by remember { mutableStateOf(initialDueTime) }
+    var isActive by remember { mutableStateOf(initialIsActive) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(text = stringResource(id = R.string.templates_create_chore_title)) },
+        title = { Text(text = title) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    label = { Text(text = stringResource(id = R.string.templates_name_label)) },
-                    singleLine = true,
-                )
-                OutlinedTextField(
-                    value = description,
-                    onValueChange = { description = it },
-                    label = { Text(text = stringResource(id = R.string.templates_description_label)) },
-                    singleLine = true,
-                )
-                OutlinedTextField(
-                    value = everyNDays,
-                    onValueChange = { everyNDays = it.filter { c -> c.isDigit() } },
-                    label = { Text(text = stringResource(id = R.string.templates_every_n_days_label)) },
-                    singleLine = true,
-                )
-            }
+            RoutineTemplateFields(
+                name = name,
+                onNameChange = { name = it },
+                description = description,
+                onDescriptionChange = { description = it },
+                startDate = startDate,
+                onStartDateChange = { startDate = it },
+                everyNDays = everyNDays,
+                onEveryNDaysChange = { everyNDays = it },
+                dueTime = dueTime,
+                onDueTimeChange = { dueTime = it },
+                isActive = isActive,
+                onIsActiveToggle = { isActive = !isActive },
+            )
         },
         confirmButton = {
             TextButton(
                 onClick = {
                     if (name.isNotBlank()) {
+                        val fallbackStartDate = if (isEditing) initialStartDate else LocalDate.now().toString()
+                        val fallbackEveryNDays = if (isEditing) initialEveryNDays.toIntOrNull() ?: 1 else 1
                         onConfirm(
-                            ChoreTemplateInputDto(
+                            RoutineTemplateInputDto(
                                 name = name.trim(),
                                 description = description.trim().ifBlank { null },
-                                startDate = LocalDate.now().toString(),
-                                everyNDays = everyNDays.toIntOrNull() ?: 7,
-                                isActive = true,
+                                startDate = startDate.trim().ifBlank { fallbackStartDate },
+                                everyNDays = everyNDays.toIntOrNull() ?: fallbackEveryNDays,
+                                dueTime = dueTime.trim().ifBlank { null },
+                                isActive = isActive,
                             ),
                         )
                     }
                 },
                 enabled = name.isNotBlank(),
-            ) {
-                Text(text = stringResource(id = R.string.action_add))
-            }
+            ) { Text(text = confirmText) }
         },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(text = stringResource(id = R.string.action_cancel))
-            }
-        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
     )
 }

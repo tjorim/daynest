@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.daynest.android.data.medication.MedicationHistoryItemDto
 import com.daynest.android.data.medication.MedicationPlanDto
 import com.daynest.android.data.medication.MedicationPlanInputDto
+import com.daynest.android.data.medication.MedicationPlanUpdateDto
 import com.daynest.android.data.medication.MedicationRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -32,6 +33,8 @@ class MedicationViewModel
             when (event) {
                 is MedicationUiEvent.RetryClicked -> load()
                 is MedicationUiEvent.CreatePlanClicked -> createPlan(event.input)
+                is MedicationUiEvent.UpdatePlanClicked -> updatePlan(event.id, event.input)
+                is MedicationUiEvent.DeletePlanClicked -> deletePlan(event.id)
                 is MedicationUiEvent.DismissCreateForm -> dismissForm()
                 is MedicationUiEvent.ShowCreateForm -> showForm()
             }
@@ -79,9 +82,69 @@ class MedicationViewModel
                             current.copy(
                                 plans = current.plans + newPlan,
                                 showCreateForm = false,
+                                operationError = null,
                             )
                         } else {
                             current
+                        }
+                    }
+                }
+            }
+        }
+
+        private fun updatePlan(
+            id: Int,
+            input: MedicationPlanUpdateDto,
+        ) {
+            viewModelScope.launch {
+                val result = repository.updatePlan(id, input)
+                result
+                    .onSuccess { updatedPlan ->
+                        _uiState.update { current ->
+                            if (current is MedicationUiState.Content) {
+                                current.copy(
+                                    plans = current.plans.map { if (it.id == id) updatedPlan else it },
+                                    operationError = null,
+                                )
+                            } else {
+                                current
+                            }
+                        }
+                    }.onFailure { error ->
+                        Log.e("MedicationViewModel", "updatePlan failed", error)
+                        _uiState.update { current ->
+                            if (current is MedicationUiState.Content) {
+                                current.copy(operationError = error.message ?: "Failed to update medication plan.")
+                            } else {
+                                MedicationUiState.Error
+                            }
+                        }
+                    }
+            }
+        }
+
+        private fun deletePlan(id: Int) {
+            viewModelScope.launch {
+                val result = repository.deletePlan(id)
+                if (result.isSuccess) {
+                    _uiState.update { current ->
+                        if (current is MedicationUiState.Content) {
+                            current.copy(
+                                plans = current.plans.filter { it.id != id },
+                                operationError = null,
+                            )
+                        } else {
+                            current
+                        }
+                    }
+                } else {
+                    val error = result.exceptionOrNull()
+                    Log.e("MedicationViewModel", "deletePlan failed", error)
+                    _uiState.update { current ->
+                        if (current is MedicationUiState.Content) {
+                            current.copy(operationError = error?.message ?: "Failed to delete medication plan.")
+                        } else {
+                            MedicationUiState.Error
                         }
                     }
                 }
@@ -96,6 +159,7 @@ sealed interface MedicationUiState {
         val plans: List<MedicationPlanDto>,
         val history: List<MedicationHistoryItemDto>,
         val showCreateForm: Boolean,
+        val operationError: String? = null,
     ) : MedicationUiState
 
     data object Error : MedicationUiState
@@ -110,5 +174,14 @@ sealed interface MedicationUiEvent {
 
     data class CreatePlanClicked(
         val input: MedicationPlanInputDto,
+    ) : MedicationUiEvent
+
+    data class UpdatePlanClicked(
+        val id: Int,
+        val input: MedicationPlanUpdateDto,
+    ) : MedicationUiEvent
+
+    data class DeletePlanClicked(
+        val id: Int,
     ) : MedicationUiEvent
 }

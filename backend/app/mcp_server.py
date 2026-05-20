@@ -7,6 +7,7 @@ import sys
 from collections.abc import Callable
 from contextlib import contextmanager
 from datetime import date, datetime, time
+from secrets import token_urlsafe
 from typing import Any, Literal, TypeVar
 
 from anyio import to_thread
@@ -112,6 +113,16 @@ def _medication_plan_to_dict(plan: Any) -> dict[str, Any]:
     }
 
 
+def _integration_client_to_dict(client: IntegrationClient) -> dict[str, Any]:
+    return {
+        "id": client.id,
+        "name": client.name,
+        "scopes": [scope for scope in client.scopes_csv.split(",") if scope],
+        "rate_limit_per_minute": client.rate_limit_per_minute,
+        "is_active": client.is_active,
+    }
+
+
 class DaynestMcpBackend:
     def __init__(
         self,
@@ -214,6 +225,56 @@ class DaynestMcpBackend:
                 }
                 for user in users
             ]
+
+    def list_integration_clients(self) -> list[dict[str, Any]]:
+        with self._session_scope() as db:
+            user = self.resolve_user(db)
+            clients = list(
+                db.scalars(
+                    select(IntegrationClient)
+                    .where(IntegrationClient.user_id == user.id)
+                    .order_by(IntegrationClient.id.asc())
+                ).all()
+            )
+            return [_integration_client_to_dict(client) for client in clients]
+
+    def create_integration_client(
+        self,
+        name: str,
+        scopes: list[str],
+        rate_limit_per_minute: int = 120,
+    ) -> dict[str, Any]:
+        access_token = get_access_token()
+        if getattr(access_token, "auth_source", None) == "integration":
+            raise PermissionError("Integration tokens cannot create new integration clients")
+
+        normalized_scopes = sorted({scope.strip() for scope in scopes if scope.strip()})
+        if not normalized_scopes:
+            raise ValueError("At least one integration client scope is required")
+        if access_token is not None:
+            caller_scopes = set(getattr(access_token, "scopes", []) or [])
+            if not set(normalized_scopes).issubset(caller_scopes):
+                raise PermissionError("Requested scopes must be a subset of the caller's scopes")
+        if not isinstance(rate_limit_per_minute, int) or rate_limit_per_minute <= 0:
+            raise ValueError("rate_limit_per_minute must be a positive integer")
+        if rate_limit_per_minute > 600:
+            raise ValueError("rate_limit_per_minute must be 600 or less")
+
+        raw_key = f"daynest_{token_urlsafe(30)}"
+        with self._session_scope() as db:
+            user = self.resolve_user(db)
+            client = IntegrationClient(
+                user_id=user.id,
+                name=name,
+                key_hash=hash_integration_key(raw_key),
+                scopes_csv=",".join(normalized_scopes),
+                rate_limit_per_minute=rate_limit_per_minute,
+                is_active=True,
+            )
+            db.add(client)
+            db.commit()
+            db.refresh(client)
+            return {**_integration_client_to_dict(client), "api_key": raw_key}
 
     def get_today(self, for_date: str | None = None) -> dict[str, Any]:
         target_date = _parse_date(for_date)
@@ -483,6 +544,26 @@ class DaynestMcpBackend:
         self._with_service(lambda _db, user, service: service.delete_medication_plan(user.id, medication_plan_id))
         return {"deleted": True, "medication_plan_id": medication_plan_id}
 
+    def get_medication_history(self) -> dict[str, Any]:
+        return self._with_service(
+            lambda _db, user, service: {
+                "history": [
+                    {
+                        "medication_dose_instance_id": item.id,
+                        "medication_plan_id": item.medication_plan_id,
+                        "name": item.name,
+                        "instructions": item.instructions,
+                        "scheduled_at": item.scheduled_at.isoformat(),
+                        "status": item.status.value,
+                    }
+                    for item in service.repository.get_medication_history(
+                        user_id=user.id,
+                        before_date=datetime.now().date(),
+                    )
+                ]
+            }
+        )
+
     def _mutate_medication(self, medication_dose_instance_id: int, action: str) -> dict[str, Any]:
         def _operation(_db: Session, user: User, service: TodayService) -> dict[str, Any]:
             instance = service.mutate_medication_status(user.id, medication_dose_instance_id, action)
@@ -677,6 +758,22 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
         """List local Daynest users to help choose DAYNEST_USER_EMAIL when multiple accounts exist."""
 
         return await to_thread.run_sync(daynest.list_users)
+
+    @mcp.tool()
+    async def list_integration_clients() -> list[dict[str, Any]]:
+        """List integration clients for the active Daynest user."""
+
+        return await to_thread.run_sync(daynest.list_integration_clients)
+
+    @mcp.tool()
+    async def create_integration_client(
+        name: str,
+        scopes: list[str],
+        rate_limit_per_minute: int = 120,
+    ) -> dict[str, Any]:
+        """Create an integration client and return its one-time API key."""
+
+        return await to_thread.run_sync(daynest.create_integration_client, name, scopes, rate_limit_per_minute)
 
     @mcp.tool()
     async def get_today(for_date: str = "today") -> dict[str, Any]:
@@ -993,6 +1090,12 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
         """Delete a Daynest medication plan by id."""
 
         return await to_thread.run_sync(daynest.delete_medication, medication_plan_id)
+
+    @mcp.tool()
+    async def get_medication_history() -> dict[str, Any]:
+        """Return recent medication dose history for the active user."""
+
+        return await to_thread.run_sync(daynest.get_medication_history)
 
     @mcp.resource("daynest://today/{for_date}")
     async def today_resource(for_date: str) -> str:

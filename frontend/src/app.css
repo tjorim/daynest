@@ -1,6 +1,12 @@
 :root {
   color-scheme: light dark;
 
+  --bs-primary: #2a62ff;
+  --bs-primary-rgb: 42, 98, 255;
+  --bs-link-color: #2a62ff;
+  --bs-link-color-rgb: 42, 98, 255;
+  --bs-link-hover-color: #214ecc;
+  --bs-link-hover-color-rgb: 33, 78, 204;
   --bg-body-from: rgba(248, 249, 250, 0.95);
   --bg-body-to: rgba(255, 255, 255, 1);
   --bg-surface-from: rgba(255, 255, 255, 0.92);

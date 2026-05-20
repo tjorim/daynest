@@ -2,8 +2,8 @@
 
 package com.daynest.android.feature.calendar
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,13 +18,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -34,7 +31,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -45,12 +43,25 @@ import com.daynest.android.app.navigation.DaynestDestination
 import com.daynest.android.app.navigation.DaynestNavigationScaffold
 import com.daynest.android.data.calendar.CalendarDaySummaryDto
 import com.daynest.android.data.calendar.UnifiedDayItemDto
+import com.daynest.android.data.today.PlannedItemCreateDto
+import com.daynest.android.data.today.PlannedItemUpdateDto
+import com.daynest.android.ui.PlannedItemFormDialog
+import com.daynest.android.ui.PlannedItemFormState
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import java.time.LocalDate
 import java.time.format.TextStyle
 import java.time.temporal.WeekFields
 import java.util.Locale
 
 private const val DAYS_IN_WEEK = 7
+
+private val plannedItemBackupJson =
+    Json {
+        ignoreUnknownKeys = true
+        prettyPrint = true
+    }
 
 @Composable
 fun CalendarRoute(
@@ -130,7 +141,43 @@ private fun CalendarContent(
     modifier: Modifier = Modifier,
 ) {
     var showAddDialog by remember(state.selectedDate) { mutableStateOf(false) }
+    var editingItem by remember(state.selectedDate) { mutableStateOf<UnifiedDayItemDto?>(null) }
+    val context = LocalContext.current
 
+    var pendingBackup by remember { mutableStateOf<PlannedItemBackupDto?>(null) }
+    val exportLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
+            val backup = pendingBackup ?: return@rememberLauncherForActivityResult
+            if (uri != null) {
+                runCatching {
+                    context.contentResolver.openOutputStream(uri)?.use { stream ->
+                        stream.write(backup.toJson().toByteArray(Charsets.UTF_8))
+                    }
+                }
+            }
+            pendingBackup = null
+        }
+
+    val importLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+            if (uri == null) return@rememberLauncherForActivityResult
+            val raw =
+                runCatching {
+                    context.contentResolver.openInputStream(uri)?.use { it.reader(Charsets.UTF_8).readText() }
+                }.getOrNull()
+            if (raw == null) {
+                onEvent(CalendarUiEvent.BackupMessageChanged(CalendarBackupMessage.InvalidImport))
+                return@rememberLauncherForActivityResult
+            }
+            val items = parsePlannedItemBackup(raw)
+            if (items == null) {
+                onEvent(CalendarUiEvent.BackupMessageChanged(CalendarBackupMessage.InvalidImport))
+                return@rememberLauncherForActivityResult
+            }
+            onEvent(CalendarUiEvent.ImportBackup(items))
+        }
+
+    val backupMessageText = state.backupMessage?.asText()
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
@@ -141,7 +188,30 @@ private fun CalendarContent(
                 displayMonth = state.displayMonth,
                 onPrevious = { onEvent(CalendarUiEvent.PreviousMonthClicked) },
                 onNext = { onEvent(CalendarUiEvent.NextMonthClicked) },
+                onExport = {
+                    onEvent(
+                        CalendarUiEvent.ExportMonthBackup { backup ->
+                            pendingBackup = backup
+                            val fileName =
+                                "daynest-backup-${state.displayMonth.year}-${
+                                    state.displayMonth.monthValue.toString().padStart(2, '0')
+                                }.json"
+                            exportLauncher.launch(fileName)
+                        },
+                    )
+                },
+                onImport = { importLauncher.launch(arrayOf("application/json")) },
             )
+        }
+
+        if (!backupMessageText.isNullOrBlank()) {
+            item {
+                Text(
+                    text = backupMessageText,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.outline,
+                )
+            }
         }
 
         item {
@@ -200,6 +270,12 @@ private fun CalendarContent(
                 ) { _, item ->
                     DayItemCard(
                         item = item,
+                        onEdit =
+                            if (item.itemType == "planned") {
+                                { editingItem = item }
+                            } else {
+                                null
+                            },
                         onDelete =
                             if (item.itemType == "planned") {
                                 { onEvent(CalendarUiEvent.DeletePlannedItem(item.itemId, state.selectedDate)) }
@@ -214,11 +290,24 @@ private fun CalendarContent(
 
     if (showAddDialog && state.selectedDate != null) {
         AddPlannedItemDialog(
-            onConfirm = { title ->
-                onEvent(CalendarUiEvent.AddPlannedItem(title, state.selectedDate))
+            selectedDate = state.selectedDate,
+            onConfirm = { input ->
+                onEvent(CalendarUiEvent.AddPlannedItem(input))
                 showAddDialog = false
             },
             onDismiss = { showAddDialog = false },
+        )
+    }
+
+    val currentEditingItem = editingItem
+    if (currentEditingItem != null && state.selectedDate != null) {
+        EditPlannedItemDialog(
+            item = currentEditingItem,
+            onConfirm = { input ->
+                onEvent(CalendarUiEvent.UpdatePlannedItem(currentEditingItem.itemId, state.selectedDate, input))
+                editingItem = null
+            },
+            onDismiss = { editingItem = null },
         )
     }
 }
@@ -228,30 +317,45 @@ private fun MonthHeader(
     displayMonth: LocalDate,
     onPrevious: () -> Unit,
     onNext: () -> Unit,
+    onExport: () -> Unit,
+    onImport: () -> Unit,
 ) {
     val monthName =
         remember(displayMonth) {
             displayMonth.month.getDisplayName(TextStyle.FULL, Locale.getDefault())
         }
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
-        TextButton(onClick = onPrevious) {
-            Text(text = stringResource(id = R.string.calendar_prev_month))
+    Column {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            TextButton(onClick = onPrevious) {
+                Text(text = stringResource(id = R.string.calendar_prev_month))
+            }
+            Text(
+                text =
+                    stringResource(
+                        id = R.string.calendar_month_year,
+                        monthName,
+                        displayMonth.year.toString(),
+                    ),
+                style = MaterialTheme.typography.titleLarge,
+            )
+            TextButton(onClick = onNext) {
+                Text(text = stringResource(id = R.string.calendar_next_month))
+            }
         }
-        Text(
-            text =
-                stringResource(
-                    id = R.string.calendar_month_year,
-                    monthName,
-                    displayMonth.year.toString(),
-                ),
-            style = MaterialTheme.typography.titleLarge,
-        )
-        TextButton(onClick = onNext) {
-            Text(text = stringResource(id = R.string.calendar_next_month))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End,
+        ) {
+            TextButton(onClick = onExport) {
+                Text(text = stringResource(id = R.string.calendar_export_backup))
+            }
+            TextButton(onClick = onImport) {
+                Text(text = stringResource(id = R.string.calendar_import_backup))
+            }
         }
     }
 }
@@ -310,7 +414,10 @@ private fun MonthGrid(
                         val isToday = date == today
                         DayCell(
                             dayNum = dayNum,
-                            total = summary?.total ?: 0,
+                            routines = summary?.routines ?: 0,
+                            chores = summary?.chores ?: 0,
+                            medications = summary?.medications ?: 0,
+                            planned = summary?.planned ?: 0,
                             isSelected = isSelected,
                             isToday = isToday,
                             onClick = { onDayClick(date) },
@@ -324,65 +431,9 @@ private fun MonthGrid(
 }
 
 @Composable
-private fun DayCell(
-    dayNum: Int,
-    total: Int,
-    isSelected: Boolean,
-    isToday: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val bgColor =
-        when {
-            isSelected -> MaterialTheme.colorScheme.primary
-            isToday -> MaterialTheme.colorScheme.primaryContainer
-            else -> androidx.compose.ui.graphics.Color.Transparent
-        }
-    val textColor =
-        when {
-            isSelected -> MaterialTheme.colorScheme.onPrimary
-            isToday -> MaterialTheme.colorScheme.onPrimaryContainer
-            else -> MaterialTheme.colorScheme.onSurface
-        }
-
-    Box(
-        modifier =
-            modifier
-                .aspectRatio(1f)
-                .padding(2.dp)
-                .clip(CircleShape)
-                .background(bgColor)
-                .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center,
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                text = dayNum.toString(),
-                style = MaterialTheme.typography.bodySmall,
-                color = textColor,
-            )
-            if (total > 0) {
-                Box(
-                    modifier =
-                        Modifier
-                            .size(4.dp)
-                            .clip(CircleShape)
-                            .background(
-                                if (isSelected) {
-                                    MaterialTheme.colorScheme.onPrimary
-                                } else {
-                                    MaterialTheme.colorScheme.primary
-                                },
-                            ),
-                )
-            }
-        }
-    }
-}
-
-@Composable
 private fun DayItemCard(
     item: UnifiedDayItemDto,
+    onEdit: (() -> Unit)?,
     onDelete: (() -> Unit)?,
 ) {
     Card(modifier = Modifier.fillMaxWidth()) {
@@ -417,6 +468,11 @@ private fun DayItemCard(
                     )
                 }
             }
+            if (onEdit != null) {
+                TextButton(onClick = onEdit) {
+                    Text(text = stringResource(id = R.string.action_edit))
+                }
+            }
             if (onDelete != null) {
                 TextButton(onClick = onDelete) {
                     Text(
@@ -430,34 +486,109 @@ private fun DayItemCard(
 }
 
 @Composable
-private fun AddPlannedItemDialog(
-    onConfirm: (String) -> Unit,
+private fun EditPlannedItemDialog(
+    item: UnifiedDayItemDto,
+    onConfirm: (PlannedItemUpdateDto) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    var title by remember { mutableStateOf("") }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(text = stringResource(id = R.string.calendar_add_planned_title)) },
-        text = {
-            OutlinedTextField(
-                value = title,
-                onValueChange = { title = it },
-                label = { Text(text = stringResource(id = R.string.calendar_planned_title_label)) },
-                singleLine = true,
+    PlannedItemFormDialog(
+        titleRes = R.string.calendar_edit_planned_title,
+        confirmTextRes = R.string.action_save,
+        initialState =
+            PlannedItemFormState(
+                title = item.title,
+                plannedFor = item.scheduledDate.orEmpty(),
+                notes = item.detail,
+                moduleKey = item.moduleKey,
+                recurrenceHint = item.recurrenceHint,
+                linkedSource = item.linkedSource,
+                linkedRef = item.linkedRef,
+            ),
+        onConfirm = { form ->
+            onConfirm(
+                PlannedItemUpdateDto(
+                    title = form.title,
+                    plannedFor = form.plannedFor,
+                    isDone = item.status == "done",
+                    notes = form.notes,
+                    moduleKey = form.moduleKey,
+                    recurrenceHint = form.recurrenceHint,
+                    linkedSource = form.linkedSource,
+                    linkedRef = form.linkedRef,
+                ),
             )
         },
-        confirmButton = {
-            TextButton(
-                onClick = { if (title.isNotBlank()) onConfirm(title.trim()) },
-                enabled = title.isNotBlank(),
-            ) {
-                Text(text = stringResource(id = R.string.action_add))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(text = stringResource(id = R.string.action_cancel))
-            }
-        },
+        onDismiss = onDismiss,
     )
 }
+
+@Composable
+private fun AddPlannedItemDialog(
+    selectedDate: String,
+    onConfirm: (PlannedItemCreateDto) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    PlannedItemFormDialog(
+        titleRes = R.string.calendar_add_planned_title,
+        confirmTextRes = R.string.action_add,
+        initialState = PlannedItemFormState(title = "", plannedFor = selectedDate),
+        onConfirm = { form ->
+            onConfirm(
+                PlannedItemCreateDto(
+                    title = form.title,
+                    plannedFor = form.plannedFor,
+                    notes = form.notes,
+                    moduleKey = form.moduleKey,
+                    recurrenceHint = form.recurrenceHint,
+                    linkedSource = form.linkedSource,
+                    linkedRef = form.linkedRef,
+                ),
+            )
+        },
+        onDismiss = onDismiss,
+    )
+}
+
+@Composable
+private fun CalendarBackupMessage.asText(): String =
+    when (this) {
+        CalendarBackupMessage.InvalidImport -> stringResource(id = R.string.calendar_import_backup_invalid)
+        is CalendarBackupMessage.ImportComplete -> {
+            val importedText =
+                pluralStringResource(
+                    id = R.plurals.calendar_import_backup_imported,
+                    count = imported,
+                    imported,
+                )
+            if (failed > 0) {
+                val failedText =
+                    pluralStringResource(
+                        id = R.plurals.calendar_import_backup_failed,
+                        count = failed,
+                        failed,
+                    )
+                stringResource(id = R.string.calendar_import_backup_complete_with_failures, importedText, failedText)
+            } else {
+                stringResource(id = R.string.calendar_import_backup_complete, importedText)
+            }
+        }
+    }
+
+private fun PlannedItemBackupDto.toJson(): String = plannedItemBackupJson.encodeToString(this)
+
+private fun parsePlannedItemBackup(raw: String): List<PlannedItemCreateDto>? =
+    runCatching {
+        val backup = plannedItemBackupJson.decodeFromString<PlannedItemBackupDto>(raw)
+        if (backup.source != "daynest" || backup.schemaVersion != 1) return null
+        backup.items.map { item ->
+            PlannedItemCreateDto(
+                title = item.title,
+                plannedFor = item.plannedFor,
+                notes = item.notes,
+                moduleKey = item.moduleKey,
+                recurrenceHint = item.recurrenceHint,
+                linkedSource = item.linkedSource,
+                linkedRef = item.linkedRef,
+            )
+        }
+    }.getOrNull()

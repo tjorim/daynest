@@ -404,10 +404,88 @@ function PlannedItemActions({
   plannedItem?: PlannedTodayItem;
   onRefresh: () => Promise<void>;
 }) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState("");
+  const [editPlannedFor, setEditPlannedFor] = useState("");
+  const [editNotes, setEditNotes] = useState("");
   const actions = useTodayActions(onRefresh);
+
+  const openEdit = () => {
+    if (!plannedItem) return;
+    setEditTitle(plannedItem.title);
+    setEditPlannedFor(plannedItem.planned_for);
+    setEditNotes(plannedItem.notes ?? "");
+    actions.clearActionError();
+    setIsEditing(true);
+  };
+
+  const onSave = async () => {
+    if (!plannedItem || !editTitle.trim()) return;
+    await actions.editPlannedItem(plannedItem, {
+      title: editTitle.trim(),
+      planned_for: editPlannedFor,
+      notes: editNotes.trim() || null,
+      module_key: plannedItem.module_key,
+      recurrence_hint: plannedItem.recurrence_hint,
+      linked_source: plannedItem.linked_source,
+      linked_ref: plannedItem.linked_ref,
+    });
+    setIsEditing(false);
+  };
 
   if (!plannedItem) {
     return null;
+  }
+
+  if (isEditing) {
+    return (
+      <div className="border rounded p-2 d-flex flex-column gap-2" style={{ minWidth: "14rem" }}>
+        <input
+          className="form-control form-control-sm"
+          value={editTitle}
+          placeholder="Title"
+          autoFocus
+          disabled={actions.isSubmitting}
+          onChange={(e) => setEditTitle(e.target.value)}
+        />
+        <input
+          className="form-control form-control-sm"
+          type="date"
+          value={editPlannedFor}
+          disabled={actions.isSubmitting}
+          onChange={(e) => setEditPlannedFor(e.target.value)}
+        />
+        <input
+          className="form-control form-control-sm"
+          value={editNotes}
+          placeholder="Notes (optional)"
+          disabled={actions.isSubmitting}
+          onChange={(e) => setEditNotes(e.target.value)}
+        />
+        {actions.actionError ? <small className="text-danger">{actions.actionError}</small> : null}
+        <div className="d-flex gap-2">
+          <button
+            type="button"
+            className="btn btn-primary btn-sm"
+            disabled={actions.isSubmitting || !editTitle.trim()}
+            onClick={() => void onSave()}
+          >
+            {actions.isSubmitting ? "Saving…" : "Save"}
+          </button>
+          <button
+            type="button"
+            className="btn btn-outline-secondary btn-sm"
+            disabled={actions.isSubmitting}
+            onClick={() => {
+              setIsEditing(false);
+              actions.clearActionError();
+            }}
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -421,6 +499,14 @@ function PlannedItemActions({
           onClick={() => void actions.togglePlannedItem(plannedItem, !plannedItem.is_done)}
         >
           {plannedItem.is_done ? "Undo" : "Done"}
+        </button>
+        <button
+          type="button"
+          className="btn btn-outline-secondary btn-sm"
+          disabled={actions.isSubmitting}
+          onClick={openEdit}
+        >
+          Edit
         </button>
         <button
           type="button"
@@ -478,14 +564,6 @@ export function SectionCard({
 
   const runBulkAction = async (action: BulkAction) => {
     const applicableItems = selectedItems.filter((item) => action.isAvailable(item));
-    if (applicableItems.length === 0) {
-      setBulkFeedback({
-        tone: "warning",
-        text: `None of the selected items are eligible for ${action.label.toLowerCase()}.`,
-      });
-      return;
-    }
-
     setIsBulkSubmitting(true);
     setBulkFeedback(null);
     const results = await Promise.allSettled(applicableItems.map((item) => action.run(item)));

@@ -2,12 +2,13 @@ import threading
 from collections import defaultdict, deque
 from collections.abc import Callable
 from datetime import datetime, timedelta, timezone
-from hashlib import sha256
+from hmac import digest
 
 from fastapi import Depends, Header, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
+from app.core.config import settings
 from app.db.session import get_db
 from app.models.integration_client import IntegrationClient
 from app.models.user import User
@@ -19,7 +20,15 @@ _request_log_lock = threading.Lock()
 
 
 def hash_integration_key(raw_key: str) -> str:
-    return sha256(raw_key.encode("utf-8")).hexdigest()
+    # Integration keys are server-generated, high-entropy random tokens (128+ bits),
+    # not user-chosen passwords. HMAC-SHA256 with a server-side secret is the correct
+    # primitive: brute-force is infeasible at this entropy regardless of hash speed.
+    # CodeQL py/weak-sensitive-data-hashing does not apply here.
+    return digest(  # lgtm[py/weak-sensitive-data-hashing]
+        settings.resolved_integration_key_hash_secret.encode("utf-8"),
+        raw_key.encode("utf-8"),
+        "sha256",
+    ).hex()
 
 
 def get_integration_client_by_token_hash(db: Session, token_hash: str) -> IntegrationClient | None:

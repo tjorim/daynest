@@ -16,6 +16,7 @@ import {
   revokeOAuthSession,
   type OAuthSession,
 } from "@/lib/api/auth";
+import { getCustomServerUrl, setCustomServerUrl } from "@/lib/api/serverConfig";
 
 const AVAILABLE_SCOPES = [
   {
@@ -96,7 +97,39 @@ export function SettingsPage() {
   const [revokingSession, setRevokingSession] = useState<string | null>(null);
   const [revokeError, setRevokeError] = useState<string | null>(null);
 
-  const backendBaseUrl = window.location.origin;
+  const [serverMode, setServerMode] = useState<"default" | "custom">(() =>
+    getCustomServerUrl() ? "custom" : "default",
+  );
+  const [customServerInput, setCustomServerInput] = useState(() => getCustomServerUrl() ?? "");
+  const [serverUrlError, setServerUrlError] = useState<string | null>(null);
+  const [backendBaseUrl, setBackendBaseUrl] = useState(() => {
+    const custom = getCustomServerUrl();
+    return custom ?? window.location.origin;
+  });
+
+  const applyServerUrl = () => {
+    if (serverMode === "default") {
+      setCustomServerUrl(null);
+      setBackendBaseUrl(window.location.origin);
+      setServerUrlError(null);
+      return;
+    }
+    const trimmed = customServerInput.trim();
+    let parsed: URL;
+    try {
+      parsed = new URL(trimmed);
+    } catch {
+      setServerUrlError("Enter a valid absolute URL.");
+      return;
+    }
+    if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
+      setServerUrlError("URL must use https:// or http://.");
+      return;
+    }
+    setCustomServerUrl(parsed.origin);
+    setBackendBaseUrl(parsed.origin);
+    setServerUrlError(null);
+  };
 
   const loadClients = async (signal?: AbortSignal) => {
     setLoading(true);
@@ -296,6 +329,60 @@ export function SettingsPage() {
 
       <div className="row g-3">
         <div className="col-lg-5">
+          <div className="card mb-3">
+            <div className="card-header fw-semibold py-2">Backend server</div>
+            <div className="card-body d-grid gap-2">
+              <div className="d-flex gap-3">
+                <label className="form-check">
+                  <input
+                    className="form-check-input"
+                    type="radio"
+                    name="server-mode"
+                    checked={serverMode === "default"}
+                    onChange={() => {
+                      setServerMode("default");
+                      setServerUrlError(null);
+                    }}
+                  />
+                  <span className="form-check-label">Default</span>
+                </label>
+                <label className="form-check">
+                  <input
+                    className="form-check-input"
+                    type="radio"
+                    name="server-mode"
+                    checked={serverMode === "custom"}
+                    onChange={() => setServerMode("custom")}
+                  />
+                  <span className="form-check-label">Custom (self-hosted)</span>
+                </label>
+              </div>
+              {serverMode === "custom" ? (
+                <div>
+                  <input
+                    className={`form-control${serverUrlError ? " is-invalid" : ""}`}
+                    value={customServerInput}
+                    onChange={(event) => {
+                      setCustomServerInput(event.target.value);
+                      setServerUrlError(null);
+                    }}
+                    placeholder="https://your-server.example.com"
+                  />
+                  {serverUrlError ? (
+                    <div className="invalid-feedback">{serverUrlError}</div>
+                  ) : null}
+                </div>
+              ) : null}
+              <button
+                type="button"
+                className="btn btn-outline-primary btn-sm"
+                onClick={applyServerUrl}
+              >
+                Apply
+              </button>
+            </div>
+          </div>
+
           <div className="card mb-3">
             <div className="card-header fw-semibold py-2">Integration presets</div>
             <div className="card-body d-grid gap-2">

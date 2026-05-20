@@ -14,33 +14,36 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.daynest.android.R
 import com.daynest.android.app.navigation.DaynestDestination
 import com.daynest.android.app.navigation.DaynestNavigationScaffold
-import com.daynest.android.data.today.MedicationTodayItemDto
 import com.daynest.android.data.today.PlannedTodayItemDto
-import com.daynest.android.data.today.RoutineTodayItemDto
-import com.daynest.android.data.today.UpcomingTodayItemDto
+import com.daynest.android.feature.home.SectionType
+import com.daynest.android.ui.PlannedItemFormDialog
+import com.daynest.android.ui.PlannedItemFormState
 
 @Composable
-@Suppress("FunctionNaming")
 fun HomeRoute(
     onNavigate: (String) -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel(),
@@ -55,7 +58,6 @@ fun HomeRoute(
 }
 
 @Composable
-@Suppress("FunctionNaming", "LongMethod", "CyclomaticComplexMethod")
 internal fun HomeScreen(
     uiState: HomeUiState,
     onEvent: (HomeUiEvent) -> Unit,
@@ -114,12 +116,15 @@ internal fun HomeScreen(
 }
 
 @Composable
-@Suppress("FunctionNaming", "LongMethod", "CyclomaticComplexMethod")
+@Suppress("LongMethod", "CyclomaticComplexMethod")
 private fun TodayContent(
     state: HomeUiState.Content,
     onEvent: (HomeUiEvent) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    var rescheduleTarget by remember { mutableStateOf<RescheduleTarget?>(null) }
+    var plannedEditTarget by remember { mutableStateOf<PlannedTodayItemDto?>(null) }
+
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
@@ -155,6 +160,10 @@ private fun TodayContent(
             }
         }
 
+        item {
+            TodaySummaryStrip(state = state)
+        }
+
         if (state.medication.isNotEmpty()) {
             item {
                 SectionHeader(title = stringResource(id = R.string.today_section_medication))
@@ -169,12 +178,33 @@ private fun TodayContent(
         }
 
         if (state.routines.isNotEmpty()) {
+            val routineIds = state.routines.map { it.taskInstanceId }
+            val allRoutinesSelected = routineIds.isNotEmpty() && state.selectedRoutineIds.containsAll(routineIds)
             item {
-                SectionHeader(title = stringResource(id = R.string.today_section_routines))
+                BulkSectionHeader(
+                    title = stringResource(id = R.string.today_section_routines),
+                    selectedCount = state.selectedRoutineIds.size,
+                    allSelected = allRoutinesSelected,
+                    onSelectAll = {
+                        if (allRoutinesSelected) {
+                            onEvent(HomeUiEvent.ClearSelection(SectionType.ROUTINES))
+                        } else {
+                            onEvent(HomeUiEvent.SelectAll(SectionType.ROUTINES, routineIds))
+                        }
+                    },
+                    onBulkDone = { onEvent(HomeUiEvent.BulkDone(SectionType.ROUTINES)) },
+                    onBulkSkip = { onEvent(HomeUiEvent.BulkSkip(SectionType.ROUTINES)) },
+                    onBulkUndo = null,
+                )
             }
             items(state.routines, key = { "routine_${it.taskInstanceId}" }) { item ->
                 RoutineCard(
                     item = item,
+                    isSelected = state.selectedRoutineIds.contains(item.taskInstanceId),
+                    onToggleSelect = {
+                        onEvent(HomeUiEvent.ToggleSelection(SectionType.ROUTINES, item.taskInstanceId))
+                    },
+                    onStart = { onEvent(HomeUiEvent.StartTaskClicked(item.taskInstanceId)) },
                     onComplete = { onEvent(HomeUiEvent.CompleteTaskClicked(item.taskInstanceId)) },
                     onSkip = { onEvent(HomeUiEvent.SkipTaskClicked(item.taskInstanceId)) },
                 )
@@ -182,10 +212,23 @@ private fun TodayContent(
         }
 
         if (state.overdue.isNotEmpty()) {
+            val overdueIds = state.overdue.map { it.choreInstanceId }
             item {
-                SectionHeader(
+                BulkSectionHeader(
                     title = stringResource(id = R.string.today_section_overdue),
                     titleColor = MaterialTheme.colorScheme.error,
+                    selectedCount = state.selectedChoreIds.count { it in overdueIds },
+                    allSelected = overdueIds.isNotEmpty() && state.selectedChoreIds.containsAll(overdueIds),
+                    onSelectAll = {
+                        if (state.selectedChoreIds.containsAll(overdueIds)) {
+                            onEvent(HomeUiEvent.ClearSelection(SectionType.CHORES))
+                        } else {
+                            onEvent(HomeUiEvent.SelectAll(SectionType.CHORES, overdueIds))
+                        }
+                    },
+                    onBulkDone = { onEvent(HomeUiEvent.BulkDone(SectionType.CHORES)) },
+                    onBulkSkip = { onEvent(HomeUiEvent.BulkSkip(SectionType.CHORES)) },
+                    onBulkUndo = null,
                 )
             }
             items(state.overdue, key = { "overdue_${it.choreInstanceId}" }) { item ->
@@ -197,34 +240,90 @@ private fun TodayContent(
                         } else {
                             null
                         },
+                    isSelected = state.selectedChoreIds.contains(item.choreInstanceId),
+                    onToggleSelect = { onEvent(HomeUiEvent.ToggleSelection(SectionType.CHORES, item.choreInstanceId)) },
                     onComplete = { onEvent(HomeUiEvent.CompleteChoreClicked(item.choreInstanceId)) },
                     onSkip = { onEvent(HomeUiEvent.SkipChoreClicked(item.choreInstanceId)) },
+                    onSnooze = { onEvent(HomeUiEvent.SnoozeChoreClicked(item.choreInstanceId)) },
+                    onReschedule = {
+                        rescheduleTarget =
+                            RescheduleTarget(
+                                id = item.choreInstanceId,
+                                title = item.title,
+                                scheduledDate = item.overdueSince,
+                            )
+                    },
                 )
             }
         }
 
         if (state.dueToday.isNotEmpty()) {
+            val dueTodayIds = state.dueToday.map { it.choreInstanceId }
             item {
-                SectionHeader(title = stringResource(id = R.string.today_section_due_today))
+                BulkSectionHeader(
+                    title = stringResource(id = R.string.today_section_due_today),
+                    selectedCount = state.selectedChoreIds.count { it in dueTodayIds },
+                    allSelected = dueTodayIds.isNotEmpty() && state.selectedChoreIds.containsAll(dueTodayIds),
+                    onSelectAll = {
+                        if (state.selectedChoreIds.containsAll(dueTodayIds)) {
+                            onEvent(HomeUiEvent.ClearSelection(SectionType.CHORES))
+                        } else {
+                            onEvent(HomeUiEvent.SelectAll(SectionType.CHORES, dueTodayIds))
+                        }
+                    },
+                    onBulkDone = { onEvent(HomeUiEvent.BulkDone(SectionType.CHORES)) },
+                    onBulkSkip = { onEvent(HomeUiEvent.BulkSkip(SectionType.CHORES)) },
+                    onBulkUndo = null,
+                )
             }
             items(state.dueToday, key = { "due_${it.choreInstanceId}" }) { item ->
                 ChoreCard(
                     title = item.title,
                     subtitle = null,
+                    isSelected = state.selectedChoreIds.contains(item.choreInstanceId),
+                    onToggleSelect = { onEvent(HomeUiEvent.ToggleSelection(SectionType.CHORES, item.choreInstanceId)) },
                     onComplete = { onEvent(HomeUiEvent.CompleteChoreClicked(item.choreInstanceId)) },
                     onSkip = { onEvent(HomeUiEvent.SkipChoreClicked(item.choreInstanceId)) },
+                    onSnooze = { onEvent(HomeUiEvent.SnoozeChoreClicked(item.choreInstanceId)) },
+                    onReschedule = {
+                        rescheduleTarget =
+                            RescheduleTarget(
+                                id = item.choreInstanceId,
+                                title = item.title,
+                                scheduledDate = item.scheduledDate,
+                            )
+                    },
                 )
             }
         }
 
         if (state.planned.isNotEmpty()) {
+            val plannedIds = state.planned.map { it.id }
+            val allPlannedSelected = plannedIds.isNotEmpty() && state.selectedPlannedIds.containsAll(plannedIds)
             item {
-                SectionHeader(title = stringResource(id = R.string.today_section_planned))
+                BulkSectionHeader(
+                    title = stringResource(id = R.string.today_section_planned),
+                    selectedCount = state.selectedPlannedIds.size,
+                    allSelected = allPlannedSelected,
+                    onSelectAll = {
+                        if (allPlannedSelected) {
+                            onEvent(HomeUiEvent.ClearSelection(SectionType.PLANNED))
+                        } else {
+                            onEvent(HomeUiEvent.SelectAll(SectionType.PLANNED, plannedIds))
+                        }
+                    },
+                    onBulkDone = { onEvent(HomeUiEvent.BulkDone(SectionType.PLANNED)) },
+                    onBulkSkip = null,
+                    onBulkUndo = { onEvent(HomeUiEvent.BulkUndo(SectionType.PLANNED)) },
+                )
             }
             items(state.planned, key = { "planned_${it.id}" }) { item ->
                 PlannedItemCard(
                     item = item,
+                    isSelected = state.selectedPlannedIds.contains(item.id),
+                    onToggleSelect = { onEvent(HomeUiEvent.ToggleSelection(SectionType.PLANNED, item.id)) },
                     onToggleDone = { onEvent(HomeUiEvent.MarkPlannedDoneClicked(item.id, !item.isDone)) },
+                    onEdit = { plannedEditTarget = item },
                     onDelete = { onEvent(HomeUiEvent.DeletePlannedClicked(item.id)) },
                 )
             }
@@ -235,7 +334,17 @@ private fun TodayContent(
                 SectionHeader(title = stringResource(id = R.string.today_section_upcoming))
             }
             items(state.upcoming, key = { "upcoming_${it.choreInstanceId}" }) { item ->
-                UpcomingChoreCard(item = item)
+                UpcomingChoreCard(
+                    item = item,
+                    onReschedule = {
+                        rescheduleTarget =
+                            RescheduleTarget(
+                                id = item.choreInstanceId,
+                                title = item.title,
+                                scheduledDate = item.scheduledDate,
+                            )
+                    },
+                )
             }
         }
 
@@ -272,6 +381,114 @@ private fun TodayContent(
             }
         }
     }
+
+    rescheduleTarget?.let { target ->
+        RescheduleChoreDialog(
+            target = target,
+            onConfirm = { scheduledDate ->
+                onEvent(HomeUiEvent.RescheduleChoreClicked(target.id, scheduledDate))
+                rescheduleTarget = null
+            },
+            onDismiss = { rescheduleTarget = null },
+        )
+    }
+
+    plannedEditTarget?.let { item ->
+        PlannedItemDialog(
+            titleRes = R.string.calendar_edit_planned_title,
+            item = item,
+            onConfirm = {
+                onEvent(HomeUiEvent.UpdatePlannedClicked(it))
+                plannedEditTarget = null
+            },
+            onDismiss = { plannedEditTarget = null },
+        )
+    }
+}
+
+private data class RescheduleTarget(
+    val id: Int,
+    val title: String,
+    val scheduledDate: String,
+)
+
+@Composable
+private fun TodaySummaryStrip(state: HomeUiState.Content) {
+    val completedRoutines = state.routines.count { it.status == "completed" || it.status == "skipped" }
+    val completedMedication = state.medication.count { it.status != "scheduled" }
+    val completedPlanned = state.planned.count { it.isDone }
+    val totalItems =
+        state.routines.size + state.medication.size + state.planned.size +
+            state.overdue.size + state.dueToday.size
+    val completedItems = completedRoutines + completedMedication + completedPlanned
+    val completionPct = if (totalItems == 0) 100 else (completedItems * 100 / totalItems)
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            SummaryMetricCard(
+                label = stringResource(id = R.string.today_section_overdue),
+                value = state.overdue.size,
+                modifier = Modifier.weight(1f),
+            )
+            SummaryMetricCard(
+                label = stringResource(id = R.string.today_section_due_today),
+                value = state.dueToday.size,
+                modifier = Modifier.weight(1f),
+            )
+            SummaryMetricCard(
+                label = stringResource(id = R.string.home_action_complete),
+                value = completionPct,
+                valueSuffix = "%",
+                modifier = Modifier.weight(1f),
+            )
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            SummaryMetricCard(
+                label = stringResource(id = R.string.today_section_medication),
+                value = state.medication.count { it.status == "scheduled" || it.status == "missed" },
+                modifier = Modifier.weight(1f),
+            )
+            SummaryMetricCard(
+                label = stringResource(id = R.string.today_section_planned),
+                value = state.planned.count { !it.isDone },
+                modifier = Modifier.weight(1f),
+            )
+            SummaryMetricCard(
+                label = stringResource(id = R.string.today_section_routines),
+                value = state.routines.count { it.status == "pending" || it.status == "in_progress" },
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
+}
+
+@Composable
+private fun SummaryMetricCard(
+    label: String,
+    value: Int,
+    modifier: Modifier = Modifier,
+    valueSuffix: String = "",
+) {
+    Card(modifier = modifier) {
+        Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.primary,
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "$value$valueSuffix",
+                style = MaterialTheme.typography.headlineSmall,
+            )
+        }
+    }
 }
 
 @Composable
@@ -288,202 +505,126 @@ private fun SectionHeader(
 }
 
 @Composable
-@Suppress("FunctionNaming")
-private fun MedicationTodayCard(
-    item: MedicationTodayItemDto,
-    onTake: () -> Unit,
-    onSkip: () -> Unit,
-) {
-    val isScheduled = item.status == "scheduled"
-
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(text = item.name, style = MaterialTheme.typography.bodyMedium)
-                if (item.instructions.isNotEmpty()) {
-                    Text(
-                        text = item.instructions,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline,
-                    )
-                }
-            }
-            if (isScheduled) {
-                TextButton(onClick = onTake) {
-                    Text(text = stringResource(id = R.string.action_take))
-                }
-                TextButton(onClick = onSkip) {
-                    Text(text = stringResource(id = R.string.action_skip))
-                }
-            } else {
-                Text(
-                    text = item.status,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.outline,
-                )
-            }
-        }
-    }
-}
-
-@Composable
-@Suppress("FunctionNaming")
-private fun RoutineCard(
-    item: RoutineTodayItemDto,
-    onComplete: () -> Unit,
-    onSkip: () -> Unit,
-) {
-    val isDone = item.status == "completed"
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = item.title,
-                style = MaterialTheme.typography.bodyMedium,
-                textDecoration = if (isDone) TextDecoration.LineThrough else TextDecoration.None,
-                modifier = Modifier.weight(1f),
-            )
-            if (!isDone) {
-                TextButton(onClick = onComplete) {
-                    Text(text = stringResource(id = R.string.action_done))
-                }
-                TextButton(onClick = onSkip) {
-                    Text(text = stringResource(id = R.string.action_skip))
-                }
-            }
-        }
-    }
-}
-
-@Composable
-@Suppress("FunctionNaming")
-private fun ChoreCard(
+private fun BulkSectionHeader(
     title: String,
-    subtitle: String?,
-    onComplete: () -> Unit,
-    onSkip: () -> Unit,
+    selectedCount: Int,
+    allSelected: Boolean,
+    onSelectAll: () -> Unit,
+    onBulkDone: (() -> Unit)?,
+    onBulkSkip: (() -> Unit)?,
+    onBulkUndo: (() -> Unit)?,
+    titleColor: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.onSurface,
 ) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+    Column(modifier = Modifier.padding(top = 4.dp)) {
         Row(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(text = title, style = MaterialTheme.typography.bodyMedium)
-                if (subtitle != null) {
-                    Text(
-                        text = subtitle,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline,
-                    )
-                }
-            }
-            TextButton(onClick = onComplete) {
-                Text(text = stringResource(id = R.string.action_done))
-            }
-            TextButton(onClick = onSkip) {
-                Text(text = stringResource(id = R.string.action_skip))
-            }
-        }
-    }
-}
-
-@Composable
-@Suppress("FunctionNaming")
-private fun PlannedItemCard(
-    item: PlannedTodayItemDto,
-    onToggleDone: () -> Unit,
-    onDelete: () -> Unit,
-) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = item.title,
-                    style = MaterialTheme.typography.bodyMedium,
-                    textDecoration = if (item.isDone) TextDecoration.LineThrough else TextDecoration.None,
-                )
-                if (!item.notes.isNullOrBlank()) {
-                    Text(
-                        text = item.notes,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline,
-                    )
-                }
-                if (!item.moduleKey.isNullOrBlank()) {
-                    Text(
-                        text = item.moduleKey,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                }
-            }
-            TextButton(onClick = onToggleDone) {
-                Text(
-                    text =
-                        if (item.isDone) {
-                            stringResource(id = R.string.action_undo)
-                        } else {
-                            stringResource(id = R.string.action_done)
-                        },
-                )
-            }
-            TextButton(
-                onClick = onDelete,
-                colors =
-                    ButtonDefaults.textButtonColors(
-                        contentColor = MaterialTheme.colorScheme.error,
-                    ),
-            ) {
-                Text(text = stringResource(id = R.string.action_delete))
-            }
-        }
-    }
-}
-
-@Composable
-@Suppress("FunctionNaming")
-private fun UpcomingChoreCard(item: UpcomingTodayItemDto) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
+            Checkbox(checked = allSelected, onCheckedChange = { onSelectAll() })
             Text(
-                text = item.title,
-                style = MaterialTheme.typography.bodyMedium,
+                text = title,
+                style = MaterialTheme.typography.titleSmall,
+                color = titleColor,
                 modifier = Modifier.weight(1f),
             )
-            if (item.scheduledDate.isNotEmpty()) {
-                Text(
-                    text = item.scheduledDate,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.outline,
-                )
+        }
+        if (selectedCount > 0) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+            ) {
+                if (onBulkDone != null) {
+                    TextButton(onClick = onBulkDone) {
+                        Text(text = stringResource(id = R.string.action_done))
+                    }
+                }
+                if (onBulkSkip != null) {
+                    TextButton(onClick = onBulkSkip) {
+                        Text(text = stringResource(id = R.string.action_skip))
+                    }
+                }
+                if (onBulkUndo != null) {
+                    TextButton(onClick = onBulkUndo) {
+                        Text(text = stringResource(id = R.string.action_undo))
+                    }
+                }
             }
         }
     }
+}
+
+@Composable
+private fun RescheduleChoreDialog(
+    target: RescheduleTarget,
+    onConfirm: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var scheduledDate by remember(target) { mutableStateOf(target.scheduledDate) }
+    val trimmedScheduledDate = scheduledDate.trim()
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(text = stringResource(id = R.string.calendar_reschedule_chore_title)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(text = target.title, style = MaterialTheme.typography.bodyMedium)
+                OutlinedTextField(
+                    value = scheduledDate,
+                    onValueChange = { scheduledDate = it },
+                    label = { Text(text = stringResource(id = R.string.calendar_planned_date_label)) },
+                    singleLine = true,
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onConfirm(trimmedScheduledDate) },
+                enabled = trimmedScheduledDate.isNotBlank(),
+            ) {
+                Text(text = stringResource(id = R.string.action_save))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(text = stringResource(id = R.string.action_cancel))
+            }
+        },
+    )
+}
+
+@Composable
+private fun PlannedItemDialog(
+    titleRes: Int,
+    item: PlannedTodayItemDto,
+    onConfirm: (PlannedTodayItemDto) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    PlannedItemFormDialog(
+        titleRes = titleRes,
+        confirmTextRes = R.string.action_save,
+        initialState =
+            PlannedItemFormState(
+                title = item.title,
+                plannedFor = item.plannedFor,
+                notes = item.notes,
+                moduleKey = item.moduleKey,
+                recurrenceHint = item.recurrenceHint,
+                linkedSource = item.linkedSource,
+                linkedRef = item.linkedRef,
+            ),
+        onConfirm = { form ->
+            onConfirm(
+                item.copy(
+                    title = form.title,
+                    plannedFor = form.plannedFor,
+                    notes = form.notes,
+                    moduleKey = form.moduleKey,
+                    recurrenceHint = form.recurrenceHint,
+                    linkedSource = form.linkedSource,
+                    linkedRef = form.linkedRef,
+                ),
+            )
+        },
+        onDismiss = onDismiss,
+    )
 }

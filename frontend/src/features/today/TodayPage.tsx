@@ -158,16 +158,16 @@ export function TodayPage() {
           bulkActions: choreBulkActions,
         },
         {
-          key: "upcoming",
-          heading: "Upcoming",
-          items: buildUpcomingItems(today.upcoming),
-          bulkActions: choreBulkActions,
-        },
-        {
           key: "planned",
           heading: "Planned",
           items: buildPlannedItems(today.planned),
           bulkActions: plannedBulkActions,
+        },
+        {
+          key: "upcoming",
+          heading: "Upcoming",
+          items: buildUpcomingItems(today.upcoming),
+          bulkActions: choreBulkActions,
         },
       ]
     : [];
@@ -220,6 +220,11 @@ export function TodayPage() {
             <SummaryCard label="Open Routines" value={routineOpenCount} tone="secondary" />
           </div>
           <WebFocusPanel sections={sections} />
+          <PlannedSection
+            items={today.planned}
+            onRefresh={loadToday}
+            bulkActions={plannedBulkActions}
+          />
           {sections.filter((section) => section.key !== "planned").map((section) => (
             <SectionCard
               key={section.key}
@@ -230,11 +235,6 @@ export function TodayPage() {
               bulkActions={section.bulkActions}
             />
           ))}
-          <PlannedSection
-            items={today.planned}
-            onRefresh={loadToday}
-            bulkActions={plannedBulkActions}
-          />
         </>
       ) : null}
     </section>

@@ -1,4 +1,5 @@
 import { getOidcAccessToken } from "@/lib/auth/session";
+import { buildApiUrl } from "@/lib/api/serverConfig";
 import { z } from "zod";
 
 export type TaskStatus = "pending" | "in_progress" | "completed" | "skipped";
@@ -121,6 +122,9 @@ export interface UnifiedDayItem {
   scheduled_date: string | null;
   detail: string | null;
   module_key: PlannedItemModuleKey | null;
+  recurrence_hint?: string | null;
+  linked_source?: string | null;
+  linked_ref?: string | null;
 }
 
 export interface CalendarDayPayload {
@@ -203,6 +207,9 @@ const unifiedDayItemSchema = z.object({
   scheduled_date: z.string().nullable(),
   detail: z.string().nullable(),
   module_key: plannedItemModuleKeySchema.nullable(),
+  recurrence_hint: z.string().nullable().optional(),
+  linked_source: z.string().nullable().optional(),
+  linked_ref: z.string().nullable().optional(),
 });
 
 const calendarMonthDaySummarySchema = z.object({
@@ -274,6 +281,10 @@ export interface MedicationPlanInput {
   start_date: string;
   schedule_time: string;
   every_n_days: number;
+}
+
+export interface MedicationPlanUpdateInput extends MedicationPlanInput {
+  is_active: boolean;
 }
 
 export interface MedicationHistoryResponse {
@@ -410,7 +421,9 @@ async function fetchWithAuth(
   if (!token) {
     throw new ApiError("Not authenticated", 401);
   }
-  return fetchWithRetry(input, withAuthHeader(init, token), retries);
+  const url =
+    typeof input === "string" && !/^https?:\/\//i.test(input) ? buildApiUrl(input) : input;
+  return fetchWithRetry(url, withAuthHeader(init, token), retries);
 }
 
 async function parseJsonResponse<T>(
@@ -665,6 +678,32 @@ export async function createMedicationPlan(input: MedicationPlanInput): Promise<
     body: JSON.stringify(input),
   });
   return parseJsonResponse<MedicationPlan>(response, "Request failed", false);
+}
+
+export async function updateMedicationPlan(
+  medicationPlanId: number,
+  input: MedicationPlanUpdateInput,
+): Promise<MedicationPlan> {
+  const response = await fetchWithAuth(`/api/v1/medications/${medicationPlanId}`, {
+    method: "PUT",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(input),
+  });
+  return parseJsonResponse<MedicationPlan>(response, "Request failed", false);
+}
+
+export async function deleteMedicationPlan(medicationPlanId: number): Promise<void> {
+  const response = await fetchWithAuth(`/api/v1/medications/${medicationPlanId}`, {
+    method: "DELETE",
+    headers: { Accept: "application/json" },
+  });
+
+  if (!response.ok) {
+    await parseJsonResponse<never>(response, "Request failed", false);
+  }
 }
 
 export async function fetchMedicationHistory(

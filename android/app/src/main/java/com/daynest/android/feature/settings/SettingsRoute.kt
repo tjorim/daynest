@@ -2,6 +2,7 @@
 
 package com.daynest.android.feature.settings
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -37,7 +38,51 @@ import com.daynest.android.app.navigation.DaynestDestination
 import com.daynest.android.app.navigation.DaynestNavigationScaffold
 import com.daynest.android.data.settings.IntegrationClientDto
 import com.daynest.android.data.settings.IntegrationClientInputDto
+import com.daynest.android.data.settings.OAuthSessionDto
 import com.daynest.android.ui.ServerUrlPicker
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+
+private data class IntegrationPreset(
+    val labelResId: Int,
+    val descriptionResId: Int,
+    val input: IntegrationClientInputDto,
+)
+
+private val INTEGRATION_PRESETS =
+    listOf(
+        IntegrationPreset(
+            labelResId = R.string.settings_preset_ha_dashboard,
+            descriptionResId = R.string.settings_preset_ha_dashboard_desc,
+            input =
+                IntegrationClientInputDto(
+                    name = "Home Assistant",
+                    scopes = listOf("ha:read"),
+                    rateLimitPerMinute = 120,
+                ),
+        ),
+        IntegrationPreset(
+            labelResId = R.string.settings_preset_ha_automations,
+            descriptionResId = R.string.settings_preset_ha_automations_desc,
+            input =
+                IntegrationClientInputDto(
+                    name = "Home Assistant Automations",
+                    scopes = listOf("ha:read", "ha:write"),
+                    rateLimitPerMinute = 120,
+                ),
+        ),
+        IntegrationPreset(
+            labelResId = R.string.settings_preset_mcp_readonly,
+            descriptionResId = R.string.settings_preset_mcp_readonly_desc,
+            input =
+                IntegrationClientInputDto(
+                    name = "MCP Adapter",
+                    scopes = listOf("mcp:read"),
+                    rateLimitPerMinute = 60,
+                ),
+        ),
+    )
 
 @Composable
 fun SettingsRoute(
@@ -159,6 +204,35 @@ private fun SettingsContent(
 
         item {
             HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+            Text(
+                text = stringResource(id = R.string.settings_presets_section),
+                style = MaterialTheme.typography.titleMedium,
+            )
+        }
+
+        items(INTEGRATION_PRESETS, key = { it.labelResId }) { preset ->
+            Card(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable { onEvent(SettingsUiEvent.ShowCreateClientFormWithPreset(preset.input)) },
+            ) {
+                Column(modifier = Modifier.padding(12.dp)) {
+                    Text(
+                        text = stringResource(id = preset.labelResId),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    Text(
+                        text = stringResource(id = preset.descriptionResId),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.outline,
+                    )
+                }
+            }
+        }
+
+        item {
+            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -198,10 +272,36 @@ private fun SettingsContent(
                 IntegrationClientCard(client = client)
             }
         }
+
+        item {
+            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+            Text(
+                text = stringResource(id = R.string.settings_sessions_section),
+                style = MaterialTheme.typography.titleMedium,
+            )
+        }
+
+        if (state.sessions.isEmpty()) {
+            item {
+                Text(
+                    text = stringResource(id = R.string.settings_no_sessions),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.outline,
+                )
+            }
+        } else {
+            items(state.sessions, key = { "session_${it.id}" }) { session ->
+                OAuthSessionCard(
+                    session = session,
+                    onRevoke = { onEvent(SettingsUiEvent.RevokeSessionClicked(session.id)) },
+                )
+            }
+        }
     }
 
     if (state.showCreateForm) {
         CreateClientDialog(
+            initialValues = state.createFormPreset,
             onConfirm = { onEvent(SettingsUiEvent.CreateClient(it)) },
             onDismiss = { onEvent(SettingsUiEvent.DismissCreateClientForm) },
         )
@@ -212,6 +312,59 @@ private fun SettingsContent(
             apiKey = state.newApiKey,
             onDismiss = { onEvent(SettingsUiEvent.DismissNewKeyDialog) },
         )
+    }
+}
+
+@Composable
+private fun OAuthSessionCard(
+    session: OAuthSessionDto,
+    onRevoke: () -> Unit,
+) {
+    val formatter = remember { DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm").withZone(ZoneId.systemDefault()) }
+    val lastActiveText =
+        remember(session.lastAccess) {
+            session.lastAccess?.let { formatter.format(Instant.ofEpochMilli(it)) }
+        }
+
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                val clientNames =
+                    session.clients.values
+                        .joinToString(", ")
+                        .ifBlank { session.id.take(8) }
+                Text(text = clientNames, style = MaterialTheme.typography.bodyMedium)
+                if (!session.ipAddress.isNullOrBlank()) {
+                    Text(
+                        text = session.ipAddress,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.outline,
+                    )
+                }
+                if (lastActiveText != null) {
+                    Text(
+                        text = stringResource(id = R.string.settings_session_last_active, lastActiveText),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.outline,
+                    )
+                }
+            }
+            TextButton(
+                onClick = onRevoke,
+                colors =
+                    androidx.compose.material3.ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error,
+                    ),
+            ) {
+                Text(text = stringResource(id = R.string.settings_revoke_session))
+            }
+        }
     }
 }
 
@@ -266,12 +419,13 @@ private fun IntegrationClientCard(client: IntegrationClientDto) {
 
 @Composable
 private fun CreateClientDialog(
+    initialValues: IntegrationClientInputDto? = null,
     onConfirm: (IntegrationClientInputDto) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    var name by remember { mutableStateOf("") }
-    var scopes by remember { mutableStateOf("read") }
-    var rateLimit by remember { mutableStateOf("60") }
+    var name by remember(initialValues) { mutableStateOf(initialValues?.name ?: "") }
+    var scopes by remember(initialValues) { mutableStateOf(initialValues?.scopes?.joinToString(", ") ?: "") }
+    var rateLimit by remember(initialValues) { mutableStateOf(initialValues?.rateLimitPerMinute?.toString() ?: "60") }
 
     AlertDialog(
         onDismissRequest = onDismiss,

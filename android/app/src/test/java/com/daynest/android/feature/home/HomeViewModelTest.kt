@@ -8,9 +8,12 @@ import com.daynest.android.data.today.DueTodayItemDto
 import com.daynest.android.data.today.MedicationHistoryItemDto
 import com.daynest.android.data.today.MedicationTodayItemDto
 import com.daynest.android.data.today.OverdueTodayItemDto
+import com.daynest.android.data.today.PlannedItemApi
 import com.daynest.android.data.today.PlannedItemCreateDto
+import com.daynest.android.data.today.PlannedItemRepository
 import com.daynest.android.data.today.PlannedItemUpdateDto
 import com.daynest.android.data.today.PlannedTodayItemDto
+import com.daynest.android.data.today.RescheduleChoreDto
 import com.daynest.android.data.today.RoutineTodayItemDto
 import com.daynest.android.data.today.TaskMutationDto
 import com.daynest.android.data.today.TodayActionsApi
@@ -66,6 +69,7 @@ class HomeViewModelTest {
                             todayActionsApi = StubTodayActionsApi(),
                             todaySummaryDao = FakeTodaySummaryDao(),
                         ),
+                    plannedItemRepository = PlannedItemRepository(StubPlannedItemApi()),
                 )
 
             advanceUntilIdle()
@@ -93,6 +97,7 @@ class HomeViewModelTest {
                             todayActionsApi = StubTodayActionsApi(),
                             todaySummaryDao = FakeTodaySummaryDao(),
                         ),
+                    plannedItemRepository = PlannedItemRepository(StubPlannedItemApi()),
                 )
 
             advanceUntilIdle()
@@ -118,7 +123,11 @@ class HomeViewModelTest {
                     todayActionsApi = StubTodayActionsApi(),
                     todaySummaryDao = FakeTodaySummaryDao(),
                 )
-            val viewModel = HomeViewModel(repository = repository)
+            val viewModel =
+                HomeViewModel(
+                    repository = repository,
+                    plannedItemRepository = PlannedItemRepository(StubPlannedItemApi()),
+                )
 
             advanceUntilIdle()
             assertTrue(viewModel.uiState.value is HomeUiState.Error)
@@ -151,6 +160,7 @@ class HomeViewModelTest {
                             todayActionsApi = StubTodayActionsApi(),
                             todaySummaryDao = dao,
                         ),
+                    plannedItemRepository = PlannedItemRepository(StubPlannedItemApi()),
                 )
 
             advanceUntilIdle()
@@ -246,6 +256,11 @@ private class StubTodayActionsApi : TodayActionsApi {
 
     override suspend fun skipChore(id: Int): ChoreMutationDto = ChoreMutationDto(id, "skipped")
 
+    override suspend fun rescheduleChore(
+        id: Int,
+        request: RescheduleChoreDto,
+    ): ChoreMutationDto = ChoreMutationDto(id, "pending")
+
     override suspend fun completeTask(id: Int): TaskMutationDto = TaskMutationDto(id, "completed")
 
     override suspend fun skipTask(id: Int): TaskMutationDto = TaskMutationDto(id, "skipped")
@@ -255,7 +270,9 @@ private class StubTodayActionsApi : TodayActionsApi {
     override suspend fun takeDose(id: Int): DoseMutationDto = DoseMutationDto(id, "taken")
 
     override suspend fun skipDose(id: Int): DoseMutationDto = DoseMutationDto(id, "skipped")
+}
 
+private class StubPlannedItemApi : PlannedItemApi {
     override suspend fun updatePlannedItem(
         id: Int,
         request: PlannedItemUpdateDto,
@@ -265,4 +282,9 @@ private class StubTodayActionsApi : TodayActionsApi {
 
     override suspend fun createPlannedItem(request: PlannedItemCreateDto): PlannedTodayItemDto =
         PlannedTodayItemDto(0, request.title, false)
+
+    override suspend fun listPlannedItems(
+        startDate: String?,
+        endDate: String?,
+    ): List<PlannedTodayItemDto> = emptyList()
 }

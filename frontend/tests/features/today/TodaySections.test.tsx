@@ -2,7 +2,21 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import { SectionCard, SummaryCard, WebFocusPanel, type BulkAction } from "@/features/today/TodaySections";
+import {
+  SectionCard,
+  SummaryCard,
+  WebFocusPanel,
+  isItemActionable,
+  isItemCompleted,
+  buildDueTodayItems,
+  buildRoutineItems,
+  buildOverdueItems,
+  buildUpcomingItems,
+  buildPlannedItems,
+  buildMedicationItems,
+  buildMedicationHistoryItems,
+  type BulkAction,
+} from "@/features/today/TodaySections";
 import type { SectionItem } from "@/lib/api/today";
 
 describe("Today section components", () => {
@@ -188,5 +202,172 @@ describe("Today section components", () => {
       expect(onRefresh).toHaveBeenCalledTimes(1);
     });
     expect(screen.getByText("Bulk Done updated 1 item and failed for 1.")).toBeInTheDocument();
+  });
+
+  it("selects all items via the select-all checkbox", async () => {
+    const user = userEvent.setup();
+    const onRefresh = vi.fn().mockResolvedValue(undefined);
+    const runBulkDone = vi.fn().mockResolvedValue(undefined);
+    const items: SectionItem[] = [
+      { id: "item-1", title: "Water plants", choreInstanceId: 1, choreStatus: "pending" },
+      { id: "item-2", title: "Laundry", choreInstanceId: 2, choreStatus: "pending" },
+    ];
+    const bulkActions: BulkAction[] = [
+      {
+        key: "bulk-done",
+        label: "Bulk Done",
+        buttonClassName: "btn-success",
+        isAvailable: () => true,
+        run: runBulkDone,
+      },
+    ];
+
+    render(
+      <SectionCard
+        sectionId="due-today"
+        heading="Due Today"
+        items={items}
+        onRefresh={onRefresh}
+        bulkActions={bulkActions}
+      />,
+    );
+
+    const selectAll = screen.getByRole("checkbox", { name: "Select all" });
+    expect(selectAll).not.toBeChecked();
+
+    await user.click(selectAll);
+    expect(screen.getByLabelText("Select Water plants")).toBeChecked();
+    expect(screen.getByLabelText("Select Laundry")).toBeChecked();
+
+    await user.click(selectAll);
+    expect(screen.getByLabelText("Select Water plants")).not.toBeChecked();
+    expect(screen.getByLabelText("Select Laundry")).not.toBeChecked();
+  });
+
+});
+
+const plannedBase = { notes: null, module_key: null, recurrence_hint: null, linked_source: null, linked_ref: null };
+
+describe("isItemActionable", () => {
+  it("returns true for a pending chore", () => {
+    expect(isItemActionable({ id: "c1", title: "T", choreInstanceId: 1, choreStatus: "pending" })).toBe(true);
+  });
+
+  it("returns false for a completed chore", () => {
+    expect(isItemActionable({ id: "c1", title: "T", choreInstanceId: 1, choreStatus: "completed" })).toBe(false);
+  });
+
+  it("returns false for a skipped chore", () => {
+    expect(isItemActionable({ id: "c1", title: "T", choreInstanceId: 1, choreStatus: "skipped" })).toBe(false);
+  });
+
+  it("returns true for a pending task", () => {
+    expect(isItemActionable({ id: "t1", title: "T", taskInstanceId: 1, taskStatus: "pending" })).toBe(true);
+  });
+
+  it("returns false for a completed task", () => {
+    expect(isItemActionable({ id: "t1", title: "T", taskInstanceId: 1, taskStatus: "completed" })).toBe(false);
+  });
+
+  it("returns true for a scheduled medication", () => {
+    expect(isItemActionable({ id: "m1", title: "T", medicationDoseInstanceId: 1, medicationStatus: "scheduled" })).toBe(true);
+  });
+
+  it("returns true for a missed medication", () => {
+    expect(isItemActionable({ id: "m1", title: "T", medicationDoseInstanceId: 1, medicationStatus: "missed" })).toBe(true);
+  });
+
+  it("returns false for a taken medication", () => {
+    expect(isItemActionable({ id: "m1", title: "T", medicationDoseInstanceId: 1, medicationStatus: "taken" })).toBe(false);
+  });
+
+  it("returns true for an undone planned item", () => {
+    expect(isItemActionable({ id: "p1", title: "T", plannedItem: { id: 1, title: "T", planned_for: "2026-05-20", is_done: false, ...plannedBase } })).toBe(true);
+  });
+
+  it("returns false for a done planned item", () => {
+    expect(isItemActionable({ id: "p1", title: "T", plannedItem: { id: 1, title: "T", planned_for: "2026-05-20", is_done: true, ...plannedBase } })).toBe(false);
+  });
+
+  it("returns false when no typed fields are set", () => {
+    expect(isItemActionable({ id: "x", title: "T" })).toBe(false);
+  });
+});
+
+describe("isItemCompleted", () => {
+  it("returns true for a completed chore", () => {
+    expect(isItemCompleted({ id: "c1", title: "T", choreInstanceId: 1, choreStatus: "completed" })).toBe(true);
+  });
+
+  it("returns false for a pending chore", () => {
+    expect(isItemCompleted({ id: "c1", title: "T", choreInstanceId: 1, choreStatus: "pending" })).toBe(false);
+  });
+
+  it("returns true for a completed task", () => {
+    expect(isItemCompleted({ id: "t1", title: "T", taskInstanceId: 1, taskStatus: "completed" })).toBe(true);
+  });
+
+  it("returns true for a taken medication", () => {
+    expect(isItemCompleted({ id: "m1", title: "T", medicationDoseInstanceId: 1, medicationStatus: "taken" })).toBe(true);
+  });
+
+  it("returns false for a scheduled medication", () => {
+    expect(isItemCompleted({ id: "m1", title: "T", medicationDoseInstanceId: 1, medicationStatus: "scheduled" })).toBe(false);
+  });
+
+  it("returns true for a done planned item", () => {
+    expect(isItemCompleted({ id: "p1", title: "T", plannedItem: { id: 1, title: "T", planned_for: "2026-05-20", is_done: true, ...plannedBase } })).toBe(true);
+  });
+
+  it("returns false when no typed fields are set", () => {
+    expect(isItemCompleted({ id: "x", title: "T" })).toBe(false);
+  });
+});
+
+describe("build item helpers", () => {
+  it("buildDueTodayItems maps chore fields", () => {
+    const result = buildDueTodayItems([{ chore_instance_id: 7, chore_template_id: 1, title: "Mop", status: "pending", scheduled_date: "2026-05-20" }]);
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({ id: "due-7", title: "Mop", choreInstanceId: 7, choreStatus: "pending", statusTone: "warning" });
+  });
+
+  it("buildDueTodayItems uses success tone for completed status", () => {
+    const [item] = buildDueTodayItems([{ chore_instance_id: 1, chore_template_id: 1, title: "T", status: "completed", scheduled_date: "2026-05-20" }]);
+    expect(item!.statusTone).toBe("success");
+  });
+
+  it("buildRoutineItems maps task fields", () => {
+    const result = buildRoutineItems([{ task_instance_id: 3, routine_template_id: 1, title: "Stretch", status: "pending", scheduled_date: "2026-05-20", due_at: null }]);
+    expect(result[0]).toMatchObject({ id: "routine-3", taskInstanceId: 3, taskStatus: "pending", statusTone: "warning" });
+  });
+
+  it("buildOverdueItems sets overdue status", () => {
+    const [item] = buildOverdueItems([{ chore_instance_id: 2, chore_template_id: 1, title: "Dishes", status: "pending", overdue_since: "2026-05-18" }]);
+    expect(item).toMatchObject({ id: "overdue-2", statusLabel: "Overdue", statusTone: "danger", choreStatus: "pending" });
+  });
+
+  it("buildUpcomingItems sets upcoming status", () => {
+    const [item] = buildUpcomingItems([{ chore_instance_id: 5, chore_template_id: 1, title: "Call", scheduled_date: "2026-05-22" }]);
+    expect(item).toMatchObject({ id: "upcoming-5", statusLabel: "Upcoming", statusTone: "primary" });
+  });
+
+  it("buildPlannedItems maps planned item fields", () => {
+    const [item] = buildPlannedItems([{ id: 9, title: "Read", planned_for: "2026-05-20", is_done: false, ...plannedBase }]);
+    expect(item).toMatchObject({ id: "planned-9", statusLabel: "Planned", statusTone: "secondary" });
+  });
+
+  it("buildPlannedItems uses done tone when is_done", () => {
+    const [item] = buildPlannedItems([{ id: 9, title: "Read", planned_for: "2026-05-20", is_done: true, ...plannedBase }]);
+    expect(item).toMatchObject({ statusLabel: "Done", statusTone: "success" });
+  });
+
+  it("buildMedicationItems maps medication fields", () => {
+    const [item] = buildMedicationItems([{ medication_dose_instance_id: 4, medication_plan_id: 1, name: "Aspirin", status: "scheduled", scheduled_at: "2026-05-20T08:00:00Z", instructions: "" }]);
+    expect(item).toMatchObject({ id: "medication-4", title: "Aspirin", medicationDoseInstanceId: 4, medicationStatus: "scheduled", statusTone: "info" });
+  });
+
+  it("buildMedicationHistoryItems maps history fields", () => {
+    const [item] = buildMedicationHistoryItems([{ medication_dose_instance_id: 6, medication_plan_id: 1, name: "Ibuprofen", status: "taken", scheduled_at: "2026-05-19T09:00:00Z", instructions: "" }]);
+    expect(item).toMatchObject({ id: "medication-history-6", title: "Ibuprofen", statusTone: "success" });
   });
 });

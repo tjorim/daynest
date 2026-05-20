@@ -22,8 +22,11 @@ class DynamicBaseUrlInterceptor
             // Avoid duplicating the base path prefix when request path already includes it
             // (e.g. base "/api/" + request "/api/v1" must not produce "/api/api/v1").
             val mergedPath =
-                if (basePath.isEmpty() || requestPath.startsWith("$basePath/")) requestPath
-                else "$basePath$requestPath"
+                if (basePath.isEmpty() || requestPath.startsWith("$basePath/")) {
+                    requestPath
+                } else {
+                    "$basePath$requestPath"
+                }
             val newUrl =
                 request.url
                     .newBuilder()

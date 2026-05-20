@@ -97,4 +97,8 @@ data class PlannedTodayItemDto(
     val moduleKey: String? = null,
     @SerialName("recurrence_hint")
     val recurrenceHint: String? = null,
+    @SerialName("linked_source")
+    val linkedSource: String? = null,
+    @SerialName("linked_ref")
+    val linkedRef: String? = null,
 )

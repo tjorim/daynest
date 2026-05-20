@@ -1,11 +1,14 @@
 import { useEffect, useState } from "react";
 import {
   createMedicationPlan,
+  deleteMedicationPlan,
   fetchMedicationHistory,
   isRetryableApiError,
   listMedicationPlans,
+  updateMedicationPlan,
   type MedicationHistoryItem,
   type MedicationPlan,
+  type MedicationPlanUpdateInput,
 } from "@/lib/api/today";
 import { formatDate, formatDateTime } from "@/lib/dateUtils";
 
@@ -24,6 +27,8 @@ export function MedicationPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [editingPlan, setEditingPlan] = useState<MedicationPlan | null>(null);
+  const [deletingPlanId, setDeletingPlanId] = useState<number | null>(null);
 
   const [name, setName] = useState("");
   const [instructions, setInstructions] = useState("");
@@ -97,6 +102,39 @@ export function MedicationPage() {
       setSubmitError(err instanceof Error ? err.message : "Failed to create medication plan.");
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const onUpdatePlan = async (planId: number, input: MedicationPlanUpdateInput) => {
+    setIsSubmitting(true);
+    setSubmitError(null);
+    setSuccessMessage(null);
+
+    try {
+      await updateMedicationPlan(planId, input);
+      setEditingPlan(null);
+      setSuccessMessage("Medication plan updated.");
+      await loadMedication();
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : "Failed to update medication plan.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const onDeletePlan = async (planId: number) => {
+    setDeletingPlanId(planId);
+    setSubmitError(null);
+    setSuccessMessage(null);
+
+    try {
+      await deleteMedicationPlan(planId);
+      setSuccessMessage("Medication plan deleted.");
+      await loadMedication();
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : "Failed to delete medication plan.");
+    } finally {
+      setDeletingPlanId(null);
     }
   };
 
@@ -216,7 +254,7 @@ export function MedicationPage() {
               ) : (
                 plans.map((plan) => (
                   <li key={plan.id} className="list-group-item py-2">
-                    <div className="d-flex justify-content-between align-items-start gap-3">
+                    <div className="d-flex justify-content-between align-items-start gap-3 flex-column flex-sm-row">
                       <div>
                         <div className="fw-semibold">{plan.name}</div>
                         <small className="text-muted d-block">
@@ -225,11 +263,28 @@ export function MedicationPage() {
                         </small>
                         <small className="d-block mt-1">{plan.instructions}</small>
                       </div>
-                      <span
-                        className={`badge align-self-start ${plan.is_active ? "text-bg-success" : "text-bg-secondary"}`}
-                      >
-                        {plan.is_active ? "Active" : "Inactive"}
-                      </span>
+                      <div className="d-flex gap-2 align-items-center flex-wrap">
+                        <span
+                          className={`badge align-self-start ${plan.is_active ? "text-bg-success" : "text-bg-secondary"}`}
+                        >
+                          {plan.is_active ? "Active" : "Inactive"}
+                        </span>
+                        <button
+                          type="button"
+                          className="btn btn-outline-primary btn-sm"
+                          onClick={() => setEditingPlan(plan)}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-outline-danger btn-sm"
+                          disabled={deletingPlanId === plan.id}
+                          onClick={() => void onDeletePlan(plan.id)}
+                        >
+                          {deletingPlanId === plan.id ? "Deleting…" : "Delete"}
+                        </button>
+                      </div>
                     </div>
                   </li>
                 ))
@@ -268,6 +323,125 @@ export function MedicationPage() {
           </div>
         </div>
       </div>
+      {editingPlan ? (
+        <EditMedicationPlanDialog
+          plan={editingPlan}
+          isSubmitting={isSubmitting}
+          onCancel={() => setEditingPlan(null)}
+          onSubmit={(input) => void onUpdatePlan(editingPlan.id, input)}
+        />
+      ) : null}
     </section>
+  );
+}
+
+function EditMedicationPlanDialog({
+  plan,
+  isSubmitting,
+  onCancel,
+  onSubmit,
+}: {
+  plan: MedicationPlan;
+  isSubmitting: boolean;
+  onCancel: () => void;
+  onSubmit: (input: MedicationPlanUpdateInput) => void;
+}) {
+  const [name, setName] = useState(plan.name);
+  const [instructions, setInstructions] = useState(plan.instructions);
+  const [startDate, setStartDate] = useState(plan.start_date);
+  const [scheduleTime, setScheduleTime] = useState(plan.schedule_time.slice(0, 5));
+  const [everyNDays, setEveryNDays] = useState(String(plan.every_n_days));
+  const [isActive, setIsActive] = useState(plan.is_active);
+  const [error, setError] = useState<string | null>(null);
+
+  const submit = () => {
+    const parsedEvery = parseInt(everyNDays, 10);
+    if (!name.trim() || !instructions.trim()) {
+      setError("Name and instructions are required.");
+      return;
+    }
+    if (!Number.isInteger(parsedEvery) || parsedEvery < 1) {
+      setError("Every N days must be a positive integer.");
+      return;
+    }
+    onSubmit({
+      name: name.trim(),
+      instructions: instructions.trim(),
+      start_date: startDate,
+      schedule_time: scheduleTime.length === 5 ? `${scheduleTime}:00` : scheduleTime,
+      every_n_days: parsedEvery,
+      is_active: isActive,
+    });
+  };
+
+  return (
+    <div className="modal d-block" tabIndex={-1} role="dialog" aria-modal="true">
+      <div className="modal-dialog">
+        <div className="modal-content">
+          <div className="modal-header">
+            <h3 className="modal-title h5">Edit medication plan</h3>
+            <button type="button" className="btn-close" aria-label="Close" onClick={onCancel} />
+          </div>
+          <div className="modal-body d-grid gap-2">
+            {error ? <div className="alert alert-danger py-2">{error}</div> : null}
+            <input className="form-control" value={name} onChange={(event) => setName(event.target.value)} />
+            <textarea
+              className="form-control"
+              rows={3}
+              value={instructions}
+              onChange={(event) => setInstructions(event.target.value)}
+            />
+            <div className="row g-2">
+              <div className="col-sm-6">
+                <label className="form-label small fw-semibold mb-1">Start date</label>
+                <input
+                  className="form-control"
+                  type="date"
+                  value={startDate}
+                  onChange={(event) => setStartDate(event.target.value)}
+                />
+              </div>
+              <div className="col-sm-6">
+                <label className="form-label small fw-semibold mb-1">Schedule time</label>
+                <input
+                  className="form-control"
+                  type="time"
+                  value={scheduleTime}
+                  onChange={(event) => setScheduleTime(event.target.value)}
+                />
+              </div>
+            </div>
+            <div>
+              <label className="form-label small fw-semibold mb-1">Every N days</label>
+              <input
+                className="form-control"
+                type="number"
+                min={1}
+                value={everyNDays}
+                onChange={(event) => setEveryNDays(event.target.value)}
+              />
+            </div>
+            <label className="form-check">
+              <input
+                className="form-check-input"
+                type="checkbox"
+                checked={isActive}
+                onChange={(event) => setIsActive(event.target.checked)}
+              />
+              <span className="form-check-label">Active</span>
+            </label>
+          </div>
+          <div className="modal-footer">
+            <button type="button" className="btn btn-outline-secondary" onClick={onCancel}>
+              Cancel
+            </button>
+            <button type="button" className="btn btn-primary" disabled={isSubmitting} onClick={submit}>
+              {isSubmitting ? "Saving…" : "Save"}
+            </button>
+          </div>
+        </div>
+      </div>
+      <div className="modal-backdrop show" />
+    </div>
   );
 }

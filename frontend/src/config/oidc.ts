@@ -10,7 +10,7 @@ export const AUTH_ROUTE_PATHS = new Set(["/auth", "/auth/callback"]);
 
 function resolveReturnTo(raw: unknown): string {
   if (typeof raw === "string" && raw.startsWith("/") && !raw.startsWith("//")) {
-    const pathname = raw.split(/[?#]/)[0];
+    const pathname = raw.split(/[?#]/)[0] ?? "";
     return AUTH_ROUTE_PATHS.has(pathname) ? "/today" : raw;
   }
 

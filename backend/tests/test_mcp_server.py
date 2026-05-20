@@ -1,5 +1,6 @@
 import asyncio
-from datetime import datetime, time, timezone
+from hashlib import sha256
+from datetime import datetime, time, timedelta, timezone
 
 import pytest
 
@@ -9,9 +10,11 @@ from app.api.dependencies.integration_auth import hash_integration_key
 from app.mcp_server import DaynestMcpAccessToken, DaynestMcpBackend, IntegrationKeyTokenVerifier, OIDCMcpTokenVerifier, create_mcp_server
 from app.models.chore_template import ChoreTemplate
 from app.models.integration_client import IntegrationClient
+from app.models.medication_dose_instance import MedicationDoseInstance
 from app.models.medication_plan import MedicationPlan
 from app.models.routine_template import RoutineTemplate
 from app.models.user import User
+from app.core.enums import MedicationDoseStatus
 
 
 def _session_factory(db_session: Session) -> sessionmaker[Session]:
@@ -153,6 +156,41 @@ def test_mcp_backend_can_list_medications(db_session: Session) -> None:
     assert medications[0]["is_active"] is True
 
 
+def test_mcp_backend_can_get_medication_history(db_session: Session) -> None:
+    utc_today = datetime.now(timezone.utc).date()
+    user = _create_user(db_session, "med-history@example.com")
+    plan = MedicationPlan(
+        user_id=user.id,
+        name="Vitamin D",
+        instructions="Take with breakfast",
+        start_date=utc_today,
+        schedule_time=time(8, 0),
+        every_n_days=1,
+        is_active=True,
+    )
+    db_session.add(plan)
+    db_session.commit()
+    db_session.refresh(plan)
+    dose = MedicationDoseInstance(
+        user_id=user.id,
+        medication_plan_id=plan.id,
+        name=plan.name,
+        instructions=plan.instructions,
+        scheduled_date=utc_today - timedelta(days=1),
+        scheduled_at=datetime(2026, 1, 1, 8, 0, tzinfo=timezone.utc),
+        status=MedicationDoseStatus.taken,
+    )
+    db_session.add(dose)
+    db_session.commit()
+    backend = DaynestMcpBackend(_session_factory(db_session), user_email=user.email)
+
+    history = backend.get_medication_history()
+
+    assert history["history"][0]["medication_plan_id"] == plan.id
+    assert history["history"][0]["name"] == "Vitamin D"
+    assert history["history"][0]["status"] == "taken"
+
+
 def test_mcp_backend_can_create_medication(db_session: Session) -> None:
     user = _create_user(db_session, "med-create@example.com")
     backend = DaynestMcpBackend(_session_factory(db_session), user_email=user.email)
@@ -237,6 +275,53 @@ def test_mcp_backend_delete_medication_raises_for_missing_plan(db_session: Sessi
 
     with pytest.raises(ValueError, match="not found"):
         backend.delete_medication(9999)
+
+
+def test_mcp_backend_can_list_integration_clients(db_session: Session) -> None:
+    user = _create_user(db_session, "integration-list@example.com")
+    _create_integration_client(db_session, user, raw_key="daynest_existing_key", scopes="mcp:read,ha:read")
+    backend = DaynestMcpBackend(_session_factory(db_session), user_email=user.email)
+
+    clients = backend.list_integration_clients()
+
+    assert len(clients) == 1
+    assert clients[0]["name"] == "MCP Client"
+    assert clients[0]["scopes"] == ["mcp:read", "ha:read"]
+    assert clients[0]["is_active"] is True
+
+
+def test_integration_key_hash_is_not_plain_sha256() -> None:
+    raw_key = "daynest_secret_key"
+
+    assert hash_integration_key(raw_key) != sha256(raw_key.encode("utf-8")).hexdigest()
+
+
+def test_mcp_backend_can_create_integration_client(db_session: Session) -> None:
+    user = _create_user(db_session, "integration-create@example.com")
+    backend = DaynestMcpBackend(_session_factory(db_session), user_email=user.email)
+
+    created = backend.create_integration_client(
+        name="Mobile automation",
+        scopes=["ha:write", "mcp:read", "ha:write"],
+        rate_limit_per_minute=120,
+    )
+    clients = backend.list_integration_clients()
+    verifier = IntegrationKeyTokenVerifier(_session_factory(db_session))
+    token = asyncio.run(verifier.verify_token(created["api_key"]))
+
+    assert created["name"] == "Mobile automation"
+    assert created["scopes"] == ["ha:write", "mcp:read"]
+    assert created["api_key"].startswith("daynest_")
+    assert clients[0]["id"] == created["id"]
+    assert token is not None
+
+
+def test_mcp_backend_create_integration_client_requires_scope(db_session: Session) -> None:
+    user = _create_user(db_session, "integration-create-missing-scope@example.com")
+    backend = DaynestMcpBackend(_session_factory(db_session), user_email=user.email)
+
+    with pytest.raises(ValueError, match="scope"):
+        backend.create_integration_client(name="No scopes", scopes=[])
 
 
 def test_integration_key_token_verifier_accepts_mcp_scoped_key(db_session: Session) -> None:

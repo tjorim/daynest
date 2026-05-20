@@ -6,14 +6,17 @@ import com.daynest.android.data.calendar.CalendarDaySummaryDto
 import com.daynest.android.data.calendar.CalendarRepository
 import com.daynest.android.data.calendar.UnifiedDayItemDto
 import com.daynest.android.data.today.PlannedItemCreateDto
+import com.daynest.android.data.today.PlannedItemRepository
+import com.daynest.android.data.today.PlannedItemUpdateDto
 import com.daynest.android.data.today.PlannedTodayItemDto
-import com.daynest.android.data.today.TodayRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 import java.time.LocalDate
 import javax.inject.Inject
 
@@ -22,12 +25,20 @@ class CalendarViewModel
     @Inject
     constructor(
         private val calendarRepository: CalendarRepository,
-        private val todayRepository: TodayRepository,
+        private val plannedItemRepository: PlannedItemRepository,
     ) : ViewModel() {
         private val _uiState = MutableStateFlow<CalendarUiState>(CalendarUiState.Loading)
         val uiState: StateFlow<CalendarUiState> = _uiState.asStateFlow()
 
         private val today = LocalDate.now()
+
+        private val backupHandler =
+            CalendarBackupHandler(
+                scope = viewModelScope,
+                plannedItemRepository = plannedItemRepository,
+                uiState = _uiState,
+                onRefresh = ::retryCurrentMonth,
+            )
 
         init {
             loadMonth(today.year, today.monthValue)
@@ -39,9 +50,13 @@ class CalendarViewModel
                 is CalendarUiEvent.NextMonthClicked -> navigateMonth(1)
                 is CalendarUiEvent.DaySelected -> loadDay(event.date)
                 is CalendarUiEvent.DayDeselected -> clearDay()
-                is CalendarUiEvent.AddPlannedItem -> addPlannedItem(event.title, event.date)
+                is CalendarUiEvent.AddPlannedItem -> addPlannedItem(event.input)
+                is CalendarUiEvent.UpdatePlannedItem -> updatePlannedItem(event.id, event.date, event.input)
                 is CalendarUiEvent.DeletePlannedItem -> deletePlannedItem(event.id, event.date)
                 is CalendarUiEvent.RetryClicked -> retryCurrentMonth()
+                is CalendarUiEvent.ExportMonthBackup -> backupHandler.exportMonthBackup(event.onReady)
+                is CalendarUiEvent.ImportBackup -> backupHandler.importBackup(event.items)
+                is CalendarUiEvent.BackupMessageChanged -> backupHandler.updateBackupMessage(event.message)
             }
         }
 
@@ -159,19 +174,35 @@ class CalendarViewModel
             }
         }
 
-        private fun addPlannedItem(
-            title: String,
+        private fun updatePlannedItem(
+            id: Int,
             date: String,
+            input: PlannedItemUpdateDto,
         ) {
             viewModelScope.launch {
-                val result = todayRepository.createPlannedItem(PlannedItemCreateDto(title = title, plannedFor = date))
+                val result = plannedItemRepository.updatePlannedItem(id, input)
+                result.onSuccess { updated ->
+                    _uiState.update { current ->
+                        if (current is CalendarUiState.Content) {
+                            current.withUpdatedPlannedItem(id = id, sourceDate = date, updated = updated)
+                        } else {
+                            current
+                        }
+                    }
+                }
+            }
+        }
+
+        private fun addPlannedItem(input: PlannedItemCreateDto) {
+            viewModelScope.launch {
+                val result = plannedItemRepository.createPlannedItem(input)
                 result.onSuccess { plannedItem ->
                     _uiState.update { current ->
                         if (current is CalendarUiState.Content) {
                             current.copy(
-                                days = current.days.adjustPlannedSummary(date = date, delta = 1),
+                                days = current.days.adjustPlannedSummary(date = input.plannedFor, delta = 1),
                                 dayItems =
-                                    if (current.selectedDate == date) {
+                                    if (current.selectedDate == input.plannedFor) {
                                         current.dayItems + plannedItem.toUnifiedDayItem()
                                     } else {
                                         current.dayItems
@@ -190,7 +221,7 @@ class CalendarViewModel
             date: String,
         ) {
             viewModelScope.launch {
-                val result = todayRepository.deletePlannedItem(id)
+                val result = plannedItemRepository.deletePlannedItem(id)
                 if (result.isSuccess) {
                     _uiState.update { current ->
                         if (current is CalendarUiState.Content) {
@@ -221,7 +252,76 @@ private fun PlannedTodayItemDto.toUnifiedDayItem() =
         scheduledDate = plannedFor,
         detail = notes,
         moduleKey = moduleKey,
+        recurrenceHint = recurrenceHint,
+        linkedSource = linkedSource,
+        linkedRef = linkedRef,
     )
+
+private fun CalendarUiState.Content.withUpdatedPlannedItem(
+    id: Int,
+    sourceDate: String,
+    updated: PlannedTodayItemDto,
+): CalendarUiState.Content {
+    val targetDate = updated.plannedFor
+    val moved = sourceDate != targetDate
+    return copy(
+        days = days.adjustForPlannedMove(sourceDate, targetDate, displayMonth, moved),
+        dayItems = dayItems.updatePlannedDayItems(id, sourceDate, targetDate, selectedDate, moved, updated),
+    )
+}
+
+private fun List<CalendarDaySummaryDto>.adjustForPlannedMove(
+    sourceDate: String,
+    targetDate: String,
+    displayMonth: LocalDate,
+    moved: Boolean,
+): List<CalendarDaySummaryDto> {
+    if (!moved) return this
+    var adjustedDays = this
+    if (sourceDate.isInMonth(displayMonth)) {
+        adjustedDays = adjustedDays.adjustPlannedSummary(date = sourceDate, delta = -1)
+    }
+    if (targetDate.isInMonth(displayMonth)) {
+        adjustedDays = adjustedDays.adjustPlannedSummary(date = targetDate, delta = 1)
+    }
+    return adjustedDays
+}
+
+private fun List<UnifiedDayItemDto>.updatePlannedDayItems(
+    id: Int,
+    sourceDate: String,
+    targetDate: String,
+    selectedDate: String?,
+    moved: Boolean,
+    updated: PlannedTodayItemDto,
+): List<UnifiedDayItemDto> =
+    when {
+        !moved && selectedDate == sourceDate -> replacePlannedItem(id, updated)
+        moved && selectedDate == sourceDate -> removePlannedItem(id)
+        moved && selectedDate == targetDate -> removePlannedItem(id) + updated.toUnifiedDayItem()
+        else -> this
+    }
+
+private fun List<UnifiedDayItemDto>.replacePlannedItem(
+    id: Int,
+    updated: PlannedTodayItemDto,
+): List<UnifiedDayItemDto> =
+    map { item ->
+        if (item.itemType == "planned" && item.itemId == id) {
+            updated.toUnifiedDayItem()
+        } else {
+            item
+        }
+    }
+
+private fun List<UnifiedDayItemDto>.removePlannedItem(id: Int): List<UnifiedDayItemDto> =
+    filterNot { it.itemType == "planned" && it.itemId == id }
+
+private fun String.isInMonth(displayMonth: LocalDate): Boolean =
+    runCatching {
+        val parsed = LocalDate.parse(this)
+        parsed.year == displayMonth.year && parsed.month == displayMonth.month
+    }.getOrDefault(false)
 
 private fun List<CalendarDaySummaryDto>.adjustPlannedSummary(
     date: String,
@@ -270,6 +370,7 @@ sealed interface CalendarUiState {
         val dayItems: List<UnifiedDayItemDto>,
         val isLoadingMonth: Boolean,
         val isLoadingDay: Boolean,
+        val backupMessage: CalendarBackupMessage? = null,
     ) : CalendarUiState
 
     data class Error(
@@ -289,8 +390,13 @@ sealed interface CalendarUiEvent {
     data object DayDeselected : CalendarUiEvent
 
     data class AddPlannedItem(
-        val title: String,
+        val input: PlannedItemCreateDto,
+    ) : CalendarUiEvent
+
+    data class UpdatePlannedItem(
+        val id: Int,
         val date: String,
+        val input: PlannedItemUpdateDto,
     ) : CalendarUiEvent
 
     data class DeletePlannedItem(
@@ -299,4 +405,51 @@ sealed interface CalendarUiEvent {
     ) : CalendarUiEvent
 
     data object RetryClicked : CalendarUiEvent
+
+    data class ExportMonthBackup(
+        val onReady: (PlannedItemBackupDto) -> Unit,
+    ) : CalendarUiEvent
+
+    data class ImportBackup(
+        val items: List<PlannedItemCreateDto>,
+    ) : CalendarUiEvent
+
+    data class BackupMessageChanged(
+        val message: CalendarBackupMessage,
+    ) : CalendarUiEvent
 }
+
+sealed interface CalendarBackupMessage {
+    data object InvalidImport : CalendarBackupMessage
+
+    data class ImportComplete(
+        val imported: Int,
+        val failed: Int,
+    ) : CalendarBackupMessage
+}
+
+@Serializable
+data class PlannedItemBackupDto(
+    val source: String,
+    @SerialName("schema_version")
+    val schemaVersion: Int,
+    @SerialName("exported_at")
+    val exportedAt: String,
+    val items: List<PlannedItemBackupItemDto>,
+)
+
+@Serializable
+data class PlannedItemBackupItemDto(
+    val title: String,
+    @SerialName("planned_for")
+    val plannedFor: String,
+    val notes: String? = null,
+    @SerialName("module_key")
+    val moduleKey: String? = null,
+    @SerialName("recurrence_hint")
+    val recurrenceHint: String? = null,
+    @SerialName("linked_source")
+    val linkedSource: String? = null,
+    @SerialName("linked_ref")
+    val linkedRef: String? = null,
+)

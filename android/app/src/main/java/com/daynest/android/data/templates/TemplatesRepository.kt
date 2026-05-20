@@ -15,6 +15,13 @@ class TemplatesRepository
         suspend fun createRoutine(request: RoutineTemplateInputDto): Result<RoutineTemplateDto> =
             safeApiCall { templatesApi.createRoutine(request) }
 
+        @Suppress("ktlint:standard:function-signature")
+        suspend fun updateRoutine(
+            id: Int,
+            request: RoutineTemplateInputDto,
+        ): Result<RoutineTemplateDto> =
+            safeApiCall { templatesApi.updateRoutine(id, request) }
+
         suspend fun deleteRoutine(id: Int): Result<Unit> =
             safeApiCall {
                 templatesApi.deleteRoutine(id)
@@ -25,6 +32,13 @@ class TemplatesRepository
 
         suspend fun createChore(request: ChoreTemplateInputDto): Result<ChoreTemplateDto> =
             safeApiCall { templatesApi.createChore(request) }
+
+        @Suppress("ktlint:standard:function-signature")
+        suspend fun updateChore(
+            id: Int,
+            request: ChoreTemplateInputDto,
+        ): Result<ChoreTemplateDto> =
+            safeApiCall { templatesApi.updateChore(id, request) }
 
         suspend fun deleteChore(id: Int): Result<Unit> =
             safeApiCall {

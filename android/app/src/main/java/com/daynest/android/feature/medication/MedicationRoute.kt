@@ -38,7 +38,10 @@ import com.daynest.android.app.navigation.DaynestNavigationScaffold
 import com.daynest.android.data.medication.MedicationHistoryItemDto
 import com.daynest.android.data.medication.MedicationPlanDto
 import com.daynest.android.data.medication.MedicationPlanInputDto
+import com.daynest.android.data.medication.MedicationPlanUpdateDto
 import java.time.LocalDate
+
+private const val SCHEDULE_TIME_DISPLAY_LENGTH = 5
 
 @Composable
 fun MedicationRoute(
@@ -113,6 +116,8 @@ private fun MedicationContent(
     onEvent: (MedicationUiEvent) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    var editTarget by remember { mutableStateOf<MedicationPlanDto?>(null) }
+
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
@@ -123,6 +128,16 @@ private fun MedicationContent(
                 text = stringResource(id = R.string.medication_title),
                 style = MaterialTheme.typography.headlineMedium,
             )
+        }
+
+        state.operationError?.let { message ->
+            item {
+                Text(
+                    text = message,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
         }
 
         item {
@@ -151,7 +166,11 @@ private fun MedicationContent(
             }
         } else {
             items(state.plans, key = { "plan_${it.id}" }) { plan ->
-                MedicationPlanCard(plan = plan)
+                MedicationPlanCard(
+                    plan = plan,
+                    onEdit = { editTarget = plan },
+                    onDelete = { onEvent(MedicationUiEvent.DeletePlanClicked(plan.id)) },
+                )
             }
         }
 
@@ -189,10 +208,25 @@ private fun MedicationContent(
             onDismiss = { onEvent(MedicationUiEvent.DismissCreateForm) },
         )
     }
+
+    editTarget?.let { plan ->
+        EditMedicationPlanDialog(
+            plan = plan,
+            onConfirm = {
+                onEvent(MedicationUiEvent.UpdatePlanClicked(plan.id, it))
+                editTarget = null
+            },
+            onDismiss = { editTarget = null },
+        )
+    }
 }
 
 @Composable
-private fun MedicationPlanCard(plan: MedicationPlanDto) {
+private fun MedicationPlanCard(
+    plan: MedicationPlanDto,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(12.dp)) {
             Row(
@@ -229,6 +263,20 @@ private fun MedicationPlanCard(plan: MedicationPlanDto) {
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.outline,
             )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                TextButton(onClick = onEdit) {
+                    Text(text = stringResource(id = R.string.action_edit))
+                }
+                TextButton(
+                    onClick = onDelete,
+                    colors =
+                        androidx.compose.material3.ButtonDefaults.textButtonColors(
+                            contentColor = MaterialTheme.colorScheme.error,
+                        ),
+                ) {
+                    Text(text = stringResource(id = R.string.action_delete))
+                }
+            }
         }
     }
 }
@@ -267,6 +315,99 @@ private fun MedicationHistoryCard(item: MedicationHistoryItemDto) {
             )
         }
     }
+}
+
+@Composable
+@Suppress("LongMethod")
+private fun EditMedicationPlanDialog(
+    plan: MedicationPlanDto,
+    onConfirm: (MedicationPlanUpdateDto) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var name by remember(plan) { mutableStateOf(plan.name) }
+    var instructions by remember(plan) { mutableStateOf(plan.instructions) }
+    var startDate by remember(plan) { mutableStateOf(plan.startDate) }
+    var scheduleTime by remember(plan) { mutableStateOf(plan.scheduleTime.take(SCHEDULE_TIME_DISPLAY_LENGTH)) }
+    var everyNDays by remember(plan) { mutableStateOf(plan.everyNDays.toString()) }
+    var isActive by remember(plan) { mutableStateOf(plan.isActive) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(text = stringResource(id = R.string.medication_edit_title)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text(text = stringResource(id = R.string.medication_name_label)) },
+                    singleLine = true,
+                )
+                OutlinedTextField(
+                    value = instructions,
+                    onValueChange = { instructions = it },
+                    label = { Text(text = stringResource(id = R.string.medication_instructions_label)) },
+                    singleLine = true,
+                )
+                OutlinedTextField(
+                    value = startDate,
+                    onValueChange = { startDate = it },
+                    label = { Text(text = stringResource(id = R.string.calendar_planned_date_label)) },
+                    singleLine = true,
+                )
+                OutlinedTextField(
+                    value = scheduleTime,
+                    onValueChange = { scheduleTime = it },
+                    label = { Text(text = stringResource(id = R.string.medication_time_label)) },
+                    singleLine = true,
+                )
+                OutlinedTextField(
+                    value = everyNDays,
+                    onValueChange = { everyNDays = it.filter { c -> c.isDigit() } },
+                    label = { Text(text = stringResource(id = R.string.medication_every_n_days_label)) },
+                    singleLine = true,
+                )
+                TextButton(onClick = { isActive = !isActive }) {
+                    Text(
+                        text =
+                            if (isActive) {
+                                stringResource(id = R.string.medication_active)
+                            } else {
+                                stringResource(id = R.string.medication_inactive)
+                            },
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    if (name.isNotBlank()) {
+                        onConfirm(
+                            MedicationPlanUpdateDto(
+                                name = name.trim(),
+                                instructions = instructions.trim(),
+                                startDate = startDate.trim().ifBlank { plan.startDate },
+                                scheduleTime =
+                                    scheduleTime.trim().ifBlank {
+                                        plan.scheduleTime.take(SCHEDULE_TIME_DISPLAY_LENGTH)
+                                    },
+                                everyNDays = everyNDays.toIntOrNull() ?: plan.everyNDays,
+                                isActive = isActive,
+                            ),
+                        )
+                    }
+                },
+                enabled = name.isNotBlank(),
+            ) {
+                Text(text = stringResource(id = R.string.action_save))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(text = stringResource(id = R.string.action_cancel))
+            }
+        },
+    )
 }
 
 @Composable

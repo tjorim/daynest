@@ -8,6 +8,7 @@ import com.daynest.android.core.storage.preferences.UserPreferencesRepository
 import com.daynest.android.data.settings.IntegrationClientCreateResponseDto
 import com.daynest.android.data.settings.IntegrationClientDto
 import com.daynest.android.data.settings.IntegrationClientInputDto
+import com.daynest.android.data.settings.OAuthSessionDto
 import com.daynest.android.data.settings.SettingsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.async
@@ -39,10 +40,12 @@ class SettingsViewModel
                 SettingsUiEvent.RetryClicked -> load()
                 SettingsUiEvent.SignOutClicked -> signOut()
                 SettingsUiEvent.ShowCreateClientForm -> showCreateForm()
+                is SettingsUiEvent.ShowCreateClientFormWithPreset -> showCreateFormWithPreset(event.preset)
                 SettingsUiEvent.DismissCreateClientForm -> dismissCreateForm()
                 SettingsUiEvent.DismissNewKeyDialog -> dismissNewKeyDialog()
                 is SettingsUiEvent.CreateClient -> createClient(event.input)
                 is SettingsUiEvent.UpdateServerUrl -> updateServerUrl(event.url)
+                is SettingsUiEvent.RevokeSessionClicked -> revokeSession(event.sessionId)
             }
         }
 
@@ -51,14 +54,18 @@ class SettingsViewModel
                 _uiState.value = SettingsUiState.Loading
                 val prefsDeferred = async { userPreferencesRepository.preferences.first() }
                 val clientsDeferred = async { settingsRepository.listClients() }
+                val sessionsDeferred = async { settingsRepository.listSessions() }
                 val prefs = prefsDeferred.await()
                 val clientsResult = clientsDeferred.await()
+                val sessionsResult = sessionsDeferred.await()
                 _uiState.value =
                     SettingsUiState.Content(
                         clients = clientsResult.getOrElse { emptyList() },
+                        sessions = sessionsResult.getOrElse { emptyList() },
                         showCreateForm = false,
+                        createFormPreset = null,
                         newApiKey = null,
-                        loadError = clientsResult.isFailure,
+                        loadError = clientsResult.isFailure || sessionsResult.isFailure,
                         customServerUrl = prefs.customServerUrl,
                         defaultServerUrl = BuildConfig.API_BASE_URL,
                     )
@@ -67,13 +74,31 @@ class SettingsViewModel
 
         private fun showCreateForm() {
             _uiState.update { current ->
-                if (current is SettingsUiState.Content) current.copy(showCreateForm = true) else current
+                if (current is SettingsUiState.Content) {
+                    current.copy(showCreateForm = true, createFormPreset = null)
+                } else {
+                    current
+                }
+            }
+        }
+
+        private fun showCreateFormWithPreset(preset: IntegrationClientInputDto) {
+            _uiState.update { current ->
+                if (current is SettingsUiState.Content) {
+                    current.copy(showCreateForm = true, createFormPreset = preset)
+                } else {
+                    current
+                }
             }
         }
 
         private fun dismissCreateForm() {
             _uiState.update { current ->
-                if (current is SettingsUiState.Content) current.copy(showCreateForm = false) else current
+                if (current is SettingsUiState.Content) {
+                    current.copy(showCreateForm = false, createFormPreset = null)
+                } else {
+                    current
+                }
             }
         }
 
@@ -113,6 +138,21 @@ class SettingsViewModel
             }
         }
 
+        private fun revokeSession(id: String) {
+            viewModelScope.launch {
+                val result = settingsRepository.revokeSession(id)
+                if (result.isSuccess) {
+                    _uiState.update { current ->
+                        if (current is SettingsUiState.Content) {
+                            current.copy(sessions = current.sessions.filter { it.id != id })
+                        } else {
+                            current
+                        }
+                    }
+                }
+            }
+        }
+
         private fun signOut() {
             oidcAuthService.signOut()
             _uiState.value = SettingsUiState.SignedOut
@@ -133,7 +173,9 @@ sealed interface SettingsUiState {
 
     data class Content(
         val clients: List<IntegrationClientDto>,
+        val sessions: List<OAuthSessionDto> = emptyList(),
         val showCreateForm: Boolean,
+        val createFormPreset: IntegrationClientInputDto?,
         val newApiKey: String?,
         val loadError: Boolean,
         val customServerUrl: String?,
@@ -150,6 +192,10 @@ sealed interface SettingsUiEvent {
 
     data object ShowCreateClientForm : SettingsUiEvent
 
+    data class ShowCreateClientFormWithPreset(
+        val preset: IntegrationClientInputDto,
+    ) : SettingsUiEvent
+
     data object DismissCreateClientForm : SettingsUiEvent
 
     data object DismissNewKeyDialog : SettingsUiEvent
@@ -160,5 +206,9 @@ sealed interface SettingsUiEvent {
 
     data class UpdateServerUrl(
         val url: String?,
+    ) : SettingsUiEvent
+
+    data class RevokeSessionClicked(
+        val sessionId: String,
     ) : SettingsUiEvent
 }

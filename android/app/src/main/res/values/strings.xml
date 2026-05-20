@@ -25,10 +25,16 @@
     <string name="today_overdue_since">Overdue since %1$s</string>
 
     <!-- Common actions -->
+    <string name="action_snooze">Snooze</string>
+    <string name="home_action_complete">Complete</string>
     <string name="action_done">Done</string>
     <string name="action_undo">Undo</string>
     <string name="action_skip">Skip</string>
     <string name="action_take">Take</string>
+    <string name="action_start">Start</string>
+    <string name="action_edit">Edit</string>
+    <string name="action_save">Save</string>
+    <string name="action_reschedule">Reschedule</string>
     <string name="action_delete">Delete</string>
     <string name="action_add">Add</string>
     <string name="action_cancel">Cancel</string>
@@ -51,7 +57,20 @@
     <string name="calendar_day_empty">No items for this day.</string>
     <string name="calendar_add_planned">+ Add planned</string>
     <string name="calendar_add_planned_title">Add planned item</string>
+    <string name="calendar_edit_planned_title">Edit planned item</string>
     <string name="calendar_planned_title_label">Title</string>
+    <string name="calendar_planned_date_label">Date (YYYY-MM-DD)</string>
+    <string name="calendar_planned_notes_label">Notes</string>
+    <string name="calendar_planned_module_label">Module key</string>
+    <string name="calendar_planned_recurrence_label">Recurrence hint</string>
+    <string name="calendar_planned_linked_source_label">Linked source</string>
+    <string name="calendar_planned_linked_ref_label">Linked reference</string>
+    <string name="calendar_reschedule_chore_title">Reschedule chore</string>
+    <string name="calendar_export_backup">Export month</string>
+    <string name="calendar_import_backup">Import backup</string>
+    <string name="calendar_import_backup_invalid">Unable to import backup. Choose a valid Daynest backup file.</string>
+    <string name="calendar_import_backup_complete">Import complete. %1$s.</string>
+    <string name="calendar_import_backup_complete_with_failures">Import complete. %1$s, %2$s.</string>
 
     <!-- Medication -->
     <string name="medication_title">Medication</string>
@@ -65,8 +84,10 @@
     <string name="medication_no_plans">No medication plans yet.</string>
     <string name="medication_no_history">No dose history yet.</string>
     <string name="medication_inactive">Inactive</string>
+    <string name="medication_active">Active</string>
     <string name="medication_add_plan">+ Add plan</string>
     <string name="medication_create_title">Add medication plan</string>
+    <string name="medication_edit_title">Edit medication plan</string>
     <string name="medication_name_label">Name</string>
     <string name="medication_instructions_label">Instructions</string>
     <string name="medication_time_label">Schedule time (HH:MM)</string>
@@ -88,10 +109,14 @@
     <string name="templates_add_chore">+ Add chore</string>
     <string name="templates_create_routine_title">Add routine template</string>
     <string name="templates_create_chore_title">Add chore template</string>
+    <string name="templates_edit_routine_title">Edit routine template</string>
+    <string name="templates_edit_chore_title">Edit chore template</string>
     <string name="templates_name_label">Name</string>
     <string name="templates_description_label">Description (optional)</string>
     <string name="templates_every_n_days_label">Every N days</string>
     <string name="templates_every_n_days">Every %1$d day(s)</string>
+    <string name="templates_start_date_label">Start date (YYYY-MM-DD)</string>
+    <string name="templates_due_time_label">Due time (HH:MM, optional)</string>
     <string name="templates_inactive">Inactive</string>
 
     <!-- Settings -->
@@ -111,6 +136,13 @@
     <string name="settings_account_section">Account</string>
     <string name="settings_session_active">Signed in</string>
     <string name="settings_sign_out">Sign out</string>
+    <string name="settings_presets_section">Integration presets</string>
+    <string name="settings_preset_ha_dashboard">Home Assistant dashboard</string>
+    <string name="settings_preset_ha_dashboard_desc">Sensors, dashboard metrics, setup validation, and entity reads.</string>
+    <string name="settings_preset_ha_automations">Home Assistant automations</string>
+    <string name="settings_preset_ha_automations_desc">Everything in dashboard mode plus write services for household automations.</string>
+    <string name="settings_preset_mcp_readonly">MCP read-only</string>
+    <string name="settings_preset_mcp_readonly_desc">Least-privilege read access for MCP consumers.</string>
     <string name="settings_integrations_section">Integration Clients</string>
     <string name="settings_new_client">+ New client</string>
     <string name="settings_no_clients">No integration clients configured.</string>
@@ -125,11 +157,23 @@
     <string name="settings_new_key_title">API Key Created</string>
     <string name="settings_new_key_notice">Copy this key now — it will not be shown again.</string>
     <string name="settings_new_key_dismiss">I\'ve copied it</string>
+    <string name="settings_sessions_section">Active Sessions</string>
+    <string name="settings_no_sessions">No active sessions.</string>
+    <string name="settings_session_last_active">Last active: %1$s</string>
+    <string name="settings_revoke_session">Revoke</string>
 
     <string name="parity_more_coming">Native editing controls will continue to grow from the same shared API contracts.</string>
 
     <plurals name="home_items_remaining">
         <item quantity="one">You have %1$d item to handle today.</item>
         <item quantity="other">You have %1$d items to handle today.</item>
+    </plurals>
+    <plurals name="calendar_import_backup_imported">
+        <item quantity="one">%1$d item imported</item>
+        <item quantity="other">%1$d items imported</item>
+    </plurals>
+    <plurals name="calendar_import_backup_failed">
+        <item quantity="one">%1$d item failed</item>
+        <item quantity="other">%1$d items failed</item>
     </plurals>
 </resources>

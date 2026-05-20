@@ -14,4 +14,8 @@ class SettingsRepository
 
         suspend fun createClient(request: IntegrationClientInputDto): Result<IntegrationClientCreateResponseDto> =
             safeApiCall { settingsApi.createClient(request) }
+
+        suspend fun listSessions(): Result<List<OAuthSessionDto>> = safeApiCall { settingsApi.listSessions() }
+
+        suspend fun revokeSession(id: String): Result<Unit> = safeApiCall { settingsApi.revokeSession(id) }
     }
