@@ -131,6 +131,16 @@ private fun TemplatesContent(
             )
         }
 
+        state.operationError?.let { message ->
+            item {
+                Text(
+                    text = message,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+        }
+
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 FilterChip(
@@ -384,6 +394,7 @@ private fun EditRoutineDialog(
         initialEveryNDays = routine.everyNDays.toString(),
         initialDueTime = routine.dueTime?.take(DUE_TIME_DISPLAY_LENGTH).orEmpty(),
         initialIsActive = routine.isActive,
+        isEditing = true,
         confirmText = stringResource(id = R.string.action_save),
         onConfirm = onConfirm,
         onDismiss = onDismiss,
@@ -403,6 +414,7 @@ private fun CreateRoutineDialog(
         initialEveryNDays = "1",
         initialDueTime = "",
         initialIsActive = true,
+        isEditing = false,
         confirmText = stringResource(id = R.string.action_add),
         onConfirm = onConfirm,
         onDismiss = onDismiss,
@@ -477,6 +489,7 @@ private fun RoutineTemplateDialog(
     initialEveryNDays: String,
     initialDueTime: String,
     initialIsActive: Boolean,
+    isEditing: Boolean,
     confirmText: String,
     onConfirm: (RoutineTemplateInputDto) -> Unit,
     onDismiss: () -> Unit,
@@ -511,12 +524,14 @@ private fun RoutineTemplateDialog(
             TextButton(
                 onClick = {
                     if (name.isNotBlank()) {
+                        val fallbackStartDate = if (isEditing) initialStartDate else LocalDate.now().toString()
+                        val fallbackEveryNDays = if (isEditing) initialEveryNDays.toIntOrNull() ?: 1 else 1
                         onConfirm(
                             RoutineTemplateInputDto(
                                 name = name.trim(),
                                 description = description.trim().ifBlank { null },
-                                startDate = startDate.trim().ifBlank { LocalDate.now().toString() },
-                                everyNDays = everyNDays.toIntOrNull() ?: 1,
+                                startDate = startDate.trim().ifBlank { fallbackStartDate },
+                                everyNDays = everyNDays.toIntOrNull() ?: fallbackEveryNDays,
                                 dueTime = dueTime.trim().ifBlank { null },
                                 isActive = isActive,
                             ),

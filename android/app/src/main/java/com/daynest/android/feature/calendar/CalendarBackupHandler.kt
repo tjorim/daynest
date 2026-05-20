@@ -38,12 +38,13 @@ internal class CalendarBackupHandler(
 
     fun importBackup(items: List<PlannedItemCreateDto>) {
         scope.launch {
-            val results =
-                items.chunked(5).flatMap { batch ->
+            val results = mutableListOf<Result<PlannedTodayItemDto>>()
+            for (batch in items.chunked(5)) {
+                results +=
                     batch
                         .map { item -> async { plannedItemRepository.createPlannedItem(item) } }
                         .awaitAll()
-                }
+            }
             val imported = results.count { it.isSuccess }
             val failed = results.count { it.isFailure }
             uiState.update { current ->

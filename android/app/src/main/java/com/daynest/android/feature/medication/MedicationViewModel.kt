@@ -82,6 +82,7 @@ class MedicationViewModel
                             current.copy(
                                 plans = current.plans + newPlan,
                                 showCreateForm = false,
+                                operationError = null,
                             )
                         } else {
                             current
@@ -100,9 +101,21 @@ class MedicationViewModel
                 result.onSuccess { updatedPlan ->
                     _uiState.update { current ->
                         if (current is MedicationUiState.Content) {
-                            current.copy(plans = current.plans.map { if (it.id == id) updatedPlan else it })
+                            current.copy(
+                                plans = current.plans.map { if (it.id == id) updatedPlan else it },
+                                operationError = null,
+                            )
                         } else {
                             current
+                        }
+                    }
+                }.onFailure { error ->
+                    Log.e("MedicationViewModel", "updatePlan failed", error)
+                    _uiState.update { current ->
+                        if (current is MedicationUiState.Content) {
+                            current.copy(operationError = error.message ?: "Failed to update medication plan.")
+                        } else {
+                            MedicationUiState.Error
                         }
                     }
                 }
@@ -115,9 +128,22 @@ class MedicationViewModel
                 if (result.isSuccess) {
                     _uiState.update { current ->
                         if (current is MedicationUiState.Content) {
-                            current.copy(plans = current.plans.filter { it.id != id })
+                            current.copy(
+                                plans = current.plans.filter { it.id != id },
+                                operationError = null,
+                            )
                         } else {
                             current
+                        }
+                    }
+                } else {
+                    val error = result.exceptionOrNull()
+                    Log.e("MedicationViewModel", "deletePlan failed", error)
+                    _uiState.update { current ->
+                        if (current is MedicationUiState.Content) {
+                            current.copy(operationError = error?.message ?: "Failed to delete medication plan.")
+                        } else {
+                            MedicationUiState.Error
                         }
                     }
                 }
@@ -132,6 +158,7 @@ sealed interface MedicationUiState {
         val plans: List<MedicationPlanDto>,
         val history: List<MedicationHistoryItemDto>,
         val showCreateForm: Boolean,
+        val operationError: String? = null,
     ) : MedicationUiState
 
     data object Error : MedicationUiState

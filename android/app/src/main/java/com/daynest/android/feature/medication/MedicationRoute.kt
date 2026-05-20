@@ -128,6 +128,16 @@ private fun MedicationContent(
             )
         }
 
+        state.operationError?.let { message ->
+            item {
+                Text(
+                    text = message,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+        }
+
         item {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -375,8 +385,8 @@ private fun EditMedicationPlanDialog(
                                 name = name.trim(),
                                 instructions = instructions.trim(),
                                 startDate = startDate.trim().ifBlank { plan.startDate },
-                                scheduleTime = scheduleTime.trim().ifBlank { "08:00" },
-                                everyNDays = everyNDays.toIntOrNull() ?: 1,
+                                scheduleTime = scheduleTime.trim().ifBlank { plan.scheduleTime.take(5) },
+                                everyNDays = everyNDays.toIntOrNull() ?: plan.everyNDays,
                                 isActive = isActive,
                             ),
                         )

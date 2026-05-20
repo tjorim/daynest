@@ -1,5 +1,6 @@
 package com.daynest.android.feature.templates
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.daynest.android.data.templates.ChoreTemplateDto
@@ -119,9 +120,21 @@ class TemplatesViewModel
                 result.onSuccess { updatedRoutine ->
                     _uiState.update { current ->
                         if (current is TemplatesUiState.Content) {
-                            current.copy(routines = current.routines.map { if (it.id == id) updatedRoutine else it })
+                            current.copy(
+                                routines = current.routines.map { if (it.id == id) updatedRoutine else it },
+                                operationError = null,
+                            )
                         } else {
                             current
+                        }
+                    }
+                }.onFailure { error ->
+                    Log.e("TemplatesViewModel", "updateRoutine failed", error)
+                    _uiState.update { current ->
+                        if (current is TemplatesUiState.Content) {
+                            current.copy(operationError = error.message ?: "Failed to update routine.")
+                        } else {
+                            TemplatesUiState.Error
                         }
                     }
                 }
@@ -137,9 +150,21 @@ class TemplatesViewModel
                 result.onSuccess { updatedChore ->
                     _uiState.update { current ->
                         if (current is TemplatesUiState.Content) {
-                            current.copy(chores = current.chores.map { if (it.id == id) updatedChore else it })
+                            current.copy(
+                                chores = current.chores.map { if (it.id == id) updatedChore else it },
+                                operationError = null,
+                            )
                         } else {
                             current
+                        }
+                    }
+                }.onFailure { error ->
+                    Log.e("TemplatesViewModel", "updateChore failed", error)
+                    _uiState.update { current ->
+                        if (current is TemplatesUiState.Content) {
+                            current.copy(operationError = error.message ?: "Failed to update chore.")
+                        } else {
+                            TemplatesUiState.Error
                         }
                     }
                 }
@@ -189,6 +214,7 @@ sealed interface TemplatesUiState {
         val chores: List<ChoreTemplateDto>,
         val selectedTab: TemplateTab,
         val createForm: TemplateCreateForm?,
+        val operationError: String? = null,
     ) : TemplatesUiState
 
     data object Error : TemplatesUiState

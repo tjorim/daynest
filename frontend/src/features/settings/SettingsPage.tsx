@@ -115,12 +115,19 @@ export function SettingsPage() {
       return;
     }
     const trimmed = customServerInput.trim();
-    if (!trimmed.startsWith("https://") && !trimmed.startsWith("http://")) {
-      setServerUrlError("Must start with https:// or http://");
+    let parsed: URL;
+    try {
+      parsed = new URL(trimmed);
+    } catch {
+      setServerUrlError("Enter a valid absolute URL.");
       return;
     }
-    setCustomServerUrl(trimmed);
-    setBackendBaseUrl(trimmed.replace(/\/$/, ""));
+    if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
+      setServerUrlError("URL must use https:// or http://.");
+      return;
+    }
+    setCustomServerUrl(parsed.origin);
+    setBackendBaseUrl(parsed.origin);
     setServerUrlError(null);
   };
 

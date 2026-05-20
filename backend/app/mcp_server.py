@@ -244,9 +244,21 @@ class DaynestMcpBackend:
         scopes: list[str],
         rate_limit_per_minute: int = 120,
     ) -> dict[str, Any]:
+        access_token = get_access_token()
+        if getattr(access_token, "auth_source", None) == "integration":
+            raise PermissionError("Integration tokens cannot create new integration clients")
+
         normalized_scopes = sorted({scope.strip() for scope in scopes if scope.strip()})
         if not normalized_scopes:
             raise ValueError("At least one integration client scope is required")
+        if access_token is not None:
+            caller_scopes = set(getattr(access_token, "scopes", []) or [])
+            if not set(normalized_scopes).issubset(caller_scopes):
+                raise PermissionError("Requested scopes must be a subset of the caller's scopes")
+        if not isinstance(rate_limit_per_minute, int) or rate_limit_per_minute <= 0:
+            raise ValueError("rate_limit_per_minute must be a positive integer")
+        if rate_limit_per_minute > 600:
+            raise ValueError("rate_limit_per_minute must be 600 or less")
 
         raw_key = f"daynest_{token_urlsafe(30)}"
         with self._session_scope() as db:

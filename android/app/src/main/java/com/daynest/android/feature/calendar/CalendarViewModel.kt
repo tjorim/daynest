@@ -183,23 +183,41 @@ class CalendarViewModel
                 val result = plannedItemRepository.updatePlannedItem(id, input)
                 result.onSuccess { updated ->
                     _uiState.update { current ->
-                        if (current is CalendarUiState.Content && current.selectedDate == date) {
+                        if (current is CalendarUiState.Content) {
+                            val sourceDate = date
+                            val targetDate = updated.plannedFor
+                            val moved = sourceDate != targetDate
                             current.copy(
-                                dayItems =
-                                    current.dayItems.map { item ->
-                                        if (item.itemType == "planned" && item.itemId == id) {
-                                            item.copy(
-                                                title = updated.title,
-                                                status = if (updated.isDone) "done" else "planned",
-                                                detail = updated.notes,
-                                                moduleKey = updated.moduleKey,
-                                                recurrenceHint = updated.recurrenceHint,
-                                                linkedSource = updated.linkedSource,
-                                                linkedRef = updated.linkedRef,
-                                            )
-                                        } else {
-                                            item
+                                days =
+                                    if (moved) {
+                                        var adjustedDays = current.days
+                                        if (sourceDate.isInMonth(current.displayMonth)) {
+                                            adjustedDays = adjustedDays.adjustPlannedSummary(date = sourceDate, delta = -1)
                                         }
+                                        if (targetDate.isInMonth(current.displayMonth)) {
+                                            adjustedDays = adjustedDays.adjustPlannedSummary(date = targetDate, delta = 1)
+                                        }
+                                        adjustedDays
+                                    } else {
+                                        current.days
+                                    },
+                                dayItems =
+                                    when {
+                                        !moved && current.selectedDate == sourceDate ->
+                                            current.dayItems.map { item ->
+                                                if (item.itemType == "planned" && item.itemId == id) {
+                                                    updated.toUnifiedDayItem()
+                                                } else {
+                                                    item
+                                                }
+                                            }
+                                        moved && current.selectedDate == sourceDate ->
+                                            current.dayItems.filterNot { it.itemType == "planned" && it.itemId == id }
+                                        moved && current.selectedDate == targetDate ->
+                                            current.dayItems
+                                                .filterNot { it.itemType == "planned" && it.itemId == id } +
+                                                updated.toUnifiedDayItem()
+                                        else -> current.dayItems
                                     },
                             )
                         } else {
@@ -269,7 +287,16 @@ private fun PlannedTodayItemDto.toUnifiedDayItem() =
         scheduledDate = plannedFor,
         detail = notes,
         moduleKey = moduleKey,
+        recurrenceHint = recurrenceHint,
+        linkedSource = linkedSource,
+        linkedRef = linkedRef,
     )
+
+private fun String.isInMonth(displayMonth: LocalDate): Boolean =
+    runCatching {
+        val parsed = LocalDate.parse(this)
+        parsed.year == displayMonth.year && parsed.month == displayMonth.month
+    }.getOrDefault(false)
 
 private fun List<CalendarDaySummaryDto>.adjustPlannedSummary(
     date: String,

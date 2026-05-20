@@ -220,6 +220,11 @@ export function TodayPage() {
             <SummaryCard label="Open Routines" value={routineOpenCount} tone="secondary" />
           </div>
           <WebFocusPanel sections={sections} />
+          <PlannedSection
+            items={today.planned}
+            onRefresh={loadToday}
+            bulkActions={plannedBulkActions}
+          />
           {sections.filter((section) => section.key !== "planned").map((section) => (
             <SectionCard
               key={section.key}
@@ -230,11 +235,6 @@ export function TodayPage() {
               bulkActions={section.bulkActions}
             />
           ))}
-          <PlannedSection
-            items={today.planned}
-            onRefresh={loadToday}
-            bulkActions={plannedBulkActions}
-          />
         </>
       ) : null}
     </section>

@@ -33,6 +33,7 @@ internal fun EditChoreDialog(
         initialStartDate = chore.startDate,
         initialEveryNDays = chore.everyNDays.toString(),
         initialIsActive = chore.isActive,
+        isEditing = true,
         confirmText = stringResource(id = R.string.action_save),
         onConfirm = onConfirm,
         onDismiss = onDismiss,
@@ -51,6 +52,7 @@ internal fun CreateChoreDialog(
         initialStartDate = LocalDate.now().toString(),
         initialEveryNDays = "7",
         initialIsActive = true,
+        isEditing = false,
         confirmText = stringResource(id = R.string.action_add),
         onConfirm = onConfirm,
         onDismiss = onDismiss,
@@ -116,6 +118,7 @@ private fun ChoreTemplateDialog(
     initialStartDate: String,
     initialEveryNDays: String,
     initialIsActive: Boolean,
+    isEditing: Boolean,
     confirmText: String,
     onConfirm: (ChoreTemplateInputDto) -> Unit,
     onDismiss: () -> Unit,
@@ -147,12 +150,14 @@ private fun ChoreTemplateDialog(
             TextButton(
                 onClick = {
                     if (name.isNotBlank()) {
+                        val fallbackStartDate = if (isEditing) initialStartDate else LocalDate.now().toString()
+                        val fallbackEveryNDays = if (isEditing) initialEveryNDays.toIntOrNull() ?: 7 else 7
                         onConfirm(
                             ChoreTemplateInputDto(
                                 name = name.trim(),
                                 description = description.trim().ifBlank { null },
-                                startDate = startDate.trim().ifBlank { LocalDate.now().toString() },
-                                everyNDays = everyNDays.toIntOrNull() ?: 7,
+                                startDate = startDate.trim().ifBlank { fallbackStartDate },
+                                everyNDays = everyNDays.toIntOrNull() ?: fallbackEveryNDays,
                                 isActive = isActive,
                             ),
                         )

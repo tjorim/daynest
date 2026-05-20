@@ -8,6 +8,7 @@ import com.daynest.android.data.today.MedicationHistoryItemDto
 import com.daynest.android.data.today.MedicationTodayItemDto
 import com.daynest.android.data.today.OverdueTodayItemDto
 import com.daynest.android.data.today.PlannedItemRepository
+import com.daynest.android.data.today.PlannedItemUpdateDto
 import com.daynest.android.data.today.PlannedTodayItemDto
 import com.daynest.android.data.today.RoutineTodayItemDto
 import com.daynest.android.data.today.TodayRepository
@@ -65,6 +66,17 @@ class HomeViewModel
                                         upcoming = response.upcoming,
                                         planned = response.planned,
                                         isStale = false,
+                                        selectedChoreIds =
+                                            c.selectedChoreIds.intersect(
+                                                (response.overdue.map { it.choreInstanceId } +
+                                                    response.dueToday.map { it.choreInstanceId }).toSet(),
+                                            ),
+                                        selectedRoutineIds =
+                                            c.selectedRoutineIds.intersect(
+                                                response.routines.map { it.taskInstanceId }.toSet(),
+                                            ),
+                                        selectedPlannedIds =
+                                            c.selectedPlannedIds.intersect(response.planned.map { it.id }.toSet()),
                                     )
                                 else ->
                                     HomeUiState.Content(
@@ -309,7 +321,7 @@ class HomeViewModel
 
         private fun updatePlanned(item: PlannedTodayItemDto) {
             viewModelScope.launch {
-                val result = plannedItemRepository.markPlannedDone(item.id, item, item.isDone)
+                val result = plannedItemRepository.updatePlannedItem(item.id, item.toUpdateDto())
                 if (result.isSuccess) refresh()
             }
         }
@@ -482,6 +494,18 @@ sealed interface HomeUiEvent {
 enum class SectionType { CHORES, ROUTINES, PLANNED }
 
 private fun Set<Int>.toggle(id: Int): Set<Int> = if (contains(id)) this - id else this + id
+
+private fun PlannedTodayItemDto.toUpdateDto() =
+    PlannedItemUpdateDto(
+        title = title,
+        plannedFor = plannedFor,
+        isDone = isDone,
+        notes = notes,
+        moduleKey = moduleKey,
+        recurrenceHint = recurrenceHint,
+        linkedSource = linkedSource,
+        linkedRef = linkedRef,
+    )
 
 enum class HomeError {
     LoadTodayFailed,

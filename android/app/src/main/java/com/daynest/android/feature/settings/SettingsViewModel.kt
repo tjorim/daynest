@@ -65,7 +65,7 @@ class SettingsViewModel
                         showCreateForm = false,
                         createFormPreset = null,
                         newApiKey = null,
-                        loadError = clientsResult.isFailure,
+                        loadError = clientsResult.isFailure || sessionsResult.isFailure,
                         customServerUrl = prefs.customServerUrl,
                         defaultServerUrl = BuildConfig.API_BASE_URL,
                     )

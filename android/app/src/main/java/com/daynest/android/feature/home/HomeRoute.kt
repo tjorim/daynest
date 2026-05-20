@@ -213,9 +213,6 @@ private fun TodayContent(
 
         if (state.overdue.isNotEmpty()) {
             val overdueIds = state.overdue.map { it.choreInstanceId }
-            val dueIds = state.dueToday.map { it.choreInstanceId }
-            val allChoreIds = overdueIds + dueIds
-            val allChoresSelected = allChoreIds.isNotEmpty() && state.selectedChoreIds.containsAll(allChoreIds)
             item {
                 BulkSectionHeader(
                     title = stringResource(id = R.string.today_section_overdue),
@@ -226,7 +223,7 @@ private fun TodayContent(
                         if (state.selectedChoreIds.containsAll(overdueIds)) {
                             onEvent(HomeUiEvent.ClearSelection(SectionType.CHORES))
                         } else {
-                            onEvent(HomeUiEvent.SelectAll(SectionType.CHORES, allChoreIds))
+                            onEvent(HomeUiEvent.SelectAll(SectionType.CHORES, overdueIds))
                         }
                     },
                     onBulkDone = { onEvent(HomeUiEvent.BulkDone(SectionType.CHORES)) },
@@ -262,8 +259,6 @@ private fun TodayContent(
 
         if (state.dueToday.isNotEmpty()) {
             val dueTodayIds = state.dueToday.map { it.choreInstanceId }
-            val overdueIdsForDue = state.overdue.map { it.choreInstanceId }
-            val allChoreIdsForDue = overdueIdsForDue + dueTodayIds
             item {
                 BulkSectionHeader(
                     title = stringResource(id = R.string.today_section_due_today),
@@ -273,7 +268,7 @@ private fun TodayContent(
                         if (state.selectedChoreIds.containsAll(dueTodayIds)) {
                             onEvent(HomeUiEvent.ClearSelection(SectionType.CHORES))
                         } else {
-                            onEvent(HomeUiEvent.SelectAll(SectionType.CHORES, allChoreIdsForDue))
+                            onEvent(HomeUiEvent.SelectAll(SectionType.CHORES, dueTodayIds))
                         }
                     },
                     onBulkDone = { onEvent(HomeUiEvent.BulkDone(SectionType.CHORES)) },
@@ -444,7 +439,7 @@ private fun TodaySummaryStrip(state: HomeUiState.Content) {
                 modifier = Modifier.weight(1f),
             )
             SummaryMetricCard(
-                label = stringResource(id = R.string.home_completion_ratio),
+                label = stringResource(id = R.string.home_action_complete),
                 value = completionPct,
                 valueSuffix = "%",
                 modifier = Modifier.weight(1f),
@@ -565,6 +560,7 @@ private fun RescheduleChoreDialog(
     onDismiss: () -> Unit,
 ) {
     var scheduledDate by remember(target) { mutableStateOf(target.scheduledDate) }
+    val trimmedScheduledDate = scheduledDate.trim()
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -582,8 +578,8 @@ private fun RescheduleChoreDialog(
         },
         confirmButton = {
             TextButton(
-                onClick = { onConfirm(scheduledDate.trim()) },
-                enabled = scheduledDate.isNotBlank(),
+                onClick = { onConfirm(trimmedScheduledDate) },
+                enabled = trimmedScheduledDate.isNotBlank(),
             ) {
                 Text(text = stringResource(id = R.string.action_save))
             }

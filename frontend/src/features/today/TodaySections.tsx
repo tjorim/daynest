@@ -450,8 +450,8 @@ function PlannedItemActions({
         />
         <input
           className="form-control form-control-sm"
+          type="date"
           value={editPlannedFor}
-          placeholder="Date (YYYY-MM-DD)"
           disabled={actions.isSubmitting}
           onChange={(e) => setEditPlannedFor(e.target.value)}
         />

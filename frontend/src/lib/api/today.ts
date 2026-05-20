@@ -421,7 +421,8 @@ async function fetchWithAuth(
   if (!token) {
     throw new ApiError("Not authenticated", 401);
   }
-  const url = typeof input === "string" ? buildApiUrl(input) : input;
+  const url =
+    typeof input === "string" && !/^https?:\/\//i.test(input) ? buildApiUrl(input) : input;
   return fetchWithRetry(url, withAuthHeader(init, token), retries);
 }
 
