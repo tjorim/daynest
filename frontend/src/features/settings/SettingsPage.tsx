@@ -8,6 +8,8 @@ import {
   createIntegrationClient,
   isRetryableApiError,
   listIntegrationClients,
+  revokeIntegrationClient,
+  rotateIntegrationClient,
   type IntegrationClient,
   type IntegrationClientCreateResponse,
 } from "@/lib/api/today";
@@ -32,8 +34,13 @@ const AVAILABLE_SCOPES = [
   },
   {
     key: "mcp:read",
-    label: "MCP Adapter",
-    description: "Allows MCP-compatible reads for Today and Calendar day data.",
+    label: "MCP Adapter (read)",
+    description: "Allows MCP read tools: today view, calendar, planned items, routines, chores, medications.",
+  },
+  {
+    key: "mcp:write",
+    label: "MCP Adapter (write)",
+    description: "Allows MCP write tools: complete/skip/reschedule tasks, create/update/delete planned items, routines, chores, and medications.",
   },
 ];
 
@@ -61,6 +68,14 @@ const INTEGRATION_PRESETS = [
     scopes: ["mcp:read"],
     rateLimit: "60",
     description: "Least-privilege read access for MCP consumers.",
+  },
+  {
+    key: "mcp-full",
+    label: "MCP read + write",
+    name: "MCP Adapter",
+    scopes: ["mcp:read", "mcp:write"],
+    rateLimit: "60",
+    description: "Full MCP access including write tools (complete tasks, manage items, etc.).",
   },
 ];
 
@@ -90,6 +105,11 @@ export function SettingsPage() {
   const [name, setName] = useState("Home Assistant");
   const [rateLimit, setRateLimit] = useState("120");
   const [selectedScopes, setSelectedScopes] = useState<string[]>(["ha:read"]);
+
+  const [revokingClient, setRevokingClient] = useState<number | null>(null);
+  const [revokeClientError, setRevokeClientError] = useState<string | null>(null);
+  const [rotatingClient, setRotatingClient] = useState<number | null>(null);
+  const [rotateClientError, setRotateClientError] = useState<string | null>(null);
 
   const [oauthSessions, setOauthSessions] = useState<OAuthSession[]>([]);
   const [sessionsLoading, setSessionsLoading] = useState(true);
@@ -168,6 +188,35 @@ export function SettingsPage() {
       if (!signal?.aborted) {
         setSessionsLoading(false);
       }
+    }
+  };
+
+  const onRotateClient = async (clientId: number) => {
+    setRotatingClient(clientId);
+    setRotateClientError(null);
+    try {
+      const rotated = await rotateIntegrationClient(clientId);
+      setCreatedClient(rotated);
+      setCopyStatus(null);
+      setSuccessMessage("API key rotated. Copy the new key now; it will not be shown again.");
+      await loadClients();
+    } catch (err) {
+      setRotateClientError(err instanceof Error ? err.message : "Failed to rotate integration client key.");
+    } finally {
+      setRotatingClient(null);
+    }
+  };
+
+  const onRevokeClient = async (clientId: number) => {
+    setRevokingClient(clientId);
+    setRevokeClientError(null);
+    try {
+      await revokeIntegrationClient(clientId);
+      await loadClients();
+    } catch (err) {
+      setRevokeClientError(err instanceof Error ? err.message : "Failed to revoke integration client.");
+    } finally {
+      setRevokingClient(null);
     }
   };
 
@@ -498,7 +547,9 @@ export function SettingsPage() {
 
           {createdClient ? (
             <div className="card">
-              <div className="card-header fw-semibold py-2">New API key</div>
+              <div className="card-header fw-semibold py-2">
+                {createdClient.name} — API key
+              </div>
               <div className="card-body">
                 <div className="alert alert-warning py-2">
                   This key is shown once. Store it in your integration client before leaving this
@@ -547,16 +598,40 @@ export function SettingsPage() {
                             .join(" ")}
                         </small>
                       </div>
-                      <span
-                        className={`badge ${client.is_active ? "text-bg-success" : "text-bg-secondary"}`}
-                      >
-                        {client.is_active ? "Active" : "Inactive"}
-                      </span>
+                      <div className="d-flex align-items-center gap-2 flex-wrap justify-content-end">
+                        <span
+                          className={`badge ${client.is_active ? "text-bg-success" : "text-bg-secondary"}`}
+                        >
+                          {client.is_active ? "Active" : "Inactive"}
+                        </span>
+                        <button
+                          type="button"
+                          className="btn btn-outline-secondary btn-sm"
+                          disabled={rotatingClient === client.id || revokingClient === client.id}
+                          onClick={() => void onRotateClient(client.id)}
+                        >
+                          {rotatingClient === client.id ? "Rotating…" : "Rotate key"}
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-outline-danger btn-sm"
+                          disabled={revokingClient === client.id || rotatingClient === client.id}
+                          onClick={() => void onRevokeClient(client.id)}
+                        >
+                          {revokingClient === client.id ? "Revoking…" : "Revoke"}
+                        </button>
+                      </div>
                     </div>
                   </li>
                 ))
               )}
             </ul>
+            {revokeClientError ? (
+              <div className="card-footer text-danger py-2 small">{revokeClientError}</div>
+            ) : null}
+            {rotateClientError ? (
+              <div className="card-footer text-danger py-2 small">{rotateClientError}</div>
+            ) : null}
           </div>
 
           <div className="card mt-3">
@@ -581,7 +656,7 @@ export function SettingsPage() {
                   <li className="list-group-item py-2 text-muted">No active OAuth sessions.</li>
                 ) : (
                   oauthSessions.map((session) => {
-                    const clientNames = Object.values(session.clients);
+                    const clientNames = session.clients.map((c) => c.clientName ?? c.clientId);
                     const lastAccess = session.last_access
                       ? new Date(session.last_access).toLocaleString()
                       : null;

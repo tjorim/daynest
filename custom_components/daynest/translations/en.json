@@ -5,12 +5,18 @@
         "description": "If you need help with the configuration have a look at the [documentation]({documentation_url}).",
         "data": {
           "url": "Daynest base URL",
-          "api_key": "Integration API key"
+          "token_url": "Keycloak token URL",
+          "client_id": "Client ID",
+          "client_secret": "Client secret"
+        },
+        "data_description": {
+          "token_url": "e.g. https://auth.example.com/realms/daynest/protocol/openid-connect/token",
+          "client_id": "The Keycloak client ID with service account and ha:read scope enabled"
         }
       }
     },
     "error": {
-      "invalid_auth": "The API key is invalid or missing the required ha:read scope.",
+      "invalid_auth": "Authentication failed. Check the client ID, secret, and that the Keycloak client has the ha:read scope.",
       "cannot_connect": "Unable to reach the Daynest host.",
       "timeout": "Connection to Daynest timed out.",
       "unsupported_contract": "The Daynest server contract version is not supported by this integration.",

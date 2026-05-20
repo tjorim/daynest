@@ -6,9 +6,11 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from custom_components.daynest import CARD_URL, DOMAIN, async_setup_entry, async_unload_entry
+from custom_components.daynest import CARD_URL, DOMAIN, async_migrate_entry, async_setup_entry, async_unload_entry
+from custom_components.daynest.const import CONF_TOKEN_URL
 from homeassistant.config_entries import ConfigEntryState
-from homeassistant.const import CONF_API_KEY, CONF_URL
+from homeassistant.const import CONF_API_KEY, CONF_CLIENT_ID, CONF_CLIENT_SECRET, CONF_URL
+from homeassistant.exceptions import ConfigEntryAuthFailed
 
 
 def _make_hass() -> MagicMock:
@@ -18,6 +20,7 @@ def _make_hass() -> MagicMock:
     hass.config_entries.async_forward_entry_setups = AsyncMock()
     hass.config_entries.async_unload_platforms = AsyncMock(return_value=True)
     hass.config_entries.async_entries = MagicMock(return_value=[])
+    hass.config_entries.async_update_entry = MagicMock()
     return hass
 
 
@@ -25,10 +28,13 @@ def _make_entry(entry_id: str = "entry-1") -> MagicMock:
     entry = MagicMock()
     entry.data = {
         CONF_URL: "http://localhost:8000",
-        CONF_API_KEY: "api-key",
+        CONF_TOKEN_URL: "http://localhost:8000/realms/daynest/protocol/openid-connect/token",
+        CONF_CLIENT_ID: "integration-client",
+        CONF_CLIENT_SECRET: "client-secret",
     }
     entry.domain = DOMAIN
     entry.entry_id = entry_id
+    entry.version = 2
     entry.add_update_listener = MagicMock(return_value=MagicMock())
     entry.async_on_unload = MagicMock()
     return entry
@@ -38,6 +44,34 @@ def _make_entry(entry_id: str = "entry-1") -> MagicMock:
 @pytest.mark.asyncio
 class TestInitSetup:
     """Tests for integration setup and unload behavior."""
+
+    async def test_migrate_v1_entry_populates_oauth_credentials(self) -> None:
+        hass = _make_hass()
+        entry = _make_entry()
+        entry.version = 1
+        entry.data = {
+            CONF_URL: "http://localhost:8000/",
+            CONF_API_KEY: "legacy-api-key",
+        }
+
+        assert await async_migrate_entry(hass, entry) is True
+
+        _, kwargs = hass.config_entries.async_update_entry.call_args
+        assert kwargs["version"] == 2
+        assert kwargs["data"][CONF_URL] == "http://localhost:8000"
+        assert kwargs["data"][CONF_CLIENT_ID] == "home-assistant"
+        assert kwargs["data"][CONF_CLIENT_SECRET] == "legacy-api-key"
+        assert kwargs["data"][CONF_TOKEN_URL] == (
+            "http://localhost:8000/realms/daynest/protocol/openid-connect/token"
+        )
+
+    async def test_setup_entry_missing_oauth_credentials_raises_auth_failed(self) -> None:
+        hass = _make_hass()
+        entry = _make_entry()
+        entry.data = {CONF_URL: "http://localhost:8000"}
+
+        with pytest.raises(ConfigEntryAuthFailed, match="missing OAuth credentials"):
+            await async_setup_entry(hass, entry)
 
     async def test_setup_entry_warns_and_skips_card_when_build_missing(self) -> None:
         hass = _make_hass()

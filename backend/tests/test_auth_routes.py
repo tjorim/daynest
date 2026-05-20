@@ -150,7 +150,15 @@ SAMPLE_SESSIONS = [
         "started": 1700000000000,
         "lastAccess": 1700001000000,
         "expires": 1700087400000,
-        "clients": {"claude-ai-mcp": "Claude.ai MCP Connector"},
+        "clients": [
+            {
+                "clientId": "claude-ai-mcp",
+                "clientName": "Claude.ai MCP Connector",
+                "userConsentRequired": False,
+                "inUse": True,
+                "offlineAccess": False,
+            }
+        ],
     },
     {
         "id": "session-def456",
@@ -158,7 +166,7 @@ SAMPLE_SESSIONS = [
         "started": 1700002000000,
         "lastAccess": 1700002500000,
         "expires": 1700088800000,
-        "clients": {},
+        "clients": [],
     },
 ]
 
@@ -185,7 +193,7 @@ class TestListSessions:
             assert len(data) == 2
             assert data[0]["id"] == "session-abc123"
             assert data[0]["ip_address"] == "192.168.1.1"
-            assert data[0]["clients"] == {"claude-ai-mcp": "Claude.ai MCP Connector"}
+            assert data[0]["clients"] == [{"clientId": "claude-ai-mcp", "clientName": "Claude.ai MCP Connector", "userConsentRequired": False, "inUse": True, "offlineAccess": False}]
             assert data[1]["id"] == "session-def456"
         finally:
             _clear_auth()

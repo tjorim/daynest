@@ -25,6 +25,16 @@ class UserUpdateRequest(BaseModel):
         return v
 
 
+class OAuthSessionClient(BaseModel):
+    """A client entry within a Keycloak session."""
+
+    clientId: str
+    clientName: str | None = None
+    userConsentRequired: bool = False
+    inUse: bool = False
+    offlineAccess: bool = False
+
+
 class OAuthSessionResponse(BaseModel):
     """Active OAuth session returned by the Keycloak Account REST API."""
 
@@ -33,4 +43,4 @@ class OAuthSessionResponse(BaseModel):
     started: int | None = None
     last_access: int | None = None
     expires: int | None = None
-    clients: dict[str, str] = {}
+    clients: list[OAuthSessionClient] = []

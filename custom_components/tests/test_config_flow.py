@@ -15,7 +15,9 @@ from custom_components.daynest.config_flow import (
     ERROR_UNSUPPORTED_CONTRACT,
     DaynestConfigFlowHandler,
 )
+from custom_components.daynest.const import CONF_TOKEN_URL
 from daynest import DaynestAuthError, DaynestMalformedResponseError, DaynestServerUnavailableError, DaynestTimeoutError
+from homeassistant.const import CONF_CLIENT_ID, CONF_CLIENT_SECRET, CONF_URL
 
 CONTRACT_HEADER_VALID = "home-assistant; version=ha.v1"
 CONTRACT_HEADER_UNSUPPORTED = "home-assistant; version=ha.v99"
@@ -30,8 +32,10 @@ VALID_SUMMARY_PAYLOAD = {
 }
 
 USER_INPUT = {
-    "url": "https://api.daynest.example",
-    "api_key": "valid_key",
+    CONF_URL: "https://api.daynest.example",
+    CONF_TOKEN_URL: "https://auth.daynest.example/realms/daynest/protocol/openid-connect/token",
+    CONF_CLIENT_ID: "integration-client",
+    CONF_CLIENT_SECRET: "valid_secret",
 }
 
 
@@ -167,9 +171,9 @@ class TestConfigFlowValidation:
             MockClient.return_value.async_get_summary = AsyncMock(return_value=_make_summary_response())
             await handler._async_validate_user_input(USER_INPUT)
         _, kwargs = MockClient.call_args
-        assert kwargs["base_url"] == USER_INPUT["url"]
+        assert kwargs["base_url"] == USER_INPUT[CONF_URL]
 
-    async def test_api_client_receives_correct_integration_key(self) -> None:
+    async def test_api_client_receives_oauth_client_credentials(self) -> None:
         handler = _make_handler()
         with (
             patch("custom_components.daynest.config_flow.async_get_clientsession", return_value=MagicMock()),
@@ -178,4 +182,6 @@ class TestConfigFlowValidation:
             MockClient.return_value.async_get_summary = AsyncMock(return_value=_make_summary_response())
             await handler._async_validate_user_input(USER_INPUT)
         _, kwargs = MockClient.call_args
-        assert kwargs["integration_key"] == USER_INPUT["api_key"]
+        assert kwargs["token_url"] == USER_INPUT[CONF_TOKEN_URL]
+        assert kwargs["client_id"] == USER_INPUT[CONF_CLIENT_ID]
+        assert kwargs["client_secret"] == USER_INPUT[CONF_CLIENT_SECRET]

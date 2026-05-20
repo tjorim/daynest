@@ -9,13 +9,21 @@ export interface AuthUser {
   roles: string[];
 }
 
+export interface OAuthSessionClient {
+  clientId: string;
+  clientName: string | null;
+  userConsentRequired: boolean;
+  inUse: boolean;
+  offlineAccess: boolean;
+}
+
 export interface OAuthSession {
   id: string;
   ip_address: string | null;
   started: number | null;
   last_access: number | null;
   expires: number | null;
-  clients: Record<string, string>;
+  clients: OAuthSessionClient[];
 }
 
 export class AuthApiError extends Error {
