@@ -12,12 +12,14 @@ from homeassistant.const import CONF_API_KEY, CONF_URL
 from homeassistant.helpers import device_registry as dr, entity_registry as er
 from homeassistant.helpers.redact import async_redact_data
 
+from . import PLATFORMS
+from .const import CONF_AUTH_MODE
+
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
 
     from .data import DaynestConfigEntry
 
-# Fields to redact from diagnostics - CRITICAL for security!
 TO_REDACT = {
     CONF_API_KEY,
     CONF_URL,
@@ -26,6 +28,9 @@ TO_REDACT = {
     "api_key",
     "integration_key",
     "token",
+    "access_token",
+    "refresh_token",
+    "id_token",
 }
 
 
@@ -35,14 +40,11 @@ async def async_get_config_entry_diagnostics(
 ) -> dict[str, Any]:
     """Return diagnostics for a config entry."""
     coordinator = entry.runtime_data.coordinator
-    client = entry.runtime_data.client
     integration = entry.runtime_data.integration
 
-    # Get device and entity information
     device_reg = dr.async_get(hass)
     entity_reg = er.async_get(hass)
 
-    # Find all devices for this integration
     devices = dr.async_entries_for_config_entry(device_reg, entry.entry_id)
     device_info = []
     for device in devices:
@@ -62,34 +64,37 @@ async def async_get_config_entry_diagnostics(
                         "original_name": entity.original_name,
                         "disabled": entity.disabled,
                         "disabled_by": entity.disabled_by.value if entity.disabled_by else None,
+                        "state": (
+                            state.state
+                            if (state := hass.states.get(entity.entity_id)) is not None
+                            else None
+                        ),
                     }
                     for entity in entities
                 ],
             }
         )
 
-    # Coordinator statistics
+    last_update_success_time = getattr(coordinator, "last_update_success_time", None)
     coordinator_info = {
         "last_update_success": coordinator.last_update_success,
+        "last_update_success_time": str(last_update_success_time) if last_update_success_time else None,
+        "last_exception": str(coordinator.last_exception) if coordinator.last_exception else None,
+        "last_exception_type": type(coordinator.last_exception).__name__ if coordinator.last_exception else None,
         "update_interval": str(coordinator.update_interval),
+        "contract_version": coordinator.data.get("integration_contract") if isinstance(coordinator.data, dict) else None,
         "data_keys": list(coordinator.data.keys()) if isinstance(coordinator.data, dict) else None,
     }
 
-    # API client information (no sensitive data)
-    api_info = {
-        "has_credentials": client.has_integration_key,
-    }
-
-    # Integration information
     integration_info = {
         "name": integration.name,
         "version": integration.version,
         "domain": integration.domain,
         "documentation": integration.documentation,
         "issue_tracker": integration.issue_tracker,
+        "platforms": [str(p) for p in PLATFORMS],
     }
 
-    # Config entry details (with redacted sensitive data)
     entry_info = {
         "entry_id": entry.entry_id,
         "version": entry.version,
@@ -98,36 +103,15 @@ async def async_get_config_entry_diagnostics(
         "title": entry.title,
         "state": str(entry.state),
         "unique_id": entry.unique_id,
+        "auth_mode": entry.data.get(CONF_AUTH_MODE, "unknown"),
         "disabled_by": entry.disabled_by.value if entry.disabled_by else None,
         "data": async_redact_data(entry.data, TO_REDACT),
         "options": async_redact_data(entry.options, TO_REDACT),
     }
 
-    # Error information
-    error_info = {
-        "last_exception": str(coordinator.last_exception) if coordinator.last_exception else None,
-        "last_exception_type": (type(coordinator.last_exception).__name__ if coordinator.last_exception else None),
-    }
-
-    # Current data sample (sanitized)
-    data_sample = {}
-    if coordinator.data:
-        if isinstance(coordinator.data, dict):
-            # Include sample data but sanitize sensitive info
-            data_sample = {
-                "for_date": coordinator.data.get("for_date"),
-                "due_today_count": coordinator.data.get("due_today_count"),
-                "overdue_count": coordinator.data.get("overdue_count"),
-                "next_medication": coordinator.data.get("next_medication"),
-                "has_user_id": "userId" in coordinator.data,
-            }
-
     return {
         "entry": entry_info,
         "integration": integration_info,
         "coordinator": coordinator_info,
-        "api": api_info,
         "devices": device_info,
-        "data_sample": data_sample,
-        "error": error_info,
     }
