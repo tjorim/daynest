@@ -7,7 +7,7 @@ import pytest
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.api.dependencies.integration_auth import hash_integration_key
-from app.mcp_server import MCP_WRITE_SCOPE, DaynestMcpAccessToken, DaynestMcpBackend, IntegrationKeyTokenVerifier, OIDCMcpTokenVerifier, create_mcp_server
+from app.mcp_server import DaynestMcpAccessToken, DaynestMcpBackend, IntegrationKeyTokenVerifier, OIDCMcpTokenVerifier, create_mcp_server
 from app.models.chore_template import ChoreTemplate
 from app.models.integration_client import IntegrationClient
 from app.models.medication_dose_instance import MedicationDoseInstance
@@ -34,14 +34,12 @@ def _create_integration_client(
     user: User,
     *,
     raw_key: str,
-    scopes: str = "mcp:read",
     rate_limit_per_minute: int = 50,
 ) -> IntegrationClient:
     client = IntegrationClient(
         user_id=user.id,
         name="MCP Client",
         key_hash=hash_integration_key(raw_key),
-        scopes_csv=scopes,
         rate_limit_per_minute=rate_limit_per_minute,
         is_active=True,
     )
@@ -279,14 +277,13 @@ def test_mcp_backend_delete_medication_raises_for_missing_plan(db_session: Sessi
 
 def test_mcp_backend_can_list_integration_clients(db_session: Session) -> None:
     user = _create_user(db_session, "integration-list@example.com")
-    _create_integration_client(db_session, user, raw_key="daynest_existing_key", scopes="mcp:read,ha:read")
+    _create_integration_client(db_session, user, raw_key="daynest_existing_key")
     backend = DaynestMcpBackend(_session_factory(db_session), user_email=user.email)
 
     clients = backend.list_integration_clients()
 
     assert len(clients) == 1
     assert clients[0]["name"] == "MCP Client"
-    assert clients[0]["scopes"] == ["mcp:read", "ha:read"]
     assert clients[0]["is_active"] is True
 
 
@@ -300,31 +297,18 @@ def test_mcp_backend_can_create_integration_client(db_session: Session) -> None:
     user = _create_user(db_session, "integration-create@example.com")
     backend = DaynestMcpBackend(_session_factory(db_session), user_email=user.email)
 
-    created = backend.create_integration_client(
-        name="Mobile automation",
-        scopes=["ha:write", "mcp:read", "ha:write"],
-        rate_limit_per_minute=120,
-    )
+    created = backend.create_integration_client(name="Mobile automation", rate_limit_per_minute=120)
     clients = backend.list_integration_clients()
     verifier = IntegrationKeyTokenVerifier(_session_factory(db_session))
     token = asyncio.run(verifier.verify_token(created["api_key"]))
 
     assert created["name"] == "Mobile automation"
-    assert created["scopes"] == ["ha:write", "mcp:read"]
     assert created["api_key"].startswith("daynest_")
     assert clients[0]["id"] == created["id"]
     assert token is not None
 
 
-def test_mcp_backend_create_integration_client_requires_scope(db_session: Session) -> None:
-    user = _create_user(db_session, "integration-create-missing-scope@example.com")
-    backend = DaynestMcpBackend(_session_factory(db_session), user_email=user.email)
-
-    with pytest.raises(ValueError, match="scope"):
-        backend.create_integration_client(name="No scopes", scopes=[])
-
-
-def test_integration_key_token_verifier_accepts_mcp_scoped_key(db_session: Session) -> None:
+def test_integration_key_token_verifier_accepts_valid_key(db_session: Session) -> None:
     user = _create_user(db_session, "token@example.com")
     client = _create_integration_client(db_session, user, raw_key="daynest_valid_key")
     verifier = IntegrationKeyTokenVerifier(_session_factory(db_session), resource_server_url="https://daynest.example.com/mcp")
@@ -335,18 +319,7 @@ def test_integration_key_token_verifier_accepts_mcp_scoped_key(db_session: Sessi
     assert token.client_id == str(client.id)
     assert token.auth_source == "integration"
     assert token.integration_client_id == client.id
-    assert "mcp:read" in token.scopes
     assert token.resource == "https://daynest.example.com/mcp"
-
-
-def test_integration_key_token_verifier_rejects_wrong_scope(db_session: Session) -> None:
-    user = _create_user(db_session, "wrong-scope@example.com")
-    _create_integration_client(db_session, user, raw_key="daynest_wrong_scope", scopes="ha:read")
-    verifier = IntegrationKeyTokenVerifier(_session_factory(db_session))
-
-    token = asyncio.run(verifier.verify_token("daynest_wrong_scope"))
-
-    assert token is None
 
 
 def test_mcp_backend_uses_authenticated_integration_owner(db_session: Session, monkeypatch) -> None:
@@ -356,7 +329,7 @@ def test_mcp_backend_uses_authenticated_integration_owner(db_session: Session, m
     access_token = DaynestMcpAccessToken(
         token="token",
         client_id=str(client.id),
-        scopes=["mcp:read"],
+        scopes=[],
         auth_source="integration",
         integration_client_id=client.id,
     )
@@ -376,7 +349,7 @@ def test_mcp_backend_resolves_oidc_numeric_subject(db_session: Session, monkeypa
     access_token = DaynestMcpAccessToken(
         token="token",
         client_id="123456",
-        scopes=["mcp:read"],
+        scopes=[],
         auth_source="oidc",
         oidc_subject="123456",
     )
@@ -392,7 +365,7 @@ def test_mcp_backend_rejects_authenticated_token_without_client_id(db_session: S
     _create_user(db_session, "missing-subject@example.com")
     backend = DaynestMcpBackend(_session_factory(db_session))
 
-    access_token = DaynestMcpAccessToken(token="token", client_id="", scopes=["mcp:read"], auth_source="oidc")
+    access_token = DaynestMcpAccessToken(token="token", client_id="", scopes=[], auth_source="oidc")
 
     monkeypatch.setattr("app.mcp_server.get_access_token", lambda: access_token)
 
@@ -400,12 +373,11 @@ def test_mcp_backend_rejects_authenticated_token_without_client_id(db_session: S
         backend.whoami()
 
 
-def test_oidc_mcp_token_verifier_uses_scope_claim(db_session: Session, monkeypatch) -> None:
+def test_oidc_mcp_token_verifier_accepts_valid_oidc_token(db_session: Session, monkeypatch) -> None:
     async def decode_oidc_token(_token: str) -> dict[str, str]:
         return {
             "sub": "oidc-subject",
             "email": "oidc@example.com",
-            "scope": "openid profile mcp:read",
         }
 
     monkeypatch.setattr("app.core.oidc.decode_oidc_token", decode_oidc_token)
@@ -416,7 +388,7 @@ def test_oidc_mcp_token_verifier_uses_scope_claim(db_session: Session, monkeypat
     assert token is not None
     assert token.auth_source == "oidc"
     assert token.oidc_subject == "oidc-subject"
-    assert token.scopes == ["openid", "profile", "mcp:read"]
+    assert token.scopes == []
 
 
 def test_oidc_mcp_token_verifier_accepts_resource_audience(db_session: Session, monkeypatch) -> None:
@@ -434,24 +406,7 @@ def test_oidc_mcp_token_verifier_accepts_resource_audience(db_session: Session, 
     token = asyncio.run(verifier.verify_token("oidc-token"))
 
     assert token is not None
-    assert token.scopes == ["openid", "mcp:read"]
-
-
-def test_oidc_mcp_token_verifier_rejects_unscoped_token(db_session: Session, monkeypatch) -> None:
-    async def decode_oidc_token(_token: str) -> dict[str, str]:
-        return {
-            "sub": "unscoped-subject",
-            "email": "unscoped@example.com",
-            "scope": "openid profile",
-            "aud": "daynest",
-        }
-
-    monkeypatch.setattr("app.core.oidc.decode_oidc_token", decode_oidc_token)
-    verifier = OIDCMcpTokenVerifier(_session_factory(db_session), resource_server_url="https://daynest.example.com/mcp")
-
-    token = asyncio.run(verifier.verify_token("oidc-token"))
-
-    assert token is None
+    assert token.scopes == []
 
 
 def test_mcp_backend_can_list_routines(db_session: Session) -> None:
@@ -644,50 +599,6 @@ def test_mcp_backend_delete_chore_template_raises_for_missing(db_session: Sessio
 
     with pytest.raises(ValueError, match="not found"):
         backend.delete_chore_template(9999)
-
-
-def test_mcp_write_ops_require_write_scope(db_session: Session, monkeypatch) -> None:
-    user = _create_user(db_session, "write-scope@example.com")
-    client = _create_integration_client(db_session, user, raw_key="daynest_read_only_key", scopes="mcp:read")
-    backend = DaynestMcpBackend(_session_factory(db_session))
-
-    # Token with only mcp:read — no mcp:write
-    read_only_token = DaynestMcpAccessToken(
-        token="token",
-        client_id=str(client.id),
-        scopes=["mcp:read"],
-        auth_source="integration",
-        integration_client_id=client.id,
-    )
-    monkeypatch.setattr("app.mcp_server.get_access_token", lambda: read_only_token)
-
-    write_ops = [
-        lambda: backend.complete_chore(1),
-        lambda: backend.skip_chore(1),
-        lambda: backend.reschedule_chore(1, "2026-01-01"),
-        lambda: backend.start_routine_task(1),
-        lambda: backend.complete_routine_task(1),
-        lambda: backend.skip_routine_task(1),
-        lambda: backend.create_planned_item(title="T", planned_for="2026-01-01"),
-        lambda: backend.update_planned_item(1, title="T", planned_for="2026-01-01"),
-        lambda: backend.delete_planned_item(1),
-        lambda: backend.take_medication_dose(1),
-        lambda: backend.skip_medication_dose(1),
-        lambda: backend.create_routine(name="R", start_date="2026-01-01"),
-        lambda: backend.update_routine(1, name="R", start_date="2026-01-01"),
-        lambda: backend.delete_routine(1),
-        lambda: backend.create_chore_template(name="C", start_date="2026-01-01"),
-        lambda: backend.update_chore_template(1, name="C", start_date="2026-01-01"),
-        lambda: backend.delete_chore_template(1),
-        lambda: backend.create_medication(name="M", instructions="I", start_date="2026-01-01", schedule_time="09:00"),
-        lambda: backend.update_medication(1, name="M", instructions="I", start_date="2026-01-01", schedule_time="09:00"),
-        lambda: backend.delete_medication(1),
-        lambda: backend.create_integration_client(name="C", scopes=[MCP_WRITE_SCOPE]),
-    ]
-
-    for op in write_ops:
-        with pytest.raises(PermissionError, match=MCP_WRITE_SCOPE):
-            op()
 
 
 def test_create_mcp_server_uses_backend_session_factory(db_session: Session) -> None:

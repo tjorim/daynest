@@ -40,7 +40,7 @@ The MCP endpoint path is `/mcp`.
 
 Authentication for remote use is Bearer-token based and reuses Daynest integration client keys.
 
-Create an integration client with the `mcp:read` scope, then send:
+Create an integration client in the Daynest app, then send:
 
 ```http
 Authorization: Bearer daynest_...

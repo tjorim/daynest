@@ -136,13 +136,6 @@
     <string name="settings_account_section">Account</string>
     <string name="settings_session_active">Signed in</string>
     <string name="settings_sign_out">Sign out</string>
-    <string name="settings_presets_section">Integration presets</string>
-    <string name="settings_preset_ha_dashboard">Home Assistant dashboard</string>
-    <string name="settings_preset_ha_dashboard_desc">Sensors, dashboard metrics, setup validation, and entity reads.</string>
-    <string name="settings_preset_ha_automations">Home Assistant automations</string>
-    <string name="settings_preset_ha_automations_desc">Everything in dashboard mode plus write services for household automations.</string>
-    <string name="settings_preset_mcp_readonly">MCP read-only</string>
-    <string name="settings_preset_mcp_readonly_desc">Least-privilege read access for MCP consumers.</string>
     <string name="settings_integrations_section">Integration Clients</string>
     <string name="settings_new_client">+ New client</string>
     <string name="settings_no_clients">No integration clients configured.</string>
@@ -152,7 +145,6 @@
     <string name="settings_client_rate_limit">%1$d req/min</string>
     <string name="settings_create_client_title">New integration client</string>
     <string name="settings_client_name_label">Name</string>
-    <string name="settings_client_scopes_label">Scopes (comma-separated)</string>
     <string name="settings_client_rate_limit_label">Rate limit (per minute)</string>
     <string name="settings_new_key_title">API Key Created</string>
     <string name="settings_new_key_notice">Copy this key now — it will not be shown again.</string>

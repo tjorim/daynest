@@ -41,12 +41,6 @@ def get_integration_client_by_token_hash(db: Session, token_hash: str) -> Integr
     return db.scalar(stmt)
 
 
-def ensure_integration_scope(client: IntegrationClient, scope: str) -> None:
-    scopes = {item.strip() for item in client.scopes_csv.split(",") if item.strip()}
-    if scope not in scopes:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"Missing scope: {scope}")
-
-
 def enforce_integration_rate_limit(client: IntegrationClient) -> None:
     with _request_log_lock:
         now = datetime.now(timezone.utc)
@@ -59,7 +53,7 @@ def enforce_integration_rate_limit(client: IntegrationClient) -> None:
         bucket.append(now)
 
 
-def require_integration_scope(scope: str) -> Callable:
+def require_integration_auth() -> Callable:
     def dependency(
         authorization: str | None = Header(default=None, alias="Authorization"),
         x_integration_key: str | None = Header(default=None, alias="X-Integration-Key"),
@@ -76,11 +70,8 @@ def require_integration_scope(scope: str) -> Callable:
                         settings.resolved_integration_key_hash_secret,
                         algorithms=["HS256"],
                         issuer=_INTEGRATION_JWT_ISSUER,
-                        options={"require": ["exp", "iss", "sub", "scope"]},
+                        options={"require": ["exp", "iss", "sub"]},
                     )
-                    token_scopes = set(int_claims.get("scope", "").split())
-                    if scope not in token_scopes:
-                        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"Missing scope: {scope}")
                     try:
                         client_id_int = int(int_claims["sub"])
                     except (ValueError, KeyError):
@@ -106,9 +97,6 @@ def require_integration_scope(scope: str) -> Callable:
                     claims = from_thread.run(decode_oidc_token, raw_token)
                 except OIDCTokenError as exc:
                     raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired OIDC token") from exc
-                token_scopes = set(claims.get("scope", "").split())
-                if scope not in token_scopes:
-                    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"Missing scope: {scope}")
                 subject = claims.get("sub")
                 if not subject:
                     raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="OIDC token missing sub claim")
@@ -131,8 +119,6 @@ def require_integration_scope(scope: str) -> Callable:
         client = get_integration_client_by_token_hash(db, token_hash)
         if client is None or not client.is_active:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid integration key")
-
-        ensure_integration_scope(client, scope)
 
         if client.user is None:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Integration owner not found")

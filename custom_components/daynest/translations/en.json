@@ -10,6 +10,12 @@
       "reauth_confirm": {
         "title": "Re-authenticate with Daynest",
         "description": "Your Daynest session has expired or been revoked. Click Submit to sign in again."
+      },
+      "reconfigure": {
+        "description": "Update the Daynest server URL. You will be asked to sign in again after changing the URL.",
+        "data": {
+          "url": "Daynest base URL"
+        }
       }
     },
     "error": {
@@ -26,7 +32,14 @@
       "cannot_connect": "Unable to reach the Daynest host.",
       "timeout": "Connection to Daynest timed out.",
       "unsupported_contract": "The Daynest server contract version is not supported by this integration.",
-      "unknown": "Unknown error occurred."
+      "unknown": "Unknown error occurred.",
+      "account_mismatch": "The signed-in Daynest account does not match the configured account. Remove and re-add the integration to switch accounts."
+    }
+  },
+  "issues": {
+    "unsupported_contract_version": {
+      "title": "Unsupported Daynest backend version",
+      "description": "The Daynest backend returned an unsupported integration contract version (`{contract}`). Update the Daynest custom component to the latest version to restore sensor updates."
     }
   },
   "exceptions": {
@@ -35,6 +48,30 @@
     },
     "update_failed": {
       "message": "Failed to update data from the server."
+    },
+    "service_auth_error": {
+      "message": "Authentication error calling daynest.{service}."
+    },
+    "service_communication_error": {
+      "message": "Communication error calling daynest.{service}."
+    },
+    "service_error": {
+      "message": "Error calling daynest.{service}."
+    },
+    "todo_complete_only": {
+      "message": "Only marking due-today chore items as complete is supported."
+    },
+    "todo_planned_item_not_found": {
+      "message": "Unable to locate planned item {item_id}."
+    },
+    "todo_title_empty": {
+      "message": "Planned item title cannot be empty."
+    },
+    "todo_summary_required": {
+      "message": "Todo item summary is required."
+    },
+    "todo_invalid_item_id": {
+      "message": "Unsupported Daynest to-do item id: {item_id}."
     }
   },
   "entity": {
@@ -82,7 +119,7 @@
     },
     "complete_task": {
       "name": "Complete Task",
-      "description": "Marks a Daynest chore instance as complete. Requires the Daynest Home Assistant client to have the ha:write scope.",
+      "description": "Marks a Daynest chore instance as complete. Requires an authenticated Daynest connection.",
       "fields": {
         "chore_instance_id": {
           "name": "Chore Instance ID",
@@ -92,7 +129,7 @@
     },
     "snooze_task": {
       "name": "Snooze Task",
-      "description": "Reschedules a Daynest chore instance to a later date. Requires the Daynest Home Assistant client to have the ha:write scope.",
+      "description": "Reschedules a Daynest chore instance to a later date. Requires an authenticated Daynest connection.",
       "fields": {
         "chore_instance_id": {
           "name": "Chore Instance ID",
@@ -106,7 +143,7 @@
     },
     "mark_medication_taken": {
       "name": "Mark Medication Taken",
-      "description": "Marks a scheduled medication dose as taken. Requires the Daynest Home Assistant client to have the ha:write scope.",
+      "description": "Marks a scheduled medication dose as taken. Requires an authenticated Daynest connection.",
       "fields": {
         "medication_dose_id": {
           "name": "Medication Dose ID",
@@ -116,7 +153,7 @@
     },
     "skip_task": {
       "name": "Skip Task",
-      "description": "Skips a Daynest chore instance. Requires the Daynest Home Assistant client to have the ha:write scope.",
+      "description": "Skips a Daynest chore instance. Requires an authenticated Daynest connection.",
       "fields": {
         "chore_instance_id": {
           "name": "Chore Instance ID",
@@ -126,7 +163,7 @@
     },
     "skip_medication": {
       "name": "Skip Medication Dose",
-      "description": "Skips a scheduled medication dose. Requires the Daynest Home Assistant client to have the ha:write scope.",
+      "description": "Skips a scheduled medication dose. Requires an authenticated Daynest connection.",
       "fields": {
         "medication_dose_id": {
           "name": "Medication Dose ID",

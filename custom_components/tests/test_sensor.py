@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+import pathlib
 from unittest.mock import MagicMock
 
 import pytest
@@ -82,9 +84,11 @@ class TestEntityDescriptions:
             if desc.key != "completion_ratio":
                 assert desc.scale == 1.0, f"{desc.key} should have scale 1.0"
 
-    def test_each_description_has_icon(self) -> None:
+    def test_each_description_has_icon_in_icons_json(self) -> None:
+        icons = json.loads((pathlib.Path(__file__).parent.parent / "daynest" / "icons.json").read_text())
+        sensor_icons = icons.get("entity", {}).get("sensor", {})
         for desc in ENTITY_DESCRIPTIONS:
-            assert desc.icon, f"{desc.key} is missing an icon"
+            assert desc.key in sensor_icons, f"{desc.key} is missing an icon in icons.json"
 
     def test_each_description_has_value_key(self) -> None:
         for desc in ENTITY_DESCRIPTIONS:

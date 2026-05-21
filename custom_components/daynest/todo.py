@@ -9,7 +9,10 @@ from homeassistant.components.todo import TodoItem, TodoItemStatus, TodoListEnti
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity import EntityDescription
 
+from .const import DOMAIN
 from .entity import DaynestEntity
+
+PARALLEL_UPDATES = 1
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
@@ -47,7 +50,6 @@ async def async_setup_entry(
 class DaynestTodoListEntity(TodoListEntity, DaynestEntity):
     """Expose due-today and planned Daynest tasks as a Home Assistant to-do list."""
 
-    _attr_icon = "mdi:format-list-checks"
     _attr_supported_features = (
         TodoListEntityFeature.CREATE_TODO_ITEM
         |
@@ -85,8 +87,10 @@ class DaynestTodoListEntity(TodoListEntity, DaynestEntity):
         if kind == "due":
             status = changes.get("status")
             if status != COMPLETE_STATUS:
-                msg = "Only marking due-today chore items as complete is supported."
-                raise HomeAssistantError(msg)
+                raise HomeAssistantError(
+                    translation_domain=DOMAIN,
+                    translation_key="todo_complete_only",
+                )
 
             await client.async_complete_task(raw_id)
             await self.coordinator.async_request_refresh()
@@ -94,16 +98,21 @@ class DaynestTodoListEntity(TodoListEntity, DaynestEntity):
 
         planned_item = self._find_planned_item(raw_id)
         if planned_item is None:
-            msg = f"Unable to locate planned item for id {raw_id}."
-            raise HomeAssistantError(msg)
+            raise HomeAssistantError(
+                translation_domain=DOMAIN,
+                translation_key="todo_planned_item_not_found",
+                translation_placeholders={"item_id": str(raw_id)},
+            )
 
         status = changes.get("status")
         if status is None:
             status = COMPLETE_STATUS if planned_item.get("is_done") else TodoItemStatus.NEEDS_ACTION
         summary = str(changes.get("summary", planned_item.get("title") or "Task")).strip()
         if not summary:
-            msg = "Planned item title cannot be empty."
-            raise HomeAssistantError(msg)
+            raise HomeAssistantError(
+                translation_domain=DOMAIN,
+                translation_key="todo_title_empty",
+            )
         planned_for = self._format_due_for_payload(changes.get("due", planned_item.get("planned_for")))
         notes = changes.get("description", planned_item.get("notes"))
 
@@ -124,8 +133,10 @@ class DaynestTodoListEntity(TodoListEntity, DaynestEntity):
         """Create a planned Daynest item from Home Assistant."""
         summary = str(item.summary or "").strip()
         if not summary:
-            msg = "Todo item summary is required."
-            raise HomeAssistantError(msg)
+            raise HomeAssistantError(
+                translation_domain=DOMAIN,
+                translation_key="todo_summary_required",
+            )
 
         await self.coordinator.config_entry.runtime_data.client.async_create_planned_item(
             title=summary,
@@ -199,16 +210,25 @@ class DaynestTodoListEntity(TodoListEntity, DaynestEntity):
         """Parse item IDs encoded as '<kind>:<id>'."""
         kind, separator, raw_id = item_id.partition(":")
         if not separator or kind not in {"due", "planned"}:
-            msg = f"Unsupported Daynest to-do item id: {item_id}"
-            raise HomeAssistantError(msg)
+            raise HomeAssistantError(
+                translation_domain=DOMAIN,
+                translation_key="todo_invalid_item_id",
+                translation_placeholders={"item_id": item_id},
+            )
         try:
             parsed_id = int(raw_id)
         except ValueError as err:
-            msg = f"Unsupported Daynest to-do item id: {item_id}"
-            raise HomeAssistantError(msg) from err
+            raise HomeAssistantError(
+                translation_domain=DOMAIN,
+                translation_key="todo_invalid_item_id",
+                translation_placeholders={"item_id": item_id},
+            ) from err
         if parsed_id <= 0:
-            msg = f"Unsupported Daynest to-do item id: {item_id}"
-            raise HomeAssistantError(msg)
+            raise HomeAssistantError(
+                translation_domain=DOMAIN,
+                translation_key="todo_invalid_item_id",
+                translation_placeholders={"item_id": item_id},
+            )
         return kind, parsed_id
 
     def _is_complete_status(self, status: Any) -> bool:

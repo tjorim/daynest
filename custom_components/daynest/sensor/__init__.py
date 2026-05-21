@@ -31,35 +31,31 @@ ENTITY_DESCRIPTIONS: tuple[DaynestSensorEntityDescription, ...] = (
     DaynestSensorEntityDescription(
         key="due_today_count",
         translation_key="due_today_count",
-        icon="mdi:format-list-checks",
         state_class=SensorStateClass.MEASUREMENT,
         value_key="due_today_count",
     ),
     DaynestSensorEntityDescription(
         key="overdue_count",
         translation_key="overdue_count",
-        icon="mdi:alert-circle-outline",
         state_class=SensorStateClass.MEASUREMENT,
         value_key="overdue_count",
     ),
     DaynestSensorEntityDescription(
         key="planned_count",
         translation_key="planned_count",
-        icon="mdi:calendar-text-outline",
         state_class=SensorStateClass.MEASUREMENT,
         value_key="planned_count",
+        entity_registry_enabled_default=False,
     ),
     DaynestSensorEntityDescription(
         key="medication_due_count",
         translation_key="medication_due_count",
-        icon="mdi:pill",
         state_class=SensorStateClass.MEASUREMENT,
         value_key="medication_due_count",
     ),
     DaynestSensorEntityDescription(
         key="completion_ratio",
         translation_key="completion_ratio",
-        icon="mdi:percent-circle-outline",
         native_unit_of_measurement=PERCENTAGE,
         suggested_display_precision=0,
         state_class=SensorStateClass.MEASUREMENT,
@@ -69,22 +65,22 @@ ENTITY_DESCRIPTIONS: tuple[DaynestSensorEntityDescription, ...] = (
     DaynestSensorEntityDescription(
         key="next_medication",
         translation_key="next_medication",
-        icon="mdi:clock-time-eight-outline",
         value_key="next_medication",
+        entity_registry_enabled_default=False,
     ),
     DaynestSensorEntityDescription(
         key="routines_open_count",
         translation_key="routines_open_count",
-        icon="mdi:clipboard-list-outline",
         state_class=SensorStateClass.MEASUREMENT,
         value_key="routines_open_count",
+        entity_registry_enabled_default=False,
     ),
     DaynestSensorEntityDescription(
         key="planned_remaining_count",
         translation_key="planned_remaining_count",
-        icon="mdi:calendar-check-outline",
         state_class=SensorStateClass.MEASUREMENT,
         value_key="planned_remaining_count",
+        entity_registry_enabled_default=False,
     ),
 )
 

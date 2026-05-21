@@ -20,7 +20,6 @@ class IntegrationClient(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     name: Mapped[str] = mapped_column(String(120), nullable=False)
     key_hash: Mapped[str] = mapped_column(String(128), nullable=False, unique=True, index=True)
-    scopes_csv: Mapped[str] = mapped_column(String(255), nullable=False)
     rate_limit_per_minute: Mapped[int] = mapped_column(Integer, nullable=False, default=120, server_default="120")
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default=sa.text("true"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())

@@ -25,13 +25,12 @@ def _create_user(db_session: Session, email: str) -> User:
     return user
 
 
-def _create_integration_key(db_session: Session, user_id: int, *, scopes: str) -> str:
-    raw_key = f"daynest_contract_{user_id}_{scopes.replace(':', '_')}"
+def _create_integration_key(db_session: Session, user_id: int) -> str:
+    raw_key = f"daynest_contract_{user_id}"
     client = IntegrationClient(
         user_id=user_id,
         name="contract-test-client",
         key_hash=hash_integration_key(raw_key),
-        scopes_csv=scopes,
         rate_limit_per_minute=120,
     )
     db_session.add(client)
@@ -68,7 +67,7 @@ def test_home_assistant_contract_header_and_summary_shape(client: TestClient, db
     user = _create_user(db_session, "contract-ha@example.com")
     _setup_contract_chore(db_session, user, "Contract Chore")
 
-    key = _create_integration_key(db_session, user.id, scopes="ha:read")
+    key = _create_integration_key(db_session, user.id)
     response = client.get("/api/v1/integrations/home-assistant/summary", headers={"X-Integration-Key": key})
 
     assert response.status_code == 200
@@ -88,7 +87,7 @@ def test_home_assistant_contract_dashboard_shape(client: TestClient, db_session:
     user = _create_user(db_session, "contract-ha-dashboard@example.com")
     _setup_contract_chore(db_session, user, "Contract Dashboard Chore")
 
-    key = _create_integration_key(db_session, user.id, scopes="ha:read")
+    key = _create_integration_key(db_session, user.id)
     response = client.get("/api/v1/integrations/home-assistant/dashboard", headers={"X-Integration-Key": key})
 
     assert response.status_code == 200
@@ -113,7 +112,7 @@ def test_home_assistant_contract_entities_shape(client: TestClient, db_session: 
     user = _create_user(db_session, "contract-ha-entities@example.com")
     _setup_contract_chore(db_session, user, "Contract Entities Chore")
 
-    key = _create_integration_key(db_session, user.id, scopes="ha:read")
+    key = _create_integration_key(db_session, user.id)
     response = client.get("/api/v1/integrations/home-assistant/entities", headers={"X-Integration-Key": key})
 
     assert response.status_code == 200
@@ -138,7 +137,7 @@ def test_home_assistant_contract_calendar_shape(client: TestClient, db_session: 
     user = _create_user(db_session, "contract-ha-calendar@example.com")
     _setup_contract_chore(db_session, user, "Calendar Contract Chore")
 
-    key = _create_integration_key(db_session, user.id, scopes="ha:read")
+    key = _create_integration_key(db_session, user.id)
     today = date.today()
     response = client.get(
         "/api/v1/integrations/home-assistant/calendar",

@@ -30,7 +30,6 @@ def _create_integration_token(client: IntegrationClient) -> str:
     payload = {
         "iss": _INTEGRATION_JWT_ISSUER,
         "sub": str(client.id),
-        "scope": " ".join(s for s in client.scopes_csv.split(",") if s),
         "iat": now,
         "exp": now + timedelta(seconds=TOKEN_EXPIRES_IN_SECONDS),
     }
@@ -53,13 +52,10 @@ def _create_response(
     request: Request,
     client: IntegrationClient,
     raw_key: str,
-    *,
-    scopes: list[str],
 ) -> IntegrationClientCreateResponse:
     return IntegrationClientCreateResponse(
         id=client.id,
         name=client.name,
-        scopes=scopes,
         rate_limit_per_minute=client.rate_limit_per_minute,
         api_key=raw_key,
         client_id=_integration_client_id(client),
@@ -79,7 +75,6 @@ def list_integration_clients(
         IntegrationClientResponse(
             id=client.id,
             name=client.name,
-            scopes=[scope for scope in client.scopes_csv.split(",") if scope],
             rate_limit_per_minute=client.rate_limit_per_minute,
             is_active=client.is_active,
         )
@@ -94,19 +89,17 @@ def create_integration_client(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> IntegrationClientCreateResponse:
-    scopes = sorted({scope.strip() for scope in payload.scopes if scope.strip()})
     raw_key = f"daynest_{token_urlsafe(30)}"
     client = IntegrationClient(
         user_id=current_user.id,
         name=payload.name,
         key_hash=hash_integration_key(raw_key),
-        scopes_csv=",".join(scopes),
         rate_limit_per_minute=payload.rate_limit_per_minute,
     )
     db.add(client)
     db.commit()
     db.refresh(client)
-    return _create_response(request, client, raw_key, scopes=scopes)
+    return _create_response(request, client, raw_key)
 
 
 @router.post("/{client_id}/rotate", response_model=IntegrationClientCreateResponse)
@@ -128,12 +121,7 @@ def rotate_integration_client(
     client.key_hash = hash_integration_key(raw_key)
     db.commit()
     db.refresh(client)
-    return _create_response(
-        request,
-        client,
-        raw_key,
-        scopes=[scope for scope in client.scopes_csv.split(",") if scope],
-    )
+    return _create_response(request, client, raw_key)
 
 
 @router.post("/token", response_model=IntegrationClientTokenResponse, name="exchange_integration_client_token")
@@ -169,7 +157,6 @@ def exchange_integration_client_token(
     return IntegrationClientTokenResponse(
         access_token=_create_integration_token(client),
         expires_in=TOKEN_EXPIRES_IN_SECONDS,
-        scope=" ".join(scope for scope in client.scopes_csv.split(",") if scope),
     )
 
 

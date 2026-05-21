@@ -160,6 +160,38 @@ class DaynestClient:
             return {"X-Integration-Key": self._integration_key}
         return {}
 
+    @classmethod
+    async def async_fetch_oidc_config(
+        cls,
+        base_url: str,
+        *,
+        session: aiohttp.ClientSession | None = None,
+    ) -> tuple[str, str] | None:
+        """Fetch OIDC discovery endpoints from the Daynest backend.
+
+        Returns (authorization_url, token_url) or None if the backend is
+        unreachable or the response is malformed. Does not require authentication.
+        """
+        url = urljoin(f"{base_url.strip().rstrip('/')}/", "api/v1/auth/oidc-config")
+        owned = session is None
+        if owned:
+            session = aiohttp.ClientSession()
+        try:
+            async with session.get(url, timeout=REQUEST_TIMEOUT) as resp:
+                if resp.status == 200:
+                    data = await resp.json(content_type=None)
+                    if isinstance(data, dict):
+                        auth_url = data.get("authorization_url")
+                        token_url = data.get("token_url")
+                        if isinstance(auth_url, str) and isinstance(token_url, str):
+                            return auth_url, token_url
+        except Exception:  # noqa: BLE001
+            pass
+        finally:
+            if owned:
+                await session.close()
+        return None
+
     async def async_get_data(self) -> dict[str, Any]:
         """Fetch summary data as the coordinator's primary payload."""
         response = await self.async_get_summary()

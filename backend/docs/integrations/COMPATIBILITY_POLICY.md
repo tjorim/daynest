@@ -30,7 +30,7 @@ For a given major contract version:
 - Existing response keys remain present.
 - Existing key types remain unchanged.
 - Existing endpoint paths remain available.
-- Authentication semantics (`X-Integration-Key` + scope checks) remain unchanged.
+- Authentication semantics (`X-Integration-Key` checks) remain unchanged.
 
 ## Client guidance
 

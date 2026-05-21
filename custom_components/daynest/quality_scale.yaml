@@ -1,0 +1,251 @@
+rules:
+  # Bronze
+  action-setup:
+    status: done
+    comment: >
+      Services are registered inside `async_setup_entry` via
+      `async_setup_services` and unregistered in `async_unload_entry`.
+  appropriate-polling:
+    status: done
+    comment: >
+      `DASHBOARD_UPDATE_INTERVAL = timedelta(minutes=15)` with
+      `always_update=False` so unchanged payloads don't trigger writes.
+  brands:
+    status: todo
+    comment: >
+      No brand assets (logo/icon) committed yet. Add them before submitting
+      to the HA integration catalogue.
+  common-modules:
+    status: done
+    comment: >
+      `coordinator.py` holds `DaynestDataUpdateCoordinator`;
+      `entity/base.py` holds `DaynestEntity` (common unique-ID, DeviceInfo,
+      attribution). Platform modules import from these.
+  config-flow:
+    status: done
+    comment: >
+      Full OAuth 2.0 PKCE config flow (`async_step_user` → `async_step_auth`
+      → `async_oauth_create_entry`) with reauth support.
+  config-flow-test-coverage:
+    status: todo
+    comment: >
+      Config flow steps (user, reauth, OAuth callback) are not yet covered by
+      dedicated HA-style tests.
+  dependency-transparency:
+    status: done
+    comment: >
+      `manifest.json` pins the `python-daynest` requirement with an exact
+      version (`==0.1.0`).
+  docs-actions:
+    status: todo
+    comment: >
+      Service descriptions exist in `services.yaml` but integration-level
+      documentation for actions is not yet written.
+  docs-high-level-description:
+    status: todo
+  docs-installation-instructions:
+    status: todo
+  docs-removal-instructions:
+    status: todo
+  entity-event-setup:
+    status: done
+    comment: >
+      All entity platforms inherit `DaynestEntity(CoordinatorEntity)`.
+      No manual subscription or event listener setup is needed.
+  entity-unique-id:
+    status: done
+    comment: >
+      `_attr_unique_id = f"{entry_id}_{entity_description.key}"` set in
+      `DaynestEntity.__init__`.
+  has-entity-name:
+    status: done
+    comment: "`_attr_has_entity_name = True` set on `DaynestEntity`."
+  runtime-data:
+    status: done
+    comment: >
+      `entry.runtime_data` is typed via `DaynestConfigEntry` (TypeAlias of
+      `ConfigEntry[DaynestData]`) and populated in `async_setup_entry`.
+  test-before-configure:
+    status: done
+    comment: >
+      `_async_validate_oauth_token` calls `async_get_summary` during
+      `async_oauth_create_entry` and aborts on auth/connection errors before
+      storing the config entry.
+  test-before-setup:
+    status: done
+    comment: >
+      `coordinator.async_config_entry_first_refresh()` is awaited in
+      `async_setup_entry`; a failed refresh raises and blocks setup.
+  unique-config-entry:
+    status: done
+    comment: >
+      `async_set_unique_id(sub or base_url)` + `_abort_if_unique_id_configured`
+      called in both the initial flow and `async_oauth_create_entry`.
+
+  # Silver
+  action-exceptions:
+    status: done
+    comment: >
+      All service handlers catch `DaynestError` variants and re-raise as
+      `HomeAssistantError` in `_call_client`.
+  config-entry-unloading:
+    status: done
+    comment: >
+      `async_unload_entry` forwards to `async_unload_platforms`, removes the
+      Lovelace resource, and calls `async_unload_services` when no entries
+      remain loaded.
+  docs-configuration-parameters:
+    status: todo
+  docs-installation-parameters:
+    status: todo
+  entity-unavailable:
+    status: done
+    comment: >
+      `CoordinatorEntity` marks entities unavailable automatically when the
+      coordinator raises `UpdateFailed`; no manual override needed.
+  integration-owner:
+    status: done
+    comment: "`codeowners: [\"@tjorim\"]` set in `manifest.json`."
+  log-when-unavailable:
+    status: done
+    comment: >
+      `DataUpdateCoordinator` is initialised with the module `LOGGER`; it
+      logs a warning automatically when polling fails repeatedly.
+  parallel-updates:
+    status: done
+    comment: >
+      `PARALLEL_UPDATES = 1` defined in `const.py` and re-exported from
+      `sensor` and `todo`; `calendar` sets `PARALLEL_UPDATES = 0` (read-only,
+      coordinator-driven).
+  reauthentication-flow:
+    status: done
+    comment: >
+      `async_step_reauth` / `async_step_reauth_confirm` implemented; on
+      success calls `async_update_reload_and_abort`.
+  test-coverage:
+    status: todo
+    comment: >
+      HA-specific code (coordinator, entity setup, config flow) lacks
+      dedicated unit/integration tests. Backend API tests exist separately.
+
+  # Gold
+  devices:
+    status: done
+    comment: >
+      `DaynestEntity` sets `_attr_device_info` with identifiers, name, and
+      manufacturer so all entities group under one device per config entry.
+  diagnostics:
+    status: done
+    comment: >
+      `diagnostics.py` implements `async_get_config_entry_diagnostics`.
+      Sensitive fields (`token`, `access_token`, `refresh_token`, `id_token`,
+      `api_key`, `integration_key`, `password`, `username`) are redacted via
+      `async_redact_data`; the server URL is kept visible to aid debugging.
+  discovery:
+    status: exempt
+    comment: >
+      Daynest is a cloud-polling service; there is no local network discovery
+      protocol.
+  discovery-update-info:
+    status: exempt
+    comment: Same reason as `discovery`.
+  docs-data-update:
+    status: todo
+  docs-known-limitations:
+    status: todo
+  docs-supported-devices:
+    status: exempt
+    comment: >
+      The integration represents a single cloud account, not a range of
+      hardware devices.
+  docs-supported-functions:
+    status: todo
+  docs-examples:
+    status: todo
+  docs-troubleshooting:
+    status: todo
+  docs-use-cases:
+    status: todo
+  dynamic-devices:
+    status: exempt
+    comment: >
+      One config entry = one user account = one logical device. Devices are
+      not added or removed dynamically after setup.
+  entity-category:
+    status: done
+    comment: >
+      All Daynest sensor entities expose primary user-facing task and
+      medication metrics; none are diagnostic or config in the HA sense.
+      No `EntityCategory` is warranted.
+  entity-device-class:
+    status: exempt
+    comment: >
+      All Daynest sensors measure application-domain concepts (task counts,
+      completion ratio, medication name) that have no matching
+      `SensorDeviceClass`. HA device classes cover physical quantities and a
+      handful of standard state types (timestamp, enum, monetary); none apply
+      here. If `next_medication` is ever changed to return an ISO datetime,
+      `SensorDeviceClass.TIMESTAMP` would apply to that sensor.
+  entity-disabled-by-default:
+    status: done
+    comment: >
+      Secondary sensors (`planned_count`, `planned_remaining_count`,
+      `routines_open_count`, `next_medication`) set
+      `entity_registry_enabled_default=False`. Primary metrics
+      (`due_today_count`, `overdue_count`, `medication_due_count`,
+      `completion_ratio`) remain enabled.
+  entity-translations:
+    status: done
+    comment: >
+      All entity descriptions use `translation_key`; strings live in
+      `translations/en.json`.
+  exception-translations:
+    status: done
+    comment: >
+      All `HomeAssistantError` raises in `services.py` and `todo.py` use
+      `translation_domain=DOMAIN` + `translation_key` with optional
+      `translation_placeholders`. Strings live in
+      `translations/en.json` under `exceptions`.
+  icon-translations:
+    status: done
+    comment: >
+      Static `icon=` removed from all sensor descriptions and `_attr_icon`
+      removed from calendar and todo entities. All icons now defined in
+      `icons.json` under `entity.<platform>.<translation_key>.default`.
+  reconfiguration-flow:
+    status: done
+    comment: >
+      `async_step_reconfigure` added to `config_flow.py`. Shows the current
+      URL pre-filled, re-fetches OIDC config, re-runs OAuth, and aborts with
+      `account_mismatch` if the signed-in account differs from the configured
+      one.
+  repair-issues:
+    status: todo
+    comment: >
+      Infrastructure in place: `repairs.py` exists and the coordinator raises
+      an `unsupported_contract_version` issue (non-fixable, severity ERROR)
+      when the backend returns an unrecognised contract version. Missing: no
+      UI-fixable repair flows are implemented; `async_create_fix_flow` is a
+      stub that raises `NotImplementedError`.
+  stale-devices:
+    status: exempt
+    comment: Same reason as `dynamic-devices`.
+
+  # Platinum
+  async-dependency:
+    status: done
+    comment: >
+      `python-daynest` is fully async (all I/O via `aiohttp`); no blocking
+      calls are made.
+  inject-websession:
+    status: done
+    comment: >
+      `DaynestClient` accepts an optional `session: aiohttp.ClientSession`
+      parameter; `async_get_clientsession(hass)` is injected in both
+      `async_setup_entry` and the config flow.
+  strict-typing:
+    status: todo
+    comment: >
+      `custom_components/daynest` is not listed in `.strict-typing` and has
+      not been validated under `mypy --strict` / `ty --strict` for the
+      integration-specific code.

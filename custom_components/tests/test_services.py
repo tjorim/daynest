@@ -162,8 +162,9 @@ class TestHandleCompleteTask:
         hass = _make_hass(entries=[entry])
         await async_setup_services(hass)
         handler = await _get_handler(hass, SERVICE_COMPLETE_TASK)
-        with pytest.raises(HomeAssistantError, match="Authentication error in daynest.complete_task"):
+        with pytest.raises(HomeAssistantError) as exc_info:
             await handler(_make_service_call(**{ATTR_CHORE_INSTANCE_ID: 7}))
+        assert exc_info.value.translation_key == "service_auth_error"
 
     async def test_communication_error_raises_homeassistant_error(self) -> None:
         client = AsyncMock()
@@ -172,8 +173,9 @@ class TestHandleCompleteTask:
         hass = _make_hass(entries=[entry])
         await async_setup_services(hass)
         handler = await _get_handler(hass, SERVICE_COMPLETE_TASK)
-        with pytest.raises(HomeAssistantError, match="Communication error in daynest.complete_task"):
+        with pytest.raises(HomeAssistantError) as exc_info:
             await handler(_make_service_call(**{ATTR_CHORE_INSTANCE_ID: 7}))
+        assert exc_info.value.translation_key == "service_communication_error"
 
     async def test_generic_api_error_raises_homeassistant_error(self) -> None:
         client = AsyncMock()
@@ -182,8 +184,9 @@ class TestHandleCompleteTask:
         hass = _make_hass(entries=[entry])
         await async_setup_services(hass)
         handler = await _get_handler(hass, SERVICE_COMPLETE_TASK)
-        with pytest.raises(HomeAssistantError, match="Error in daynest.complete_task"):
+        with pytest.raises(HomeAssistantError) as exc_info:
             await handler(_make_service_call(**{ATTR_CHORE_INSTANCE_ID: 7}))
+        assert exc_info.value.translation_key == "service_error"
 
     async def test_error_does_not_trigger_coordinator_refresh(self) -> None:
         client = AsyncMock()
@@ -236,8 +239,9 @@ class TestHandleSnoozeTask:
         hass = _make_hass(entries=[entry])
         await async_setup_services(hass)
         handler = await _get_handler(hass, SERVICE_SNOOZE_TASK)
-        with pytest.raises(HomeAssistantError, match="Authentication error in daynest.snooze_task"):
+        with pytest.raises(HomeAssistantError) as exc_info:
             await handler(_make_service_call(**{ATTR_CHORE_INSTANCE_ID: 3, ATTR_DAYS: 2}))
+        assert exc_info.value.translation_key == "service_auth_error"
 
     async def test_communication_error_raises_homeassistant_error(self) -> None:
         client = AsyncMock()
@@ -246,8 +250,9 @@ class TestHandleSnoozeTask:
         hass = _make_hass(entries=[entry])
         await async_setup_services(hass)
         handler = await _get_handler(hass, SERVICE_SNOOZE_TASK)
-        with pytest.raises(HomeAssistantError, match="Communication error in daynest.snooze_task"):
+        with pytest.raises(HomeAssistantError) as exc_info:
             await handler(_make_service_call(**{ATTR_CHORE_INSTANCE_ID: 3, ATTR_DAYS: 2}))
+        assert exc_info.value.translation_key == "service_communication_error"
 
     async def test_generic_api_error_raises_homeassistant_error(self) -> None:
         client = AsyncMock()
@@ -256,8 +261,9 @@ class TestHandleSnoozeTask:
         hass = _make_hass(entries=[entry])
         await async_setup_services(hass)
         handler = await _get_handler(hass, SERVICE_SNOOZE_TASK)
-        with pytest.raises(HomeAssistantError, match="Error in daynest.snooze_task"):
+        with pytest.raises(HomeAssistantError) as exc_info:
             await handler(_make_service_call(**{ATTR_CHORE_INSTANCE_ID: 3, ATTR_DAYS: 2}))
+        assert exc_info.value.translation_key == "service_error"
 
 
 @pytest.mark.unit
@@ -299,8 +305,9 @@ class TestHandleMarkMedicationTaken:
         hass = _make_hass(entries=[entry])
         await async_setup_services(hass)
         handler = await _get_handler(hass, SERVICE_MARK_MEDICATION_TAKEN)
-        with pytest.raises(HomeAssistantError, match="Authentication error in daynest.mark_medication_taken"):
+        with pytest.raises(HomeAssistantError) as exc_info:
             await handler(_make_service_call(**{ATTR_MEDICATION_DOSE_ID: 15}))
+        assert exc_info.value.translation_key == "service_auth_error"
 
     async def test_communication_error_raises_homeassistant_error(self) -> None:
         client = AsyncMock()
@@ -309,8 +316,9 @@ class TestHandleMarkMedicationTaken:
         hass = _make_hass(entries=[entry])
         await async_setup_services(hass)
         handler = await _get_handler(hass, SERVICE_MARK_MEDICATION_TAKEN)
-        with pytest.raises(HomeAssistantError, match="Communication error in daynest.mark_medication_taken"):
+        with pytest.raises(HomeAssistantError) as exc_info:
             await handler(_make_service_call(**{ATTR_MEDICATION_DOSE_ID: 15}))
+        assert exc_info.value.translation_key == "service_communication_error"
 
     async def test_generic_api_error_raises_homeassistant_error(self) -> None:
         client = AsyncMock()
@@ -319,8 +327,9 @@ class TestHandleMarkMedicationTaken:
         hass = _make_hass(entries=[entry])
         await async_setup_services(hass)
         handler = await _get_handler(hass, SERVICE_MARK_MEDICATION_TAKEN)
-        with pytest.raises(HomeAssistantError, match="Error in daynest.mark_medication_taken"):
+        with pytest.raises(HomeAssistantError) as exc_info:
             await handler(_make_service_call(**{ATTR_MEDICATION_DOSE_ID: 15}))
+        assert exc_info.value.translation_key == "service_error"
 
     async def test_error_does_not_trigger_coordinator_refresh(self) -> None:
         client = AsyncMock()
@@ -356,8 +365,9 @@ class TestHandleSkipTask:
         hass = _make_hass(entries=[entry])
         await async_setup_services(hass)
         handler = await _get_handler(hass, SERVICE_SKIP_TASK)
-        with pytest.raises(HomeAssistantError, match="Authentication error in daynest.skip_task"):
+        with pytest.raises(HomeAssistantError) as exc_info:
             await handler(_make_service_call(**{ATTR_CHORE_INSTANCE_ID: 9}))
+        assert exc_info.value.translation_key == "service_auth_error"
 
 
 @pytest.mark.unit
@@ -401,8 +411,9 @@ class TestHandleMarkPlannedDone:
         hass = _make_hass(entries=[entry])
         await async_setup_services(hass)
         handler = await _get_handler(hass, SERVICE_MARK_PLANNED_DONE)
-        with pytest.raises(HomeAssistantError, match="Authentication error in daynest.mark_planned_done"):
+        with pytest.raises(HomeAssistantError) as exc_info:
             await handler(_make_service_call(**{ATTR_PLANNED_ITEM_ID: 42}))
+        assert exc_info.value.translation_key == "service_auth_error"
 
     async def test_communication_error_raises_homeassistant_error(self) -> None:
         client = AsyncMock()
@@ -411,8 +422,9 @@ class TestHandleMarkPlannedDone:
         hass = _make_hass(entries=[entry])
         await async_setup_services(hass)
         handler = await _get_handler(hass, SERVICE_MARK_PLANNED_DONE)
-        with pytest.raises(HomeAssistantError, match="Communication error in daynest.mark_planned_done"):
+        with pytest.raises(HomeAssistantError) as exc_info:
             await handler(_make_service_call(**{ATTR_PLANNED_ITEM_ID: 42}))
+        assert exc_info.value.translation_key == "service_communication_error"
 
     async def test_generic_api_error_raises_homeassistant_error(self) -> None:
         client = AsyncMock()
@@ -421,8 +433,9 @@ class TestHandleMarkPlannedDone:
         hass = _make_hass(entries=[entry])
         await async_setup_services(hass)
         handler = await _get_handler(hass, SERVICE_MARK_PLANNED_DONE)
-        with pytest.raises(HomeAssistantError, match="Error in daynest.mark_planned_done"):
+        with pytest.raises(HomeAssistantError) as exc_info:
             await handler(_make_service_call(**{ATTR_PLANNED_ITEM_ID: 42}))
+        assert exc_info.value.translation_key == "service_error"
 
     async def test_error_does_not_trigger_coordinator_refresh(self) -> None:
         client = AsyncMock()

@@ -57,15 +57,13 @@ def _create_integration_key(
     db_session: Session,
     user_id: int,
     *,
-    scopes: str,
     rate_limit_per_minute: int = 120,
 ) -> str:
-    raw_key = f"daynest_test_{user_id}_{scopes.replace(':', '_')}"
+    raw_key = f"daynest_test_{user_id}"
     client = IntegrationClient(
         user_id=user_id,
         name="test-integration",
         key_hash=hash_integration_key(raw_key),
-        scopes_csv=scopes,
         rate_limit_per_minute=rate_limit_per_minute,
     )
     db_session.add(client)
@@ -117,14 +115,13 @@ def test_create_integration_client_and_list(client: TestClient, db_session: Sess
     try:
         create_response = client.post(
             "/api/v1/integrations/clients",
-            json={"name": "Home Assistant", "scopes": ["ha:read", "mcp:read"], "rate_limit_per_minute": 80},
+            json={"name": "Home Assistant", "rate_limit_per_minute": 80},
         )
         assert create_response.status_code == 200
         payload = create_response.json()
         assert payload["api_key"].startswith("daynest_")
         assert payload["client_secret"] == payload["api_key"]
         assert payload["token_url"].endswith("/api/v1/integrations/clients/token")
-        assert payload["scopes"] == ["ha:read", "mcp:read"]
 
         list_response = client.get("/api/v1/integrations/clients")
         assert list_response.status_code == 200
@@ -133,21 +130,20 @@ def test_create_integration_client_and_list(client: TestClient, db_session: Sess
         _clear_auth()
 
 
-def test_home_assistant_routes_enforce_ha_read_scope(
+def test_home_assistant_routes_reject_invalid_key(
     client: TestClient,
     db_session: Session,
     monkeypatch: MonkeyPatch,
 ) -> None:
     _freeze_route_today(monkeypatch, "app.api.routes.integrations.home_assistant")
-    user = _create_home_assistant_fixture(db_session, "ha-scope@example.com")
-    wrong_key = _create_integration_key(db_session, user.id, scopes="mcp:read")
+    _create_home_assistant_fixture(db_session, "ha-scope@example.com")
 
     for endpoint in HOME_ASSISTANT_ENDPOINTS:
         denied = client.get(
             f"/api/v1/integrations/home-assistant/{endpoint}",
-            headers={"X-Integration-Key": wrong_key},
+            headers={"X-Integration-Key": "daynest_invalid_key"},
         )
-        assert denied.status_code == 403
+        assert denied.status_code == 401
 
 
 def test_home_assistant_summary_contract_is_stable(
@@ -157,7 +153,7 @@ def test_home_assistant_summary_contract_is_stable(
 ) -> None:
     _freeze_route_today(monkeypatch, "app.api.routes.integrations.home_assistant")
     user = _create_home_assistant_fixture(db_session, "ha-summary-contract@example.com")
-    ha_key = _create_integration_key(db_session, user.id, scopes="ha:read")
+    ha_key = _create_integration_key(db_session, user.id)
     expected_contract = integration_contract_header(HOME_ASSISTANT_ADAPTER, HOME_ASSISTANT_CONTRACT_VERSION)
 
     summary = client.get("/api/v1/integrations/home-assistant/summary", headers={"X-Integration-Key": ha_key})
@@ -190,7 +186,7 @@ def test_home_assistant_entities_contract_is_stable(
 ) -> None:
     _freeze_route_today(monkeypatch, "app.api.routes.integrations.home_assistant")
     user = _create_home_assistant_fixture(db_session, "ha-entities-contract@example.com")
-    ha_key = _create_integration_key(db_session, user.id, scopes="ha:read")
+    ha_key = _create_integration_key(db_session, user.id)
     expected_contract = integration_contract_header(HOME_ASSISTANT_ADAPTER, HOME_ASSISTANT_CONTRACT_VERSION)
 
     entities = client.get("/api/v1/integrations/home-assistant/entities", headers={"X-Integration-Key": ha_key})
@@ -221,7 +217,7 @@ def test_home_assistant_dashboard_contract_is_stable(
 ) -> None:
     _freeze_route_today(monkeypatch, "app.api.routes.integrations.home_assistant")
     user = _create_home_assistant_fixture(db_session, "ha-dashboard-contract@example.com")
-    ha_key = _create_integration_key(db_session, user.id, scopes="ha:read")
+    ha_key = _create_integration_key(db_session, user.id)
     expected_contract = integration_contract_header(HOME_ASSISTANT_ADAPTER, HOME_ASSISTANT_CONTRACT_VERSION)
 
     dashboard = client.get("/api/v1/integrations/home-assistant/dashboard", headers={"X-Integration-Key": ha_key})
@@ -252,43 +248,6 @@ def test_home_assistant_dashboard_contract_is_stable(
     assert isinstance(dashboard_payload["planned"], list)
 
 
-def test_home_assistant_write_endpoints_require_ha_write_scope(
-    client: TestClient,
-    db_session: Session,
-    monkeypatch: MonkeyPatch,
-) -> None:
-    _freeze_route_today(monkeypatch, "app.api.routes.integrations.home_assistant")
-    user = _create_home_assistant_fixture(db_session, "ha-write-scope-denied@example.com")
-    read_only_key = _create_integration_key(db_session, user.id, scopes="ha:read")
-
-    for path, payload in [
-        ("/api/v1/integrations/home-assistant/actions/complete-task", {"chore_instance_id": 1}),
-        ("/api/v1/integrations/home-assistant/actions/snooze-task", {"chore_instance_id": 1}),
-        ("/api/v1/integrations/home-assistant/actions/mark-medication-taken", {"medication_dose_id": 1}),
-        ("/api/v1/integrations/home-assistant/actions/skip-task", {"chore_instance_id": 1}),
-        ("/api/v1/integrations/home-assistant/actions/skip-medication", {"medication_dose_id": 1}),
-        (
-            "/api/v1/integrations/home-assistant/actions/create-planned-item",
-            {"title": "Plan snacks", "planned_for": FIXED_TODAY.isoformat()},
-        ),
-    ]:
-        denied = client.post(path, json=payload, headers={"X-Integration-Key": read_only_key})
-        assert denied.status_code == 403, f"Expected 403 for {path} with ha:read scope"
-
-    denied_put = client.put(
-        "/api/v1/integrations/home-assistant/actions/update-planned-item/1",
-        json={"title": "Updated", "planned_for": FIXED_TODAY.isoformat(), "is_done": True},
-        headers={"X-Integration-Key": read_only_key},
-    )
-    assert denied_put.status_code == 403
-
-    denied_delete = client.delete(
-        "/api/v1/integrations/home-assistant/actions/delete-planned-item/1",
-        headers={"X-Integration-Key": read_only_key},
-    )
-    assert denied_delete.status_code == 403
-
-
 def test_home_assistant_complete_task_marks_chore_complete(
     client: TestClient,
     db_session: Session,
@@ -296,7 +255,7 @@ def test_home_assistant_complete_task_marks_chore_complete(
 ) -> None:
     _freeze_route_today(monkeypatch, "app.api.routes.integrations.home_assistant")
     user = _create_home_assistant_fixture(db_session, "ha-complete-task@example.com")
-    write_key = _create_integration_key(db_session, user.id, scopes="ha:write")
+    write_key = _create_integration_key(db_session, user.id)
 
     chore = db_session.query(ChoreInstance).filter_by(user_id=user.id).first()
     assert chore is not None
@@ -323,7 +282,7 @@ def test_home_assistant_snooze_task_reschedules_chore(
 ) -> None:
     _freeze_route_today(monkeypatch, "app.api.routes.integrations.home_assistant")
     user = _create_home_assistant_fixture(db_session, "ha-snooze-task@example.com")
-    write_key = _create_integration_key(db_session, user.id, scopes="ha:write")
+    write_key = _create_integration_key(db_session, user.id)
 
     chore = db_session.query(ChoreInstance).filter_by(user_id=user.id).first()
     assert chore is not None
@@ -354,7 +313,7 @@ def test_home_assistant_mark_medication_taken(
 
     _freeze_route_today(monkeypatch, "app.api.routes.integrations.home_assistant")
     user = _create_home_assistant_fixture(db_session, "ha-mark-medication@example.com")
-    write_key = _create_integration_key(db_session, user.id, scopes="ha:write")
+    write_key = _create_integration_key(db_session, user.id)
 
     # Retrieve the medication plan created by the fixture
     from app.models.medication_plan import MedicationPlan
@@ -398,7 +357,7 @@ def test_home_assistant_planned_item_crud_actions(
 ) -> None:
     _freeze_route_today(monkeypatch, "app.api.routes.integrations.home_assistant")
     user = _create_home_assistant_fixture(db_session, "ha-planned-crud@example.com")
-    write_key = _create_integration_key(db_session, user.id, scopes="ha:write")
+    write_key = _create_integration_key(db_session, user.id)
 
     create_response = client.post(
         "/api/v1/integrations/home-assistant/actions/create-planned-item",

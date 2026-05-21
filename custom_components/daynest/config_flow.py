@@ -8,7 +8,6 @@ import json
 import logging
 from typing import Any
 
-import aiohttp
 import voluptuous as vol
 
 from daynest import (
@@ -91,21 +90,19 @@ class DaynestConfigFlowHandler(config_entry_oauth2_flow.AbstractOAuth2FlowHandle
 
     @property
     def extra_authorize_data(self) -> dict[str, str]:
-        """Request Daynest scopes needed by the integration."""
-        return {"scope": "openid profile email offline_access ha:read ha:write"}
+        """Request standard OIDC scopes for the integration."""
+        return {"scope": "openid profile email offline_access"}
 
     async def _async_fetch_oidc_config(self, base_url: str) -> tuple[str, str, str] | None:
         """Fetch OIDC endpoints from the Daynest backend. Returns (authorization_url, token_url, client_id) or None on failure."""
-        url = f"{base_url}/api/v1/auth/oidc-config"
-        try:
-            session = async_get_clientsession(self.hass)
-            async with session.get(url, timeout=aiohttp.ClientTimeout(total=10)) as resp:
-                if resp.status == 200:
-                    data = await resp.json()
-                    return data["authorization_url"], data["token_url"], DEFAULT_OIDC_CLIENT_ID
-        except Exception:  # noqa: BLE001
-            pass
-        return None
+        result = await DaynestClient.async_fetch_oidc_config(
+            base_url,
+            session=async_get_clientsession(self.hass),
+        )
+        if result is None:
+            return None
+        authorization_url, token_url = result
+        return authorization_url, token_url, DEFAULT_OIDC_CLIENT_ID
 
     async def async_step_user(
         self,
@@ -150,6 +147,44 @@ class DaynestConfigFlowHandler(config_entry_oauth2_flow.AbstractOAuth2FlowHandle
             description_placeholders={
                 "documentation_url": integration.documentation or "",
             },
+        )
+
+    async def async_step_reconfigure(
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> config_entries.ConfigFlowResult:
+        """Handle reconfiguration of the Daynest server URL."""
+        errors: dict[str, str] = {}
+        reconfigure_entry = self._get_reconfigure_entry()
+
+        if user_input is not None:
+            base_url = str(user_input[CONF_URL]).strip().rstrip("/")
+
+            oidc = await self._async_fetch_oidc_config(base_url)
+            if oidc is None:
+                errors[CONF_URL] = ERROR_CANNOT_CONNECT
+            else:
+                authorization_url, oidc_token_url, client_id = oidc
+                self.flow_impl = config_entry_oauth2_flow.LocalOAuth2ImplementationWithPkce(
+                    self.hass,
+                    DOMAIN,
+                    client_id,
+                    authorization_url,
+                    oidc_token_url,
+                )
+                self.context.update(
+                    {
+                        CONF_URL: base_url,
+                        CONF_AUTHORIZATION_URL: authorization_url,
+                        CONF_TOKEN_URL: oidc_token_url,
+                    }
+                )
+                return await self.async_step_auth()
+
+        return self.async_show_form(
+            step_id="reconfigure",
+            data_schema=_user_schema({CONF_URL: reconfigure_entry.data.get(CONF_URL, "")}),
+            errors=errors,
         )
 
     async def async_step_reauth(
@@ -215,6 +250,21 @@ class DaynestConfigFlowHandler(config_entry_oauth2_flow.AbstractOAuth2FlowHandle
                 reauth_entry,
                 data={
                     **reauth_entry.data,
+                    **data,
+                    CONF_URL: base_url,
+                    CONF_AUTH_MODE: AUTH_MODE_OAUTH_REDIRECT,
+                    CONF_AUTHORIZATION_URL: str(self.context[CONF_AUTHORIZATION_URL]),
+                    CONF_TOKEN_URL: str(self.context[CONF_TOKEN_URL]),
+                },
+            )
+
+        if self.source == config_entries.SOURCE_RECONFIGURE:
+            reconfigure_entry = self._get_reconfigure_entry()
+            self._abort_if_unique_id_mismatch(reason="account_mismatch")
+            return self.async_update_reload_and_abort(
+                reconfigure_entry,
+                data={
+                    **reconfigure_entry.data,
                     **data,
                     CONF_URL: base_url,
                     CONF_AUTH_MODE: AUTH_MODE_OAUTH_REDIRECT,

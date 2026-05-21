@@ -87,13 +87,25 @@ async def _call_client(
         await coro
     except DaynestAuthError as err:
         LOGGER.error("daynest.%s: authentication error for %s", service, entity_id)
-        raise HomeAssistantError(f"Authentication error in daynest.{service}") from err
+        raise HomeAssistantError(
+            translation_domain=DOMAIN,
+            translation_key="service_auth_error",
+            translation_placeholders={"service": service},
+        ) from err
     except DaynestCommunicationError as err:
         LOGGER.error("daynest.%s: communication error for %s: %s", service, entity_id, err)
-        raise HomeAssistantError(f"Communication error in daynest.{service}") from err
+        raise HomeAssistantError(
+            translation_domain=DOMAIN,
+            translation_key="service_communication_error",
+            translation_placeholders={"service": service},
+        ) from err
     except DaynestError as err:
         LOGGER.error("daynest.%s: error for %s: %s", service, entity_id, err)
-        raise HomeAssistantError(f"Error in daynest.{service}") from err
+        raise HomeAssistantError(
+            translation_domain=DOMAIN,
+            translation_key="service_error",
+            translation_placeholders={"service": service},
+        ) from err
     LOGGER.debug("daynest.%s: %s succeeded", service, entity_id)
     await entry.runtime_data.coordinator.async_refresh()
 
