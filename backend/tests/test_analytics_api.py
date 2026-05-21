@@ -270,7 +270,7 @@ def test_analytics_includes_routine_streaks(client: TestClient, db_session: Sess
     db_session.commit()
     db_session.refresh(routine)
 
-    # completed 3 days ago and yesterday; skipped 2 days ago; completed today → current streak = 1, longest = 2
+    # completed 3 days ago; skipped 2 days ago; completed yesterday and today → current streak = 2, longest = 2
     _add_task(db_session, user, routine, today - timedelta(days=3), TaskStatus.completed)
     _add_task(db_session, user, routine, today - timedelta(days=2), TaskStatus.skipped)
     _add_task(db_session, user, routine, today - timedelta(days=1), TaskStatus.completed)

@@ -248,7 +248,7 @@ def get_routine_stats(db: Session, user_id: int, start_date: date, end_date: dat
         .where(TaskInstance.user_id == user_id)
         .where(TaskInstance.scheduled_date >= streak_start_date)
         .where(TaskInstance.scheduled_date <= end_date)
-        .where(TaskInstance.status != TaskStatus.pending)
+        .where(TaskInstance.status.notin_([TaskStatus.pending, TaskStatus.in_progress]))
         .order_by(TaskInstance.routine_template_id, TaskInstance.scheduled_date)
     ).all()
 
