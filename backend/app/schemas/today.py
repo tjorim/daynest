@@ -111,6 +111,7 @@ class UnifiedDayItem(BaseModel):
     recurrence_hint: str | None = None
     linked_source: str | None = None
     linked_ref: str | None = None
+    priority: Priority = Priority.normal
 
 
 class CalendarDayResponse(BaseModel):

@@ -431,7 +431,7 @@ class TodayRepository:
         stmt = select(ChoreInstance).where(ChoreInstance.user_id == user_id).where(ChoreInstance.id == chore_instance_id)
         return self.db.scalar(stmt)
 
-    def list_planned_items(self, user_id: int, start_date: date | None = None, end_date: date | None = None, is_done: bool | None = None) -> list[PlannedItem]:
+    def list_planned_items(self, user_id: int, start_date: date | None = None, end_date: date | None = None, is_done: bool | None = None, tags: list[str] | None = None) -> list[PlannedItem]:
         stmt = select(PlannedItem).where(PlannedItem.user_id == user_id)
         if start_date is not None:
             stmt = stmt.where(PlannedItem.planned_for >= start_date)
@@ -440,7 +440,10 @@ class TodayRepository:
         if is_done is not None:
             stmt = stmt.where(PlannedItem.is_done.is_(is_done))
         stmt = stmt.order_by(PlannedItem.planned_for.asc(), PlannedItem.id.asc())
-        return list(self.db.scalars(stmt).all())
+        items = list(self.db.scalars(stmt).all())
+        if tags:
+            items = [item for item in items if any(tag in (item.tags or []) for tag in tags)]
+        return items
 
     def add_planned_item(self, item: PlannedItem) -> PlannedItem:
         self.db.add(item)

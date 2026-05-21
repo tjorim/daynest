@@ -42,9 +42,9 @@ def update_settings(
         current_user.default_snooze_days = request.default_snooze_days
     if request.medication_reminder_minutes is not None:
         current_user.medication_reminder_minutes = request.medication_reminder_minutes
-    if request.quiet_hours_start is not None:
+    if "quiet_hours_start" in request.model_fields_set:
         current_user.quiet_hours_start = request.quiet_hours_start
-    if request.quiet_hours_end is not None:
+    if "quiet_hours_end" in request.model_fields_set:
         current_user.quiet_hours_end = request.quiet_hours_end
     db.commit()
     db.refresh(current_user)

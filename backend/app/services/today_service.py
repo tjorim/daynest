@@ -9,7 +9,14 @@ from zoneinfo import ZoneInfo
 from fastapi import HTTPException, status
 
 from app.core.config import AppSettings
-from app.core.enums import ChoreStatus, MedicationDoseStatus, TaskStatus
+from app.core.enums import ChoreStatus, MedicationDoseStatus, Priority, TaskStatus
+
+_PRIORITY_RANK: dict[str, int] = {
+    Priority.urgent: 0,
+    Priority.high: 1,
+    Priority.normal: 2,
+    Priority.low: 3,
+}
 from app.models.chore_instance import ChoreInstance
 from app.models.chore_template import ChoreTemplate
 from app.models.medication_dose_instance import MedicationDoseInstance
@@ -326,6 +333,7 @@ class TodayService:
                     recurrence_hint=plan.recurrence_hint,
                     linked_source=plan.linked_source,
                     linked_ref=plan.linked_ref,
+                    priority=cast(Priority, plan.priority),
                 )
             )
 
@@ -333,6 +341,7 @@ class TodayService:
             key=lambda value: (
                 value.scheduled_at is None,
                 value.scheduled_at or datetime.min.replace(tzinfo=timezone.utc),
+                _PRIORITY_RANK.get(value.priority, 2),
                 value.item_type,
                 value.item_id,
             )
@@ -476,10 +485,10 @@ class TodayService:
         self.repository.save()
         return self._planned_item_to_schema(item)
 
-    def list_planned_items(self, user_id: int, start_date: date | None = None, end_date: date | None = None) -> list[PlannedTodayItem]:
+    def list_planned_items(self, user_id: int, start_date: date | None = None, end_date: date | None = None, tags: list[str] | None = None) -> list[PlannedTodayItem]:
         return [
             self._planned_item_to_schema(item)
-            for item in self.repository.list_planned_items(user_id=user_id, start_date=start_date, end_date=end_date)
+            for item in self.repository.list_planned_items(user_id=user_id, start_date=start_date, end_date=end_date, tags=tags)
         ]
 
     def mark_planned_done(self, user_id: int, planned_item_id: int) -> None:

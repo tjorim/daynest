@@ -52,10 +52,12 @@ def get_calendar_day(
 def list_planned_items(
     start_date: date | None = Query(default=None),
     end_date: date | None = Query(default=None),
+    tags: str | None = Query(default=None, description="Comma-separated tags to filter by (OR match)"),
     service: TodayService = Depends(get_today_service),
     current_user: User = Depends(get_current_user),
 ) -> list[PlannedTodayItem]:
-    return service.list_planned_items(user_id=current_user.id, start_date=start_date, end_date=end_date)
+    tag_list = [t.strip() for t in tags.split(",")] if tags else None
+    return service.list_planned_items(user_id=current_user.id, start_date=start_date, end_date=end_date, tags=tag_list)
 
 
 @router.post("/planned-items", response_model=PlannedTodayItem)
