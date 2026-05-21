@@ -98,6 +98,63 @@ def test_get_today_includes_generated_chore_sections(client: TestClient, db_sess
     assert payload["routines"][0]["status"] == "pending"
 
 
+def test_chore_generation_falls_back_for_invalid_rrule(db_session: Session) -> None:
+    user = _create_user(db_session, email="invalid-rrule@example.com")
+    template = ChoreTemplate(
+        user_id=user.id,
+        name="Fallback chore",
+        description=None,
+        start_date=date(2026, 4, 20),
+        every_n_days=2,
+        rrule="NOT_A_VALID_RRULE",
+        is_active=True,
+    )
+    db_session.add(template)
+    db_session.commit()
+    db_session.refresh(template)
+
+    repository = TodayRepository(db_session)
+    repository.ensure_chore_instances_generated(user_id=user.id, through_date=date(2026, 4, 25))
+
+    generated_dates = [
+        item.scheduled_date
+        for item in db_session.query(ChoreInstance)
+        .filter(ChoreInstance.chore_template_id == template.id)
+        .order_by(ChoreInstance.scheduled_date)
+        .all()
+    ]
+    assert generated_dates == [date(2026, 4, 20), date(2026, 4, 22), date(2026, 4, 24)]
+
+
+def test_chore_generation_does_not_fallback_for_exhausted_rrule(db_session: Session) -> None:
+    user = _create_user(db_session, email="exhausted-rrule@example.com")
+    template = ChoreTemplate(
+        user_id=user.id,
+        name="One-time chore",
+        description=None,
+        start_date=date(2026, 4, 20),
+        every_n_days=1,
+        rrule="FREQ=DAILY;COUNT=1",
+        is_active=True,
+    )
+    db_session.add(template)
+    db_session.commit()
+    db_session.refresh(template)
+
+    repository = TodayRepository(db_session)
+    repository.ensure_chore_instances_generated(user_id=user.id, through_date=date(2026, 4, 25))
+    repository.ensure_chore_instances_generated(user_id=user.id, through_date=date(2026, 4, 30))
+
+    generated_dates = [
+        item.scheduled_date
+        for item in db_session.query(ChoreInstance)
+        .filter(ChoreInstance.chore_template_id == template.id)
+        .order_by(ChoreInstance.scheduled_date)
+        .all()
+    ]
+    assert generated_dates == [date(2026, 4, 20)]
+
+
 def test_get_today_allows_today_service_dependency_override(client: TestClient, db_session: Session) -> None:
     user = _create_user(db_session, email="today-override@example.com")
     _auth_as(user)
