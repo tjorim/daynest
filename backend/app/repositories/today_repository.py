@@ -1,16 +1,10 @@
 import logging
+from collections.abc import Sequence
 from datetime import date, datetime, time, timedelta, timezone
+from uuid import UUID
 from zoneinfo import ZoneInfo
 
-logger = logging.getLogger(__name__)
-
-try:
-    from dateutil.rrule import rrulestr as _rrulestr
-    _DATEUTIL_AVAILABLE = True
-except ImportError:
-    _DATEUTIL_AVAILABLE = False
-
-from sqlalchemy import and_, func, insert, select, update
+from sqlalchemy import and_, delete, func, insert, or_, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
@@ -23,6 +17,14 @@ from app.models.medication_plan import MedicationPlan
 from app.models.planned_item import PlannedItem
 from app.models.routine_template import RoutineTemplate
 from app.models.task_instance import TaskInstance
+
+logger = logging.getLogger(__name__)
+
+try:
+    from dateutil.rrule import rrulestr as _rrulestr
+    _DATEUTIL_AVAILABLE = True
+except ImportError:
+    _DATEUTIL_AVAILABLE = False
 
 
 class TodayRepository:
@@ -471,12 +473,36 @@ class TodayRepository:
         self.db.refresh(item)
         return item
 
+    def add_planned_items(self, items: Sequence[PlannedItem]) -> list[PlannedItem]:
+        self.db.add_all(items)
+        self.db.commit()
+        for item in items:
+            self.db.refresh(item)
+        return list(items)
+
     def get_planned_item_for_user(self, user_id: int, planned_item_id: int) -> PlannedItem | None:
         stmt = select(PlannedItem).where(PlannedItem.user_id == user_id).where(PlannedItem.id == planned_item_id)
         return self.db.scalar(stmt)
 
     def delete_planned_item(self, item: PlannedItem) -> None:
         self.db.delete(item)
+        self.db.commit()
+
+    def delete_planned_item_scope_future(
+        self,
+        *,
+        user_id: int,
+        item_id: int,
+        recurrence_series_id: UUID,
+        start_date: date,
+    ) -> None:
+        self.db.execute(
+            delete(PlannedItem).where(
+                PlannedItem.user_id == user_id,
+                PlannedItem.recurrence_series_id == recurrence_series_id,
+                or_(PlannedItem.id == item_id, PlannedItem.planned_for >= start_date),
+            )
+        )
         self.db.commit()
 
     def get_day_chores(self, user_id: int, target_date: date) -> list[ChoreInstance]:

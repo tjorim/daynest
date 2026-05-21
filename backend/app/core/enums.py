@@ -26,3 +26,8 @@ class MedicationDoseStatus(str, enum.Enum):
     taken = "taken"
     skipped = "skipped"
     missed = "missed"
+
+
+class PushPlatform(str, enum.Enum):
+    fcm = "fcm"
+    webpush = "webpush"

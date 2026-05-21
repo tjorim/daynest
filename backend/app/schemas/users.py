@@ -9,6 +9,9 @@ class UserSettingsResponse(BaseModel):
     medication_reminder_minutes: int
     quiet_hours_start: time | None
     quiet_hours_end: time | None
+    push_overdue_chores_enabled: bool
+    push_medication_reminders_enabled: bool
+    push_missed_medications_enabled: bool
 
 
 class UserSettingsPatchRequest(BaseModel):
@@ -17,3 +20,6 @@ class UserSettingsPatchRequest(BaseModel):
     medication_reminder_minutes: int | None = Field(default=None, ge=0)
     quiet_hours_start: time | None = None
     quiet_hours_end: time | None = None
+    push_overdue_chores_enabled: bool | None = None
+    push_medication_reminders_enabled: bool | None = None
+    push_missed_medications_enabled: bool | None = None

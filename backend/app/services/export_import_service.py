@@ -15,8 +15,6 @@ from sqlalchemy import delete
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-logger = logging.getLogger(__name__)
-
 from app.core.enums import ChoreStatus, MedicationDoseStatus, Priority, TaskStatus
 from app.models.chore_instance import ChoreInstance
 from app.models.chore_template import ChoreTemplate
@@ -26,6 +24,8 @@ from app.models.planned_item import PlannedItem
 from app.models.routine_template import RoutineTemplate
 from app.models.task_instance import TaskInstance
 from app.models.user import User
+
+logger = logging.getLogger(__name__)
 
 _E = TypeVar("_E", bound=enum.Enum)
 
@@ -37,6 +37,9 @@ _USER_SETTING_FIELDS = (
     "medication_reminder_minutes",
     "quiet_hours_start",
     "quiet_hours_end",
+    "push_overdue_chores_enabled",
+    "push_medication_reminders_enabled",
+    "push_missed_medications_enabled",
 )
 _ROUTINE_TEMPLATE_FIELDS = (
     "id",
@@ -436,6 +439,8 @@ def _coerce_setting(field: str, value: Any) -> Any:
         if v < 0 or v > 1440:
             _invalid(f"user_settings.{field} must be between 0 and 1440")
         return v
+    if field.startswith("push_") and field.endswith("_enabled"):
+        return _bool(value, f"user_settings.{field}")
     return _nullable_time(value, f"user_settings.{field}")
 
 

@@ -41,6 +41,8 @@ def _seed_export_data(db_session: Session, user: User) -> None:
     user.medication_reminder_minutes = 45
     user.quiet_hours_start = time(22, 0)
     user.quiet_hours_end = time(7, 0)
+    user.push_overdue_chores_enabled = False
+    user.push_medication_reminders_enabled = False
 
     routine = RoutineTemplate(
         user_id=user.id,
@@ -141,6 +143,7 @@ def test_export_user_data_returns_full_json_backup(client: TestClient, db_sessio
     assert payload["version"] == 1
     assert payload["user_settings"]["timezone"] == "Europe/Brussels"
     assert payload["user_settings"]["quiet_hours_start"] == "22:00:00"
+    assert payload["user_settings"]["push_overdue_chores_enabled"] is False
     assert payload["routine_templates"][0]["name"] == "Morning reset"
     assert payload["chore_templates"][0]["priority"] == "high"
     assert payload["chore_templates"][0]["tags"] == ["home", "weekly"]
@@ -200,6 +203,8 @@ def test_import_user_data_restores_export_for_current_user(client: TestClient, d
     db_session.refresh(target)
     assert target.timezone == "Europe/Brussels"
     assert target.default_snooze_days == 2
+    assert target.push_overdue_chores_enabled is False
+    assert target.push_medication_reminders_enabled is False
     imported_routine = db_session.query(RoutineTemplate).filter_by(user_id=target.id).one()
     imported_task = db_session.query(TaskInstance).filter_by(user_id=target.id).one()
     imported_chore = db_session.query(ChoreTemplate).filter_by(user_id=target.id).one()

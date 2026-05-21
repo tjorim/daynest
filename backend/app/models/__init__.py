@@ -4,7 +4,9 @@ from app.models.chore_template import ChoreTemplate
 from app.models.integration_client import IntegrationClient
 from app.models.medication_dose_instance import MedicationDoseInstance
 from app.models.medication_plan import MedicationPlan
+from app.models.notification_sent import NotificationSent
 from app.models.planned_item import PlannedItem
+from app.models.push_subscription import PushSubscription
 from app.models.refresh_token import RefreshToken
 from app.models.routine_template import RoutineTemplate
 from app.models.task_instance import TaskInstance
@@ -18,7 +20,9 @@ __all__ = [
     "MedicationDoseInstance",
     "MedicationDoseStatus",
     "MedicationPlan",
+    "NotificationSent",
     "PlannedItem",
+    "PushSubscription",
     "RefreshToken",
     "RoutineTemplate",
     "TaskInstance",
