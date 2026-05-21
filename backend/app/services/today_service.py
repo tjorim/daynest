@@ -542,7 +542,7 @@ class TodayService:
                 user_id=user_id,
                 item_id=item.id,
                 recurrence_series_id=item.recurrence_series_id,
-                start_date=date.today(),
+                start_date=item.planned_for,
             )
             return
         self.repository.delete_planned_item(item)

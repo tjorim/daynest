@@ -27,6 +27,7 @@ async def test_today_stream_emits_today_updated_event() -> None:
     event_bus.publish(user.id, {"type": "today_updated"})
     chunk = await anext(response.body_iterator)
     assert chunk["event"] == "today_updated"
+    await response.body_iterator.aclose()
 
 
 @pytest.mark.anyio
@@ -44,3 +45,4 @@ async def test_today_stream_emits_ping(monkeypatch) -> None:
     response = await stream_today_updates(request=request, event_bus=event_bus, current_user=user)
     chunk = await anext(response.body_iterator)
     assert chunk["event"] == "ping"
+    await response.body_iterator.aclose()

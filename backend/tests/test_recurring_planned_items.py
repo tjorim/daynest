@@ -54,6 +54,7 @@ def test_create_planned_item_with_rrule_generates_siblings(client: TestClient, d
         .all()
     )
     assert len(items) == 4
+    assert all(item.recurrence_series_id is not None for item in items)
     assert len({item.recurrence_series_id for item in items}) == 1
     assert all(item.rrule == "FREQ=WEEKLY;COUNT=4" for item in items)
 
@@ -91,11 +92,20 @@ def test_delete_planned_item_scope_future_deletes_series_from_today(client: Test
         )
         assert create.status_code == 200
         planned_id = create.json()["id"]
+        keep = client.post(
+            "/api/v1/planned-items",
+            json={
+                "title": "One-time cleanup",
+                "planned_for": start,
+            },
+        )
+        assert keep.status_code == 200
+        keep_id = keep.json()["id"]
 
         delete = client.delete(f"/api/v1/planned-items/{planned_id}?scope=future")
         assert delete.status_code == 204
     finally:
         _clear_auth()
 
-    remaining = db_session.query(PlannedItem).filter(PlannedItem.user_id == user.id).count()
-    assert remaining == 0
+    remaining = db_session.query(PlannedItem).filter(PlannedItem.user_id == user.id).all()
+    assert [item.id for item in remaining] == [keep_id]

@@ -4,24 +4,25 @@ from collections import defaultdict
 
 class EventBus:
     def __init__(self) -> None:
-        self._queues: dict[int, list[asyncio.Queue[dict]]] = defaultdict(list)
+        self._queues: dict[int, list[tuple[asyncio.AbstractEventLoop, asyncio.Queue[dict]]]] = defaultdict(list)
 
     def subscribe(self, user_id: int) -> asyncio.Queue[dict]:
         queue: asyncio.Queue[dict] = asyncio.Queue()
-        self._queues[user_id].append(queue)
+        self._queues[user_id].append((asyncio.get_running_loop(), queue))
         return queue
 
     def unsubscribe(self, user_id: int, queue: asyncio.Queue[dict]) -> None:
         queues = self._queues.get(user_id)
         if not queues:
             return
-        try:
-            queues.remove(queue)
-        except ValueError:
+        remaining = [(loop, active_queue) for loop, active_queue in queues if active_queue is not queue]
+        if len(remaining) == len(queues):
             return
-        if not queues:
+        if not remaining:
             self._queues.pop(user_id, None)
+            return
+        self._queues[user_id] = remaining
 
     def publish(self, user_id: int, event: dict) -> None:
-        for queue in list(self._queues.get(user_id, [])):
-            queue.put_nowait(event)
+        for loop, queue in list(self._queues.get(user_id, [])):
+            loop.call_soon_threadsafe(queue.put_nowait, event)

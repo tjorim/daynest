@@ -1,5 +1,6 @@
 import asyncio
 import contextlib
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -31,19 +32,27 @@ configure_logging()
 configure_error_tracking()
 
 _mcp = create_mcp_server() if settings.feature_mcp else None
+logger = logging.getLogger(__name__)
 
 
 async def _push_dispatch_loop() -> None:
     while True:
-        db = SessionLocal()
+        db = None
         try:
+            db = SessionLocal()
             users = db.query(User.id).where(User.is_active.is_(True)).all()
             for user_id, in users:
-                dispatch_overdue_chores(db, user_id)
-                dispatch_medication_reminders(db, user_id)
-                dispatch_missed_medications(db, user_id)
+                try:
+                    dispatch_overdue_chores(db, user_id)
+                    dispatch_medication_reminders(db, user_id)
+                    dispatch_missed_medications(db, user_id)
+                except Exception:
+                    logger.exception("Push dispatch failed for user_id=%s", user_id)
+        except Exception:
+            logger.exception("Push dispatch loop iteration failed")
         finally:
-            db.close()
+            if db is not None:
+                db.close()
         await asyncio.sleep(300)
 
 

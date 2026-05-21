@@ -113,8 +113,9 @@ def test_dispatch_functions_and_quiet_hours(client: TestClient, db_session: Sess
 
     sent: list[dict] = []
 
-    def _fake_send(subscription: PushSubscription, title: str, body: str, data: dict) -> None:
+    def _fake_send(subscription: PushSubscription, title: str, body: str, data: dict) -> bool:
         sent.append({"endpoint": subscription.endpoint, "title": title, "body": body, "data": data})
+        return True
 
     monkeypatch.setattr("app.services.push_service.send_notification", _fake_send)
 
@@ -122,6 +123,8 @@ def test_dispatch_functions_and_quiet_hours(client: TestClient, db_session: Sess
     assert dispatch_overdue_chores(db_session, user.id, now=now) == 1
     assert dispatch_medication_reminders(db_session, user.id, now=now) == 1
     assert len(sent) == 2
+    assert dispatch_overdue_chores(db_session, user.id, now=now) == 0
+    assert dispatch_medication_reminders(db_session, user.id, now=now) == 0
 
     user.quiet_hours_start = time(0, 0)
     user.quiet_hours_end = time(23, 59)
@@ -129,4 +132,5 @@ def test_dispatch_functions_and_quiet_hours(client: TestClient, db_session: Sess
     sent.clear()
 
     assert dispatch_overdue_chores(db_session, user.id, now=now + timedelta(minutes=1)) == 0
+    assert dispatch_medication_reminders(db_session, user.id, now=now + timedelta(minutes=1)) == 0
     assert sent == []
