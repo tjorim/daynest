@@ -333,7 +333,7 @@ class TodayService:
                     recurrence_hint=plan.recurrence_hint,
                     linked_source=plan.linked_source,
                     linked_ref=plan.linked_ref,
-                    priority=cast(Priority, plan.priority),
+                    priority=plan.priority,
                 )
             )
 
@@ -727,7 +727,7 @@ class TodayService:
         start_date: date,
         every_n_days: int | None,
         rrule: str | None,
-        priority: str,
+        priority: Priority,
         tags: list,
         description: str | None,
         is_active: bool | None,

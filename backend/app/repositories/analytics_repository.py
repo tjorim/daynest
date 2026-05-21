@@ -1,7 +1,7 @@
 from collections import defaultdict
 from datetime import date, timedelta
 
-from sqlalchemy import select
+from sqlalchemy import case, func, select
 from sqlalchemy.orm import Session
 
 from app.core.enums import ChoreStatus, MedicationDoseStatus
@@ -29,26 +29,29 @@ def _rate(numerator: int, denominator: int) -> float:
 
 
 def get_chore_stats(db: Session, user_id: int, start_date: date, end_date: date) -> ChoreStats:
-    period_instances = db.scalars(
-        select(ChoreInstance)
+    daily_rows = db.execute(
+        select(
+            ChoreInstance.scheduled_date,
+            func.count(ChoreInstance.id),
+            func.sum(case((ChoreInstance.status == ChoreStatus.completed, 1), else_=0)),
+        )
         .where(ChoreInstance.user_id == user_id)
         .where(ChoreInstance.scheduled_date >= start_date)
         .where(ChoreInstance.scheduled_date <= end_date)
+        .group_by(ChoreInstance.scheduled_date)
     ).all()
 
-    by_date: dict[date, list[ChoreInstance]] = defaultdict(list)
-    for inst in period_instances:
-        by_date[inst.scheduled_date].append(inst)
+    by_date = {row[0]: {"total": int(row[1]), "completed": int(row[2] or 0)} for row in daily_rows}
 
     dates = _date_range(start_date, end_date)
     daily_completions = []
     for d in dates:
-        completed = sum(1 for i in by_date[d] if i.status == ChoreStatus.completed)
-        total = len(by_date[d])
+        total = by_date.get(d, {}).get("total", 0)
+        completed = by_date.get(d, {}).get("completed", 0)
         daily_completions.append(DailyCount(date=d, completed=completed, total=total, completion_rate=_rate(completed, total)))
 
-    total_completed = sum(1 for i in period_instances if i.status == ChoreStatus.completed)
-    total_scheduled = len(period_instances)
+    total_completed = sum(day["completed"] for day in by_date.values())
+    total_scheduled = sum(day["total"] for day in by_date.values())
     completion_rate = _rate(total_completed, total_scheduled)
 
     # Full history needed for accurate streak calculation
@@ -69,11 +72,10 @@ def get_chore_stats(db: Session, user_id: int, start_date: date, end_date: date)
         by_template[inst.chore_template_id].append(inst)
 
     streaks: list[ChoreStreak] = []
-    most_skipped: list[SkippedChore] = []
 
     for template_id, insts in by_template.items():
         name = templates.get(template_id, f"Chore #{template_id}")
-        sorted_insts = sorted(insts, key=lambda i: i.scheduled_date)
+        sorted_insts = insts
 
         current = 0
         for inst in reversed(sorted_insts):
@@ -97,12 +99,22 @@ def get_chore_stats(db: Session, user_id: int, start_date: date, end_date: date)
             longest_streak=longest,
         ))
 
-        skip_count = sum(
-            1 for i in insts
-            if i.status == ChoreStatus.skipped and start_date <= i.scheduled_date <= end_date
+    skipped_rows = db.execute(
+        select(ChoreInstance.chore_template_id, func.count(ChoreInstance.id))
+        .where(ChoreInstance.user_id == user_id)
+        .where(ChoreInstance.scheduled_date >= start_date)
+        .where(ChoreInstance.scheduled_date <= end_date)
+        .where(ChoreInstance.status == ChoreStatus.skipped)
+        .group_by(ChoreInstance.chore_template_id)
+    ).all()
+    most_skipped = [
+        SkippedChore(
+            chore_id=row[0],
+            name=templates.get(row[0], f"Chore #{row[0]}"),
+            skip_count=int(row[1]),
         )
-        if skip_count > 0:
-            most_skipped.append(SkippedChore(chore_id=template_id, name=name, skip_count=skip_count))
+        for row in skipped_rows
+    ]
 
     streaks.sort(key=lambda x: x.current_streak, reverse=True)
     most_skipped.sort(key=lambda x: x.skip_count, reverse=True)
@@ -118,26 +130,29 @@ def get_chore_stats(db: Session, user_id: int, start_date: date, end_date: date)
 
 
 def get_medication_stats(db: Session, user_id: int, start_date: date, end_date: date) -> MedicationStats:
-    instances = db.scalars(
-        select(MedicationDoseInstance)
+    daily_rows = db.execute(
+        select(
+            MedicationDoseInstance.scheduled_date,
+            func.count(MedicationDoseInstance.id),
+            func.sum(case((MedicationDoseInstance.status == MedicationDoseStatus.taken, 1), else_=0)),
+        )
         .where(MedicationDoseInstance.user_id == user_id)
         .where(MedicationDoseInstance.scheduled_date >= start_date)
         .where(MedicationDoseInstance.scheduled_date <= end_date)
+        .group_by(MedicationDoseInstance.scheduled_date)
     ).all()
 
-    by_date: dict[date, list[MedicationDoseInstance]] = defaultdict(list)
-    for inst in instances:
-        by_date[inst.scheduled_date].append(inst)
+    by_date = {row[0]: {"total": int(row[1]), "taken": int(row[2] or 0)} for row in daily_rows}
 
     dates = _date_range(start_date, end_date)
     daily_adherence = []
     for d in dates:
-        taken = sum(1 for i in by_date[d] if i.status == MedicationDoseStatus.taken)
-        total = len(by_date[d])
+        total = by_date.get(d, {}).get("total", 0)
+        taken = by_date.get(d, {}).get("taken", 0)
         daily_adherence.append(DailyAdherence(date=d, taken=taken, total=total, adherence_rate=_rate(taken, total)))
 
-    total_taken = sum(1 for i in instances if i.status == MedicationDoseStatus.taken)
-    total_scheduled = len(instances)
+    total_taken = sum(day["taken"] for day in by_date.values())
+    total_scheduled = sum(day["total"] for day in by_date.values())
     adherence_rate = _rate(total_taken, total_scheduled)
 
     return MedicationStats(
@@ -149,26 +164,29 @@ def get_medication_stats(db: Session, user_id: int, start_date: date, end_date: 
 
 
 def get_planned_item_stats(db: Session, user_id: int, start_date: date, end_date: date) -> PlannedItemStats:
-    items = db.scalars(
-        select(PlannedItem)
+    daily_rows = db.execute(
+        select(
+            PlannedItem.planned_for,
+            func.count(PlannedItem.id),
+            func.sum(case((PlannedItem.is_done.is_(True), 1), else_=0)),
+        )
         .where(PlannedItem.user_id == user_id)
         .where(PlannedItem.planned_for >= start_date)
         .where(PlannedItem.planned_for <= end_date)
+        .group_by(PlannedItem.planned_for)
     ).all()
 
-    by_date: dict[date, list[PlannedItem]] = defaultdict(list)
-    for item in items:
-        by_date[item.planned_for].append(item)
+    by_date = {row[0]: {"total": int(row[1]), "completed": int(row[2] or 0)} for row in daily_rows}
 
     dates = _date_range(start_date, end_date)
     daily_completions = []
     for d in dates:
-        completed = sum(1 for i in by_date[d] if i.is_done)
-        total = len(by_date[d])
+        total = by_date.get(d, {}).get("total", 0)
+        completed = by_date.get(d, {}).get("completed", 0)
         daily_completions.append(DailyCount(date=d, completed=completed, total=total, completion_rate=_rate(completed, total)))
 
-    total_completed = sum(1 for i in items if i.is_done)
-    total_scheduled = len(items)
+    total_completed = sum(day["completed"] for day in by_date.values())
+    total_scheduled = sum(day["total"] for day in by_date.values())
     completion_rate = _rate(total_completed, total_scheduled)
 
     return PlannedItemStats(

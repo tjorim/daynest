@@ -1,5 +1,6 @@
 from datetime import date, datetime, timedelta, timezone
 from secrets import token_urlsafe
+from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy import select
@@ -51,6 +52,13 @@ def _build_ical(event_lines: list[str]) -> str:
     return "\r\n".join(_fold_line(line) for line in all_lines) + "\r\n"
 
 
+def _format_utc_ical_datetime(value: str) -> str:
+    dt = datetime.fromisoformat(value)
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+
+
 def _format_event(
     *,
     uid: str,
@@ -67,10 +75,8 @@ def _format_event(
         f"DTSTAMP:{dtstamp}",
     ]
     if "dateTime" in start:
-        dt = datetime.fromisoformat(start["dateTime"])
-        dt_end = datetime.fromisoformat(end["dateTime"])
-        lines.append(f"DTSTART:{dt.strftime('%Y%m%dT%H%M%SZ')}")
-        lines.append(f"DTEND:{dt_end.strftime('%Y%m%dT%H%M%SZ')}")
+        lines.append(f"DTSTART:{_format_utc_ical_datetime(start['dateTime'])}")
+        lines.append(f"DTEND:{_format_utc_ical_datetime(end['dateTime'])}")
     else:
         d = date.fromisoformat(start["date"])
         d_end = date.fromisoformat(end["date"])
@@ -98,10 +104,11 @@ def generate_calendar_token(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> CalendarTokenResponse:
-    current_user.calendar_token = token_urlsafe(32)
+    token = token_urlsafe(32)
+    current_user.calendar_token = token
     db.commit()
     db.refresh(current_user)
-    return CalendarTokenResponse(token=current_user.calendar_token)
+    return CalendarTokenResponse(token=token)
 
 
 @router.get("/users/me/calendar-token", response_model=CalendarTokenResponse)
@@ -150,7 +157,7 @@ async def export_ical(
 ) -> Response:
     user = _resolve_user(token, bearer_user, db)
 
-    today = date.today()
+    today = datetime.now(ZoneInfo(user.timezone)).date()
     start_date = today - timedelta(days=_EXPORT_PAST_DAYS)
     end_date = today + timedelta(days=_EXPORT_FUTURE_DAYS)
 

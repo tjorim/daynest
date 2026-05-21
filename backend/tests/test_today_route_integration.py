@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.api.dependencies.auth import get_current_user
 from app.api.dependencies.today import get_today_service
+from app.api.routes import calendar as calendar_routes
 from app.core.config import settings
 from app.core.enums import ChoreStatus, MedicationDoseStatus, TaskStatus
 from app.main import app
@@ -18,6 +19,7 @@ from app.models.routine_template import RoutineTemplate
 from app.models.task_instance import TaskInstance
 from app.models.user import User
 from app.repositories.today_repository import TodayRepository
+from app.schemas.integrations import HACalendarEvent
 from app.schemas.today import TodayResponse
 from app.services.today_service import TodayService
 
@@ -153,6 +155,69 @@ def test_chore_generation_does_not_fallback_for_exhausted_rrule(db_session: Sess
         .all()
     ]
     assert generated_dates == [date(2026, 4, 20)]
+
+
+def test_routine_generation_falls_back_for_invalid_rrule(db_session: Session) -> None:
+    user = _create_user(db_session, email="invalid-routine-rrule@example.com")
+    template = RoutineTemplate(
+        user_id=user.id,
+        name="Fallback routine",
+        description=None,
+        start_date=date(2026, 4, 20),
+        every_n_days=2,
+        rrule="NOT_A_VALID_RRULE",
+        due_time=time(7, 30),
+        is_active=True,
+    )
+    db_session.add(template)
+    db_session.commit()
+    db_session.refresh(template)
+
+    repository = TodayRepository(db_session)
+    repository.ensure_task_instances_generated(user_id=user.id, through_date=date(2026, 4, 25))
+
+    generated = (
+        db_session.query(TaskInstance)
+        .filter(TaskInstance.routine_template_id == template.id)
+        .order_by(TaskInstance.scheduled_date)
+        .all()
+    )
+    assert [item.scheduled_date for item in generated] == [date(2026, 4, 20), date(2026, 4, 22), date(2026, 4, 24)]
+    assert [item.due_at for item in generated] == [
+        datetime(2026, 4, 20, 7, 30),
+        datetime(2026, 4, 22, 7, 30),
+        datetime(2026, 4, 24, 7, 30),
+    ]
+
+
+def test_routine_generation_does_not_fallback_for_exhausted_rrule(db_session: Session) -> None:
+    user = _create_user(db_session, email="exhausted-routine-rrule@example.com")
+    template = RoutineTemplate(
+        user_id=user.id,
+        name="One-time routine",
+        description=None,
+        start_date=date(2026, 4, 20),
+        every_n_days=1,
+        rrule="FREQ=DAILY;COUNT=1",
+        due_time=time(8, 0),
+        is_active=True,
+    )
+    db_session.add(template)
+    db_session.commit()
+    db_session.refresh(template)
+
+    repository = TodayRepository(db_session)
+    repository.ensure_task_instances_generated(user_id=user.id, through_date=date(2026, 4, 25))
+    repository.ensure_task_instances_generated(user_id=user.id, through_date=date(2026, 4, 30))
+
+    generated = (
+        db_session.query(TaskInstance)
+        .filter(TaskInstance.routine_template_id == template.id)
+        .order_by(TaskInstance.scheduled_date)
+        .all()
+    )
+    assert [item.scheduled_date for item in generated] == [date(2026, 4, 20)]
+    assert generated[0].due_at == datetime(2026, 4, 20, 8, 0)
 
 
 def test_get_today_allows_today_service_dependency_override(client: TestClient, db_session: Session) -> None:
@@ -363,6 +428,58 @@ def test_calendar_and_planned_endpoints(client: TestClient, db_session: Session)
         _clear_auth()
 
 
+def test_ical_timed_events_are_formatted_as_utc() -> None:
+    event_lines = calendar_routes._format_event(
+        uid="event-1",
+        dtstamp="20260420T000000Z",
+        summary="Offset event",
+        start={"dateTime": "2026-04-20T09:00:00+02:00"},
+        end={"dateTime": "2026-04-20T10:00:00+02:00"},
+        description=None,
+        reminder_minutes=None,
+    )
+
+    assert "DTSTART:20260420T070000Z" in event_lines
+    assert "DTEND:20260420T080000Z" in event_lines
+
+
+def test_ical_export_window_uses_user_timezone(
+    client: TestClient,
+    db_session: Session,
+    monkeypatch,
+) -> None:
+    user = _create_user(db_session, email="ical-window@example.com")
+    user.calendar_token = "calendar-token"
+    user.timezone = "Pacific/Kiritimati"
+    db_session.commit()
+
+    captured: dict[str, date] = {}
+
+    class StubCalendarService:
+        def get_calendar_events(self, user_id: int, start_date: date, end_date: date) -> list[HACalendarEvent]:
+            assert user_id == user.id
+            captured["start_date"] = start_date
+            captured["end_date"] = end_date
+            return []
+
+    class FixedDatetime(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            value = datetime(2026, 1, 1, 10, 0, tzinfo=timezone.utc)
+            return value.astimezone(tz) if tz else value.replace(tzinfo=None)
+
+    app.dependency_overrides[get_today_service] = lambda: StubCalendarService()
+    monkeypatch.setattr(calendar_routes, "datetime", FixedDatetime)
+    try:
+        response = client.get("/api/v1/calendar/export.ics?token=calendar-token")
+    finally:
+        app.dependency_overrides.pop(get_today_service, None)
+
+    assert response.status_code == 200
+    assert captured["start_date"] == date(2025, 11, 3)
+    assert captured["end_date"] == date(2027, 1, 2)
+
+
 def test_bulk_mutations_commit_once_for_successful_items(
     client: TestClient,
     db_session: Session,
@@ -552,6 +669,7 @@ def test_template_management_endpoints(client: TestClient, db_session: Session) 
                 "description": "Wash towels",
                 "start_date": "2026-04-24",
                 "every_n_days": 7,
+                "tags": ["home"],
                 "is_active": True,
             },
         )
@@ -562,6 +680,10 @@ def test_template_management_endpoints(client: TestClient, db_session: Session) 
         assert list_chores.status_code == 200
         assert len(list_chores.json()) == 1
 
+        list_chores_by_tag = client.get("/api/v1/templates/chores?tags=home,%20,%20")
+        assert list_chores_by_tag.status_code == 200
+        assert [item["id"] for item in list_chores_by_tag.json()] == [chore_id]
+
         update_chore = client.put(
             f"/api/v1/templates/chores/{chore_id}",
             json={
@@ -569,6 +691,7 @@ def test_template_management_endpoints(client: TestClient, db_session: Session) 
                 "description": "Wash towels and bedding",
                 "start_date": "2026-04-24",
                 "every_n_days": 14,
+                "tags": ["home"],
                 "is_active": True,
             },
         )
