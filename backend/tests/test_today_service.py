@@ -119,6 +119,8 @@ def test_get_today_shapes_chore_sections() -> None:
             recurrence_hint="weekly",
             linked_source=None,
             linked_ref=None,
+            priority="normal",
+            tags=[],
             is_done=False,
         )
     ]
@@ -158,6 +160,8 @@ def test_get_dashboard_read_model_includes_overdue_undone_planned_items() -> Non
             recurrence_hint=None,
             linked_source=None,
             linked_ref=None,
+            priority="normal",
+            tags=[],
             is_done=False,
         )
     ]
@@ -171,6 +175,8 @@ def test_get_dashboard_read_model_includes_overdue_undone_planned_items() -> Non
             recurrence_hint=None,
             linked_source=None,
             linked_ref=None,
+            priority="normal",
+            tags=[],
             is_done=False,
         )
     ]

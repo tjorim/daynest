@@ -450,6 +450,8 @@ class TodayService:
                 linked_source=request.linked_source,
                 linked_ref=request.linked_ref,
                 planned_for=request.planned_for,
+                priority=request.priority,
+                tags=request.tags,
                 is_done=False,
             )
         )
@@ -464,6 +466,8 @@ class TodayService:
         item.linked_source = request.linked_source
         item.linked_ref = request.linked_ref
         item.planned_for = request.planned_for
+        item.priority = request.priority
+        item.tags = request.tags
         if request.is_done and not item.is_done:
             item.completed_at = self.repository.utcnow()
         elif not request.is_done:
@@ -595,6 +599,8 @@ class TodayService:
             recurrence_hint=item.recurrence_hint,
             linked_source=item.linked_source,
             linked_ref=item.linked_ref,
+            priority=item.priority,
+            tags=item.tags or [],
             is_done=item.is_done,
         )
 
@@ -644,6 +650,7 @@ class TodayService:
         name: str,
         start_date: date,
         every_n_days: int | None,
+        rrule: str | None,
         description: str | None,
         due_time: time | None,
         is_active: bool | None,
@@ -659,6 +666,7 @@ class TodayService:
             description=description if description is not None else template.description,
             start_date=start_date,
             every_n_days=every_n_days if every_n_days is not None else template.every_n_days,
+            rrule=rrule,
             due_time=due_time if due_time is not None else template.due_time,
             is_active=is_active if is_active is not None else template.is_active,
         )
@@ -703,6 +711,9 @@ class TodayService:
         name: str,
         start_date: date,
         every_n_days: int | None,
+        rrule: str | None,
+        priority: str,
+        tags: list,
         description: str | None,
         is_active: bool | None,
     ) -> ChoreTemplate:
@@ -717,6 +728,9 @@ class TodayService:
             description=description if description is not None else template.description,
             start_date=start_date,
             every_n_days=every_n_days if every_n_days is not None else template.every_n_days,
+            rrule=rrule,
+            priority=priority,
+            tags=tags,
             is_active=is_active if is_active is not None else template.is_active,
         )
 

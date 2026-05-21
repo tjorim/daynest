@@ -372,7 +372,7 @@ def test_template_management_endpoints(client: TestClient, db_session: Session) 
 
     try:
         create_routine = client.post(
-            "/api/v1/routines",
+            "/api/v1/templates/routines",
             json={
                 "name": "Morning reset",
                 "description": "Open windows and tidy the kitchen",
@@ -385,12 +385,12 @@ def test_template_management_endpoints(client: TestClient, db_session: Session) 
         assert create_routine.status_code == 201
         routine_id = create_routine.json()["id"]
 
-        list_routines = client.get("/api/v1/routines")
+        list_routines = client.get("/api/v1/templates/routines")
         assert list_routines.status_code == 200
         assert len(list_routines.json()) == 1
 
         update_routine = client.put(
-            f"/api/v1/routines/{routine_id}",
+            f"/api/v1/templates/routines/{routine_id}",
             json={
                 "name": "Morning reset",
                 "description": "Open windows and clear counters",
@@ -405,7 +405,7 @@ def test_template_management_endpoints(client: TestClient, db_session: Session) 
         assert update_routine.json()["every_n_days"] == 2
 
         create_chore = client.post(
-            "/api/v1/chore-templates",
+            "/api/v1/templates/chores",
             json={
                 "name": "Laundry",
                 "description": "Wash towels",
@@ -417,12 +417,12 @@ def test_template_management_endpoints(client: TestClient, db_session: Session) 
         assert create_chore.status_code == 201
         chore_id = create_chore.json()["id"]
 
-        list_chores = client.get("/api/v1/chore-templates")
+        list_chores = client.get("/api/v1/templates/chores")
         assert list_chores.status_code == 200
         assert len(list_chores.json()) == 1
 
         update_chore = client.put(
-            f"/api/v1/chore-templates/{chore_id}",
+            f"/api/v1/templates/chores/{chore_id}",
             json={
                 "name": "Laundry",
                 "description": "Wash towels and bedding",
@@ -434,10 +434,10 @@ def test_template_management_endpoints(client: TestClient, db_session: Session) 
         assert update_chore.status_code == 200
         assert update_chore.json()["every_n_days"] == 14
 
-        delete_routine = client.delete(f"/api/v1/routines/{routine_id}")
+        delete_routine = client.delete(f"/api/v1/templates/routines/{routine_id}")
         assert delete_routine.status_code == 204
 
-        delete_chore = client.delete(f"/api/v1/chore-templates/{chore_id}")
+        delete_chore = client.delete(f"/api/v1/templates/chores/{chore_id}")
         assert delete_chore.status_code == 204
     finally:
         _clear_auth()

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.orm import Session
 
 from app.api.dependencies.auth import get_current_user
@@ -26,6 +26,7 @@ def _routine_to_response(template: RoutineTemplate) -> RoutineTemplateResponse:
         description=template.description,
         start_date=template.start_date,
         every_n_days=template.every_n_days,
+        rrule=template.rrule,
         due_time=template.due_time,
         is_active=template.is_active,
         created_at=template.created_at,
@@ -39,6 +40,9 @@ def _chore_to_response(template: ChoreTemplate) -> ChoreTemplateResponse:
         description=template.description,
         start_date=template.start_date,
         every_n_days=template.every_n_days,
+        rrule=template.rrule,
+        priority=template.priority,
+        tags=template.tags or [],
         is_active=template.is_active,
         created_at=template.created_at,
     )
@@ -81,6 +85,7 @@ def create_routine(
             description=request.description,
             start_date=request.start_date,
             every_n_days=request.every_n_days,
+            rrule=request.rrule,
             due_time=request.due_time,
             is_active=request.is_active,
         )
@@ -103,6 +108,7 @@ def update_routine(
         description=request.description,
         start_date=request.start_date,
         every_n_days=request.every_n_days,
+        rrule=request.rrule,
         due_time=request.due_time,
         is_active=request.is_active,
     )
@@ -121,16 +127,18 @@ def delete_routine(
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
-@router.get("/chore-templates", response_model=list[ChoreTemplateResponse])
+@router.get("/chores", response_model=list[ChoreTemplateResponse])
 def list_chore_templates(
+    tags: str | None = Query(default=None, description="Comma-separated tags to filter by (OR match)"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> list[ChoreTemplateResponse]:
     repository = TodayRepository(db)
-    return [_chore_to_response(item) for item in repository.list_chore_templates(current_user.id)]
+    tag_list = [t.strip() for t in tags.split(",")] if tags else None
+    return [_chore_to_response(item) for item in repository.list_chore_templates(current_user.id, tags=tag_list)]
 
 
-@router.post("/chore-templates", response_model=ChoreTemplateResponse, status_code=201)
+@router.post("/chores", response_model=ChoreTemplateResponse, status_code=201)
 def create_chore_template(
     request: ChoreTemplateCreateRequest,
     db: Session = Depends(get_db),
@@ -144,13 +152,16 @@ def create_chore_template(
             description=request.description,
             start_date=request.start_date,
             every_n_days=request.every_n_days,
+            rrule=request.rrule,
+            priority=request.priority,
+            tags=request.tags,
             is_active=request.is_active,
         )
     )
     return _chore_to_response(template)
 
 
-@router.put("/chore-templates/{chore_template_id}", response_model=ChoreTemplateResponse)
+@router.put("/chores/{chore_template_id}", response_model=ChoreTemplateResponse)
 def update_chore_template(
     chore_template_id: int,
     request: ChoreTemplateUpdateRequest,
@@ -165,12 +176,15 @@ def update_chore_template(
         description=request.description,
         start_date=request.start_date,
         every_n_days=request.every_n_days,
+        rrule=request.rrule,
+        priority=request.priority,
+        tags=request.tags,
         is_active=request.is_active,
     )
     return _chore_to_response(updated)
 
 
-@router.delete("/chore-templates/{chore_template_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/chores/{chore_template_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_chore_template(
     chore_template_id: int,
     db: Session = Depends(get_db),

@@ -4,7 +4,7 @@ from datetime import date, datetime
 from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
-from sqlalchemy import Boolean, Date, DateTime, ForeignKey, String, Text, func
+from sqlalchemy import Boolean, Date, DateTime, ForeignKey, JSON, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -25,6 +25,8 @@ class PlannedItem(Base):
     linked_source: Mapped[str | None] = mapped_column(String(120), nullable=True)
     linked_ref: Mapped[str | None] = mapped_column(String(255), nullable=True)
     planned_for: Mapped[date] = mapped_column(Date, nullable=False, index=True)
+    priority: Mapped[str] = mapped_column(String(20), nullable=False, default="normal", server_default="normal")
+    tags: Mapped[list] = mapped_column(JSON, nullable=False, default=list, server_default="[]")
     is_done: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default=sa.text("false"))
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())

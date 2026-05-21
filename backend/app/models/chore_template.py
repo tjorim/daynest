@@ -4,7 +4,7 @@ from datetime import date, datetime
 from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
-from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Integer, String, Text, func
+from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Integer, JSON, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -23,6 +23,9 @@ class ChoreTemplate(Base):
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     start_date: Mapped[date] = mapped_column(Date, nullable=False)
     every_n_days: Mapped[int] = mapped_column(Integer, nullable=False, default=1, server_default="1")
+    rrule: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    priority: Mapped[str] = mapped_column(String(20), nullable=False, default="normal", server_default="normal")
+    tags: Mapped[list] = mapped_column(JSON, nullable=False, default=list, server_default="[]")
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default=sa.text("true"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
 

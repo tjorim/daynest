@@ -75,6 +75,7 @@ def _routine_template_to_dict(t: Any) -> dict[str, Any]:
         "description": t.description,
         "start_date": t.start_date.isoformat(),
         "every_n_days": t.every_n_days,
+        "rrule": t.rrule,
         "due_time": t.due_time.isoformat() if t.due_time else None,
         "is_active": t.is_active,
     }
@@ -87,6 +88,9 @@ def _chore_template_to_dict(t: Any) -> dict[str, Any]:
         "description": t.description,
         "start_date": t.start_date.isoformat(),
         "every_n_days": t.every_n_days,
+        "rrule": t.rrule,
+        "priority": t.priority,
+        "tags": t.tags or [],
         "is_active": t.is_active,
     }
 
@@ -393,6 +397,7 @@ class DaynestMcpBackend:
                     name=name,
                     start_date=parsed_start,
                     every_n_days=every_n_days,
+                    rrule=None,
                     description=description,
                     due_time=parsed_due_time,
                     is_active=is_active,
@@ -449,6 +454,9 @@ class DaynestMcpBackend:
                     name=name,
                     start_date=parsed_start,
                     every_n_days=every_n_days,
+                    rrule=None,
+                    priority="normal",
+                    tags=[],
                     description=description,
                     is_active=is_active,
                 )
