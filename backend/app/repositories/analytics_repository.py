@@ -4,11 +4,13 @@ from datetime import date, timedelta
 from sqlalchemy import case, func, select
 from sqlalchemy.orm import Session
 
-from app.core.enums import ChoreStatus, MedicationDoseStatus
+from app.core.enums import ChoreStatus, MedicationDoseStatus, TaskStatus
 from app.models.chore_instance import ChoreInstance
 from app.models.chore_template import ChoreTemplate
 from app.models.medication_dose_instance import MedicationDoseInstance
 from app.models.planned_item import PlannedItem
+from app.models.routine_template import RoutineTemplate
+from app.models.task_instance import TaskInstance
 from app.schemas.analytics import (
     ChoreStats,
     ChoreStreak,
@@ -16,6 +18,8 @@ from app.schemas.analytics import (
     DailyCount,
     MedicationStats,
     PlannedItemStats,
+    RoutineStats,
+    RoutineStreak,
     SkippedChore,
 )
 
@@ -204,4 +208,86 @@ def get_planned_item_stats(db: Session, user_id: int, start_date: date, end_date
         total_completed=total_completed,
         total_scheduled=total_scheduled,
         daily_completions=daily_completions,
+    )
+
+
+def get_routine_stats(db: Session, user_id: int, start_date: date, end_date: date) -> RoutineStats:
+    daily_rows = db.execute(
+        select(
+            TaskInstance.scheduled_date,
+            func.count(TaskInstance.id),
+            func.sum(case((TaskInstance.status == TaskStatus.completed, 1), else_=0)),
+        )
+        .where(TaskInstance.user_id == user_id)
+        .where(TaskInstance.scheduled_date >= start_date)
+        .where(TaskInstance.scheduled_date <= end_date)
+        .group_by(TaskInstance.scheduled_date)
+    ).all()
+
+    by_date = {row[0]: {"total": int(row[1]), "completed": int(row[2] or 0)} for row in daily_rows}
+
+    dates = _date_range(start_date, end_date)
+    daily_completions = []
+    for d in dates:
+        total = by_date.get(d, {}).get("total", 0)
+        completed = by_date.get(d, {}).get("completed", 0)
+        daily_completions.append(DailyCount(date=d, completed=completed, total=total, completion_rate=_rate(completed, total)))
+
+    total_completed = sum(day["completed"] for day in by_date.values())
+    total_scheduled = sum(day["total"] for day in by_date.values())
+    completion_rate = _rate(total_completed, total_scheduled)
+
+    streak_start_date = _streak_lookback_start(start_date, end_date)
+    templates = {
+        t.id: t.name
+        for t in db.scalars(select(RoutineTemplate).where(RoutineTemplate.user_id == user_id)).all()
+    }
+
+    all_resolved = db.scalars(
+        select(TaskInstance)
+        .where(TaskInstance.user_id == user_id)
+        .where(TaskInstance.scheduled_date >= streak_start_date)
+        .where(TaskInstance.scheduled_date <= end_date)
+        .where(TaskInstance.status != TaskStatus.pending)
+        .order_by(TaskInstance.routine_template_id, TaskInstance.scheduled_date)
+    ).all()
+
+    by_template: dict[int, list[TaskInstance]] = defaultdict(list)
+    for inst in all_resolved:
+        by_template[inst.routine_template_id].append(inst)
+
+    streaks: list[RoutineStreak] = []
+    for template_id, insts in by_template.items():
+        name = templates.get(template_id, f"Routine #{template_id}")
+
+        current = 0
+        for inst in reversed(insts):
+            if inst.status == TaskStatus.completed:
+                current += 1
+            else:
+                break
+
+        longest, run = 0, 0
+        for inst in insts:
+            if inst.status == TaskStatus.completed:
+                run += 1
+                longest = max(longest, run)
+            else:
+                run = 0
+
+        streaks.append(RoutineStreak(
+            routine_id=template_id,
+            name=name,
+            current_streak=current,
+            longest_streak=longest,
+        ))
+
+    streaks.sort(key=lambda x: x.current_streak, reverse=True)
+
+    return RoutineStats(
+        completion_rate=round(completion_rate, 4),
+        total_completed=total_completed,
+        total_scheduled=total_scheduled,
+        daily_completions=daily_completions,
+        streaks=streaks,
     )
