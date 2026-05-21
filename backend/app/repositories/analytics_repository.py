@@ -19,6 +19,8 @@ from app.schemas.analytics import (
     SkippedChore,
 )
 
+_MIN_STREAK_LOOKBACK_DAYS = 90
+
 
 def _date_range(start: date, end: date) -> list[date]:
     return [start + timedelta(days=i) for i in range((end - start).days + 1)]
@@ -26,6 +28,12 @@ def _date_range(start: date, end: date) -> list[date]:
 
 def _rate(numerator: int, denominator: int) -> float:
     return round(numerator / denominator, 4) if denominator else 0.0
+
+
+def _streak_lookback_start(start_date: date, end_date: date) -> date:
+    period_days = (end_date - start_date).days + 1
+    lookback_days = max(period_days, _MIN_STREAK_LOOKBACK_DAYS)
+    return end_date - timedelta(days=lookback_days - 1)
 
 
 def get_chore_stats(db: Session, user_id: int, start_date: date, end_date: date) -> ChoreStats:
@@ -54,7 +62,7 @@ def get_chore_stats(db: Session, user_id: int, start_date: date, end_date: date)
     total_scheduled = sum(day["total"] for day in by_date.values())
     completion_rate = _rate(total_completed, total_scheduled)
 
-    # Full history needed for accurate streak calculation
+    streak_start_date = _streak_lookback_start(start_date, end_date)
     templates = {
         t.id: t.name
         for t in db.scalars(select(ChoreTemplate).where(ChoreTemplate.user_id == user_id)).all()
@@ -63,6 +71,8 @@ def get_chore_stats(db: Session, user_id: int, start_date: date, end_date: date)
     all_resolved = db.scalars(
         select(ChoreInstance)
         .where(ChoreInstance.user_id == user_id)
+        .where(ChoreInstance.scheduled_date >= streak_start_date)
+        .where(ChoreInstance.scheduled_date <= end_date)
         .where(ChoreInstance.status != ChoreStatus.pending)
         .order_by(ChoreInstance.chore_template_id, ChoreInstance.scheduled_date)
     ).all()

@@ -196,3 +196,38 @@ def test_analytics_summary_aggregates_user_history(client: TestClient, db_sessio
     assert planned_items["completion_rate"] == 0.5
     assert planned_items["total_completed"] == 1
     assert planned_items["total_scheduled"] == 2
+
+
+def test_analytics_streaks_use_bounded_recent_history(client: TestClient, db_session: Session) -> None:
+    user = _create_user(db_session, email="analytics-streak-window@example.com")
+    today = date.today()
+
+    chore_template = ChoreTemplate(
+        user_id=user.id,
+        name="Dishes",
+        description=None,
+        start_date=today - timedelta(days=140),
+        every_n_days=1,
+        is_active=True,
+    )
+    db_session.add(chore_template)
+    db_session.commit()
+    db_session.refresh(chore_template)
+
+    for offset in range(130, 120, -1):
+        _add_chore(db_session, user, chore_template, today - timedelta(days=offset), ChoreStatus.completed)
+    _add_chore(db_session, user, chore_template, today - timedelta(days=2), ChoreStatus.completed)
+    _add_chore(db_session, user, chore_template, today - timedelta(days=1), ChoreStatus.completed)
+    _add_chore(db_session, user, chore_template, today, ChoreStatus.completed)
+    db_session.commit()
+
+    _auth_as(user)
+    try:
+        response = client.get("/api/v1/analytics/summary?period=week")
+    finally:
+        _clear_auth()
+
+    assert response.status_code == 200
+    assert response.json()["chores"]["streaks"] == [
+        {"chore_id": chore_template.id, "name": "Dishes", "current_streak": 3, "longest_streak": 3}
+    ]
