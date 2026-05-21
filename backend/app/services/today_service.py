@@ -4,6 +4,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta, timezone
 from typing import cast
+from uuid import uuid4
 from zoneinfo import ZoneInfo
 
 from fastapi import HTTPException, status
@@ -38,6 +39,7 @@ from app.schemas.today import (
     UnifiedDayItem,
     UpcomingTodayItem,
 )
+from app.services.recurrence_service import RecurrenceValidationError, generate_recurrence_dates
 
 _PRIORITY_RANK: dict[str, int] = {
     Priority.urgent: 0,
@@ -451,6 +453,33 @@ class TodayService:
         return events
 
     def create_planned_item(self, user_id: int, request: PlannedItemCreateRequest) -> PlannedTodayItem:
+        if request.rrule:
+            try:
+                recurrence_dates = generate_recurrence_dates(request.planned_for, request.rrule, max_instances=52)
+            except RecurrenceValidationError as exc:
+                raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)) from exc
+
+            series_id = uuid4()
+            items = self.repository.add_planned_items([
+                PlannedItem(
+                    user_id=user_id,
+                    title=request.title,
+                    notes=request.notes,
+                    module_key=request.module_key,
+                    recurrence_hint=request.recurrence_hint,
+                    rrule=request.rrule,
+                    recurrence_series_id=series_id,
+                    linked_source=request.linked_source,
+                    linked_ref=request.linked_ref,
+                    planned_for=planned_for,
+                    priority=request.priority,
+                    tags=request.tags,
+                    is_done=False,
+                )
+                for planned_for in recurrence_dates
+            ])
+            return self._planned_item_to_schema(items[0])
+
         item = self.repository.add_planned_item(
             PlannedItem(
                 user_id=user_id,
@@ -458,6 +487,7 @@ class TodayService:
                 notes=request.notes,
                 module_key=request.module_key,
                 recurrence_hint=request.recurrence_hint,
+                rrule=request.rrule,
                 linked_source=request.linked_source,
                 linked_ref=request.linked_ref,
                 planned_for=request.planned_for,
@@ -474,6 +504,7 @@ class TodayService:
         item.notes = request.notes
         item.module_key = request.module_key
         item.recurrence_hint = request.recurrence_hint
+        item.rrule = request.rrule
         item.linked_source = request.linked_source
         item.linked_ref = request.linked_ref
         item.planned_for = request.planned_for
@@ -504,8 +535,16 @@ class TodayService:
             if persist:
                 self.repository.save()
 
-    def delete_planned_item(self, user_id: int, planned_item_id: int) -> None:
+    def delete_planned_item(self, user_id: int, planned_item_id: int, *, scope: str = "this") -> None:
         item = self._get_user_planned_item(user_id=user_id, planned_item_id=planned_item_id)
+        if scope == "future" and item.recurrence_series_id is not None:
+            self.repository.delete_planned_item_scope_future(
+                user_id=user_id,
+                item_id=item.id,
+                recurrence_series_id=item.recurrence_series_id,
+                start_date=date.today(),
+            )
+            return
         self.repository.delete_planned_item(item)
 
     def complete_chore(self, user_id: int, chore_instance_id: int, *, persist: bool = True) -> ChoreInstanceMutationResponse:
@@ -614,6 +653,8 @@ class TodayService:
             notes=item.notes,
             module_key=cast(PlannedItemModuleKey | None, item.module_key),
             recurrence_hint=item.recurrence_hint,
+            rrule=getattr(item, "rrule", None),
+            recurrence_series_id=getattr(item, "recurrence_series_id", None),
             linked_source=item.linked_source,
             linked_ref=item.linked_ref,
             priority=item.priority,

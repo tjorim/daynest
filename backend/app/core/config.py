@@ -66,6 +66,11 @@ class AppSettings(BaseSettings):
     sentry_dsn: str | None = None
     sentry_traces_sample_rate: float = 0.0
 
+    fcm_server_key: str | None = None
+    vapid_private_key: str | None = None
+    vapid_public_key: str | None = None
+    vapid_claims_email: str | None = None
+
     @field_validator("cors_allow_origins", "trusted_hosts", mode="before")
     @classmethod
     def _split_csv_lists(cls, value: str | list[str]) -> list[str]:

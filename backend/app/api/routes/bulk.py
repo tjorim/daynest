@@ -3,9 +3,11 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException
 
 from app.api.dependencies.auth import get_current_user
+from app.api.dependencies.events import get_event_bus
 from app.api.dependencies.today import get_today_service
 from app.models.user import User
 from app.schemas.bulk import BulkMutationItem, BulkMutationRequest, BulkMutationResponse, BulkMutationResult, MutationType
+from app.services.event_bus import EventBus
 from app.services.today_service import TodayService
 
 router = APIRouter(tags=["bulk"])
@@ -25,6 +27,7 @@ def _apply_mutation(service: TodayService, user_id: int, mutation: BulkMutationI
 def bulk_mutate(
     request: BulkMutationRequest,
     service: TodayService = Depends(get_today_service),
+    event_bus: EventBus = Depends(get_event_bus),
     current_user: User = Depends(get_current_user),
 ) -> BulkMutationResponse:
     results: list[BulkMutationResult] = []
@@ -42,6 +45,7 @@ def bulk_mutate(
     if has_success:
         try:
             service.save()
+            event_bus.publish(current_user.id, {"type": "today_updated"})
         except Exception:
             logger.exception("Failed to persist bulk mutations")
             for r in results:

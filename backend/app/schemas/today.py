@@ -1,5 +1,6 @@
 from datetime import date, datetime
 from typing import Literal
+from uuid import UUID
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -66,6 +67,8 @@ class PlannedTodayItem(BaseModel):
     notes: str | None = None
     module_key: PlannedItemModuleKey | None = None
     recurrence_hint: str | None = None
+    rrule: str | None = None
+    recurrence_series_id: UUID | None = None
     linked_source: str | None = None
     linked_ref: str | None = None
     priority: Priority = Priority.normal
@@ -79,6 +82,7 @@ class PlannedItemBase(BaseModel):
     notes: str | None = Field(default=None, max_length=4000)
     module_key: PlannedItemModuleKey | None = None
     recurrence_hint: str | None = Field(default=None, max_length=255)
+    rrule: str | None = Field(default=None, max_length=500)
     linked_source: str | None = Field(default=None, max_length=120)
     linked_ref: str | None = Field(default=None, max_length=255)
     priority: Priority = Priority.normal

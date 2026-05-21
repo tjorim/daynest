@@ -15,8 +15,6 @@ from sqlalchemy import delete
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-logger = logging.getLogger(__name__)
-
 from app.core.enums import ChoreStatus, MedicationDoseStatus, Priority, TaskStatus
 from app.models.chore_instance import ChoreInstance
 from app.models.chore_template import ChoreTemplate
@@ -26,6 +24,8 @@ from app.models.planned_item import PlannedItem
 from app.models.routine_template import RoutineTemplate
 from app.models.task_instance import TaskInstance
 from app.models.user import User
+
+logger = logging.getLogger(__name__)
 
 _E = TypeVar("_E", bound=enum.Enum)
 

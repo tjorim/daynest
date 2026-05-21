@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import date, datetime
 from typing import TYPE_CHECKING
+from uuid import UUID
 
 import sqlalchemy as sa
 from sqlalchemy import Boolean, Date, DateTime, ForeignKey, JSON, String, Text, func
@@ -23,6 +24,8 @@ class PlannedItem(Base):
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     module_key: Mapped[str | None] = mapped_column(String(50), nullable=True, index=True)
     recurrence_hint: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    rrule: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    recurrence_series_id: Mapped[UUID | None] = mapped_column(sa.Uuid(as_uuid=True), nullable=True, index=True)
     linked_source: Mapped[str | None] = mapped_column(String(120), nullable=True)
     linked_ref: Mapped[str | None] = mapped_column(String(255), nullable=True)
     planned_for: Mapped[date] = mapped_column(Date, nullable=False, index=True)

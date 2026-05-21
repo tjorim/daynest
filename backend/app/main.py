@@ -1,3 +1,5 @@
+import asyncio
+import contextlib
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -14,12 +16,16 @@ from app.api.routes.health import router as system_router
 from app.api.routes.integrations.clients import router as integration_clients_router
 from app.api.routes.integrations.home_assistant import router as home_assistant_router
 from app.api.routes.medications import router as medications_router
+from app.api.routes.push import router as push_router
 from app.api.routes.templates import router as templates_router
 from app.api.routes.today import router as today_router
 from app.api.routes.users import router as users_router
 from app.core.config import settings
 from app.core.observability import configure_error_tracking, configure_logging, observability_middleware
+from app.db.session import SessionLocal
 from app.mcp_server import create_mcp_server
+from app.models.user import User
+from app.services.push_service import dispatch_medication_reminders, dispatch_missed_medications, dispatch_overdue_chores
 
 configure_logging()
 configure_error_tracking()
@@ -27,15 +33,35 @@ configure_error_tracking()
 _mcp = create_mcp_server() if settings.feature_mcp else None
 
 
+async def _push_dispatch_loop() -> None:
+    while True:
+        db = SessionLocal()
+        try:
+            users = db.query(User.id).where(User.is_active.is_(True)).all()
+            for user_id, in users:
+                dispatch_overdue_chores(db, user_id)
+                dispatch_medication_reminders(db, user_id)
+                dispatch_missed_medications(db, user_id)
+        finally:
+            db.close()
+        await asyncio.sleep(300)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    push_task: asyncio.Task | None = None
     try:
+        push_task = asyncio.create_task(_push_dispatch_loop())
         if _mcp is not None:
             async with _mcp.session_manager.run():
                 yield
         else:
             yield
     finally:
+        if push_task is not None:
+            push_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await push_task
         await close_auth_http_client()
 
 
@@ -63,6 +89,7 @@ app.include_router(integration_clients_router, prefix=settings.api_prefix)
 app.include_router(home_assistant_router, prefix=settings.api_prefix)
 app.include_router(today_router, prefix=settings.api_prefix)
 app.include_router(medications_router, prefix=settings.api_prefix)
+app.include_router(push_router, prefix=settings.api_prefix)
 app.include_router(templates_router, prefix=f"{settings.api_prefix}/templates")
 app.include_router(bulk_router, prefix=settings.api_prefix)
 app.include_router(calendar_router, prefix=settings.api_prefix)
