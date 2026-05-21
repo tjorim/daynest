@@ -10,13 +10,6 @@ from fastapi import HTTPException, status
 
 from app.core.config import AppSettings
 from app.core.enums import ChoreStatus, MedicationDoseStatus, Priority, TaskStatus
-
-_PRIORITY_RANK: dict[str, int] = {
-    Priority.urgent: 0,
-    Priority.high: 1,
-    Priority.normal: 2,
-    Priority.low: 3,
-}
 from app.models.chore_instance import ChoreInstance
 from app.models.chore_template import ChoreTemplate
 from app.models.medication_dose_instance import MedicationDoseInstance
@@ -45,6 +38,13 @@ from app.schemas.today import (
     UnifiedDayItem,
     UpcomingTodayItem,
 )
+
+_PRIORITY_RANK: dict[str, int] = {
+    Priority.urgent: 0,
+    Priority.high: 1,
+    Priority.normal: 2,
+    Priority.low: 3,
+}
 
 logger = logging.getLogger(__name__)
 
@@ -491,23 +491,28 @@ class TodayService:
             for item in self.repository.list_planned_items(user_id=user_id, start_date=start_date, end_date=end_date, tags=tags)
         ]
 
-    def mark_planned_done(self, user_id: int, planned_item_id: int) -> None:
+    def save(self) -> None:
+        self.repository.save()
+
+    def mark_planned_done(self, user_id: int, planned_item_id: int, *, persist: bool = True) -> None:
         item = self._get_user_planned_item(user_id=user_id, planned_item_id=planned_item_id)
         if not item.is_done:
             item.is_done = True
             item.completed_at = self.repository.utcnow()
-            self.repository.save()
+            if persist:
+                self.repository.save()
 
     def delete_planned_item(self, user_id: int, planned_item_id: int) -> None:
         item = self._get_user_planned_item(user_id=user_id, planned_item_id=planned_item_id)
         self.repository.delete_planned_item(item)
 
-    def complete_chore(self, user_id: int, chore_instance_id: int) -> ChoreInstanceMutationResponse:
+    def complete_chore(self, user_id: int, chore_instance_id: int, *, persist: bool = True) -> ChoreInstanceMutationResponse:
         instance = self._get_user_chore(user_id, chore_instance_id)
         instance.status = ChoreStatus.completed
         instance.completed_at = self.repository.utcnow()
         instance.skipped_at = None
-        self.repository.save()
+        if persist:
+            self.repository.save()
         return ChoreInstanceMutationResponse(
             chore_instance_id=instance.id,
             status=instance.status,
@@ -548,12 +553,13 @@ class TodayService:
         self.repository.save()
         return self._task_instance_to_response(instance)
 
-    def skip_chore(self, user_id: int, chore_instance_id: int) -> ChoreInstanceMutationResponse:
+    def skip_chore(self, user_id: int, chore_instance_id: int, *, persist: bool = True) -> ChoreInstanceMutationResponse:
         instance = self._get_user_chore(user_id, chore_instance_id)
         instance.status = ChoreStatus.skipped
         instance.skipped_at = self.repository.utcnow()
         instance.completed_at = None
-        self.repository.save()
+        if persist:
+            self.repository.save()
         return ChoreInstanceMutationResponse(
             chore_instance_id=instance.id,
             status=instance.status,

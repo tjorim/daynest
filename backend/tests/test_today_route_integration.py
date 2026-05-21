@@ -13,6 +13,7 @@ from app.models.chore_instance import ChoreInstance
 from app.models.chore_template import ChoreTemplate
 from app.models.medication_dose_instance import MedicationDoseInstance
 from app.models.medication_plan import MedicationPlan
+from app.models.planned_item import PlannedItem
 from app.models.routine_template import RoutineTemplate
 from app.models.task_instance import TaskInstance
 from app.models.user import User
@@ -303,6 +304,89 @@ def test_calendar_and_planned_endpoints(client: TestClient, db_session: Session)
         assert delete_resp.status_code == 204
     finally:
         _clear_auth()
+
+
+def test_bulk_mutations_commit_once_for_successful_items(
+    client: TestClient,
+    db_session: Session,
+    monkeypatch,
+) -> None:
+    user = _create_user(db_session, email="bulk@example.com")
+    _auth_as(user)
+
+    template = ChoreTemplate(
+        user_id=user.id,
+        name="Laundry",
+        description=None,
+        start_date=date(2026, 4, 23),
+        every_n_days=1,
+        is_active=True,
+    )
+    db_session.add(template)
+    db_session.commit()
+    db_session.refresh(template)
+
+    complete_instance = ChoreInstance(
+        user_id=user.id,
+        chore_template_id=template.id,
+        title=template.name,
+        scheduled_date=date(2026, 4, 23),
+        status=ChoreStatus.pending,
+    )
+    skip_instance = ChoreInstance(
+        user_id=user.id,
+        chore_template_id=template.id,
+        title=template.name,
+        scheduled_date=date(2026, 4, 24),
+        status=ChoreStatus.pending,
+    )
+    planned_item = PlannedItem(
+        user_id=user.id,
+        title="Meal prep",
+        planned_for=date(2026, 4, 25),
+        is_done=False,
+    )
+    db_session.add_all([complete_instance, skip_instance, planned_item])
+    db_session.commit()
+    db_session.refresh(complete_instance)
+    db_session.refresh(skip_instance)
+    db_session.refresh(planned_item)
+
+    commit_count = 0
+    original_commit = db_session.commit
+
+    def counted_commit() -> None:
+        nonlocal commit_count
+        commit_count += 1
+        original_commit()
+
+    monkeypatch.setattr(db_session, "commit", counted_commit)
+
+    try:
+        response = client.post(
+            "/api/v1/bulk",
+            json={
+                "mutations": [
+                    {"type": "complete_chore", "id": complete_instance.id},
+                    {"type": "skip_chore", "id": skip_instance.id},
+                    {"type": "mark_planned_done", "id": planned_item.id},
+                    {"type": "complete_chore", "id": 999999},
+                ]
+            },
+        )
+    finally:
+        _clear_auth()
+
+    assert response.status_code == 200
+    assert [item["success"] for item in response.json()["results"]] == [True, True, True, False]
+    assert commit_count == 1
+
+    db_session.refresh(complete_instance)
+    db_session.refresh(skip_instance)
+    db_session.refresh(planned_item)
+    assert complete_instance.status == ChoreStatus.completed
+    assert skip_instance.status == ChoreStatus.skipped
+    assert planned_item.is_done is True
 
 
 def test_medication_plan_update_and_delete(client: TestClient, db_session: Session) -> None:
