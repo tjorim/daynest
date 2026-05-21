@@ -4,13 +4,15 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from app.api.dependencies.auth import get_current_user
-from app.core.enums import ChoreStatus, MedicationDoseStatus
+from app.core.enums import ChoreStatus, MedicationDoseStatus, TaskStatus
 from app.main import app
 from app.models.chore_instance import ChoreInstance
 from app.models.chore_template import ChoreTemplate
 from app.models.medication_dose_instance import MedicationDoseInstance
 from app.models.medication_plan import MedicationPlan
 from app.models.planned_item import PlannedItem
+from app.models.routine_template import RoutineTemplate
+from app.models.task_instance import TaskInstance
 from app.models.user import User
 
 
@@ -231,3 +233,107 @@ def test_analytics_streaks_use_bounded_recent_history(client: TestClient, db_ses
     assert response.json()["chores"]["streaks"] == [
         {"chore_id": chore_template.id, "name": "Dishes", "current_streak": 3, "longest_streak": 3}
     ]
+
+
+def _add_task(
+    db_session: Session,
+    user: User,
+    template: RoutineTemplate,
+    scheduled_date: date,
+    status: TaskStatus,
+) -> None:
+    db_session.add(
+        TaskInstance(
+            user_id=user.id,
+            routine_template_id=template.id,
+            title=template.name,
+            scheduled_date=scheduled_date,
+            status=status,
+            completed_at=datetime.now(timezone.utc) if status == TaskStatus.completed else None,
+        )
+    )
+
+
+def test_analytics_includes_routine_streaks(client: TestClient, db_session: Session) -> None:
+    user = _create_user(db_session, email="analytics-routine-streaks@example.com")
+    today = date.today()
+
+    routine = RoutineTemplate(
+        user_id=user.id,
+        name="Morning stretches",
+        description=None,
+        start_date=today - timedelta(days=6),
+        every_n_days=1,
+        is_active=True,
+    )
+    db_session.add(routine)
+    db_session.commit()
+    db_session.refresh(routine)
+
+    # completed 3 days ago; skipped 2 days ago; completed yesterday and today → current streak = 2, longest = 2
+    _add_task(db_session, user, routine, today - timedelta(days=3), TaskStatus.completed)
+    _add_task(db_session, user, routine, today - timedelta(days=2), TaskStatus.skipped)
+    _add_task(db_session, user, routine, today - timedelta(days=1), TaskStatus.completed)
+    _add_task(db_session, user, routine, today, TaskStatus.completed)
+    db_session.commit()
+
+    _auth_as(user)
+    try:
+        response = client.get("/api/v1/analytics/summary?period=week")
+    finally:
+        _clear_auth()
+
+    assert response.status_code == 200
+    routines = response.json()["routines"]
+    assert routines["total_completed"] == 3
+    assert routines["total_scheduled"] == 4
+    assert routines["completion_rate"] == 0.75
+    assert len(routines["daily_completions"]) == 7
+    assert routines["streaks"] == [
+        {"routine_id": routine.id, "name": "Morning stretches", "current_streak": 2, "longest_streak": 2}
+    ]
+
+
+def test_analytics_routine_streaks_do_not_leak_across_users(client: TestClient, db_session: Session) -> None:
+    owner = _create_user(db_session, email="analytics-routine-owner@example.com")
+    other = _create_user(db_session, email="analytics-routine-other@example.com")
+    today = date.today()
+
+    routine = RoutineTemplate(
+        user_id=owner.id,
+        name="Owner routine",
+        description=None,
+        start_date=today,
+        every_n_days=1,
+        is_active=True,
+    )
+    db_session.add(routine)
+    db_session.commit()
+    db_session.refresh(routine)
+    _add_task(db_session, owner, routine, today, TaskStatus.completed)
+    db_session.commit()
+
+    _auth_as(other)
+    try:
+        response = client.get("/api/v1/analytics/summary?period=week")
+    finally:
+        _clear_auth()
+
+    assert response.status_code == 200
+    assert response.json()["routines"]["streaks"] == []
+    assert response.json()["routines"]["total_completed"] == 0
+
+
+def test_analytics_summary_response_includes_routines_key(client: TestClient, db_session: Session) -> None:
+    user = _create_user(db_session, email="analytics-routines-key@example.com")
+    _auth_as(user)
+    try:
+        response = client.get("/api/v1/analytics/summary")
+    finally:
+        _clear_auth()
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert "routines" in payload
+    assert "streaks" in payload["routines"]
+    assert "daily_completions" in payload["routines"]
