@@ -177,8 +177,9 @@ class TestDaynestTodoListEntity:
             entity_description=ENTITY_DESCRIPTION,
         )
 
-        with pytest.raises(HomeAssistantError, match="Unable to locate planned item for id 201"):
+        with pytest.raises(HomeAssistantError) as exc_info:
             await entity.async_update_todo_item("planned:201", {"status": COMPLETE_STATUS})
+        assert exc_info.value.translation_key == "todo_planned_item_not_found"
 
     async def test_update_with_unsupported_status_raises(self) -> None:
         coordinator = _make_coordinator()
@@ -187,8 +188,9 @@ class TestDaynestTodoListEntity:
             entity_description=ENTITY_DESCRIPTION,
         )
 
-        with pytest.raises(HomeAssistantError, match="Only marking due-today chore items as complete is supported"):
+        with pytest.raises(HomeAssistantError) as exc_info:
             await entity.async_update_todo_item("due:101", {"status": TodoItemStatus.NEEDS_ACTION})
+        assert exc_info.value.translation_key == "todo_complete_only"
 
     async def test_delete_due_items_maps_to_skip(self) -> None:
         coordinator = _make_coordinator()
@@ -245,5 +247,6 @@ class TestDaynestTodoListEntity:
             entity_description=ENTITY_DESCRIPTION,
         )
 
-        with pytest.raises(HomeAssistantError, match="Todo item summary is required"):
+        with pytest.raises(HomeAssistantError) as exc_info:
             await entity.async_create_todo_item(TodoItem(summary="", status=TodoItemStatus.NEEDS_ACTION))
+        assert exc_info.value.translation_key == "todo_summary_required"
