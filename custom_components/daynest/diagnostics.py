@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from homeassistant.const import CONF_API_KEY, CONF_URL
+from homeassistant.const import CONF_API_KEY
 from homeassistant.helpers import device_registry as dr, entity_registry as er
 from homeassistant.helpers.redact import async_redact_data
 
@@ -22,7 +22,6 @@ if TYPE_CHECKING:
 
 TO_REDACT = {
     CONF_API_KEY,
-    CONF_URL,
     "username",
     "password",
     "api_key",

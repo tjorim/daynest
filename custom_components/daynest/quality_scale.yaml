@@ -205,6 +205,15 @@ rules:
       Static `icon=` removed from all sensor descriptions and `_attr_icon`
       removed from calendar and todo entities. All icons now defined in
       `icons.json` under `entity.<platform>.<translation_key>.default`.
+  no-secrets-in-logs:
+    status: done
+    comment: >
+      No credential values are interpolated into log statements — logs only
+      contain service names, entity IDs, and exception messages.
+      `diagnostics.py` uses `async_redact_data` with `TO_REDACT` covering
+      `token`, `access_token`, `refresh_token`, `id_token`, `api_key`,
+      `integration_key`, `password`, and `username`. The server URL is
+      intentionally not redacted so connection issues remain debuggable.
   reconfiguration-flow:
     status: todo
     comment: >
