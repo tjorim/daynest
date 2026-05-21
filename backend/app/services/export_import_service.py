@@ -3,15 +3,19 @@ from __future__ import annotations
 import csv
 import enum
 import json
+import logging
 from collections.abc import Iterable, Mapping
 from datetime import date, datetime, time, timezone
 from io import StringIO
 from typing import Any, NoReturn, TypeVar
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from fastapi import HTTPException, status
 from sqlalchemy import delete
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
+
+logger = logging.getLogger(__name__)
 
 from app.core.enums import ChoreStatus, MedicationDoseStatus, Priority, TaskStatus
 from app.models.chore_instance import ChoreInstance
@@ -227,7 +231,7 @@ def import_user_export(db: Session, user: User, payload: Mapping[str, Any], *, r
             created_at=_datetime(row.get("created_at"), "routine_templates.created_at"),
         )
         db.add(item)
-        db.flush()
+        _flush(db)
         routine_id_map[old_id] = item.id
         counts["routine_templates"] += 1
 
@@ -246,7 +250,7 @@ def import_user_export(db: Session, user: User, payload: Mapping[str, Any], *, r
             created_at=_datetime(row.get("created_at"), "chore_templates.created_at"),
         )
         db.add(item)
-        db.flush()
+        _flush(db)
         chore_id_map[old_id] = item.id
         counts["chore_templates"] += 1
 
@@ -263,7 +267,7 @@ def import_user_export(db: Session, user: User, payload: Mapping[str, Any], *, r
             created_at=_datetime(row.get("created_at"), "medication_plans.created_at"),
         )
         db.add(item)
-        db.flush()
+        _flush(db)
         medication_id_map[old_id] = item.id
         counts["medication_plans"] += 1
 
@@ -339,11 +343,24 @@ def import_user_export(db: Session, user: User, payload: Mapping[str, Any], *, r
         db.commit()
     except IntegrityError as exc:
         db.rollback()
+        logger.error("Import IntegrityError during commit", exc_info=exc)
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail=f"Import conflicts with existing data: {exc.orig}",
+            detail="Import conflicts with existing data",
         ) from exc
     return counts
+
+
+def _flush(db: Session) -> None:
+    try:
+        db.flush()
+    except IntegrityError as exc:
+        db.rollback()
+        logger.error("Import IntegrityError during flush", exc_info=exc)
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Import conflicts with existing data",
+        ) from exc
 
 
 def _delete_user_data(db: Session, user_id: int) -> None:
@@ -402,10 +419,23 @@ def _mapped_id(mapping: Mapping[int, int], value: Any, field: str) -> int:
 
 
 def _coerce_setting(field: str, value: Any) -> Any:
-    if field in {"timezone"}:
-        return _str(value, f"user_settings.{field}")
-    if field in {"default_snooze_days", "medication_reminder_minutes"}:
-        return _int(value, f"user_settings.{field}")
+    if field == "timezone":
+        tz_str = _str(value, f"user_settings.{field}")
+        try:
+            ZoneInfo(tz_str)
+        except ZoneInfoNotFoundError:
+            _invalid(f"user_settings.{field} is not a valid IANA timezone: {tz_str!r}")
+        return tz_str
+    if field == "default_snooze_days":
+        v = _int(value, f"user_settings.{field}")
+        if v < 1 or v > 365:
+            _invalid(f"user_settings.{field} must be between 1 and 365")
+        return v
+    if field == "medication_reminder_minutes":
+        v = _int(value, f"user_settings.{field}")
+        if v < 0 or v > 1440:
+            _invalid(f"user_settings.{field} must be between 0 and 1440")
+        return v
     return _nullable_time(value, f"user_settings.{field}")
 
 

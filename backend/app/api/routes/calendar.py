@@ -149,7 +149,7 @@ def _resolve_user(
 
 
 @router.get("/calendar/export.ics")
-async def export_ical(
+def export_ical(
     token: str | None = Query(default=None, description="Per-user calendar subscription token"),
     db: Session = Depends(get_db),
     service: TodayService = Depends(get_today_service),
@@ -181,5 +181,10 @@ async def export_ical(
     return Response(
         content=_build_ical(event_lines),
         media_type="text/calendar; charset=utf-8",
-        headers={"Content-Disposition": 'attachment; filename="daynest.ics"'},
+        headers={
+            "Content-Disposition": 'attachment; filename="daynest.ics"',
+            "Cache-Control": "private, no-store",
+            "Pragma": "no-cache",
+            "Expires": "0",
+        },
     )

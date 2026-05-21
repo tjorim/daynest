@@ -1,5 +1,8 @@
+import logging
 from datetime import date, datetime, time, timedelta, timezone
 from zoneinfo import ZoneInfo
+
+logger = logging.getLogger(__name__)
 
 try:
     from dateutil.rrule import rrulestr as _rrulestr
@@ -61,6 +64,7 @@ class TodayRepository:
                     start_search = datetime.combine(last, time.max) if last else dtstart - timedelta(seconds=1)
                     occurrences = rule.between(start_search, datetime.combine(through_date, time.max), inc=False)
                 except Exception:
+                    logger.warning("Failed to parse rrule for chore template %s: %r", template.id, template.rrule, exc_info=True)
                     rrule_failed = True
                 else:
                     rrule_generated = True
@@ -234,6 +238,7 @@ class TodayRepository:
                     start_search = datetime.combine(last, time.max) if last else dtstart - timedelta(seconds=1)
                     occurrences = rule.between(start_search, datetime.combine(through_date, time.max), inc=False)
                 except Exception:
+                    logger.warning("Failed to parse rrule for routine template %s: %r", template.id, template.rrule, exc_info=True)
                     rrule_failed = True
                 else:
                     rrule_generated = True

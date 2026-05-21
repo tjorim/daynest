@@ -245,6 +245,8 @@ class TodayService:
                     recurrence_hint=item.recurrence_hint,
                     linked_source=item.linked_source,
                     linked_ref=item.linked_ref,
+                    priority=item.priority,
+                    tags=item.tags or [],
                     is_done=item.is_done,
                 )
                 for item in planned

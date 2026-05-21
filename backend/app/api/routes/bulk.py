@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException
 
 from app.api.dependencies.auth import get_current_user
@@ -7,6 +9,7 @@ from app.schemas.bulk import BulkMutationItem, BulkMutationRequest, BulkMutation
 from app.services.today_service import TodayService
 
 router = APIRouter(tags=["bulk"])
+logger = logging.getLogger(__name__)
 
 
 def _apply_mutation(service: TodayService, user_id: int, mutation: BulkMutationItem) -> None:
@@ -33,8 +36,16 @@ def bulk_mutate(
             has_success = True
         except HTTPException as exc:
             results.append(BulkMutationResult(type=mutation.type, id=mutation.id, success=False, error=exc.detail))
-        except Exception as exc:
-            results.append(BulkMutationResult(type=mutation.type, id=mutation.id, success=False, error=str(exc)))
+        except Exception:
+            logger.exception("Unexpected error applying mutation type=%s id=%s", mutation.type, mutation.id)
+            results.append(BulkMutationResult(type=mutation.type, id=mutation.id, success=False, error="failed to apply mutation"))
     if has_success:
-        service.save()
+        try:
+            service.save()
+        except Exception:
+            logger.exception("Failed to persist bulk mutations")
+            for r in results:
+                if r.success:
+                    r.success = False
+                    r.error = "persist error"
     return BulkMutationResponse(results=results)

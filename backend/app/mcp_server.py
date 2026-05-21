@@ -390,21 +390,24 @@ class DaynestMcpBackend:
     ) -> dict[str, Any]:
         parsed_start = _parse_date(start_date)
         parsed_due_time = time.fromisoformat(due_time) if due_time and due_time.strip() else None
-        return self._with_service(
-            lambda _db, user, service: _routine_template_to_dict(
+
+        def _do(_db: Any, user: Any, service: Any) -> dict[str, Any]:
+            existing = service.repository.get_routine_template_for_user(user.id, routine_template_id)
+            return _routine_template_to_dict(
                 service.update_routine_template(
                     user.id,
                     routine_template_id,
                     name=name,
                     start_date=parsed_start,
                     every_n_days=every_n_days,
-                    rrule=None,
+                    rrule=existing.rrule if existing else None,
                     description=description,
                     due_time=parsed_due_time,
                     is_active=is_active,
                 )
             )
-        )
+
+        return self._with_service(_do)
 
     def delete_routine(self, routine_template_id: int) -> dict[str, Any]:
         self._with_service(lambda _db, user, service: service.delete_routine_template(user.id, routine_template_id))
@@ -447,22 +450,25 @@ class DaynestMcpBackend:
         is_active: bool | None = None,
     ) -> dict[str, Any]:
         parsed_start = _parse_date(start_date)
-        return self._with_service(
-            lambda _db, user, service: _chore_template_to_dict(
+
+        def _do(_db: Any, user: Any, service: Any) -> dict[str, Any]:
+            existing = service.repository.get_chore_template_for_user(user.id, chore_template_id)
+            return _chore_template_to_dict(
                 service.update_chore_template(
                     user.id,
                     chore_template_id,
                     name=name,
                     start_date=parsed_start,
                     every_n_days=every_n_days,
-                    rrule=None,
-                    priority=Priority.normal,
-                    tags=[],
+                    rrule=existing.rrule if existing else None,
+                    priority=existing.priority if existing else Priority.normal,
+                    tags=existing.tags if existing else [],
                     description=description,
                     is_active=is_active,
                 )
             )
-        )
+
+        return self._with_service(_do)
 
     def delete_chore_template(self, chore_template_id: int) -> dict[str, Any]:
         self._with_service(lambda _db, user, service: service.delete_chore_template(user.id, chore_template_id))

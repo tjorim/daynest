@@ -56,7 +56,8 @@ def list_planned_items(
     service: TodayService = Depends(get_today_service),
     current_user: User = Depends(get_current_user),
 ) -> list[PlannedTodayItem]:
-    tag_list = [t.strip() for t in tags.split(",")] if tags else None
+    tag_list = [t.strip() for t in tags.split(",") if t.strip()] if tags else None
+    tag_list = tag_list or None
     return service.list_planned_items(user_id=current_user.id, start_date=start_date, end_date=end_date, tags=tag_list)
 
 
