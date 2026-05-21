@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import csv
+import enum
 import json
 from collections.abc import Iterable, Mapping
 from datetime import date, datetime, time, timezone
@@ -22,7 +23,7 @@ from app.models.routine_template import RoutineTemplate
 from app.models.task_instance import TaskInstance
 from app.models.user import User
 
-_E = TypeVar("_E")
+_E = TypeVar("_E", bound=enum.Enum)
 
 EXPORT_VERSION = 1
 
@@ -437,8 +438,7 @@ def _enum(cls: type[_E], value: Any, field: str) -> _E:
     try:
         return cls(s)  # type: ignore[call-arg]
     except ValueError:
-        valid = ", ".join(m.value for m in cls)  # type: ignore[attr-defined]
-        _invalid(f"{field} has invalid value '{s}'; expected one of: {valid}")
+        _invalid(f"{field} has invalid value: {s!r}")
 
 
 def _list(value: Any, field: str) -> list[Any]:
