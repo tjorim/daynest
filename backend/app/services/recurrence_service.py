@@ -11,10 +11,11 @@ def generate_recurrence_dates(start_date: date, rrule: str, *, max_instances: in
     try:
         start_dt = datetime.combine(start_date, time.min)
         rule = rrulestr(rrule, dtstart=start_dt, ignoretz=True)
-    except Exception as exc:  # noqa: BLE001
+    except ValueError as exc:
         raise RecurrenceValidationError("Invalid recurrence rule") from exc
 
     dates: list[date] = []
+    # Start just before dtstart so the first `after(..., inc=False)` call can include dtstart occurrences.
     cursor = start_dt - timedelta(seconds=1)
     for _ in range(max_instances):
         occurrence = rule.after(cursor, inc=False)

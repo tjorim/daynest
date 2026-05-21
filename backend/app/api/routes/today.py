@@ -117,7 +117,11 @@ def update_planned_item(
 @router.delete("/planned-items/{planned_item_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_planned_item(
     planned_item_id: int,
-    scope: str = Query(default="this", pattern="^(this|future)$"),
+    scope: str = Query(
+        default="this",
+        pattern="^(this|future)$",
+        description="Delete scope: 'this' removes only this item; 'future' removes this and future items in the same series.",
+    ),
     service: TodayService = Depends(get_today_service),
     event_bus: EventBus = Depends(get_event_bus),
     current_user: User = Depends(get_current_user),

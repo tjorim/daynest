@@ -1,4 +1,6 @@
 import asyncio
+from collections.abc import Coroutine
+from typing import Any
 
 import pytest
 
@@ -33,11 +35,12 @@ async def test_today_stream_emits_ping(monkeypatch) -> None:
     request = _FakeRequest()
     event_bus = get_event_bus()
 
-    def _raise_timeout(coro, timeout=None):  # noqa: ANN001, ARG001
-        coro.close()
+    def _simulate_timeout(coroutine: Coroutine[Any, Any, Any], timeout: float | None = None) -> None:
+        _ = timeout
+        coroutine.close()
         raise TimeoutError
 
-    monkeypatch.setattr(asyncio, "wait_for", _raise_timeout)
+    monkeypatch.setattr(asyncio, "wait_for", _simulate_timeout)
     response = await stream_today_updates(request=request, event_bus=event_bus, current_user=user)
     chunk = await anext(response.body_iterator)
     assert chunk["event"] == "ping"

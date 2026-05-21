@@ -74,7 +74,7 @@ def send_notification(subscription: PushSubscription, title: str, body: str, dat
                 vapid_claims={"sub": f"mailto:{settings.vapid_claims_email}"},
             )
     except (httpx.HTTPError, WebPushException):
-        logger.exception("Failed to send push notification")
+        logger.exception("Failed to send push notification for endpoint=%s platform=%s", subscription.endpoint, subscription.platform)
 
 
 def _active_subscriptions(db: Session, user_id: int) -> list[PushSubscription]:
