@@ -12,9 +12,9 @@ from daynest import (
     DaynestError,
     DaynestMalformedResponseError,
 )
-from homeassistant.components.repairs import IssueSeverity, async_create_issue, async_delete_issue
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed
+from homeassistant.helpers.issue_registry import IssueSeverity, async_create_issue, async_delete_issue
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .const import DOMAIN, LOGGER, SUPPORTED_INTEGRATION_CONTRACT_VERSIONS, parse_integration_contract_version
