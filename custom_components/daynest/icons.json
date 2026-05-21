@@ -1,0 +1,40 @@
+{
+  "entity": {
+    "calendar": {
+      "daynest_calendar": {
+        "default": "mdi:calendar-check"
+      }
+    },
+    "sensor": {
+      "due_today_count": {
+        "default": "mdi:format-list-checks"
+      },
+      "overdue_count": {
+        "default": "mdi:alert-circle-outline"
+      },
+      "planned_count": {
+        "default": "mdi:calendar-text-outline"
+      },
+      "medication_due_count": {
+        "default": "mdi:pill"
+      },
+      "completion_ratio": {
+        "default": "mdi:percent-circle-outline"
+      },
+      "next_medication": {
+        "default": "mdi:clock-time-eight-outline"
+      },
+      "routines_open_count": {
+        "default": "mdi:clipboard-list-outline"
+      },
+      "planned_remaining_count": {
+        "default": "mdi:calendar-check-outline"
+      }
+    },
+    "todo": {
+      "tasks_due_today": {
+        "default": "mdi:format-list-checks"
+      }
+    }
+  }
+}

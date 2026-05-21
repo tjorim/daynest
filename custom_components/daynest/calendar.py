@@ -79,7 +79,6 @@ def _parse_event(raw: dict) -> CalendarEvent | None:
 class DaynestCalendarEntity(CalendarEntity, DaynestEntity):
     """Expose Daynest scheduled events as a Home Assistant calendar."""
 
-    _attr_icon = "mdi:calendar-check"
     _attr_supported_features = CalendarEntityFeature.CREATE_EVENT
 
     def __init__(

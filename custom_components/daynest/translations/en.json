@@ -35,6 +35,30 @@
     },
     "update_failed": {
       "message": "Failed to update data from the server."
+    },
+    "service_auth_error": {
+      "message": "Authentication error calling daynest.{service}."
+    },
+    "service_communication_error": {
+      "message": "Communication error calling daynest.{service}."
+    },
+    "service_error": {
+      "message": "Error calling daynest.{service}."
+    },
+    "todo_complete_only": {
+      "message": "Only marking due-today chore items as complete is supported."
+    },
+    "todo_planned_item_not_found": {
+      "message": "Unable to locate planned item {item_id}."
+    },
+    "todo_title_empty": {
+      "message": "Planned item title cannot be empty."
+    },
+    "todo_summary_required": {
+      "message": "Todo item summary is required."
+    },
+    "todo_invalid_item_id": {
+      "message": "Unsupported Daynest to-do item id: {item_id}."
     }
   },
   "entity": {

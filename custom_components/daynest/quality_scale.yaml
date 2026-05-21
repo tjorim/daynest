@@ -167,11 +167,11 @@ rules:
       One config entry = one user account = one logical device. Devices are
       not added or removed dynamically after setup.
   entity-category:
-    status: todo
+    status: done
     comment: >
-      None of the sensor or calendar entities set `entity_category`. Metric
-      sensors are primary UI sensors; diagnostic/config categorisation has not
-      been applied yet.
+      All Daynest sensor entities expose primary user-facing task and
+      medication metrics; none are diagnostic or config in the HA sense.
+      No `EntityCategory` is warranted.
   entity-device-class:
     status: todo
     comment: >
@@ -180,27 +180,31 @@ rules:
       `SensorDeviceClass.TIMESTAMP` if `next_medication` is changed to an ISO
       datetime.
   entity-disabled-by-default:
-    status: todo
+    status: done
     comment: >
-      All entities are enabled by default. Lower-priority sensors
-      (e.g. `planned_remaining_count`, `routines_open_count`) should be
-      disabled by default via `entity_registry_enabled_default = False`.
+      Secondary sensors (`planned_count`, `planned_remaining_count`,
+      `routines_open_count`, `next_medication`) set
+      `entity_registry_enabled_default=False`. Primary metrics
+      (`due_today_count`, `overdue_count`, `medication_due_count`,
+      `completion_ratio`) remain enabled.
   entity-translations:
     status: done
     comment: >
       All entity descriptions use `translation_key`; strings live in
       `translations/en.json`.
   exception-translations:
-    status: todo
+    status: done
     comment: >
-      `HomeAssistantError` messages in `services.py` use f-strings.
-      They should reference translation keys from `strings.json` /
-      `translations/en.json` instead.
+      All `HomeAssistantError` raises in `services.py` and `todo.py` use
+      `translation_domain=DOMAIN` + `translation_key` with optional
+      `translation_placeholders`. Strings live in
+      `translations/en.json` under `exceptions`.
   icon-translations:
-    status: todo
+    status: done
     comment: >
-      Icons are set as static strings on `DaynestSensorEntityDescription`.
-      They should be moved to `icons.json` to support icon overrides.
+      Static `icon=` removed from all sensor descriptions and `_attr_icon`
+      removed from calendar and todo entities. All icons now defined in
+      `icons.json` under `entity.<platform>.<translation_key>.default`.
   reconfiguration-flow:
     status: todo
     comment: >
