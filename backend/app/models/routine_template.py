@@ -26,6 +26,7 @@ class RoutineTemplate(Base):
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     start_date: Mapped[date] = mapped_column(Date, nullable=False)
     every_n_days: Mapped[int] = mapped_column(Integer, nullable=False, default=1, server_default="1")
+    rrule: Mapped[str | None] = mapped_column(String(500), nullable=True)
     # due_time is stored as a naive time value and treated as UTC by calling code (see today_repository.ensure_task_instances_generated)
     due_time: Mapped[time | None] = mapped_column(Time, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default=sa.text("true"))

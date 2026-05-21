@@ -1,6 +1,13 @@
 import enum
 
 
+class Priority(str, enum.Enum):
+    low = "low"
+    normal = "normal"
+    high = "high"
+    urgent = "urgent"
+
+
 class TaskStatus(str, enum.Enum):
     pending = "pending"
     in_progress = "in_progress"

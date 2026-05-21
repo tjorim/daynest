@@ -9,7 +9,7 @@ from zoneinfo import ZoneInfo
 from fastapi import HTTPException, status
 
 from app.core.config import AppSettings
-from app.core.enums import ChoreStatus, MedicationDoseStatus, TaskStatus
+from app.core.enums import ChoreStatus, MedicationDoseStatus, Priority, TaskStatus
 from app.models.chore_instance import ChoreInstance
 from app.models.chore_template import ChoreTemplate
 from app.models.medication_dose_instance import MedicationDoseInstance
@@ -38,6 +38,13 @@ from app.schemas.today import (
     UnifiedDayItem,
     UpcomingTodayItem,
 )
+
+_PRIORITY_RANK: dict[str, int] = {
+    Priority.urgent: 0,
+    Priority.high: 1,
+    Priority.normal: 2,
+    Priority.low: 3,
+}
 
 logger = logging.getLogger(__name__)
 
@@ -238,6 +245,8 @@ class TodayService:
                     recurrence_hint=item.recurrence_hint,
                     linked_source=item.linked_source,
                     linked_ref=item.linked_ref,
+                    priority=item.priority,
+                    tags=item.tags or [],
                     is_done=item.is_done,
                 )
                 for item in planned
@@ -326,6 +335,7 @@ class TodayService:
                     recurrence_hint=plan.recurrence_hint,
                     linked_source=plan.linked_source,
                     linked_ref=plan.linked_ref,
+                    priority=plan.priority,
                 )
             )
 
@@ -333,6 +343,7 @@ class TodayService:
             key=lambda value: (
                 value.scheduled_at is None,
                 value.scheduled_at or datetime.min.replace(tzinfo=timezone.utc),
+                _PRIORITY_RANK.get(value.priority, 2),
                 value.item_type,
                 value.item_id,
             )
@@ -450,6 +461,8 @@ class TodayService:
                 linked_source=request.linked_source,
                 linked_ref=request.linked_ref,
                 planned_for=request.planned_for,
+                priority=request.priority,
+                tags=request.tags,
                 is_done=False,
             )
         )
@@ -464,6 +477,8 @@ class TodayService:
         item.linked_source = request.linked_source
         item.linked_ref = request.linked_ref
         item.planned_for = request.planned_for
+        item.priority = request.priority
+        item.tags = request.tags
         if request.is_done and not item.is_done:
             item.completed_at = self.repository.utcnow()
         elif not request.is_done:
@@ -472,29 +487,34 @@ class TodayService:
         self.repository.save()
         return self._planned_item_to_schema(item)
 
-    def list_planned_items(self, user_id: int, start_date: date | None = None, end_date: date | None = None) -> list[PlannedTodayItem]:
+    def list_planned_items(self, user_id: int, start_date: date | None = None, end_date: date | None = None, tags: list[str] | None = None) -> list[PlannedTodayItem]:
         return [
             self._planned_item_to_schema(item)
-            for item in self.repository.list_planned_items(user_id=user_id, start_date=start_date, end_date=end_date)
+            for item in self.repository.list_planned_items(user_id=user_id, start_date=start_date, end_date=end_date, tags=tags)
         ]
 
-    def mark_planned_done(self, user_id: int, planned_item_id: int) -> None:
+    def save(self) -> None:
+        self.repository.save()
+
+    def mark_planned_done(self, user_id: int, planned_item_id: int, *, persist: bool = True) -> None:
         item = self._get_user_planned_item(user_id=user_id, planned_item_id=planned_item_id)
         if not item.is_done:
             item.is_done = True
             item.completed_at = self.repository.utcnow()
-            self.repository.save()
+            if persist:
+                self.repository.save()
 
     def delete_planned_item(self, user_id: int, planned_item_id: int) -> None:
         item = self._get_user_planned_item(user_id=user_id, planned_item_id=planned_item_id)
         self.repository.delete_planned_item(item)
 
-    def complete_chore(self, user_id: int, chore_instance_id: int) -> ChoreInstanceMutationResponse:
+    def complete_chore(self, user_id: int, chore_instance_id: int, *, persist: bool = True) -> ChoreInstanceMutationResponse:
         instance = self._get_user_chore(user_id, chore_instance_id)
         instance.status = ChoreStatus.completed
         instance.completed_at = self.repository.utcnow()
         instance.skipped_at = None
-        self.repository.save()
+        if persist:
+            self.repository.save()
         return ChoreInstanceMutationResponse(
             chore_instance_id=instance.id,
             status=instance.status,
@@ -535,12 +555,13 @@ class TodayService:
         self.repository.save()
         return self._task_instance_to_response(instance)
 
-    def skip_chore(self, user_id: int, chore_instance_id: int) -> ChoreInstanceMutationResponse:
+    def skip_chore(self, user_id: int, chore_instance_id: int, *, persist: bool = True) -> ChoreInstanceMutationResponse:
         instance = self._get_user_chore(user_id, chore_instance_id)
         instance.status = ChoreStatus.skipped
         instance.skipped_at = self.repository.utcnow()
         instance.completed_at = None
-        self.repository.save()
+        if persist:
+            self.repository.save()
         return ChoreInstanceMutationResponse(
             chore_instance_id=instance.id,
             status=instance.status,
@@ -595,6 +616,8 @@ class TodayService:
             recurrence_hint=item.recurrence_hint,
             linked_source=item.linked_source,
             linked_ref=item.linked_ref,
+            priority=item.priority,
+            tags=item.tags or [],
             is_done=item.is_done,
         )
 
@@ -644,6 +667,7 @@ class TodayService:
         name: str,
         start_date: date,
         every_n_days: int | None,
+        rrule: str | None,
         description: str | None,
         due_time: time | None,
         is_active: bool | None,
@@ -659,6 +683,7 @@ class TodayService:
             description=description if description is not None else template.description,
             start_date=start_date,
             every_n_days=every_n_days if every_n_days is not None else template.every_n_days,
+            rrule=rrule,
             due_time=due_time if due_time is not None else template.due_time,
             is_active=is_active if is_active is not None else template.is_active,
         )
@@ -703,6 +728,9 @@ class TodayService:
         name: str,
         start_date: date,
         every_n_days: int | None,
+        rrule: str | None,
+        priority: Priority,
+        tags: list,
         description: str | None,
         is_active: bool | None,
     ) -> ChoreTemplate:
@@ -717,6 +745,9 @@ class TodayService:
             description=description if description is not None else template.description,
             start_date=start_date,
             every_n_days=every_n_days if every_n_days is not None else template.every_n_days,
+            rrule=rrule,
+            priority=priority,
+            tags=tags,
             is_active=is_active if is_active is not None else template.is_active,
         )
 

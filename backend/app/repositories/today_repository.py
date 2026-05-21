@@ -1,11 +1,20 @@
+import logging
 from datetime import date, datetime, time, timedelta, timezone
 from zoneinfo import ZoneInfo
+
+logger = logging.getLogger(__name__)
+
+try:
+    from dateutil.rrule import rrulestr as _rrulestr
+    _DATEUTIL_AVAILABLE = True
+except ImportError:
+    _DATEUTIL_AVAILABLE = False
 
 from sqlalchemy import and_, func, insert, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
-from app.core.enums import ChoreStatus, MedicationDoseStatus, TaskStatus
+from app.core.enums import ChoreStatus, MedicationDoseStatus, Priority, TaskStatus
 from app.models.user import User
 from app.models.chore_instance import ChoreInstance
 from app.models.chore_template import ChoreTemplate
@@ -44,19 +53,44 @@ class TodayRepository:
             if template.start_date > through_date:
                 continue
 
-            step = max(template.every_n_days, 1)
             last = last_generated_map.get(template.id)
-            cursor = template.start_date if last is None else date.fromordinal(last.toordinal() + step)
 
-            while cursor <= through_date:
-                rows.append({
-                    "user_id": user_id,
-                    "chore_template_id": template.id,
-                    "title": template.name,
-                    "scheduled_date": cursor,
-                    "status": ChoreStatus.pending,
-                })
-                cursor = date.fromordinal(cursor.toordinal() + step)
+            rrule_generated = False
+            rrule_failed = False
+            if template.rrule and _DATEUTIL_AVAILABLE:
+                try:
+                    dtstart = datetime.combine(template.start_date, time.min)
+                    rule = _rrulestr(template.rrule, dtstart=dtstart, ignoretz=True)
+                    start_search = datetime.combine(last, time.max) if last else dtstart - timedelta(seconds=1)
+                    occurrences = rule.between(start_search, datetime.combine(through_date, time.max), inc=False)
+                except Exception:
+                    logger.warning("Failed to parse rrule for chore template %s: %r", template.id, template.rrule, exc_info=True)
+                    rrule_failed = True
+                else:
+                    rrule_generated = True
+                    for dt in occurrences:
+                        rows.append({
+                            "user_id": user_id,
+                            "chore_template_id": template.id,
+                            "title": template.name,
+                            "scheduled_date": dt.date(),
+                            "status": ChoreStatus.pending,
+                        })
+
+            if not template.rrule or not _DATEUTIL_AVAILABLE or rrule_failed:
+                step = max(template.every_n_days, 1)
+                cursor = template.start_date if last is None else date.fromordinal(last.toordinal() + step)
+                while cursor <= through_date:
+                    rows.append({
+                        "user_id": user_id,
+                        "chore_template_id": template.id,
+                        "title": template.name,
+                        "scheduled_date": cursor,
+                        "status": ChoreStatus.pending,
+                    })
+                    cursor = date.fromordinal(cursor.toordinal() + step)
+            elif rrule_generated:
+                continue
 
         if rows:
             dialect_name = self.db.connection().dialect.name
@@ -193,21 +227,49 @@ class TodayRepository:
             if template.start_date > through_date:
                 continue
 
-            step = max(template.every_n_days, 1)
             last = last_generated_map.get(template.id)
-            cursor = template.start_date if last is None else date.fromordinal(last.toordinal() + step)
 
-            while cursor <= through_date:
-                due_at = datetime.combine(cursor, template.due_time, tzinfo=timezone.utc) if template.due_time else None
-                rows.append({
-                    "user_id": user_id,
-                    "routine_template_id": template.id,
-                    "title": template.name,
-                    "scheduled_date": cursor,
-                    "due_at": due_at,
-                    "status": TaskStatus.pending,
-                })
-                cursor = date.fromordinal(cursor.toordinal() + step)
+            rrule_generated = False
+            rrule_failed = False
+            if template.rrule and _DATEUTIL_AVAILABLE:
+                try:
+                    dtstart = datetime.combine(template.start_date, time.min)
+                    rule = _rrulestr(template.rrule, dtstart=dtstart, ignoretz=True)
+                    start_search = datetime.combine(last, time.max) if last else dtstart - timedelta(seconds=1)
+                    occurrences = rule.between(start_search, datetime.combine(through_date, time.max), inc=False)
+                except Exception:
+                    logger.warning("Failed to parse rrule for routine template %s: %r", template.id, template.rrule, exc_info=True)
+                    rrule_failed = True
+                else:
+                    rrule_generated = True
+                    for dt in occurrences:
+                        cursor = dt.date()
+                        due_at = datetime.combine(cursor, template.due_time, tzinfo=timezone.utc) if template.due_time else None
+                        rows.append({
+                            "user_id": user_id,
+                            "routine_template_id": template.id,
+                            "title": template.name,
+                            "scheduled_date": cursor,
+                            "due_at": due_at,
+                            "status": TaskStatus.pending,
+                        })
+
+            if not template.rrule or not _DATEUTIL_AVAILABLE or rrule_failed:
+                step = max(template.every_n_days, 1)
+                cursor = template.start_date if last is None else date.fromordinal(last.toordinal() + step)
+                while cursor <= through_date:
+                    due_at = datetime.combine(cursor, template.due_time, tzinfo=timezone.utc) if template.due_time else None
+                    rows.append({
+                        "user_id": user_id,
+                        "routine_template_id": template.id,
+                        "title": template.name,
+                        "scheduled_date": cursor,
+                        "due_at": due_at,
+                        "status": TaskStatus.pending,
+                    })
+                    cursor = date.fromordinal(cursor.toordinal() + step)
+            elif rrule_generated:
+                continue
 
         if rows:
             dialect_name = self.db.connection().dialect.name
@@ -237,6 +299,7 @@ class TodayRepository:
         description: str | None,
         start_date: date,
         every_n_days: int,
+        rrule: str | None,
         due_time: time | None,
         is_active: bool,
     ) -> RoutineTemplate:
@@ -244,15 +307,19 @@ class TodayRepository:
         template.description = description
         template.start_date = start_date
         template.every_n_days = every_n_days
+        template.rrule = rrule
         template.due_time = due_time
         template.is_active = is_active
         self.db.commit()
         self.db.refresh(template)
         return template
 
-    def list_chore_templates(self, user_id: int) -> list[ChoreTemplate]:
+    def list_chore_templates(self, user_id: int, tags: list[str] | None = None) -> list[ChoreTemplate]:
         stmt = select(ChoreTemplate).where(ChoreTemplate.user_id == user_id).order_by(ChoreTemplate.id.asc())
-        return list(self.db.scalars(stmt).all())
+        templates = list(self.db.scalars(stmt).all())
+        if tags:
+            templates = [t for t in templates if any(tag in (t.tags or []) for tag in tags)]
+        return templates
 
     def add_chore_template(self, template: ChoreTemplate) -> ChoreTemplate:
         self.db.add(template)
@@ -275,12 +342,18 @@ class TodayRepository:
         description: str | None,
         start_date: date,
         every_n_days: int,
+        rrule: str | None,
+        priority: Priority,
+        tags: list,
         is_active: bool,
     ) -> ChoreTemplate:
         template.name = name
         template.description = description
         template.start_date = start_date
         template.every_n_days = every_n_days
+        template.rrule = rrule
+        template.priority = priority
+        template.tags = tags
         template.is_active = is_active
         self.db.commit()
         self.db.refresh(template)
@@ -378,7 +451,7 @@ class TodayRepository:
         stmt = select(ChoreInstance).where(ChoreInstance.user_id == user_id).where(ChoreInstance.id == chore_instance_id)
         return self.db.scalar(stmt)
 
-    def list_planned_items(self, user_id: int, start_date: date | None = None, end_date: date | None = None, is_done: bool | None = None) -> list[PlannedItem]:
+    def list_planned_items(self, user_id: int, start_date: date | None = None, end_date: date | None = None, is_done: bool | None = None, tags: list[str] | None = None) -> list[PlannedItem]:
         stmt = select(PlannedItem).where(PlannedItem.user_id == user_id)
         if start_date is not None:
             stmt = stmt.where(PlannedItem.planned_for >= start_date)
@@ -387,7 +460,10 @@ class TodayRepository:
         if is_done is not None:
             stmt = stmt.where(PlannedItem.is_done.is_(is_done))
         stmt = stmt.order_by(PlannedItem.planned_for.asc(), PlannedItem.id.asc())
-        return list(self.db.scalars(stmt).all())
+        items = list(self.db.scalars(stmt).all())
+        if tags:
+            items = [item for item in items if any(tag in (item.tags or []) for tag in tags)]
+        return items
 
     def add_planned_item(self, item: PlannedItem) -> PlannedItem:
         self.db.add(item)

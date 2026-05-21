@@ -3,7 +3,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, model_validator
 
-from app.core.enums import ChoreStatus, MedicationDoseStatus, TaskStatus
+from app.core.enums import ChoreStatus, MedicationDoseStatus, Priority, TaskStatus
 
 
 class MedicationTodayItem(BaseModel):
@@ -68,6 +68,8 @@ class PlannedTodayItem(BaseModel):
     recurrence_hint: str | None = None
     linked_source: str | None = None
     linked_ref: str | None = None
+    priority: Priority = Priority.normal
+    tags: list[str] = Field(default_factory=list)
     is_done: bool
 
 
@@ -79,6 +81,8 @@ class PlannedItemBase(BaseModel):
     recurrence_hint: str | None = Field(default=None, max_length=255)
     linked_source: str | None = Field(default=None, max_length=120)
     linked_ref: str | None = Field(default=None, max_length=255)
+    priority: Priority = Priority.normal
+    tags: list[str] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def _apply_module_defaults(self) -> "PlannedItemBase":
@@ -107,6 +111,7 @@ class UnifiedDayItem(BaseModel):
     recurrence_hint: str | None = None
     linked_source: str | None = None
     linked_ref: str | None = None
+    priority: Priority = Priority.normal
 
 
 class CalendarDayResponse(BaseModel):
