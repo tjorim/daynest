@@ -64,6 +64,37 @@ def test_push_subscribe_and_unsubscribe(client: TestClient, db_session: Session)
     assert subscription.is_active is False
 
 
+def test_user_settings_store_push_notification_preferences(client: TestClient, db_session: Session) -> None:
+    user = _create_user(db_session, "push-settings@example.com")
+    _auth_as(user)
+    try:
+        response = client.patch(
+            "/api/v1/users/me/settings",
+            json={
+                "push_overdue_chores_enabled": False,
+                "push_medication_reminders_enabled": False,
+                "push_missed_medications_enabled": True,
+            },
+        )
+    finally:
+        _clear_auth()
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "timezone": "UTC",
+        "default_snooze_days": 1,
+        "medication_reminder_minutes": 30,
+        "quiet_hours_start": None,
+        "quiet_hours_end": None,
+        "push_overdue_chores_enabled": False,
+        "push_medication_reminders_enabled": False,
+        "push_missed_medications_enabled": True,
+    }
+    db_session.refresh(user)
+    assert user.push_overdue_chores_enabled is False
+    assert user.push_medication_reminders_enabled is False
+
+
 def test_dispatch_functions_and_quiet_hours(client: TestClient, db_session: Session, monkeypatch) -> None:
     user = _create_user(db_session, "push-dispatch@example.com")
     chore_template = ChoreTemplate(
@@ -133,4 +164,42 @@ def test_dispatch_functions_and_quiet_hours(client: TestClient, db_session: Sess
 
     assert dispatch_overdue_chores(db_session, user.id, now=now + timedelta(minutes=1)) == 0
     assert dispatch_medication_reminders(db_session, user.id, now=now + timedelta(minutes=1)) == 0
+    assert sent == []
+
+
+def test_dispatch_overdue_chores_respects_user_preference(db_session: Session, monkeypatch) -> None:
+    user = _create_user(db_session, "push-overdue-disabled@example.com")
+    user.push_overdue_chores_enabled = False
+    chore_template = ChoreTemplate(
+        user_id=user.id,
+        name="Bins",
+        description=None,
+        start_date=date(2026, 5, 1),
+        every_n_days=1,
+        is_active=True,
+    )
+    db_session.add(chore_template)
+    db_session.commit()
+    db_session.add_all(
+        [
+            PushSubscription(user_id=user.id, platform="fcm", endpoint="disabled-fcm-token", is_active=True),
+            ChoreInstance(
+                user_id=user.id,
+                chore_template_id=chore_template.id,
+                title="Bins",
+                scheduled_date=date(2026, 5, 20),
+                status="pending",
+            ),
+        ]
+    )
+    db_session.commit()
+
+    sent: list[dict] = []
+    monkeypatch.setattr("app.services.push_service.send_notification", lambda *args: sent.append({}) or True)
+
+    assert dispatch_overdue_chores(
+        db_session,
+        user.id,
+        now=datetime(2026, 5, 21, 10, 0, tzinfo=timezone.utc),
+    ) == 0
     assert sent == []

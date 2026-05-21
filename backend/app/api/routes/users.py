@@ -20,6 +20,9 @@ def _to_response(user: User) -> UserSettingsResponse:
         medication_reminder_minutes=user.medication_reminder_minutes,
         quiet_hours_start=user.quiet_hours_start,
         quiet_hours_end=user.quiet_hours_end,
+        push_overdue_chores_enabled=user.push_overdue_chores_enabled,
+        push_medication_reminders_enabled=user.push_medication_reminders_enabled,
+        push_missed_medications_enabled=user.push_missed_medications_enabled,
     )
 
 
@@ -48,6 +51,12 @@ def update_settings(
         current_user.quiet_hours_start = request.quiet_hours_start
     if "quiet_hours_end" in request.model_fields_set:
         current_user.quiet_hours_end = request.quiet_hours_end
+    if request.push_overdue_chores_enabled is not None:
+        current_user.push_overdue_chores_enabled = request.push_overdue_chores_enabled
+    if request.push_medication_reminders_enabled is not None:
+        current_user.push_medication_reminders_enabled = request.push_medication_reminders_enabled
+    if request.push_missed_medications_enabled is not None:
+        current_user.push_missed_medications_enabled = request.push_missed_medications_enabled
     db.commit()
     db.refresh(current_user)
     return _to_response(current_user)

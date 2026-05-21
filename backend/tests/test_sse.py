@@ -1,12 +1,16 @@
 import asyncio
 from collections.abc import Coroutine
+from datetime import datetime, timezone
 from typing import Any
 
 import pytest
+from sqlalchemy.orm import Session
 
 from app.api.dependencies.events import get_event_bus
 from app.api.routes.today import stream_today_updates
+from app.main import _publish_today_rollovers
 from app.models.user import User
+from app.services.event_bus import EventBus
 
 
 class _FakeRequest:
@@ -46,3 +50,32 @@ async def test_today_stream_emits_ping(monkeypatch) -> None:
     chunk = await anext(response.body_iterator)
     assert chunk["event"] == "ping"
     await response.body_iterator.aclose()
+
+
+@pytest.mark.anyio
+async def test_today_rollover_publishes_today_updated_for_subscribed_user(db_session: Session) -> None:
+    user = User(email="sse-rollover@example.com", is_active=True, timezone="Europe/Brussels")
+    db_session.add(user)
+    db_session.commit()
+    db_session.refresh(user)
+
+    event_bus = EventBus()
+    queue = event_bus.subscribe(user.id)
+    local_dates = {}
+
+    _publish_today_rollovers(
+        db_session,
+        event_bus,
+        local_dates,
+        now=datetime(2026, 5, 21, 21, 59, tzinfo=timezone.utc),
+    )
+    assert queue.empty()
+
+    _publish_today_rollovers(
+        db_session,
+        event_bus,
+        local_dates,
+        now=datetime(2026, 5, 21, 22, 1, tzinfo=timezone.utc),
+    )
+    event = await asyncio.wait_for(queue.get(), timeout=1)
+    assert event == {"type": "today_updated"}

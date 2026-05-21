@@ -2,6 +2,8 @@ import asyncio
 import contextlib
 import logging
 from contextlib import asynccontextmanager
+from datetime import date, datetime, timezone
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -21,11 +23,13 @@ from app.api.routes.push import router as push_router
 from app.api.routes.templates import router as templates_router
 from app.api.routes.today import router as today_router
 from app.api.routes.users import router as users_router
+from app.api.dependencies.events import get_event_bus
 from app.core.config import settings
 from app.core.observability import configure_error_tracking, configure_logging, observability_middleware
 from app.db.session import SessionLocal
 from app.mcp_server import create_mcp_server
 from app.models.user import User
+from app.services.event_bus import EventBus
 from app.services.push_service import dispatch_medication_reminders, dispatch_missed_medications, dispatch_overdue_chores
 
 configure_logging()
@@ -56,11 +60,61 @@ async def _push_dispatch_loop() -> None:
         await asyncio.sleep(300)
 
 
+def _user_local_date(user: User, now: datetime) -> date:
+    try:
+        tz = ZoneInfo(user.timezone)
+    except ZoneInfoNotFoundError:
+        tz = timezone.utc
+    return now.astimezone(tz).date()
+
+
+def _publish_today_rollovers(
+    db,
+    event_bus: EventBus,
+    known_local_dates: dict[int, date],
+    *,
+    now: datetime | None = None,
+) -> None:
+    now = now or datetime.now(timezone.utc)
+    subscribed_user_ids = event_bus.subscribed_user_ids()
+    for user_id in list(known_local_dates):
+        if user_id not in subscribed_user_ids:
+            known_local_dates.pop(user_id, None)
+
+    if not subscribed_user_ids:
+        return
+
+    users = db.query(User).where(User.id.in_(subscribed_user_ids)).where(User.is_active.is_(True)).all()
+    for user in users:
+        local_date = _user_local_date(user, now)
+        previous_date = known_local_dates.get(user.id)
+        known_local_dates[user.id] = local_date
+        if previous_date is not None and previous_date != local_date:
+            event_bus.publish(user.id, {"type": "today_updated"})
+
+
+async def _today_rollover_loop(event_bus: EventBus) -> None:
+    known_local_dates: dict[int, date] = {}
+    while True:
+        db = None
+        try:
+            db = SessionLocal()
+            _publish_today_rollovers(db, event_bus, known_local_dates)
+        except Exception:
+            logger.exception("Today rollover event loop iteration failed")
+        finally:
+            if db is not None:
+                db.close()
+        await asyncio.sleep(60)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     push_task: asyncio.Task | None = None
+    rollover_task: asyncio.Task | None = None
     try:
         push_task = asyncio.create_task(_push_dispatch_loop())
+        rollover_task = asyncio.create_task(_today_rollover_loop(get_event_bus()))
         if _mcp is not None:
             async with _mcp.session_manager.run():
                 yield
@@ -71,6 +125,10 @@ async def lifespan(app: FastAPI):
             push_task.cancel()
             with contextlib.suppress(asyncio.CancelledError):
                 await push_task
+        if rollover_task is not None:
+            rollover_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await rollover_task
         await close_auth_http_client()
 
 

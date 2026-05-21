@@ -23,6 +23,9 @@ class EventBus:
             return
         self._queues[user_id] = remaining
 
+    def subscribed_user_ids(self) -> set[int]:
+        return set(self._queues)
+
     def publish(self, user_id: int, event: dict) -> None:
         for loop, queue in list(self._queues.get(user_id, [])):
             loop.call_soon_threadsafe(queue.put_nowait, event)

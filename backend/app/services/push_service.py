@@ -119,7 +119,7 @@ def _record_notifications(db: Session, user_id: int, notification_type: str, ite
 def dispatch_overdue_chores(db: Session, user_id: int, *, now: datetime | None = None) -> int:
     now = now or datetime.now(timezone.utc)
     user = db.scalar(select(User).where(User.id == user_id).where(User.is_active.is_(True)))
-    if user is None or not _user_can_receive_push(now, user):
+    if user is None or not user.push_overdue_chores_enabled or not _user_can_receive_push(now, user):
         return 0
     overdue_ids = list(
         db.scalars(
@@ -149,7 +149,7 @@ def dispatch_overdue_chores(db: Session, user_id: int, *, now: datetime | None =
 def dispatch_medication_reminders(db: Session, user_id: int, *, now: datetime | None = None) -> int:
     now = now or datetime.now(timezone.utc)
     user = db.scalar(select(User).where(User.id == user_id).where(User.is_active.is_(True)))
-    if user is None or not _user_can_receive_push(now, user):
+    if user is None or not user.push_medication_reminders_enabled or not _user_can_receive_push(now, user):
         return 0
     window_end = now + timedelta(minutes=user.medication_reminder_minutes)
     dose_ids = list(
@@ -181,7 +181,7 @@ def dispatch_medication_reminders(db: Session, user_id: int, *, now: datetime | 
 def dispatch_missed_medications(db: Session, user_id: int, *, now: datetime | None = None) -> int:
     now = now or datetime.now(timezone.utc)
     user = db.scalar(select(User).where(User.id == user_id).where(User.is_active.is_(True)))
-    if user is None or not _user_can_receive_push(now, user):
+    if user is None or not user.push_missed_medications_enabled or not _user_can_receive_push(now, user):
         return 0
     missed_ids = list(
         db.scalars(
