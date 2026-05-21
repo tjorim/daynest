@@ -54,6 +54,21 @@ class PlannedItemStats(BaseModel):
     daily_completions: list[DailyCount]
 
 
+class RoutineStreak(BaseModel):
+    routine_id: int
+    name: str
+    current_streak: int
+    longest_streak: int
+
+
+class RoutineStats(BaseModel):
+    completion_rate: float
+    total_completed: int
+    total_scheduled: int
+    daily_completions: list[DailyCount]
+    streaks: list[RoutineStreak]
+
+
 class AnalyticsSummaryResponse(BaseModel):
     period: Literal["week", "month", "year"]
     start_date: date
@@ -61,3 +76,4 @@ class AnalyticsSummaryResponse(BaseModel):
     chores: ChoreStats
     medications: MedicationStats
     planned_items: PlannedItemStats
+    routines: RoutineStats

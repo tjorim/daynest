@@ -5,11 +5,14 @@ import json
 from collections.abc import Iterable, Mapping
 from datetime import date, datetime, time, timezone
 from io import StringIO
-from typing import Any, NoReturn
+from typing import Any, NoReturn, TypeVar
 
 from fastapi import HTTPException, status
 from sqlalchemy import delete
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
+
+_E = TypeVar("_E")
 
 from app.core.enums import ChoreStatus, MedicationDoseStatus, Priority, TaskStatus
 from app.models.chore_instance import ChoreInstance
@@ -236,7 +239,7 @@ def import_user_export(db: Session, user: User, payload: Mapping[str, Any], *, r
             start_date=_date(row.get("start_date"), "chore_templates.start_date"),
             every_n_days=_int(row.get("every_n_days"), "chore_templates.every_n_days"),
             rrule=_nullable_str(row.get("rrule"), "chore_templates.rrule"),
-            priority=Priority(_str(row.get("priority", Priority.normal.value), "chore_templates.priority")),
+            priority=_enum(Priority, row.get("priority", Priority.normal.value), "chore_templates.priority"),
             tags=_list(row.get("tags"), "chore_templates.tags"),
             is_active=_bool(row.get("is_active"), "chore_templates.is_active"),
             created_at=_datetime(row.get("created_at"), "chore_templates.created_at"),
@@ -270,7 +273,7 @@ def import_user_export(db: Session, user: User, payload: Mapping[str, Any], *, r
             title=_str(row.get("title"), "task_instances.title"),
             scheduled_date=_date(row.get("scheduled_date"), "task_instances.scheduled_date"),
             due_at=_nullable_datetime(row.get("due_at"), "task_instances.due_at"),
-            status=TaskStatus(_str(row.get("status"), "task_instances.status")),
+            status=_enum(TaskStatus, row.get("status"), "task_instances.status"),
             completed_at=_nullable_datetime(row.get("completed_at"), "task_instances.completed_at"),
             created_at=_datetime(row.get("created_at"), "task_instances.created_at"),
         )
@@ -283,7 +286,7 @@ def import_user_export(db: Session, user: User, payload: Mapping[str, Any], *, r
             chore_template_id=_mapped_id(chore_id_map, row.get("chore_template_id"), "chore_instances.chore_template_id"),
             title=_str(row.get("title"), "chore_instances.title"),
             scheduled_date=_date(row.get("scheduled_date"), "chore_instances.scheduled_date"),
-            status=ChoreStatus(_str(row.get("status"), "chore_instances.status")),
+            status=_enum(ChoreStatus, row.get("status"), "chore_instances.status"),
             completed_at=_nullable_datetime(row.get("completed_at"), "chore_instances.completed_at"),
             skipped_at=_nullable_datetime(row.get("skipped_at"), "chore_instances.skipped_at"),
             created_at=_datetime(row.get("created_at"), "chore_instances.created_at"),
@@ -303,7 +306,7 @@ def import_user_export(db: Session, user: User, payload: Mapping[str, Any], *, r
             instructions=_str(row.get("instructions"), "medication_dose_instances.instructions"),
             scheduled_date=_date(row.get("scheduled_date"), "medication_dose_instances.scheduled_date"),
             scheduled_at=_datetime(row.get("scheduled_at"), "medication_dose_instances.scheduled_at"),
-            status=MedicationDoseStatus(_str(row.get("status"), "medication_dose_instances.status")),
+            status=_enum(MedicationDoseStatus, row.get("status"), "medication_dose_instances.status"),
             taken_at=_nullable_datetime(row.get("taken_at"), "medication_dose_instances.taken_at"),
             skipped_at=_nullable_datetime(row.get("skipped_at"), "medication_dose_instances.skipped_at"),
             missed_at=_nullable_datetime(row.get("missed_at"), "medication_dose_instances.missed_at"),
@@ -322,7 +325,7 @@ def import_user_export(db: Session, user: User, payload: Mapping[str, Any], *, r
             linked_source=_nullable_str(row.get("linked_source"), "planned_items.linked_source"),
             linked_ref=_nullable_str(row.get("linked_ref"), "planned_items.linked_ref"),
             planned_for=_date(row.get("planned_for"), "planned_items.planned_for"),
-            priority=Priority(_str(row.get("priority", Priority.normal.value), "planned_items.priority")),
+            priority=_enum(Priority, row.get("priority", Priority.normal.value), "planned_items.priority"),
             tags=_list(row.get("tags"), "planned_items.tags"),
             is_done=_bool(row.get("is_done"), "planned_items.is_done"),
             completed_at=_nullable_datetime(row.get("completed_at"), "planned_items.completed_at"),
@@ -331,7 +334,14 @@ def import_user_export(db: Session, user: User, payload: Mapping[str, Any], *, r
         db.add(item)
         counts["planned_items"] += 1
 
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Import conflicts with existing data: {exc.orig}",
+        ) from exc
     return counts
 
 
@@ -420,6 +430,15 @@ def _bool(value: Any, field: str) -> bool:
     if not isinstance(value, bool):
         _invalid(f"{field} must be a boolean")
     return value
+
+
+def _enum(cls: type[_E], value: Any, field: str) -> _E:
+    s = _str(value, field)
+    try:
+        return cls(s)  # type: ignore[call-arg]
+    except ValueError:
+        valid = ", ".join(m.value for m in cls)  # type: ignore[attr-defined]
+        _invalid(f"{field} has invalid value '{s}'; expected one of: {valid}")
 
 
 def _list(value: Any, field: str) -> list[Any]:

@@ -4,6 +4,7 @@ from datetime import date, datetime
 
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.dependencies.auth import get_current_user
@@ -17,6 +18,12 @@ from app.models.user import User
 router = APIRouter(prefix="/search", tags=["search"])
 
 _DEFAULT_LIMIT = 20
+_ESCAPE_CHAR = "\\"
+
+
+def _like_pattern(q: str) -> str:
+    escaped = q.replace(_ESCAPE_CHAR, _ESCAPE_CHAR * 2).replace("%", f"{_ESCAPE_CHAR}%").replace("_", f"{_ESCAPE_CHAR}_")
+    return f"%{escaped}%"
 
 
 class RoutineSearchResult(BaseModel):
@@ -71,52 +78,52 @@ def search(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> SearchResponse:
-    pattern = f"%{q}%"
+    pattern = _like_pattern(q)
     uid = current_user.id
 
-    routines = (
-        db.query(RoutineTemplate)
-        .filter(
+    routines = db.scalars(
+        select(RoutineTemplate)
+        .where(
             RoutineTemplate.user_id == uid,
-            (RoutineTemplate.name.ilike(pattern)) | (RoutineTemplate.description.ilike(pattern)),
+            (RoutineTemplate.name.ilike(pattern, escape=_ESCAPE_CHAR))
+            | (RoutineTemplate.description.ilike(pattern, escape=_ESCAPE_CHAR)),
         )
         .order_by(RoutineTemplate.name)
         .limit(limit)
-        .all()
-    )
+    ).all()
 
-    chores = (
-        db.query(ChoreTemplate)
-        .filter(
+    chores = db.scalars(
+        select(ChoreTemplate)
+        .where(
             ChoreTemplate.user_id == uid,
-            (ChoreTemplate.name.ilike(pattern)) | (ChoreTemplate.description.ilike(pattern)),
+            (ChoreTemplate.name.ilike(pattern, escape=_ESCAPE_CHAR))
+            | (ChoreTemplate.description.ilike(pattern, escape=_ESCAPE_CHAR)),
         )
         .order_by(ChoreTemplate.name)
         .limit(limit)
-        .all()
-    )
+    ).all()
 
-    medications = (
-        db.query(MedicationPlan)
-        .filter(
+    medications = db.scalars(
+        select(MedicationPlan)
+        .where(
             MedicationPlan.user_id == uid,
-            (MedicationPlan.name.ilike(pattern)) | (MedicationPlan.instructions.ilike(pattern)),
+            (MedicationPlan.name.ilike(pattern, escape=_ESCAPE_CHAR))
+            | (MedicationPlan.instructions.ilike(pattern, escape=_ESCAPE_CHAR)),
         )
         .order_by(MedicationPlan.name)
         .limit(limit)
-        .all()
-    )
+    ).all()
 
-    planned = (
-        db.query(PlannedItem)
-        .filter(
+    planned = db.scalars(
+        select(PlannedItem)
+        .where(
             PlannedItem.user_id == uid,
-            (PlannedItem.title.ilike(pattern)) | (PlannedItem.notes.ilike(pattern)),
+            (PlannedItem.title.ilike(pattern, escape=_ESCAPE_CHAR))
+            | (PlannedItem.notes.ilike(pattern, escape=_ESCAPE_CHAR)),
         )
         .order_by(PlannedItem.planned_for.desc(), PlannedItem.title)
         .limit(limit)
-        .all()
-    )
+    ).all()
 
     return SearchResponse(
         query=q,
@@ -135,7 +142,7 @@ def search(
                 id=c.id,
                 name=c.name,
                 description=c.description,
-                priority=c.priority.value if hasattr(c.priority, "value") else c.priority,
+                priority=c.priority,
                 tags=c.tags or [],
                 is_active=c.is_active,
                 created_at=c.created_at,
@@ -158,7 +165,7 @@ def search(
                 title=p.title,
                 notes=p.notes,
                 planned_for=p.planned_for,
-                priority=p.priority.value if hasattr(p.priority, "value") else p.priority,
+                priority=p.priority,
                 tags=p.tags or [],
                 is_done=p.is_done,
                 created_at=p.created_at,
