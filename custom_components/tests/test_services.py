@@ -10,8 +10,12 @@ from custom_components.daynest.services import (
     ATTR_CHORE_INSTANCE_ID,
     ATTR_DAYS,
     ATTR_MEDICATION_DOSE_ID,
+    ATTR_NOTES,
+    ATTR_PLANNED_FOR,
     ATTR_PLANNED_ITEM_ID,
+    ATTR_TITLE,
     SERVICE_COMPLETE_TASK,
+    SERVICE_CREATE_PLANNED_ITEM,
     SERVICE_MARK_MEDICATION_TAKEN,
     SERVICE_MARK_PLANNED_DONE,
     SERVICE_REFRESH,
@@ -75,6 +79,7 @@ class TestAsyncSetupServices:
         assert SERVICE_MARK_PLANNED_DONE in hass._registered_services
         assert SERVICE_SKIP_TASK in hass._registered_services
         assert SERVICE_SKIP_MEDICATION in hass._registered_services
+        assert SERVICE_CREATE_PLANNED_ITEM in hass._registered_services
 
     async def test_unload_removes_all_services(self) -> None:
         hass = _make_hass()
@@ -87,6 +92,7 @@ class TestAsyncSetupServices:
         assert SERVICE_MARK_PLANNED_DONE not in hass._registered_services
         assert SERVICE_SKIP_TASK not in hass._registered_services
         assert SERVICE_SKIP_MEDICATION not in hass._registered_services
+        assert SERVICE_CREATE_PLANNED_ITEM not in hass._registered_services
 
 
 @pytest.mark.unit
@@ -447,3 +453,33 @@ class TestHandleMarkPlannedDone:
         with pytest.raises(HomeAssistantError):
             await handler(_make_service_call(**{ATTR_PLANNED_ITEM_ID: 42}))
         entry.runtime_data.coordinator.async_refresh.assert_not_awaited()
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+class TestHandleCreatePlannedItem:
+    """Tests for the create_planned_item service handler."""
+
+    async def test_success_calls_client_and_refreshes(self) -> None:
+        client = AsyncMock()
+        entry = _make_entry(client=client)
+        hass = _make_hass(entries=[entry])
+        await async_setup_services(hass)
+        handler = await _get_handler(hass, SERVICE_CREATE_PLANNED_ITEM)
+
+        await handler(
+            _make_service_call(
+                **{
+                    ATTR_TITLE: "Buy milk",
+                    ATTR_PLANNED_FOR: "2026-05-21",
+                    ATTR_NOTES: "2L",
+                }
+            )
+        )
+
+        client.async_create_planned_item.assert_awaited_once_with(
+            title="Buy milk",
+            planned_for="2026-05-21",
+            notes="2L",
+        )
+        entry.runtime_data.coordinator.async_refresh.assert_awaited_once()

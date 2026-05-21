@@ -3,6 +3,10 @@ import { css } from "lit";
 export const cardStyles = css`
   :host {
     display: block;
+    --daynest-color-completed: var(--success-color, #28a745);
+    --daynest-color-overdue: var(--error-color, #dc3545);
+    --daynest-color-skipped: var(--disabled-color, #6c757d);
+    --daynest-color-pending: var(--info-color, #17a2b8);
   }
 
   ha-card {
@@ -88,8 +92,20 @@ export const cardStyles = css`
   }
 
   .task-item.done {
-    color: var(--secondary-text-color);
+    color: var(--daynest-color-completed);
     text-decoration: line-through;
+  }
+
+  .task-item.overdue {
+    color: var(--daynest-color-overdue);
+  }
+
+  .task-item.skipped {
+    color: var(--daynest-color-skipped);
+  }
+
+  .task-item.pending {
+    color: var(--daynest-color-pending);
   }
 
   .task-actions {
@@ -104,5 +120,54 @@ export const cardStyles = css`
     font-size: 0.8rem;
     font-weight: 600;
     margin-top: 4px;
+  }
+
+  .week-grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  .week-day {
+    border: 1px solid var(--divider-color);
+    border-radius: 10px;
+    padding: 8px;
+  }
+
+  .week-day-label {
+    font-size: 0.8rem;
+    color: var(--secondary-text-color);
+  }
+
+  .week-ratio-pill {
+    margin-top: 6px;
+    border-radius: 999px;
+    display: inline-block;
+    padding: 2px 8px;
+    background: color-mix(in srgb, var(--daynest-color-pending) 16%, transparent);
+    font-size: 0.78rem;
+  }
+
+  .quick-add {
+    margin-top: 10px;
+    display: grid;
+    gap: 6px;
+  }
+
+  .quick-add-row {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+
+  .quick-add input {
+    min-width: 0;
+    width: 100%;
+    border: 1px solid var(--divider-color);
+    border-radius: 8px;
+    padding: 6px 8px;
+    background: var(--card-background-color);
+    color: var(--primary-text-color);
   }
 `;

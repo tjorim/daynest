@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import timedelta
+from datetime import date, timedelta
 from typing import Any
 
 from daynest import (
@@ -20,7 +20,9 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from .const import DOMAIN, LOGGER, SUPPORTED_INTEGRATION_CONTRACT_VERSIONS, parse_integration_contract_version
 from .data import DaynestConfigEntry
 
-DASHBOARD_UPDATE_INTERVAL = timedelta(minutes=15)
+DEFAULT_POLL_INTERVAL_MINUTES = 15
+POLL_INTERVAL_OPTION = "coordinator_poll_interval"
+DASHBOARD_UPDATE_INTERVAL = timedelta(minutes=DEFAULT_POLL_INTERVAL_MINUTES)
 
 
 def _safe_int(value: Any, default: int = 0) -> int:
@@ -46,6 +48,16 @@ def _safe_dict_list(value: Any) -> list[dict[str, Any]]:
     return [item for item in value if isinstance(item, dict)]
 
 
+def _safe_date(value: Any) -> date | None:
+    """Parse an ISO date value."""
+    if not isinstance(value, str):
+        return None
+    try:
+        return date.fromisoformat(value)
+    except ValueError:
+        return None
+
+
 class DaynestDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     """Coordinator that fetches and normalizes Daynest dashboard data."""
 
@@ -58,15 +70,18 @@ class DaynestDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         client: DaynestClient,
     ) -> None:
         """Initialize the coordinator with fixed polling interval."""
+        poll_interval_minutes = _safe_int(config_entry.options.get(POLL_INTERVAL_OPTION), DEFAULT_POLL_INTERVAL_MINUTES)
+        poll_interval_minutes = max(1, min(poll_interval_minutes, 60))
         super().__init__(
             hass,
             logger=LOGGER,
             name=DOMAIN,
             config_entry=config_entry,
-            update_interval=DASHBOARD_UPDATE_INTERVAL,
+            update_interval=timedelta(minutes=poll_interval_minutes),
             always_update=False,
         )
         self._client = client
+        self._last_dashboard_data: dict[str, Any] | None = None
 
     def _normalize_dashboard(self, payload: dict[str, Any], contract: str | None) -> dict[str, Any]:
         """Normalize dashboard payload into stable coordinator keys."""
@@ -89,8 +104,59 @@ class DaynestDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "routines_open_count": max(0, _safe_int(payload.get("routines_open_count"), default=0)),
             "due_today": _safe_dict_list(payload.get("due_today")),
             "planned": _safe_dict_list(payload.get("planned")),
+            "chores": _safe_dict_list(payload.get("chores") or payload.get("due_today")),
+            "medications": _safe_dict_list(payload.get("medications")),
+            "planned_items": _safe_dict_list(payload.get("planned_items") or payload.get("planned")),
             "integration_contract": contract,
         }
+
+    @staticmethod
+    def _overdue_chore_ids(data: dict[str, Any]) -> set[int]:
+        """Return IDs of chores currently overdue."""
+        today = _safe_date(data.get("for_date")) or date.today()
+        overdue_ids: set[int] = set()
+        for chore in _safe_dict_list(data.get("chores")):
+            chore_id = _safe_int(chore.get("chore_instance_id"), default=0)
+            status = str(chore.get("status") or "").lower()
+            scheduled_date = _safe_date(chore.get("scheduled_date"))
+            if chore_id > 0 and scheduled_date and scheduled_date < today and status not in {"completed", "done", "skipped"}:
+                overdue_ids.add(chore_id)
+        return overdue_ids
+
+    @staticmethod
+    def _missed_medication_ids(data: dict[str, Any]) -> set[int]:
+        """Return IDs of medication doses currently marked missed."""
+        missed_ids: set[int] = set()
+        for dose in _safe_dict_list(data.get("medications")):
+            dose_id = _safe_int(dose.get("medication_dose_instance_id"), default=0)
+            status = str(dose.get("status") or "").lower()
+            if dose_id > 0 and status == "missed":
+                missed_ids.add(dose_id)
+        return missed_ids
+
+    def _fire_transition_events(self, previous: dict[str, Any] | None, current: dict[str, Any]) -> None:
+        """Fire Home Assistant events for relevant Daynest transitions."""
+        previous_data = previous or {}
+        previous_overdue = self._overdue_chore_ids(previous_data)
+        current_overdue = self._overdue_chore_ids(current)
+        for chore_id in sorted(current_overdue - previous_overdue):
+            self.hass.bus.async_fire("daynest_chore_overdue", {"chore_instance_id": chore_id})
+
+        previous_missed = self._missed_medication_ids(previous_data)
+        current_missed = self._missed_medication_ids(current)
+        for medication_dose_id in sorted(current_missed - previous_missed):
+            self.hass.bus.async_fire("daynest_medication_missed", {"medication_dose_instance_id": medication_dose_id})
+
+        previous_completion = _safe_float(previous_data.get("completion_ratio"), 0.0)
+        current_completion = _safe_float(current.get("completion_ratio"), 0.0)
+        if previous_completion < 1.0 and current_completion >= 1.0:
+            self.hass.bus.async_fire("daynest_day_complete", {"for_date": current.get("for_date")})
+
+    async def async_set_poll_interval(self, minutes: int) -> None:
+        """Update coordinator polling interval without a reload."""
+        bounded_minutes = max(1, min(int(minutes), 60))
+        self.update_interval = timedelta(minutes=bounded_minutes)
+        self._schedule_refresh()
 
     async def _async_update_data(self) -> dict[str, Any]:
         """Fetch dashboard data and map backend errors to HA coordinator errors."""
@@ -120,7 +186,23 @@ class DaynestDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             raise UpdateFailed(f"Unsupported or missing integration contract version: {unsupported_token}")
 
         async_delete_issue(self.hass, DOMAIN, "unsupported_contract_version")
-        return self._normalize_dashboard(response.data.payload, parsed_contract)
+        normalized = self._normalize_dashboard(response.data.payload, parsed_contract)
+        try:
+            settings = await self._client.async_get_user_settings()
+        except DaynestError:
+            settings = {}
+        if not isinstance(settings, dict):
+            settings = {}
+        normalized["default_snooze_days"] = max(1, min(_safe_int(settings.get("default_snooze_days"), 1), 14))
+        normalized["medication_reminder_minutes"] = max(0, _safe_int(settings.get("medication_reminder_minutes"), 0))
+        self._fire_transition_events(self._last_dashboard_data, normalized)
+        self._last_dashboard_data = normalized
+        return normalized
 
 
-__all__ = ["DASHBOARD_UPDATE_INTERVAL", "DaynestDataUpdateCoordinator"]
+__all__ = [
+    "DASHBOARD_UPDATE_INTERVAL",
+    "DEFAULT_POLL_INTERVAL_MINUTES",
+    "POLL_INTERVAL_OPTION",
+    "DaynestDataUpdateCoordinator",
+]

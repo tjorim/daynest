@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Awaitable
+from datetime import date
 from functools import partial
 from typing import TYPE_CHECKING, Any
 
@@ -23,6 +24,7 @@ SERVICE_COMPLETE_TASK = "complete_task"
 SERVICE_SNOOZE_TASK = "snooze_task"
 SERVICE_MARK_MEDICATION_TAKEN = "mark_medication_taken"
 SERVICE_MARK_PLANNED_DONE = "mark_planned_done"
+SERVICE_CREATE_PLANNED_ITEM = "create_planned_item"
 SERVICE_SKIP_TASK = "skip_task"
 SERVICE_SKIP_MEDICATION = "skip_medication"
 
@@ -31,6 +33,9 @@ ATTR_MEDICATION_DOSE_ID = "medication_dose_id"
 ATTR_PLANNED_ITEM_ID = "planned_item_id"
 ATTR_DAYS = "days"
 ATTR_ENTRY_ID = "entry_id"
+ATTR_TITLE = "title"
+ATTR_PLANNED_FOR = "planned_for"
+ATTR_NOTES = "notes"
 
 SERVICE_COMPLETE_TASK_SCHEMA = vol.Schema(
     {
@@ -71,6 +76,15 @@ SERVICE_SKIP_MEDICATION_SCHEMA = vol.Schema(
 SERVICE_MARK_PLANNED_DONE_SCHEMA = vol.Schema(
     {
         vol.Required(ATTR_PLANNED_ITEM_ID): vol.All(int, vol.Range(min=1)),
+        vol.Optional(ATTR_ENTRY_ID): str,
+    }
+)
+
+SERVICE_CREATE_PLANNED_ITEM_SCHEMA = vol.Schema(
+    {
+        vol.Required(ATTR_TITLE): vol.All(str, vol.Length(min=1)),
+        vol.Optional(ATTR_PLANNED_FOR): vol.Any(str, date),
+        vol.Optional(ATTR_NOTES): str,
         vol.Optional(ATTR_ENTRY_ID): str,
     }
 )
@@ -224,6 +238,32 @@ async def _handle_mark_planned_done(hass: HomeAssistant, call: ServiceCall) -> N
     )
 
 
+async def _handle_create_planned_item(hass: HomeAssistant, call: ServiceCall) -> None:
+    """Create a planned item."""
+    entry = _get_single_entry(hass, SERVICE_CREATE_PLANNED_ITEM, call.data.get(ATTR_ENTRY_ID))
+    if entry is None:
+        return
+    title: str = call.data[ATTR_TITLE]
+    planned_for_raw = call.data.get(ATTR_PLANNED_FOR)
+    if isinstance(planned_for_raw, date):
+        planned_for = planned_for_raw.isoformat()
+    elif isinstance(planned_for_raw, str) and planned_for_raw:
+        planned_for = planned_for_raw
+    else:
+        planned_for = date.today().isoformat()
+    notes: str | None = call.data.get(ATTR_NOTES)
+    await _call_client(
+        entry,
+        SERVICE_CREATE_PLANNED_ITEM,
+        0,
+        entry.runtime_data.client.async_create_planned_item(
+            title=title,
+            planned_for=planned_for,
+            notes=notes,
+        ),
+    )
+
+
 async def async_setup_services(hass: HomeAssistant) -> None:
     """Register Daynest Home Assistant services."""
     hass.services.async_register(DOMAIN, SERVICE_REFRESH, partial(_handle_refresh, hass))
@@ -245,6 +285,9 @@ async def async_setup_services(hass: HomeAssistant) -> None:
     hass.services.async_register(
         DOMAIN, SERVICE_MARK_PLANNED_DONE, partial(_handle_mark_planned_done, hass), schema=SERVICE_MARK_PLANNED_DONE_SCHEMA
     )
+    hass.services.async_register(
+        DOMAIN, SERVICE_CREATE_PLANNED_ITEM, partial(_handle_create_planned_item, hass), schema=SERVICE_CREATE_PLANNED_ITEM_SCHEMA
+    )
 
 
 def async_unload_services(hass: HomeAssistant) -> None:
@@ -256,6 +299,7 @@ def async_unload_services(hass: HomeAssistant) -> None:
     hass.services.async_remove(DOMAIN, SERVICE_SKIP_TASK)
     hass.services.async_remove(DOMAIN, SERVICE_SKIP_MEDICATION)
     hass.services.async_remove(DOMAIN, SERVICE_MARK_PLANNED_DONE)
+    hass.services.async_remove(DOMAIN, SERVICE_CREATE_PLANNED_ITEM)
 
 
 __all__ = [
@@ -263,8 +307,12 @@ __all__ = [
     "ATTR_DAYS",
     "ATTR_ENTRY_ID",
     "ATTR_MEDICATION_DOSE_ID",
+    "ATTR_NOTES",
+    "ATTR_PLANNED_FOR",
     "ATTR_PLANNED_ITEM_ID",
+    "ATTR_TITLE",
     "SERVICE_COMPLETE_TASK",
+    "SERVICE_CREATE_PLANNED_ITEM",
     "SERVICE_MARK_MEDICATION_TAKEN",
     "SERVICE_MARK_PLANNED_DONE",
     "SERVICE_REFRESH",

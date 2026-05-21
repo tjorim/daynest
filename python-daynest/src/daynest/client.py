@@ -211,6 +211,14 @@ class DaynestClient:
             parser=DaynestDashboard.from_dict,
         )
 
+    async def async_get_user_settings(self) -> dict[str, Any]:
+        """Fetch user settings for the authenticated integration user."""
+        return await self._request_dict("/api/v1/users/me/settings")
+
+    async def async_update_user_settings(self, payload: dict[str, Any]) -> dict[str, Any]:
+        """Patch user settings for the authenticated integration user."""
+        return await self._send_action("patch", path="/api/v1/users/me/settings", payload=payload)
+
     async def async_complete_task(self, chore_instance_id: int) -> dict[str, Any]:
         """Complete a chore instance by ID."""
         return await self._post_action(
@@ -300,10 +308,16 @@ class DaynestClient:
             path=f"/api/v1/integrations/home-assistant/actions/delete-planned-item/{planned_item_id}",
         )
 
-    async def async_get_calendar(self, start: date, end: date) -> list[dict[str, Any]]:
+    async def async_get_calendar(
+        self,
+        start: date,
+        end: date,
+        event_type: str | None = None,
+    ) -> list[dict[str, Any]]:
         """Fetch calendar events for an inclusive date range."""
+        query_suffix = f"&event_type={event_type}" if event_type else ""
         return await self._request_list(
-            f"/api/v1/integrations/home-assistant/calendar?start={start.isoformat()}&end={end.isoformat()}"
+            f"/api/v1/integrations/home-assistant/calendar?start={start.isoformat()}&end={end.isoformat()}{query_suffix}"
         )
 
     def _session_or_raise(self) -> aiohttp.ClientSession:
@@ -394,6 +408,33 @@ class DaynestClient:
             msg = f"Malformed JSON response for endpoint {path}: {err}"
             raise DaynestMalformedResponseError(msg) from err
 
+    async def _request_dict(self, path: str) -> dict[str, Any]:
+        session = self._session_or_raise()
+        url = urljoin(f"{self._base_url}/", path.lstrip("/"))
+        headers = {"Accept": "application/json", **await self._get_auth_headers()}
+
+        try:
+            async with session.get(url, headers=headers, timeout=REQUEST_TIMEOUT) as response:
+                self._check_response_status(response, path)
+                payload = await response.json(content_type=None)
+                if not isinstance(payload, dict):
+                    msg = "Malformed response payload: expected JSON object"
+                    raise DaynestMalformedResponseError(msg)
+                return payload
+
+        except TimeoutError as err:
+            msg = f"Request timed out for endpoint {path}"
+            raise DaynestTimeoutError(msg) from err
+        except aiohttp.ClientConnectionError as err:
+            msg = f"Server unavailable while requesting endpoint {path}: {err}"
+            raise DaynestServerUnavailableError(msg) from err
+        except aiohttp.ClientError as err:
+            msg = f"Communication error while requesting endpoint {path}: {err}"
+            raise DaynestCommunicationError(msg) from err
+        except ValueError as err:
+            msg = f"Malformed JSON response for endpoint {path}: {err}"
+            raise DaynestMalformedResponseError(msg) from err
+
     async def _post_action(self, path: str, payload: dict[str, Any]) -> dict[str, Any]:
         return await self._send_action("post", path=path, payload=payload)
 
@@ -415,7 +456,7 @@ class DaynestClient:
         if payload is not None:
             headers["Content-Type"] = "application/json"
 
-        if method.lower() not in {"post", "put", "delete"}:
+        if method.lower() not in {"post", "put", "patch", "delete"}:
             msg = f"Unsupported write method: {method}"
             raise ValueError(msg)
 

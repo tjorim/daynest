@@ -76,8 +76,36 @@
   },
   "entity": {
     "calendar": {
-      "daynest_calendar": {
-        "name": "Daynest"
+      "daynest_chores_calendar": {
+        "name": "Daynest Chores"
+      },
+      "daynest_medications_calendar": {
+        "name": "Daynest Medications"
+      },
+      "daynest_planned_calendar": {
+        "name": "Daynest Planned"
+      }
+    },
+    "binary_sensor": {
+      "daynest_has_overdue": {
+        "name": "Has Overdue"
+      },
+      "daynest_medication_missed": {
+        "name": "Medication Missed"
+      },
+      "daynest_all_done_today": {
+        "name": "All Done Today"
+      },
+      "daynest_medication_due_soon": {
+        "name": "Medication Due Soon"
+      }
+    },
+    "number": {
+      "snooze_days": {
+        "name": "Default Snooze Days"
+      },
+      "coordinator_poll_interval": {
+        "name": "Poll Interval"
       }
     },
     "sensor": {
@@ -168,6 +196,24 @@
         "medication_dose_id": {
           "name": "Medication Dose ID",
           "description": "The numeric ID of the medication dose instance to skip."
+        }
+      }
+    },
+    "create_planned_item": {
+      "name": "Create Planned Item",
+      "description": "Creates a Daynest planned item. Requires an authenticated Daynest connection.",
+      "fields": {
+        "title": {
+          "name": "Title",
+          "description": "Title for the planned item."
+        },
+        "planned_for": {
+          "name": "Planned For",
+          "description": "Optional planned date (YYYY-MM-DD)."
+        },
+        "notes": {
+          "name": "Notes",
+          "description": "Optional notes for the planned item."
         }
       }
     }

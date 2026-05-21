@@ -62,7 +62,7 @@ if TYPE_CHECKING:
 
     from .data import DaynestConfigEntry
 
-PLATFORMS: list[Platform] = [Platform.CALENDAR, Platform.SENSOR, Platform.TODO]
+PLATFORMS: list[Platform] = [Platform.CALENDAR, Platform.SENSOR, Platform.BINARY_SENSOR, Platform.NUMBER, Platform.TODO]
 FRONTEND_DIR = Path(__file__).parent / "frontend"
 CARD_URL = "/daynest/static/daynest-card.js"
 CARD_RESOURCE_TYPE = "module"

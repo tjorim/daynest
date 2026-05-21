@@ -1,8 +1,36 @@
 {
   "entity": {
     "calendar": {
-      "daynest_calendar": {
+      "daynest_chores_calendar": {
         "default": "mdi:calendar-check"
+      },
+      "daynest_medications_calendar": {
+        "default": "mdi:pill"
+      },
+      "daynest_planned_calendar": {
+        "default": "mdi:calendar-text-outline"
+      }
+    },
+    "binary_sensor": {
+      "daynest_has_overdue": {
+        "default": "mdi:alert-circle-outline"
+      },
+      "daynest_medication_missed": {
+        "default": "mdi:pill-off"
+      },
+      "daynest_all_done_today": {
+        "default": "mdi:check-decagram"
+      },
+      "daynest_medication_due_soon": {
+        "default": "mdi:clock-alert-outline"
+      }
+    },
+    "number": {
+      "snooze_days": {
+        "default": "mdi:calendar-clock"
+      },
+      "coordinator_poll_interval": {
+        "default": "mdi:timer-cog-outline"
       }
     },
     "sensor": {
