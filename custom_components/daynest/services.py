@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Awaitable
-from datetime import date
+from datetime import UTC, date, datetime
 from functools import partial
 from typing import TYPE_CHECKING, Any
 
@@ -154,6 +154,18 @@ def _get_single_entry(
     return entries[0]
 
 
+def _resolve_planned_for(entry: DaynestConfigEntry, planned_for_raw: str | date | None) -> str:
+    """Resolve planned_for value for create_planned_item calls."""
+    if isinstance(planned_for_raw, date):
+        return planned_for_raw.isoformat()
+    if isinstance(planned_for_raw, str) and planned_for_raw:
+        return planned_for_raw
+    fallback_for_date = entry.runtime_data.coordinator.data.get("for_date")
+    if isinstance(fallback_for_date, str) and fallback_for_date:
+        return fallback_for_date
+    return datetime.now(UTC).date().isoformat()
+
+
 async def _handle_refresh(hass: HomeAssistant, call: ServiceCall) -> None:
     """Trigger an immediate coordinator refresh for all Daynest entries."""
     entries = _get_entries(hass)
@@ -244,13 +256,7 @@ async def _handle_create_planned_item(hass: HomeAssistant, call: ServiceCall) ->
     if entry is None:
         return
     title: str = call.data[ATTR_TITLE]
-    planned_for_raw = call.data.get(ATTR_PLANNED_FOR)
-    if isinstance(planned_for_raw, date):
-        planned_for = planned_for_raw.isoformat()
-    elif isinstance(planned_for_raw, str) and planned_for_raw:
-        planned_for = planned_for_raw
-    else:
-        planned_for = date.today().isoformat()
+    planned_for = _resolve_planned_for(entry, call.data.get(ATTR_PLANNED_FOR))
     notes: str | None = call.data.get(ATTR_NOTES)
     await _call_client(
         entry,

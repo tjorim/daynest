@@ -21,6 +21,8 @@ from .const import DOMAIN, LOGGER, SUPPORTED_INTEGRATION_CONTRACT_VERSIONS, pars
 from .data import DaynestConfigEntry
 
 DEFAULT_POLL_INTERVAL_MINUTES = 15
+MIN_POLL_INTERVAL_MINUTES = 1
+MAX_POLL_INTERVAL_MINUTES = 60
 POLL_INTERVAL_OPTION = "coordinator_poll_interval"
 DASHBOARD_UPDATE_INTERVAL = timedelta(minutes=DEFAULT_POLL_INTERVAL_MINUTES)
 
@@ -71,7 +73,7 @@ class DaynestDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     ) -> None:
         """Initialize the coordinator with fixed polling interval."""
         poll_interval_minutes = _safe_int(config_entry.options.get(POLL_INTERVAL_OPTION), DEFAULT_POLL_INTERVAL_MINUTES)
-        poll_interval_minutes = max(1, min(poll_interval_minutes, 60))
+        poll_interval_minutes = max(MIN_POLL_INTERVAL_MINUTES, min(poll_interval_minutes, MAX_POLL_INTERVAL_MINUTES))
         super().__init__(
             hass,
             logger=LOGGER,
@@ -154,7 +156,7 @@ class DaynestDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     async def async_set_poll_interval(self, minutes: int) -> None:
         """Update coordinator polling interval without a reload."""
-        bounded_minutes = max(1, min(int(minutes), 60))
+        bounded_minutes = max(MIN_POLL_INTERVAL_MINUTES, min(int(minutes), MAX_POLL_INTERVAL_MINUTES))
         self.update_interval = timedelta(minutes=bounded_minutes)
         self._schedule_refresh()
 
@@ -203,6 +205,8 @@ class DaynestDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 __all__ = [
     "DASHBOARD_UPDATE_INTERVAL",
     "DEFAULT_POLL_INTERVAL_MINUTES",
+    "MAX_POLL_INTERVAL_MINUTES",
+    "MIN_POLL_INTERVAL_MINUTES",
     "POLL_INTERVAL_OPTION",
     "DaynestDataUpdateCoordinator",
 ]

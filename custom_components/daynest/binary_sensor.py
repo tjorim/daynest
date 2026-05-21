@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
+from datetime import timedelta
 from typing import TYPE_CHECKING, Any
 
 from homeassistant.components.binary_sensor import BinarySensorEntity, BinarySensorEntityDescription
@@ -48,12 +48,11 @@ def _is_medication_due_soon(data: dict[str, Any]) -> bool:
         scheduled_at = dose.get("scheduled_at")
         if not isinstance(scheduled_at, str):
             continue
-        try:
-            when = datetime.fromisoformat(scheduled_at)
-        except ValueError:
+        when = dt_util.parse_datetime(scheduled_at)
+        if when is None:
             continue
         if when.tzinfo is None:
-            when = when.replace(tzinfo=UTC)
+            when = dt_util.as_utc(when)
         if now <= when <= window_end:
             return True
     return False

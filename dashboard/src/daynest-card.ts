@@ -183,6 +183,11 @@ class DaynestCard extends LitElement {
           label: "Snooze days override",
           selector: { number: { min: 1, max: 14, mode: "box" } },
         },
+        {
+          name: "api_base_url",
+          label: "Daynest API base URL",
+          selector: { text: {} },
+        },
       ],
     };
   }
@@ -310,9 +315,7 @@ class DaynestCard extends LitElement {
       ? "done"
       : item.uid.startsWith("overdue:")
         ? "overdue"
-        : item.summary.toLowerCase().includes("skip")
-          ? "skipped"
-          : "pending";
+        : "pending";
     return html`
       <div class=${`task-item ${statusClass}`}>
         <span>${item.summary}</span>
@@ -361,7 +364,14 @@ class DaynestCard extends LitElement {
   private async _fetchWeek() {
     if ((this._config?.view ?? "full") !== "week") return;
     try {
-      const response = await fetch("/api/v1/analytics/summary?period=week");
+      const configuredBase = (this._config.api_base_url ?? "").trim().replace(/\/$/, "");
+      const endpoint = configuredBase
+        ? `${configuredBase}/api/v1/analytics/summary?period=week`
+        : "/api/v1/analytics/summary?period=week";
+      const accessToken = (this.hass as { auth?: { data?: { access_token?: string } } })?.auth?.data?.access_token;
+      const response = await fetch(endpoint, {
+        headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
+      });
       if (!response.ok) return;
       const summary = (await response.json()) as WeekSummaryResponse;
       this._week = this._normalizeWeek(summary);
@@ -385,7 +395,8 @@ class DaynestCard extends LitElement {
     for (const item of summary.medications?.daily_adherence ?? []) add(item.date, item.taken, item.total);
 
     const all = [...totals.values()].sort((a, b) => a.date.localeCompare(b.date));
-    const lastDate = all.length > 0 ? new Date(`${all[all.length - 1].date}T00:00:00`) : new Date();
+    const lastDate = all.length > 0 ? new Date(`${all[all.length - 1].date}T00:00:00Z`) : new Date();
+    // Convert JS getDay() (Sun=0..Sat=6) to a Monday-based offset (Mon=0..Sun=6).
     const day = (lastDate.getDay() + 6) % 7;
     const monday = new Date(lastDate);
     monday.setDate(lastDate.getDate() - day);
@@ -404,13 +415,13 @@ class DaynestCard extends LitElement {
     return html`
       <div class="week-grid">
         ${this._week.map((day) => {
-          const date = new Date(`${day.date}T00:00:00`);
+          const date = new Date(`${day.date}T00:00:00Z`);
           const ratio = day.total > 0 ? Math.round((day.completed / day.total) * 100) : 0;
           return html`
             <div class="week-day">
               <div class="week-day-label">
-                ${date.toLocaleDateString(undefined, { weekday: "short" })}
-                ${date.toLocaleDateString(undefined, { month: "numeric", day: "numeric" })}
+                ${date.toLocaleDateString(undefined, { weekday: "short", timeZone: "UTC" })}
+                ${date.toLocaleDateString(undefined, { month: "numeric", day: "numeric", timeZone: "UTC" })}
               </div>
               <div class="week-ratio-pill">${ratio}%</div>
               <div>${day.completed}/${day.total}</div>
@@ -453,16 +464,7 @@ class DaynestCard extends LitElement {
     if (parsedUid === null) return;
     const { prefix, id } = parsedUid;
     if (!isSnoozablePrefix(prefix)) return;
-    const configuredSnoozeDays = Number(this._config.snooze_days);
-    const derivedSnoozeDays = Number(
-      this.hass.states[(this._config.sensor_prefix ?? DEFAULT_SENSOR_PREFIX).replace(/^sensor\./, "number.") + "snooze_days"]
-        ?.state ?? 1,
-    );
-    const snoozeDays = Number.isFinite(configuredSnoozeDays) && configuredSnoozeDays > 0
-      ? Math.round(configuredSnoozeDays)
-      : Number.isFinite(derivedSnoozeDays) && derivedSnoozeDays > 0
-        ? Math.round(derivedSnoozeDays)
-        : 1;
+    const snoozeDays = this._resolveSnoozeDays();
     try {
       await this.hass.callService("daynest", "snooze_task", {
         chore_instance_id: id,
@@ -472,6 +474,27 @@ class DaynestCard extends LitElement {
     } catch (error) {
       console.error("Failed to snooze Daynest todo item", error);
     }
+  }
+
+  private _snoozeEntityId() {
+    const sensorPrefix = this._config.sensor_prefix ?? DEFAULT_SENSOR_PREFIX;
+    if (!sensorPrefix.startsWith("sensor.") || !sensorPrefix.endsWith("_")) return undefined;
+    return `number.${sensorPrefix.slice("sensor.".length)}snooze_days`;
+  }
+
+  private _resolveSnoozeDays() {
+    const configuredSnoozeDays = Number(this._config.snooze_days);
+    if (Number.isFinite(configuredSnoozeDays) && configuredSnoozeDays > 0) {
+      return Math.round(configuredSnoozeDays);
+    }
+    const snoozeEntityId = this._snoozeEntityId();
+    const derivedSnoozeDays = Number(
+      (snoozeEntityId ? this.hass.states[snoozeEntityId]?.state : undefined) ?? 1,
+    );
+    if (Number.isFinite(derivedSnoozeDays) && derivedSnoozeDays > 0) {
+      return Math.round(derivedSnoozeDays);
+    }
+    return 1;
   }
 
   private async _refresh() {
@@ -486,7 +509,11 @@ class DaynestCard extends LitElement {
 
   private _renderQuickAdd() {
     return html`
-      <details class="quick-add" @toggle=${(event: Event) => (this._quickAddOpen = (event.currentTarget as HTMLDetailsElement).open)}>
+      <details
+        class="quick-add"
+        aria-label="Quick add planned item"
+        @toggle=${(event: Event) => (this._quickAddOpen = (event.currentTarget as HTMLDetailsElement).open)}
+      >
         <summary>Quick add</summary>
         ${this._quickAddOpen
           ? html`

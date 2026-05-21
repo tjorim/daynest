@@ -8,6 +8,7 @@ export interface DaynestCardConfig {
   view?: "full" | "compact" | "week";
   show_quick_add?: boolean;
   snooze_days?: number;
+  api_base_url?: string;
 }
 
 export function sensorNum(hass: HomeAssistant, entityId: string): number {

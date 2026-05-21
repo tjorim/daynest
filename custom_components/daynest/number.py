@@ -7,7 +7,12 @@ from typing import TYPE_CHECKING
 
 from homeassistant.components.number import NumberEntity, NumberEntityDescription, NumberMode
 
-from .coordinator import DEFAULT_POLL_INTERVAL_MINUTES, POLL_INTERVAL_OPTION
+from .coordinator import (
+    DEFAULT_POLL_INTERVAL_MINUTES,
+    MAX_POLL_INTERVAL_MINUTES,
+    MIN_POLL_INTERVAL_MINUTES,
+    POLL_INTERVAL_OPTION,
+)
 from .entity import DaynestEntity
 
 if TYPE_CHECKING:
@@ -37,8 +42,8 @@ ENTITY_DESCRIPTIONS: tuple[DaynestNumberEntityDescription, ...] = (
     DaynestNumberEntityDescription(
         key="coordinator_poll_interval",
         translation_key="coordinator_poll_interval",
-        native_min_value=1,
-        native_max_value=60,
+        native_min_value=MIN_POLL_INTERVAL_MINUTES,
+        native_max_value=MAX_POLL_INTERVAL_MINUTES,
         native_step=1,
         mode=NumberMode.BOX,
         value_key=POLL_INTERVAL_OPTION,
@@ -92,7 +97,7 @@ class DaynestNumberEntity(NumberEntity, DaynestEntity):
         try:
             parsed = int(raw_value)
         except (TypeError, ValueError):
-            parsed = int(self.entity_description.native_min_value or 1)
+            parsed = int(self.entity_description.native_min_value)
         return float(parsed)
 
     async def async_set_native_value(self, value: float) -> None:
@@ -106,6 +111,6 @@ class DaynestNumberEntity(NumberEntity, DaynestEntity):
             return
 
         await self._config_entry.runtime_data.client.async_update_user_settings(
-            {"default_snooze_days": int_value}
+            {self.entity_description.value_key: int_value}
         )
         await self.coordinator.async_request_refresh()
