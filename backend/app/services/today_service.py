@@ -429,10 +429,11 @@ class TodayService:
 
         events: list[HACalendarEvent] = []
 
-        include_all = not event_types
-        include_chores = include_all or "chores" in event_types
-        include_medications = include_all or "medications" in event_types
-        include_planned_items = include_all or "planned_items" in event_types
+        include_all = event_types is None
+        selected_event_types = event_types or set()
+        include_chores = include_all or "chores" in selected_event_types
+        include_medications = include_all or "medications" in selected_event_types
+        include_planned_items = include_all or "planned_items" in selected_event_types
 
         if include_chores:
             for chore in self.repository.get_month_chores(user_id=user_id, start_date=start_date, end_date=end_date):

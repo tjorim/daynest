@@ -139,7 +139,7 @@ def home_assistant_calendar(
     _: None = Depends(_set_ha_contract_header),
 ) -> list[HACalendarEvent]:
     """Return all scheduled events (chores, routines, medication, planned) for a date range."""
-    event_types = {event_type} if event_type else None
+    event_types: set[str] | None = {event_type} if event_type else None
     return service.get_calendar_events(
         user_id=integration_user.id,
         start_date=start,
