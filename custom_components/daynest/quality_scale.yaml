@@ -177,12 +177,14 @@ rules:
       medication metrics; none are diagnostic or config in the HA sense.
       No `EntityCategory` is warranted.
   entity-device-class:
-    status: todo
+    status: exempt
     comment: >
-      Count sensors (`SensorStateClass.MEASUREMENT`) and the `next_medication`
-      string sensor do not set a `device_class`. Consider
-      `SensorDeviceClass.TIMESTAMP` if `next_medication` is changed to an ISO
-      datetime.
+      All Daynest sensors measure application-domain concepts (task counts,
+      completion ratio, medication name) that have no matching
+      `SensorDeviceClass`. HA device classes cover physical quantities and a
+      handful of standard state types (timestamp, enum, monetary); none apply
+      here. If `next_medication` is ever changed to return an ISO datetime,
+      `SensorDeviceClass.TIMESTAMP` would apply to that sensor.
   entity-disabled-by-default:
     status: done
     comment: >
