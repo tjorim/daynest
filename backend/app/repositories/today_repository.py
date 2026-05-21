@@ -11,7 +11,7 @@ from sqlalchemy import and_, func, insert, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
-from app.core.enums import ChoreStatus, MedicationDoseStatus, TaskStatus
+from app.core.enums import ChoreStatus, MedicationDoseStatus, Priority, TaskStatus
 from app.models.user import User
 from app.models.chore_instance import ChoreInstance
 from app.models.chore_template import ChoreTemplate
@@ -52,23 +52,28 @@ class TodayRepository:
 
             last = last_generated_map.get(template.id)
 
+            rrule_generated = False
+            rrule_failed = False
             if template.rrule and _DATEUTIL_AVAILABLE:
-                dtstart = datetime.combine(template.start_date, time.min)
-                rule = _rrulestr(template.rrule, dtstart=dtstart, ignoretz=True)
-                for dt in rule:
-                    d = dt.date()
-                    if d > through_date:
-                        break
-                    if last is not None and d <= last:
-                        continue
-                    rows.append({
-                        "user_id": user_id,
-                        "chore_template_id": template.id,
-                        "title": template.name,
-                        "scheduled_date": d,
-                        "status": ChoreStatus.pending,
-                    })
-            else:
+                try:
+                    dtstart = datetime.combine(template.start_date, time.min)
+                    rule = _rrulestr(template.rrule, dtstart=dtstart, ignoretz=True)
+                    start_search = datetime.combine(last, time.max) if last else dtstart - timedelta(seconds=1)
+                    occurrences = rule.between(start_search, datetime.combine(through_date, time.max), inc=False)
+                except Exception:
+                    rrule_failed = True
+                else:
+                    rrule_generated = True
+                    for dt in occurrences:
+                        rows.append({
+                            "user_id": user_id,
+                            "chore_template_id": template.id,
+                            "title": template.name,
+                            "scheduled_date": dt.date(),
+                            "status": ChoreStatus.pending,
+                        })
+
+            if not template.rrule or not _DATEUTIL_AVAILABLE or rrule_failed:
                 step = max(template.every_n_days, 1)
                 cursor = template.start_date if last is None else date.fromordinal(last.toordinal() + step)
                 while cursor <= through_date:
@@ -80,6 +85,8 @@ class TodayRepository:
                         "status": ChoreStatus.pending,
                     })
                     cursor = date.fromordinal(cursor.toordinal() + step)
+            elif rrule_generated:
+                continue
 
         if rows:
             dialect_name = self.db.connection().dialect.name
@@ -218,25 +225,31 @@ class TodayRepository:
 
             last = last_generated_map.get(template.id)
 
+            rrule_generated = False
+            rrule_failed = False
             if template.rrule and _DATEUTIL_AVAILABLE:
-                dtstart = datetime.combine(template.start_date, time.min)
-                rule = _rrulestr(template.rrule, dtstart=dtstart, ignoretz=True)
-                for dt in rule:
-                    cursor = dt.date()
-                    if cursor > through_date:
-                        break
-                    if last is not None and cursor <= last:
-                        continue
-                    due_at = datetime.combine(cursor, template.due_time, tzinfo=timezone.utc) if template.due_time else None
-                    rows.append({
-                        "user_id": user_id,
-                        "routine_template_id": template.id,
-                        "title": template.name,
-                        "scheduled_date": cursor,
-                        "due_at": due_at,
-                        "status": TaskStatus.pending,
-                    })
-            else:
+                try:
+                    dtstart = datetime.combine(template.start_date, time.min)
+                    rule = _rrulestr(template.rrule, dtstart=dtstart, ignoretz=True)
+                    start_search = datetime.combine(last, time.max) if last else dtstart - timedelta(seconds=1)
+                    occurrences = rule.between(start_search, datetime.combine(through_date, time.max), inc=False)
+                except Exception:
+                    rrule_failed = True
+                else:
+                    rrule_generated = True
+                    for dt in occurrences:
+                        cursor = dt.date()
+                        due_at = datetime.combine(cursor, template.due_time, tzinfo=timezone.utc) if template.due_time else None
+                        rows.append({
+                            "user_id": user_id,
+                            "routine_template_id": template.id,
+                            "title": template.name,
+                            "scheduled_date": cursor,
+                            "due_at": due_at,
+                            "status": TaskStatus.pending,
+                        })
+
+            if not template.rrule or not _DATEUTIL_AVAILABLE or rrule_failed:
                 step = max(template.every_n_days, 1)
                 cursor = template.start_date if last is None else date.fromordinal(last.toordinal() + step)
                 while cursor <= through_date:
@@ -250,6 +263,8 @@ class TodayRepository:
                         "status": TaskStatus.pending,
                     })
                     cursor = date.fromordinal(cursor.toordinal() + step)
+            elif rrule_generated:
+                continue
 
         if rows:
             dialect_name = self.db.connection().dialect.name
@@ -323,7 +338,7 @@ class TodayRepository:
         start_date: date,
         every_n_days: int,
         rrule: str | None,
-        priority: str,
+        priority: Priority,
         tags: list,
         is_active: bool,
     ) -> ChoreTemplate:

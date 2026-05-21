@@ -9,6 +9,28 @@ from app.models.user import User
 bearer_scheme = HTTPBearer(auto_error=False)
 
 
+async def get_current_user_optional(
+    request: Request,
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+    db: Session = Depends(get_db),
+) -> User | None:
+    if credentials is None:
+        return None
+    try:
+        claims = await decode_oidc_token(credentials.credentials)
+    except OIDCTokenError:
+        return None
+    subject: str | None = claims.get("sub")
+    if not subject:
+        return None
+    user = get_or_create_local_user(subject, claims, db)
+    if not user.is_active:
+        return None
+    request.state.user_id = user.id
+    request.state.roles = _extract_roles(claims)
+    return user
+
+
 async def get_current_user(
     request: Request,
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),

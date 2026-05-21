@@ -6,7 +6,9 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 
 from app.api.routes.auth import close_http_client as close_auth_http_client
 from app.api.routes.auth import router as auth_router
+from app.api.routes.analytics import router as analytics_router
 from app.api.routes.bulk import router as bulk_router
+from app.api.routes.calendar import router as calendar_router
 from app.api.routes.health import router as system_router
 from app.api.routes.integrations.clients import router as integration_clients_router
 from app.api.routes.integrations.home_assistant import router as home_assistant_router
@@ -55,12 +57,14 @@ if settings.cors_allow_origins:
 app.include_router(system_router, prefix=settings.api_prefix)
 app.include_router(auth_router, prefix=settings.api_prefix)
 app.include_router(users_router, prefix=settings.api_prefix)
+app.include_router(analytics_router, prefix=settings.api_prefix)
 app.include_router(integration_clients_router, prefix=settings.api_prefix)
 app.include_router(home_assistant_router, prefix=settings.api_prefix)
 app.include_router(today_router, prefix=settings.api_prefix)
 app.include_router(medications_router, prefix=settings.api_prefix)
 app.include_router(templates_router, prefix=f"{settings.api_prefix}/templates")
 app.include_router(bulk_router, prefix=settings.api_prefix)
+app.include_router(calendar_router, prefix=settings.api_prefix)
 if _mcp is not None:
     app.mount("/mcp", _mcp.streamable_http_app())
 
