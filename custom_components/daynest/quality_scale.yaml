@@ -43,11 +43,9 @@ rules:
       documentation for actions is not yet written.
   docs-high-level-description:
     status: todo
-  docs-installation:
+  docs-installation-instructions:
     status: todo
-  docs-removal:
-    status: todo
-  docs-troubleshooting:
+  docs-removal-instructions:
     status: todo
   entity-event-setup:
     status: done
@@ -137,7 +135,11 @@ rules:
       manufacturer so all entities group under one device per config entry.
   diagnostics:
     status: done
-    comment: "`diagnostics.py` implements `async_get_config_entry_diagnostics`."
+    comment: >
+      `diagnostics.py` implements `async_get_config_entry_diagnostics`.
+      Sensitive fields (`token`, `access_token`, `refresh_token`, `id_token`,
+      `api_key`, `integration_key`, `password`, `username`) are redacted via
+      `async_redact_data`; the server URL is kept visible to aid debugging.
   discovery:
     status: exempt
     comment: >
@@ -157,7 +159,9 @@ rules:
       hardware devices.
   docs-supported-functions:
     status: todo
-  docs-troubleshooting-known-error:
+  docs-examples:
+    status: todo
+  docs-troubleshooting:
     status: todo
   docs-use-cases:
     status: todo
@@ -205,20 +209,17 @@ rules:
       Static `icon=` removed from all sensor descriptions and `_attr_icon`
       removed from calendar and todo entities. All icons now defined in
       `icons.json` under `entity.<platform>.<translation_key>.default`.
-  no-secrets-in-logs:
-    status: done
-    comment: >
-      No credential values are interpolated into log statements — logs only
-      contain service names, entity IDs, and exception messages.
-      `diagnostics.py` uses `async_redact_data` with `TO_REDACT` covering
-      `token`, `access_token`, `refresh_token`, `id_token`, `api_key`,
-      `integration_key`, `password`, and `username`. The server URL is
-      intentionally not redacted so connection issues remain debuggable.
   reconfiguration-flow:
     status: todo
     comment: >
       No `async_step_reconfigure` implemented yet. Users cannot change the
       Daynest server URL without removing and re-adding the integration.
+  repair-issues:
+    status: todo
+    comment: >
+      No `repairs.py` implemented yet. Known recoverable errors (e.g. expired
+      token, unsupported contract version) could surface as HA repair issues
+      instead of silent failures.
   stale-devices:
     status: exempt
     comment: Same reason as `dynamic-devices`.
