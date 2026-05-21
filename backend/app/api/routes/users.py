@@ -1,12 +1,14 @@
+from typing import Any
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Body, Depends, HTTPException, Query, Response, status
 from sqlalchemy.orm import Session
 
 from app.api.dependencies.auth import get_current_user
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.users import UserSettingsPatchRequest, UserSettingsResponse
+from app.services.export_import_service import build_user_export, import_user_export, user_export_to_csv
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -49,3 +51,30 @@ def update_settings(
     db.commit()
     db.refresh(current_user)
     return _to_response(current_user)
+
+
+@router.get("/me/export", response_model=None)
+def export_user_data(
+    format: str = Query(default="json", pattern="^(json|csv)$"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> dict[str, Any] | Response:
+    payload = build_user_export(db, current_user)
+    if format == "csv":
+        return Response(
+            content=user_export_to_csv(payload),
+            media_type="text/csv",
+            headers={"Content-Disposition": 'attachment; filename="daynest-export.csv"'},
+        )
+    return payload
+
+
+@router.post("/me/import")
+def import_user_data(
+    payload: dict[str, Any] = Body(...),
+    replace: bool = Query(default=False),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> dict[str, Any]:
+    counts = import_user_export(db, current_user, payload, replace=replace)
+    return {"imported": counts}
