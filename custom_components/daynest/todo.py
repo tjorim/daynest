@@ -9,8 +9,10 @@ from homeassistant.components.todo import TodoItem, TodoItemStatus, TodoListEnti
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity import EntityDescription
 
-from .const import DOMAIN, PARALLEL_UPDATES as PARALLEL_UPDATES
+from .const import DOMAIN
 from .entity import DaynestEntity
+
+PARALLEL_UPDATES = 1
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
