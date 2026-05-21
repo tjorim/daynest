@@ -9,9 +9,11 @@ from app.models.chore_instance import ChoreInstance
 from app.models.chore_template import ChoreTemplate
 from app.models.medication_dose_instance import MedicationDoseInstance
 from app.models.medication_plan import MedicationPlan
+from app.models.notification_sent import NotificationSent
 from app.models.push_subscription import PushSubscription
 from app.models.user import User
-from app.services.push_service import dispatch_medication_reminders, dispatch_overdue_chores
+from app.services.push_service import dispatch_medication_reminders, dispatch_overdue_chores, pending_push_user_ids
+from app.services.push_service import send_notification
 
 
 def _create_user(db_session: Session, email: str) -> User:
@@ -62,6 +64,40 @@ def test_push_subscribe_and_unsubscribe(client: TestClient, db_session: Session)
 
     db_session.refresh(subscription)
     assert subscription.is_active is False
+
+
+def test_send_notification_uses_fcm_http_v1(monkeypatch) -> None:
+    posted: dict = {}
+
+    class _Response:
+        def raise_for_status(self) -> None:
+            return None
+
+    class _Client:
+        def post(self, url: str, *, headers: dict, json: dict) -> _Response:
+            posted.update({"url": url, "headers": headers, "json": json})
+            return _Response()
+
+    monkeypatch.setattr("app.services.push_service._fcm_access_token", lambda: "access-token")
+    monkeypatch.setattr("app.services.push_service.settings.fcm_project_id", "daynest-fcm")
+    monkeypatch.setattr("app.services.push_service._http_client", _Client())
+
+    subscription = PushSubscription(user_id=1, platform="fcm", endpoint="fcm-device-token", is_active=True)
+    assert send_notification(subscription, "Reminder", "Take medicine", {"type": "medication_reminder", "count": 2})
+    assert posted == {
+        "url": "https://fcm.googleapis.com/v1/projects/daynest-fcm/messages:send",
+        "headers": {
+            "Authorization": "Bearer access-token",
+            "Content-Type": "application/json",
+        },
+        "json": {
+            "message": {
+                "token": "fcm-device-token",
+                "notification": {"title": "Reminder", "body": "Take medicine"},
+                "data": {"type": "medication_reminder", "count": "2"},
+            }
+        },
+    }
 
 
 def test_user_settings_store_push_notification_preferences(client: TestClient, db_session: Session) -> None:
@@ -203,3 +239,60 @@ def test_dispatch_overdue_chores_respects_user_preference(db_session: Session, m
         now=datetime(2026, 5, 21, 10, 0, tzinfo=timezone.utc),
     ) == 0
     assert sent == []
+
+
+def test_pending_push_user_ids_only_returns_users_with_unnotified_candidates(db_session: Session) -> None:
+    candidate = _create_user(db_session, "push-candidate@example.com")
+    notified = _create_user(db_session, "push-notified@example.com")
+    idle = _create_user(db_session, "push-idle@example.com")
+    templates = [
+        ChoreTemplate(
+            user_id=user.id,
+            name=f"Candidate chore {user.id}",
+            description=None,
+            start_date=date(2026, 5, 1),
+            every_n_days=1,
+            is_active=True,
+        )
+        for user in (candidate, notified)
+    ]
+    db_session.add_all(templates)
+    db_session.commit()
+
+    candidate_chore = ChoreInstance(
+        user_id=candidate.id,
+        chore_template_id=templates[0].id,
+        title="Needs notification",
+        scheduled_date=date(2026, 5, 20),
+        status="pending",
+    )
+    notified_chore = ChoreInstance(
+        user_id=notified.id,
+        chore_template_id=templates[1].id,
+        title="Already notified",
+        scheduled_date=date(2026, 5, 20),
+        status="pending",
+    )
+    db_session.add_all(
+        [
+            PushSubscription(user_id=candidate.id, platform="fcm", endpoint="candidate-token", is_active=True),
+            PushSubscription(user_id=notified.id, platform="fcm", endpoint="notified-token", is_active=True),
+            PushSubscription(user_id=idle.id, platform="fcm", endpoint="idle-token", is_active=True),
+            candidate_chore,
+            notified_chore,
+        ]
+    )
+    db_session.commit()
+    db_session.add(
+        NotificationSent(
+            user_id=notified.id,
+            notification_type="overdue_chores",
+            item_id=notified_chore.id,
+        )
+    )
+    db_session.commit()
+
+    assert pending_push_user_ids(
+        db_session,
+        now=datetime(2026, 5, 21, 10, 0, tzinfo=timezone.utc),
+    ) == [candidate.id]

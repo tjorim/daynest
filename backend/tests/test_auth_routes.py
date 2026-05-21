@@ -9,7 +9,7 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from app.api.dependencies.auth import get_current_user
+from app.api.dependencies.auth import get_current_user, get_current_user_from_query_token
 from app.core.oidc import get_or_create_local_user
 from app.main import app
 from app.models.user import User
@@ -76,6 +76,25 @@ class TestMeEndpoint:
             assert resp.json()["is_active"] is False
         finally:
             _clear_auth()
+
+
+class TestQueryTokenAuth:
+    @pytest.mark.anyio
+    async def test_resolves_user_from_query_token(
+        self,
+        db_session: Session,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        user = _make_user(db_session, email="sse-query@example.com", oidc_subject="sub-sse-query")
+        request = MagicMock()
+
+        async def _decode(token: str) -> dict[str, str]:
+            assert token == "sse-access-token"
+            return {"sub": user.oidc_subject, "email": user.email}
+
+        monkeypatch.setattr("app.api.dependencies.auth.decode_oidc_token", _decode)
+        resolved = await get_current_user_from_query_token(request, token="sse-access-token", db=db_session)
+        assert resolved.id == user.id
 
 
 # ---------------------------------------------------------------------------

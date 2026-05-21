@@ -5,6 +5,9 @@ from typing import Any
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import httpx
+from google.auth.exceptions import GoogleAuthError
+from google.auth.transport.requests import Request
+from google.oauth2 import service_account
 from pywebpush import WebPushException, webpush
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -18,6 +21,12 @@ from app.models.push_subscription import PushSubscription
 from app.models.user import User
 
 logger = logging.getLogger(__name__)
+_FCM_SCOPES = ("https://www.googleapis.com/auth/firebase.messaging",)
+_http_client = httpx.Client(timeout=10.0)
+
+
+def close_http_client() -> None:
+    _http_client.close()
 
 
 def _is_quiet_time(now_time: time, quiet_start: time | None, quiet_end: time | None) -> bool:
@@ -39,25 +48,42 @@ def _user_can_receive_push(now: datetime, user: User) -> bool:
     return not _is_quiet_time(local_time, user.quiet_hours_start, user.quiet_hours_end)
 
 
+def _fcm_access_token() -> str | None:
+    if not settings.fcm_service_account_file:
+        return None
+    credentials = service_account.Credentials.from_service_account_file(
+        settings.fcm_service_account_file,
+        scopes=_FCM_SCOPES,
+    )
+    credentials.refresh(Request())
+    return credentials.token
+
+
+def _stringify_fcm_data(data: dict[str, Any]) -> dict[str, str]:
+    return {key: str(value) for key, value in data.items()}
+
+
 def send_notification(subscription: PushSubscription, title: str, body: str, data: dict[str, Any]) -> bool:
     try:
         if subscription.platform == PushPlatform.fcm:
-            if not settings.fcm_server_key:
+            access_token = _fcm_access_token()
+            if not settings.fcm_project_id or not access_token:
                 return False
-            with httpx.Client(timeout=10.0) as client:
-                response = client.post(
-                    "https://fcm.googleapis.com/fcm/send",
-                    headers={
-                        "Authorization": f"key={settings.fcm_server_key}",
-                        "Content-Type": "application/json",
-                    },
-                    json={
-                        "to": subscription.endpoint,
+            response = _http_client.post(
+                f"https://fcm.googleapis.com/v1/projects/{settings.fcm_project_id}/messages:send",
+                headers={
+                    "Authorization": f"Bearer {access_token}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "message": {
+                        "token": subscription.endpoint,
                         "notification": {"title": title, "body": body},
-                        "data": data,
+                        "data": _stringify_fcm_data(data),
                     },
-                )
-                response.raise_for_status()
+                },
+            )
+            response.raise_for_status()
             return True
 
         if subscription.platform == PushPlatform.webpush:
@@ -76,7 +102,7 @@ def send_notification(subscription: PushSubscription, title: str, body: str, dat
                 vapid_claims={"sub": f"mailto:{settings.vapid_claims_email}"},
             )
             return True
-    except (httpx.HTTPError, WebPushException):
+    except (GoogleAuthError, OSError, ValueError, httpx.HTTPError, WebPushException):
         logger.exception(
             "Failed to send push notification for subscription_id=%s user_id=%s platform=%s",
             subscription.id,
@@ -114,6 +140,72 @@ def _record_notifications(db: Session, user_id: int, notification_type: str, ite
         for item_id in item_ids
     )
     db.commit()
+
+
+def _active_subscription_exists(user_id_column):
+    return (
+        select(PushSubscription.id)
+        .where(PushSubscription.user_id == user_id_column)
+        .where(PushSubscription.is_active.is_(True))
+        .exists()
+    )
+
+
+def _notification_sent_exists(user_id_column, notification_type: str, item_id_column):
+    return (
+        select(NotificationSent.id)
+        .where(NotificationSent.user_id == user_id_column)
+        .where(NotificationSent.notification_type == notification_type)
+        .where(NotificationSent.item_id == item_id_column)
+        .exists()
+    )
+
+
+def pending_push_user_ids(db: Session, *, now: datetime | None = None) -> list[int]:
+    now = now or datetime.now(timezone.utc)
+    pending_user_ids: set[int] = set()
+
+    pending_user_ids.update(
+        db.scalars(
+            select(ChoreInstance.user_id)
+            .join(User, User.id == ChoreInstance.user_id)
+            .where(User.is_active.is_(True))
+            .where(User.push_overdue_chores_enabled.is_(True))
+            .where(ChoreInstance.status == ChoreStatus.pending)
+            .where(ChoreInstance.scheduled_date < now.date())
+            .where(_active_subscription_exists(ChoreInstance.user_id))
+            .where(~_notification_sent_exists(ChoreInstance.user_id, "overdue_chores", ChoreInstance.id))
+            .distinct()
+        ).all()
+    )
+    pending_user_ids.update(
+        db.scalars(
+            select(MedicationDoseInstance.user_id)
+            .join(User, User.id == MedicationDoseInstance.user_id)
+            .where(User.is_active.is_(True))
+            .where(User.push_medication_reminders_enabled.is_(True))
+            .where(MedicationDoseInstance.status == MedicationDoseStatus.scheduled)
+            .where(MedicationDoseInstance.scheduled_at >= now)
+            .where(MedicationDoseInstance.scheduled_at <= now + timedelta(days=1))
+            .where(_active_subscription_exists(MedicationDoseInstance.user_id))
+            .where(~_notification_sent_exists(MedicationDoseInstance.user_id, "medication_reminder", MedicationDoseInstance.id))
+            .distinct()
+        ).all()
+    )
+    pending_user_ids.update(
+        db.scalars(
+            select(MedicationDoseInstance.user_id)
+            .join(User, User.id == MedicationDoseInstance.user_id)
+            .where(User.is_active.is_(True))
+            .where(User.push_missed_medications_enabled.is_(True))
+            .where(MedicationDoseInstance.status == MedicationDoseStatus.missed)
+            .where(MedicationDoseInstance.scheduled_at <= now)
+            .where(_active_subscription_exists(MedicationDoseInstance.user_id))
+            .where(~_notification_sent_exists(MedicationDoseInstance.user_id, "missed_medication", MedicationDoseInstance.id))
+            .distinct()
+        ).all()
+    )
+    return sorted(pending_user_ids)
 
 
 def dispatch_overdue_chores(db: Session, user_id: int, *, now: datetime | None = None) -> int:

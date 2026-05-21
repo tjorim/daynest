@@ -5,7 +5,7 @@ from datetime import date
 from fastapi import APIRouter, Depends, Query, Request, Response, status
 from sse_starlette import EventSourceResponse
 
-from app.api.dependencies.auth import get_current_user, get_current_user_from_cookie
+from app.api.dependencies.auth import get_current_user, get_current_user_from_query_token
 from app.api.dependencies.events import get_event_bus
 from app.api.dependencies.today import get_today_service
 from app.models.user import User
@@ -38,7 +38,7 @@ def get_today(
 async def stream_today_updates(
     request: Request,
     event_bus: EventBus = Depends(get_event_bus),
-    current_user: User = Depends(get_current_user_from_cookie),
+    current_user: User = Depends(get_current_user_from_query_token),
 ) -> EventSourceResponse:
     queue = event_bus.subscribe(current_user.id)
 

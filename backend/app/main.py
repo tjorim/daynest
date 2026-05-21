@@ -30,7 +30,13 @@ from app.db.session import SessionLocal
 from app.mcp_server import create_mcp_server
 from app.models.user import User
 from app.services.event_bus import EventBus
-from app.services.push_service import dispatch_medication_reminders, dispatch_missed_medications, dispatch_overdue_chores
+from app.services.push_service import (
+    close_http_client as close_push_http_client,
+    dispatch_medication_reminders,
+    dispatch_missed_medications,
+    dispatch_overdue_chores,
+    pending_push_user_ids,
+)
 
 configure_logging()
 configure_error_tracking()
@@ -39,24 +45,27 @@ _mcp = create_mcp_server() if settings.feature_mcp else None
 logger = logging.getLogger(__name__)
 
 
+def _dispatch_push_notifications() -> None:
+    db = None
+    try:
+        db = SessionLocal()
+        for user_id in pending_push_user_ids(db):
+            try:
+                dispatch_overdue_chores(db, user_id)
+                dispatch_medication_reminders(db, user_id)
+                dispatch_missed_medications(db, user_id)
+            except Exception:
+                logger.exception("Push dispatch failed for user_id=%s", user_id)
+    except Exception:
+        logger.exception("Push dispatch loop iteration failed")
+    finally:
+        if db is not None:
+            db.close()
+
+
 async def _push_dispatch_loop() -> None:
     while True:
-        db = None
-        try:
-            db = SessionLocal()
-            users = db.query(User.id).where(User.is_active.is_(True)).all()
-            for user_id, in users:
-                try:
-                    dispatch_overdue_chores(db, user_id)
-                    dispatch_medication_reminders(db, user_id)
-                    dispatch_missed_medications(db, user_id)
-                except Exception:
-                    logger.exception("Push dispatch failed for user_id=%s", user_id)
-        except Exception:
-            logger.exception("Push dispatch loop iteration failed")
-        finally:
-            if db is not None:
-                db.close()
+        await asyncio.to_thread(_dispatch_push_notifications)
         await asyncio.sleep(300)
 
 
@@ -96,16 +105,20 @@ def _publish_today_rollovers(
 async def _today_rollover_loop(event_bus: EventBus) -> None:
     known_local_dates: dict[int, date] = {}
     while True:
-        db = None
-        try:
-            db = SessionLocal()
-            _publish_today_rollovers(db, event_bus, known_local_dates)
-        except Exception:
-            logger.exception("Today rollover event loop iteration failed")
-        finally:
-            if db is not None:
-                db.close()
+        await asyncio.to_thread(_run_today_rollover_iteration, event_bus, known_local_dates)
         await asyncio.sleep(60)
+
+
+def _run_today_rollover_iteration(event_bus: EventBus, known_local_dates: dict[int, date]) -> None:
+    db = None
+    try:
+        db = SessionLocal()
+        _publish_today_rollovers(db, event_bus, known_local_dates)
+    except Exception:
+        logger.exception("Today rollover event loop iteration failed")
+    finally:
+        if db is not None:
+            db.close()
 
 
 @asynccontextmanager
@@ -129,6 +142,7 @@ async def lifespan(app: FastAPI):
             rollover_task.cancel()
             with contextlib.suppress(asyncio.CancelledError):
                 await rollover_task
+        close_push_http_client()
         await close_auth_http_client()
 
 

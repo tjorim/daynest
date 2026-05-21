@@ -1,4 +1,4 @@
-from fastapi import Cookie, Depends, HTTPException, Request, status
+from fastapi import Depends, HTTPException, Query, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
@@ -63,15 +63,15 @@ async def get_current_user(
     return _resolve_user_from_claims(request, db, claims)
 
 
-async def get_current_user_from_cookie(
+async def get_current_user_from_query_token(
     request: Request,
-    access_token: str | None = Cookie(default=None),
+    token: str | None = Query(default=None),
     db: Session = Depends(get_db),
 ) -> User:
-    if access_token is None:
+    if token is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
     try:
-        claims = await decode_oidc_token(access_token)
+        claims = await decode_oidc_token(token)
     except OIDCTokenError as exc:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(exc)) from exc
     return _resolve_user_from_claims(request, db, claims)

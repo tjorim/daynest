@@ -3,6 +3,8 @@ from collections import defaultdict
 
 
 class EventBus:
+    """Process-local SSE event fanout for the single-worker backend deployment."""
+
     def __init__(self) -> None:
         self._queues: dict[int, list[tuple[asyncio.AbstractEventLoop, asyncio.Queue[dict]]]] = defaultdict(list)
 
