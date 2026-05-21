@@ -114,8 +114,9 @@ rules:
   parallel-updates:
     status: done
     comment: >
-      `PARALLEL_UPDATES = 1` defined in `const.py` and re-exported from the
-      sensor platform so HA's update throttle applies.
+      `PARALLEL_UPDATES = 1` defined in `const.py` and re-exported from
+      `sensor` and `todo`; `calendar` sets `PARALLEL_UPDATES = 0` (read-only,
+      coordinator-driven).
   reauthentication-flow:
     status: done
     comment: >
@@ -219,12 +220,13 @@ rules:
       `account_mismatch` if the signed-in account differs from the configured
       one.
   repair-issues:
-    status: done
+    status: todo
     comment: >
-      `repairs.py` created. The coordinator raises an
-      `unsupported_contract_version` repair issue (non-fixable, severity
-      ERROR) when the backend returns an unrecognised contract version, and
-      clears it on the next successful poll.
+      Infrastructure in place: `repairs.py` exists and the coordinator raises
+      an `unsupported_contract_version` issue (non-fixable, severity ERROR)
+      when the backend returns an unrecognised contract version. Missing: no
+      UI-fixable repair flows are implemented; `async_create_fix_flow` is a
+      stub that raises `NotImplementedError`.
   stale-devices:
     status: exempt
     comment: Same reason as `dynamic-devices`.
