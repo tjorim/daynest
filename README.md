@@ -140,16 +140,16 @@ This architecture keeps Daynest calm, lightweight, and practical while preservin
 ## Integration-ready API surface
 
 Daynest now exposes thin integration adapters over the existing `TodayService` read models,
-with scoped integration keys and per-client rate limits:
+with integration keys and per-client rate limits:
 
 - Integration client management (user bearer auth):
   - `POST /api/v1/integrations/clients` (returns one-time API key)
   - `GET /api/v1/integrations/clients`
-- Home Assistant adapter (requires `X-Integration-Key` + `ha:read` scope):
+- Home Assistant adapter (requires valid integration key or OIDC token):
   - `GET /api/v1/integrations/home-assistant/summary`
   - `GET /api/v1/integrations/home-assistant/entities`
   - `GET /api/v1/integrations/home-assistant/dashboard`
-- MCP adapter (requires `X-Integration-Key` + `mcp:read` scope):
+- MCP adapter (requires valid integration key or OIDC token):
   - `GET /api/v1/mcp/capabilities`
   - `GET /api/v1/mcp/today`
   - `GET /api/v1/mcp/calendar/day?date=YYYY-MM-DD`

@@ -66,6 +66,5 @@ class DaynestEntity(CoordinatorEntity[DaynestDataUpdateCoordinator]):
                 ),
             },
             name=coordinator.config_entry.title,
-            manufacturer=coordinator.config_entry.domain,
-            model=coordinator.data.get("model", "Unknown"),
+            manufacturer="Daynest",
         )

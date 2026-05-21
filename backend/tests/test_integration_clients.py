@@ -30,12 +30,11 @@ def _create_user(db_session: Session, email: str) -> User:
     return user
 
 
-def _create_client(db_session: Session, user_id: int, *, name: str = "Test", scopes: str = "ha:read") -> IntegrationClient:
+def _create_client(db_session: Session, user_id: int, *, name: str = "Test") -> IntegrationClient:
     ic = IntegrationClient(
         user_id=user_id,
         name=name,
         key_hash=hash_integration_key(f"daynest_testkey_{user_id}_{name}"),
-        scopes_csv=scopes,
         rate_limit_per_minute=60,
     )
     db_session.add(ic)
@@ -82,7 +81,7 @@ class TestCreateIntegrationClient:
 
         response = client.post(
             "/api/v1/integrations/clients",
-            json={"name": "New Client", "scopes": ["ha:read"], "rate_limit_per_minute": 120},
+            json={"name": "New Client", "rate_limit_per_minute": 120},
         )
 
         assert response.status_code == 200
@@ -92,7 +91,6 @@ class TestCreateIntegrationClient:
         assert body["client_id"]
         assert body["client_secret"] == body["api_key"]
         assert body["token_url"].endswith("/api/v1/integrations/clients/token")
-        assert "ha:read" in body["scopes"]
 
     def test_api_key_is_hashed_in_db(self, client: TestClient, db_session: Session) -> None:
         user = _create_user(db_session, "hash@example.com")
@@ -100,7 +98,7 @@ class TestCreateIntegrationClient:
 
         response = client.post(
             "/api/v1/integrations/clients",
-            json={"name": "Hashed", "scopes": ["mcp:read"], "rate_limit_per_minute": 60},
+            json={"name": "Hashed", "rate_limit_per_minute": 60},
         )
 
         raw_key = response.json()["api_key"]
@@ -192,7 +190,7 @@ class TestExchangeIntegrationClientToken:
 
         create_response = client.post(
             "/api/v1/integrations/clients",
-            json={"name": "OAuth Client", "scopes": ["ha:read"], "rate_limit_per_minute": 120},
+            json={"name": "OAuth Client", "rate_limit_per_minute": 120},
         )
         assert create_response.status_code == 200
         created = create_response.json()
@@ -210,7 +208,6 @@ class TestExchangeIntegrationClientToken:
         body = token_response.json()
         assert body["token_type"] == "Bearer"
         assert body["expires_in"] == 300
-        assert body["scope"] == "ha:read"
         # access_token must be a short-lived JWT, not the long-lived client_secret
         assert body["access_token"] != created["client_secret"]
         claims = jwt.decode(
@@ -218,9 +215,8 @@ class TestExchangeIntegrationClientToken:
             settings.resolved_integration_key_hash_secret,
             algorithms=["HS256"],
             issuer="daynest-integration",
-            options={"require": ["exp", "iss", "sub", "scope"]},
+            options={"require": ["exp", "iss", "sub"]},
         )
-        assert claims["scope"] == "ha:read"
         assert claims["sub"] == created["client_id"]
 
     def test_rejects_invalid_client_secret(self, client: TestClient, db_session: Session) -> None:
@@ -228,7 +224,7 @@ class TestExchangeIntegrationClientToken:
         _auth_as(user)
         created = client.post(
             "/api/v1/integrations/clients",
-            json={"name": "OAuth Client", "scopes": ["ha:read"], "rate_limit_per_minute": 120},
+            json={"name": "OAuth Client", "rate_limit_per_minute": 120},
         ).json()
 
         token_response = client.post(
@@ -247,7 +243,7 @@ class TestExchangeIntegrationClientToken:
         _auth_as(user)
         created = client.post(
             "/api/v1/integrations/clients",
-            json={"name": "OAuth Client", "scopes": ["ha:read"], "rate_limit_per_minute": 120},
+            json={"name": "OAuth Client", "rate_limit_per_minute": 120},
         ).json()
 
         token_response = client.post(
@@ -266,7 +262,7 @@ class TestExchangeIntegrationClientToken:
         _auth_as(user)
         created = client.post(
             "/api/v1/integrations/clients",
-            json={"name": "OAuth Client", "scopes": ["ha:read"], "rate_limit_per_minute": 120},
+            json={"name": "OAuth Client", "rate_limit_per_minute": 120},
         ).json()
 
         token_response = client.post(

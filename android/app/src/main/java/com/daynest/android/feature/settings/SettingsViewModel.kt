@@ -40,7 +40,6 @@ class SettingsViewModel
                 SettingsUiEvent.RetryClicked -> load()
                 SettingsUiEvent.SignOutClicked -> signOut()
                 SettingsUiEvent.ShowCreateClientForm -> showCreateForm()
-                is SettingsUiEvent.ShowCreateClientFormWithPreset -> showCreateFormWithPreset(event.preset)
                 SettingsUiEvent.DismissCreateClientForm -> dismissCreateForm()
                 SettingsUiEvent.DismissNewKeyDialog -> dismissNewKeyDialog()
                 is SettingsUiEvent.CreateClient -> createClient(event.input)
@@ -63,7 +62,6 @@ class SettingsViewModel
                         clients = clientsResult.getOrElse { emptyList() },
                         sessions = sessionsResult.getOrElse { emptyList() },
                         showCreateForm = false,
-                        createFormPreset = null,
                         newApiKey = null,
                         loadError = clientsResult.isFailure || sessionsResult.isFailure,
                         customServerUrl = prefs.customServerUrl,
@@ -75,17 +73,7 @@ class SettingsViewModel
         private fun showCreateForm() {
             _uiState.update { current ->
                 if (current is SettingsUiState.Content) {
-                    current.copy(showCreateForm = true, createFormPreset = null)
-                } else {
-                    current
-                }
-            }
-        }
-
-        private fun showCreateFormWithPreset(preset: IntegrationClientInputDto) {
-            _uiState.update { current ->
-                if (current is SettingsUiState.Content) {
-                    current.copy(showCreateForm = true, createFormPreset = preset)
+                    current.copy(showCreateForm = true)
                 } else {
                     current
                 }
@@ -95,7 +83,7 @@ class SettingsViewModel
         private fun dismissCreateForm() {
             _uiState.update { current ->
                 if (current is SettingsUiState.Content) {
-                    current.copy(showCreateForm = false, createFormPreset = null)
+                    current.copy(showCreateForm = false)
                 } else {
                     current
                 }
@@ -162,7 +150,6 @@ class SettingsViewModel
             IntegrationClientDto(
                 id = id,
                 name = name,
-                scopes = scopes,
                 rateLimitPerMinute = rateLimitPerMinute,
                 isActive = isActive,
             )
@@ -175,7 +162,6 @@ sealed interface SettingsUiState {
         val clients: List<IntegrationClientDto>,
         val sessions: List<OAuthSessionDto> = emptyList(),
         val showCreateForm: Boolean,
-        val createFormPreset: IntegrationClientInputDto?,
         val newApiKey: String?,
         val loadError: Boolean,
         val customServerUrl: String?,
@@ -191,10 +177,6 @@ sealed interface SettingsUiEvent {
     data object SignOutClicked : SettingsUiEvent
 
     data object ShowCreateClientForm : SettingsUiEvent
-
-    data class ShowCreateClientFormWithPreset(
-        val preset: IntegrationClientInputDto,
-    ) : SettingsUiEvent
 
     data object DismissCreateClientForm : SettingsUiEvent
 

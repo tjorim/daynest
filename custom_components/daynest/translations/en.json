@@ -82,7 +82,7 @@
     },
     "complete_task": {
       "name": "Complete Task",
-      "description": "Marks a Daynest chore instance as complete. Requires the Daynest Home Assistant client to have the ha:write scope.",
+      "description": "Marks a Daynest chore instance as complete. Requires an authenticated Daynest connection.",
       "fields": {
         "chore_instance_id": {
           "name": "Chore Instance ID",
@@ -92,7 +92,7 @@
     },
     "snooze_task": {
       "name": "Snooze Task",
-      "description": "Reschedules a Daynest chore instance to a later date. Requires the Daynest Home Assistant client to have the ha:write scope.",
+      "description": "Reschedules a Daynest chore instance to a later date. Requires an authenticated Daynest connection.",
       "fields": {
         "chore_instance_id": {
           "name": "Chore Instance ID",
@@ -106,7 +106,7 @@
     },
     "mark_medication_taken": {
       "name": "Mark Medication Taken",
-      "description": "Marks a scheduled medication dose as taken. Requires the Daynest Home Assistant client to have the ha:write scope.",
+      "description": "Marks a scheduled medication dose as taken. Requires an authenticated Daynest connection.",
       "fields": {
         "medication_dose_id": {
           "name": "Medication Dose ID",
@@ -116,7 +116,7 @@
     },
     "skip_task": {
       "name": "Skip Task",
-      "description": "Skips a Daynest chore instance. Requires the Daynest Home Assistant client to have the ha:write scope.",
+      "description": "Skips a Daynest chore instance. Requires an authenticated Daynest connection.",
       "fields": {
         "chore_instance_id": {
           "name": "Chore Instance ID",
@@ -126,7 +126,7 @@
     },
     "skip_medication": {
       "name": "Skip Medication Dose",
-      "description": "Skips a scheduled medication dose. Requires the Daynest Home Assistant client to have the ha:write scope.",
+      "description": "Skips a scheduled medication dose. Requires an authenticated Daynest connection.",
       "fields": {
         "medication_dose_id": {
           "name": "Medication Dose ID",

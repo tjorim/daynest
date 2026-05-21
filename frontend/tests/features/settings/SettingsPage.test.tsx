@@ -38,7 +38,6 @@ describe("SettingsPage", () => {
     apiMock.createIntegrationClient.mockResolvedValue({
       id: 1,
       name: "Home Assistant Automations",
-      scopes: ["ha:read", "ha:write"],
       rate_limit_per_minute: 120,
       is_active: true,
       api_key: "daynest_test_key",
@@ -51,28 +50,25 @@ describe("SettingsPage", () => {
     pwaMock.subscribeInstallPrompt.mockImplementation(() => () => undefined);
   });
 
-  it("shows Home Assistant setup details and the action scope", async () => {
+  it("shows Home Assistant setup details", async () => {
     render(<SettingsPage />);
 
     expect(await screen.findByText("Home Assistant connection details")).toBeInTheDocument();
     expect(screen.getByText("home-assistant; version=ha.v1")).toBeInTheDocument();
     expect(screen.getByText(/setup now uses browser-based oauth redirect/i)).toBeInTheDocument();
     expect(screen.getByText("https://my.home-assistant.io/redirect/oauth")).toBeInTheDocument();
-    expect(screen.getByLabelText(/home assistant actions/i)).toBeInTheDocument();
   });
 
-  it("applies the Home Assistant automation preset when creating a client", async () => {
+  it("creates a client with the given name and rate limit", async () => {
     const user = userEvent.setup();
     render(<SettingsPage />);
 
-    await screen.findByText("Integration presets");
-    await user.click(screen.getByRole("button", { name: /home assistant automations/i }));
+    await screen.findByText("Create integration client");
     await user.click(screen.getByRole("button", { name: /^create client$/i }));
 
     await waitFor(() => {
       expect(apiMock.createIntegrationClient).toHaveBeenCalledWith({
-        name: "Home Assistant Automations",
-        scopes: ["ha:read", "ha:write"],
+        name: "Home Assistant",
         rate_limit_per_minute: 120,
       });
     });

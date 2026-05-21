@@ -30,7 +30,6 @@ interface SettingsApi {
 data class IntegrationClientDto(
     val id: Int,
     val name: String,
-    val scopes: List<String>,
     @SerialName("rate_limit_per_minute")
     val rateLimitPerMinute: Int,
     @SerialName("is_active")
@@ -40,7 +39,6 @@ data class IntegrationClientDto(
 @Serializable
 data class IntegrationClientInputDto(
     val name: String,
-    val scopes: List<String>,
     @SerialName("rate_limit_per_minute")
     val rateLimitPerMinute: Int,
 )
@@ -61,7 +59,6 @@ data class OAuthSessionDto(
 data class IntegrationClientCreateResponseDto(
     val id: Int,
     val name: String,
-    val scopes: List<String>,
     @SerialName("rate_limit_per_minute")
     val rateLimitPerMinute: Int,
     @SerialName("is_active")

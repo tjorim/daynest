@@ -23,7 +23,6 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.api.dependencies.integration_auth import (
     enforce_integration_rate_limit,
-    ensure_integration_scope,
     get_integration_client_by_token_hash,
     hash_integration_key,
 )
@@ -44,8 +43,6 @@ DAYNEST_USER_EMAIL_ENV = "DAYNEST_USER_EMAIL"
 DAYNEST_MCP_RESOURCE_SERVER_URL_ENV = "DAYNEST_MCP_RESOURCE_SERVER_URL"
 
 T = TypeVar("T")
-MCP_READ_SCOPE = "mcp:read"
-MCP_WRITE_SCOPE = "mcp:write"
 
 
 def _parse_date(value: str | None) -> date:
@@ -110,18 +107,9 @@ def _integration_client_to_dict(client: IntegrationClient) -> dict[str, Any]:
     return {
         "id": client.id,
         "name": client.name,
-        "scopes": [scope for scope in client.scopes_csv.split(",") if scope],
         "rate_limit_per_minute": client.rate_limit_per_minute,
         "is_active": client.is_active,
     }
-
-
-def _require_write_scope() -> None:
-    token = get_access_token()
-    if token is None:
-        return  # unauthenticated dev mode — no restrictions
-    if MCP_WRITE_SCOPE not in (token.scopes or []):
-        raise PermissionError(f"Missing scope: {MCP_WRITE_SCOPE}")
 
 
 class DaynestMcpBackend:
@@ -242,21 +230,12 @@ class DaynestMcpBackend:
     def create_integration_client(
         self,
         name: str,
-        scopes: list[str],
         rate_limit_per_minute: int = 120,
     ) -> dict[str, Any]:
-        _require_write_scope()
         access_token = get_access_token()
         if getattr(access_token, "auth_source", None) == "integration":
             raise PermissionError("Integration tokens cannot create new integration clients")
 
-        normalized_scopes = sorted({scope.strip() for scope in scopes if scope.strip()})
-        if not normalized_scopes:
-            raise ValueError("At least one integration client scope is required")
-        if access_token is not None:
-            caller_scopes = set(getattr(access_token, "scopes", []) or [])
-            if not set(normalized_scopes).issubset(caller_scopes):
-                raise PermissionError("Requested scopes must be a subset of the caller's scopes")
         if not isinstance(rate_limit_per_minute, int) or rate_limit_per_minute <= 0:
             raise ValueError("rate_limit_per_minute must be a positive integer")
         if rate_limit_per_minute > 600:
@@ -269,7 +248,6 @@ class DaynestMcpBackend:
                 user_id=user.id,
                 name=name,
                 key_hash=hash_integration_key(raw_key),
-                scopes_csv=",".join(normalized_scopes),
                 rate_limit_per_minute=rate_limit_per_minute,
                 is_active=True,
             )
@@ -306,7 +284,6 @@ class DaynestMcpBackend:
         linked_source: str | None = None,
         linked_ref: str | None = None,
     ) -> dict[str, Any]:
-        _require_write_scope()
         request = PlannedItemCreateRequest(
             title=title,
             planned_for=_parse_date(planned_for),
@@ -330,7 +307,6 @@ class DaynestMcpBackend:
         linked_source: str | None = None,
         linked_ref: str | None = None,
     ) -> dict[str, Any]:
-        _require_write_scope()
         request = PlannedItemUpdateRequest(
             title=title,
             planned_for=_parse_date(planned_for),
@@ -344,34 +320,27 @@ class DaynestMcpBackend:
         return self._with_service(lambda _db, user, service: _jsonable(service.update_planned_item(user.id, planned_item_id, request)))
 
     def delete_planned_item(self, planned_item_id: int) -> dict[str, Any]:
-        _require_write_scope()
         self._with_service(lambda _db, user, service: service.delete_planned_item(user.id, planned_item_id))
         return {"deleted": True, "planned_item_id": planned_item_id}
 
     def complete_chore(self, chore_instance_id: int) -> dict[str, Any]:
-        _require_write_scope()
         return self._with_service(lambda _db, user, service: _jsonable(service.complete_chore(user.id, chore_instance_id)))
 
     def skip_chore(self, chore_instance_id: int) -> dict[str, Any]:
-        _require_write_scope()
         return self._with_service(lambda _db, user, service: _jsonable(service.skip_chore(user.id, chore_instance_id)))
 
     def reschedule_chore(self, chore_instance_id: int, scheduled_date: str) -> dict[str, Any]:
-        _require_write_scope()
         return self._with_service(
             lambda _db, user, service: _jsonable(service.reschedule_chore(user.id, chore_instance_id, _parse_date(scheduled_date)))
         )
 
     def start_routine_task(self, task_instance_id: int) -> dict[str, Any]:
-        _require_write_scope()
         return self._with_service(lambda _db, user, service: _jsonable(service.start_routine_task(user.id, task_instance_id)))
 
     def complete_routine_task(self, task_instance_id: int) -> dict[str, Any]:
-        _require_write_scope()
         return self._with_service(lambda _db, user, service: _jsonable(service.complete_routine_task(user.id, task_instance_id)))
 
     def skip_routine_task(self, task_instance_id: int) -> dict[str, Any]:
-        _require_write_scope()
         return self._with_service(lambda _db, user, service: _jsonable(service.skip_routine_task(user.id, task_instance_id)))
 
     def list_routines(self) -> list[dict[str, Any]]:
@@ -388,7 +357,6 @@ class DaynestMcpBackend:
         due_time: str | None = None,
         is_active: bool = True,
     ) -> dict[str, Any]:
-        _require_write_scope()
         parsed_start = _parse_date(start_date)
         parsed_due_time = time.fromisoformat(due_time) if due_time and due_time.strip() else None
         return self._with_service(
@@ -415,7 +383,6 @@ class DaynestMcpBackend:
         due_time: str | None = None,
         is_active: bool | None = None,
     ) -> dict[str, Any]:
-        _require_write_scope()
         parsed_start = _parse_date(start_date)
         parsed_due_time = time.fromisoformat(due_time) if due_time and due_time.strip() else None
         return self._with_service(
@@ -434,7 +401,6 @@ class DaynestMcpBackend:
         )
 
     def delete_routine(self, routine_template_id: int) -> dict[str, Any]:
-        _require_write_scope()
         self._with_service(lambda _db, user, service: service.delete_routine_template(user.id, routine_template_id))
         return {"deleted": True, "routine_template_id": routine_template_id}
 
@@ -451,7 +417,6 @@ class DaynestMcpBackend:
         description: str | None = None,
         is_active: bool = True,
     ) -> dict[str, Any]:
-        _require_write_scope()
         parsed_start = _parse_date(start_date)
         return self._with_service(
             lambda _db, user, service: _chore_template_to_dict(
@@ -475,7 +440,6 @@ class DaynestMcpBackend:
         description: str | None = None,
         is_active: bool | None = None,
     ) -> dict[str, Any]:
-        _require_write_scope()
         parsed_start = _parse_date(start_date)
         return self._with_service(
             lambda _db, user, service: _chore_template_to_dict(
@@ -492,16 +456,13 @@ class DaynestMcpBackend:
         )
 
     def delete_chore_template(self, chore_template_id: int) -> dict[str, Any]:
-        _require_write_scope()
         self._with_service(lambda _db, user, service: service.delete_chore_template(user.id, chore_template_id))
         return {"deleted": True, "chore_template_id": chore_template_id}
 
     def take_medication_dose(self, medication_dose_instance_id: int) -> dict[str, Any]:
-        _require_write_scope()
         return self._mutate_medication(medication_dose_instance_id, "take")
 
     def skip_medication_dose(self, medication_dose_instance_id: int) -> dict[str, Any]:
-        _require_write_scope()
         return self._mutate_medication(medication_dose_instance_id, "skip")
 
     def list_medications(self) -> list[dict[str, Any]]:
@@ -517,7 +478,6 @@ class DaynestMcpBackend:
         schedule_time: str,
         every_n_days: int = 1,
     ) -> dict[str, Any]:
-        _require_write_scope()
         parsed_start = date.fromisoformat(start_date)
         parsed_time = time.fromisoformat(schedule_time)
         return self._with_service(
@@ -543,7 +503,6 @@ class DaynestMcpBackend:
         every_n_days: int | None = None,
         is_active: bool | None = None,
     ) -> dict[str, Any]:
-        _require_write_scope()
         parsed_start = date.fromisoformat(start_date)
         parsed_time = time.fromisoformat(schedule_time)
         return self._with_service(
@@ -562,7 +521,6 @@ class DaynestMcpBackend:
         )
 
     def delete_medication(self, medication_plan_id: int) -> dict[str, Any]:
-        _require_write_scope()
         self._with_service(lambda _db, user, service: service.delete_medication_plan(user.id, medication_plan_id))
         return {"deleted": True, "medication_plan_id": medication_plan_id}
 
@@ -605,8 +563,6 @@ class DaynestMcpBackend:
 
 
 class IntegrationKeyTokenVerifier(TokenVerifier):
-    REQUIRED_SCOPE = MCP_READ_SCOPE
-
     def __init__(self, session_factory: Callable[[], Session], *, resource_server_url: str | None = None) -> None:
         self.session_factory = session_factory
         self.resource_server_url = resource_server_url
@@ -620,20 +576,14 @@ class IntegrationKeyTokenVerifier(TokenVerifier):
                 return None
 
             try:
-                ensure_integration_scope(client, self.REQUIRED_SCOPE)
-            except HTTPException:
-                return None
-
-            try:
                 enforce_integration_rate_limit(client)
             except HTTPException:
                 return None
 
-            scopes = [scope.strip() for scope in client.scopes_csv.split(",") if scope.strip()]
             return DaynestMcpAccessToken(
                 token=token,
                 client_id=str(client.id),
-                scopes=scopes,
+                scopes=[],
                 resource=self.resource_server_url,
                 auth_source="integration",
                 integration_client_id=client.id,
@@ -646,34 +596,6 @@ class DaynestMcpAccessToken(AccessToken):
     auth_source: Literal["integration", "oidc"]
     integration_client_id: int | None = None
     oidc_subject: str | None = None
-
-
-def _claim_strings(value: Any) -> list[str]:
-    if isinstance(value, str):
-        return [item for item in value.split() if item]
-    if isinstance(value, list):
-        return [str(item) for item in value if item is not None]
-    return []
-
-
-def _dedupe(values: list[str]) -> list[str]:
-    return list(dict.fromkeys(values))
-
-
-def _matches_resource_audience(audience: Any, resource_server_url: str | None) -> bool:
-    if not resource_server_url:
-        return False
-    expected = resource_server_url.rstrip("/")
-    return any(value.rstrip("/") == expected for value in _claim_strings(audience))
-
-
-def _authorized_mcp_scopes(claims: dict[str, Any], resource_server_url: str | None) -> list[str] | None:
-    scopes = _dedupe([*_claim_strings(claims.get("scope")), *_claim_strings(claims.get("scp"))])
-    if MCP_READ_SCOPE in scopes:
-        return scopes
-    if _matches_resource_audience(claims.get("aud"), resource_server_url):
-        return [*scopes, MCP_READ_SCOPE]
-    return None
 
 
 class OIDCMcpTokenVerifier(TokenVerifier):
@@ -695,10 +617,6 @@ class OIDCMcpTokenVerifier(TokenVerifier):
         subject: str | None = claims.get("sub")
         if not subject:
             return None
-        scopes = _authorized_mcp_scopes(claims, self.resource_server_url)
-        if scopes is None:
-            logger.debug("OIDC token for subject %s does not authorize MCP access", subject)
-            return None
 
         session = self.session_factory()
         try:
@@ -714,7 +632,7 @@ class OIDCMcpTokenVerifier(TokenVerifier):
         return DaynestMcpAccessToken(
             token=token,
             client_id=subject,
-            scopes=scopes,
+            scopes=[],
             resource=self.resource_server_url,
             auth_source="oidc",
             oidc_subject=subject,
@@ -740,7 +658,6 @@ def _build_auth_settings(resource_server_url: str) -> AuthSettings:
     return AuthSettings(
         issuer_url=AnyHttpUrl(issuer_url),
         resource_server_url=AnyHttpUrl(resource_server_url),
-        required_scopes=["mcp:read"],
     )
 
 
@@ -790,12 +707,11 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
     @mcp.tool()
     async def create_integration_client(
         name: str,
-        scopes: list[str],
         rate_limit_per_minute: int = 120,
     ) -> dict[str, Any]:
-        """Create an integration client and return its one-time API key."""
+        """Create a personal access token (integration client) and return its one-time API key."""
 
-        return await to_thread.run_sync(daynest.create_integration_client, name, scopes, rate_limit_per_minute)
+        return await to_thread.run_sync(daynest.create_integration_client, name, rate_limit_per_minute)
 
     @mcp.tool()
     async def get_today(for_date: str = "today") -> dict[str, Any]:

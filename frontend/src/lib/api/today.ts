@@ -294,14 +294,12 @@ export interface MedicationHistoryResponse {
 export interface IntegrationClient {
   id: number;
   name: string;
-  scopes: string[];
   rate_limit_per_minute: number;
   is_active: boolean;
 }
 
 export interface IntegrationClientInput {
   name: string;
-  scopes: string[];
   rate_limit_per_minute: number;
 }
 

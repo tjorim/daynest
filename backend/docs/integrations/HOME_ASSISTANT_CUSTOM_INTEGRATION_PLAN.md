@@ -8,7 +8,7 @@ Daynest already exposes a thin Home Assistant adapter in the backend API:
 - `GET /api/v1/integrations/home-assistant/entities`
 - `GET /api/v1/integrations/home-assistant/dashboard`
 
-These routes already enforce scoped integration auth (`ha:read`) and emit a versioned contract header, which gives us a stable base to build a real Home Assistant custom integration on top of.
+These routes already enforce integration auth and emit a versioned contract header, which gives us a stable base to build a real Home Assistant custom integration on top of.
 
 ## Template review
 

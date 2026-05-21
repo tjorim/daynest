@@ -20,65 +20,6 @@ import {
 } from "@/lib/api/auth";
 import { getCustomServerUrl, setCustomServerUrl } from "@/lib/api/serverConfig";
 
-const AVAILABLE_SCOPES = [
-  {
-    key: "ha:read",
-    label: "Home Assistant dashboard",
-    description: "Allows Home Assistant summary, entity, and dashboard reads.",
-  },
-  {
-    key: "ha:write",
-    label: "Home Assistant actions",
-    description:
-      "Allows Home Assistant services to complete tasks, snooze tasks, and mark medication taken.",
-  },
-  {
-    key: "mcp:read",
-    label: "MCP Adapter (read)",
-    description: "Allows MCP read tools: today view, calendar, planned items, routines, chores, medications.",
-  },
-  {
-    key: "mcp:write",
-    label: "MCP Adapter (write)",
-    description: "Allows MCP write tools: complete/skip/reschedule tasks, create/update/delete planned items, routines, chores, and medications.",
-  },
-];
-
-const INTEGRATION_PRESETS = [
-  {
-    key: "ha-dashboard",
-    label: "Home Assistant dashboard",
-    name: "Home Assistant",
-    scopes: ["ha:read"],
-    rateLimit: "120",
-    description: "Sensors, dashboard metrics, setup validation, and entity reads.",
-  },
-  {
-    key: "ha-automation",
-    label: "Home Assistant automations",
-    name: "Home Assistant Automations",
-    scopes: ["ha:read", "ha:write"],
-    rateLimit: "120",
-    description: "Everything in dashboard mode plus write services for household automations.",
-  },
-  {
-    key: "mcp-reader",
-    label: "MCP read-only",
-    name: "MCP Adapter",
-    scopes: ["mcp:read"],
-    rateLimit: "60",
-    description: "Least-privilege read access for MCP consumers.",
-  },
-  {
-    key: "mcp-full",
-    label: "MCP read + write",
-    name: "MCP Adapter",
-    scopes: ["mcp:read", "mcp:write"],
-    rateLimit: "60",
-    description: "Full MCP access including write tools (complete tasks, manage items, etc.).",
-  },
-];
-
 const HA_ENDPOINTS = [
   "GET /api/v1/integrations/home-assistant/summary",
   "GET /api/v1/integrations/home-assistant/dashboard",
@@ -106,7 +47,6 @@ export function SettingsPage() {
 
   const [name, setName] = useState("Home Assistant");
   const [rateLimit, setRateLimit] = useState("120");
-  const [selectedScopes, setSelectedScopes] = useState<string[]>(["ha:read"]);
 
   const [revokingClient, setRevokingClient] = useState<number | null>(null);
   const [revokeClientError, setRevokeClientError] = useState<string | null>(null);
@@ -254,29 +194,9 @@ export function SettingsPage() {
     return unsubscribe;
   }, []);
 
-  const toggleScope = (scope: string) => {
-    setSelectedScopes((current) =>
-      current.includes(scope) ? current.filter((item) => item !== scope) : [...current, scope],
-    );
-    setSubmitError(null);
-  };
-
-  const applyPreset = (preset: (typeof INTEGRATION_PRESETS)[number]) => {
-    setName(preset.name);
-    setRateLimit(preset.rateLimit);
-    setSelectedScopes(preset.scopes);
-    setSubmitError(null);
-    setSuccessMessage(null);
-  };
-
   const onCreateClient = async () => {
     if (!name.trim()) {
       setSubmitError("Client name is required.");
-      return;
-    }
-
-    if (selectedScopes.length === 0) {
-      setSubmitError("Select at least one scope.");
       return;
     }
 
@@ -293,7 +213,6 @@ export function SettingsPage() {
     try {
       const created = await createIntegrationClient({
         name: name.trim(),
-        scopes: selectedScopes,
         rate_limit_per_minute: parsedRateLimit,
       });
       setCreatedClient(created);
@@ -435,23 +354,6 @@ export function SettingsPage() {
           </div>
 
           <div className="card mb-3">
-            <div className="card-header fw-semibold py-2">Integration presets</div>
-            <div className="card-body d-grid gap-2">
-              {INTEGRATION_PRESETS.map((preset) => (
-                <button
-                  key={preset.key}
-                  type="button"
-                  className="btn btn-outline-primary text-start"
-                  onClick={() => applyPreset(preset)}
-                >
-                  <span className="fw-semibold d-block">{preset.label}</span>
-                  <span className="small text-muted">{preset.description}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="card mb-3">
             <div className="card-header fw-semibold py-2">Create integration client</div>
             <div className="card-body d-grid gap-3">
               <input
@@ -463,26 +365,6 @@ export function SettingsPage() {
                 }}
                 placeholder="Client name"
               />
-              <div>
-                <label className="form-label small fw-semibold mb-2">Scopes</label>
-                <div className="d-grid gap-2">
-                  {AVAILABLE_SCOPES.map((scope) => (
-                    <label key={scope.key} className="border rounded p-2">
-                      <div className="form-check">
-                        <input
-                          className="form-check-input"
-                          type="checkbox"
-                          checked={selectedScopes.includes(scope.key)}
-                          onChange={() => toggleScope(scope.key)}
-                          id={`scope-${scope.key}`}
-                        />
-                        <span className="form-check-label fw-semibold">{scope.label}</span>
-                      </div>
-                      <small className="text-muted d-block mt-1">{scope.description}</small>
-                    </label>
-                  ))}
-                </div>
-              </div>
               <div>
                 <label className="form-label small fw-semibold mb-1">Rate limit per minute</label>
                 <input
@@ -607,16 +489,7 @@ export function SettingsPage() {
                       <div>
                         <div className="fw-semibold">{client.name}</div>
                         <small className="text-muted d-block">
-                          {client.scopes.join(", ")} • {client.rate_limit_per_minute}/min
-                        </small>
-                        <small className="text-muted d-block mt-1">
-                          {[
-                            client.scopes.includes("ha:read") && "Home Assistant dashboard ready.",
-                            client.scopes.includes("ha:write") && "HA actions enabled.",
-                            client.scopes.includes("mcp:read") && "MCP adapter ready.",
-                          ]
-                            .filter(Boolean)
-                            .join(" ")}
+                          {client.rate_limit_per_minute}/min
                         </small>
                       </div>
                       <div className="d-flex align-items-center gap-2 flex-wrap justify-content-end">

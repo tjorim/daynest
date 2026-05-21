@@ -58,14 +58,12 @@ class HAActionResult(BaseModel):
 
 class IntegrationClientCreateRequest(BaseModel):
     name: str = Field(min_length=2, max_length=120)
-    scopes: list[str] = Field(min_length=1)
     rate_limit_per_minute: int = Field(default=120, ge=10, le=600)
 
 
 class IntegrationClientCreateResponse(BaseModel):
     id: int
     name: str
-    scopes: list[str]
     rate_limit_per_minute: int
     api_key: str
     client_id: str
@@ -77,13 +75,11 @@ class IntegrationClientTokenResponse(BaseModel):
     access_token: str
     token_type: str = "Bearer"
     expires_in: int
-    scope: str
 
 
 class IntegrationClientResponse(BaseModel):
     id: int
     name: str
-    scopes: list[str]
     rate_limit_per_minute: int
     is_active: bool
 

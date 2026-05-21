@@ -9,10 +9,8 @@ This guide describes the backend contract expected by the Daynest Home Assistant
   - `/realms/daynest/protocol/openid-connect/auth`
   - `/realms/daynest/protocol/openid-connect/token`
 - The OAuth client ID used by the integration is `home-assistant` (PKCE flow).
-- The authenticated token must include:
-  - `ha:read`
-  - `ha:write` (required for write services/actions)
-- Legacy integration-client keys remain supported for older consumers through `X-Integration-Key` and the integration client token endpoint.
+- Any valid authenticated token (OIDC or integration key) grants full access to the user's own data.
+- Legacy integration-client keys remain supported through `X-Integration-Key` and the integration client token endpoint.
 
 ## Base URL Requirements
 
@@ -99,7 +97,7 @@ Write behavior:
 
 Used by the `daynest.complete_task` Home Assistant service.
 
-- Requires `ha:write` scope
+- Requires authenticated Daynest connection
 - Request body: `{"chore_instance_id": <int>}`
 - Returns `{"success": true, "detail": "..."}`
 
@@ -107,7 +105,7 @@ Used by the `daynest.complete_task` Home Assistant service.
 
 Used by the `daynest.snooze_task` Home Assistant service.
 
-- Requires `ha:write` scope
+- Requires authenticated Daynest connection
 - Request body: `{"chore_instance_id": <int>, "days": <int, 1–30, default 1>}`
 - Returns `{"success": true, "detail": "..."}`
 
@@ -115,7 +113,7 @@ Used by the `daynest.snooze_task` Home Assistant service.
 
 Used by the `daynest.mark_medication_taken` Home Assistant service.
 
-- Requires `ha:write` scope
+- Requires authenticated Daynest connection
 - Request body: `{"medication_dose_id": <int>}`
 - Returns `{"success": true, "detail": "..."}`
 
@@ -123,7 +121,7 @@ Used by the `daynest.mark_medication_taken` Home Assistant service.
 
 Used by the `daynest.skip_task` Home Assistant service.
 
-- Requires `ha:write` scope
+- Requires authenticated Daynest connection
 - Request body: `{"chore_instance_id": <int>}`
 - Returns `{"success": true, "detail": "..."}`
 
@@ -131,7 +129,7 @@ Used by the `daynest.skip_task` Home Assistant service.
 
 Used by the `daynest.skip_medication` Home Assistant service.
 
-- Requires `ha:write` scope
+- Requires authenticated Daynest connection
 - Request body: `{"medication_dose_id": <int>}`
 - Returns `{"success": true, "detail": "..."}`
 
@@ -139,7 +137,7 @@ Used by the `daynest.skip_medication` Home Assistant service.
 
 Used by the Home Assistant to-do create-item flow.
 
-- Requires `ha:write` scope
+- Requires authenticated Daynest connection
 - Request body: `{"title": <str>, "planned_for": <YYYY-MM-DD>, "notes": <str|null>, ...}`
 - Returns `{"success": true, "detail": "Planned item <id> created"}`
 
@@ -147,7 +145,7 @@ Used by the Home Assistant to-do create-item flow.
 
 Used by the Home Assistant to-do update-item flow for planned items.
 
-- Requires `ha:write` scope
+- Requires authenticated Daynest connection
 - Request body: `{"title": <str>, "planned_for": <YYYY-MM-DD>, "is_done": <bool>, ...}`
 - Returns `{"success": true, "detail": "Planned item <id> updated"}`
 
@@ -155,17 +153,8 @@ Used by the Home Assistant to-do update-item flow for planned items.
 
 Used by the Home Assistant to-do delete-item flow for planned items.
 
-- Requires `ha:write` scope
+- Requires authenticated Daynest connection
 - Returns `{"success": true, "detail": "Planned item <id> deleted"}`
-
-## Auth Scopes
-
-| Scope | Required for |
-|-------|-------------|
-| `ha:read` | All GET endpoints (summary, dashboard, entities); required for setup |
-| `ha:write` | All write action endpoints (complete-task, snooze-task, mark-medication-taken, skip-task, skip-medication, create/update/delete planned-item) |
-
-Use least-privilege: create a read-only key (`ha:read`) for sensor-only setups and add `ha:write` only when you need automation write support.
 
 ## Common Errors
 
@@ -183,8 +172,7 @@ Checks for the automatic OAuth redirect setup:
 Checks for the legacy/manual client credentials setup:
 
 1. Verify the client ID and secret are copied exactly.
-2. Verify the client includes `ha:read` (and `ha:write` for write services).
-3. Rotate the client secret in Daynest and update Home Assistant if needed.
+2. Rotate the client secret in Daynest and update Home Assistant if needed.
 
 ### Network Errors
 
@@ -214,10 +202,8 @@ Checks:
 
 ## Validation Checklist
 
-- OAuth client includes `ha:read`
 - base URL is reachable from Home Assistant
 - token URL is reachable from Home Assistant
 - `/summary` returns `200 OK`, the contract header, and required summary fields
 - `/dashboard` returns `200 OK`, the contract header, and the expected dashboard payload
 - the integration loads without entity availability errors
-- (optional) OAuth client includes `ha:write` for service automation support

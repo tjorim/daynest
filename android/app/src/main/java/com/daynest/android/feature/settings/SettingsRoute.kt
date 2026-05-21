@@ -2,7 +2,6 @@
 
 package com.daynest.android.feature.settings
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -43,46 +42,6 @@ import com.daynest.android.ui.ServerUrlPicker
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-
-private data class IntegrationPreset(
-    val labelResId: Int,
-    val descriptionResId: Int,
-    val input: IntegrationClientInputDto,
-)
-
-private val INTEGRATION_PRESETS =
-    listOf(
-        IntegrationPreset(
-            labelResId = R.string.settings_preset_ha_dashboard,
-            descriptionResId = R.string.settings_preset_ha_dashboard_desc,
-            input =
-                IntegrationClientInputDto(
-                    name = "Home Assistant",
-                    scopes = listOf("ha:read"),
-                    rateLimitPerMinute = 120,
-                ),
-        ),
-        IntegrationPreset(
-            labelResId = R.string.settings_preset_ha_automations,
-            descriptionResId = R.string.settings_preset_ha_automations_desc,
-            input =
-                IntegrationClientInputDto(
-                    name = "Home Assistant Automations",
-                    scopes = listOf("ha:read", "ha:write"),
-                    rateLimitPerMinute = 120,
-                ),
-        ),
-        IntegrationPreset(
-            labelResId = R.string.settings_preset_mcp_readonly,
-            descriptionResId = R.string.settings_preset_mcp_readonly_desc,
-            input =
-                IntegrationClientInputDto(
-                    name = "MCP Adapter",
-                    scopes = listOf("mcp:read"),
-                    rateLimitPerMinute = 60,
-                ),
-        ),
-    )
 
 @Composable
 fun SettingsRoute(
@@ -204,35 +163,6 @@ private fun SettingsContent(
 
         item {
             HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-            Text(
-                text = stringResource(id = R.string.settings_presets_section),
-                style = MaterialTheme.typography.titleMedium,
-            )
-        }
-
-        items(INTEGRATION_PRESETS, key = { it.labelResId }) { preset ->
-            Card(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .clickable { onEvent(SettingsUiEvent.ShowCreateClientFormWithPreset(preset.input)) },
-            ) {
-                Column(modifier = Modifier.padding(12.dp)) {
-                    Text(
-                        text = stringResource(id = preset.labelResId),
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                    Text(
-                        text = stringResource(id = preset.descriptionResId),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline,
-                    )
-                }
-            }
-        }
-
-        item {
-            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -301,7 +231,6 @@ private fun SettingsContent(
 
     if (state.showCreateForm) {
         CreateClientDialog(
-            initialValues = state.createFormPreset,
             onConfirm = { onEvent(SettingsUiEvent.CreateClient(it)) },
             onDismiss = { onEvent(SettingsUiEvent.DismissCreateClientForm) },
         )
@@ -397,13 +326,6 @@ private fun IntegrationClientCard(client: IntegrationClientDto) {
                         },
                 )
             }
-            if (client.scopes.isNotEmpty()) {
-                Text(
-                    text = client.scopes.joinToString(", "),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.outline,
-                )
-            }
             Text(
                 text =
                     stringResource(
@@ -419,13 +341,11 @@ private fun IntegrationClientCard(client: IntegrationClientDto) {
 
 @Composable
 private fun CreateClientDialog(
-    initialValues: IntegrationClientInputDto? = null,
     onConfirm: (IntegrationClientInputDto) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    var name by remember(initialValues) { mutableStateOf(initialValues?.name ?: "") }
-    var scopes by remember(initialValues) { mutableStateOf(initialValues?.scopes?.joinToString(", ") ?: "") }
-    var rateLimit by remember(initialValues) { mutableStateOf(initialValues?.rateLimitPerMinute?.toString() ?: "60") }
+    var name by remember { mutableStateOf("") }
+    var rateLimit by remember { mutableStateOf("60") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -436,12 +356,6 @@ private fun CreateClientDialog(
                     value = name,
                     onValueChange = { name = it },
                     label = { Text(text = stringResource(id = R.string.settings_client_name_label)) },
-                    singleLine = true,
-                )
-                OutlinedTextField(
-                    value = scopes,
-                    onValueChange = { scopes = it },
-                    label = { Text(text = stringResource(id = R.string.settings_client_scopes_label)) },
                     singleLine = true,
                 )
                 OutlinedTextField(
@@ -459,7 +373,6 @@ private fun CreateClientDialog(
                         onConfirm(
                             IntegrationClientInputDto(
                                 name = name.trim(),
-                                scopes = scopes.split(",").map { it.trim() }.filter { it.isNotBlank() },
                                 rateLimitPerMinute = rateLimit.toIntOrNull() ?: 60,
                             ),
                         )
