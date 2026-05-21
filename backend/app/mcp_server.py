@@ -27,6 +27,7 @@ from app.api.dependencies.integration_auth import (
     hash_integration_key,
 )
 from app.core.config import settings
+from app.core.enums import Priority
 from app.db.session import SessionLocal
 from app.models.integration_client import IntegrationClient
 from app.models.user import User
@@ -455,7 +456,7 @@ class DaynestMcpBackend:
                     start_date=parsed_start,
                     every_n_days=every_n_days,
                     rrule=None,
-                    priority="normal",
+                    priority=Priority.normal,
                     tags=[],
                     description=description,
                     is_active=is_active,

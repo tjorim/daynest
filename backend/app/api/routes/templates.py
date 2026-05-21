@@ -134,7 +134,7 @@ def list_chore_templates(
     current_user: User = Depends(get_current_user),
 ) -> list[ChoreTemplateResponse]:
     repository = TodayRepository(db)
-    tag_list = [t.strip() for t in tags.split(",")] if tags else None
+    tag_list = [t.strip() for t in tags.split(",") if t.strip()] if tags else None
     return [_chore_to_response(item) for item in repository.list_chore_templates(current_user.id, tags=tag_list)]
 
 
