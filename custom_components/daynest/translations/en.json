@@ -10,6 +10,12 @@
       "reauth_confirm": {
         "title": "Re-authenticate with Daynest",
         "description": "Your Daynest session has expired or been revoked. Click Submit to sign in again."
+      },
+      "reconfigure": {
+        "description": "Update the Daynest server URL. You will be asked to sign in again after changing the URL.",
+        "data": {
+          "url": "Daynest base URL"
+        }
       }
     },
     "error": {
@@ -26,7 +32,14 @@
       "cannot_connect": "Unable to reach the Daynest host.",
       "timeout": "Connection to Daynest timed out.",
       "unsupported_contract": "The Daynest server contract version is not supported by this integration.",
-      "unknown": "Unknown error occurred."
+      "unknown": "Unknown error occurred.",
+      "account_mismatch": "The signed-in Daynest account does not match the configured account. Remove and re-add the integration to switch accounts."
+    }
+  },
+  "issues": {
+    "unsupported_contract_version": {
+      "title": "Unsupported Daynest backend version",
+      "description": "The Daynest backend returned an unsupported integration contract version (`{contract}`). Update the Daynest custom component to the latest version to restore sensor updates."
     }
   },
   "exceptions": {

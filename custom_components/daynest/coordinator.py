@@ -12,6 +12,7 @@ from daynest import (
     DaynestError,
     DaynestMalformedResponseError,
 )
+from homeassistant.components.repairs import IssueSeverity, async_create_issue, async_delete_issue
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
@@ -107,8 +108,18 @@ class DaynestDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         parsed_contract = parse_integration_contract_version(response.integration_contract)
         if parsed_contract not in SUPPORTED_INTEGRATION_CONTRACT_VERSIONS:
             unsupported_token = parsed_contract or response.integration_contract or "missing"
+            async_create_issue(
+                self.hass,
+                DOMAIN,
+                "unsupported_contract_version",
+                is_fixable=False,
+                severity=IssueSeverity.ERROR,
+                translation_key="unsupported_contract_version",
+                translation_placeholders={"contract": unsupported_token},
+            )
             raise UpdateFailed(f"Unsupported or missing integration contract version: {unsupported_token}")
 
+        async_delete_issue(self.hass, DOMAIN, "unsupported_contract_version")
         return self._normalize_dashboard(response.data.payload, parsed_contract)
 
 

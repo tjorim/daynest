@@ -149,6 +149,44 @@ class DaynestConfigFlowHandler(config_entry_oauth2_flow.AbstractOAuth2FlowHandle
             },
         )
 
+    async def async_step_reconfigure(
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> config_entries.ConfigFlowResult:
+        """Handle reconfiguration of the Daynest server URL."""
+        errors: dict[str, str] = {}
+        reconfigure_entry = self._get_reconfigure_entry()
+
+        if user_input is not None:
+            base_url = str(user_input[CONF_URL]).strip().rstrip("/")
+
+            oidc = await self._async_fetch_oidc_config(base_url)
+            if oidc is None:
+                errors[CONF_URL] = ERROR_CANNOT_CONNECT
+            else:
+                authorization_url, oidc_token_url, client_id = oidc
+                self.flow_impl = config_entry_oauth2_flow.LocalOAuth2ImplementationWithPkce(
+                    self.hass,
+                    DOMAIN,
+                    client_id,
+                    authorization_url,
+                    oidc_token_url,
+                )
+                self.context.update(
+                    {
+                        CONF_URL: base_url,
+                        CONF_AUTHORIZATION_URL: authorization_url,
+                        CONF_TOKEN_URL: oidc_token_url,
+                    }
+                )
+                return await self.async_step_auth()
+
+        return self.async_show_form(
+            step_id="reconfigure",
+            data_schema=_user_schema({CONF_URL: reconfigure_entry.data.get(CONF_URL, "")}),
+            errors=errors,
+        )
+
     async def async_step_reauth(
         self, entry_data: Mapping[str, Any]
     ) -> config_entries.ConfigFlowResult:
@@ -212,6 +250,21 @@ class DaynestConfigFlowHandler(config_entry_oauth2_flow.AbstractOAuth2FlowHandle
                 reauth_entry,
                 data={
                     **reauth_entry.data,
+                    **data,
+                    CONF_URL: base_url,
+                    CONF_AUTH_MODE: AUTH_MODE_OAUTH_REDIRECT,
+                    CONF_AUTHORIZATION_URL: str(self.context[CONF_AUTHORIZATION_URL]),
+                    CONF_TOKEN_URL: str(self.context[CONF_TOKEN_URL]),
+                },
+            )
+
+        if self.source == config_entries.SOURCE_RECONFIGURE:
+            reconfigure_entry = self._get_reconfigure_entry()
+            self._abort_if_unique_id_mismatch(reason="account_mismatch")
+            return self.async_update_reload_and_abort(
+                reconfigure_entry,
+                data={
+                    **reconfigure_entry.data,
                     **data,
                     CONF_URL: base_url,
                     CONF_AUTH_MODE: AUTH_MODE_OAUTH_REDIRECT,

@@ -212,16 +212,19 @@ rules:
       removed from calendar and todo entities. All icons now defined in
       `icons.json` under `entity.<platform>.<translation_key>.default`.
   reconfiguration-flow:
-    status: todo
+    status: done
     comment: >
-      No `async_step_reconfigure` implemented yet. Users cannot change the
-      Daynest server URL without removing and re-adding the integration.
+      `async_step_reconfigure` added to `config_flow.py`. Shows the current
+      URL pre-filled, re-fetches OIDC config, re-runs OAuth, and aborts with
+      `account_mismatch` if the signed-in account differs from the configured
+      one.
   repair-issues:
-    status: todo
+    status: done
     comment: >
-      No `repairs.py` implemented yet. Known recoverable errors (e.g. expired
-      token, unsupported contract version) could surface as HA repair issues
-      instead of silent failures.
+      `repairs.py` created. The coordinator raises an
+      `unsupported_contract_version` repair issue (non-fixable, severity
+      ERROR) when the backend returns an unrecognised contract version, and
+      clears it on the next successful poll.
   stale-devices:
     status: exempt
     comment: Same reason as `dynamic-devices`.
