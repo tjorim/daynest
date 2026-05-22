@@ -10,7 +10,16 @@ from daynest.exceptions import (
     DaynestServerUnavailableError,
     DaynestTimeoutError,
 )
-from daynest.models import DaynestApiResponse, DaynestDashboard, DaynestSummary
+from daynest.models import (
+    CalendarDay,
+    CalendarEvent,
+    ChoreTemplate,
+    DaynestApiResponse,
+    DaynestDashboard,
+    DaynestSummary,
+    PlannedItem,
+    RoutineTemplate,
+)
 
 __all__ = [
     "DaynestClient",
@@ -24,4 +33,9 @@ __all__ = [
     "DaynestApiResponse",
     "DaynestSummary",
     "DaynestDashboard",
+    "PlannedItem",
+    "RoutineTemplate",
+    "ChoreTemplate",
+    "CalendarDay",
+    "CalendarEvent",
 ]
