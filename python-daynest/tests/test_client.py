@@ -16,7 +16,7 @@ from daynest.exceptions import (
     DaynestServerUnavailableError,
     DaynestTimeoutError,
 )
-from daynest.models import CalendarDay, ChoreTemplate, DaynestDashboard, DaynestSummary, PlannedItem, RoutineTemplate
+from daynest.models import CalendarDay, CalendarEvent, ChoreTemplate, DaynestDashboard, DaynestSummary, PlannedItem, RoutineTemplate
 
 VALID_SUMMARY_PAYLOAD = {
     "sensor_daynest_chores_due": 2,
@@ -797,6 +797,24 @@ class TestDaynestClientTypedMethods:
         assert isinstance(day, CalendarDay)
         assert exported.startswith(b"BEGIN:VCALENDAR")
 
+    async def test_calendar_range_returns_typed_events(self) -> None:
+        first_day_response = _make_mock_response(
+            200,
+            {"date": "2026-01-01", "items": [{"item_type": "chore", "item_id": 1, "title": "Clean"}]},
+        )
+        second_day_response = _make_mock_response(
+            200,
+            {"date": "2026-01-02", "items": [{"item_type": "planned", "item_id": 2, "title": "Dinner"}]},
+        )
+        session = MagicMock(spec=aiohttp.ClientSession)
+        session.get = MagicMock(side_effect=[first_day_response, second_day_response])
+        client = DaynestClient(base_url="https://api.example", integration_key="key", session=session)
+
+        events = await client.async_get_calendar_range(date(2026, 1, 1), date(2026, 1, 2))
+
+        assert [event.title for event in events] == ["Clean", "Dinner"]
+        assert all(isinstance(event, CalendarEvent) for event in events)
+
 
 @pytest.mark.unit
 class TestDaynestClientCacheAndSSE:
@@ -824,6 +842,37 @@ class TestDaynestClientCacheAndSSE:
         await client.async_get_summary()
 
         assert session.get.call_count == 2
+
+    def test_cache_key_includes_auth_identity(self) -> None:
+        first_client = DaynestClient(base_url="https://api.example", integration_key="first-key", session=MagicMock())
+        second_client = DaynestClient(base_url="https://api.example", integration_key="second-key", session=MagicMock())
+
+        assert first_client._make_cache_key("async_get_summary", ()) != second_client._make_cache_key("async_get_summary", ())
+
+    async def test_sse_listener_passes_event_type_and_payload(self) -> None:
+        class _Stream:
+            def __aiter__(self):
+                async def _gen():
+                    yield b"event: ping\n"
+                    yield b"data: {\"alive\": true}\n"
+                    yield b"\n"
+                return _gen()
+
+        response = _make_mock_response(200, {})
+        response.content = _Stream()
+        session = MagicMock(spec=aiohttp.ClientSession)
+        session.get = MagicMock(return_value=response)
+        callback_called = asyncio.Event()
+        callback = AsyncMock(side_effect=lambda _event, _payload: callback_called.set())
+        client = DaynestClient(base_url="https://api.example", integration_key="token", session=session)
+
+        unsubscribe = await client.async_listen(callback)
+        try:
+            await asyncio.wait_for(callback_called.wait(), timeout=1)
+        finally:
+            unsubscribe()
+
+        callback.assert_awaited_with("ping", {"alive": True})
 
     async def test_sse_listener_calls_callback(self) -> None:
         class _Stream:

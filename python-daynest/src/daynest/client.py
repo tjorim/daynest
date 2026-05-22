@@ -7,10 +7,11 @@ import json
 import inspect
 import asyncio
 import copy
+import hashlib
 import time
 import weakref
 from collections.abc import Awaitable, Callable, Mapping
-from datetime import date
+from datetime import date, timedelta
 from typing import Any, TypeVar
 from urllib.parse import urlencode, urljoin
 
@@ -26,6 +27,7 @@ from daynest.exceptions import (
 )
 from daynest.models import (
     CalendarDay,
+    CalendarEvent,
     ChoreTemplate,
     DaynestApiResponse,
     DaynestDashboard,
@@ -82,6 +84,7 @@ class DaynestClient:
         self._client_secret = client_secret
         self._token_url = token_url
         self._access_token_getter = access_token_getter
+        self._cache_auth_identity = self._make_cache_auth_identity()
         self._cached_token: str | None = None
         self._token_expires_at: float = 0.0
         self._session = session
@@ -505,15 +508,28 @@ class DaynestClient:
         )
         return CalendarDay.from_day_dict(payload)
 
+    async def async_get_calendar_range(self, start: date, end: date) -> list[CalendarEvent]:
+        """Fetch typed calendar day items for an inclusive date range."""
+        if end < start:
+            msg = "end must be on or after start"
+            raise ValueError(msg)
+        events: list[CalendarEvent] = []
+        target_date = start
+        while target_date <= end:
+            day = await self.async_get_calendar_day(target_date)
+            events.extend(day.items)
+            target_date += timedelta(days=1)
+        return events
+
     async def async_export_calendar_ics(self) -> bytes:
         """Export calendar iCalendar bytes."""
         return await self._cached_call("async_export_calendar_ics", lambda: self._request_bytes("/api/v1/calendar/export.ics"))
 
-    async def async_subscribe_today_updates(
+    async def async_listen(
         self,
-        callback: Callable[[dict[str, Any]], Awaitable[None]],
+        callback: Callable[[str, dict[str, Any]], Awaitable[None]],
     ) -> Callable[[], None]:
-        """Subscribe to today SSE updates and return an unsubscribe callable."""
+        """Subscribe to SSE updates and return an unsubscribe callable."""
         if not self._enable_sse:
             return lambda: None
 
@@ -546,20 +562,19 @@ class DaynestClient:
                                 return
                             line = raw_line.decode("utf-8").strip()
                             if not line:
-                                if event_name == "today_updated":
-                                    payload: dict[str, Any]
-                                    try:
-                                        payload = json.loads("\n".join(data_lines)) if data_lines else {}
-                                    except ValueError:
-                                        payload = {}
-                                    try:
-                                        await callback(payload)
-                                    except Exception:  # noqa: BLE001
-                                        logger.exception(
-                                            "SSE callback failed for event %s with payload %r",
-                                            event_name,
-                                            payload,
-                                        )
+                                payload: dict[str, Any]
+                                try:
+                                    payload = json.loads("\n".join(data_lines)) if data_lines else {}
+                                except ValueError:
+                                    payload = {}
+                                try:
+                                    await callback(event_name, payload)
+                                except Exception:  # noqa: BLE001
+                                    logger.exception(
+                                        "SSE callback failed for event %s with payload %r",
+                                        event_name,
+                                        payload,
+                                    )
                                 event_name = "message"
                                 data_lines = []
                                 continue
@@ -584,6 +599,17 @@ class DaynestClient:
 
         return _unsubscribe
 
+    async def async_subscribe_today_updates(
+        self,
+        callback: Callable[[dict[str, Any]], Awaitable[None]],
+    ) -> Callable[[], None]:
+        """Subscribe to today SSE updates and return an unsubscribe callable."""
+        async def _today_callback(event_name: str, payload: dict[str, Any]) -> None:
+            if event_name == "today_updated":
+                await callback(payload)
+
+        return await self.async_listen(_today_callback)
+
     def _session_or_raise(self) -> aiohttp.ClientSession:
         if self._session is None:
             msg = "No active session — use 'async with DaynestClient(...) as client' or supply a session"
@@ -603,9 +629,19 @@ class DaynestClient:
             raise DaynestServerUnavailableError(msg)
         response.raise_for_status()
 
+    def _make_cache_auth_identity(self) -> str:
+        if self._access_token_getter is not None:
+            return f"external:{id(self._access_token_getter)}"
+        if self._client_id and self._token_url:
+            return f"oauth:{self._client_id}:{self._token_url}"
+        if self._integration_key:
+            digest = hashlib.sha256(self._integration_key.encode()).hexdigest()
+            return f"integration-key:{digest}"
+        return "anonymous"
+
     def _make_cache_key(self, method_name: str, args: tuple[Any, ...]) -> str:
         serialized = json.dumps(args, sort_keys=True, default=str)
-        return f"{method_name}:{serialized}"
+        return f"{self._cache_auth_identity}:{method_name}:{serialized}"
 
     async def _get_cache_lock(self, cache_key: str) -> asyncio.Lock:
         async with self._cache_locks_guard:
