@@ -3,12 +3,12 @@ from hashlib import sha256
 from datetime import datetime, time, timedelta, timezone
 
 import pytest
-from fastmcp.server.auth.providers.keycloak import KeycloakAuthProvider
+from fastmcp.server.auth import AccessToken
 
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.api.dependencies.integration_auth import hash_integration_key
-from app.mcp_server import DaynestMcpAccessToken, DaynestMcpBackend, IntegrationKeyTokenVerifier, OIDCMcpTokenVerifier, create_mcp_server
+from app.mcp_server import DaynestMcpBackend, IntegrationKeyTokenVerifier, create_mcp_server
 from app.models.chore_template import ChoreTemplate
 from app.models.integration_client import IntegrationClient
 from app.models.medication_dose_instance import MedicationDoseInstance
@@ -318,21 +318,22 @@ def test_integration_key_token_verifier_accepts_valid_key(db_session: Session) -
 
     assert token is not None
     assert token.client_id == str(client.id)
-    assert token.auth_source == "integration"
-    assert token.integration_client_id == client.id
-    assert token.resource == "https://daynest.example.com/mcp"
+    assert token.claims.get("auth_source") == "integration"
+    assert token.claims.get("integration_client_id") == client.id
 
 
 def test_mcp_backend_uses_authenticated_integration_owner(db_session: Session, monkeypatch) -> None:
     user = _create_user(db_session, "auth-owner@example.com")
     client = _create_integration_client(db_session, user, raw_key="daynest_auth_owner")
     backend = DaynestMcpBackend(_session_factory(db_session))
-    access_token = DaynestMcpAccessToken(
+    access_token = AccessToken(
         token="token",
         client_id=str(client.id),
         scopes=[],
-        auth_source="integration",
-        integration_client_id=client.id,
+        claims={
+            "auth_source": "integration",
+            "integration_client_id": client.id,
+        },
     )
 
     monkeypatch.setattr("app.mcp_server.get_access_token", lambda: access_token)
@@ -347,12 +348,11 @@ def test_mcp_backend_resolves_oidc_numeric_subject(db_session: Session, monkeypa
     user.oidc_subject = "123456"
     db_session.commit()
     backend = DaynestMcpBackend(_session_factory(db_session))
-    access_token = DaynestMcpAccessToken(
+    access_token = AccessToken(
         token="token",
         client_id="123456",
         scopes=[],
-        auth_source="oidc",
-        oidc_subject="123456",
+        claims={"sub": "123456"},
     )
 
     monkeypatch.setattr("app.mcp_server.get_access_token", lambda: access_token)
@@ -366,48 +366,12 @@ def test_mcp_backend_rejects_authenticated_token_without_client_id(db_session: S
     _create_user(db_session, "missing-subject@example.com")
     backend = DaynestMcpBackend(_session_factory(db_session))
 
-    access_token = DaynestMcpAccessToken(token="token", client_id="", scopes=[], auth_source="oidc")
+    access_token = AccessToken(token="token", client_id="", scopes=[], claims={})
 
     monkeypatch.setattr("app.mcp_server.get_access_token", lambda: access_token)
 
     with pytest.raises(ValueError, match="missing a subject"):
         backend.whoami()
-
-
-def test_oidc_mcp_token_verifier_accepts_valid_oidc_token(db_session: Session, monkeypatch) -> None:
-    async def decode_oidc_token(_token: str) -> dict[str, str]:
-        return {
-            "sub": "oidc-subject",
-            "email": "oidc@example.com",
-        }
-
-    monkeypatch.setattr("app.core.oidc.decode_oidc_token", decode_oidc_token)
-    verifier = OIDCMcpTokenVerifier(_session_factory(db_session), resource_server_url="https://daynest.example.com/mcp")
-
-    token = asyncio.run(verifier.verify_token("oidc-token"))
-
-    assert token is not None
-    assert token.auth_source == "oidc"
-    assert token.oidc_subject == "oidc-subject"
-    assert token.scopes == []
-
-
-def test_oidc_mcp_token_verifier_accepts_resource_audience(db_session: Session, monkeypatch) -> None:
-    async def decode_oidc_token(_token: str) -> dict[str, str | list[str]]:
-        return {
-            "sub": "aud-subject",
-            "email": "aud@example.com",
-            "scp": ["openid"],
-            "aud": ["https://daynest.example.com/mcp"],
-        }
-
-    monkeypatch.setattr("app.core.oidc.decode_oidc_token", decode_oidc_token)
-    verifier = OIDCMcpTokenVerifier(_session_factory(db_session), resource_server_url="https://daynest.example.com/mcp")
-
-    token = asyncio.run(verifier.verify_token("oidc-token"))
-
-    assert token is not None
-    assert token.scopes == []
 
 
 def test_mcp_backend_can_list_routines(db_session: Session) -> None:
@@ -608,7 +572,6 @@ def test_create_mcp_server_uses_backend_session_factory(db_session: Session) -> 
 
     mcp = create_mcp_server(backend)
 
-    assert isinstance(mcp.auth, KeycloakAuthProvider)
-    token_verifier = mcp.auth.token_verifier
-    assert token_verifier is not None
-    assert [verifier.session_factory for verifier in token_verifier._verifiers] == [session_factory, session_factory]  # noqa: SLF001
+    # Without OIDC configured, auth is the integration verifier directly
+    assert isinstance(mcp.auth, IntegrationKeyTokenVerifier)
+    assert mcp.auth.session_factory == session_factory
