@@ -248,6 +248,7 @@ async def async_setup_entry(
             base_url=base_url,
             access_token_getter=_access_token_getter,
             session=async_get_clientsession(hass),
+            cache_ttl=30,
         )
     else:
         missing_keys = [
@@ -267,6 +268,7 @@ async def async_setup_entry(
             client_secret=entry.data[CONF_CLIENT_SECRET],
             token_url=token_url,
             session=async_get_clientsession(hass),
+            cache_ttl=30,
         )
 
     coordinator = DaynestDataUpdateCoordinator(

@@ -16,7 +16,7 @@ from daynest.exceptions import (
     DaynestServerUnavailableError,
     DaynestTimeoutError,
 )
-from daynest.models import DaynestDashboard, DaynestSummary
+from daynest.models import CalendarDay, ChoreTemplate, DaynestDashboard, DaynestSummary, PlannedItem, RoutineTemplate
 
 VALID_SUMMARY_PAYLOAD = {
     "sensor_daynest_chores_due": 2,
@@ -35,6 +35,22 @@ VALID_DASHBOARD_PAYLOAD = {
     "medication_due_count": 1,
     "completion_ratio": 0.5,
     "next_medication": "08:00",
+}
+
+VALID_PLANNED_ITEM_PAYLOAD = {
+    "id": 10,
+    "title": "Plan dinner",
+    "planned_for": "2026-01-15",
+    "notes": "With rice",
+    "module_key": None,
+    "recurrence_hint": None,
+    "rrule": None,
+    "recurrence_series_id": None,
+    "linked_source": None,
+    "linked_ref": None,
+    "priority": "normal",
+    "tags": ["food"],
+    "is_done": False,
 }
 
 CONTRACT_HEADER = "home-assistant; version=ha.v1"
@@ -512,27 +528,33 @@ class TestDaynestClientWriteMethods:
         assert call_kwargs["json"] == {"medication_dose_id": 9}
 
     async def test_create_planned_item_uses_expected_payload(self) -> None:
-        response = _make_mock_response(200, {"success": True, "detail": "Planned item 10 created"})
+        response = _make_mock_response(200, VALID_PLANNED_ITEM_PAYLOAD)
         session = MagicMock(spec=aiohttp.ClientSession)
         session.post = MagicMock(return_value=response)
         client = DaynestClient(base_url="https://api.example", integration_key="key", session=session)
 
-        await client.async_create_planned_item(title="Plan dinner", planned_for="2026-01-15", notes="With rice")
+        result = await client.async_create_planned_item(title="Plan dinner", planned_for="2026-01-15", notes="With rice")
 
         call_kwargs = session.post.call_args[1]
         assert call_kwargs["json"] == {
             "title": "Plan dinner",
             "planned_for": "2026-01-15",
             "notes": "With rice",
+            "priority": "normal",
+            "tags": [],
+            "rrule": None,
         }
+        assert isinstance(result, PlannedItem)
+        assert result.id == 10
+        assert session.post.call_args[0][0].endswith("/api/v1/planned-items")
 
     async def test_update_planned_item_uses_expected_payload(self) -> None:
-        response = _make_mock_response(200, {"success": True, "detail": "Planned item 10 updated"})
+        response = _make_mock_response(200, {**VALID_PLANNED_ITEM_PAYLOAD, "is_done": True})
         session = MagicMock(spec=aiohttp.ClientSession)
         session.put = MagicMock(return_value=response)
         client = DaynestClient(base_url="https://api.example", integration_key="key", session=session)
 
-        await client.async_update_planned_item(
+        result = await client.async_update_planned_item(
             planned_item_id=10,
             title="Plan dinner",
             planned_for="2026-01-16",
@@ -544,9 +566,11 @@ class TestDaynestClientWriteMethods:
         assert call_kwargs["json"]["title"] == "Plan dinner"
         assert call_kwargs["json"]["planned_for"] == "2026-01-16"
         assert call_kwargs["json"]["is_done"] is True
+        assert isinstance(result, PlannedItem)
+        assert session.put.call_args[0][0].endswith("/api/v1/planned-items/10")
 
     async def test_delete_planned_item_uses_expected_endpoint(self) -> None:
-        response = _make_mock_response(200, {"success": True, "detail": "Planned item 10 deleted"})
+        response = _make_mock_response(204, {})
         session = MagicMock(spec=aiohttp.ClientSession)
         session.delete = MagicMock(return_value=response)
         client = DaynestClient(base_url="https://api.example", integration_key="key", session=session)
@@ -554,7 +578,7 @@ class TestDaynestClientWriteMethods:
         await client.async_delete_planned_item(planned_item_id=10)
 
         call_args = session.delete.call_args[0]
-        assert call_args[0].endswith("/api/v1/integrations/home-assistant/actions/delete-planned-item/10")
+        assert call_args[0].endswith("/api/v1/planned-items/10")
 
 
 VALID_CALENDAR_PAYLOAD = [
@@ -665,3 +689,145 @@ class TestDaynestClientCalendarMethods:
         result = await client.async_get_calendar(date(2026, 5, 1), date(2026, 5, 31))
 
         assert result == []
+
+
+@pytest.mark.unit
+class TestDaynestClientTypedMethods:
+    async def test_list_planned_items_returns_typed_items(self) -> None:
+        response = _make_mock_response(200, [VALID_PLANNED_ITEM_PAYLOAD])
+        session = MagicMock(spec=aiohttp.ClientSession)
+        session.get = MagicMock(return_value=response)
+        client = DaynestClient(base_url="https://api.example", integration_key="key", session=session)
+
+        result = await client.async_list_planned_items(date(2026, 1, 1), date(2026, 1, 31))
+
+        assert len(result) == 1
+        assert isinstance(result[0], PlannedItem)
+        assert "start_date=2026-01-01" in session.get.call_args[0][0]
+
+    async def test_routine_template_methods_return_typed_models(self) -> None:
+        routine_payload = {
+            "id": 1,
+            "name": "Morning routine",
+            "description": None,
+            "start_date": "2026-01-01",
+            "every_n_days": 1,
+            "rrule": None,
+            "due_time": "08:00:00",
+            "is_active": True,
+            "created_at": "2026-01-01T00:00:00",
+        }
+        list_response = _make_mock_response(200, [routine_payload])
+        create_response = _make_mock_response(200, routine_payload)
+        session = MagicMock(spec=aiohttp.ClientSession)
+        session.get = MagicMock(return_value=list_response)
+        session.post = MagicMock(return_value=create_response)
+        client = DaynestClient(base_url="https://api.example", integration_key="key", session=session)
+
+        listed = await client.async_list_routine_templates()
+        created = await client.async_create_routine_template("Morning routine", 1, date(2026, 1, 1))
+
+        assert isinstance(listed[0], RoutineTemplate)
+        assert isinstance(created, RoutineTemplate)
+
+    async def test_chore_template_methods_return_typed_models(self) -> None:
+        chore_payload = {
+            "id": 2,
+            "name": "Clean kitchen",
+            "description": None,
+            "start_date": "2026-01-01",
+            "every_n_days": 2,
+            "rrule": None,
+            "priority": "normal",
+            "tags": ["home"],
+            "is_active": True,
+            "created_at": "2026-01-01T00:00:00",
+        }
+        list_response = _make_mock_response(200, [chore_payload])
+        create_response = _make_mock_response(200, chore_payload)
+        session = MagicMock(spec=aiohttp.ClientSession)
+        session.get = MagicMock(return_value=list_response)
+        session.post = MagicMock(return_value=create_response)
+        client = DaynestClient(base_url="https://api.example", integration_key="key", session=session)
+
+        listed = await client.async_list_chore_templates()
+        created = await client.async_create_chore_template("Clean kitchen", 2, date(2026, 1, 1))
+
+        assert isinstance(listed[0], ChoreTemplate)
+        assert isinstance(created, ChoreTemplate)
+
+    async def test_calendar_day_month_and_export_methods(self) -> None:
+        month_response = _make_mock_response(
+            200,
+            {"year": 2026, "month": 1, "days": [{"date": "2026-01-01", "total": 1, "routines": 0, "chores": 1, "medications": 0, "planned": 0}]},
+        )
+        day_response = _make_mock_response(
+            200,
+            {"date": "2026-01-01", "items": [{"item_type": "chore", "item_id": 1, "title": "Clean", "status": "pending"}]},
+        )
+        ics_response = _make_mock_response(200, {})
+        ics_response.read = AsyncMock(return_value=b"BEGIN:VCALENDAR")
+        session = MagicMock(spec=aiohttp.ClientSession)
+        session.get = MagicMock(side_effect=[month_response, day_response, ics_response])
+        client = DaynestClient(base_url="https://api.example", integration_key="key", session=session)
+
+        month = await client.async_get_calendar_month(2026, 1)
+        day = await client.async_get_calendar_day(date(2026, 1, 1))
+        exported = await client.async_export_calendar_ics()
+
+        assert isinstance(month[0], CalendarDay)
+        assert isinstance(day, CalendarDay)
+        assert exported.startswith(b"BEGIN:VCALENDAR")
+
+
+@pytest.mark.unit
+class TestDaynestClientCacheAndSSE:
+    async def test_cache_hit_returns_cached_value(self) -> None:
+        response = _make_mock_response(200, VALID_SUMMARY_PAYLOAD)
+        session = MagicMock(spec=aiohttp.ClientSession)
+        session.get = MagicMock(return_value=response)
+        client = DaynestClient(base_url="https://api.example", integration_key="key", session=session, cache_ttl=30)
+
+        await client.async_get_summary()
+        await client.async_get_summary()
+
+        assert session.get.call_count == 1
+
+    async def test_mutation_clears_cache(self) -> None:
+        summary_response = _make_mock_response(200, VALID_SUMMARY_PAYLOAD)
+        write_response = _make_mock_response(200, VALID_ACTION_RESPONSE)
+        session = MagicMock(spec=aiohttp.ClientSession)
+        session.get = MagicMock(return_value=summary_response)
+        session.post = MagicMock(return_value=write_response)
+        client = DaynestClient(base_url="https://api.example", integration_key="key", session=session, cache_ttl=30)
+
+        await client.async_get_summary()
+        await client.async_complete_task(1)
+        await client.async_get_summary()
+
+        assert session.get.call_count == 2
+
+    async def test_sse_listener_calls_callback(self) -> None:
+        class _Stream:
+            def __init__(self, lines: list[bytes]) -> None:
+                self._lines = lines
+
+            def __aiter__(self):
+                async def _gen():
+                    for line in self._lines:
+                        yield line
+                return _gen()
+
+        response = _make_mock_response(200, {})
+        response.content = _Stream([b"event: today_updated\n", b"data: {\"ping\": true}\n", b"\n"])
+        session = MagicMock(spec=aiohttp.ClientSession)
+        session.get = MagicMock(return_value=response)
+        callback = AsyncMock()
+        client = DaynestClient(base_url="https://api.example", integration_key="token", session=session)
+
+        unsubscribe = await client.async_subscribe_today_updates(callback)
+        await asyncio.sleep(0.05)
+        unsubscribe()
+        await asyncio.sleep(0)
+
+        callback.assert_awaited()
