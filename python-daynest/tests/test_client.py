@@ -822,12 +822,14 @@ class TestDaynestClientCacheAndSSE:
         response.content = _Stream([b"event: today_updated\n", b"data: {\"ping\": true}\n", b"\n"])
         session = MagicMock(spec=aiohttp.ClientSession)
         session.get = MagicMock(return_value=response)
-        callback = AsyncMock()
+        callback_called = asyncio.Event()
+        callback = AsyncMock(side_effect=lambda _payload: callback_called.set())
         client = DaynestClient(base_url="https://api.example", integration_key="token", session=session)
 
         unsubscribe = await client.async_subscribe_today_updates(callback)
-        await asyncio.sleep(0.05)
-        unsubscribe()
-        await asyncio.sleep(0)
+        try:
+            await asyncio.wait_for(callback_called.wait(), timeout=1)
+        finally:
+            unsubscribe()
 
         callback.assert_awaited()

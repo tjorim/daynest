@@ -117,6 +117,14 @@ def _parse_time(value: Any, *, field: str) -> time:
     raise DaynestMalformedResponseError(msg)
 
 
+def _require(payload: dict[str, Any], key: str, *, context: str) -> Any:
+    try:
+        return payload[key]
+    except KeyError as err:
+        msg = f"Malformed {context} payload: missing required key ({key})"
+        raise DaynestMalformedResponseError(msg) from err
+
+
 @dataclass(slots=True, frozen=True)
 class PlannedItem:
     """Typed model for a planned item."""
@@ -154,9 +162,9 @@ class PlannedItem:
                 msg = "Malformed planned item payload: recurrence_series_id must be a UUID"
                 raise DaynestMalformedResponseError(msg) from err
         return cls(
-            id=int(payload["id"]),
-            title=str(payload["title"]),
-            planned_for=_parse_date(payload["planned_for"], field="planned_for"),
+            id=int(_require(payload, "id", context="planned item")),
+            title=str(_require(payload, "title", context="planned item")),
+            planned_for=_parse_date(_require(payload, "planned_for", context="planned item"), field="planned_for"),
             notes=payload.get("notes") if isinstance(payload.get("notes"), str) else None,
             module_key=payload.get("module_key") if isinstance(payload.get("module_key"), str) else None,
             recurrence_hint=payload.get("recurrence_hint") if isinstance(payload.get("recurrence_hint"), str) else None,
@@ -191,15 +199,15 @@ class RoutineTemplate:
             raise DaynestMalformedResponseError(msg)
         due_time = payload.get("due_time")
         return cls(
-            id=int(payload["id"]),
-            name=str(payload["name"]),
+            id=int(_require(payload, "id", context="routine template")),
+            name=str(_require(payload, "name", context="routine template")),
             description=payload.get("description") if isinstance(payload.get("description"), str) else None,
-            start_date=_parse_date(payload["start_date"], field="start_date"),
-            every_n_days=int(payload["every_n_days"]),
+            start_date=_parse_date(_require(payload, "start_date", context="routine template"), field="start_date"),
+            every_n_days=int(_require(payload, "every_n_days", context="routine template")),
             rrule=payload.get("rrule") if isinstance(payload.get("rrule"), str) else None,
             due_time=_parse_time(due_time, field="due_time") if due_time is not None else None,
             is_active=bool(payload.get("is_active", True)),
-            created_at=_parse_datetime(payload["created_at"], field="created_at"),
+            created_at=_parse_datetime(_require(payload, "created_at", context="routine template"), field="created_at"),
         )
 
 
@@ -226,16 +234,16 @@ class ChoreTemplate:
         tags = payload.get("tags")
         tag_values = tuple(str(item) for item in tags) if isinstance(tags, list) else ()
         return cls(
-            id=int(payload["id"]),
-            name=str(payload["name"]),
+            id=int(_require(payload, "id", context="chore template")),
+            name=str(_require(payload, "name", context="chore template")),
             description=payload.get("description") if isinstance(payload.get("description"), str) else None,
-            start_date=_parse_date(payload["start_date"], field="start_date"),
-            every_n_days=int(payload["every_n_days"]),
+            start_date=_parse_date(_require(payload, "start_date", context="chore template"), field="start_date"),
+            every_n_days=int(_require(payload, "every_n_days", context="chore template")),
             rrule=payload.get("rrule") if isinstance(payload.get("rrule"), str) else None,
             priority=str(payload.get("priority", "normal")),
             tags=tag_values,
             is_active=bool(payload.get("is_active", True)),
-            created_at=_parse_datetime(payload["created_at"], field="created_at"),
+            created_at=_parse_datetime(_require(payload, "created_at", context="chore template"), field="created_at"),
         )
 
 
@@ -264,9 +272,9 @@ class CalendarEvent:
         scheduled_at_raw = payload.get("scheduled_at")
         scheduled_date_raw = payload.get("scheduled_date")
         return cls(
-            item_type=str(payload["item_type"]),
-            item_id=int(payload["item_id"]),
-            title=str(payload["title"]),
+            item_type=str(_require(payload, "item_type", context="calendar event")),
+            item_id=int(_require(payload, "item_id", context="calendar event")),
+            title=str(_require(payload, "title", context="calendar event")),
             status=str(payload.get("status", "")),
             scheduled_at=_parse_datetime(scheduled_at_raw, field="scheduled_at") if scheduled_at_raw is not None else None,
             scheduled_date=_parse_date(scheduled_date_raw, field="scheduled_date") if scheduled_date_raw is not None else None,
@@ -305,7 +313,7 @@ class CalendarDay:
             if isinstance(item, dict):
                 events.append(CalendarEvent.from_dict(item))
         return cls(
-            date=_parse_date(payload["date"], field="date"),
+            date=_parse_date(_require(payload, "date", context="calendar day"), field="date"),
             items=tuple(events),
             total=len(events),
             routines=0,
@@ -320,7 +328,7 @@ class CalendarDay:
             msg = "Malformed calendar month day payload: expected JSON object"
             raise DaynestMalformedResponseError(msg)
         return cls(
-            date=_parse_date(payload["date"], field="date"),
+            date=_parse_date(_require(payload, "date", context="calendar month day"), field="date"),
             items=tuple(),
             total=int(payload.get("total", 0)),
             routines=int(payload.get("routines", 0)),

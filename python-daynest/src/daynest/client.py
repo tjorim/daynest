@@ -6,7 +6,9 @@ import logging
 import json
 import inspect
 import asyncio
+import copy
 import time
+import weakref
 from collections.abc import Awaitable, Callable, Mapping
 from datetime import date
 from typing import Any, TypeVar
@@ -87,7 +89,7 @@ class DaynestClient:
         self._context_depth = 0
         self._cache_ttl = max(0, int(cache_ttl))
         self._cache: dict[str, tuple[Any, float]] = {}
-        self._cache_locks: dict[str, asyncio.Lock] = {}
+        self._cache_locks: weakref.WeakValueDictionary[str, asyncio.Lock] = weakref.WeakValueDictionary()
         self._cache_locks_guard = asyncio.Lock()
         self._enable_sse = enable_sse
 
@@ -541,7 +543,14 @@ class DaynestClient:
                                         payload = json.loads("\n".join(data_lines)) if data_lines else {}
                                     except ValueError:
                                         payload = {}
-                                    await callback(payload)
+                                    try:
+                                        await callback(payload)
+                                    except Exception:  # noqa: BLE001
+                                        logger.exception(
+                                            "SSE callback failed for event %s with payload %r",
+                                            event_name,
+                                            payload,
+                                        )
                                 event_name = "message"
                                 data_lines = []
                                 continue
@@ -607,15 +616,15 @@ class DaynestClient:
         now = time.monotonic()
         cached = self._cache.get(cache_key)
         if cached is not None and cached[1] > now:
-            return cached[0]
+            return copy.deepcopy(cached[0])
         lock = await self._get_cache_lock(cache_key)
         async with lock:
             cached = self._cache.get(cache_key)
             now = time.monotonic()
             if cached is not None and cached[1] > now:
-                return cached[0]
+                return copy.deepcopy(cached[0])
             result = await call()
-            self._cache[cache_key] = (result, now + self._cache_ttl)
+            self._cache[cache_key] = (copy.deepcopy(result), now + self._cache_ttl)
             return result
 
     def _clear_cache(self) -> None:
