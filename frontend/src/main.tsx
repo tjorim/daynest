@@ -13,12 +13,35 @@ import { AppRouter } from "@/app/router/AppRouter";
 import { AuthProvider, useAuth } from "@/app/providers/AuthProvider";
 import { fetchOidcConfig } from "@/config/oidc";
 import { ThemeProvider, useTheme } from "@/app/theme/ThemeContext";
+import { useOnlineStatus } from "@/app/pwa/useOnlineStatus";
+import { drain as drainOfflineQueue, getQueuedCount } from "@/lib/offlineQueue";
 import { SearchOverlay } from "@/features/search/SearchOverlay";
 
 function App() {
   const { isAuthenticated, isLoading, logout, user } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const isOnline = useOnlineStatus();
+  const [queuedCount, setQueuedCount] = React.useState(() => getQueuedCount());
   const [searchOpen, setSearchOpen] = React.useState(false);
+
+  React.useEffect(() => {
+    if (isOnline && getQueuedCount() > 0) {
+      drainOfflineQueue().then((replayed) => {
+        if (replayed > 0) setQueuedCount(getQueuedCount());
+      }).catch(() => undefined);
+    }
+    setQueuedCount(getQueuedCount());
+  }, [isOnline]);
+
+  React.useEffect(() => {
+    const handler = (event: MessageEvent) => {
+      if ((event.data as { type?: string })?.type === "DRAIN_QUEUE") {
+        drainOfflineQueue().then(() => setQueuedCount(getQueuedCount())).catch(() => undefined);
+      }
+    };
+    navigator.serviceWorker?.addEventListener("message", handler);
+    return () => navigator.serviceWorker?.removeEventListener("message", handler);
+  }, []);
 
   React.useEffect(() => {
     const handler = (event: KeyboardEvent) => {
@@ -37,6 +60,18 @@ function App() {
 
   return (
     <main className="container py-3 py-md-4">
+      {!isOnline ? (
+        <div className="alert alert-warning py-2 mb-3 d-flex align-items-center gap-2">
+          <span>⚠️ You are offline.</span>
+          {queuedCount > 0 ? (
+            <span className="text-muted small">{queuedCount} action{queuedCount === 1 ? "" : "s"} will sync when reconnected.</span>
+          ) : null}
+        </div>
+      ) : queuedCount > 0 ? (
+        <div className="alert alert-info py-2 mb-3">
+          Syncing {queuedCount} queued action{queuedCount === 1 ? "" : "s"}…
+        </div>
+      ) : null}
       {searchOpen ? <SearchOverlay onClose={() => setSearchOpen(false)} /> : null}
       <header className="mb-3 mb-md-4 d-flex flex-column gap-3">
         <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2">
@@ -61,11 +96,11 @@ function App() {
             <button
               type="button"
               className="btn btn-outline-secondary btn-sm"
-              aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-              title={theme === "dark" ? "Light mode" : "Dark mode"}
+              aria-label={theme === "auto" ? "Switch to light mode" : theme === "light" ? "Switch to dark mode" : "Switch to auto mode"}
+              title={theme === "auto" ? "Auto (follows system)" : theme === "light" ? "Light mode" : "Dark mode"}
               onClick={toggleTheme}
             >
-              {theme === "dark" ? "☀️" : "🌙"}
+              {theme === "auto" ? "🌓" : theme === "light" ? "🌙" : "☀️"}
             </button>
             {isAuthenticated && user ? (
               <div className="d-flex flex-column flex-sm-row align-items-start align-items-sm-center gap-2">

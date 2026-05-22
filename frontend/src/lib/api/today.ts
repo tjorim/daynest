@@ -1,4 +1,5 @@
 import { getOidcAccessToken } from "@/lib/auth/session";
+import { enqueue as enqueueOffline } from "@/lib/offlineQueue";
 import { buildApiUrl } from "@/lib/api/serverConfig";
 import { z } from "zod";
 
@@ -424,6 +425,11 @@ async function fetchWithAuth(
   }
   const url =
     typeof input === "string" && !/^https?:\/\//i.test(input) ? buildApiUrl(input) : input;
+  const method = (init.method ?? "GET").toUpperCase();
+  if (!navigator.onLine && method !== "GET" && method !== "HEAD") {
+    enqueueOffline(url.toString(), init);
+    throw new ApiError("You are offline. This action will be replayed when you reconnect.", 0, false);
+  }
   return fetchWithRetry(url, withAuthHeader(init, token), retries);
 }
 
@@ -896,7 +902,7 @@ export async function updateUserSettings(patch: UserSettingsPatch): Promise<User
 
 // --- Analytics ---
 
-export type AnalyticsPeriod = "week" | "month" | "year";
+export type AnalyticsPeriod = "week" | "month" | "quarter" | "year";
 
 export interface DailyCount {
   date: string;

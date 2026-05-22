@@ -1,13 +1,41 @@
 import { useEffect, useState } from "react";
 import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+import {
   fetchAnalyticsSummary,
   isRetryableApiError,
   type AnalyticsPeriod,
   type AnalyticsSummary,
+  type DailyCount,
 } from "@/lib/api/today";
+
+const PERIODS: { value: AnalyticsPeriod; label: string }[] = [
+  { value: "week", label: "Week" },
+  { value: "month", label: "Month" },
+  { value: "quarter", label: "3 Months" },
+  { value: "year", label: "Year" },
+];
 
 function pct(rate: number): string {
   return `${Math.round(rate * 100)}%`;
+}
+
+function shortDate(date: string): string {
+  return date.slice(5);
+}
+
+interface AdherenceEntry {
+  date: string;
+  taken: number;
+  total: number;
+  adherence_rate: number;
 }
 
 export function StatsPage() {
@@ -44,24 +72,20 @@ export function StatsPage() {
     return () => controller.abort();
   }, [period]);
 
-  const onPeriodChange = (p: AnalyticsPeriod) => {
-    setPeriod(p);
-  };
-
   return (
     <section>
       <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2 mb-3">
         <h2 className="h4 mb-0">Statistics</h2>
         <div className="d-flex gap-2 align-items-center flex-wrap">
           <div className="btn-group btn-group-sm" role="group" aria-label="Period">
-            {(["week", "month", "year"] as AnalyticsPeriod[]).map((p) => (
+            {PERIODS.map((p) => (
               <button
-                key={p}
+                key={p.value}
                 type="button"
-                className={`btn ${period === p ? "btn-primary" : "btn-outline-secondary"}`}
-                onClick={() => onPeriodChange(p)}
+                className={`btn ${period === p.value ? "btn-primary" : "btn-outline-secondary"}`}
+                onClick={() => setPeriod(p.value)}
               >
-                {p.charAt(0).toUpperCase() + p.slice(1)}
+                {p.label}
               </button>
             ))}
           </div>
@@ -214,9 +238,9 @@ export function StatsPage() {
           {summary.chores.daily_completions.length > 0 ? (
             <div className="col-lg-6">
               <div className="card">
-                <div className="card-header fw-semibold py-2">Chores — daily completions</div>
+                <div className="card-header fw-semibold py-2">Chores — daily completion rate</div>
                 <div className="card-body pb-2">
-                  <DailyBar entries={summary.chores.daily_completions} />
+                  <CompletionChart entries={summary.chores.daily_completions} color="#0d6efd" />
                 </div>
               </div>
             </div>
@@ -226,9 +250,9 @@ export function StatsPage() {
           {summary.routines.daily_completions.length > 0 ? (
             <div className="col-lg-6">
               <div className="card">
-                <div className="card-header fw-semibold py-2">Routines — daily completions</div>
+                <div className="card-header fw-semibold py-2">Routines — daily completion rate</div>
                 <div className="card-body pb-2">
-                  <DailyBar entries={summary.routines.daily_completions} />
+                  <CompletionChart entries={summary.routines.daily_completions} color="#198754" />
                 </div>
               </div>
             </div>
@@ -240,7 +264,7 @@ export function StatsPage() {
               <div className="card">
                 <div className="card-header fw-semibold py-2">Medication adherence</div>
                 <div className="card-body pb-2">
-                  <AdherenceBar entries={summary.medications.daily_adherence} />
+                  <AdherenceChart entries={summary.medications.daily_adherence} />
                 </div>
               </div>
             </div>
@@ -251,78 +275,85 @@ export function StatsPage() {
   );
 }
 
-function DailyBar({
-  entries,
-}: {
-  entries: { date: string; completed: number; total: number; completion_rate: number }[];
-}) {
-  const max = Math.max(...entries.map((e) => e.total), 1);
+function CompletionChart({ entries, color }: { entries: DailyCount[]; color: string }) {
+  const fill = color + "33";
   return (
-    <div className="d-flex align-items-end gap-1" style={{ height: "80px" }}>
-      {entries.map((e) => {
-        const heightPct = e.total > 0 ? (e.total / max) * 100 : 0;
-        const completedPct = e.total > 0 ? (e.completed / e.total) * 100 : 0;
-        return (
-          <div
-            key={e.date}
-            className="flex-fill d-flex flex-column-reverse"
-            style={{ height: "100%" }}
-            title={`${e.date}: ${e.completed}/${e.total} (${Math.round(e.completion_rate * 100)}%)`}
-          >
-            <div
-              style={{ height: `${heightPct}%`, minHeight: e.total > 0 ? "4px" : 0, position: "relative" }}
-              className="rounded-top overflow-hidden"
-            >
-              <div
-                className="bg-primary"
-                style={{ height: `${completedPct}%`, position: "absolute", bottom: 0, width: "100%" }}
-              />
-              <div
-                className="bg-primary-subtle"
-                style={{ height: "100%", width: "100%" }}
-              />
-            </div>
-          </div>
-        );
-      })}
-    </div>
+    <ResponsiveContainer width="100%" height={140}>
+      <AreaChart data={entries} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke="var(--bs-border-color)" />
+        <XAxis
+          dataKey="date"
+          tickFormatter={shortDate}
+          tick={{ fontSize: 10, fill: "var(--bs-secondary-color)" }}
+          tickLine={false}
+        />
+        <YAxis
+          tickFormatter={(v: number) => `${Math.round(v * 100)}%`}
+          domain={[0, 1]}
+          width={38}
+          tick={{ fontSize: 10, fill: "var(--bs-secondary-color)" }}
+          tickLine={false}
+        />
+        <Tooltip
+          formatter={(v: unknown) => [`${Math.round((v as number) * 100)}%`, "Completion"]}
+          labelFormatter={(l: unknown) => String(l)}
+          contentStyle={{
+            background: "var(--bs-body-bg)",
+            border: "1px solid var(--bs-border-color)",
+            fontSize: 12,
+          }}
+        />
+        <Area
+          type="monotone"
+          dataKey="completion_rate"
+          stroke={color}
+          fill={fill}
+          strokeWidth={2}
+          dot={false}
+          activeDot={{ r: 3 }}
+        />
+      </AreaChart>
+    </ResponsiveContainer>
   );
 }
 
-function AdherenceBar({
-  entries,
-}: {
-  entries: { date: string; taken: number; total: number; adherence_rate: number }[];
-}) {
-  const max = Math.max(...entries.map((e) => e.total), 1);
+function AdherenceChart({ entries }: { entries: AdherenceEntry[] }) {
   return (
-    <div className="d-flex align-items-end gap-1" style={{ height: "80px" }}>
-      {entries.map((e) => {
-        const heightPct = e.total > 0 ? (e.total / max) * 100 : 0;
-        const takenPct = e.total > 0 ? (e.taken / e.total) * 100 : 0;
-        return (
-          <div
-            key={e.date}
-            className="flex-fill d-flex flex-column-reverse"
-            style={{ height: "100%" }}
-            title={`${e.date}: ${e.taken}/${e.total} (${Math.round(e.adherence_rate * 100)}%)`}
-          >
-            <div
-              style={{ height: `${heightPct}%`, minHeight: e.total > 0 ? "4px" : 0, position: "relative" }}
-              className="rounded-top overflow-hidden"
-            >
-              <div
-                className="bg-info"
-                style={{ height: `${takenPct}%`, position: "absolute", bottom: 0, width: "100%" }}
-              />
-              <div
-                className="bg-info-subtle"
-                style={{ height: "100%", width: "100%" }}
-              />
-            </div>
-          </div>
-        );
-      })}
-    </div>
+    <ResponsiveContainer width="100%" height={140}>
+      <AreaChart data={entries} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke="var(--bs-border-color)" />
+        <XAxis
+          dataKey="date"
+          tickFormatter={shortDate}
+          tick={{ fontSize: 10, fill: "var(--bs-secondary-color)" }}
+          tickLine={false}
+        />
+        <YAxis
+          tickFormatter={(v: number) => `${Math.round(v * 100)}%`}
+          domain={[0, 1]}
+          width={38}
+          tick={{ fontSize: 10, fill: "var(--bs-secondary-color)" }}
+          tickLine={false}
+        />
+        <Tooltip
+          formatter={(v: unknown) => [`${Math.round((v as number) * 100)}%`, "Adherence"]}
+          labelFormatter={(l: unknown) => String(l)}
+          contentStyle={{
+            background: "var(--bs-body-bg)",
+            border: "1px solid var(--bs-border-color)",
+            fontSize: 12,
+          }}
+        />
+        <Area
+          type="monotone"
+          dataKey="adherence_rate"
+          stroke="#0dcaf0"
+          fill="#0dcaf033"
+          strokeWidth={2}
+          dot={false}
+          activeDot={{ r: 3 }}
+        />
+      </AreaChart>
+    </ResponsiveContainer>
   );
 }

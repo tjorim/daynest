@@ -1,19 +1,25 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 
-export type Theme = "light" | "dark";
+export type Theme = "light" | "dark" | "auto";
 
 const STORAGE_KEY = "daynest-theme";
+const THEME_CYCLE: Theme[] = ["auto", "light", "dark"];
 
-function getInitialTheme(): Theme {
+function getStoredTheme(): Theme {
   const stored = localStorage.getItem(STORAGE_KEY);
-  if (stored === "light" || stored === "dark") {
+  if (stored === "light" || stored === "dark" || stored === "auto") {
     return stored;
   }
+  return "auto";
+}
+
+function resolveTheme(theme: Theme): "light" | "dark" {
+  if (theme !== "auto") return theme;
   return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
 
 function applyTheme(theme: Theme) {
-  document.documentElement.setAttribute("data-bs-theme", theme);
+  document.documentElement.setAttribute("data-bs-theme", resolveTheme(theme));
 }
 
 interface ThemeContextValue {
@@ -25,7 +31,7 @@ const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState<Theme>(() => {
-    const t = getInitialTheme();
+    const t = getStoredTheme();
     applyTheme(t);
     return t;
   });
@@ -33,10 +39,17 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     applyTheme(theme);
     localStorage.setItem(STORAGE_KEY, theme);
+
+    if (theme === "auto") {
+      const mql = window.matchMedia("(prefers-color-scheme: dark)");
+      const handler = () => applyTheme("auto");
+      mql.addEventListener("change", handler);
+      return () => mql.removeEventListener("change", handler);
+    }
   }, [theme]);
 
   const toggleTheme = () => {
-    setTheme((prev) => (prev === "dark" ? "light" : "dark"));
+    setTheme((prev) => THEME_CYCLE[(THEME_CYCLE.indexOf(prev) + 1) % THEME_CYCLE.length]!);
   };
 
   return (

@@ -1,4 +1,4 @@
-import { useMemo, useState, type ChangeEvent, type RefObject } from "react";
+import { useMemo, useRef, useState, type ChangeEvent, type RefObject } from "react";
 import type { Dayjs } from "dayjs";
 import { capitalize, formatDate, toIsoDate } from "@/lib/dateUtils";
 import { type CalendarDayPayload, type CalendarMonthDaySummary, type PlannedItemModuleKey, type PlannedTodayItem } from "@/lib/api/today";
@@ -107,6 +107,7 @@ export function CalendarMonthGrid({
                   type="button"
                   className={cellClass}
                   onClick={() => onSelectDate(dateValue)}
+                  data-date={dateValue}
                   onDragOver={onDropReschedule ? (e) => { e.preventDefault(); setDragOverDate(dateValue); } : undefined}
                   onDragLeave={onDropReschedule ? () => setDragOverDate(null) : undefined}
                   onDrop={onDropReschedule ? (e) => {
@@ -302,6 +303,7 @@ export function PlannedItemsSidebar({
   fileInputRef,
   onExportBackup,
   onImportFile,
+  onDropReschedule,
 }: {
   selectedDate: string;
   plannedItems: PlannedTodayItem[];
@@ -333,7 +335,9 @@ export function PlannedItemsSidebar({
   fileInputRef: RefObject<HTMLInputElement | null>;
   onExportBackup: () => Promise<void>;
   onImportFile: (event: ChangeEvent<HTMLInputElement>) => Promise<void>;
+  onDropReschedule?: (itemId: number, date: string) => void;
 }) {
+  const touchCloneRef = useRef<HTMLElement | null>(null);
   return (
     <>
       <div className="card mb-3">
@@ -430,6 +434,34 @@ export function PlannedItemsSidebar({
                 onDragStart={(e) => {
                   e.dataTransfer.setData("plannedItemId", String(item.id));
                   e.dataTransfer.effectAllowed = "move";
+                }}
+                onTouchStart={(e) => {
+                  if (!onDropReschedule) return;
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const clone = e.currentTarget.cloneNode(true) as HTMLElement;
+                  clone.style.cssText = `position:fixed;top:${rect.top}px;left:${rect.left}px;width:${rect.width}px;opacity:0.75;pointer-events:none;z-index:9999;background:var(--bs-body-bg);border:1px solid var(--bs-border-color);border-radius:4px;`;
+                  document.body.appendChild(clone);
+                  touchCloneRef.current = clone;
+                  (e.currentTarget as HTMLElement).dataset.touchItemId = String(item.id);
+                }}
+                onTouchMove={(e) => {
+                  if (!touchCloneRef.current) return;
+                  e.preventDefault();
+                  const touch = e.touches[0];
+                  if (!touch) return;
+                  touchCloneRef.current.style.top = `${touch.clientY - 20}px`;
+                  touchCloneRef.current.style.left = `${touch.clientX - 20}px`;
+                }}
+                onTouchEnd={(e) => {
+                  touchCloneRef.current?.remove();
+                  touchCloneRef.current = null;
+                  if (!onDropReschedule) return;
+                  const touch = e.changedTouches[0];
+                  if (!touch) return;
+                  const el = document.elementFromPoint(touch.clientX, touch.clientY);
+                  const cell = el?.closest("[data-date]") as HTMLElement | null;
+                  const date = cell?.dataset.date;
+                  if (date) onDropReschedule(item.id, date);
                 }}
               >
                 <div className="d-flex justify-content-between align-items-start gap-3">

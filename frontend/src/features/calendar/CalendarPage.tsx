@@ -200,6 +200,7 @@ export function CalendarPage() {
             fileInputRef={planned.fileInputRef}
             onExportBackup={planned.onExportBackup}
             onImportFile={planned.onImportFile}
+            onDropReschedule={planned.dragReschedulePlannedItem}
           />
         </div>
       </div>

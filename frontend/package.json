@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "bootstrap": "^5.3.3",
+    "canvas-confetti": "^1.9.4",
     "dayjs": "^1.11.13",
     "oidc-client-ts": "^3.5.0",
     "react": "^19.2.5",
@@ -21,6 +22,7 @@
     "react-dom": "^19.2.6",
     "react-oidc-context": "^3.3.1",
     "react-router-dom": "^7.15.1",
+    "recharts": "^3.8.1",
     "zod": "^4.4.3"
   },
   "devDependencies": {
@@ -28,6 +30,7 @@
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
+    "@types/canvas-confetti": "^1.9.0",
     "@types/react": "^19.2.15",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.2",
