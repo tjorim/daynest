@@ -233,7 +233,7 @@ class DaynestMcpBackend:
         rate_limit_per_minute: int = 120,
     ) -> dict[str, Any]:
         access_token = get_access_token()
-        if getattr(access_token, "auth_source", None) == "integration":
+        if access_token is not None and access_token.claims.get("auth_source") == "integration":
             raise PermissionError("Integration tokens cannot create new integration clients")
 
         if not isinstance(rate_limit_per_minute, int) or rate_limit_per_minute <= 0:
