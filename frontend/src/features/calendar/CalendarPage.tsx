@@ -127,6 +127,7 @@ export function CalendarPage() {
             monthItems={monthItems}
             selectedDate={selectedDate}
             onSelectDate={setSelectedDate}
+            onDropReschedule={planned.dragReschedulePlannedItem}
           />
         </div>
 

@@ -1,4 +1,4 @@
-import { useMemo, type ChangeEvent, type RefObject } from "react";
+import { useMemo, useState, type ChangeEvent, type RefObject } from "react";
 import type { Dayjs } from "dayjs";
 import { capitalize, formatDate, toIsoDate } from "@/lib/dateUtils";
 import { type CalendarDayPayload, type CalendarMonthDaySummary, type PlannedItemModuleKey, type PlannedTodayItem } from "@/lib/api/today";
@@ -68,16 +68,19 @@ export function CalendarMonthGrid({
   monthItems,
   selectedDate,
   onSelectDate,
+  onDropReschedule,
 }: {
   monthStart: Dayjs;
   monthItems: CalendarMonthDaySummary[];
   selectedDate: string;
   onSelectDate: (date: string) => void;
+  onDropReschedule?: (itemId: number, date: string) => void;
 }) {
   const daysInMonth = monthStart.daysInMonth();
   const leadingEmptyDays = (monthStart.day() + 6) % 7;
   const totalCalendarCells = Math.ceil((leadingEmptyDays + daysInMonth) / 7) * 7;
   const itemsByDate = useMemo(() => new Map(monthItems.map((item) => [item.date, item])), [monthItems]);
+  const [dragOverDate, setDragOverDate] = useState<string | null>(null);
 
   return (
     <div className="card">
@@ -100,8 +103,17 @@ export function CalendarMonthGrid({
               <div key={dateValue} className="col">
                 <button
                   type="button"
-                  className={`btn w-100 text-start py-2 ${selected ? "btn-primary" : "btn-outline-secondary"}`}
+                  className={`btn w-100 text-start py-2 ${selected ? "btn-primary" : dragOverDate === dateValue ? "btn-outline-success" : "btn-outline-secondary"}`}
                   onClick={() => onSelectDate(dateValue)}
+                  onDragOver={onDropReschedule ? (e) => { e.preventDefault(); setDragOverDate(dateValue); } : undefined}
+                  onDragLeave={onDropReschedule ? () => setDragOverDate(null) : undefined}
+                  onDrop={onDropReschedule ? (e) => {
+                    e.preventDefault();
+                    setDragOverDate(null);
+                    const rawId = e.dataTransfer.getData("plannedItemId");
+                    const itemId = parseInt(rawId, 10);
+                    if (!isNaN(itemId)) onDropReschedule(itemId, dateValue);
+                  } : undefined}
                 >
                   <div className="fw-semibold lh-1">{dayNumber}</div>
                   <small>{summary ? `${summary.total} items` : "No items"}</small>
@@ -409,7 +421,15 @@ export function PlannedItemsSidebar({
             <li className="list-group-item py-2 text-muted">No planned items for this day.</li>
           ) : (
             plannedItems.map((item) => (
-              <li key={item.id} className="list-group-item py-2">
+              <li
+                key={item.id}
+                className="list-group-item py-2"
+                draggable
+                onDragStart={(e) => {
+                  e.dataTransfer.setData("plannedItemId", String(item.id));
+                  e.dataTransfer.effectAllowed = "move";
+                }}
+              >
                 <div className="d-flex justify-content-between align-items-start gap-3">
                   <div>
                     <div className="fw-semibold">{item.title}</div>

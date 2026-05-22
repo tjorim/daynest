@@ -4,11 +4,13 @@ import {
   createRoutineTemplate,
   deleteChoreTemplate,
   deleteRoutineTemplate,
+  fetchAnalyticsSummary,
   isRetryableApiError,
   listChoreTemplates,
   listRoutineTemplates,
   updateChoreTemplate,
   updateRoutineTemplate,
+  type AnalyticsSummary,
   type ChoreTemplate,
   type RoutineTemplate,
 } from "@/lib/api/today";
@@ -23,6 +25,7 @@ export function TemplatesPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [analytics, setAnalytics] = useState<AnalyticsSummary | null>(null);
 
   const [routineName, setRoutineName] = useState("");
   const [routineDescription, setRoutineDescription] = useState("");
@@ -69,6 +72,18 @@ export function TemplatesPage() {
   useEffect(() => {
     const controller = new AbortController();
     void loadTemplates(controller.signal);
+    return () => controller.abort();
+  }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchAnalyticsSummary("week", controller.signal)
+      .then((data) => {
+        if (!controller.signal.aborted) setAnalytics(data);
+      })
+      .catch(() => {
+        // analytics are supplementary; silently ignore errors
+      });
     return () => controller.abort();
   }, []);
 
@@ -353,6 +368,16 @@ export function TemplatesPage() {
                         >
                           {routine.is_active ? "Active" : "Inactive"}
                         </span>
+                        {analytics ? (() => {
+                          const streak = analytics.routines.streaks.find(
+                            (s) => s.routine_id === routine.id,
+                          );
+                          return streak && streak.current_streak > 0 ? (
+                            <span className="badge text-bg-warning" title={`Best: ${streak.longest_streak}`}>
+                              🔥 {streak.current_streak}
+                            </span>
+                          ) : null;
+                        })() : null}
                         <button
                           type="button"
                           className="btn btn-outline-primary btn-sm"
@@ -508,6 +533,16 @@ export function TemplatesPage() {
                         >
                           {chore.is_active ? "Active" : "Inactive"}
                         </span>
+                        {analytics ? (() => {
+                          const streak = analytics.chores.streaks.find(
+                            (s) => s.chore_id === chore.id,
+                          );
+                          return streak && streak.current_streak > 0 ? (
+                            <span className="badge text-bg-warning" title={`Best: ${streak.longest_streak}`}>
+                              🔥 {streak.current_streak}
+                            </span>
+                          ) : null;
+                        })() : null}
                         <button
                           type="button"
                           className="btn btn-outline-primary btn-sm"

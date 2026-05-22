@@ -12,12 +12,32 @@ import {
 import { AppRouter } from "@/app/router/AppRouter";
 import { AuthProvider, useAuth } from "@/app/providers/AuthProvider";
 import { fetchOidcConfig } from "@/config/oidc";
+import { useTheme } from "@/app/theme/useTheme";
+import { SearchOverlay } from "@/features/search/SearchOverlay";
 
 function App() {
   const { isAuthenticated, isLoading, logout, user } = useAuth();
+  const { theme, toggleTheme } = useTheme();
+  const [searchOpen, setSearchOpen] = React.useState(false);
+
+  React.useEffect(() => {
+    const handler = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key === "k") {
+        event.preventDefault();
+        setSearchOpen(true);
+      }
+      if (event.key === "/" && document.activeElement?.tagName === "BODY") {
+        event.preventDefault();
+        setSearchOpen(true);
+      }
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, []);
 
   return (
     <main className="container py-3 py-md-4">
+      {searchOpen ? <SearchOverlay onClose={() => setSearchOpen(false)} /> : null}
       <header className="mb-3 mb-md-4 d-flex flex-column gap-3">
         <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2">
           <div>
@@ -26,26 +46,48 @@ function App() {
               Daily flow, calendar planning, and household tracking.
             </p>
           </div>
-          {isAuthenticated && user ? (
-            <div className="d-flex flex-column flex-sm-row align-items-start align-items-sm-center gap-2">
-              <div className="small text-muted text-sm-end">
-                <div className="fw-semibold text-body">{user.full_name}</div>
-                <div>{user.email}</div>
-              </div>
-              <button type="button" className="btn btn-outline-secondary btn-sm" onClick={logout}>
-                Logout
+          <div className="d-flex flex-wrap align-items-center gap-2">
+            {isAuthenticated ? (
+              <button
+                type="button"
+                className="btn btn-outline-secondary btn-sm"
+                aria-label="Search"
+                title="Search (Ctrl+K)"
+                onClick={() => setSearchOpen(true)}
+              >
+                🔍
               </button>
-            </div>
-          ) : !isLoading ? (
-            <NavLink
-              className={({ isActive }) =>
-                `btn btn-sm ${isActive ? "btn-primary" : "btn-outline-primary"}`
-              }
-              to="/auth"
+            ) : null}
+            <button
+              type="button"
+              className="btn btn-outline-secondary btn-sm"
+              aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+              title={theme === "dark" ? "Light mode" : "Dark mode"}
+              onClick={toggleTheme}
             >
-              Login
-            </NavLink>
-          ) : null}
+              {theme === "dark" ? "☀️" : "🌙"}
+            </button>
+            {isAuthenticated && user ? (
+              <div className="d-flex flex-column flex-sm-row align-items-start align-items-sm-center gap-2">
+                <div className="small text-muted text-sm-end">
+                  <div className="fw-semibold text-body">{user.full_name}</div>
+                  <div>{user.email}</div>
+                </div>
+                <button type="button" className="btn btn-outline-secondary btn-sm" onClick={logout}>
+                  Logout
+                </button>
+              </div>
+            ) : !isLoading ? (
+              <NavLink
+                className={({ isActive }) =>
+                  `btn btn-sm ${isActive ? "btn-primary" : "btn-outline-primary"}`
+                }
+                to="/auth"
+              >
+                Login
+              </NavLink>
+            ) : null}
+          </div>
         </div>
         {isAuthenticated ? (
           <nav className="nav nav-pills gap-2">
@@ -72,6 +114,12 @@ function App() {
               to="/templates"
             >
               Templates
+            </NavLink>
+            <NavLink
+              className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}
+              to="/stats"
+            >
+              Stats
             </NavLink>
             <NavLink
               className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}

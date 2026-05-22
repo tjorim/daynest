@@ -6,10 +6,12 @@ import {
 } from "@/app/pwa/installPrompt";
 import {
   createIntegrationClient,
+  fetchUserSettings,
   isRetryableApiError,
   listIntegrationClients,
   revokeIntegrationClient,
   rotateIntegrationClient,
+  updateUserSettings,
   type IntegrationClient,
   type IntegrationClientCreateResponse,
 } from "@/lib/api/today";
@@ -68,6 +70,20 @@ export function SettingsPage() {
     const custom = getCustomServerUrl();
     return custom ?? window.location.origin;
   });
+
+  // Timezone settings
+  const [timezone, setTimezone] = useState("");
+  const [timezoneLoading, setTimezoneLoading] = useState(true);
+  const [timezoneSaving, setTimezoneSaving] = useState(false);
+  const [timezoneError, setTimezoneError] = useState<string | null>(null);
+  const [timezoneSuccess, setTimezoneSuccess] = useState<string | null>(null);
+  const timezones: string[] = (() => {
+    try {
+      return (Intl as { supportedValuesOf?: (key: string) => string[] }).supportedValuesOf?.("timeZone") ?? [];
+    } catch {
+      return [];
+    }
+  })();
 
   const applyServerUrl = () => {
     if (serverMode === "default") {
@@ -193,6 +209,42 @@ export function SettingsPage() {
     );
     return unsubscribe;
   }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchUserSettings(controller.signal)
+      .then((settings) => {
+        if (!controller.signal.aborted) {
+          setTimezone(settings.timezone);
+        }
+      })
+      .catch((err) => {
+        if (!controller.signal.aborted) {
+          setTimezoneError(err instanceof Error ? err.message : "Failed to load timezone.");
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setTimezoneLoading(false);
+        }
+      });
+    return () => controller.abort();
+  }, []);
+
+  const onSaveTimezone = async () => {
+    if (!timezone) return;
+    setTimezoneSaving(true);
+    setTimezoneError(null);
+    setTimezoneSuccess(null);
+    try {
+      await updateUserSettings({ timezone });
+      setTimezoneSuccess("Timezone saved.");
+    } catch (err) {
+      setTimezoneError(err instanceof Error ? err.message : "Failed to save timezone.");
+    } finally {
+      setTimezoneSaving(false);
+    }
+  };
 
   const onCreateClient = async () => {
     if (!name.trim()) {
@@ -350,6 +402,66 @@ export function SettingsPage() {
               >
                 Apply
               </button>
+            </div>
+          </div>
+
+          <div className="card mb-3">
+            <div className="card-header fw-semibold py-2">User preferences</div>
+            <div className="card-body d-grid gap-2">
+              <label className="form-label small fw-semibold mb-1">Timezone</label>
+              {timezoneLoading ? (
+                <div className="text-muted small">Loading…</div>
+              ) : (
+                <div className="d-flex gap-2 flex-wrap">
+                  <select
+                    className="form-select flex-fill"
+                    value={timezone}
+                    onChange={(e) => {
+                      setTimezone(e.target.value);
+                      setTimezoneSuccess(null);
+                      setTimezoneError(null);
+                    }}
+                    aria-label="Timezone"
+                  >
+                    {timezone && !timezones.includes(timezone) ? (
+                      <option value={timezone}>{timezone}</option>
+                    ) : null}
+                    {timezones.map((tz) => {
+                      let offset = "";
+                      try {
+                        const fmt = new Intl.DateTimeFormat("en", {
+                          timeZone: tz,
+                          timeZoneName: "shortOffset",
+                        });
+                        const parts = fmt.formatToParts(new Date());
+                        const tzPart = parts.find((p) => p.type === "timeZoneName");
+                        offset = tzPart ? ` (${tzPart.value})` : "";
+                      } catch {
+                        // ignore
+                      }
+                      return (
+                        <option key={tz} value={tz}>
+                          {tz}{offset}
+                        </option>
+                      );
+                    })}
+                  </select>
+                  <button
+                    type="button"
+                    className="btn btn-outline-primary btn-sm"
+                    disabled={timezoneSaving || !timezone}
+                    onClick={() => void onSaveTimezone()}
+                  >
+                    {timezoneSaving ? "Saving…" : "Save"}
+                  </button>
+                </div>
+              )}
+              {timezoneError ? (
+                <div className="text-danger small">{timezoneError}</div>
+              ) : null}
+              {timezoneSuccess ? (
+                <div className="text-success small">{timezoneSuccess}</div>
+              ) : null}
             </div>
           </div>
 
