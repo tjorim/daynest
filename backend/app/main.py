@@ -8,6 +8,8 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from fastmcp.utilities.lifespan import combine_lifespans
+from starlette.applications import Starlette
 
 from app.api.routes.auth import close_http_client as close_auth_http_client
 from app.api.routes.auth import router as auth_router
@@ -42,6 +44,7 @@ configure_logging()
 configure_error_tracking()
 
 _mcp = create_mcp_server() if settings.feature_mcp else None
+_mcp_app = _mcp.http_app(path="/") if _mcp is not None else None
 logger = logging.getLogger(__name__)
 
 
@@ -122,17 +125,13 @@ def _run_today_rollover_iteration(event_bus: EventBus, known_local_dates: dict[i
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def app_lifespan(app: Starlette):
     push_task: asyncio.Task | None = None
     rollover_task: asyncio.Task | None = None
     try:
         push_task = asyncio.create_task(_push_dispatch_loop())
         rollover_task = asyncio.create_task(_today_rollover_loop(get_event_bus()))
-        if _mcp is not None:
-            async with _mcp.session_manager.run():
-                yield
-        else:
-            yield
+        yield
     finally:
         if push_task is not None:
             push_task.cancel()
@@ -145,6 +144,8 @@ async def lifespan(app: FastAPI):
         close_push_http_client()
         await close_auth_http_client()
 
+
+lifespan = combine_lifespans(app_lifespan, _mcp_app.lifespan) if _mcp_app is not None else app_lifespan
 
 app = FastAPI(title=settings.app_name, version=settings.version, lifespan=lifespan)
 app.middleware("http")(observability_middleware)
@@ -175,8 +176,8 @@ app.include_router(templates_router, prefix=f"{settings.api_prefix}/templates")
 app.include_router(bulk_router, prefix=settings.api_prefix)
 app.include_router(calendar_router, prefix=settings.api_prefix)
 app.include_router(search_router, prefix=settings.api_prefix)
-if _mcp is not None:
-    app.mount("/mcp", _mcp.streamable_http_app())
+if _mcp_app is not None:
+    app.mount("/mcp", _mcp_app)
 
 
 @app.get("/")

@@ -3,6 +3,7 @@ from hashlib import sha256
 from datetime import datetime, time, timedelta, timezone
 
 import pytest
+from fastmcp.server.auth.providers.keycloak import KeycloakAuthProvider
 
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -607,6 +608,7 @@ def test_create_mcp_server_uses_backend_session_factory(db_session: Session) -> 
 
     mcp = create_mcp_server(backend)
 
-    token_verifier = mcp._token_verifier  # noqa: SLF001
+    assert isinstance(mcp.auth, KeycloakAuthProvider)
+    token_verifier = mcp.auth.token_verifier
     assert token_verifier is not None
     assert [verifier.session_factory for verifier in token_verifier._verifiers] == [session_factory, session_factory]  # noqa: SLF001

@@ -12,12 +12,11 @@ from typing import Any, Literal, TypeVar
 
 from anyio import to_thread
 from fastapi import HTTPException
+from fastmcp import Context, FastMCP
+from fastmcp.server.auth.auth import AccessToken, TokenVerifier
+from fastmcp.server.auth.providers.keycloak import KeycloakAuthProvider
 from mcp.server.auth.middleware.auth_context import get_access_token
-from mcp.server.auth.provider import AccessToken, TokenVerifier
-from mcp.server.auth.settings import AuthSettings
-from mcp.server.fastmcp import Context, FastMCP
-from mcp.server.transport_security import TransportSecuritySettings
-from pydantic import AnyHttpUrl, BaseModel
+from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
@@ -579,6 +578,7 @@ class DaynestMcpBackend:
 
 class IntegrationKeyTokenVerifier(TokenVerifier):
     def __init__(self, session_factory: Callable[[], Session], *, resource_server_url: str | None = None) -> None:
+        super().__init__(resource_base_url=resource_server_url)
         self.session_factory = session_factory
         self.resource_server_url = resource_server_url
 
@@ -617,6 +617,7 @@ class OIDCMcpTokenVerifier(TokenVerifier):
     """Validates Keycloak-issued OIDC tokens for MCP access."""
 
     def __init__(self, session_factory: Callable[[], Session], *, resource_server_url: str | None = None) -> None:
+        super().__init__(resource_base_url=resource_server_url)
         self.session_factory = session_factory
         self.resource_server_url = resource_server_url
 
@@ -658,6 +659,11 @@ class ComposedTokenVerifier(TokenVerifier):
     """Tries each verifier in order; returns the first successful result."""
 
     def __init__(self, *verifiers: TokenVerifier) -> None:
+        first_verifier = verifiers[0] if verifiers else None
+        super().__init__(
+            resource_base_url=getattr(first_verifier, "resource_base_url", None),
+            required_scopes=getattr(first_verifier, "required_scopes", None),
+        )
         self._verifiers = verifiers
 
     async def verify_token(self, token: str) -> AccessToken | None:
@@ -668,36 +674,29 @@ class ComposedTokenVerifier(TokenVerifier):
         return None
 
 
-def _build_auth_settings(resource_server_url: str) -> AuthSettings:
+def _build_auth_provider(
+    resource_server_url: str,
+    token_verifier: TokenVerifier,
+) -> KeycloakAuthProvider:
     issuer_url = settings.oidc_issuer_url or resource_server_url
-    return AuthSettings(
-        issuer_url=AnyHttpUrl(issuer_url),
-        resource_server_url=AnyHttpUrl(resource_server_url),
+    return KeycloakAuthProvider(
+        realm_url=issuer_url,
+        base_url=resource_server_url,
+        audience=settings.oidc_audience,
+        token_verifier=token_verifier,
     )
-
-
-def _build_transport_security() -> TransportSecuritySettings:
-    return TransportSecuritySettings(
-        enable_dns_rebinding_protection=True,
-        allowed_hosts=settings.trusted_hosts,
-        allowed_origins=settings.cors_allow_origins,
-    )
-
 
 def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
     daynest = backend or DaynestMcpBackend(SessionLocal)
     resource_server_url = os.getenv(DAYNEST_MCP_RESOURCE_SERVER_URL_ENV, "http://127.0.0.1:8000/mcp")
+    token_verifier = ComposedTokenVerifier(
+        OIDCMcpTokenVerifier(daynest.session_factory, resource_server_url=resource_server_url),
+        IntegrationKeyTokenVerifier(daynest.session_factory, resource_server_url=resource_server_url),
+    )
 
     mcp = FastMCP(
         "Daynest",
-        json_response=True,
-        streamable_http_path="/",  # mounted at /mcp in FastAPI; prefix is stripped before the sub-app sees it
-        token_verifier=ComposedTokenVerifier(
-            OIDCMcpTokenVerifier(daynest.session_factory, resource_server_url=resource_server_url),
-            IntegrationKeyTokenVerifier(daynest.session_factory, resource_server_url=resource_server_url),
-        ),
-        auth=_build_auth_settings(resource_server_url),
-        transport_security=_build_transport_security(),
+        auth=_build_auth_provider(resource_server_url, token_verifier),
     )
 
     @mcp.tool()
