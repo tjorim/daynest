@@ -7,7 +7,6 @@ import json
 import inspect
 import asyncio
 import copy
-import hashlib
 import time
 import weakref
 from collections.abc import Awaitable, Callable, Mapping
@@ -513,13 +512,10 @@ class DaynestClient:
         if end < start:
             msg = "end must be on or after start"
             raise ValueError(msg)
-        events: list[CalendarEvent] = []
-        target_date = start
-        while target_date <= end:
-            day = await self.async_get_calendar_day(target_date)
-            events.extend(day.items)
-            target_date += timedelta(days=1)
-        return events
+        days = await asyncio.gather(
+            *(self.async_get_calendar_day(start + timedelta(days=offset)) for offset in range((end - start).days + 1))
+        )
+        return [event for day in days for event in day.items]
 
     async def async_export_calendar_ics(self) -> bytes:
         """Export calendar iCalendar bytes."""
@@ -631,12 +627,11 @@ class DaynestClient:
 
     def _make_cache_auth_identity(self) -> str:
         if self._access_token_getter is not None:
-            return f"external:{id(self._access_token_getter)}"
+            return "external"
         if self._client_id and self._token_url:
             return f"oauth:{self._client_id}:{self._token_url}"
         if self._integration_key:
-            digest = hashlib.sha256(self._integration_key.encode()).hexdigest()
-            return f"integration-key:{digest}"
+            return "integration-key"
         return "anonymous"
 
     def _make_cache_key(self, method_name: str, args: tuple[Any, ...]) -> str:

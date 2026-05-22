@@ -843,11 +843,14 @@ class TestDaynestClientCacheAndSSE:
 
         assert session.get.call_count == 2
 
-    def test_cache_key_includes_auth_identity(self) -> None:
-        first_client = DaynestClient(base_url="https://api.example", integration_key="first-key", session=MagicMock())
-        second_client = DaynestClient(base_url="https://api.example", integration_key="second-key", session=MagicMock())
+    def test_cache_key_includes_auth_context(self) -> None:
+        authenticated_client = DaynestClient(base_url="https://api.example", integration_key="key", session=MagicMock())
+        anonymous_client = DaynestClient(base_url="https://api.example", session=MagicMock())
 
-        assert first_client._make_cache_key("async_get_summary", ()) != second_client._make_cache_key("async_get_summary", ())
+        assert authenticated_client._make_cache_key("async_get_summary", ()) != anonymous_client._make_cache_key(
+            "async_get_summary",
+            (),
+        )
 
     async def test_sse_listener_passes_event_type_and_payload(self) -> None:
         class _Stream:
