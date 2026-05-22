@@ -660,9 +660,11 @@ class ComposedTokenVerifier(TokenVerifier):
 
     def __init__(self, *verifiers: TokenVerifier) -> None:
         first_verifier = verifiers[0] if verifiers else None
+        required_scopes = list(first_verifier.required_scopes) if first_verifier is not None else None
+        resource_base_url = first_verifier.resource_base_url if first_verifier is not None else None
         super().__init__(
-            resource_base_url=getattr(first_verifier, "resource_base_url", None),
-            required_scopes=getattr(first_verifier, "required_scopes", None),
+            resource_base_url=resource_base_url,
+            required_scopes=required_scopes,
         )
         self._verifiers = verifiers
 
