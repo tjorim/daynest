@@ -327,20 +327,21 @@ class DaynestClient:
         **fields: Any,
     ) -> PlannedItem:
         """Update a planned item."""
+        payload_fields = dict(fields)
         resolved_item_id = item_id
         if resolved_item_id is None:
-            legacy_id = fields.pop("planned_item_id", None)
+            legacy_id = payload_fields.pop("planned_item_id", None)
             if isinstance(legacy_id, int):
                 resolved_item_id = legacy_id
         if resolved_item_id is None:
             msg = "item_id is required"
             raise ValueError(msg)
-        if "planned_for" in fields and isinstance(fields["planned_for"], date):
-            fields["planned_for"] = fields["planned_for"].isoformat()
+        if "planned_for" in payload_fields and isinstance(payload_fields["planned_for"], date):
+            payload_fields["planned_for"] = payload_fields["planned_for"].isoformat()
         result = await self._send_action(
             "put",
             path=f"/api/v1/planned-items/{resolved_item_id}",
-            payload=fields,
+            payload=payload_fields,
         )
         return PlannedItem.from_dict(result)
 
@@ -408,9 +409,10 @@ class DaynestClient:
 
     async def async_update_routine_template(self, template_id: int, **fields: Any) -> RoutineTemplate:
         """Update a routine template."""
-        if "start_date" in fields and isinstance(fields["start_date"], date):
-            fields["start_date"] = fields["start_date"].isoformat()
-        result = await self._send_action("put", path=f"/api/v1/templates/routines/{template_id}", payload=fields)
+        payload_fields = dict(fields)
+        if "start_date" in payload_fields and isinstance(payload_fields["start_date"], date):
+            payload_fields["start_date"] = payload_fields["start_date"].isoformat()
+        result = await self._send_action("put", path=f"/api/v1/templates/routines/{template_id}", payload=payload_fields)
         return RoutineTemplate.from_dict(result)
 
     async def async_delete_routine_template(self, template_id: int) -> None:
@@ -458,9 +460,10 @@ class DaynestClient:
 
     async def async_update_chore_template(self, template_id: int, **fields: Any) -> ChoreTemplate:
         """Update a chore template."""
-        if "start_date" in fields and isinstance(fields["start_date"], date):
-            fields["start_date"] = fields["start_date"].isoformat()
-        result = await self._send_action("put", path=f"/api/v1/templates/chores/{template_id}", payload=fields)
+        payload_fields = dict(fields)
+        if "start_date" in payload_fields and isinstance(payload_fields["start_date"], date):
+            payload_fields["start_date"] = payload_fields["start_date"].isoformat()
+        result = await self._send_action("put", path=f"/api/v1/templates/chores/{template_id}", payload=payload_fields)
         return ChoreTemplate.from_dict(result)
 
     async def async_delete_chore_template(self, template_id: int) -> None:
