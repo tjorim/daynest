@@ -132,6 +132,24 @@ class TestDaynestClientInit:
             assert client._session is session
         session.close.assert_not_called()
 
+    async def test_context_manager_cancels_background_tasks(self) -> None:
+        session = MagicMock(spec=aiohttp.ClientSession)
+        background_task_cancelled = asyncio.Event()
+
+        async def _background_task() -> None:
+            try:
+                await asyncio.Event().wait()
+            except asyncio.CancelledError:
+                background_task_cancelled.set()
+                raise
+
+        async with DaynestClient(base_url="https://api.example", session=session) as client:
+            task = asyncio.create_task(_background_task())
+            client._background_tasks.add(task)
+            await asyncio.sleep(0)
+
+        assert background_task_cancelled.is_set()
+
 
 @pytest.mark.unit
 class TestDaynestClientRequests:
@@ -833,3 +851,18 @@ class TestDaynestClientCacheAndSSE:
             unsubscribe()
 
         callback.assert_awaited()
+
+    async def test_sse_listener_exits_without_authentication(self) -> None:
+        session = MagicMock(spec=aiohttp.ClientSession)
+        callback = AsyncMock()
+        client = DaynestClient(base_url="https://api.example", session=session)
+
+        unsubscribe = await client.async_subscribe_today_updates(callback)
+        try:
+            task = next(iter(client._background_tasks))
+            await asyncio.wait_for(task, timeout=1)
+        finally:
+            unsubscribe()
+
+        session.get.assert_not_called()
+        callback.assert_not_awaited()

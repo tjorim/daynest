@@ -92,6 +92,7 @@ class DaynestClient:
         self._cache_locks: weakref.WeakValueDictionary[str, asyncio.Lock] = weakref.WeakValueDictionary()
         self._cache_locks_guard = asyncio.Lock()
         self._enable_sse = enable_sse
+        self._background_tasks: set[asyncio.Task[Any]] = set()
 
     async def __aenter__(self) -> DaynestClient:
         self._context_depth += 1
@@ -101,9 +102,18 @@ class DaynestClient:
 
     async def __aexit__(self, *args: object) -> None:
         self._context_depth -= 1
-        if self._owned_session and self._context_depth == 0 and self._session is not None:
-            await self._session.close()
-            self._session = None
+        if self._context_depth == 0:
+            await self._cancel_background_tasks()
+            if self._owned_session and self._session is not None:
+                await self._session.close()
+                self._session = None
+
+    async def _cancel_background_tasks(self) -> None:
+        tasks = tuple(self._background_tasks)
+        for task in tasks:
+            task.cancel()
+        if tasks:
+            await asyncio.gather(*tasks, return_exceptions=True)
 
     @property
     def has_integration_key(self) -> bool:
@@ -515,9 +525,8 @@ class DaynestClient:
             while not stop_event.is_set():
                 token = await self._get_stream_token()
                 if token is None:
-                    await asyncio.sleep(backoff_seconds)
-                    backoff_seconds = min(backoff_seconds * 2, 30.0)
-                    continue
+                    logger.warning("Cannot subscribe to updates: no authentication configured")
+                    return
                 url = urljoin(
                     f"{self._base_url}/",
                     f"/api/v1/today/stream?{urlencode({'token': token})}",
@@ -565,7 +574,9 @@ class DaynestClient:
                 await asyncio.sleep(backoff_seconds)
                 backoff_seconds = min(backoff_seconds * 2, 30.0)
 
-        listener_task = asyncio.create_task(_listen())
+        listener_task = asyncio.create_task(_listen(), name="daynest_sse_listener")
+        self._background_tasks.add(listener_task)
+        listener_task.add_done_callback(self._background_tasks.discard)
 
         def _unsubscribe() -> None:
             stop_event.set()

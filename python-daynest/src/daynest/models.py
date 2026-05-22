@@ -294,10 +294,10 @@ class CalendarDay:
     date: date
     items: tuple[CalendarEvent, ...]
     total: int
-    routines: int
-    chores: int
-    medications: int
-    planned: int
+    routines: int | None = None
+    chores: int | None = None
+    medications: int | None = None
+    planned: int | None = None
 
     @classmethod
     def from_day_dict(cls, payload: dict[str, Any]) -> CalendarDay:
@@ -316,10 +316,10 @@ class CalendarDay:
             date=_parse_date(_require(payload, "date", context="calendar day"), field="date"),
             items=tuple(events),
             total=len(events),
-            routines=0,
-            chores=0,
-            medications=0,
-            planned=0,
+            routines=None,
+            chores=None,
+            medications=None,
+            planned=None,
         )
 
     @classmethod
