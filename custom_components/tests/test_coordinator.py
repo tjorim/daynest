@@ -28,6 +28,9 @@ VALID_DASHBOARD_PAYLOAD = {
     "routines_open_count": 1,
     "due_today": [{"chore_instance_id": 1, "title": "Task A", "status": "pending"}],
     "planned": [{"id": 2, "title": "Task B", "is_done": False}],
+    "chores": [{"chore_instance_id": 1, "title": "Task A", "status": "pending", "scheduled_date": "2026-01-15"}],
+    "medications": [{"medication_dose_instance_id": 4, "name": "Vitamin D", "status": "scheduled", "scheduled_at": "2026-01-15T08:00:00+00:00"}],
+    "planned_items": [{"id": 2, "title": "Task B", "is_done": False}],
 }
 
 
@@ -119,6 +122,9 @@ class TestNormalizeDashboard:
         assert result["routines_open_count"] == 1
         assert result["due_today"] == [{"chore_instance_id": 1, "title": "Task A", "status": "pending"}]
         assert result["planned"] == [{"id": 2, "title": "Task B", "is_done": False}]
+        assert result["chores"] == VALID_DASHBOARD_PAYLOAD["chores"]
+        assert result["medications"] == VALID_DASHBOARD_PAYLOAD["medications"]
+        assert result["planned_items"] == VALID_DASHBOARD_PAYLOAD["planned_items"]
         assert result["integration_contract"] == CONTRACT_VALID
 
     def test_planned_remaining_count_negative_clamped_to_zero(self) -> None:
@@ -203,11 +209,17 @@ class TestAsyncUpdateData:
     async def test_successful_refresh_returns_normalized_data(self) -> None:
         client = AsyncMock()
         client.async_get_dashboard.return_value = _make_dashboard_response()
+        client.async_get_user_settings.return_value = {
+            "default_snooze_days": 4,
+            "medication_reminder_minutes": 20,
+        }
         coordinator = _make_coordinator(client)
         result = await coordinator._async_update_data()
         assert result["due_today_count"] == 3
         assert result["overdue_count"] == 1
         assert result["integration_contract"] == CONTRACT_VALID
+        assert result["default_snooze_days"] == 4
+        assert result["medication_reminder_minutes"] == 20
 
     async def test_authentication_error_raises_config_entry_auth_failed(self) -> None:
         client = AsyncMock()
@@ -242,9 +254,44 @@ class TestAsyncUpdateData:
         client.async_get_dashboard.return_value = _make_dashboard_response(
             contract="home-assistant; version=ha.v2"
         )
+        client.async_get_user_settings.return_value = {}
         coordinator = _make_coordinator(client)
         result = await coordinator._async_update_data()
         assert result["integration_contract"] == CONTRACT_VALID_V2
+
+    async def test_transition_events_fire_when_states_change(self) -> None:
+        client = AsyncMock()
+        first_payload = {
+            **VALID_DASHBOARD_PAYLOAD,
+            "for_date": "2026-01-15",
+            "completion_ratio": 0.5,
+            "chores": [{"chore_instance_id": 11, "status": "pending", "scheduled_date": "2026-01-15"}],
+            "medications": [{"medication_dose_instance_id": 21, "status": "scheduled", "scheduled_at": "2026-01-15T08:00:00+00:00"}],
+        }
+        second_payload = {
+            **VALID_DASHBOARD_PAYLOAD,
+            "for_date": "2026-01-16",
+            "completion_ratio": 1.0,
+            "chores": [{"chore_instance_id": 11, "status": "pending", "scheduled_date": "2026-01-15"}],
+            "medications": [{"medication_dose_instance_id": 21, "status": "missed", "scheduled_at": "2026-01-15T08:00:00+00:00"}],
+        }
+        client.async_get_dashboard.side_effect = [
+            _make_dashboard_response(first_payload),
+            _make_dashboard_response(second_payload),
+        ]
+        client.async_get_user_settings.return_value = {}
+        coordinator = _make_coordinator(client)
+        coordinator.hass.bus.async_fire = MagicMock()
+
+        await coordinator._async_update_data()
+        await coordinator._async_update_data()
+
+        coordinator.hass.bus.async_fire.assert_any_call("daynest_chore_overdue", {"chore_instance_id": 11})
+        coordinator.hass.bus.async_fire.assert_any_call(
+            "daynest_medication_missed",
+            {"medication_dose_instance_id": 21},
+        )
+        coordinator.hass.bus.async_fire.assert_any_call("daynest_day_complete", {"for_date": "2026-01-16"})
 
     async def test_unsupported_contract_raises_update_failed(self) -> None:
         client = AsyncMock()

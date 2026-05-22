@@ -53,3 +53,19 @@ skip_medication:
         number:
           min: 1
           mode: box
+
+create_planned_item:
+  fields:
+    title:
+      required: true
+      selector:
+        text: {}
+    planned_for:
+      required: false
+      selector:
+        date: {}
+    notes:
+      required: false
+      selector:
+        text:
+          multiline: true

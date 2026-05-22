@@ -1,4 +1,5 @@
 from datetime import date, timedelta
+from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 
@@ -129,12 +130,22 @@ def home_assistant_dashboard(
 def home_assistant_calendar(
     start: date = Query(..., description="Inclusive start date in YYYY-MM-DD format"),
     end: date = Query(..., description="Inclusive end date in YYYY-MM-DD format"),
+    event_type: Literal["chores", "medications", "planned_items"] | None = Query(
+        default=None,
+        description="Optional calendar event type filter",
+    ),
     service: TodayService = Depends(get_today_service),
     integration_user: User = Depends(require_integration_auth()),
     _: None = Depends(_set_ha_contract_header),
 ) -> list[HACalendarEvent]:
     """Return all scheduled events (chores, routines, medication, planned) for a date range."""
-    return service.get_calendar_events(user_id=integration_user.id, start_date=start, end_date=end)
+    event_types: set[str] | None = {event_type} if event_type else None
+    return service.get_calendar_events(
+        user_id=integration_user.id,
+        start_date=start,
+        end_date=end,
+        event_types=event_types,
+    )
 
 
 @router.post("/actions/complete-task", response_model=HAActionResult)

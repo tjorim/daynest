@@ -5,7 +5,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
-from app.schemas.today import DueTodayItem, PlannedTodayItem
+from app.schemas.today import DueTodayItem, MedicationTodayItem, PlannedTodayItem
 
 
 class CompleteTaskRequest(BaseModel):
@@ -102,6 +102,9 @@ class DashboardReadModel(BaseModel):
     routines_open_count: int = 0
     due_today: list[DueTodayItem] = []
     planned: list[PlannedTodayItem] = []
+    chores: list[DueTodayItem] = []
+    medications: list[MedicationTodayItem] = []
+    planned_items: list[PlannedTodayItem] = []
 
 
 class HomeAssistantOIDCConfig(BaseModel):

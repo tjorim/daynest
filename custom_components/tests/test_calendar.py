@@ -7,7 +7,12 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from custom_components.daynest.calendar import DaynestCalendarEntity, _parse_event
+from custom_components.daynest.calendar import (
+    DaynestChoresCalendar,
+    DaynestMedicationsCalendar,
+    DaynestPlannedCalendar,
+    _parse_event,
+)
 from daynest import DaynestError
 from homeassistant.components.calendar import CalendarEvent
 from homeassistant.helpers.entity import EntityDescription
@@ -23,10 +28,18 @@ def _make_coordinator(client: MagicMock | None = None) -> MagicMock:
     return coordinator
 
 
-def _make_entity(client: MagicMock | None = None) -> DaynestCalendarEntity:
+def _make_entity(
+    entity_cls: type[DaynestChoresCalendar | DaynestMedicationsCalendar | DaynestPlannedCalendar],
+    client: MagicMock | None = None,
+):
     coordinator = _make_coordinator(client)
-    description = EntityDescription(key="daynest_calendar", translation_key="daynest_calendar")
-    return DaynestCalendarEntity(coordinator=coordinator, entity_description=description)
+    key = {
+        DaynestChoresCalendar: "daynest_chores_calendar",
+        DaynestMedicationsCalendar: "daynest_medications_calendar",
+        DaynestPlannedCalendar: "daynest_planned_calendar",
+    }[entity_cls]
+    description = EntityDescription(key=key, translation_key=key)
+    return entity_cls(coordinator=coordinator, entity_description=description)
 
 
 @pytest.mark.unit
@@ -148,7 +161,7 @@ class TestDaynestCalendarEntityGetEvents:
                 },
             ]
         )
-        entity = _make_entity(client)
+        entity = _make_entity(DaynestChoresCalendar, client)
         hass = MagicMock()
         start = datetime(2026, 5, 17, 0, 0)
         end = datetime(2026, 5, 17, 23, 59)
@@ -162,7 +175,7 @@ class TestDaynestCalendarEntityGetEvents:
     async def test_api_error_returns_empty_list(self) -> None:
         client = MagicMock()
         client.async_get_calendar = AsyncMock(side_effect=DaynestError("network fail"))
-        entity = _make_entity(client)
+        entity = _make_entity(DaynestChoresCalendar, client)
         hass = MagicMock()
 
         events = await entity.async_get_events(hass, datetime(2026, 5, 1), datetime(2026, 5, 31))
@@ -177,7 +190,7 @@ class TestDaynestCalendarEntityGetEvents:
                 {"uid": "bad", "summary": "Bad date", "start": {"date": "not-valid"}, "end": {"date": "2026-05-18"}},
             ]
         )
-        entity = _make_entity(client)
+        entity = _make_entity(DaynestChoresCalendar, client)
         hass = MagicMock()
 
         events = await entity.async_get_events(hass, datetime(2026, 5, 1), datetime(2026, 5, 31))
@@ -188,12 +201,28 @@ class TestDaynestCalendarEntityGetEvents:
     async def test_passes_date_range_to_client(self) -> None:
         client = MagicMock()
         client.async_get_calendar = AsyncMock(return_value=[])
-        entity = _make_entity(client)
+        entity = _make_entity(DaynestChoresCalendar, client)
         hass = MagicMock()
 
         await entity.async_get_events(hass, datetime(2026, 5, 1, 0, 0), datetime(2026, 5, 31, 23, 59))
 
-        client.async_get_calendar.assert_called_once_with(date(2026, 5, 1), date(2026, 5, 31))
+        client.async_get_calendar.assert_called_once_with(date(2026, 5, 1), date(2026, 5, 31), event_type="chores")
+
+    async def test_passes_medications_type_filter(self) -> None:
+        client = MagicMock()
+        client.async_get_calendar = AsyncMock(return_value=[])
+        entity = _make_entity(DaynestMedicationsCalendar, client)
+        hass = MagicMock()
+        await entity.async_get_events(hass, datetime(2026, 5, 1, 0, 0), datetime(2026, 5, 31, 23, 59))
+        client.async_get_calendar.assert_called_once_with(date(2026, 5, 1), date(2026, 5, 31), event_type="medications")
+
+    async def test_passes_planned_items_type_filter(self) -> None:
+        client = MagicMock()
+        client.async_get_calendar = AsyncMock(return_value=[])
+        entity = _make_entity(DaynestPlannedCalendar, client)
+        hass = MagicMock()
+        await entity.async_get_events(hass, datetime(2026, 5, 1, 0, 0), datetime(2026, 5, 31, 23, 59))
+        client.async_get_calendar.assert_called_once_with(date(2026, 5, 1), date(2026, 5, 31), event_type="planned_items")
 
 
 @pytest.mark.unit
@@ -205,8 +234,8 @@ class TestDaynestCalendarEntityCreateEvent:
         client.async_create_planned_item = AsyncMock(return_value={"success": True, "detail": "created"})
         coordinator = _make_coordinator(client)
         coordinator.async_request_refresh = AsyncMock()
-        description = EntityDescription(key="daynest_calendar", translation_key="daynest_calendar")
-        entity = DaynestCalendarEntity(coordinator=coordinator, entity_description=description)
+        description = EntityDescription(key="daynest_planned_calendar", translation_key="daynest_planned_calendar")
+        entity = DaynestPlannedCalendar(coordinator=coordinator, entity_description=description)
 
         event = CalendarEvent(
             summary="Plan dinner",
@@ -226,8 +255,8 @@ class TestDaynestCalendarEntityCreateEvent:
         client.async_create_planned_item = AsyncMock(return_value={"success": True, "detail": "created"})
         coordinator = _make_coordinator(client)
         coordinator.async_request_refresh = AsyncMock()
-        description = EntityDescription(key="daynest_calendar", translation_key="daynest_calendar")
-        entity = DaynestCalendarEntity(coordinator=coordinator, entity_description=description)
+        description = EntityDescription(key="daynest_planned_calendar", translation_key="daynest_planned_calendar")
+        entity = DaynestPlannedCalendar(coordinator=coordinator, entity_description=description)
 
         event = CalendarEvent(
             summary="Morning run",
@@ -247,8 +276,8 @@ class TestDaynestCalendarEntityCreateEvent:
         client.async_create_planned_item = AsyncMock(return_value={"success": True, "detail": "created"})
         coordinator = _make_coordinator(client)
         coordinator.async_request_refresh = AsyncMock()
-        description = EntityDescription(key="daynest_calendar", translation_key="daynest_calendar")
-        entity = DaynestCalendarEntity(coordinator=coordinator, entity_description=description)
+        description = EntityDescription(key="daynest_planned_calendar", translation_key="daynest_planned_calendar")
+        entity = DaynestPlannedCalendar(coordinator=coordinator, entity_description=description)
 
         event = CalendarEvent(
             summary="Buy groceries",
@@ -266,8 +295,8 @@ class TestDaynestCalendarEntityCreateEvent:
         client.async_create_planned_item = AsyncMock(return_value={"success": True, "detail": "created"})
         coordinator = _make_coordinator(client)
         coordinator.async_request_refresh = AsyncMock()
-        description = EntityDescription(key="daynest_calendar", translation_key="daynest_calendar")
-        entity = DaynestCalendarEntity(coordinator=coordinator, entity_description=description)
+        description = EntityDescription(key="daynest_planned_calendar", translation_key="daynest_planned_calendar")
+        entity = DaynestPlannedCalendar(coordinator=coordinator, entity_description=description)
 
         event = CalendarEvent(
             summary="Plan dinner",

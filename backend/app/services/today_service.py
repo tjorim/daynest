@@ -119,6 +119,28 @@ class TodayService:
         )
         todo_planned = [self._planned_item_to_schema(item) for item in overdue_undone_planned + data.planned]
 
+        chores = [
+            DueTodayItem(
+                chore_instance_id=item.id,
+                chore_template_id=item.chore_template_id,
+                title=item.title,
+                status=item.status,
+                scheduled_date=item.scheduled_date,
+            )
+            for item in data.overdue + data.all_chores
+        ]
+        medications = [
+            MedicationTodayItem(
+                medication_dose_instance_id=item.id,
+                medication_plan_id=item.medication_plan_id,
+                name=item.name,
+                instructions=item.instructions,
+                scheduled_at=item.scheduled_at,
+                status=item.status,
+            )
+            for item in data.medication
+        ]
+
         return DashboardReadModel(
             for_date=for_date,
             overdue_count=len(data.overdue),
@@ -129,17 +151,11 @@ class TodayService:
             completion_ratio=round(completed_count / total if total else 0.0, 3),
             next_medication=self._format_next_medication(data.medication, user_tz),
             routines_open_count=len([item for item in data.routines if item.status in (TaskStatus.pending, TaskStatus.in_progress)]),
-            due_today=[
-                DueTodayItem(
-                    chore_instance_id=item.id,
-                    chore_template_id=item.chore_template_id,
-                    title=item.title,
-                    status=item.status,
-                    scheduled_date=item.scheduled_date,
-                )
-                for item in data.overdue + data.all_chores
-            ],
+            due_today=chores,
             planned=todo_planned,
+            chores=chores,
+            medications=medications,
+            planned_items=todo_planned,
         )
 
     def get_today(self, user_id: int, for_date: date) -> TodayResponse:
@@ -394,7 +410,13 @@ class TodayService:
 
         return CalendarMonthResponse(year=year, month=month, days=days)
 
-    def get_calendar_events(self, user_id: int, start_date: date, end_date: date) -> list[HACalendarEvent]:
+    def get_calendar_events(
+        self,
+        user_id: int,
+        start_date: date,
+        end_date: date,
+        event_types: set[str] | None = None,
+    ) -> list[HACalendarEvent]:
         if end_date < start_date:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="end_date must not be before start_date")
         if (end_date - start_date).days > MAX_CALENDAR_RANGE_DAYS:
@@ -407,47 +429,56 @@ class TodayService:
 
         events: list[HACalendarEvent] = []
 
-        for chore in self.repository.get_month_chores(user_id=user_id, start_date=start_date, end_date=end_date):
-            events.append(HACalendarEvent(
-                uid=f"daynest_chore_{chore.id}",
-                summary=chore.title,
-                start={"date": chore.scheduled_date.isoformat()},
-                end={"date": (chore.scheduled_date + timedelta(days=1)).isoformat()},
-            ))
+        include_all = event_types is None
+        selected_event_types = event_types or set()
+        include_chores = include_all or "chores" in selected_event_types
+        include_medications = include_all or "medications" in selected_event_types
+        include_planned_items = include_all or "planned_items" in selected_event_types
 
-        for routine in self.repository.get_month_routines(user_id=user_id, start_date=start_date, end_date=end_date):
-            if routine.due_at:
+        if include_chores:
+            for chore in self.repository.get_month_chores(user_id=user_id, start_date=start_date, end_date=end_date):
                 events.append(HACalendarEvent(
-                    uid=f"daynest_routine_{routine.id}",
-                    summary=routine.title,
-                    start={"dateTime": routine.due_at.isoformat()},
-                    end={"dateTime": (routine.due_at + timedelta(hours=1)).isoformat()},
-                ))
-            else:
-                events.append(HACalendarEvent(
-                    uid=f"daynest_routine_{routine.id}",
-                    summary=routine.title,
-                    start={"date": routine.scheduled_date.isoformat()},
-                    end={"date": (routine.scheduled_date + timedelta(days=1)).isoformat()},
+                    uid=f"daynest_chore_{chore.id}",
+                    summary=chore.title,
+                    start={"date": chore.scheduled_date.isoformat()},
+                    end={"date": (chore.scheduled_date + timedelta(days=1)).isoformat()},
                 ))
 
-        for med in self.repository.get_month_medications(user_id=user_id, start_date=start_date, end_date=end_date):
-            events.append(HACalendarEvent(
-                uid=f"daynest_medication_{med.id}",
-                summary=med.name,
-                start={"dateTime": med.scheduled_at.isoformat()},
-                end={"dateTime": (med.scheduled_at + timedelta(minutes=15)).isoformat()},
-                description=med.instructions,
-            ))
+            for routine in self.repository.get_month_routines(user_id=user_id, start_date=start_date, end_date=end_date):
+                if routine.due_at:
+                    events.append(HACalendarEvent(
+                        uid=f"daynest_routine_{routine.id}",
+                        summary=routine.title,
+                        start={"dateTime": routine.due_at.isoformat()},
+                        end={"dateTime": (routine.due_at + timedelta(hours=1)).isoformat()},
+                    ))
+                else:
+                    events.append(HACalendarEvent(
+                        uid=f"daynest_routine_{routine.id}",
+                        summary=routine.title,
+                        start={"date": routine.scheduled_date.isoformat()},
+                        end={"date": (routine.scheduled_date + timedelta(days=1)).isoformat()},
+                    ))
 
-        for planned in self.repository.list_planned_items(user_id=user_id, start_date=start_date, end_date=end_date):
-            events.append(HACalendarEvent(
-                uid=f"daynest_planned_{planned.id}",
-                summary=planned.title,
-                start={"date": planned.planned_for.isoformat()},
-                end={"date": (planned.planned_for + timedelta(days=1)).isoformat()},
-                description=planned.notes,
-            ))
+        if include_medications:
+            for med in self.repository.get_month_medications(user_id=user_id, start_date=start_date, end_date=end_date):
+                events.append(HACalendarEvent(
+                    uid=f"daynest_medication_{med.id}",
+                    summary=med.name,
+                    start={"dateTime": med.scheduled_at.isoformat()},
+                    end={"dateTime": (med.scheduled_at + timedelta(minutes=15)).isoformat()},
+                    description=med.instructions,
+                ))
+
+        if include_planned_items:
+            for planned in self.repository.list_planned_items(user_id=user_id, start_date=start_date, end_date=end_date):
+                events.append(HACalendarEvent(
+                    uid=f"daynest_planned_{planned.id}",
+                    summary=planned.title,
+                    start={"date": planned.planned_for.isoformat()},
+                    end={"date": (planned.planned_for + timedelta(days=1)).isoformat()},
+                    description=planned.notes,
+                ))
 
         events.sort(key=lambda e: e.start.get("date") or e.start.get("dateTime", ""))
         return events

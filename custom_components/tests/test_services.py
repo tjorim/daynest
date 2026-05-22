@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import UTC, date, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -10,8 +11,12 @@ from custom_components.daynest.services import (
     ATTR_CHORE_INSTANCE_ID,
     ATTR_DAYS,
     ATTR_MEDICATION_DOSE_ID,
+    ATTR_NOTES,
+    ATTR_PLANNED_FOR,
     ATTR_PLANNED_ITEM_ID,
+    ATTR_TITLE,
     SERVICE_COMPLETE_TASK,
+    SERVICE_CREATE_PLANNED_ITEM,
     SERVICE_MARK_MEDICATION_TAKEN,
     SERVICE_MARK_PLANNED_DONE,
     SERVICE_REFRESH,
@@ -75,6 +80,7 @@ class TestAsyncSetupServices:
         assert SERVICE_MARK_PLANNED_DONE in hass._registered_services
         assert SERVICE_SKIP_TASK in hass._registered_services
         assert SERVICE_SKIP_MEDICATION in hass._registered_services
+        assert SERVICE_CREATE_PLANNED_ITEM in hass._registered_services
 
     async def test_unload_removes_all_services(self) -> None:
         hass = _make_hass()
@@ -87,6 +93,7 @@ class TestAsyncSetupServices:
         assert SERVICE_MARK_PLANNED_DONE not in hass._registered_services
         assert SERVICE_SKIP_TASK not in hass._registered_services
         assert SERVICE_SKIP_MEDICATION not in hass._registered_services
+        assert SERVICE_CREATE_PLANNED_ITEM not in hass._registered_services
 
 
 @pytest.mark.unit
@@ -447,3 +454,88 @@ class TestHandleMarkPlannedDone:
         with pytest.raises(HomeAssistantError):
             await handler(_make_service_call(**{ATTR_PLANNED_ITEM_ID: 42}))
         entry.runtime_data.coordinator.async_refresh.assert_not_awaited()
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+class TestHandleCreatePlannedItem:
+    """Tests for the create_planned_item service handler."""
+
+    async def test_success_calls_client_and_refreshes(self) -> None:
+        client = AsyncMock()
+        entry = _make_entry(client=client)
+        hass = _make_hass(entries=[entry])
+        await async_setup_services(hass)
+        handler = await _get_handler(hass, SERVICE_CREATE_PLANNED_ITEM)
+
+        await handler(
+            _make_service_call(
+                **{
+                    ATTR_TITLE: "Buy milk",
+                    ATTR_PLANNED_FOR: "2026-05-21",
+                    ATTR_NOTES: "2L",
+                }
+            )
+        )
+
+        client.async_create_planned_item.assert_awaited_once_with(
+            title="Buy milk",
+            planned_for="2026-05-21",
+            notes="2L",
+        )
+        entry.runtime_data.coordinator.async_refresh.assert_awaited_once()
+
+    async def test_date_planned_for_is_serialized_and_refreshes(self) -> None:
+        client = AsyncMock()
+        entry = _make_entry(client=client)
+        hass = _make_hass(entries=[entry])
+        await async_setup_services(hass)
+        handler = await _get_handler(hass, SERVICE_CREATE_PLANNED_ITEM)
+
+        await handler(
+            _make_service_call(
+                **{
+                    ATTR_TITLE: "Buy milk",
+                    ATTR_PLANNED_FOR: date(2026, 5, 22),
+                }
+            )
+        )
+
+        client.async_create_planned_item.assert_awaited_once_with(
+            title="Buy milk",
+            planned_for="2026-05-22",
+            notes=None,
+        )
+        entry.runtime_data.coordinator.async_refresh.assert_awaited_once()
+
+    async def test_missing_planned_for_uses_coordinator_date_and_refreshes(self) -> None:
+        client = AsyncMock()
+        entry = _make_entry(client=client)
+        entry.runtime_data.coordinator.data = {"for_date": "2026-05-23"}
+        hass = _make_hass(entries=[entry])
+        await async_setup_services(hass)
+        handler = await _get_handler(hass, SERVICE_CREATE_PLANNED_ITEM)
+
+        await handler(_make_service_call(**{ATTR_TITLE: "Buy milk"}))
+
+        client.async_create_planned_item.assert_awaited_once_with(
+            title="Buy milk",
+            planned_for="2026-05-23",
+            notes=None,
+        )
+        entry.runtime_data.coordinator.async_refresh.assert_awaited_once()
+
+        client.reset_mock()
+        entry.runtime_data.coordinator.async_refresh.reset_mock()
+        entry.runtime_data.coordinator.data = None
+
+        with patch("custom_components.daynest.services.datetime") as mock_datetime:
+            mock_datetime.now.return_value = datetime(2026, 5, 24, tzinfo=UTC)
+            await handler(_make_service_call(**{ATTR_TITLE: "Buy bread"}))
+
+        client.async_create_planned_item.assert_awaited_once_with(
+            title="Buy bread",
+            planned_for="2026-05-24",
+            notes=None,
+        )
+        entry.runtime_data.coordinator.async_refresh.assert_awaited_once()

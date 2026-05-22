@@ -25,9 +25,17 @@ if TYPE_CHECKING:
     from .coordinator import DaynestDataUpdateCoordinator
     from .data import DaynestConfigEntry
 
-ENTITY_DESCRIPTION = CalendarEntityDescription(
-    key="daynest_calendar",
-    translation_key="daynest_calendar",
+CHORES_ENTITY_DESCRIPTION = CalendarEntityDescription(
+    key="daynest_chores_calendar",
+    translation_key="daynest_chores_calendar",
+)
+MEDICATIONS_ENTITY_DESCRIPTION = CalendarEntityDescription(
+    key="daynest_medications_calendar",
+    translation_key="daynest_medications_calendar",
+)
+PLANNED_ENTITY_DESCRIPTION = CalendarEntityDescription(
+    key="daynest_planned_calendar",
+    translation_key="daynest_planned_calendar",
 )
 
 
@@ -36,12 +44,20 @@ async def async_setup_entry(
     entry: DaynestConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up Daynest calendar entity for a config entry."""
+    """Set up Daynest calendar entities for a config entry."""
     async_add_entities(
         [
-            DaynestCalendarEntity(
+            DaynestChoresCalendar(
                 coordinator=entry.runtime_data.coordinator,
-                entity_description=ENTITY_DESCRIPTION,
+                entity_description=CHORES_ENTITY_DESCRIPTION,
+            ),
+            DaynestMedicationsCalendar(
+                coordinator=entry.runtime_data.coordinator,
+                entity_description=MEDICATIONS_ENTITY_DESCRIPTION,
+            ),
+            DaynestPlannedCalendar(
+                coordinator=entry.runtime_data.coordinator,
+                entity_description=PLANNED_ENTITY_DESCRIPTION,
             )
         ]
     )
@@ -113,7 +129,7 @@ class DaynestCalendarEntity(CalendarEntity, DaynestEntity):
         end = end_datetime.date()
 
         try:
-            raw_events = await client.async_get_calendar(start, end)
+            raw_events = await client.async_get_calendar(start, end, event_type=self._event_type)
         except DaynestError as err:
             LOGGER.warning("Failed to fetch Daynest calendar events: %s", err)
             return []
@@ -135,3 +151,23 @@ class DaynestCalendarEntity(CalendarEntity, DaynestEntity):
             notes=event.description,
         )
         await self.coordinator.async_request_refresh()
+
+
+class DaynestChoresCalendar(DaynestCalendarEntity):
+    """Calendar view for chore and routine events."""
+
+    _event_type = "chores"
+    _attr_supported_features = CalendarEntityFeature(0)
+
+
+class DaynestMedicationsCalendar(DaynestCalendarEntity):
+    """Calendar view for medication events."""
+
+    _event_type = "medications"
+    _attr_supported_features = CalendarEntityFeature(0)
+
+
+class DaynestPlannedCalendar(DaynestCalendarEntity):
+    """Calendar view for planned items."""
+
+    _event_type = "planned_items"

@@ -11,6 +11,31 @@ interface TodoItem {
   description?: string;
 }
 
+interface DailyCount {
+  date: string;
+  completed: number;
+  total: number;
+}
+
+interface DailyAdherence {
+  date: string;
+  taken: number;
+  total: number;
+}
+
+interface WeekSummaryResponse {
+  chores?: { daily_completions?: DailyCount[] };
+  planned_items?: { daily_completions?: DailyCount[] };
+  routines?: { daily_completions?: DailyCount[] };
+  medications?: { daily_adherence?: DailyAdherence[] };
+}
+
+interface WeekDaySummary {
+  date: string;
+  completed: number;
+  total: number;
+}
+
 type CardGridOptions = {
   columns: number;
   rows: number;
@@ -100,10 +125,16 @@ class DaynestCard extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
   @state() private _config!: DaynestCardConfig;
   @state() private _items: TodoItem[] = [];
+  @state() private _week: WeekDaySummary[] = [];
+  @state() private _quickAddOpen = false;
+  @state() private _quickAddTitle = "";
+  @state() private _quickAddPlannedFor = "";
+  @state() private _quickAddPending = false;
 
   connectedCallback() {
     super.connectedCallback();
     void this._fetchItems();
+    void this._fetchWeek();
   }
 
   static getConfigForm() {
@@ -127,6 +158,36 @@ class DaynestCard extends LitElement {
           selector: { entity: { domain: "todo" } },
           default: "todo.daynest_today",
         },
+        {
+          name: "view",
+          label: "View",
+          selector: {
+            select: {
+              options: [
+                { label: "Full", value: "full" },
+                { label: "Compact", value: "compact" },
+                { label: "Week", value: "week" },
+              ],
+            },
+          },
+          default: "full",
+        },
+        {
+          name: "show_quick_add",
+          label: "Show quick add",
+          selector: { boolean: {} },
+          default: true,
+        },
+        {
+          name: "snooze_days",
+          label: "Snooze days override",
+          selector: { number: { min: 1, max: 14, mode: "box" } },
+        },
+        {
+          name: "api_base_url",
+          label: "Daynest API base URL",
+          selector: { text: {} },
+        },
       ],
     };
   }
@@ -136,6 +197,8 @@ class DaynestCard extends LitElement {
       type: "custom:daynest-card",
       sensor_prefix: DEFAULT_SENSOR_PREFIX,
       todo_entity: "todo.daynest_today",
+      view: "full",
+      show_quick_add: true,
     };
   }
 
@@ -143,6 +206,7 @@ class DaynestCard extends LitElement {
     if (!config) throw new Error("Invalid configuration");
     this._config = config;
     void this._fetchItems();
+    void this._fetchWeek();
   }
 
   getCardSize(): number {
@@ -170,6 +234,7 @@ class DaynestCard extends LitElement {
     const prefix = this._config.sensor_prefix ?? DEFAULT_SENSOR_PREFIX;
     const metricValue = (suffix: MetricSensorSuffix) => sensorNum(this.hass, prefix + suffix);
     const pct = Math.max(0, Math.min(100, Math.round(metricValue("completion_ratio"))));
+    const view = this._config.view ?? "full";
 
     const nextMed = sensorStr(this.hass, prefix + "next_medication");
     const showMed = nextMed && nextMed !== "unavailable" && nextMed !== "unknown";
@@ -190,25 +255,34 @@ class DaynestCard extends LitElement {
             .map((metric) => this._metricTile(metricValue(metric.suffix), metric.label))}
         </div>
         ${showMed ? html`<div class="med-chip">💊 Next: ${nextMed}</div>` : ""}
-        <div class="task-list">
-          ${this._renderTaskGroup(
-            "Overdue",
-            this._items.filter((item) => item.uid.startsWith("overdue:")),
-          )}
-          ${this._renderTaskGroup(
-            "Today",
-            this._items.filter(
-              (item) =>
-                item.uid.startsWith("due:") ||
-                item.uid.startsWith("routine:") ||
-                item.uid.startsWith("medication:"),
-            ),
-          )}
-          ${this._renderTaskGroup(
-            "Planned",
-            this._items.filter((item) => item.uid.startsWith("planned:")),
-          )}
-        </div>
+        ${view === "week"
+          ? this._renderWeekView()
+          : html`
+              ${view !== "compact"
+                ? html`
+                    <div class="task-list">
+                      ${this._renderTaskGroup(
+                        "Overdue",
+                        this._items.filter((item) => item.uid.startsWith("overdue:")),
+                      )}
+                      ${this._renderTaskGroup(
+                        "Today",
+                        this._items.filter(
+                          (item) =>
+                            item.uid.startsWith("due:") ||
+                            item.uid.startsWith("routine:") ||
+                            item.uid.startsWith("medication:"),
+                        ),
+                      )}
+                      ${this._renderTaskGroup(
+                        "Planned",
+                        this._items.filter((item) => item.uid.startsWith("planned:")),
+                      )}
+                    </div>
+                  `
+                : ""}
+            `}
+        ${this._config.show_quick_add ? this._renderQuickAdd() : ""}
       </ha-card>
     `;
   }
@@ -237,8 +311,13 @@ class DaynestCard extends LitElement {
     const canSkip = parsedUid !== null && isSkippablePrefix(parsedUid.prefix);
     const canSnooze = parsedUid !== null && isSnoozablePrefix(parsedUid.prefix);
     const isDone = item.status === "completed";
+    const statusClass = isDone
+      ? "done"
+      : item.uid.startsWith("overdue:")
+        ? "overdue"
+        : "pending";
     return html`
-      <div class=${`task-item${isDone ? " done" : ""}`}>
+      <div class=${`task-item ${statusClass}`}>
         <span>${item.summary}</span>
         ${isDone || parsedUid === null
           ? html``
@@ -282,6 +361,80 @@ class DaynestCard extends LitElement {
     }
   }
 
+  private async _fetchWeek() {
+    if ((this._config?.view ?? "full") !== "week") return;
+    try {
+      const configuredBase = (this._config.api_base_url ?? "").trim().replace(/\/$/, "");
+      const endpoint = configuredBase
+        ? `${configuredBase}/api/v1/analytics/summary?period=week`
+        : "/api/v1/analytics/summary?period=week";
+      const accessToken = (this.hass as { auth?: { data?: { access_token?: string } } })?.auth?.data?.access_token;
+      const sameOrigin = configuredBase
+        ? new URL(configuredBase, window.location.origin).origin === window.location.origin
+        : true;
+      const response = await fetch(endpoint, {
+        headers: accessToken && sameOrigin ? { Authorization: `Bearer ${accessToken}` } : undefined,
+      });
+      if (!response.ok) return;
+      const summary = (await response.json()) as WeekSummaryResponse;
+      this._week = this._normalizeWeek(summary);
+    } catch (error) {
+      console.error("Failed to fetch Daynest weekly analytics summary", error);
+    }
+  }
+
+  private _normalizeWeek(summary: WeekSummaryResponse): WeekDaySummary[] {
+    const totals = new Map<string, WeekDaySummary>();
+    const add = (date: string, completed: number, total: number) => {
+      const current = totals.get(date) ?? { date, completed: 0, total: 0 };
+      current.completed += completed;
+      current.total += total;
+      totals.set(date, current);
+    };
+
+    for (const item of summary.chores?.daily_completions ?? []) add(item.date, item.completed, item.total);
+    for (const item of summary.planned_items?.daily_completions ?? []) add(item.date, item.completed, item.total);
+    for (const item of summary.routines?.daily_completions ?? []) add(item.date, item.completed, item.total);
+    for (const item of summary.medications?.daily_adherence ?? []) add(item.date, item.taken, item.total);
+
+    const all = [...totals.values()].sort((a, b) => a.date.localeCompare(b.date));
+    const lastDate = all.length > 0 ? new Date(`${all[all.length - 1].date}T00:00:00Z`) : new Date();
+    // Convert JS getUTCDay() (Sun=0..Sat=6) to a Monday-based offset (Mon=0..Sun=6).
+    const day = (lastDate.getUTCDay() + 6) % 7;
+    const monday = new Date(lastDate);
+    monday.setUTCDate(lastDate.getUTCDate() - day);
+
+    const result: WeekDaySummary[] = [];
+    for (let i = 0; i < 7; i += 1) {
+      const current = new Date(monday);
+      current.setUTCDate(monday.getUTCDate() + i);
+      const key = current.toISOString().slice(0, 10);
+      result.push(totals.get(key) ?? { date: key, completed: 0, total: 0 });
+    }
+    return result;
+  }
+
+  private _renderWeekView() {
+    return html`
+      <div class="week-grid">
+        ${this._week.map((day) => {
+          const date = new Date(`${day.date}T00:00:00Z`);
+          const ratio = day.total > 0 ? Math.round((day.completed / day.total) * 100) : 0;
+          return html`
+            <div class="week-day">
+              <div class="week-day-label">
+                ${date.toLocaleDateString(undefined, { weekday: "short", timeZone: "UTC" })}
+                ${date.toLocaleDateString(undefined, { month: "numeric", day: "numeric", timeZone: "UTC" })}
+              </div>
+              <div class="week-ratio-pill">${ratio}%</div>
+              <div>${day.completed}/${day.total}</div>
+            </div>
+          `;
+        })}
+      </div>
+    `;
+  }
+
   private async _done(item: TodoItem) {
     const parsedUid = parseUid(item.uid);
     if (parsedUid === null) return;
@@ -314,15 +467,37 @@ class DaynestCard extends LitElement {
     if (parsedUid === null) return;
     const { prefix, id } = parsedUid;
     if (!isSnoozablePrefix(prefix)) return;
+    const snoozeDays = this._resolveSnoozeDays();
     try {
       await this.hass.callService("daynest", "snooze_task", {
         chore_instance_id: id,
-        days: 1,
+        days: snoozeDays,
       });
       await this._fetchItems();
     } catch (error) {
       console.error("Failed to snooze Daynest todo item", error);
     }
+  }
+
+  private _snoozeEntityId() {
+    const sensorPrefix = this._config.sensor_prefix ?? DEFAULT_SENSOR_PREFIX;
+    if (!sensorPrefix.startsWith("sensor.") || !sensorPrefix.endsWith("_")) return undefined;
+    return `number.${sensorPrefix.slice("sensor.".length)}snooze_days`;
+  }
+
+  private _resolveSnoozeDays() {
+    const configuredSnoozeDays = Number(this._config.snooze_days);
+    if (Number.isFinite(configuredSnoozeDays) && configuredSnoozeDays > 0) {
+      return Math.round(configuredSnoozeDays);
+    }
+    const snoozeEntityId = this._snoozeEntityId();
+    const derivedSnoozeDays = Number(
+      (snoozeEntityId ? this.hass.states[snoozeEntityId]?.state : undefined) ?? 1,
+    );
+    if (Number.isFinite(derivedSnoozeDays) && derivedSnoozeDays > 0) {
+      return Math.round(derivedSnoozeDays);
+    }
+    return 1;
   }
 
   private async _refresh() {
@@ -332,6 +507,60 @@ class DaynestCard extends LitElement {
       console.error("Failed to refresh Daynest data", error);
     }
     await this._fetchItems();
+    await this._fetchWeek();
+  }
+
+  private _renderQuickAdd() {
+    return html`
+      <details
+        class="quick-add"
+        aria-label="Quick add planned item"
+        @toggle=${(event: Event) => (this._quickAddOpen = (event.currentTarget as HTMLDetailsElement).open)}
+      >
+        <summary>Quick add</summary>
+        ${this._quickAddOpen
+          ? html`
+              <div class="quick-add-row">
+                <input
+                  placeholder="Planned item title"
+                  .value=${this._quickAddTitle}
+                  @input=${(event: Event) => (this._quickAddTitle = (event.target as HTMLInputElement).value)}
+                />
+                <input
+                  type="date"
+                  .value=${this._quickAddPlannedFor}
+                  @input=${(event: Event) => (this._quickAddPlannedFor = (event.target as HTMLInputElement).value)}
+                />
+                <ha-icon-button
+                  icon=${this._quickAddPending ? "mdi:loading" : "mdi:plus"}
+                  label="Add"
+                  @click=${this._submitQuickAdd}
+                ></ha-icon-button>
+              </div>
+            `
+          : ""}
+      </details>
+    `;
+  }
+
+  private async _submitQuickAdd() {
+    const title = this._quickAddTitle.trim();
+    if (!title || this._quickAddPending) return;
+    this._quickAddPending = true;
+    try {
+      await this.hass.callService("daynest", "create_planned_item", {
+        title,
+        planned_for: this._quickAddPlannedFor || undefined,
+      });
+      this._quickAddTitle = "";
+      this._quickAddPlannedFor = "";
+      await this._fetchItems();
+      await this._fetchWeek();
+    } catch (error) {
+      console.error("Failed to create Daynest planned item", error);
+    } finally {
+      this._quickAddPending = false;
+    }
   }
 }
 
