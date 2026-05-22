@@ -8,6 +8,7 @@ from fastmcp.server.auth import AccessToken
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.api.dependencies.integration_auth import hash_integration_key
+from app.core.config import settings
 from app.mcp_server import DaynestMcpBackend, IntegrationKeyTokenVerifier, create_mcp_server
 from app.models.chore_template import ChoreTemplate
 from app.models.integration_client import IntegrationClient
@@ -583,12 +584,12 @@ def test_mcp_backend_delete_chore_template_raises_for_missing(db_session: Sessio
         backend.delete_chore_template(9999)
 
 
-def test_create_mcp_server_uses_backend_session_factory(db_session: Session) -> None:
+def test_create_mcp_server_uses_backend_session_factory(db_session: Session, monkeypatch) -> None:
+    monkeypatch.setattr(settings, "oidc_issuer_url", None)
     session_factory = _session_factory(db_session)
     backend = DaynestMcpBackend(session_factory)
 
     mcp = create_mcp_server(backend)
 
-    # Without OIDC configured, auth is the integration verifier directly
     assert isinstance(mcp.auth, IntegrationKeyTokenVerifier)
     assert mcp.auth.session_factory == session_factory
