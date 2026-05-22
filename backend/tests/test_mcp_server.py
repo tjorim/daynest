@@ -309,6 +309,23 @@ def test_mcp_backend_can_create_integration_client(db_session: Session) -> None:
     assert token is not None
 
 
+def test_integration_token_cannot_create_integration_client(db_session: Session, monkeypatch) -> None:
+    user = _create_user(db_session, "integration-blocked@example.com")
+    client = _create_integration_client(db_session, user, raw_key="daynest_blocked_key")
+    backend = DaynestMcpBackend(_session_factory(db_session))
+    access_token = AccessToken(
+        token="daynest_blocked_key",
+        client_id=str(client.id),
+        scopes=[],
+        claims={"auth_source": "integration", "integration_client_id": client.id},
+    )
+
+    monkeypatch.setattr("app.mcp_server.get_access_token", lambda: access_token)
+
+    with pytest.raises(PermissionError, match="Integration tokens cannot create new integration clients"):
+        backend.create_integration_client(name="Sneaky client")
+
+
 def test_integration_key_token_verifier_accepts_valid_key(db_session: Session) -> None:
     user = _create_user(db_session, "token@example.com")
     client = _create_integration_client(db_session, user, raw_key="daynest_valid_key")

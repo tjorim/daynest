@@ -610,6 +610,13 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
     integration_verifier = IntegrationKeyTokenVerifier(daynest.session_factory, resource_server_url=resource_server_url)
 
     if settings.oidc_issuer_url:
+        # Requires Keycloak >= 26.6.0. When audience is set, a matching audience
+        # mapper must be configured in the realm or token validation will fail.
+        logger.info(
+            "MCP: Keycloak auth enabled (realm=%s, audience=%r)",
+            settings.oidc_issuer_url,
+            settings.oidc_audience,
+        )
         keycloak_provider = KeycloakAuthProvider(
             realm_url=settings.oidc_issuer_url,
             base_url=resource_server_url,

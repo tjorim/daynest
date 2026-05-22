@@ -147,15 +147,21 @@ async def app_lifespan(app: Starlette):
 
 lifespan = combine_lifespans(app_lifespan, _mcp_app.lifespan) if _mcp_app is not None else app_lifespan
 
+# Top-level app: owns lifespan, TrustedHost, and observability.
+# CORS lives on _rest instead — applying it here would wrap /mcp and interfere
+# with fastmcp's OAuth .well-known routes.
 app = FastAPI(title=settings.app_name, version=settings.version, lifespan=lifespan)
 app.middleware("http")(observability_middleware)
 
 if settings.trusted_hosts:
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.trusted_hosts)
 
+# REST sub-app: CORS is scoped here so it doesn't affect /mcp.
+_rest = FastAPI(title=settings.app_name, version=settings.version)
+
 if settings.cors_allow_origins:
     wildcard = "*" in settings.cors_allow_origins
-    app.add_middleware(
+    _rest.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_allow_origins,
         allow_credentials=not wildcard,
@@ -163,24 +169,22 @@ if settings.cors_allow_origins:
         allow_headers=["*"],
     )
 
-app.include_router(system_router, prefix=settings.api_prefix)
-app.include_router(auth_router, prefix=settings.api_prefix)
-app.include_router(users_router, prefix=settings.api_prefix)
-app.include_router(analytics_router, prefix=settings.api_prefix)
-app.include_router(integration_clients_router, prefix=settings.api_prefix)
-app.include_router(home_assistant_router, prefix=settings.api_prefix)
-app.include_router(today_router, prefix=settings.api_prefix)
-app.include_router(medications_router, prefix=settings.api_prefix)
-app.include_router(push_router, prefix=settings.api_prefix)
-app.include_router(templates_router, prefix=f"{settings.api_prefix}/templates")
-app.include_router(bulk_router, prefix=settings.api_prefix)
-app.include_router(calendar_router, prefix=settings.api_prefix)
-app.include_router(search_router, prefix=settings.api_prefix)
-if _mcp_app is not None:
-    app.mount("/mcp", _mcp_app)
+_rest.include_router(system_router, prefix=settings.api_prefix)
+_rest.include_router(auth_router, prefix=settings.api_prefix)
+_rest.include_router(users_router, prefix=settings.api_prefix)
+_rest.include_router(analytics_router, prefix=settings.api_prefix)
+_rest.include_router(integration_clients_router, prefix=settings.api_prefix)
+_rest.include_router(home_assistant_router, prefix=settings.api_prefix)
+_rest.include_router(today_router, prefix=settings.api_prefix)
+_rest.include_router(medications_router, prefix=settings.api_prefix)
+_rest.include_router(push_router, prefix=settings.api_prefix)
+_rest.include_router(templates_router, prefix=f"{settings.api_prefix}/templates")
+_rest.include_router(bulk_router, prefix=settings.api_prefix)
+_rest.include_router(calendar_router, prefix=settings.api_prefix)
+_rest.include_router(search_router, prefix=settings.api_prefix)
 
 
-@app.get("/")
+@_rest.get("/")
 def root() -> dict[str, str]:
     return {
         "name": settings.app_name,
@@ -191,3 +195,9 @@ def root() -> dict[str, str]:
         "ha_summary": f"{settings.api_prefix}/integrations/home-assistant/summary",
         "mcp": "/mcp",
     }
+
+
+# /mcp must be mounted before / so it matches first.
+if _mcp_app is not None:
+    app.mount("/mcp", _mcp_app)
+app.mount("/", _rest)
