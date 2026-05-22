@@ -659,13 +659,15 @@ class ComposedTokenVerifier(TokenVerifier):
     """Tries each verifier in order; returns the first successful result."""
 
     def __init__(self, *verifiers: TokenVerifier) -> None:
-        first_verifier = verifiers[0] if verifiers else None
+        if not verifiers:
+            raise ValueError("ComposedTokenVerifier requires at least one verifier")
+        first_verifier = verifiers[0]
         resource_base_urls = {verifier.resource_base_url for verifier in verifiers}
         required_scopes_set = {tuple(verifier.required_scopes) for verifier in verifiers}
         if len(resource_base_urls) > 1 or len(required_scopes_set) > 1:
             raise ValueError("ComposedTokenVerifier requires verifiers with matching resource_base_url and required_scopes")
-        required_scopes = list(first_verifier.required_scopes) if first_verifier is not None else None
-        resource_base_url = first_verifier.resource_base_url if first_verifier is not None else None
+        required_scopes = list(first_verifier.required_scopes)
+        resource_base_url = first_verifier.resource_base_url
         super().__init__(
             resource_base_url=resource_base_url,
             required_scopes=required_scopes,
