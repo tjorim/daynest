@@ -104,7 +104,7 @@ export function StatsPage() {
                 <div className="row g-3">
                   <div className="col-sm-3">
                     <div className="text-center p-2">
-                      <div className="summary-value text-primary">{pct(summary.chores.completion_rate)}</div>
+                      <div className="fs-4 fw-bold text-primary">{pct(summary.chores.completion_rate)}</div>
                       <div className="small text-muted mt-1">Chores</div>
                       <div className="small text-muted">
                         {summary.chores.total_completed}/{summary.chores.total_scheduled}
@@ -113,7 +113,7 @@ export function StatsPage() {
                   </div>
                   <div className="col-sm-3">
                     <div className="text-center p-2">
-                      <div className="summary-value text-success">{pct(summary.routines.completion_rate)}</div>
+                      <div className="fs-4 fw-bold text-success">{pct(summary.routines.completion_rate)}</div>
                       <div className="small text-muted mt-1">Routines</div>
                       <div className="small text-muted">
                         {summary.routines.total_completed}/{summary.routines.total_scheduled}
@@ -122,7 +122,7 @@ export function StatsPage() {
                   </div>
                   <div className="col-sm-3">
                     <div className="text-center p-2">
-                      <div className="summary-value text-info">{pct(summary.medications.adherence_rate)}</div>
+                      <div className="fs-4 fw-bold text-info">{pct(summary.medications.adherence_rate)}</div>
                       <div className="small text-muted mt-1">Medication</div>
                       <div className="small text-muted">
                         {summary.medications.total_taken}/{summary.medications.total_scheduled}
@@ -131,7 +131,7 @@ export function StatsPage() {
                   </div>
                   <div className="col-sm-3">
                     <div className="text-center p-2">
-                      <div className="summary-value text-warning">{pct(summary.planned_items.completion_rate)}</div>
+                      <div className="fs-4 fw-bold text-warning">{pct(summary.planned_items.completion_rate)}</div>
                       <div className="small text-muted mt-1">Planned items</div>
                       <div className="small text-muted">
                         {summary.planned_items.total_completed}/{summary.planned_items.total_scheduled}

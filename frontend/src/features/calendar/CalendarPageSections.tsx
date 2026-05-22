@@ -99,11 +99,13 @@ export function CalendarMonthGrid({
             const dateValue = toIsoDate(monthStart.date(dayNumber));
             const summary = itemsByDate.get(dateValue);
             const selected = selectedDate === dateValue;
+            const isDragTarget = !selected && dragOverDate === dateValue;
+            const cellClass = `btn w-100 text-start py-2 ${selected ? "btn-primary" : isDragTarget ? "btn-outline-success" : "btn-outline-secondary"}`;
             return (
               <div key={dateValue} className="col">
                 <button
                   type="button"
-                  className={`btn w-100 text-start py-2 ${selected ? "btn-primary" : dragOverDate === dateValue ? "btn-outline-success" : "btn-outline-secondary"}`}
+                  className={cellClass}
                   onClick={() => onSelectDate(dateValue)}
                   onDragOver={onDropReschedule ? (e) => { e.preventDefault(); setDragOverDate(dateValue); } : undefined}
                   onDragLeave={onDropReschedule ? () => setDragOverDate(null) : undefined}
