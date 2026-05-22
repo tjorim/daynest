@@ -12,7 +12,7 @@ import {
 import { AppRouter } from "@/app/router/AppRouter";
 import { AuthProvider, useAuth } from "@/app/providers/AuthProvider";
 import { fetchOidcConfig } from "@/config/oidc";
-import { useTheme } from "@/app/theme/useTheme";
+import { ThemeProvider, useTheme } from "@/app/theme/ThemeContext";
 import { SearchOverlay } from "@/features/search/SearchOverlay";
 
 function App() {
@@ -154,7 +154,9 @@ async function bootstrap() {
       <OidcProvider {...oidcConfig}>
         <BrowserRouter>
           <AuthProvider>
-            <App />
+            <ThemeProvider>
+              <App />
+            </ThemeProvider>
           </AuthProvider>
         </BrowserRouter>
       </OidcProvider>

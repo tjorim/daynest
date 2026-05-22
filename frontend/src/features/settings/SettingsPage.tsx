@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   getDeferredInstallPrompt,
   promptToInstallApp,
@@ -77,13 +77,32 @@ export function SettingsPage() {
   const [timezoneSaving, setTimezoneSaving] = useState(false);
   const [timezoneError, setTimezoneError] = useState<string | null>(null);
   const [timezoneSuccess, setTimezoneSuccess] = useState<string | null>(null);
-  const timezones: string[] = (() => {
+  const timezones = useMemo<string[]>(() => {
     try {
       return (Intl as { supportedValuesOf?: (key: string) => string[] }).supportedValuesOf?.("timeZone") ?? [];
     } catch {
       return [];
     }
-  })();
+  }, []);
+
+  const timezoneOptions = useMemo(
+    () =>
+      timezones.map((tz) => {
+        let label = tz;
+        try {
+          const parts = new Intl.DateTimeFormat("en", {
+            timeZone: tz,
+            timeZoneName: "shortOffset",
+          }).formatToParts(new Date());
+          const tzPart = parts.find((p) => p.type === "timeZoneName");
+          if (tzPart) label = `${tz} (${tzPart.value})`;
+        } catch {
+          // ignore
+        }
+        return { value: tz, label };
+      }),
+    [timezones],
+  );
 
   const applyServerUrl = () => {
     if (serverMode === "default") {
@@ -426,25 +445,11 @@ export function SettingsPage() {
                     {timezone && !timezones.includes(timezone) ? (
                       <option value={timezone}>{timezone}</option>
                     ) : null}
-                    {timezones.map((tz) => {
-                      let offset = "";
-                      try {
-                        const fmt = new Intl.DateTimeFormat("en", {
-                          timeZone: tz,
-                          timeZoneName: "shortOffset",
-                        });
-                        const parts = fmt.formatToParts(new Date());
-                        const tzPart = parts.find((p) => p.type === "timeZoneName");
-                        offset = tzPart ? ` (${tzPart.value})` : "";
-                      } catch {
-                        // ignore
-                      }
-                      return (
-                        <option key={tz} value={tz}>
-                          {tz}{offset}
-                        </option>
-                      );
-                    })}
+                    {timezoneOptions.map(({ value, label }) => (
+                      <option key={value} value={value}>
+                        {label}
+                      </option>
+                    ))}
                   </select>
                   <button
                     type="button"

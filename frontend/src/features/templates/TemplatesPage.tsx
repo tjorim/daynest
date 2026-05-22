@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   createChoreTemplate,
   createRoutineTemplate,
@@ -26,6 +26,15 @@ export function TemplatesPage() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [analytics, setAnalytics] = useState<AnalyticsSummary | null>(null);
+
+  const routineStreakMap = useMemo(
+    () => new Map(analytics?.routines.streaks.map((s) => [s.routine_id, s]) ?? []),
+    [analytics],
+  );
+  const choreStreakMap = useMemo(
+    () => new Map(analytics?.chores.streaks.map((s) => [s.chore_id, s]) ?? []),
+    [analytics],
+  );
 
   const [routineName, setRoutineName] = useState("");
   const [routineDescription, setRoutineDescription] = useState("");
@@ -368,16 +377,14 @@ export function TemplatesPage() {
                         >
                           {routine.is_active ? "Active" : "Inactive"}
                         </span>
-                        {analytics ? (() => {
-                          const streak = analytics.routines.streaks.find(
-                            (s) => s.routine_id === routine.id,
-                          );
+                        {(() => {
+                          const streak = routineStreakMap.get(routine.id);
                           return streak && streak.current_streak > 0 ? (
                             <span className="badge text-bg-warning" title={`Best: ${streak.longest_streak}`}>
                               🔥 {streak.current_streak}
                             </span>
                           ) : null;
-                        })() : null}
+                        })()}
                         <button
                           type="button"
                           className="btn btn-outline-primary btn-sm"
@@ -533,16 +540,14 @@ export function TemplatesPage() {
                         >
                           {chore.is_active ? "Active" : "Inactive"}
                         </span>
-                        {analytics ? (() => {
-                          const streak = analytics.chores.streaks.find(
-                            (s) => s.chore_id === chore.id,
-                          );
+                        {(() => {
+                          const streak = choreStreakMap.get(chore.id);
                           return streak && streak.current_streak > 0 ? (
                             <span className="badge text-bg-warning" title={`Best: ${streak.longest_streak}`}>
                               🔥 {streak.current_streak}
                             </span>
                           ) : null;
-                        })() : null}
+                        })()}
                         <button
                           type="button"
                           className="btn btn-outline-primary btn-sm"

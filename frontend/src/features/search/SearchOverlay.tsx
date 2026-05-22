@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   searchItems,
@@ -13,10 +13,32 @@ export function SearchOverlay({ onClose }: { onClose: () => void }) {
   const [results, setResults] = useState<SearchResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [activeIndex, setActiveIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const abortRef = useRef<AbortController | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const flatItems = useMemo(() => {
+    if (!results) return [];
+    return [
+      ...results.routine_templates.map((r) => ({ key: `routine-${r.id}`, path: "/templates" })),
+      ...results.chore_templates.map((c) => ({ key: `chore-${c.id}`, path: "/templates" })),
+      ...results.medication_plans.map((m) => ({ key: `med-${m.id}`, path: "/medication" })),
+      ...results.planned_items.map((p) => ({ key: `planned-${p.id}`, path: "/calendar" })),
+    ];
+  }, [results]);
+
+  useEffect(() => {
+    setActiveIndex(-1);
+  }, [results]);
+
+  useEffect(() => {
+    if (activeIndex >= 0) {
+      const key = flatItems[activeIndex]?.key;
+      if (key) document.getElementById(key)?.scrollIntoView({ block: "nearest" });
+    }
+  }, [activeIndex, flatItems]);
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -83,12 +105,30 @@ export function SearchOverlay({ onClose }: { onClose: () => void }) {
     navigate(path);
   };
 
+  const onInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setActiveIndex((i) => Math.min(i + 1, flatItems.length - 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActiveIndex((i) => Math.max(i - 1, -1));
+    } else if (e.key === "Enter" && activeIndex >= 0) {
+      const item = flatItems[activeIndex];
+      if (item) navigateTo(item.path);
+    }
+  };
+
   const totalResults = results
     ? results.routine_templates.length +
       results.chore_templates.length +
       results.medication_plans.length +
       results.planned_items.length
     : 0;
+
+  const routineOffset = 0;
+  const choreOffset = routineOffset + (results?.routine_templates.length ?? 0);
+  const medOffset = choreOffset + (results?.chore_templates.length ?? 0);
+  const plannedOffset = medOffset + (results?.medication_plans.length ?? 0);
 
   return (
     <div
@@ -112,6 +152,7 @@ export function SearchOverlay({ onClose }: { onClose: () => void }) {
               placeholder="Search routines, chores, medications, plans…"
               value={query}
               onChange={(e) => onQueryChange(e.target.value)}
+              onKeyDown={onInputKeyDown}
               autoComplete="off"
             />
             {loading ? (
@@ -142,11 +183,12 @@ export function SearchOverlay({ onClose }: { onClose: () => void }) {
           {results && results.routine_templates.length > 0 ? (
             <div>
               <div className="px-3 py-1 small fw-semibold text-muted border-bottom">Routine templates</div>
-              {results.routine_templates.map((r) => (
+              {results.routine_templates.map((r, i) => (
                 <button
                   key={`routine-${r.id}`}
+                  id={`routine-${r.id}`}
                   type="button"
-                  className="list-group-item list-group-item-action border-0 px-3 py-2"
+                  className={`list-group-item list-group-item-action border-0 px-3 py-2${routineOffset + i === activeIndex ? " active" : ""}`}
                   onClick={() => navigateTo("/templates")}
                 >
                   <div className="d-flex justify-content-between align-items-center gap-2">
@@ -166,11 +208,12 @@ export function SearchOverlay({ onClose }: { onClose: () => void }) {
           {results && results.chore_templates.length > 0 ? (
             <div>
               <div className="px-3 py-1 small fw-semibold text-muted border-bottom">Chore templates</div>
-              {results.chore_templates.map((c) => (
+              {results.chore_templates.map((c, i) => (
                 <button
                   key={`chore-${c.id}`}
+                  id={`chore-${c.id}`}
                   type="button"
-                  className="list-group-item list-group-item-action border-0 px-3 py-2"
+                  className={`list-group-item list-group-item-action border-0 px-3 py-2${choreOffset + i === activeIndex ? " active" : ""}`}
                   onClick={() => navigateTo("/templates")}
                 >
                   <div className="d-flex justify-content-between align-items-center gap-2">
@@ -190,11 +233,12 @@ export function SearchOverlay({ onClose }: { onClose: () => void }) {
           {results && results.medication_plans.length > 0 ? (
             <div>
               <div className="px-3 py-1 small fw-semibold text-muted border-bottom">Medications</div>
-              {results.medication_plans.map((m) => (
+              {results.medication_plans.map((m, i) => (
                 <button
                   key={`med-${m.id}`}
+                  id={`med-${m.id}`}
                   type="button"
-                  className="list-group-item list-group-item-action border-0 px-3 py-2"
+                  className={`list-group-item list-group-item-action border-0 px-3 py-2${medOffset + i === activeIndex ? " active" : ""}`}
                   onClick={() => navigateTo("/medication")}
                 >
                   <div className="d-flex justify-content-between align-items-center gap-2">
@@ -214,11 +258,12 @@ export function SearchOverlay({ onClose }: { onClose: () => void }) {
           {results && results.planned_items.length > 0 ? (
             <div>
               <div className="px-3 py-1 small fw-semibold text-muted border-bottom">Planned items</div>
-              {results.planned_items.map((p) => (
+              {results.planned_items.map((p, i) => (
                 <button
                   key={`planned-${p.id}`}
+                  id={`planned-${p.id}`}
                   type="button"
-                  className="list-group-item list-group-item-action border-0 px-3 py-2"
+                  className={`list-group-item list-group-item-action border-0 px-3 py-2${plannedOffset + i === activeIndex ? " active" : ""}`}
                   onClick={() => navigateTo(`/calendar`)}
                 >
                   <div className="d-flex justify-content-between align-items-center gap-2">
@@ -242,7 +287,7 @@ export function SearchOverlay({ onClose }: { onClose: () => void }) {
         </div>
 
         <div className="card-footer py-1 px-3">
-          <small className="text-muted">Press Esc to close · Enter at least 2 characters to search</small>
+          <small className="text-muted">↑↓ navigate · Enter select · Esc close · 2+ characters to search</small>
         </div>
       </div>
     </div>
