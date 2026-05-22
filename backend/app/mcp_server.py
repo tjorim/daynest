@@ -8,16 +8,15 @@ from collections.abc import Callable
 from contextlib import contextmanager
 from datetime import date, datetime, time
 from secrets import token_urlsafe
-from typing import Any, Literal, TypeVar
+from typing import Any, TypeVar
 
 from anyio import to_thread
 from fastapi import HTTPException
-from mcp.server.auth.middleware.auth_context import get_access_token
-from mcp.server.auth.provider import AccessToken, TokenVerifier
-from mcp.server.auth.settings import AuthSettings
-from mcp.server.fastmcp import Context, FastMCP
-from mcp.server.transport_security import TransportSecuritySettings
-from pydantic import AnyHttpUrl, BaseModel
+from fastmcp import Context, FastMCP
+from fastmcp.server.auth import AccessToken, MultiAuth, TokenVerifier
+from fastmcp.server.auth.providers.keycloak import KeycloakAuthProvider
+from fastmcp.server.dependencies import get_access_token
+from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
@@ -28,6 +27,7 @@ from app.api.dependencies.integration_auth import (
 )
 from app.core.config import settings
 from app.core.enums import Priority
+from app.core.oidc import get_or_create_local_user
 from app.db.session import SessionLocal
 from app.models.integration_client import IntegrationClient
 from app.models.user import User
@@ -138,10 +138,10 @@ class DaynestMcpBackend:
     def resolve_user(self, db: Session) -> User:
         access_token = get_access_token()
         if access_token is not None:
-            auth_source = getattr(access_token, "auth_source", None)
+            auth_source = access_token.claims.get("auth_source")
 
             if auth_source == "integration":
-                integration_client_id = getattr(access_token, "integration_client_id", None)
+                integration_client_id = access_token.claims.get("integration_client_id")
                 if integration_client_id is None:
                     raise ValueError("Authenticated MCP integration token is missing a client ID")
                 # verify_token stores only an AccessToken in request context — re-query with joinedload.
@@ -153,19 +153,14 @@ class DaynestMcpBackend:
                     raise ValueError("Authenticated integration owner not found or inactive")
                 return client.user
 
-            if auth_source == "oidc":
-                oidc_subject = getattr(access_token, "oidc_subject", None)
-                if not oidc_subject:
-                    raise ValueError("Authenticated MCP OIDC token is missing a subject")
-                user = db.scalar(select(User).where(User.oidc_subject == oidc_subject).where(User.is_active.is_(True)))
-                if user is None:
-                    raise ValueError(f"No active user found for OIDC subject: {oidc_subject}")
-                return user
-
-            client_id = access_token.client_id
-            if not client_id:
-                raise ValueError("Authenticated MCP access token is missing a client ID")
-            raise ValueError(f"Unsupported MCP access token source for client ID: {client_id}")
+            # OIDC path: KeycloakAuthProvider sets standard JWT claims including sub
+            oidc_subject = access_token.claims.get("sub")
+            if not oidc_subject:
+                raise ValueError("Authenticated MCP OIDC token is missing a subject")
+            user = get_or_create_local_user(oidc_subject, access_token.claims, db)
+            if not user.is_active:
+                raise ValueError(f"User for OIDC subject {oidc_subject} is inactive")
+            return user
 
         configured_email = self.user_email or os.getenv(DAYNEST_USER_EMAIL_ENV)
         if configured_email:
@@ -238,7 +233,7 @@ class DaynestMcpBackend:
         rate_limit_per_minute: int = 120,
     ) -> dict[str, Any]:
         access_token = get_access_token()
-        if getattr(access_token, "auth_source", None) == "integration":
+        if access_token is not None and access_token.claims.get("auth_source") == "integration":
             raise PermissionError("Integration tokens cannot create new integration clients")
 
         if not isinstance(rate_limit_per_minute, int) or rate_limit_per_minute <= 0:
@@ -579,6 +574,7 @@ class DaynestMcpBackend:
 
 class IntegrationKeyTokenVerifier(TokenVerifier):
     def __init__(self, session_factory: Callable[[], Session], *, resource_server_url: str | None = None) -> None:
+        super().__init__(resource_base_url=resource_server_url)
         self.session_factory = session_factory
         self.resource_server_url = resource_server_url
 
@@ -595,109 +591,44 @@ class IntegrationKeyTokenVerifier(TokenVerifier):
             except HTTPException:
                 return None
 
-            return DaynestMcpAccessToken(
+            return AccessToken(
                 token=token,
                 client_id=str(client.id),
                 scopes=[],
-                resource=self.resource_server_url,
-                auth_source="integration",
-                integration_client_id=client.id,
+                claims={
+                    "auth_source": "integration",
+                    "integration_client_id": client.id,
+                },
             )
         finally:
             session.close()
 
 
-class DaynestMcpAccessToken(AccessToken):
-    auth_source: Literal["integration", "oidc"]
-    integration_client_id: int | None = None
-    oidc_subject: str | None = None
-
-
-class OIDCMcpTokenVerifier(TokenVerifier):
-    """Validates Keycloak-issued OIDC tokens for MCP access."""
-
-    def __init__(self, session_factory: Callable[[], Session], *, resource_server_url: str | None = None) -> None:
-        self.session_factory = session_factory
-        self.resource_server_url = resource_server_url
-
-    async def verify_token(self, token: str) -> AccessToken | None:
-        from app.core.oidc import OIDCTokenError, decode_oidc_token, get_or_create_local_user
-
-        try:
-            claims = await decode_oidc_token(token)
-        except OIDCTokenError as exc:
-            logger.debug("OIDC token validation failed: %s", exc)
-            return None
-
-        subject: str | None = claims.get("sub")
-        if not subject:
-            return None
-
-        session = self.session_factory()
-        try:
-            user = get_or_create_local_user(subject, claims, session)
-            if not user.is_active:
-                return None
-        except Exception as exc:
-            logger.warning("Failed to resolve MCP user for subject %s: %s", subject, exc)
-            return None
-        finally:
-            session.close()
-
-        return DaynestMcpAccessToken(
-            token=token,
-            client_id=subject,
-            scopes=[],
-            resource=self.resource_server_url,
-            auth_source="oidc",
-            oidc_subject=subject,
-        )
-
-
-class ComposedTokenVerifier(TokenVerifier):
-    """Tries each verifier in order; returns the first successful result."""
-
-    def __init__(self, *verifiers: TokenVerifier) -> None:
-        self._verifiers = verifiers
-
-    async def verify_token(self, token: str) -> AccessToken | None:
-        for verifier in self._verifiers:
-            result = await verifier.verify_token(token)
-            if result is not None:
-                return result
-        return None
-
-
-def _build_auth_settings(resource_server_url: str) -> AuthSettings:
-    issuer_url = settings.oidc_issuer_url or resource_server_url
-    return AuthSettings(
-        issuer_url=AnyHttpUrl(issuer_url),
-        resource_server_url=AnyHttpUrl(resource_server_url),
-    )
-
-
-def _build_transport_security() -> TransportSecuritySettings:
-    return TransportSecuritySettings(
-        enable_dns_rebinding_protection=True,
-        allowed_hosts=settings.trusted_hosts,
-        allowed_origins=settings.cors_allow_origins,
-    )
-
-
 def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
     daynest = backend or DaynestMcpBackend(SessionLocal)
     resource_server_url = os.getenv(DAYNEST_MCP_RESOURCE_SERVER_URL_ENV, "http://127.0.0.1:8000/mcp")
+    integration_verifier = IntegrationKeyTokenVerifier(daynest.session_factory, resource_server_url=resource_server_url)
+
+    if settings.oidc_issuer_url:
+        # Requires Keycloak >= 26.6.0. When audience is set, a matching audience
+        # mapper must be configured in the realm or token validation will fail.
+        logger.info(
+            "MCP: Keycloak auth enabled (realm=%s, audience=%r)",
+            settings.oidc_issuer_url,
+            settings.oidc_audience,
+        )
+        keycloak_provider = KeycloakAuthProvider(
+            realm_url=settings.oidc_issuer_url,
+            base_url=resource_server_url,
+            audience=settings.oidc_audience,
+        )
+        auth: MultiAuth | IntegrationKeyTokenVerifier = MultiAuth(server=keycloak_provider, verifiers=[integration_verifier])
+    else:
+        auth = integration_verifier
 
     mcp = FastMCP(
         "Daynest",
-        json_response=True,
-        streamable_http_path="/",  # mounted at /mcp in FastAPI; prefix is stripped before the sub-app sees it
-        token_verifier=ComposedTokenVerifier(
-            OIDCMcpTokenVerifier(daynest.session_factory, resource_server_url=resource_server_url),
-            IntegrationKeyTokenVerifier(daynest.session_factory, resource_server_url=resource_server_url),
-        ),
-        auth=_build_auth_settings(resource_server_url),
-        transport_security=_build_transport_security(),
+        auth=auth,
     )
 
     @mcp.tool()
