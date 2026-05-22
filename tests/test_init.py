@@ -78,6 +78,7 @@ class TestInitSetup:
         entry = _make_entry()
         coordinator = MagicMock()
         coordinator.async_config_entry_first_refresh = AsyncMock()
+        coordinator.async_start_sse = AsyncMock()
 
         with (
             patch("custom_components.daynest.DaynestClient"),
@@ -104,6 +105,7 @@ class TestInitSetup:
         entry = _make_entry()
         coordinator = MagicMock()
         coordinator.async_config_entry_first_refresh = AsyncMock()
+        coordinator.async_start_sse = AsyncMock()
 
         mock_integration = MagicMock()
         mock_integration.version = "1.0.0"
@@ -133,6 +135,7 @@ class TestInitSetup:
         hass = _make_hass()
         hass.data = {DOMAIN: {"card_registered": True, "versioned_url": versioned_url}}
         entry = _make_entry()
+        entry.runtime_data.coordinator.async_stop_sse = MagicMock()
         hass.config_entries.async_entries.return_value = []
 
         with (
@@ -148,6 +151,7 @@ class TestInitSetup:
         hass = _make_hass()
         hass.data = {DOMAIN: {"card_registered": True}}
         entry = _make_entry()
+        entry.runtime_data.coordinator.async_stop_sse = MagicMock()
         loaded_entry = _make_entry("entry-2")
         loaded_entry.state = ConfigEntryState.LOADED
         hass.config_entries.async_entries.return_value = [loaded_entry]

@@ -284,6 +284,7 @@ async def async_setup_entry(
     )
 
     await coordinator.async_config_entry_first_refresh()
+    await coordinator.async_start_sse()
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.async_on_unload(entry.add_update_listener(async_reload_entry))
 
@@ -315,6 +316,7 @@ async def async_unload_entry(
     entry: DaynestConfigEntry,
 ) -> bool:
     """Unload a config entry."""
+    entry.runtime_data.coordinator.async_stop_sse()
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     remaining = [
         e for e in hass.config_entries.async_entries(DOMAIN) if e.entry_id != entry.entry_id

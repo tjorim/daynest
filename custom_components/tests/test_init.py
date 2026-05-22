@@ -179,6 +179,7 @@ class TestSetupEntry:
 
         coordinator = MagicMock()
         coordinator.async_config_entry_first_refresh = AsyncMock()
+        coordinator.async_start_sse = AsyncMock()
 
         with (
             patch("custom_components.daynest.async_get_clientsession", return_value=MagicMock()),
@@ -220,6 +221,7 @@ class TestSetupEntry:
 
         coordinator = MagicMock()
         coordinator.async_config_entry_first_refresh = AsyncMock()
+        coordinator.async_start_sse = AsyncMock()
 
         oauth_session = MagicMock()
         oauth_session.async_ensure_token_valid = AsyncMock()

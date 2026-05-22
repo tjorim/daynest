@@ -308,3 +308,21 @@ class TestAsyncUpdateData:
         coordinator = _make_coordinator(client)
         with pytest.raises(UpdateFailed, match="Unsupported or missing integration contract"):
             await coordinator._async_update_data()
+
+
+@pytest.mark.unit
+class TestSseRefresh:
+    async def test_start_sse_refreshes_for_today_updates_and_stops(self) -> None:
+        client = AsyncMock()
+        unsubscribe = MagicMock()
+        client.async_subscribe_today_updates.return_value = unsubscribe
+        coordinator = _make_coordinator(client)
+        coordinator.async_request_refresh = AsyncMock()
+
+        await coordinator.async_start_sse()
+        callback = client.async_subscribe_today_updates.await_args.args[0]
+        await callback({"reason": "changed"})
+        coordinator.async_stop_sse()
+
+        coordinator.async_request_refresh.assert_awaited_once()
+        unsubscribe.assert_called_once()

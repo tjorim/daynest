@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import date, timedelta
 from typing import Any
 
@@ -84,6 +85,22 @@ class DaynestDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         )
         self._client = client
         self._last_dashboard_data: dict[str, Any] | None = None
+        self._sse_unsubscribe: Callable[[], None] | None = None
+
+    async def async_start_sse(self) -> None:
+        """Refresh coordinator data when the backend emits today updates."""
+        if self._sse_unsubscribe is not None:
+            return
+        self._sse_unsubscribe = await self._client.async_subscribe_today_updates(self._async_handle_today_update)
+
+    def async_stop_sse(self) -> None:
+        """Cancel the backend today update subscription."""
+        if self._sse_unsubscribe is not None:
+            self._sse_unsubscribe()
+            self._sse_unsubscribe = None
+
+    async def _async_handle_today_update(self, _payload: dict[str, Any]) -> None:
+        await self.async_request_refresh()
 
     def _normalize_dashboard(self, payload: dict[str, Any], contract: str | None) -> dict[str, Any]:
         """Normalize dashboard payload into stable coordinator keys."""
