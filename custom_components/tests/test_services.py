@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import UTC, date, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -481,5 +482,60 @@ class TestHandleCreatePlannedItem:
             title="Buy milk",
             planned_for="2026-05-21",
             notes="2L",
+        )
+        entry.runtime_data.coordinator.async_refresh.assert_awaited_once()
+
+    async def test_date_planned_for_is_serialized_and_refreshes(self) -> None:
+        client = AsyncMock()
+        entry = _make_entry(client=client)
+        hass = _make_hass(entries=[entry])
+        await async_setup_services(hass)
+        handler = await _get_handler(hass, SERVICE_CREATE_PLANNED_ITEM)
+
+        await handler(
+            _make_service_call(
+                **{
+                    ATTR_TITLE: "Buy milk",
+                    ATTR_PLANNED_FOR: date(2026, 5, 22),
+                }
+            )
+        )
+
+        client.async_create_planned_item.assert_awaited_once_with(
+            title="Buy milk",
+            planned_for="2026-05-22",
+            notes=None,
+        )
+        entry.runtime_data.coordinator.async_refresh.assert_awaited_once()
+
+    async def test_missing_planned_for_uses_coordinator_date_and_refreshes(self) -> None:
+        client = AsyncMock()
+        entry = _make_entry(client=client)
+        entry.runtime_data.coordinator.data = {"for_date": "2026-05-23"}
+        hass = _make_hass(entries=[entry])
+        await async_setup_services(hass)
+        handler = await _get_handler(hass, SERVICE_CREATE_PLANNED_ITEM)
+
+        await handler(_make_service_call(**{ATTR_TITLE: "Buy milk"}))
+
+        client.async_create_planned_item.assert_awaited_once_with(
+            title="Buy milk",
+            planned_for="2026-05-23",
+            notes=None,
+        )
+        entry.runtime_data.coordinator.async_refresh.assert_awaited_once()
+
+        client.reset_mock()
+        entry.runtime_data.coordinator.async_refresh.reset_mock()
+        entry.runtime_data.coordinator.data = None
+
+        with patch("custom_components.daynest.services.datetime") as mock_datetime:
+            mock_datetime.now.return_value = datetime(2026, 5, 24, tzinfo=UTC)
+            await handler(_make_service_call(**{ATTR_TITLE: "Buy bread"}))
+
+        client.async_create_planned_item.assert_awaited_once_with(
+            title="Buy bread",
+            planned_for="2026-05-24",
+            notes=None,
         )
         entry.runtime_data.coordinator.async_refresh.assert_awaited_once()

@@ -106,9 +106,13 @@ class DaynestDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "routines_open_count": max(0, _safe_int(payload.get("routines_open_count"), default=0)),
             "due_today": _safe_dict_list(payload.get("due_today")),
             "planned": _safe_dict_list(payload.get("planned")),
-            "chores": _safe_dict_list(payload.get("chores") or payload.get("due_today")),
+            "chores": _safe_dict_list(
+                payload.get("chores") if payload.get("chores") is not None else payload.get("due_today")
+            ),
             "medications": _safe_dict_list(payload.get("medications")),
-            "planned_items": _safe_dict_list(payload.get("planned_items") or payload.get("planned")),
+            "planned_items": _safe_dict_list(
+                payload.get("planned_items") if payload.get("planned_items") is not None else payload.get("planned")
+            ),
             "integration_contract": contract,
         }
 
@@ -197,7 +201,8 @@ class DaynestDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             settings = {}
         normalized["default_snooze_days"] = max(1, min(_safe_int(settings.get("default_snooze_days"), 1), 14))
         normalized["medication_reminder_minutes"] = max(0, _safe_int(settings.get("medication_reminder_minutes"), 0))
-        self._fire_transition_events(self._last_dashboard_data, normalized)
+        if self._last_dashboard_data is not None:
+            self._fire_transition_events(self._last_dashboard_data, normalized)
         self._last_dashboard_data = normalized
         return normalized
 

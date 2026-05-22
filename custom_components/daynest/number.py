@@ -98,11 +98,19 @@ class DaynestNumberEntity(NumberEntity, DaynestEntity):
             parsed = int(raw_value)
         except (TypeError, ValueError):
             parsed = int(self.entity_description.native_min_value)
+        parsed = max(
+            int(self.entity_description.native_min_value),
+            min(parsed, int(self.entity_description.native_max_value)),
+        )
         return float(parsed)
 
     async def async_set_native_value(self, value: float) -> None:
         """Set a new number value."""
         int_value = int(round(value))
+        int_value = max(
+            int(self.entity_description.native_min_value),
+            min(int_value, int(self.entity_description.native_max_value)),
+        )
         if self.entity_description.key == "coordinator_poll_interval":
             options = dict(self._config_entry.options)
             options[POLL_INTERVAL_OPTION] = int_value

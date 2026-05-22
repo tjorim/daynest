@@ -160,7 +160,7 @@ def _resolve_planned_for(entry: DaynestConfigEntry, planned_for_raw: str | date 
         return planned_for_raw.isoformat()
     if isinstance(planned_for_raw, str) and planned_for_raw:
         return planned_for_raw
-    fallback_for_date = entry.runtime_data.coordinator.data.get("for_date")
+    fallback_for_date = (entry.runtime_data.coordinator.data or {}).get("for_date")
     if isinstance(fallback_for_date, str) and fallback_for_date:
         return fallback_for_date
     return datetime.now(UTC).date().isoformat()

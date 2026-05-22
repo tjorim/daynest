@@ -8,7 +8,7 @@ import time
 from collections.abc import Awaitable, Callable, Mapping
 from datetime import date
 from typing import Any, TypeVar
-from urllib.parse import urljoin
+from urllib.parse import urlencode, urljoin
 
 import aiohttp
 
@@ -315,9 +315,15 @@ class DaynestClient:
         event_type: str | None = None,
     ) -> list[dict[str, Any]]:
         """Fetch calendar events for an inclusive date range."""
-        query_suffix = f"&event_type={event_type}" if event_type else ""
+        params = {
+            "start": start.isoformat(),
+            "end": end.isoformat(),
+        }
+        if event_type is not None:
+            params["event_type"] = event_type
+        encoded_params = urlencode(params)
         return await self._request_list(
-            f"/api/v1/integrations/home-assistant/calendar?start={start.isoformat()}&end={end.isoformat()}{query_suffix}"
+            f"/api/v1/integrations/home-assistant/calendar?{encoded_params}"
         )
 
     def _session_or_raise(self) -> aiohttp.ClientSession:

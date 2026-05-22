@@ -369,8 +369,11 @@ class DaynestCard extends LitElement {
         ? `${configuredBase}/api/v1/analytics/summary?period=week`
         : "/api/v1/analytics/summary?period=week";
       const accessToken = (this.hass as { auth?: { data?: { access_token?: string } } })?.auth?.data?.access_token;
+      const sameOrigin = configuredBase
+        ? new URL(configuredBase, window.location.origin).origin === window.location.origin
+        : true;
       const response = await fetch(endpoint, {
-        headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
+        headers: accessToken && sameOrigin ? { Authorization: `Bearer ${accessToken}` } : undefined,
       });
       if (!response.ok) return;
       const summary = (await response.json()) as WeekSummaryResponse;
@@ -396,15 +399,15 @@ class DaynestCard extends LitElement {
 
     const all = [...totals.values()].sort((a, b) => a.date.localeCompare(b.date));
     const lastDate = all.length > 0 ? new Date(`${all[all.length - 1].date}T00:00:00Z`) : new Date();
-    // Convert JS getDay() (Sun=0..Sat=6) to a Monday-based offset (Mon=0..Sun=6).
-    const day = (lastDate.getDay() + 6) % 7;
+    // Convert JS getUTCDay() (Sun=0..Sat=6) to a Monday-based offset (Mon=0..Sun=6).
+    const day = (lastDate.getUTCDay() + 6) % 7;
     const monday = new Date(lastDate);
-    monday.setDate(lastDate.getDate() - day);
+    monday.setUTCDate(lastDate.getUTCDate() - day);
 
     const result: WeekDaySummary[] = [];
     for (let i = 0; i < 7; i += 1) {
       const current = new Date(monday);
-      current.setDate(monday.getDate() + i);
+      current.setUTCDate(monday.getUTCDate() + i);
       const key = current.toISOString().slice(0, 10);
       result.push(totals.get(key) ?? { date: key, completed: 0, total: 0 });
     }
@@ -552,6 +555,7 @@ class DaynestCard extends LitElement {
       this._quickAddTitle = "";
       this._quickAddPlannedFor = "";
       await this._fetchItems();
+      await this._fetchWeek();
     } catch (error) {
       console.error("Failed to create Daynest planned item", error);
     } finally {
