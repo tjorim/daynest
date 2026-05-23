@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useLayoutEffect, useState, type ReactNode } from "react";
 
 export type Theme = "light" | "dark" | "auto";
 
@@ -30,14 +30,13 @@ interface ThemeContextValue {
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useState<Theme>(() => {
-    const t = getStoredTheme();
-    applyTheme(t);
-    return t;
-  });
+  const [theme, setTheme] = useState<Theme>(getStoredTheme);
+
+  useLayoutEffect(() => {
+    applyTheme(theme);
+  }, [theme]);
 
   useEffect(() => {
-    applyTheme(theme);
     localStorage.setItem(STORAGE_KEY, theme);
 
     if (theme === "auto") {
