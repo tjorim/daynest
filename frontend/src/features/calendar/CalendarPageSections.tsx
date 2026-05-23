@@ -442,7 +442,6 @@ export function PlannedItemsSidebar({
                   clone.style.cssText = `position:fixed;top:${rect.top}px;left:${rect.left}px;width:${rect.width}px;opacity:0.75;pointer-events:none;z-index:9999;background:var(--bs-body-bg);border:1px solid var(--bs-border-color);border-radius:4px;`;
                   document.body.appendChild(clone);
                   touchCloneRef.current = clone;
-                  (e.currentTarget as HTMLElement).dataset.touchItemId = String(item.id);
                 }}
                 onTouchMove={(e) => {
                   if (!touchCloneRef.current) return;
