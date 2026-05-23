@@ -10,4 +10,5 @@ data class PendingMutationEntity(
     val payload: String,
     val createdAtEpochMillis: Long,
     val attempts: Int = 0,
+    val remoteAppliedAtEpochMillis: Long? = null,
 )

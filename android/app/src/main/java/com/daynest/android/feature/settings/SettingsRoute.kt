@@ -112,7 +112,10 @@ private fun SettingsContent(
     val context = LocalContext.current
     val calendarPermissionLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
-            val granted = result.values.all { it }
+            val granted =
+                result.isNotEmpty() &&
+                    result[Manifest.permission.READ_CALENDAR] == true &&
+                    result[Manifest.permission.WRITE_CALENDAR] == true
             onEvent(SettingsUiEvent.UpdateCalendarSyncEnabled(granted))
         }
     val notificationsPermissionLauncher =

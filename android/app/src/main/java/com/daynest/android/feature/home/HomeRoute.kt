@@ -145,7 +145,12 @@ private fun TodayContent(
                 }
                 if (state.pendingMutationCount > 0) {
                     Text(
-                        text = stringResource(id = R.string.home_pending_mutations, state.pendingMutationCount),
+                        text =
+                            pluralStringResource(
+                                id = R.plurals.home_pending_mutations,
+                                count = state.pendingMutationCount,
+                                state.pendingMutationCount,
+                            ),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.outline,
                     )

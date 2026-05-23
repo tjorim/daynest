@@ -11,7 +11,7 @@ import com.daynest.android.core.database.today.TodaySummaryEntity
 
 @Database(
     entities = [TodaySummaryEntity::class, CacheEntryEntity::class, PendingMutationEntity::class],
-    version = 2,
+    version = 3,
     exportSchema = false,
 )
 abstract class DaynestDatabase : RoomDatabase() {

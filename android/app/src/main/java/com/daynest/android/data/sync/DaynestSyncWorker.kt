@@ -43,9 +43,14 @@ class DaynestSyncWorker
         override suspend fun doWork(): Result {
             val pending = pendingMutationDao.listAll()
             pending.forEach { mutation ->
+                if (mutation.remoteAppliedAtEpochMillis != null) {
+                    runCatching { pendingMutationDao.delete(mutation.id) }
+                    return@forEach
+                }
                 val processed = runCatching { applyPendingMutation(mutation) }.isSuccess
                 if (processed) {
-                    pendingMutationDao.delete(mutation.id)
+                    pendingMutationDao.markRemoteApplied(mutation.id, System.currentTimeMillis())
+                    runCatching { pendingMutationDao.delete(mutation.id) }
                 } else {
                     pendingMutationDao.updateAttempts(mutation.id, mutation.attempts + 1)
                 }

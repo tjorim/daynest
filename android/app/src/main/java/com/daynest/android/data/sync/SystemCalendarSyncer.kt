@@ -10,7 +10,9 @@ import com.daynest.android.data.today.TodayResponseDto
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -52,8 +54,16 @@ class SystemCalendarSyncer
             resolver.query(
                 CalendarContract.Calendars.CONTENT_URI,
                 arrayOf(CalendarContract.Calendars._ID),
-                "${CalendarContract.Calendars.CALENDAR_DISPLAY_NAME}=?",
-                arrayOf("Daynest"),
+                "${CalendarContract.Calendars.ACCOUNT_NAME}=? AND " +
+                    "${CalendarContract.Calendars.ACCOUNT_TYPE}=? AND " +
+                    "${CalendarContract.Calendars.OWNER_ACCOUNT}=? AND " +
+                    "${CalendarContract.Calendars.CALENDAR_DISPLAY_NAME}=?",
+                arrayOf(
+                    DAYNEST_ACCOUNT_NAME,
+                    CalendarContract.ACCOUNT_TYPE_LOCAL,
+                    DAYNEST_ACCOUNT_NAME,
+                    DAYNEST_CALENDAR_DISPLAY_NAME,
+                ),
                 null,
             )?.use { cursor ->
                 if (cursor.moveToFirst()) {
@@ -62,13 +72,13 @@ class SystemCalendarSyncer
             }
             val values =
                 ContentValues().apply {
-                    put(CalendarContract.Calendars.ACCOUNT_NAME, "daynest.local")
+                    put(CalendarContract.Calendars.ACCOUNT_NAME, DAYNEST_ACCOUNT_NAME)
                     put(CalendarContract.Calendars.ACCOUNT_TYPE, CalendarContract.ACCOUNT_TYPE_LOCAL)
-                    put(CalendarContract.Calendars.CALENDAR_DISPLAY_NAME, "Daynest")
-                    put(CalendarContract.Calendars.NAME, "daynest")
+                    put(CalendarContract.Calendars.CALENDAR_DISPLAY_NAME, DAYNEST_CALENDAR_DISPLAY_NAME)
+                    put(CalendarContract.Calendars.NAME, DAYNEST_CALENDAR_NAME)
                     put(CalendarContract.Calendars.CALENDAR_COLOR, 0xFF5E35B1.toInt())
                     put(CalendarContract.Calendars.CALENDAR_ACCESS_LEVEL, CalendarContract.Calendars.CAL_ACCESS_OWNER)
-                    put(CalendarContract.Calendars.OWNER_ACCOUNT, "daynest.local")
+                    put(CalendarContract.Calendars.OWNER_ACCOUNT, DAYNEST_ACCOUNT_NAME)
                     put(CalendarContract.Calendars.VISIBLE, 1)
                     put(CalendarContract.Calendars.SYNC_EVENTS, 1)
                 }
@@ -76,7 +86,7 @@ class SystemCalendarSyncer
                 CalendarContract.Calendars.CONTENT_URI
                     .buildUpon()
                     .appendQueryParameter(CalendarContract.CALLER_IS_SYNCADAPTER, "true")
-                    .appendQueryParameter(CalendarContract.Calendars.ACCOUNT_NAME, "daynest.local")
+                    .appendQueryParameter(CalendarContract.Calendars.ACCOUNT_NAME, DAYNEST_ACCOUNT_NAME)
                     .appendQueryParameter(CalendarContract.Calendars.ACCOUNT_TYPE, CalendarContract.ACCOUNT_TYPE_LOCAL)
                     .build()
             return resolver.insert(uri, values)?.lastPathSegment?.toLongOrNull()
@@ -158,8 +168,9 @@ private data class SyncEvent(
             runCatching {
                 Instant.parse(startsAt).toEpochMilli()
             }.getOrElse {
-                LocalDate.parse(startsAt.substringBefore("T"))
-                    .atStartOfDay(zone)
+                LocalDateTime
+                    .parse(startsAt, DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+                    .atZone(zone)
                     .toInstant()
                     .toEpochMilli()
             }
@@ -175,3 +186,7 @@ private data class SyncEvent(
         }
     }
 }
+
+private const val DAYNEST_ACCOUNT_NAME = "daynest.local"
+private const val DAYNEST_CALENDAR_DISPLAY_NAME = "Daynest"
+private const val DAYNEST_CALENDAR_NAME = "daynest"

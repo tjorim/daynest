@@ -2,6 +2,11 @@
 
 package com.daynest.android.app.session
 
+import android.content.ActivityNotFoundException
+import android.content.Intent
+import android.provider.Settings
+import android.util.Log
+import android.widget.Toast
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
 import androidx.compose.material3.AlertDialog
@@ -70,33 +75,64 @@ private fun showBiometricPrompt(
     activity: FragmentActivity,
     onAuthenticated: () -> Unit,
 ) {
-    val executor: Executor = ContextCompat.getMainExecutor(activity)
-    val prompt =
-        BiometricPrompt(
-            activity,
-            executor,
-            object : BiometricPrompt.AuthenticationCallback() {
-                override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
-                    onAuthenticated()
-                }
-            },
-        )
+    val authenticators =
+        BiometricManager.Authenticators.BIOMETRIC_STRONG or
+            BiometricManager.Authenticators.DEVICE_CREDENTIAL
     val canAuthenticate =
-        BiometricManager.from(activity).canAuthenticate(
-            BiometricManager.Authenticators.BIOMETRIC_STRONG or
-                BiometricManager.Authenticators.DEVICE_CREDENTIAL,
-        )
-    if (canAuthenticate == BiometricManager.BIOMETRIC_SUCCESS) {
-        val promptInfo =
-            BiometricPrompt.PromptInfo.Builder()
-                .setTitle(activity.getString(R.string.biometric_unlock_title))
-                .setSubtitle(activity.getString(R.string.biometric_unlock_subtitle))
-                .setAllowedAuthenticators(
-                    BiometricManager.Authenticators.BIOMETRIC_STRONG or
-                        BiometricManager.Authenticators.DEVICE_CREDENTIAL,
-                ).build()
-        prompt.authenticate(promptInfo)
-    } else {
-        onAuthenticated()
+        BiometricManager.from(activity).canAuthenticate(authenticators)
+    when (canAuthenticate) {
+        BiometricManager.BIOMETRIC_SUCCESS -> {
+            val executor: Executor = ContextCompat.getMainExecutor(activity)
+            val prompt =
+                BiometricPrompt(
+                    activity,
+                    executor,
+                    object : BiometricPrompt.AuthenticationCallback() {
+                        override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
+                            onAuthenticated()
+                        }
+                    },
+                )
+            val promptInfo =
+                BiometricPrompt.PromptInfo.Builder()
+                    .setTitle(activity.getString(R.string.biometric_unlock_title))
+                    .setSubtitle(activity.getString(R.string.biometric_unlock_subtitle))
+                    .setAllowedAuthenticators(authenticators)
+                    .build()
+            prompt.authenticate(promptInfo)
+        }
+
+        BiometricManager.BIOMETRIC_ERROR_NONE_ENROLLED -> {
+            val enrollIntent =
+                Intent(Settings.ACTION_BIOMETRIC_ENROLL).apply {
+                    putExtra(Settings.EXTRA_BIOMETRIC_AUTHENTICATORS_ALLOWED, authenticators)
+                }
+            runCatching { activity.startActivity(enrollIntent) }
+                .onFailure { error ->
+                    val messageRes =
+                        if (error is ActivityNotFoundException) {
+                            R.string.biometric_enrollment_unavailable
+                        } else {
+                            Log.e("BiometricGate", "Unable to launch biometric enrollment", error)
+                            R.string.biometric_error
+                        }
+                    Toast.makeText(activity, messageRes, Toast.LENGTH_LONG).show()
+                }
+        }
+
+        BiometricManager.BIOMETRIC_ERROR_HW_UNAVAILABLE,
+        BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE,
+        BiometricManager.BIOMETRIC_ERROR_SECURITY_UPDATE_REQUIRED,
+        BiometricManager.BIOMETRIC_ERROR_UNSUPPORTED,
+        BiometricManager.BIOMETRIC_STATUS_UNKNOWN,
+        -> {
+            Log.w("BiometricGate", "Biometric authentication unavailable: $canAuthenticate")
+            Toast.makeText(activity, R.string.biometric_unavailable, Toast.LENGTH_LONG).show()
+        }
+
+        else -> {
+            Log.e("BiometricGate", "Biometric authentication failed preflight: $canAuthenticate")
+            Toast.makeText(activity, R.string.biometric_error, Toast.LENGTH_LONG).show()
+        }
     }
 }

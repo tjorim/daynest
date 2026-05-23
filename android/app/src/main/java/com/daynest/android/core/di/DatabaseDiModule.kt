@@ -2,6 +2,8 @@ package com.daynest.android.core.di
 
 import android.content.Context
 import androidx.room.Room
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.daynest.android.core.database.DaynestDatabase
 import com.daynest.android.core.database.sync.CacheEntryDao
 import com.daynest.android.core.database.sync.PendingMutationDao
@@ -23,7 +25,7 @@ object DatabaseDiModule {
     ): DaynestDatabase =
         Room
             .databaseBuilder(context, DaynestDatabase::class.java, "daynest.db")
-            .fallbackToDestructiveMigration(dropAllTables = true)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
             .build()
 
     @Provides
@@ -37,4 +39,28 @@ object DatabaseDiModule {
     @Provides
     @Singleton
     fun providePendingMutationDao(database: DaynestDatabase): PendingMutationDao = database.pendingMutationDao()
+
+    private val MIGRATION_1_2 =
+        object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS pending_mutations (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        kind TEXT NOT NULL,
+                        payload TEXT NOT NULL,
+                        createdAtEpochMillis INTEGER NOT NULL,
+                        attempts INTEGER NOT NULL
+                    )
+                    """.trimIndent(),
+                )
+            }
+        }
+
+    private val MIGRATION_2_3 =
+        object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE pending_mutations ADD COLUMN remoteAppliedAtEpochMillis INTEGER")
+            }
+        }
 }

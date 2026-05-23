@@ -140,12 +140,12 @@ class TodayRepository
                 fallback = { DoseMutationDto(doseInstanceId, "queued") },
             ) { todayActionsApi.skipDose(doseInstanceId) }
 
-        private suspend inline fun <reified T : Any> mutateWithOfflineFallback(
+        private suspend inline fun <reified P : Any, R : Any> mutateWithOfflineFallback(
             kind: PendingMutationKind,
-            payload: T,
-            fallback: () -> T,
-            crossinline call: suspend () -> T,
-        ): Result<T> =
+            payload: P,
+            fallback: () -> R,
+            crossinline call: suspend () -> R,
+        ): Result<R> =
             try {
                 Result.success(call())
             } catch (e: CancellationException) {

@@ -6,7 +6,10 @@
     <string name="home_retry">Retry</string>
     <string name="home_error_generic">Unable to load today data.</string>
     <string name="home_stale_notice">Showing cached data.</string>
-    <string name="home_pending_mutations">%1$d pending offline changes waiting to sync.</string>
+    <plurals name="home_pending_mutations">
+        <item quantity="one">%1$d pending offline change waiting to sync.</item>
+        <item quantity="other">%1$d pending offline changes waiting to sync.</item>
+    </plurals>
     <string name="home_all_caught_up">You\'re all caught up for today.</string>
     <string name="auth_title">Sign in to Daynest</string>
     <string name="auth_email_label">Email</string>
@@ -149,6 +152,9 @@
     <string name="biometric_unlock_title">Unlock Daynest</string>
     <string name="biometric_unlock_subtitle">Authentication is required to continue.</string>
     <string name="biometric_unlock_action">Unlock</string>
+    <string name="biometric_enrollment_unavailable">Biometric enrollment is unavailable on this device.</string>
+    <string name="biometric_unavailable">Authentication is unavailable right now.</string>
+    <string name="biometric_error">Unable to start authentication.</string>
     <string name="settings_account_section">Account</string>
     <string name="settings_session_active">Signed in</string>
     <string name="settings_sign_out">Sign out</string>

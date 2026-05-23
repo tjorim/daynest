@@ -33,6 +33,7 @@ class HomeViewModel
         private val plannedItemRepository: PlannedItemRepository,
     ) : ViewModel() {
         private val _uiState = MutableStateFlow<HomeUiState>(HomeUiState.Loading)
+        private var latestPendingMutationCount = 0
 
         val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
@@ -45,7 +46,12 @@ class HomeViewModel
                         } else {
                             when (val c = current) {
                                 is HomeUiState.Content -> c.copy(summary = summary, isStale = false)
-                                else -> HomeUiState.Content(summary = summary, isStale = false)
+                                else ->
+                                    HomeUiState.Content(
+                                        summary = summary,
+                                        isStale = false,
+                                        pendingMutationCount = latestPendingMutationCount,
+                                    )
                             }
                         }
                     }
@@ -96,6 +102,7 @@ class HomeViewModel
                                         dueToday = response.dueToday,
                                         upcoming = response.upcoming,
                                         planned = response.planned,
+                                        pendingMutationCount = latestPendingMutationCount,
                                     )
                             }
                         }
@@ -104,6 +111,7 @@ class HomeViewModel
             }
             viewModelScope.launch {
                 repository.observePendingMutationCount().collect { count ->
+                    latestPendingMutationCount = count
                     _uiState.update { current ->
                         when (current) {
                             is HomeUiState.Content -> current.copy(pendingMutationCount = count)

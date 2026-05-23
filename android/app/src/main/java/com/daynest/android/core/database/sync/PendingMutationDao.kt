@@ -25,4 +25,10 @@ interface PendingMutationDao {
         id: Long,
         attempts: Int,
     )
+
+    @Query("UPDATE pending_mutations SET remoteAppliedAtEpochMillis = :appliedAtEpochMillis WHERE id = :id")
+    suspend fun markRemoteApplied(
+        id: Long,
+        appliedAtEpochMillis: Long,
+    )
 }

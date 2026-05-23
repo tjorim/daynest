@@ -105,12 +105,13 @@ class PlannedItemRepository
         suspend fun listPlannedItems(
             startDate: String?,
             endDate: String?,
-        ): Result<List<PlannedTodayItemDto>> =
-            safeApiCall { plannedItemApi.listPlannedItems(startDate, endDate) }
+        ): Result<List<PlannedTodayItemDto>> {
+            val cacheKey = plannedItemsCacheKey(startDate, endDate)
+            return safeApiCall { plannedItemApi.listPlannedItems(startDate, endDate) }
                 .onSuccess { items ->
                     cacheEntryDao.upsert(
                         CacheEntryEntity(
-                            cacheKey = SyncCacheKeys.PLANNED_ITEMS,
+                            cacheKey = cacheKey,
                             payload =
                                 JsonSerializer.config.encodeToString(
                                     ListSerializer(PlannedTodayItemDto.serializer()),
@@ -120,13 +121,14 @@ class PlannedItemRepository
                         ),
                     )
                 }.recoverCatchingOffline {
-                    cacheEntryDao.get(SyncCacheKeys.PLANNED_ITEMS)?.payload?.let { payload ->
+                    cacheEntryDao.get(cacheKey)?.payload?.let { payload ->
                         JsonSerializer.config.decodeFromString(
                             ListSerializer(PlannedTodayItemDto.serializer()),
                             payload,
                         )
                     } ?: emptyList()
                 }
+        }
 
         private suspend inline fun <reified T : Any> enqueue(
             kind: PendingMutationKind,
@@ -152,4 +154,9 @@ class PlannedItemRepository
                 this
             }
         }
+
+        private fun plannedItemsCacheKey(
+            startDate: String?,
+            endDate: String?,
+        ): String = "${SyncCacheKeys.PLANNED_ITEMS}:${startDate.orEmpty()}:${endDate.orEmpty()}"
     }

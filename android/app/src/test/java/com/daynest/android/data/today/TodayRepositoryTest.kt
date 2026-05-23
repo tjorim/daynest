@@ -162,4 +162,17 @@ private class FakePendingMutationDao : PendingMutationDao {
     ) {
         entries.replaceAll { entry -> if (entry.id == id) entry.copy(attempts = attempts) else entry }
     }
+
+    override suspend fun markRemoteApplied(
+        id: Long,
+        appliedAtEpochMillis: Long,
+    ) {
+        entries.replaceAll { entry ->
+            if (entry.id == id) {
+                entry.copy(remoteAppliedAtEpochMillis = appliedAtEpochMillis)
+            } else {
+                entry
+            }
+        }
+    }
 }

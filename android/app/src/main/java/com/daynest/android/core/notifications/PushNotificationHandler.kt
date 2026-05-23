@@ -1,10 +1,14 @@
 package com.daynest.android.core.notifications
 
+import android.Manifest
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
 import com.daynest.android.MainActivity
 import com.daynest.android.R
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -23,6 +27,15 @@ class PushNotificationHandler
             body: String,
             itemId: Int?,
         ) {
+            val notificationManager = NotificationManagerCompat.from(context)
+            if (!notificationManager.areNotificationsEnabled()) return
+            if (
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) !=
+                PackageManager.PERMISSION_GRANTED
+            ) {
+                return
+            }
             val channelId =
                 when (type) {
                     "medication" -> DaynestNotificationChannels.MEDICATION_CHANNEL_ID
@@ -66,6 +79,6 @@ class PushNotificationHandler
                     .addAction(0, context.getString(R.string.action_done), completeIntent)
                     .addAction(0, context.getString(R.string.action_skip), skipIntent)
                     .build()
-            NotificationManagerCompat.from(context).notify(itemId ?: type.hashCode(), notification)
+            notificationManager.notify(itemId ?: type.hashCode(), notification)
         }
     }
