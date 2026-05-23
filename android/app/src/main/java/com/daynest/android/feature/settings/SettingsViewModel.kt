@@ -1,5 +1,6 @@
 package com.daynest.android.feature.settings
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.daynest.android.BuildConfig
@@ -10,7 +11,9 @@ import com.daynest.android.data.settings.IntegrationClientDto
 import com.daynest.android.data.settings.IntegrationClientInputDto
 import com.daynest.android.data.settings.OAuthSessionDto
 import com.daynest.android.data.settings.SettingsRepository
+import com.daynest.android.data.sync.DaynestSyncScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -27,6 +30,7 @@ class SettingsViewModel
         private val settingsRepository: SettingsRepository,
         private val oidcAuthService: OidcAuthService,
         private val userPreferencesRepository: UserPreferencesRepository,
+        @ApplicationContext private val appContext: Context,
     ) : ViewModel() {
         private val _uiState = MutableStateFlow<SettingsUiState>(SettingsUiState.Loading)
         val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
@@ -45,6 +49,10 @@ class SettingsViewModel
                 is SettingsUiEvent.CreateClient -> createClient(event.input)
                 is SettingsUiEvent.UpdateServerUrl -> updateServerUrl(event.url)
                 is SettingsUiEvent.RevokeSessionClicked -> revokeSession(event.sessionId)
+                is SettingsUiEvent.UpdatePushNotificationsEnabled -> updatePushNotificationsEnabled(event.enabled)
+                is SettingsUiEvent.UpdateBiometricLockEnabled -> updateBiometricLockEnabled(event.enabled)
+                is SettingsUiEvent.UpdateBiometricIdleTimeoutMinutes -> updateBiometricIdleTimeoutMinutes(event.minutes)
+                is SettingsUiEvent.UpdateCalendarSyncEnabled -> updateCalendarSyncEnabled(event.enabled)
             }
         }
 
@@ -67,27 +75,23 @@ class SettingsViewModel
                         sessionsLoadError = sessionsResult.isFailure,
                         customServerUrl = prefs.customServerUrl,
                         defaultServerUrl = BuildConfig.API_BASE_URL,
+                        pushNotificationsEnabled = prefs.pushNotificationsEnabled,
+                        biometricLockEnabled = prefs.biometricLockEnabled,
+                        biometricIdleTimeoutMinutes = prefs.biometricIdleTimeoutMinutes,
+                        calendarSyncEnabled = prefs.calendarSyncEnabled,
                     )
             }
         }
 
         private fun showCreateForm() {
             _uiState.update { current ->
-                if (current is SettingsUiState.Content) {
-                    current.copy(showCreateForm = true)
-                } else {
-                    current
-                }
+                if (current is SettingsUiState.Content) current.copy(showCreateForm = true) else current
             }
         }
 
         private fun dismissCreateForm() {
             _uiState.update { current ->
-                if (current is SettingsUiState.Content) {
-                    current.copy(showCreateForm = false)
-                } else {
-                    current
-                }
+                if (current is SettingsUiState.Content) current.copy(showCreateForm = false) else current
             }
         }
 
@@ -99,8 +103,7 @@ class SettingsViewModel
 
         private fun createClient(input: IntegrationClientInputDto) {
             viewModelScope.launch {
-                val result = settingsRepository.createClient(input)
-                result.onSuccess { created ->
+                settingsRepository.createClient(input).onSuccess { created ->
                     _uiState.update { current ->
                         if (current is SettingsUiState.Content) {
                             current.copy(
@@ -118,10 +121,53 @@ class SettingsViewModel
 
         private fun updateServerUrl(url: String?) {
             viewModelScope.launch {
-                val result = runCatching { userPreferencesRepository.updateCustomServerUrl(url) }
-                if (result.isSuccess) {
+                runCatching { userPreferencesRepository.updateCustomServerUrl(url) }.onSuccess {
                     _uiState.update { current ->
                         if (current is SettingsUiState.Content) current.copy(customServerUrl = url) else current
+                    }
+                }
+            }
+        }
+
+        private fun updatePushNotificationsEnabled(enabled: Boolean) {
+            viewModelScope.launch {
+                runCatching { userPreferencesRepository.updatePushNotificationsEnabled(enabled) }.onSuccess {
+                    _uiState.update { current ->
+                        if (current is SettingsUiState.Content) current.copy(pushNotificationsEnabled = enabled) else current
+                    }
+                }
+            }
+        }
+
+        private fun updateBiometricLockEnabled(enabled: Boolean) {
+            viewModelScope.launch {
+                runCatching { userPreferencesRepository.updateBiometricLockEnabled(enabled) }.onSuccess {
+                    _uiState.update { current ->
+                        if (current is SettingsUiState.Content) current.copy(biometricLockEnabled = enabled) else current
+                    }
+                }
+            }
+        }
+
+        private fun updateBiometricIdleTimeoutMinutes(minutes: Int) {
+            viewModelScope.launch {
+                val clamped = minutes.coerceIn(1, 240)
+                runCatching { userPreferencesRepository.updateBiometricIdleTimeoutMinutes(clamped) }.onSuccess {
+                    _uiState.update { current ->
+                        if (current is SettingsUiState.Content) current.copy(biometricIdleTimeoutMinutes = clamped) else current
+                    }
+                }
+            }
+        }
+
+        private fun updateCalendarSyncEnabled(enabled: Boolean) {
+            viewModelScope.launch {
+                runCatching { userPreferencesRepository.updateCalendarSyncEnabled(enabled) }.onSuccess {
+                    _uiState.update { current ->
+                        if (current is SettingsUiState.Content) current.copy(calendarSyncEnabled = enabled) else current
+                    }
+                    if (enabled) {
+                        DaynestSyncScheduler.enqueueOneShot(appContext)
                     }
                 }
             }
@@ -168,6 +214,10 @@ sealed interface SettingsUiState {
         val sessionsLoadError: Boolean,
         val customServerUrl: String?,
         val defaultServerUrl: String,
+        val pushNotificationsEnabled: Boolean,
+        val biometricLockEnabled: Boolean,
+        val biometricIdleTimeoutMinutes: Int,
+        val calendarSyncEnabled: Boolean,
     ) : SettingsUiState
 
     data object SignedOut : SettingsUiState
@@ -194,5 +244,21 @@ sealed interface SettingsUiEvent {
 
     data class RevokeSessionClicked(
         val sessionId: String,
+    ) : SettingsUiEvent
+
+    data class UpdatePushNotificationsEnabled(
+        val enabled: Boolean,
+    ) : SettingsUiEvent
+
+    data class UpdateBiometricLockEnabled(
+        val enabled: Boolean,
+    ) : SettingsUiEvent
+
+    data class UpdateBiometricIdleTimeoutMinutes(
+        val minutes: Int,
+    ) : SettingsUiEvent
+
+    data class UpdateCalendarSyncEnabled(
+        val enabled: Boolean,
     ) : SettingsUiEvent
 }

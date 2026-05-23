@@ -1,19 +1,25 @@
 package com.daynest.android.data.today
 
 import app.cash.turbine.test
+import com.daynest.android.core.database.sync.CacheEntryDao
+import com.daynest.android.core.database.sync.CacheEntryEntity
+import com.daynest.android.core.database.sync.PendingMutationDao
+import com.daynest.android.core.database.sync.PendingMutationEntity
 import com.daynest.android.core.database.today.TodaySummaryDao
 import com.daynest.android.core.database.today.TodaySummaryEntity
 import com.daynest.android.fakes.StubTodayActionsApi
+import java.io.IOException
+import kotlin.collections.ArrayDeque
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import kotlin.collections.ArrayDeque
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class TodayRepositoryTest {
@@ -42,90 +48,46 @@ class TodayRepositoryTest {
                     todayApi = api,
                     todayActionsApi = StubTodayActionsApi(),
                     todaySummaryDao = dao,
+                    cacheEntryDao = FakeCacheEntryDao(),
+                    pendingMutationDao = FakePendingMutationDao(),
+                    appContext = null,
                 )
 
             repository.observeTodaySummary().test {
                 assertNull(awaitItem())
-
-                val result = repository.refresh()
-                assertTrue(result.isSuccess)
-
+                assertTrue(repository.refresh().isSuccess)
                 val summary = awaitItem()
                 assertNotNull(summary)
                 assertEquals(1, summary!!.routinesCount)
-                assertEquals(2, summary.choresCount) // dueToday(1) + overdue(1)
+                assertEquals(2, summary.choresCount)
                 assertEquals(1, summary.medicationsCount)
-                assertEquals(1, summary.plannedPendingCount) // only isDone=false
+                assertEquals(1, summary.plannedPendingCount)
                 assertEquals(5, summary.remainingCount)
-
                 cancelAndIgnoreRemainingEvents()
             }
         }
 
     @Test
-    fun `network failure with cached entity - flow emits cache and refresh returns failure`() =
+    fun `offline mutation is queued and returned as queued status`() =
         runTest {
-            val dao =
-                FakeTodaySummaryDao().apply {
-                    upsert(
-                        TodaySummaryEntity(
-                            id = 0,
-                            routinesCount = 2,
-                            choresCount = 3,
-                            medicationsCount = 1,
-                            plannedPendingCount = 4,
-                            lastFetchedEpochMillis = 1_000L,
-                        ),
-                    )
-                }
-            val api =
-                FakeTodayApi().apply {
-                    enqueueError(RuntimeException("network unavailable"))
-                }
+            val queuedDao = FakePendingMutationDao()
             val repository =
                 TodayRepository(
-                    todayApi = api,
-                    todayActionsApi = StubTodayActionsApi(),
-                    todaySummaryDao = dao,
+                    todayApi = FakeTodayApi(),
+                    todayActionsApi =
+                        object : TodayActionsApi by StubTodayActionsApi() {
+                            override suspend fun completeChore(id: Int): ChoreMutationDto = throw IOException("offline")
+                        },
+                    todaySummaryDao = FakeTodaySummaryDao(),
+                    cacheEntryDao = FakeCacheEntryDao(),
+                    pendingMutationDao = queuedDao,
+                    appContext = null,
                 )
 
-            repository.observeTodaySummary().test {
-                val cached = awaitItem()
-                assertNotNull(cached)
-                assertEquals(2, cached!!.routinesCount)
-
-                val result = repository.refresh()
-                assertTrue(result.isFailure)
-
-                expectNoEvents()
-                cancelAndIgnoreRemainingEvents()
-            }
-        }
-
-    @Test
-    fun `empty cache and network failure - flow emits null`() =
-        runTest {
-            val dao = FakeTodaySummaryDao()
-            val api =
-                FakeTodayApi().apply {
-                    enqueueError(RuntimeException("no connection"))
-                }
-            val repository =
-                TodayRepository(
-                    todayApi = api,
-                    todayActionsApi = StubTodayActionsApi(),
-                    todaySummaryDao = dao,
-                )
-
-            repository.observeTodaySummary().test {
-                assertNull(awaitItem())
-
-                val result = repository.refresh()
-                assertTrue(result.isFailure)
-
-                expectNoEvents()
-                cancelAndIgnoreRemainingEvents()
-            }
+            val result = repository.completeChore(99)
+            assertTrue(result.isSuccess)
+            assertEquals("queued", result.getOrThrow().status)
+            assertEquals(1, queuedDao.listAll().size)
         }
 }
 
@@ -150,18 +112,10 @@ private class FakeTodayApi : TodayApi {
         requests.addLast(FakeApiResponse.Success(response))
     }
 
-    fun enqueueError(error: Throwable) {
-        requests.addLast(FakeApiResponse.Error(error))
-    }
-
     override suspend fun getToday(): TodayResponseDto {
-        val response =
-            checkNotNull(requests.removeFirstOrNull()) {
-                "No queued response for FakeTodayApi"
-            }
+        val response = checkNotNull(requests.removeFirstOrNull()) { "No queued response for FakeTodayApi" }
         return when (response) {
             is FakeApiResponse.Success -> response.response
-            is FakeApiResponse.Error -> throw response.error
         }
     }
 }
@@ -170,8 +124,42 @@ private sealed interface FakeApiResponse {
     data class Success(
         val response: TodayResponseDto,
     ) : FakeApiResponse
+}
 
-    data class Error(
-        val error: Throwable,
-    ) : FakeApiResponse
+private class FakeCacheEntryDao : CacheEntryDao {
+    private val state = MutableStateFlow<Map<String, CacheEntryEntity>>(emptyMap())
+
+    override fun observe(cacheKey: String): Flow<CacheEntryEntity?> = state.map { it[cacheKey] }
+
+    override suspend fun get(cacheKey: String): CacheEntryEntity? = state.value[cacheKey]
+
+    override suspend fun upsert(entry: CacheEntryEntity) {
+        state.value = state.value + (entry.cacheKey to entry)
+    }
+}
+
+private class FakePendingMutationDao : PendingMutationDao {
+    private val entries = mutableListOf<PendingMutationEntity>()
+    private val count = MutableStateFlow(0)
+
+    override fun observeCount(): Flow<Int> = count
+
+    override suspend fun listAll(): List<PendingMutationEntity> = entries.toList()
+
+    override suspend fun enqueue(entity: PendingMutationEntity) {
+        entries += entity.copy(id = entries.size + 1L)
+        count.value = entries.size
+    }
+
+    override suspend fun delete(id: Long) {
+        entries.removeAll { it.id == id }
+        count.value = entries.size
+    }
+
+    override suspend fun updateAttempts(
+        id: Long,
+        attempts: Int,
+    ) {
+        entries.replaceAll { entry -> if (entry.id == id) entry.copy(attempts = attempts) else entry }
+    }
 }

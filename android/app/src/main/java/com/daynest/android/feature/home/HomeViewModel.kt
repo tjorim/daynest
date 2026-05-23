@@ -102,6 +102,16 @@ class HomeViewModel
                     }
                 }
             }
+            viewModelScope.launch {
+                repository.observePendingMutationCount().collect { count ->
+                    _uiState.update { current ->
+                        when (current) {
+                            is HomeUiState.Content -> current.copy(pendingMutationCount = count)
+                            else -> current
+                        }
+                    }
+                }
+            }
             refresh()
         }
 
@@ -401,6 +411,7 @@ sealed interface HomeUiState {
         val upcoming: List<UpcomingTodayItemDto> = emptyList(),
         val planned: List<PlannedTodayItemDto> = emptyList(),
         val isStale: Boolean = false,
+        val pendingMutationCount: Int = 0,
         val selectedChoreIds: Set<Int> = emptySet(),
         val selectedRoutineIds: Set<Int> = emptySet(),
         val selectedPlannedIds: Set<Int> = emptySet(),

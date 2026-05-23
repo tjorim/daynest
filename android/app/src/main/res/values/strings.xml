@@ -6,6 +6,7 @@
     <string name="home_retry">Retry</string>
     <string name="home_error_generic">Unable to load today data.</string>
     <string name="home_stale_notice">Showing cached data.</string>
+    <string name="home_pending_mutations">%1$d pending offline changes waiting to sync.</string>
     <string name="home_all_caught_up">You\'re all caught up for today.</string>
     <string name="auth_title">Sign in to Daynest</string>
     <string name="auth_email_label">Email</string>
@@ -137,6 +138,17 @@
     <string name="settings_server_url_placeholder">https://your-server.example.com/</string>
     <string name="settings_server_url_apply">Apply</string>
     <string name="settings_server_url_error">Must start with https:// or http://</string>
+    <string name="settings_privacy_section">Privacy &amp; device integration</string>
+    <string name="settings_notifications_label">Push notifications</string>
+    <string name="settings_notifications_hint">Enable reminder notifications (requires Android notification permission).</string>
+    <string name="settings_biometric_label">Biometric lock</string>
+    <string name="settings_biometric_hint">Require fingerprint, face unlock, or device credential when returning after idle.</string>
+    <string name="settings_biometric_timeout_label">Biometric idle timeout (minutes)</string>
+    <string name="settings_calendar_sync_label">System calendar sync</string>
+    <string name="settings_calendar_sync_hint">Sync upcoming tasks and doses from local cache to a Daynest-managed device calendar.</string>
+    <string name="biometric_unlock_title">Unlock Daynest</string>
+    <string name="biometric_unlock_subtitle">Authentication is required to continue.</string>
+    <string name="biometric_unlock_action">Unlock</string>
     <string name="settings_account_section">Account</string>
     <string name="settings_session_active">Signed in</string>
     <string name="settings_sign_out">Sign out</string>

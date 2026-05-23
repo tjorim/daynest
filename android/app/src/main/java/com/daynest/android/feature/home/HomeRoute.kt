@@ -143,6 +143,13 @@ private fun TodayContent(
                         color = MaterialTheme.colorScheme.outline,
                     )
                 }
+                if (state.pendingMutationCount > 0) {
+                    Text(
+                        text = stringResource(id = R.string.home_pending_mutations, state.pendingMutationCount),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.outline,
+                    )
+                }
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text =
