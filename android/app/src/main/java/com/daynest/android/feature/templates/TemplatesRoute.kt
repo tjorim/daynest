@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -21,14 +22,16 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxDefaults
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -70,72 +73,105 @@ private fun TemplatesScreen(
         currentRoute = DaynestDestination.TEMPLATES,
         onNavigate = onNavigate,
         floatingActionButton = {
-            if (uiState is TemplatesUiState.Content) {
-                FloatingActionButton(
-                    onClick = {
-                        onEvent(
-                            if (selectedTab == TemplateTab.Routines) {
-                                TemplatesUiEvent.ShowCreateRoutineForm
-                            } else {
-                                TemplatesUiEvent.ShowCreateChoreForm
-                            },
-                        )
-                    },
-                ) {
-                    Text(text = stringResource(id = R.string.action_add))
-                }
-            }
+            TemplatesFloatingActionButton(
+                isVisible = uiState is TemplatesUiState.Content,
+                selectedTab = selectedTab,
+                onEvent = onEvent,
+            )
         },
     ) { innerPadding ->
-        when (uiState) {
-            TemplatesUiState.Loading -> {
-                Box(
-                    modifier =
-                        Modifier
-                            .fillMaxSize()
-                            .padding(innerPadding),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    CircularProgressIndicator()
-                }
-            }
+        TemplatesScreenContent(
+            uiState = uiState,
+            onEvent = onEvent,
+            innerPadding = innerPadding,
+        )
+    }
+}
 
-            TemplatesUiState.Error -> {
-                Column(
-                    modifier =
-                        Modifier
-                            .fillMaxSize()
-                            .padding(innerPadding)
-                            .padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center,
-                ) {
-                    Text(
-                        text = stringResource(id = R.string.templates_error),
-                        style = MaterialTheme.typography.bodyLarge,
-                    )
-                    Button(
-                        onClick = { onEvent(TemplatesUiEvent.RetryClicked) },
-                        modifier = Modifier.padding(top = 16.dp),
-                    ) {
-                        Text(text = stringResource(id = R.string.home_retry))
-                    }
-                }
-            }
+@Composable
+private fun TemplatesFloatingActionButton(
+    isVisible: Boolean,
+    selectedTab: TemplateTab,
+    onEvent: (TemplatesUiEvent) -> Unit,
+) {
+    if (!isVisible) return
 
-            is TemplatesUiState.Content -> {
-                TemplatesContent(
-                    state = uiState,
-                    onEvent = onEvent,
-                    modifier = Modifier.padding(innerPadding),
-                )
-            }
+    FloatingActionButton(
+        onClick = {
+            onEvent(
+                if (selectedTab == TemplateTab.Routines) {
+                    TemplatesUiEvent.ShowCreateRoutineForm
+                } else {
+                    TemplatesUiEvent.ShowCreateChoreForm
+                },
+            )
+        },
+    ) {
+        Text(text = stringResource(id = R.string.action_add))
+    }
+}
+
+@Composable
+private fun TemplatesScreenContent(
+    uiState: TemplatesUiState,
+    onEvent: (TemplatesUiEvent) -> Unit,
+    innerPadding: PaddingValues,
+) {
+    when (uiState) {
+        TemplatesUiState.Loading -> TemplatesLoading(modifier = Modifier.padding(innerPadding))
+        TemplatesUiState.Error -> {
+            TemplatesError(
+                onRetry = { onEvent(TemplatesUiEvent.RetryClicked) },
+                modifier = Modifier.padding(innerPadding),
+            )
+        }
+        is TemplatesUiState.Content -> {
+            TemplatesContent(
+                state = uiState,
+                onEvent = onEvent,
+                modifier = Modifier.padding(innerPadding),
+            )
         }
     }
 }
 
 @Composable
-@Suppress("LongMethod", "CyclomaticComplexMethod")
+private fun TemplatesLoading(modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center,
+    ) {
+        CircularProgressIndicator()
+    }
+}
+
+@Composable
+private fun TemplatesError(
+    onRetry: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier =
+            modifier
+                .fillMaxSize()
+                .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Text(
+            text = stringResource(id = R.string.templates_error),
+            style = MaterialTheme.typography.bodyLarge,
+        )
+        Button(
+            onClick = onRetry,
+            modifier = Modifier.padding(top = 16.dp),
+        ) {
+            Text(text = stringResource(id = R.string.home_retry))
+        }
+    }
+}
+
+@Composable
 private fun TemplatesContent(
     state: TemplatesUiState.Content,
     onEvent: (TemplatesUiEvent) -> Unit,
@@ -146,6 +182,40 @@ private fun TemplatesContent(
     var routineDeleteTarget by remember { mutableStateOf<RoutineTemplateDto?>(null) }
     var choreDeleteTarget by remember { mutableStateOf<ChoreTemplateDto?>(null) }
 
+    TemplatesList(
+        state = state,
+        onEvent = onEvent,
+        onEditRoutine = { editRoutineTarget = it },
+        onEditChore = { editChoreTarget = it },
+        onDeleteRoutine = { routineDeleteTarget = it },
+        onDeleteChore = { choreDeleteTarget = it },
+        modifier = modifier,
+    )
+
+    TemplatesDialogs(
+        state = state,
+        onEvent = onEvent,
+        editRoutineTarget = editRoutineTarget,
+        onEditRoutineDismiss = { editRoutineTarget = null },
+        editChoreTarget = editChoreTarget,
+        onEditChoreDismiss = { editChoreTarget = null },
+        routineDeleteTarget = routineDeleteTarget,
+        onRoutineDeleteDismiss = { routineDeleteTarget = null },
+        choreDeleteTarget = choreDeleteTarget,
+        onChoreDeleteDismiss = { choreDeleteTarget = null },
+    )
+}
+
+@Composable
+private fun TemplatesList(
+    state: TemplatesUiState.Content,
+    onEvent: (TemplatesUiEvent) -> Unit,
+    onEditRoutine: (RoutineTemplateDto) -> Unit,
+    onEditChore: (ChoreTemplateDto) -> Unit,
+    onDeleteRoutine: (RoutineTemplateDto) -> Unit,
+    onDeleteChore: (ChoreTemplateDto) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
@@ -169,68 +239,112 @@ private fun TemplatesContent(
         }
 
         item {
-            TabRow(
-                selectedTabIndex = state.selectedTab.ordinal,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Tab(
-                    selected = state.selectedTab == TemplateTab.Routines,
-                    onClick = { onEvent(TemplatesUiEvent.TabSelected(TemplateTab.Routines)) },
-                    text = { Text(text = stringResource(id = R.string.templates_tab_routines)) },
-                )
-                Tab(
-                    selected = state.selectedTab == TemplateTab.Chores,
-                    onClick = { onEvent(TemplatesUiEvent.TabSelected(TemplateTab.Chores)) },
-                    text = { Text(text = stringResource(id = R.string.templates_tab_chores)) },
-                )
-            }
+            TemplatesTabRow(selectedTab = state.selectedTab, onEvent = onEvent)
         }
 
         when (state.selectedTab) {
-            TemplateTab.Routines -> {
-                if (state.routines.isEmpty()) {
-                    item {
-                        Text(
-                            text = stringResource(id = R.string.templates_no_routines),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.outline,
-                        )
-                    }
-                } else {
-                    items(state.routines, key = { "routine_${it.id}" }) { routine ->
-                        SwipeToDeleteTemplateCard(onDeleteRequested = { routineDeleteTarget = routine }) {
-                            RoutineTemplateCard(
-                                routine = routine,
-                                onEdit = { editRoutineTarget = routine },
-                            )
-                        }
-                    }
-                }
-            }
+            TemplateTab.Routines ->
+                routineTemplatesList(
+                    routines = state.routines,
+                    onEdit = onEditRoutine,
+                    onDelete = onDeleteRoutine,
+                )
+            TemplateTab.Chores ->
+                choreTemplatesList(
+                    chores = state.chores,
+                    onEdit = onEditChore,
+                    onDelete = onDeleteChore,
+                )
+        }
+    }
+}
 
-            TemplateTab.Chores -> {
-                if (state.chores.isEmpty()) {
-                    item {
-                        Text(
-                            text = stringResource(id = R.string.templates_no_chores),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.outline,
-                        )
-                    }
-                } else {
-                    items(state.chores, key = { "chore_${it.id}" }) { chore ->
-                        SwipeToDeleteTemplateCard(onDeleteRequested = { choreDeleteTarget = chore }) {
-                            ChoreTemplateCard(
-                                chore = chore,
-                                onEdit = { editChoreTarget = chore },
-                            )
-                        }
-                    }
-                }
+@Composable
+private fun TemplatesTabRow(
+    selectedTab: TemplateTab,
+    onEvent: (TemplatesUiEvent) -> Unit,
+) {
+    PrimaryTabRow(
+        selectedTabIndex = selectedTab.ordinal,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Tab(
+            selected = selectedTab == TemplateTab.Routines,
+            onClick = { onEvent(TemplatesUiEvent.TabSelected(TemplateTab.Routines)) },
+            text = { Text(text = stringResource(id = R.string.templates_tab_routines)) },
+        )
+        Tab(
+            selected = selectedTab == TemplateTab.Chores,
+            onClick = { onEvent(TemplatesUiEvent.TabSelected(TemplateTab.Chores)) },
+            text = { Text(text = stringResource(id = R.string.templates_tab_chores)) },
+        )
+    }
+}
+
+private fun androidx.compose.foundation.lazy.LazyListScope.routineTemplatesList(
+    routines: List<RoutineTemplateDto>,
+    onEdit: (RoutineTemplateDto) -> Unit,
+    onDelete: (RoutineTemplateDto) -> Unit,
+) {
+    if (routines.isEmpty()) {
+        item {
+            EmptyTemplatesMessage(textResId = R.string.templates_no_routines)
+        }
+    } else {
+        items(routines, key = { "routine_${it.id}" }) { routine ->
+            SwipeToDeleteTemplateCard(onDeleteRequested = { onDelete(routine) }) {
+                RoutineTemplateCard(
+                    routine = routine,
+                    onEdit = { onEdit(routine) },
+                )
             }
         }
     }
+}
 
+private fun androidx.compose.foundation.lazy.LazyListScope.choreTemplatesList(
+    chores: List<ChoreTemplateDto>,
+    onEdit: (ChoreTemplateDto) -> Unit,
+    onDelete: (ChoreTemplateDto) -> Unit,
+) {
+    if (chores.isEmpty()) {
+        item {
+            EmptyTemplatesMessage(textResId = R.string.templates_no_chores)
+        }
+    } else {
+        items(chores, key = { "chore_${it.id}" }) { chore ->
+            SwipeToDeleteTemplateCard(onDeleteRequested = { onDelete(chore) }) {
+                ChoreTemplateCard(
+                    chore = chore,
+                    onEdit = { onEdit(chore) },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun EmptyTemplatesMessage(textResId: Int) {
+    Text(
+        text = stringResource(id = textResId),
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.outline,
+    )
+}
+
+@Composable
+private fun TemplatesDialogs(
+    state: TemplatesUiState.Content,
+    onEvent: (TemplatesUiEvent) -> Unit,
+    editRoutineTarget: RoutineTemplateDto?,
+    onEditRoutineDismiss: () -> Unit,
+    editChoreTarget: ChoreTemplateDto?,
+    onEditChoreDismiss: () -> Unit,
+    routineDeleteTarget: RoutineTemplateDto?,
+    onRoutineDeleteDismiss: () -> Unit,
+    choreDeleteTarget: ChoreTemplateDto?,
+    onChoreDeleteDismiss: () -> Unit,
+) {
     when (state.createForm) {
         TemplateCreateForm.Routine ->
             CreateRoutineDialog(
@@ -252,9 +366,9 @@ private fun TemplatesContent(
             routine = routine,
             onConfirm = {
                 onEvent(TemplatesUiEvent.UpdateRoutine(routine.id, it))
-                editRoutineTarget = null
+                onEditRoutineDismiss()
             },
-            onDismiss = { editRoutineTarget = null },
+            onDismiss = onEditRoutineDismiss,
         )
     }
 
@@ -263,15 +377,40 @@ private fun TemplatesContent(
             chore = chore,
             onConfirm = {
                 onEvent(TemplatesUiEvent.UpdateChore(chore.id, it))
-                editChoreTarget = null
+                onEditChoreDismiss()
             },
-            onDismiss = { editChoreTarget = null },
+            onDismiss = onEditChoreDismiss,
         )
     }
 
-    routineDeleteTarget?.let { routine ->
+    DeleteRoutineDialog(
+        routine = routineDeleteTarget,
+        onConfirm = { routine ->
+            onEvent(TemplatesUiEvent.DeleteRoutine(routine.id))
+            onRoutineDeleteDismiss()
+        },
+        onDismiss = onRoutineDeleteDismiss,
+    )
+
+    DeleteChoreDialog(
+        chore = choreDeleteTarget,
+        onConfirm = { chore ->
+            onEvent(TemplatesUiEvent.DeleteChore(chore.id))
+            onChoreDeleteDismiss()
+        },
+        onDismiss = onChoreDeleteDismiss,
+    )
+}
+
+@Composable
+private fun DeleteRoutineDialog(
+    routine: RoutineTemplateDto?,
+    onConfirm: (RoutineTemplateDto) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    routine?.let { routine ->
         AlertDialog(
-            onDismissRequest = { routineDeleteTarget = null },
+            onDismissRequest = onDismiss,
             title = { Text(text = stringResource(id = R.string.templates_delete_title)) },
             text = {
                 Text(
@@ -281,24 +420,30 @@ private fun TemplatesContent(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        onEvent(TemplatesUiEvent.DeleteRoutine(routine.id))
-                        routineDeleteTarget = null
+                        onConfirm(routine)
                     },
                 ) {
                     Text(text = stringResource(id = R.string.action_delete))
                 }
             },
             dismissButton = {
-                TextButton(onClick = { routineDeleteTarget = null }) {
+                TextButton(onClick = onDismiss) {
                     Text(text = stringResource(id = R.string.action_cancel))
                 }
             },
         )
     }
+}
 
-    choreDeleteTarget?.let { chore ->
+@Composable
+private fun DeleteChoreDialog(
+    chore: ChoreTemplateDto?,
+    onConfirm: (ChoreTemplateDto) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    chore?.let { chore ->
         AlertDialog(
-            onDismissRequest = { choreDeleteTarget = null },
+            onDismissRequest = onDismiss,
             title = { Text(text = stringResource(id = R.string.templates_delete_title)) },
             text = {
                 Text(
@@ -308,15 +453,14 @@ private fun TemplatesContent(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        onEvent(TemplatesUiEvent.DeleteChore(chore.id))
-                        choreDeleteTarget = null
+                        onConfirm(chore)
                     },
                 ) {
                     Text(text = stringResource(id = R.string.action_delete))
                 }
             },
             dismissButton = {
-                TextButton(onClick = { choreDeleteTarget = null }) {
+                TextButton(onClick = onDismiss) {
                     Text(text = stringResource(id = R.string.action_cancel))
                 }
             },
@@ -436,17 +580,20 @@ private fun ChoreTemplateCard(
 @Composable
 private fun SwipeToDeleteTemplateCard(
     onDeleteRequested: () -> Unit,
-    content: @Composable () -> Unit,
+    content: @Composable RowScope.() -> Unit,
 ) {
     val dismissState =
         rememberSwipeToDismissBoxState(
-            confirmValueChange = { dismissValue ->
-                if (dismissValue == SwipeToDismissBoxValue.EndToStart) {
-                    onDeleteRequested()
-                }
-                false
-            },
+            initialValue = SwipeToDismissBoxValue.Settled,
+            positionalThreshold = SwipeToDismissBoxDefaults.positionalThreshold,
         )
+
+    LaunchedEffect(dismissState.currentValue) {
+        if (dismissState.currentValue == SwipeToDismissBoxValue.EndToStart) {
+            onDeleteRequested()
+            dismissState.reset()
+        }
+    }
 
     SwipeToDismissBox(
         state = dismissState,
