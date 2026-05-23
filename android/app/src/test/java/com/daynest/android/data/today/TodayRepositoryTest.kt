@@ -8,8 +8,6 @@ import com.daynest.android.core.database.sync.PendingMutationEntity
 import com.daynest.android.core.database.today.TodaySummaryDao
 import com.daynest.android.core.database.today.TodaySummaryEntity
 import com.daynest.android.fakes.StubTodayActionsApi
-import java.io.IOException
-import kotlin.collections.ArrayDeque
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,6 +18,8 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.IOException
+import kotlin.collections.ArrayDeque
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class TodayRepositoryTest {

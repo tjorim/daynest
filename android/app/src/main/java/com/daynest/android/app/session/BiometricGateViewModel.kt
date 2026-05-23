@@ -41,7 +41,11 @@ class BiometricGateViewModel
                 } else {
                     val idleMillis = nowEpochMillis - current.lastBackgroundEpochMillis
                     val threshold = current.timeoutMinutes * 60_000L
-                    current.copy(requireAuthentication = current.lastBackgroundEpochMillis > 0 && idleMillis >= threshold)
+                    current.copy(
+                        requireAuthentication =
+                            current.lastBackgroundEpochMillis > 0 &&
+                                idleMillis >= threshold,
+                    )
                 }
             }
         }

@@ -4,8 +4,8 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -55,7 +55,8 @@ class UserPreferencesRepository
 
         suspend fun updateBiometricIdleTimeoutMinutes(timeoutMinutes: Int) {
             dataStore.edit { prefs ->
-                prefs[BIOMETRIC_IDLE_TIMEOUT_MINUTES] = timeoutMinutes.coerceIn(1, 240)
+                prefs[BIOMETRIC_IDLE_TIMEOUT_MINUTES] =
+                    timeoutMinutes.coerceIn(MIN_BIOMETRIC_TIMEOUT_MINUTES, MAX_BIOMETRIC_TIMEOUT_MINUTES)
             }
         }
 
@@ -78,6 +79,9 @@ class UserPreferencesRepository
         }
 
         private companion object {
+            const val MIN_BIOMETRIC_TIMEOUT_MINUTES = 1
+            const val MAX_BIOMETRIC_TIMEOUT_MINUTES = 240
+
             val LAST_TODAY_FETCH = longPreferencesKey("last_today_fetch_epoch_millis")
             val CUSTOM_SERVER_URL = stringPreferencesKey("custom_server_url")
             val BIOMETRIC_LOCK_ENABLED = booleanPreferencesKey("biometric_lock_enabled")

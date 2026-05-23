@@ -5,9 +5,9 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import androidx.activity.compose.setContent
 import com.daynest.android.app.DaynestApp
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -31,7 +31,15 @@ class MainActivity : ComponentActivity() {
                 Manifest.permission.POST_NOTIFICATIONS,
             ) == PackageManager.PERMISSION_GRANTED
         if (!alreadyGranted) {
-            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.POST_NOTIFICATIONS), 1001)
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(Manifest.permission.POST_NOTIFICATIONS),
+                NOTIFICATION_PERMISSION_REQUEST_CODE,
+            )
         }
+    }
+
+    private companion object {
+        const val NOTIFICATION_PERMISSION_REQUEST_CODE = 1001
     }
 }

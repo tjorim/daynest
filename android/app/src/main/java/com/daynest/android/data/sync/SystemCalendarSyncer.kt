@@ -46,30 +46,33 @@ class SystemCalendarSyncer
         }
 
         private fun hasCalendarPermissions(): Boolean =
-            ContextCompat.checkSelfPermission(context, Manifest.permission.READ_CALENDAR) == PackageManager.PERMISSION_GRANTED &&
-                ContextCompat.checkSelfPermission(context, Manifest.permission.WRITE_CALENDAR) == PackageManager.PERMISSION_GRANTED
+            ContextCompat.checkSelfPermission(context, Manifest.permission.READ_CALENDAR) ==
+                PackageManager.PERMISSION_GRANTED &&
+                ContextCompat.checkSelfPermission(context, Manifest.permission.WRITE_CALENDAR) ==
+                PackageManager.PERMISSION_GRANTED
 
         private fun ensureCalendar(): Long? {
             val resolver = context.contentResolver
-            resolver.query(
-                CalendarContract.Calendars.CONTENT_URI,
-                arrayOf(CalendarContract.Calendars._ID),
-                "${CalendarContract.Calendars.ACCOUNT_NAME}=? AND " +
-                    "${CalendarContract.Calendars.ACCOUNT_TYPE}=? AND " +
-                    "${CalendarContract.Calendars.OWNER_ACCOUNT}=? AND " +
-                    "${CalendarContract.Calendars.CALENDAR_DISPLAY_NAME}=?",
-                arrayOf(
-                    DAYNEST_ACCOUNT_NAME,
-                    CalendarContract.ACCOUNT_TYPE_LOCAL,
-                    DAYNEST_ACCOUNT_NAME,
-                    DAYNEST_CALENDAR_DISPLAY_NAME,
-                ),
-                null,
-            )?.use { cursor ->
-                if (cursor.moveToFirst()) {
-                    return cursor.getLong(0)
+            resolver
+                .query(
+                    CalendarContract.Calendars.CONTENT_URI,
+                    arrayOf(CalendarContract.Calendars._ID),
+                    "${CalendarContract.Calendars.ACCOUNT_NAME}=? AND " +
+                        "${CalendarContract.Calendars.ACCOUNT_TYPE}=? AND " +
+                        "${CalendarContract.Calendars.OWNER_ACCOUNT}=? AND " +
+                        "${CalendarContract.Calendars.CALENDAR_DISPLAY_NAME}=?",
+                    arrayOf(
+                        DAYNEST_ACCOUNT_NAME,
+                        CalendarContract.ACCOUNT_TYPE_LOCAL,
+                        DAYNEST_ACCOUNT_NAME,
+                        DAYNEST_CALENDAR_DISPLAY_NAME,
+                    ),
+                    null,
+                )?.use { cursor ->
+                    if (cursor.moveToFirst()) {
+                        return cursor.getLong(0)
+                    }
                 }
-            }
             val values =
                 ContentValues().apply {
                     put(CalendarContract.Calendars.ACCOUNT_NAME, DAYNEST_ACCOUNT_NAME)
@@ -94,19 +97,20 @@ class SystemCalendarSyncer
 
         private fun loadExistingEvents(calendarId: Long): Map<String, Long> {
             val map = mutableMapOf<String, Long>()
-            context.contentResolver.query(
-                CalendarContract.Events.CONTENT_URI,
-                arrayOf(CalendarContract.Events._ID, CalendarContract.Events.SYNC_DATA1),
-                "${CalendarContract.Events.CALENDAR_ID}=? AND ${CalendarContract.Events.SYNC_DATA1} IS NOT NULL",
-                arrayOf(calendarId.toString()),
-                null,
-            )?.use { cursor ->
-                while (cursor.moveToNext()) {
-                    val id = cursor.getLong(0)
-                    val syncKey = cursor.getString(1) ?: continue
-                    map[syncKey] = id
+            context.contentResolver
+                .query(
+                    CalendarContract.Events.CONTENT_URI,
+                    arrayOf(CalendarContract.Events._ID, CalendarContract.Events.SYNC_DATA1),
+                    "${CalendarContract.Events.CALENDAR_ID}=? AND ${CalendarContract.Events.SYNC_DATA1} IS NOT NULL",
+                    arrayOf(calendarId.toString()),
+                    null,
+                )?.use { cursor ->
+                    while (cursor.moveToNext()) {
+                        val id = cursor.getLong(0)
+                        val syncKey = cursor.getString(1) ?: continue
+                        map[syncKey] = id
+                    }
                 }
-            }
             return map
         }
 
@@ -137,14 +141,32 @@ class SystemCalendarSyncer
             val zone = ZoneId.systemDefault()
             val events = mutableListOf<SyncEvent>()
             today.dueToday.forEach { item ->
-                events += SyncEvent("chore_due_${item.choreInstanceId}", item.title, "${item.scheduledDate}T09:00:00", zone)
+                events +=
+                    SyncEvent(
+                        "chore_due_${item.choreInstanceId}",
+                        item.title,
+                        "${item.scheduledDate}T09:00:00",
+                        zone,
+                    )
             }
             today.overdue.forEach { item ->
                 val date = item.overdueSince.ifBlank { LocalDate.now().toString() }
-                events += SyncEvent("chore_overdue_${item.choreInstanceId}", item.title, "${date}T09:00:00", zone)
+                events +=
+                    SyncEvent(
+                        "chore_overdue_${item.choreInstanceId}",
+                        item.title,
+                        "${date}T09:00:00",
+                        zone,
+                    )
             }
             today.upcoming.forEach { item ->
-                events += SyncEvent("chore_upcoming_${item.choreInstanceId}", item.title, "${item.scheduledDate}T09:00:00", zone)
+                events +=
+                    SyncEvent(
+                        "chore_upcoming_${item.choreInstanceId}",
+                        item.title,
+                        "${item.scheduledDate}T09:00:00",
+                        zone,
+                    )
             }
             today.planned.filter { !it.isDone }.forEach { item ->
                 events += SyncEvent("planned_${item.id}", item.title, "${item.plannedFor}T09:00:00", zone)

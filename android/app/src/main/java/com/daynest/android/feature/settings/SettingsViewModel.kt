@@ -42,10 +42,13 @@ class SettingsViewModel
         fun onEvent(event: SettingsUiEvent) {
             when (event) {
                 SettingsUiEvent.RetryClicked -> load()
-                SettingsUiEvent.SignOutClicked -> signOut()
-                SettingsUiEvent.ShowCreateClientForm -> showCreateForm()
-                SettingsUiEvent.DismissCreateClientForm -> dismissCreateForm()
-                SettingsUiEvent.DismissNewKeyDialog -> dismissNewKeyDialog()
+                SettingsUiEvent.SignOutClicked -> {
+                    oidcAuthService.signOut()
+                    _uiState.value = SettingsUiState.SignedOut
+                }
+                SettingsUiEvent.ShowCreateClientForm -> updateContent { it.copy(showCreateForm = true) }
+                SettingsUiEvent.DismissCreateClientForm -> updateContent { it.copy(showCreateForm = false) }
+                SettingsUiEvent.DismissNewKeyDialog -> updateContent { it.copy(newApiKey = null) }
                 is SettingsUiEvent.CreateClient -> createClient(event.input)
                 is SettingsUiEvent.UpdateServerUrl -> updateServerUrl(event.url)
                 is SettingsUiEvent.RevokeSessionClicked -> revokeSession(event.sessionId)
@@ -83,24 +86,6 @@ class SettingsViewModel
             }
         }
 
-        private fun showCreateForm() {
-            _uiState.update { current ->
-                if (current is SettingsUiState.Content) current.copy(showCreateForm = true) else current
-            }
-        }
-
-        private fun dismissCreateForm() {
-            _uiState.update { current ->
-                if (current is SettingsUiState.Content) current.copy(showCreateForm = false) else current
-            }
-        }
-
-        private fun dismissNewKeyDialog() {
-            _uiState.update { current ->
-                if (current is SettingsUiState.Content) current.copy(newApiKey = null) else current
-            }
-        }
-
         private fun createClient(input: IntegrationClientInputDto) {
             viewModelScope.launch {
                 settingsRepository.createClient(input).onSuccess { created ->
@@ -133,7 +118,11 @@ class SettingsViewModel
             viewModelScope.launch {
                 runCatching { userPreferencesRepository.updatePushNotificationsEnabled(enabled) }.onSuccess {
                     _uiState.update { current ->
-                        if (current is SettingsUiState.Content) current.copy(pushNotificationsEnabled = enabled) else current
+                        if (current is SettingsUiState.Content) {
+                            current.copy(pushNotificationsEnabled = enabled)
+                        } else {
+                            current
+                        }
                     }
                 }
             }
@@ -143,7 +132,11 @@ class SettingsViewModel
             viewModelScope.launch {
                 runCatching { userPreferencesRepository.updateBiometricLockEnabled(enabled) }.onSuccess {
                     _uiState.update { current ->
-                        if (current is SettingsUiState.Content) current.copy(biometricLockEnabled = enabled) else current
+                        if (current is SettingsUiState.Content) {
+                            current.copy(biometricLockEnabled = enabled)
+                        } else {
+                            current
+                        }
                     }
                 }
             }
@@ -154,7 +147,11 @@ class SettingsViewModel
                 val clamped = minutes.coerceIn(1, 240)
                 runCatching { userPreferencesRepository.updateBiometricIdleTimeoutMinutes(clamped) }.onSuccess {
                     _uiState.update { current ->
-                        if (current is SettingsUiState.Content) current.copy(biometricIdleTimeoutMinutes = clamped) else current
+                        if (current is SettingsUiState.Content) {
+                            current.copy(biometricIdleTimeoutMinutes = clamped)
+                        } else {
+                            current
+                        }
                     }
                 }
             }
@@ -188,9 +185,10 @@ class SettingsViewModel
             }
         }
 
-        private fun signOut() {
-            oidcAuthService.signOut()
-            _uiState.value = SettingsUiState.SignedOut
+        private fun updateContent(transform: (SettingsUiState.Content) -> SettingsUiState.Content) {
+            _uiState.update { current ->
+                if (current is SettingsUiState.Content) transform(current) else current
+            }
         }
 
         private fun IntegrationClientCreateResponseDto.toDto() =

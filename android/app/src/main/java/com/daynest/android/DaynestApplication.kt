@@ -1,11 +1,11 @@
 package com.daynest.android
 
 import android.app.Application
+import androidx.hilt.work.HiltWorkerFactory
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.lifecycle.lifecycleScope
-import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import com.daynest.android.core.network.ServerUrlHolder
 import com.daynest.android.core.notifications.DaynestNotificationChannels
@@ -52,7 +52,8 @@ class DaynestApplication :
 
     override val workManagerConfiguration: Configuration
         get() =
-            Configuration.Builder()
+            Configuration
+                .Builder()
                 .setWorkerFactory(workerFactory)
                 .build()
 }

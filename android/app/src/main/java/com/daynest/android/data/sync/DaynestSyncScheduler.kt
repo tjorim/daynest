@@ -16,7 +16,8 @@ object DaynestSyncScheduler {
 
     fun schedulePeriodic(context: Context) {
         val constraints =
-            Constraints.Builder()
+            Constraints
+                .Builder()
                 .setRequiredNetworkType(NetworkType.CONNECTED)
                 .build()
         val request =
@@ -32,7 +33,8 @@ object DaynestSyncScheduler {
 
     fun enqueueOneShot(context: Context) {
         val constraints =
-            Constraints.Builder()
+            Constraints
+                .Builder()
                 .setRequiredNetworkType(NetworkType.CONNECTED)
                 .build()
         val request =

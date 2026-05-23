@@ -1,7 +1,6 @@
 package com.daynest.android.data.today
 
 import android.content.Context
-import dagger.hilt.android.qualifiers.ApplicationContext
 import com.daynest.android.core.database.sync.CacheEntryDao
 import com.daynest.android.core.database.sync.CacheEntryEntity
 import com.daynest.android.core.database.sync.PendingMutationDao
@@ -15,11 +14,12 @@ import com.daynest.android.data.sync.MutationIdPayload
 import com.daynest.android.data.sync.PendingMutationKind
 import com.daynest.android.data.sync.ReschedulePayload
 import com.daynest.android.data.sync.SyncCacheKeys
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import java.io.IOException
 import kotlinx.serialization.encodeToString
+import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -41,11 +41,12 @@ class TodayRepository
         fun observeTodayResponse(): Flow<TodayResponseDto?> =
             cacheEntryDao.observe(SyncCacheKeys.TODAY).map { entry ->
                 entry?.payload?.let { payload ->
-                    runCatching { JsonSerializer.config.decodeFromString(TodayResponseDto.serializer(), payload) }.getOrNull()
+                    runCatching {
+                        JsonSerializer.config.decodeFromString(TodayResponseDto.serializer(), payload)
+                    }.getOrNull()
                 }
             }
 
-        @Suppress("TooGenericExceptionCaught")
         suspend fun refresh(): Result<Unit> =
             try {
                 val today = todayApi.getToday()
@@ -69,30 +70,29 @@ class TodayRepository
                 Result.success(Unit)
             } catch (e: CancellationException) {
                 throw e
-            } catch (e: Exception) {
+            } catch (e: IOException) {
+                Result.failure(e)
+            } catch (e: IllegalStateException) {
                 Result.failure(e)
             }
 
-        suspend fun completeChore(choreInstanceId: Int): Result<ChoreMutationDto> =
+        val completeChore: suspend (Int) -> Result<ChoreMutationDto> = { choreInstanceId ->
             mutateWithOfflineFallback(
                 kind = PendingMutationKind.COMPLETE_CHORE,
                 payload = MutationIdPayload(choreInstanceId),
                 fallback = { ChoreMutationDto(choreInstanceId, "queued") },
             ) { todayActionsApi.completeChore(choreInstanceId) }
+        }
 
-        @Suppress("ktlint:standard:function-signature")
-        suspend fun skipChore(choreInstanceId: Int): Result<ChoreMutationDto> =
+        val skipChore: suspend (Int) -> Result<ChoreMutationDto> = { choreInstanceId ->
             mutateWithOfflineFallback(
                 kind = PendingMutationKind.SKIP_CHORE,
                 payload = MutationIdPayload(choreInstanceId),
                 fallback = { ChoreMutationDto(choreInstanceId, "queued") },
             ) { todayActionsApi.skipChore(choreInstanceId) }
+        }
 
-        @Suppress("ktlint:standard:function-signature")
-        suspend fun rescheduleChore(
-            choreInstanceId: Int,
-            scheduledDate: String,
-        ): Result<ChoreMutationDto> =
+        val rescheduleChore: suspend (Int, String) -> Result<ChoreMutationDto> = { choreInstanceId, scheduledDate ->
             mutateWithOfflineFallback(
                 kind = PendingMutationKind.RESCHEDULE_CHORE,
                 payload = ReschedulePayload(choreInstanceId, scheduledDate),
@@ -100,45 +100,47 @@ class TodayRepository
             ) {
                 todayActionsApi.rescheduleChore(choreInstanceId, RescheduleChoreDto(scheduledDate = scheduledDate))
             }
+        }
 
-        suspend fun completeTask(taskInstanceId: Int): Result<TaskMutationDto> =
+        val completeTask: suspend (Int) -> Result<TaskMutationDto> = { taskInstanceId ->
             mutateWithOfflineFallback(
                 kind = PendingMutationKind.COMPLETE_TASK,
                 payload = MutationIdPayload(taskInstanceId),
                 fallback = { TaskMutationDto(taskInstanceId, "queued") },
             ) { todayActionsApi.completeTask(taskInstanceId) }
+        }
 
-        @Suppress("ktlint:standard:function-signature")
-        suspend fun startTask(taskInstanceId: Int): Result<TaskMutationDto> =
+        val startTask: suspend (Int) -> Result<TaskMutationDto> = { taskInstanceId ->
             mutateWithOfflineFallback(
                 kind = PendingMutationKind.START_TASK,
                 payload = MutationIdPayload(taskInstanceId),
                 fallback = { TaskMutationDto(taskInstanceId, "queued") },
             ) { todayActionsApi.startTask(taskInstanceId) }
+        }
 
-        @Suppress("ktlint:standard:function-signature")
-        suspend fun skipTask(taskInstanceId: Int): Result<TaskMutationDto> =
+        val skipTask: suspend (Int) -> Result<TaskMutationDto> = { taskInstanceId ->
             mutateWithOfflineFallback(
                 kind = PendingMutationKind.SKIP_TASK,
                 payload = MutationIdPayload(taskInstanceId),
                 fallback = { TaskMutationDto(taskInstanceId, "queued") },
             ) { todayActionsApi.skipTask(taskInstanceId) }
+        }
 
-        @Suppress("ktlint:standard:function-signature")
-        suspend fun takeDose(doseInstanceId: Int): Result<DoseMutationDto> =
+        val takeDose: suspend (Int) -> Result<DoseMutationDto> = { doseInstanceId ->
             mutateWithOfflineFallback(
                 kind = PendingMutationKind.TAKE_DOSE,
                 payload = MutationIdPayload(doseInstanceId),
                 fallback = { DoseMutationDto(doseInstanceId, "queued") },
             ) { todayActionsApi.takeDose(doseInstanceId) }
+        }
 
-        @Suppress("ktlint:standard:function-signature")
-        suspend fun skipDose(doseInstanceId: Int): Result<DoseMutationDto> =
+        val skipDose: suspend (Int) -> Result<DoseMutationDto> = { doseInstanceId ->
             mutateWithOfflineFallback(
                 kind = PendingMutationKind.SKIP_DOSE,
                 payload = MutationIdPayload(doseInstanceId),
                 fallback = { DoseMutationDto(doseInstanceId, "queued") },
             ) { todayActionsApi.skipDose(doseInstanceId) }
+        }
 
         private suspend inline fun <reified P : Any, R : Any> mutateWithOfflineFallback(
             kind: PendingMutationKind,
@@ -146,21 +148,21 @@ class TodayRepository
             fallback: () -> R,
             crossinline call: suspend () -> R,
         ): Result<R> =
-            try {
-                Result.success(call())
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                if (isOfflineError(e)) {
-                    enqueue(kind, payload)
-                    appContext?.let { context ->
-                        runCatching { DaynestSyncScheduler.enqueueOneShot(context) }
+            runCatching { call() }
+                .recoverCatching { error ->
+                    if (error is CancellationException) {
+                        throw error
                     }
-                    Result.success(fallback())
-                } else {
-                    Result.failure(e)
+                    if (error is IOException) {
+                        enqueue(kind, payload)
+                        appContext?.let { context ->
+                            runCatching { DaynestSyncScheduler.enqueueOneShot(context) }
+                        }
+                        fallback()
+                    } else {
+                        throw error
+                    }
                 }
-            }
 
         private suspend inline fun <reified T : Any> enqueue(
             kind: PendingMutationKind,
@@ -174,8 +176,6 @@ class TodayRepository
                 ),
             )
         }
-
-        private fun isOfflineError(error: Throwable): Boolean = error is IOException
     }
 
 private fun TodaySummaryEntity.toDomain() =

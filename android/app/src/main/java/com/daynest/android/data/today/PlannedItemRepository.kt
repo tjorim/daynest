@@ -6,20 +6,20 @@ import com.daynest.android.core.database.sync.CacheEntryEntity
 import com.daynest.android.core.database.sync.PendingMutationDao
 import com.daynest.android.core.database.sync.PendingMutationEntity
 import com.daynest.android.core.network.JsonSerializer
+import com.daynest.android.data.safeApiCall
 import com.daynest.android.data.sync.CreatePlannedPayload
 import com.daynest.android.data.sync.DaynestSyncScheduler
 import com.daynest.android.data.sync.DeletePlannedPayload
 import com.daynest.android.data.sync.PendingMutationKind
 import com.daynest.android.data.sync.SyncCacheKeys
 import com.daynest.android.data.sync.UpdatePlannedPayload
-import com.daynest.android.data.safeApiCall
 import dagger.hilt.android.qualifiers.ApplicationContext
-import java.io.IOException
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.encodeToString
-import kotlin.math.absoluteValue
+import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.math.absoluteValue
 
 @Singleton
 class PlannedItemRepository
@@ -28,37 +28,37 @@ class PlannedItemRepository
         private val plannedItemApi: PlannedItemApi,
         private val cacheEntryDao: CacheEntryDao,
         private val pendingMutationDao: PendingMutationDao,
-        @ApplicationContext private val appContext: Context,
+        @ApplicationContext private val appContext: Context? = null,
     ) {
         suspend fun markPlannedDone(
             id: Int,
             item: PlannedTodayItemDto,
             isDone: Boolean,
         ): Result<PlannedTodayItemDto> =
-                updatePlannedItem(
-                    id,
-                    PlannedItemUpdateDto(
-                        title = item.title,
-                        plannedFor = item.plannedFor,
-                        isDone = isDone,
-                        notes = item.notes,
-                        moduleKey = item.moduleKey,
-                        recurrenceHint = item.recurrenceHint,
-                        linkedSource = item.linkedSource,
-                        linkedRef = item.linkedRef,
-                    ),
-                )
+            updatePlannedItem(
+                id,
+                PlannedItemUpdateDto(
+                    title = item.title,
+                    plannedFor = item.plannedFor,
+                    isDone = isDone,
+                    notes = item.notes,
+                    moduleKey = item.moduleKey,
+                    recurrenceHint = item.recurrenceHint,
+                    linkedSource = item.linkedSource,
+                    linkedRef = item.linkedRef,
+                ),
+            )
 
         suspend fun updatePlannedItem(
             id: Int,
             input: PlannedItemUpdateDto,
         ): Result<PlannedTodayItemDto> =
-                safeApiCall { plannedItemApi.updatePlannedItem(id, input) }.recoverCatchingOffline {
-                    enqueue(
-                        kind = PendingMutationKind.UPDATE_PLANNED,
-                        payload = UpdatePlannedPayload(id, input),
-                    )
-                DaynestSyncScheduler.enqueueOneShot(appContext)
+            safeApiCall { plannedItemApi.updatePlannedItem(id, input) }.recoverOffline {
+                enqueue(
+                    kind = PendingMutationKind.UPDATE_PLANNED,
+                    payload = UpdatePlannedPayload(id, input),
+                )
+                appContext?.let { DaynestSyncScheduler.enqueueOneShot(it) }
                 PlannedTodayItemDto(
                     id = id,
                     title = input.title,
@@ -73,22 +73,22 @@ class PlannedItemRepository
             }
 
         suspend fun deletePlannedItem(id: Int): Result<Unit> =
-            safeApiCall { plannedItemApi.deletePlannedItem(id) }.recoverCatchingOffline {
+            safeApiCall { plannedItemApi.deletePlannedItem(id) }.recoverOffline {
                 enqueue(
                     kind = PendingMutationKind.DELETE_PLANNED,
                     payload = DeletePlannedPayload(id),
                 )
-                DaynestSyncScheduler.enqueueOneShot(appContext)
+                appContext?.let { DaynestSyncScheduler.enqueueOneShot(it) }
                 Unit
             }
 
         suspend fun createPlannedItem(request: PlannedItemCreateDto): Result<PlannedTodayItemDto> =
-            safeApiCall { plannedItemApi.createPlannedItem(request) }.recoverCatchingOffline {
+            safeApiCall { plannedItemApi.createPlannedItem(request) }.recoverOffline {
                 enqueue(
                     kind = PendingMutationKind.CREATE_PLANNED,
                     payload = CreatePlannedPayload(request),
                 )
-                DaynestSyncScheduler.enqueueOneShot(appContext)
+                appContext?.let { DaynestSyncScheduler.enqueueOneShot(it) }
                 PlannedTodayItemDto(
                     id = -System.currentTimeMillis().toInt().absoluteValue,
                     title = request.title,
@@ -120,7 +120,7 @@ class PlannedItemRepository
                             updatedAtEpochMillis = System.currentTimeMillis(),
                         ),
                     )
-                }.recoverCatchingOffline {
+                }.recoverOffline {
                     cacheEntryDao.get(cacheKey)?.payload?.let { payload ->
                         JsonSerializer.config.decodeFromString(
                             ListSerializer(PlannedTodayItemDto.serializer()),
@@ -143,9 +143,7 @@ class PlannedItemRepository
             )
         }
 
-        private suspend inline fun <T> Result<T>.recoverCatchingOffline(
-            crossinline fallback: suspend () -> T,
-        ): Result<T> {
+        private suspend inline fun <T> Result<T>.recoverOffline(crossinline fallback: suspend () -> T): Result<T> {
             if (isSuccess) return this
             val failure = exceptionOrNull()
             return if (failure is IOException) {

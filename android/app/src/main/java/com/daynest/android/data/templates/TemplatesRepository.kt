@@ -3,11 +3,11 @@ package com.daynest.android.data.templates
 import com.daynest.android.core.database.sync.CacheEntryDao
 import com.daynest.android.core.database.sync.CacheEntryEntity
 import com.daynest.android.core.network.JsonSerializer
-import com.daynest.android.data.sync.SyncCacheKeys
 import com.daynest.android.data.safeApiCall
-import java.io.IOException
+import com.daynest.android.data.sync.SyncCacheKeys
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.encodeToString
+import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -32,7 +32,7 @@ class TemplatesRepository
                             updatedAtEpochMillis = System.currentTimeMillis(),
                         ),
                     )
-                }.recoverCatchingOffline {
+                }.recoverOffline {
                     cacheEntryDao.get(SyncCacheKeys.ROUTINE_TEMPLATES)?.payload?.let { payload ->
                         JsonSerializer.config.decodeFromString(
                             ListSerializer(RoutineTemplateDto.serializer()),
@@ -71,7 +71,7 @@ class TemplatesRepository
                             updatedAtEpochMillis = System.currentTimeMillis(),
                         ),
                     )
-                }.recoverCatchingOffline {
+                }.recoverOffline {
                     cacheEntryDao.get(SyncCacheKeys.CHORE_TEMPLATES)?.payload?.let { payload ->
                         JsonSerializer.config.decodeFromString(
                             ListSerializer(ChoreTemplateDto.serializer()),
@@ -96,9 +96,7 @@ class TemplatesRepository
                 Unit
             }
 
-private suspend inline fun <T> Result<T>.recoverCatchingOffline(
-            crossinline fallback: suspend () -> T,
-): Result<T> {
+        private suspend inline fun <T> Result<T>.recoverOffline(crossinline fallback: suspend () -> T): Result<T> {
             if (isSuccess) return this
             val failure = exceptionOrNull()
             return if (failure is IOException) {
@@ -106,5 +104,5 @@ private suspend inline fun <T> Result<T>.recoverCatchingOffline(
             } else {
                 this
             }
-}
+        }
     }
