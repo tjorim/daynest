@@ -426,7 +426,7 @@ async function fetchWithAuth(
   const url =
     typeof input === "string" && !/^https?:\/\//i.test(input) ? buildApiUrl(input) : input;
   const method = (init.method ?? "GET").toUpperCase();
-  if (!navigator.onLine && method !== "GET" && method !== "HEAD") {
+  if (typeof navigator !== "undefined" && !navigator.onLine && method !== "GET" && method !== "HEAD") {
     enqueueOffline(url.toString(), init);
     throw new ApiError("You are offline. This action will be replayed when you reconnect.", 0, false);
   }
