@@ -79,7 +79,7 @@ fun BiometricGate(
 }
 
 private const val BIOMETRIC_KEY_ALIAS = "daynest_biometric_gate_key"
-private const val BIOMETRIC_TRANSFORMATION = "AES/CBC/PKCS7Padding"
+private const val BIOMETRIC_TRANSFORMATION = "AES/GCM/NoPadding"
 private const val BIOMETRIC_TEST_PLAINTEXT = "daynest-biometric-gate"
 
 private fun getOrCreateSecretKey(): SecretKey {
@@ -92,8 +92,8 @@ private fun getOrCreateSecretKey(): SecretKey {
         KeyGenParameterSpec.Builder(
             BIOMETRIC_KEY_ALIAS,
             KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT,
-        ).setBlockModes(KeyProperties.BLOCK_MODE_CBC)
-            .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_PKCS7)
+        ).setBlockModes(KeyProperties.BLOCK_MODE_GCM)
+            .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
             .setUserAuthenticationRequired(true)
             .setInvalidatedByBiometricEnrollment(true)
             .build()
