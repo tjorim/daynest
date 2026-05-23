@@ -5,6 +5,7 @@ package com.daynest.android.app.session
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.provider.Settings
+import android.util.Base64
 import android.util.Log
 import android.widget.Toast
 import androidx.biometric.BiometricManager
@@ -23,9 +24,15 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.daynest.android.R
+import java.security.KeyStore
 import java.util.concurrent.Executor
+import javax.crypto.Cipher
+import javax.crypto.KeyGenerator
+import javax.crypto.SecretKey
 import androidx.compose.ui.res.stringResource
 import androidx.core.content.ContextCompat
+import android.security.keystore.KeyGenParameterSpec
+import android.security.keystore.KeyProperties
 
 @Composable
 fun BiometricGate(
@@ -71,6 +78,37 @@ fun BiometricGate(
     }
 }
 
+private const val BIOMETRIC_KEY_ALIAS = "daynest_biometric_gate_key"
+private const val BIOMETRIC_TRANSFORMATION = "AES/CBC/PKCS7Padding"
+private const val BIOMETRIC_TEST_PLAINTEXT = "daynest-biometric-gate"
+
+private fun getOrCreateSecretKey(): SecretKey {
+    val keyStore = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
+    val existingKey = keyStore.getKey(BIOMETRIC_KEY_ALIAS, null) as? SecretKey
+    if (existingKey != null) return existingKey
+
+    val keyGenerator = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, "AndroidKeyStore")
+    val keySpec =
+        KeyGenParameterSpec.Builder(
+            BIOMETRIC_KEY_ALIAS,
+            KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT,
+        ).setBlockModes(KeyProperties.BLOCK_MODE_CBC)
+            .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_PKCS7)
+            .setUserAuthenticationRequired(true)
+            .setInvalidatedByBiometricEnrollment(true)
+            .build()
+    keyGenerator.init(keySpec)
+    return keyGenerator.generateKey()
+}
+
+private fun getCipher(): Cipher = Cipher.getInstance(BIOMETRIC_TRANSFORMATION)
+
+private fun createEncryptionCipher(): Cipher {
+    val cipher = getCipher()
+    cipher.init(Cipher.ENCRYPT_MODE, getOrCreateSecretKey())
+    return cipher
+}
+
 private fun showBiometricPrompt(
     activity: FragmentActivity,
     onAuthenticated: () -> Unit,
@@ -82,6 +120,13 @@ private fun showBiometricPrompt(
         BiometricManager.from(activity).canAuthenticate(authenticators)
     when (canAuthenticate) {
         BiometricManager.BIOMETRIC_SUCCESS -> {
+            val cipher =
+                runCatching { createEncryptionCipher() }
+                    .getOrElse { error ->
+                        Log.e("BiometricGate", "Unable to initialize biometric crypto", error)
+                        Toast.makeText(activity, R.string.biometric_error, Toast.LENGTH_LONG).show()
+                        return
+                    }
             val executor: Executor = ContextCompat.getMainExecutor(activity)
             val prompt =
                 BiometricPrompt(
@@ -89,7 +134,19 @@ private fun showBiometricPrompt(
                     executor,
                     object : BiometricPrompt.AuthenticationCallback() {
                         override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
-                            onAuthenticated()
+                            val authenticatedCipher = result.cryptoObject?.cipher
+                            val cryptoOk =
+                                runCatching {
+                                    val ciphertext = authenticatedCipher?.doFinal(BIOMETRIC_TEST_PLAINTEXT.toByteArray())
+                                        ?: return@runCatching false
+                                    Base64.encodeToString(ciphertext, Base64.NO_WRAP).isNotBlank()
+                                }.getOrDefault(false)
+
+                            if (cryptoOk) {
+                                onAuthenticated()
+                            } else {
+                                Toast.makeText(activity, R.string.biometric_error, Toast.LENGTH_LONG).show()
+                            }
                         }
                     },
                 )
@@ -99,7 +156,7 @@ private fun showBiometricPrompt(
                     .setSubtitle(activity.getString(R.string.biometric_unlock_subtitle))
                     .setAllowedAuthenticators(authenticators)
                     .build()
-            prompt.authenticate(promptInfo)
+            prompt.authenticate(promptInfo, BiometricPrompt.CryptoObject(cipher))
         }
 
         BiometricManager.BIOMETRIC_ERROR_NONE_ENROLLED -> {
