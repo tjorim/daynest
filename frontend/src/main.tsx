@@ -44,6 +44,7 @@ function App() {
   }, []);
 
   React.useEffect(() => {
+    if (!isAuthenticated) return;
     const handler = (event: KeyboardEvent) => {
       if ((event.ctrlKey || event.metaKey) && event.key === "k") {
         event.preventDefault();
@@ -56,7 +57,7 @@ function App() {
     };
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
-  }, []);
+  }, [isAuthenticated]);
 
   return (
     <main className="container py-3 py-md-4">
@@ -72,7 +73,7 @@ function App() {
           Syncing {queuedCount} queued action{queuedCount === 1 ? "" : "s"}…
         </div>
       ) : null}
-      {searchOpen ? <SearchOverlay onClose={() => setSearchOpen(false)} /> : null}
+      {searchOpen && isAuthenticated ? <SearchOverlay onClose={() => setSearchOpen(false)} /> : null}
       <header className="mb-3 mb-md-4 d-flex flex-column gap-3">
         <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2">
           <div>

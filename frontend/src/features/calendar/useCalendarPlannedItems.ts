@@ -173,11 +173,16 @@ export function useCalendarPlannedItems({
     setAddError(null);
     try {
       await reschedulePlannedItem(itemId, newDate);
-      setActionStatus("Planned item moved.");
-      await loadCalendar();
     } catch (err) {
       setPlannedItems(prevItems);
       setAddError(err instanceof Error ? err.message : "Failed to reschedule item.");
+      return;
+    }
+    setActionStatus("Planned item moved.");
+    try {
+      await loadCalendar();
+    } catch {
+      // refresh failure doesn't revert the optimistic move
     }
   };
 

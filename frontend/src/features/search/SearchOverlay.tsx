@@ -83,6 +83,8 @@ export function SearchOverlay({ onClose }: { onClose: () => void }) {
       clearTimeout(timerRef.current);
     }
     if (value.length < MIN_QUERY_LEN) {
+      abortRef.current?.abort();
+      abortRef.current = null;
       setResults(null);
       setError(null);
       setLoading(false);

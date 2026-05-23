@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Area,
   AreaChart,
@@ -44,32 +44,34 @@ export function StatsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [canRetry, setCanRetry] = useState(false);
+  const controllerRef = useRef<AbortController | null>(null);
 
-  const load = async (p: AnalyticsPeriod, signal?: AbortSignal) => {
+  const load = (p: AnalyticsPeriod) => {
+    controllerRef.current?.abort();
+    const controller = new AbortController();
+    controllerRef.current = controller;
+    const { signal } = controller;
     setLoading(true);
     setError(null);
     setCanRetry(false);
-    try {
-      const data = await fetchAnalyticsSummary(p, signal);
-      if (!signal?.aborted) {
-        setSummary(data);
-      }
-    } catch (err) {
-      if (!signal?.aborted) {
-        setCanRetry(isRetryableApiError(err));
-        setError(err instanceof Error ? err.message : "Unable to load analytics.");
-      }
-    } finally {
-      if (!signal?.aborted) {
-        setLoading(false);
-      }
-    }
+    fetchAnalyticsSummary(p, signal)
+      .then((data) => {
+        if (!signal.aborted) setSummary(data);
+      })
+      .catch((err) => {
+        if (!signal.aborted) {
+          setCanRetry(isRetryableApiError(err));
+          setError(err instanceof Error ? err.message : "Unable to load analytics.");
+        }
+      })
+      .finally(() => {
+        if (!signal.aborted) setLoading(false);
+      });
   };
 
   useEffect(() => {
-    const controller = new AbortController();
-    void load(period, controller.signal);
-    return () => controller.abort();
+    load(period);
+    return () => controllerRef.current?.abort();
   }, [period]);
 
   return (
@@ -93,7 +95,7 @@ export function StatsPage() {
             type="button"
             className="btn btn-outline-primary btn-sm"
             disabled={loading}
-            onClick={() => void load(period)}
+            onClick={() => load(period)}
           >
             Refresh
           </button>
@@ -108,7 +110,7 @@ export function StatsPage() {
             <button
               type="button"
               className="btn btn-danger btn-sm"
-              onClick={() => void load(period)}
+              onClick={() => load(period)}
             >
               Retry
             </button>

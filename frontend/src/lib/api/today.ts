@@ -1055,7 +1055,7 @@ export async function reschedulePlannedItem(
   newDate: string,
 ): Promise<PlannedTodayItem> {
   const response = await fetchWithAuth(`/api/v1/planned-items/${plannedItemId}`, {
-    method: "PATCH",
+    method: "PUT",
     headers: { Accept: "application/json", "Content-Type": "application/json" },
     body: JSON.stringify({ planned_for: newDate }),
   });
