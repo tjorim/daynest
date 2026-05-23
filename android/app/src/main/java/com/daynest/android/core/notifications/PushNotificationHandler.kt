@@ -54,18 +54,30 @@ class PushNotificationHandler
                     openIntent,
                     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
                 )
+            val completeActionIntent =
+                Intent(openIntent).apply {
+                    setClass(context, MainActivity::class.java)
+                    `package` = context.packageName
+                    putExtra("daynest_quick_action", "complete")
+                }
             val completeIntent =
                 PendingIntent.getActivity(
                     context,
                     (itemId ?: 0) + 1000,
-                    Intent(openIntent).putExtra("daynest_quick_action", "complete"),
+                    completeActionIntent,
                     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
                 )
+            val skipActionIntent =
+                Intent(openIntent).apply {
+                    setClass(context, MainActivity::class.java)
+                    `package` = context.packageName
+                    putExtra("daynest_quick_action", "skip")
+                }
             val skipIntent =
                 PendingIntent.getActivity(
                     context,
                     (itemId ?: 0) + 2000,
-                    Intent(openIntent).putExtra("daynest_quick_action", "skip"),
+                    skipActionIntent,
                     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
                 )
             val notification =
