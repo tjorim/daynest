@@ -2,6 +2,7 @@
 
 package com.daynest.android.feature.templates
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,14 +15,19 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FilterChip
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -58,9 +64,28 @@ private fun TemplatesScreen(
     onEvent: (TemplatesUiEvent) -> Unit,
     onNavigate: (String) -> Unit,
 ) {
+    val selectedTab =
+        (uiState as? TemplatesUiState.Content)?.selectedTab ?: TemplateTab.Routines
     DaynestNavigationScaffold(
         currentRoute = DaynestDestination.TEMPLATES,
         onNavigate = onNavigate,
+        floatingActionButton = {
+            if (uiState is TemplatesUiState.Content) {
+                FloatingActionButton(
+                    onClick = {
+                        onEvent(
+                            if (selectedTab == TemplateTab.Routines) {
+                                TemplatesUiEvent.ShowCreateRoutineForm
+                            } else {
+                                TemplatesUiEvent.ShowCreateChoreForm
+                            },
+                        )
+                    },
+                ) {
+                    Text(text = stringResource(id = R.string.action_add))
+                }
+            }
+        },
     ) { innerPadding ->
         when (uiState) {
             TemplatesUiState.Loading -> {
@@ -118,6 +143,8 @@ private fun TemplatesContent(
 ) {
     var editRoutineTarget by remember { mutableStateOf<RoutineTemplateDto?>(null) }
     var editChoreTarget by remember { mutableStateOf<ChoreTemplateDto?>(null) }
+    var routineDeleteTarget by remember { mutableStateOf<RoutineTemplateDto?>(null) }
+    var choreDeleteTarget by remember { mutableStateOf<ChoreTemplateDto?>(null) }
 
     LazyColumn(
         modifier = modifier.fillMaxSize(),
@@ -142,37 +169,25 @@ private fun TemplatesContent(
         }
 
         item {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilterChip(
+            TabRow(
+                selectedTabIndex = state.selectedTab.ordinal,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Tab(
                     selected = state.selectedTab == TemplateTab.Routines,
                     onClick = { onEvent(TemplatesUiEvent.TabSelected(TemplateTab.Routines)) },
-                    label = { Text(text = stringResource(id = R.string.templates_tab_routines)) },
+                    text = { Text(text = stringResource(id = R.string.templates_tab_routines)) },
                 )
-                FilterChip(
+                Tab(
                     selected = state.selectedTab == TemplateTab.Chores,
                     onClick = { onEvent(TemplatesUiEvent.TabSelected(TemplateTab.Chores)) },
-                    label = { Text(text = stringResource(id = R.string.templates_tab_chores)) },
+                    text = { Text(text = stringResource(id = R.string.templates_tab_chores)) },
                 )
             }
         }
 
         when (state.selectedTab) {
             TemplateTab.Routines -> {
-                item {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            text = stringResource(id = R.string.templates_tab_routines),
-                            style = MaterialTheme.typography.titleMedium,
-                            modifier = Modifier.weight(1f),
-                        )
-                        TextButton(onClick = { onEvent(TemplatesUiEvent.ShowCreateRoutineForm) }) {
-                            Text(text = stringResource(id = R.string.templates_add_routine))
-                        }
-                    }
-                }
                 if (state.routines.isEmpty()) {
                     item {
                         Text(
@@ -183,31 +198,17 @@ private fun TemplatesContent(
                     }
                 } else {
                     items(state.routines, key = { "routine_${it.id}" }) { routine ->
-                        RoutineTemplateCard(
-                            routine = routine,
-                            onEdit = { editRoutineTarget = routine },
-                            onDelete = { onEvent(TemplatesUiEvent.DeleteRoutine(routine.id)) },
-                        )
+                        SwipeToDeleteTemplateCard(onDeleteRequested = { routineDeleteTarget = routine }) {
+                            RoutineTemplateCard(
+                                routine = routine,
+                                onEdit = { editRoutineTarget = routine },
+                            )
+                        }
                     }
                 }
             }
 
             TemplateTab.Chores -> {
-                item {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            text = stringResource(id = R.string.templates_tab_chores),
-                            style = MaterialTheme.typography.titleMedium,
-                            modifier = Modifier.weight(1f),
-                        )
-                        TextButton(onClick = { onEvent(TemplatesUiEvent.ShowCreateChoreForm) }) {
-                            Text(text = stringResource(id = R.string.templates_add_chore))
-                        }
-                    }
-                }
                 if (state.chores.isEmpty()) {
                     item {
                         Text(
@@ -218,11 +219,12 @@ private fun TemplatesContent(
                     }
                 } else {
                     items(state.chores, key = { "chore_${it.id}" }) { chore ->
-                        ChoreTemplateCard(
-                            chore = chore,
-                            onEdit = { editChoreTarget = chore },
-                            onDelete = { onEvent(TemplatesUiEvent.DeleteChore(chore.id)) },
-                        )
+                        SwipeToDeleteTemplateCard(onDeleteRequested = { choreDeleteTarget = chore }) {
+                            ChoreTemplateCard(
+                                chore = chore,
+                                onEdit = { editChoreTarget = chore },
+                            )
+                        }
                     }
                 }
             }
@@ -266,15 +268,73 @@ private fun TemplatesContent(
             onDismiss = { editChoreTarget = null },
         )
     }
+
+    routineDeleteTarget?.let { routine ->
+        AlertDialog(
+            onDismissRequest = { routineDeleteTarget = null },
+            title = { Text(text = stringResource(id = R.string.templates_delete_title)) },
+            text = {
+                Text(
+                    text = stringResource(id = R.string.templates_delete_routine_message, routine.name),
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onEvent(TemplatesUiEvent.DeleteRoutine(routine.id))
+                        routineDeleteTarget = null
+                    },
+                ) {
+                    Text(text = stringResource(id = R.string.action_delete))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { routineDeleteTarget = null }) {
+                    Text(text = stringResource(id = R.string.action_cancel))
+                }
+            },
+        )
+    }
+
+    choreDeleteTarget?.let { chore ->
+        AlertDialog(
+            onDismissRequest = { choreDeleteTarget = null },
+            title = { Text(text = stringResource(id = R.string.templates_delete_title)) },
+            text = {
+                Text(
+                    text = stringResource(id = R.string.templates_delete_chore_message, chore.name),
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onEvent(TemplatesUiEvent.DeleteChore(chore.id))
+                        choreDeleteTarget = null
+                    },
+                ) {
+                    Text(text = stringResource(id = R.string.action_delete))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { choreDeleteTarget = null }) {
+                    Text(text = stringResource(id = R.string.action_cancel))
+                }
+            },
+        )
+    }
 }
 
 @Composable
 private fun RoutineTemplateCard(
     routine: RoutineTemplateDto,
     onEdit: () -> Unit,
-    onDelete: () -> Unit,
 ) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+    Card(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onEdit),
+    ) {
         Row(
             modifier =
                 Modifier
@@ -300,25 +360,19 @@ private fun RoutineTemplateCard(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.outline,
                 )
-                if (!routine.isActive) {
-                    Text(
-                        text = stringResource(id = R.string.templates_inactive),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.outline,
-                    )
-                }
+                Text(
+                    text =
+                        if (routine.isActive) {
+                            stringResource(id = R.string.templates_active)
+                        } else {
+                            stringResource(id = R.string.templates_inactive)
+                        },
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.outline,
+                )
             }
             TextButton(onClick = onEdit) {
                 Text(text = stringResource(id = R.string.action_edit))
-            }
-            TextButton(
-                onClick = onDelete,
-                colors =
-                    ButtonDefaults.textButtonColors(
-                        contentColor = MaterialTheme.colorScheme.error,
-                    ),
-            ) {
-                Text(text = stringResource(id = R.string.action_delete))
             }
         }
     }
@@ -328,9 +382,13 @@ private fun RoutineTemplateCard(
 private fun ChoreTemplateCard(
     chore: ChoreTemplateDto,
     onEdit: () -> Unit,
-    onDelete: () -> Unit,
 ) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+    Card(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onEdit),
+    ) {
         Row(
             modifier =
                 Modifier
@@ -356,28 +414,60 @@ private fun ChoreTemplateCard(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.outline,
                 )
-                if (!chore.isActive) {
-                    Text(
-                        text = stringResource(id = R.string.templates_inactive),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.outline,
-                    )
-                }
+                Text(
+                    text =
+                        if (chore.isActive) {
+                            stringResource(id = R.string.templates_active)
+                        } else {
+                            stringResource(id = R.string.templates_inactive)
+                        },
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.outline,
+                )
             }
             TextButton(onClick = onEdit) {
                 Text(text = stringResource(id = R.string.action_edit))
             }
-            TextButton(
-                onClick = onDelete,
-                colors =
-                    ButtonDefaults.textButtonColors(
-                        contentColor = MaterialTheme.colorScheme.error,
-                    ),
-            ) {
-                Text(text = stringResource(id = R.string.action_delete))
-            }
         }
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SwipeToDeleteTemplateCard(
+    onDeleteRequested: () -> Unit,
+    content: @Composable () -> Unit,
+) {
+    val dismissState =
+        rememberSwipeToDismissBoxState(
+            confirmValueChange = { dismissValue ->
+                if (dismissValue == SwipeToDismissBoxValue.EndToStart) {
+                    onDeleteRequested()
+                }
+                false
+            },
+        )
+
+    SwipeToDismissBox(
+        state = dismissState,
+        enableDismissFromStartToEnd = false,
+        backgroundContent = {
+            Box(
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp),
+                contentAlignment = Alignment.CenterEnd,
+            ) {
+                Text(
+                    text = stringResource(id = R.string.action_delete),
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.labelLarge,
+                )
+            }
+        },
+        content = content,
+    )
 }
 
 @Composable
