@@ -7,14 +7,14 @@ dependencies = [
     "anyio==4.13.0",
     "email-validator==2.3.0",
     "fastapi==0.136.1",
-    "google-auth==2.47.0",
+    "google-auth==2.53.0",
     "httpx==0.28.1",
     "fastmcp==3.3.1",
     "psycopg[binary]==3.3.4",
     "pydantic==2.13.4",
     "pydantic-settings==2.14.1",
     "cryptography==48.0.0",
-    "pyjwt==2.12.1",
+    "pyjwt==2.13.0",
     "python-dateutil==2.9.0.post0",
     "pywebpush==2.3.0",
     "sentry-sdk[fastapi]==2.60.0",
@@ -26,7 +26,7 @@ dependencies = [
 [dependency-groups]
 dev = [
     "pytest==9.0.3",
-    "ruff==0.15.13",
+    "ruff==0.15.14",
     "ty>=0.0.38",
 ]
 
