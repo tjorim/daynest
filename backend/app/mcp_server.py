@@ -327,6 +327,10 @@ class DaynestMcpBackend:
         self._with_service(lambda _db, user, service: service.delete_planned_item(user.id, planned_item_id))
         return {"deleted": True, "planned_item_id": planned_item_id}
 
+    def delete_planned_item_series(self, recurrence_series_id: str) -> dict[str, Any]:
+        count = self._with_service(lambda _db, user, service: service.delete_planned_item_series(user.id, recurrence_series_id))
+        return {"deleted": True, "recurrence_series_id": recurrence_series_id, "deleted_count": count}
+
     def complete_chore(self, chore_instance_id: int) -> dict[str, Any]:
         return self._with_service(lambda _db, user, service: _jsonable(service.complete_chore(user.id, chore_instance_id)))
 
@@ -780,6 +784,19 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
         """Delete a planned Daynest item by id."""
 
         return await to_thread.run_sync(daynest.delete_planned_item, planned_item_id)
+
+    @mcp.tool()
+    async def delete_planned_item_series(recurrence_series_id: str) -> dict[str, Any]:
+        """Delete all planned items that belong to a recurring series.
+
+        Use this to remove every instance of a recurring item in one call instead of
+        deleting each instance individually. The recurrence_series_id is returned by
+        create_planned_item when an rrule is supplied.
+
+        Returns the number of deleted instances in deleted_count.
+        """
+
+        return await to_thread.run_sync(daynest.delete_planned_item_series, recurrence_series_id)
 
     @mcp.tool()
     async def complete_chore(chore_instance_id: int) -> dict[str, Any]:

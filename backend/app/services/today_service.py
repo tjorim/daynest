@@ -566,6 +566,14 @@ class TodayService:
             if persist:
                 self.repository.save()
 
+    def delete_planned_item_series(self, user_id: int, recurrence_series_id: str) -> int:
+        from uuid import UUID as _UUID
+        try:
+            series_uuid = _UUID(recurrence_series_id)
+        except ValueError as exc:
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Invalid recurrence_series_id format") from exc
+        return self.repository.delete_planned_item_series(user_id=user_id, recurrence_series_id=series_uuid)
+
     def delete_planned_item(self, user_id: int, planned_item_id: int, *, scope: str = "this") -> None:
         item = self._get_user_planned_item(user_id=user_id, planned_item_id=planned_item_id)
         if scope == "future" and item.recurrence_series_id is not None:

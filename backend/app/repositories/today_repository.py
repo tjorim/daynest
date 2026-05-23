@@ -495,6 +495,16 @@ class TodayRepository:
         self.db.delete(item)
         self.db.commit()
 
+    def delete_planned_item_series(self, *, user_id: int, recurrence_series_id: UUID) -> int:
+        result = self.db.execute(
+            delete(PlannedItem).where(
+                PlannedItem.user_id == user_id,
+                PlannedItem.recurrence_series_id == recurrence_series_id,
+            )
+        )
+        self.db.commit()
+        return result.rowcount
+
     def delete_planned_item_scope_future(
         self,
         *,
