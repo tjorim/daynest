@@ -6,14 +6,16 @@ import java.time.ZoneId
 
 fun String.toEpochMillisOrNull(): Long? =
     runCatching {
-        LocalDate.parse(this)
+        LocalDate
+            .parse(this)
             .atStartOfDay(ZoneId.systemDefault())
             .toInstant()
             .toEpochMilli()
     }.getOrNull()
 
 fun Long.toLocalDateString(): String =
-    Instant.ofEpochMilli(this)
+    Instant
+        .ofEpochMilli(this)
         .atZone(ZoneId.systemDefault())
         .toLocalDate()
         .toString()
