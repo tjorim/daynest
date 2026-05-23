@@ -20,6 +20,33 @@ import androidx.compose.ui.res.stringResource
 import com.daynest.android.R
 
 @Composable
+internal fun TemplateFormDialog(
+    title: String,
+    confirmText: String,
+    isConfirmEnabled: Boolean,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+    content: @Composable () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(text = title) },
+        text = content,
+        confirmButton = {
+            TextButton(
+                onClick = onConfirm,
+                enabled = isConfirmEnabled,
+            ) { Text(text = confirmText) }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.action_cancel))
+            }
+        },
+    )
+}
+
+@Composable
 fun TemplateCommonFields(
     name: String,
     onNameChange: (String) -> Unit,
