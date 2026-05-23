@@ -764,7 +764,7 @@ export async function revokeIntegrationClient(clientId: number): Promise<void> {
 }
 
 export async function listRoutineTemplates(signal?: AbortSignal): Promise<RoutineTemplate[]> {
-  const response = await fetchWithAuth("/api/v1/routines", {
+  const response = await fetchWithAuth("/api/v1/templates/routines", {
     headers: { Accept: "application/json" },
     signal,
   });
@@ -772,7 +772,7 @@ export async function listRoutineTemplates(signal?: AbortSignal): Promise<Routin
 }
 
 export async function createRoutineTemplate(input: RoutineTemplateInput): Promise<RoutineTemplate> {
-  const response = await fetchWithAuth("/api/v1/routines", {
+  const response = await fetchWithAuth("/api/v1/templates/routines", {
     method: "POST",
     headers: {
       Accept: "application/json",
@@ -787,7 +787,7 @@ export async function updateRoutineTemplate(
   routineTemplateId: number,
   input: RoutineTemplateInput,
 ): Promise<RoutineTemplate> {
-  const response = await fetchWithAuth(`/api/v1/routines/${routineTemplateId}`, {
+  const response = await fetchWithAuth(`/api/v1/templates/routines/${routineTemplateId}`, {
     method: "PUT",
     headers: {
       Accept: "application/json",
@@ -799,7 +799,7 @@ export async function updateRoutineTemplate(
 }
 
 export async function deleteRoutineTemplate(routineTemplateId: number): Promise<void> {
-  const response = await fetchWithAuth(`/api/v1/routines/${routineTemplateId}`, {
+  const response = await fetchWithAuth(`/api/v1/templates/routines/${routineTemplateId}`, {
     method: "DELETE",
     headers: { Accept: "application/json" },
   });
@@ -810,7 +810,7 @@ export async function deleteRoutineTemplate(routineTemplateId: number): Promise<
 }
 
 export async function listChoreTemplates(signal?: AbortSignal): Promise<ChoreTemplate[]> {
-  const response = await fetchWithAuth("/api/v1/chore-templates", {
+  const response = await fetchWithAuth("/api/v1/templates/chores", {
     headers: { Accept: "application/json" },
     signal,
   });
@@ -818,7 +818,7 @@ export async function listChoreTemplates(signal?: AbortSignal): Promise<ChoreTem
 }
 
 export async function createChoreTemplate(input: ChoreTemplateInput): Promise<ChoreTemplate> {
-  const response = await fetchWithAuth("/api/v1/chore-templates", {
+  const response = await fetchWithAuth("/api/v1/templates/chores", {
     method: "POST",
     headers: {
       Accept: "application/json",
@@ -833,7 +833,7 @@ export async function updateChoreTemplate(
   choreTemplateId: number,
   input: ChoreTemplateInput,
 ): Promise<ChoreTemplate> {
-  const response = await fetchWithAuth(`/api/v1/chore-templates/${choreTemplateId}`, {
+  const response = await fetchWithAuth(`/api/v1/templates/chores/${choreTemplateId}`, {
     method: "PUT",
     headers: {
       Accept: "application/json",
@@ -845,7 +845,7 @@ export async function updateChoreTemplate(
 }
 
 export async function deleteChoreTemplate(choreTemplateId: number): Promise<void> {
-  const response = await fetchWithAuth(`/api/v1/chore-templates/${choreTemplateId}`, {
+  const response = await fetchWithAuth(`/api/v1/templates/chores/${choreTemplateId}`, {
     method: "DELETE",
     headers: { Accept: "application/json" },
   });
