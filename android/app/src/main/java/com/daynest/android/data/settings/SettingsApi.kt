@@ -52,7 +52,16 @@ data class OAuthSessionDto(
     @SerialName("last_access")
     val lastAccess: Long? = null,
     val expires: Long? = null,
-    val clients: Map<String, String> = emptyMap(),
+    val clients: List<OAuthSessionClientDto> = emptyList(),
+)
+
+@Serializable
+data class OAuthSessionClientDto(
+    val clientId: String,
+    val clientName: String? = null,
+    val userConsentRequired: Boolean = false,
+    val inUse: Boolean = false,
+    val offlineAccess: Boolean = false,
 )
 
 @Serializable
@@ -65,4 +74,10 @@ data class IntegrationClientCreateResponseDto(
     val isActive: Boolean,
     @SerialName("api_key")
     val apiKey: String,
+    @SerialName("client_id")
+    val clientId: String? = null,
+    @SerialName("client_secret")
+    val clientSecret: String? = null,
+    @SerialName("token_url")
+    val tokenUrl: String? = null,
 )

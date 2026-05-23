@@ -10,40 +10,40 @@ import retrofit2.http.PUT
 import retrofit2.http.Path
 
 interface TemplatesApi {
-    @GET("api/v1/routines")
+    @GET("api/v1/templates/routines")
     suspend fun listRoutines(): List<RoutineTemplateDto>
 
-    @POST("api/v1/routines")
+    @POST("api/v1/templates/routines")
     suspend fun createRoutine(
         @Body request: RoutineTemplateInputDto,
     ): RoutineTemplateDto
 
-    @PUT("api/v1/routines/{id}")
+    @PUT("api/v1/templates/routines/{id}")
     suspend fun updateRoutine(
         @Path("id") id: Int,
         @Body request: RoutineTemplateInputDto,
     ): RoutineTemplateDto
 
-    @DELETE("api/v1/routines/{id}")
+    @DELETE("api/v1/templates/routines/{id}")
     suspend fun deleteRoutine(
         @Path("id") id: Int,
     )
 
-    @GET("api/v1/chore-templates")
+    @GET("api/v1/templates/chores")
     suspend fun listChores(): List<ChoreTemplateDto>
 
-    @POST("api/v1/chore-templates")
+    @POST("api/v1/templates/chores")
     suspend fun createChore(
         @Body request: ChoreTemplateInputDto,
     ): ChoreTemplateDto
 
-    @PUT("api/v1/chore-templates/{id}")
+    @PUT("api/v1/templates/chores/{id}")
     suspend fun updateChore(
         @Path("id") id: Int,
         @Body request: ChoreTemplateInputDto,
     ): ChoreTemplateDto
 
-    @DELETE("api/v1/chore-templates/{id}")
+    @DELETE("api/v1/templates/chores/{id}")
     suspend fun deleteChore(
         @Path("id") id: Int,
     )

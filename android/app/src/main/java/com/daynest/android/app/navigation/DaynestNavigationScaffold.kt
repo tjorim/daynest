@@ -16,10 +16,12 @@ fun DaynestNavigationScaffold(
     currentRoute: String,
     onNavigate: (String) -> Unit,
     modifier: Modifier = Modifier,
+    floatingActionButton: @Composable (() -> Unit)? = null,
     content: @Composable (PaddingValues) -> Unit,
 ) {
     Scaffold(
         modifier = modifier,
+        floatingActionButton = { floatingActionButton?.invoke() },
         bottomBar = {
             NavigationBar {
                 daynestTopLevelDestinations.forEach { destination ->
