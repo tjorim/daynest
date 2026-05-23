@@ -1,4 +1,5 @@
 FROM python:3.14-slim AS builder
+ARG BUILD_VERSION=dev
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
@@ -20,6 +21,8 @@ RUN groupadd --gid 1000 appgroup \
 
 USER appuser
 
+ARG BUILD_VERSION=dev
+ENV BUILD_VERSION=${BUILD_VERSION}
 ENV ENVIRONMENT=production
 
 EXPOSE 8000

@@ -637,8 +637,10 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
     else:
         auth = integration_verifier
 
+    _build_version = os.getenv("BUILD_VERSION", "dev")
     mcp = FastMCP(
         "Daynest",
+        version=_build_version,
         auth=auth,
     )
 
