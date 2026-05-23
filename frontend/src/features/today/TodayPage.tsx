@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import confetti from "canvas-confetti";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { fetchToday, isRetryableApiError, type TodayPayload } from "@/lib/api/today";
 import { PlannedSection } from "@/features/today/PlannedSection";
 import {
@@ -127,6 +128,7 @@ export function TodayPage() {
     [actions],
   );
 
+  const prevActionableRef = useRef<number | null>(null);
   const sections: TodaySection[] = today
     ? [
         {
@@ -171,6 +173,20 @@ export function TodayPage() {
         },
       ]
     : [];
+
+  const actionableCount = sections.flatMap((s) => s.items).filter(isItemActionable).length;
+
+  useEffect(() => {
+    if (
+      hasAnyItems &&
+      actionableCount === 0 &&
+      prevActionableRef.current !== null &&
+      prevActionableRef.current > 0
+    ) {
+      void confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
+    }
+    prevActionableRef.current = actionableCount;
+  }, [actionableCount, hasAnyItems]);
 
   return (
     <section>

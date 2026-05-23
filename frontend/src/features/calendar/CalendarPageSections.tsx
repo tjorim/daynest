@@ -1,4 +1,4 @@
-import { useMemo, type ChangeEvent, type RefObject } from "react";
+import { useMemo, useRef, useState, type ChangeEvent, type RefObject } from "react";
 import type { Dayjs } from "dayjs";
 import { capitalize, formatDate, toIsoDate } from "@/lib/dateUtils";
 import { type CalendarDayPayload, type CalendarMonthDaySummary, type PlannedItemModuleKey, type PlannedTodayItem } from "@/lib/api/today";
@@ -68,16 +68,19 @@ export function CalendarMonthGrid({
   monthItems,
   selectedDate,
   onSelectDate,
+  onDropReschedule,
 }: {
   monthStart: Dayjs;
   monthItems: CalendarMonthDaySummary[];
   selectedDate: string;
   onSelectDate: (date: string) => void;
+  onDropReschedule?: (itemId: number, date: string) => void;
 }) {
   const daysInMonth = monthStart.daysInMonth();
   const leadingEmptyDays = (monthStart.day() + 6) % 7;
   const totalCalendarCells = Math.ceil((leadingEmptyDays + daysInMonth) / 7) * 7;
   const itemsByDate = useMemo(() => new Map(monthItems.map((item) => [item.date, item])), [monthItems]);
+  const [dragOverDate, setDragOverDate] = useState<string | null>(null);
 
   return (
     <div className="card">
@@ -96,12 +99,24 @@ export function CalendarMonthGrid({
             const dateValue = toIsoDate(monthStart.date(dayNumber));
             const summary = itemsByDate.get(dateValue);
             const selected = selectedDate === dateValue;
+            const isDragTarget = !selected && dragOverDate === dateValue;
+            const cellClass = `btn w-100 text-start py-2 ${selected ? "btn-primary" : isDragTarget ? "btn-outline-success" : "btn-outline-secondary"}`;
             return (
               <div key={dateValue} className="col">
                 <button
                   type="button"
-                  className={`btn w-100 text-start py-2 ${selected ? "btn-primary" : "btn-outline-secondary"}`}
+                  className={cellClass}
                   onClick={() => onSelectDate(dateValue)}
+                  data-date={dateValue}
+                  onDragOver={onDropReschedule ? (e) => { e.preventDefault(); setDragOverDate(dateValue); } : undefined}
+                  onDragLeave={onDropReschedule ? () => setDragOverDate(null) : undefined}
+                  onDrop={onDropReschedule ? (e) => {
+                    e.preventDefault();
+                    setDragOverDate(null);
+                    const rawId = e.dataTransfer.getData("plannedItemId");
+                    const itemId = parseInt(rawId, 10);
+                    if (!isNaN(itemId)) onDropReschedule(itemId, dateValue);
+                  } : undefined}
                 >
                   <div className="fw-semibold lh-1">{dayNumber}</div>
                   <small>{summary ? `${summary.total} items` : "No items"}</small>
@@ -288,6 +303,7 @@ export function PlannedItemsSidebar({
   fileInputRef,
   onExportBackup,
   onImportFile,
+  onDropReschedule,
 }: {
   selectedDate: string;
   plannedItems: PlannedTodayItem[];
@@ -319,7 +335,9 @@ export function PlannedItemsSidebar({
   fileInputRef: RefObject<HTMLInputElement | null>;
   onExportBackup: () => Promise<void>;
   onImportFile: (event: ChangeEvent<HTMLInputElement>) => Promise<void>;
+  onDropReschedule?: (itemId: number, date: string) => void;
 }) {
+  const touchCloneRef = useRef<HTMLElement | null>(null);
   return (
     <>
       <div className="card mb-3">
@@ -409,7 +427,42 @@ export function PlannedItemsSidebar({
             <li className="list-group-item py-2 text-muted">No planned items for this day.</li>
           ) : (
             plannedItems.map((item) => (
-              <li key={item.id} className="list-group-item py-2">
+              <li
+                key={item.id}
+                className="list-group-item py-2"
+                draggable
+                onDragStart={(e) => {
+                  e.dataTransfer.setData("plannedItemId", String(item.id));
+                  e.dataTransfer.effectAllowed = "move";
+                }}
+                onTouchStart={(e) => {
+                  if (!onDropReschedule) return;
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const clone = e.currentTarget.cloneNode(true) as HTMLElement;
+                  clone.style.cssText = `position:fixed;top:${rect.top}px;left:${rect.left}px;width:${rect.width}px;opacity:0.75;pointer-events:none;z-index:9999;background:var(--bs-body-bg);border:1px solid var(--bs-border-color);border-radius:4px;`;
+                  document.body.appendChild(clone);
+                  touchCloneRef.current = clone;
+                }}
+                onTouchMove={(e) => {
+                  if (!touchCloneRef.current) return;
+                  e.preventDefault();
+                  const touch = e.touches[0];
+                  if (!touch) return;
+                  touchCloneRef.current.style.top = `${touch.clientY - 20}px`;
+                  touchCloneRef.current.style.left = `${touch.clientX - 20}px`;
+                }}
+                onTouchEnd={(e) => {
+                  touchCloneRef.current?.remove();
+                  touchCloneRef.current = null;
+                  if (!onDropReschedule) return;
+                  const touch = e.changedTouches[0];
+                  if (!touch) return;
+                  const el = document.elementFromPoint(touch.clientX, touch.clientY);
+                  const cell = el?.closest("[data-date]") as HTMLElement | null;
+                  const date = cell?.dataset.date;
+                  if (date) onDropReschedule(item.id, date);
+                }}
+              >
                 <div className="d-flex justify-content-between align-items-start gap-3">
                   <div>
                     <div className="fw-semibold">{item.title}</div>

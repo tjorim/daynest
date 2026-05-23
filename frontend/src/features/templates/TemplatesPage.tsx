@@ -1,14 +1,16 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   createChoreTemplate,
   createRoutineTemplate,
   deleteChoreTemplate,
   deleteRoutineTemplate,
+  fetchAnalyticsSummary,
   isRetryableApiError,
   listChoreTemplates,
   listRoutineTemplates,
   updateChoreTemplate,
   updateRoutineTemplate,
+  type AnalyticsSummary,
   type ChoreTemplate,
   type RoutineTemplate,
 } from "@/lib/api/today";
@@ -23,6 +25,16 @@ export function TemplatesPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [analytics, setAnalytics] = useState<AnalyticsSummary | null>(null);
+
+  const routineStreakMap = useMemo(
+    () => new Map(analytics?.routines.streaks.map((s) => [s.routine_id, s]) ?? []),
+    [analytics],
+  );
+  const choreStreakMap = useMemo(
+    () => new Map(analytics?.chores.streaks.map((s) => [s.chore_id, s]) ?? []),
+    [analytics],
+  );
 
   const [routineName, setRoutineName] = useState("");
   const [routineDescription, setRoutineDescription] = useState("");
@@ -69,6 +81,18 @@ export function TemplatesPage() {
   useEffect(() => {
     const controller = new AbortController();
     void loadTemplates(controller.signal);
+    return () => controller.abort();
+  }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchAnalyticsSummary("week", controller.signal)
+      .then((data) => {
+        if (!controller.signal.aborted) setAnalytics(data);
+      })
+      .catch(() => {
+        // analytics are supplementary; silently ignore errors
+      });
     return () => controller.abort();
   }, []);
 
@@ -353,6 +377,14 @@ export function TemplatesPage() {
                         >
                           {routine.is_active ? "Active" : "Inactive"}
                         </span>
+                        {(() => {
+                          const streak = routineStreakMap.get(routine.id);
+                          return streak && streak.current_streak > 0 ? (
+                            <span className="badge text-bg-warning" title={`Best: ${streak.longest_streak}`}>
+                              🔥 {streak.current_streak}
+                            </span>
+                          ) : null;
+                        })()}
                         <button
                           type="button"
                           className="btn btn-outline-primary btn-sm"
@@ -508,6 +540,14 @@ export function TemplatesPage() {
                         >
                           {chore.is_active ? "Active" : "Inactive"}
                         </span>
+                        {(() => {
+                          const streak = choreStreakMap.get(chore.id);
+                          return streak && streak.current_streak > 0 ? (
+                            <span className="badge text-bg-warning" title={`Best: ${streak.longest_streak}`}>
+                              🔥 {streak.current_streak}
+                            </span>
+                          ) : null;
+                        })()}
                         <button
                           type="button"
                           className="btn btn-outline-primary btn-sm"

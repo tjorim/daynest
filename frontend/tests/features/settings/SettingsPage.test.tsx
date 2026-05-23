@@ -7,6 +7,8 @@ import { SettingsPage } from "@/features/settings/SettingsPage";
 const apiMock = vi.hoisted(() => ({
   createIntegrationClient: vi.fn(),
   listIntegrationClients: vi.fn(),
+  fetchUserSettings: vi.fn(),
+  updateUserSettings: vi.fn(),
 }));
 
 const pwaMock = vi.hoisted(() => ({
@@ -19,6 +21,8 @@ vi.mock("@/lib/api/today", () => ({
   createIntegrationClient: apiMock.createIntegrationClient,
   isRetryableApiError: () => false,
   listIntegrationClients: apiMock.listIntegrationClients,
+  fetchUserSettings: apiMock.fetchUserSettings,
+  updateUserSettings: apiMock.updateUserSettings,
 }));
 
 vi.mock("@/app/pwa/installPrompt", () => ({
@@ -31,10 +35,13 @@ describe("SettingsPage", () => {
   beforeEach(() => {
     apiMock.createIntegrationClient.mockReset();
     apiMock.listIntegrationClients.mockReset();
+    apiMock.fetchUserSettings.mockReset();
+    apiMock.updateUserSettings.mockReset();
     pwaMock.getDeferredInstallPrompt.mockReset();
     pwaMock.promptToInstallApp.mockReset();
     pwaMock.subscribeInstallPrompt.mockReset();
     apiMock.listIntegrationClients.mockResolvedValue([]);
+    apiMock.fetchUserSettings.mockResolvedValue({ timezone: "UTC" });
     apiMock.createIntegrationClient.mockResolvedValue({
       id: 1,
       name: "Home Assistant Automations",
@@ -118,5 +125,24 @@ describe("SettingsPage", () => {
     } finally {
       consoleErrorSpy.mockRestore();
     }
+  });
+
+  it("timezone selector loads current timezone and saves on change", async () => {
+    const user = userEvent.setup();
+    apiMock.fetchUserSettings.mockResolvedValue({ timezone: "Europe/Brussels" });
+    apiMock.updateUserSettings.mockResolvedValue({ timezone: "America/New_York" });
+
+    render(<SettingsPage />);
+
+    const select = await screen.findByRole("combobox", { name: /timezone/i });
+    expect(select).toHaveValue("Europe/Brussels");
+
+    await user.selectOptions(select, "America/New_York");
+    await user.click(screen.getByRole("button", { name: /^save$/i }));
+
+    await waitFor(() => {
+      expect(apiMock.updateUserSettings).toHaveBeenCalledWith({ timezone: "America/New_York" });
+    });
+    expect(await screen.findByText(/timezone saved/i)).toBeInTheDocument();
   });
 });

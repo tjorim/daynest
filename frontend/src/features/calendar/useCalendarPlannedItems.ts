@@ -5,6 +5,7 @@ import {
   createPlannedItem,
   deletePlannedItem,
   listPlannedItems,
+  reschedulePlannedItem,
   updatePlannedItem,
   type PlannedItemBackupFile,
   type PlannedItemModuleKey,
@@ -162,6 +163,29 @@ export function useCalendarPlannedItems({
     }
   };
 
+  const dragReschedulePlannedItem = async (itemId: number, newDate: string) => {
+    const prevItems = [...plannedItems];
+    // Optimistic update
+    setPlannedItems(plannedItems.map((item) =>
+      item.id === itemId ? { ...item, planned_for: newDate } : item,
+    ));
+    setActionStatus(null);
+    setAddError(null);
+    try {
+      await reschedulePlannedItem(itemId, newDate);
+    } catch (err) {
+      setPlannedItems(prevItems);
+      setAddError(err instanceof Error ? err.message : "Failed to reschedule item.");
+      return;
+    }
+    setActionStatus("Planned item moved.");
+    try {
+      await loadCalendar();
+    } catch {
+      // refresh failure doesn't revert the optimistic move
+    }
+  };
+
   const onExportBackup = async () => {
     setIsExporting(true);
     setBackupStatus(null);
@@ -278,6 +302,7 @@ export function useCalendarPlannedItems({
     startEditing,
     togglePlannedDone,
     removePlannedItem,
+    dragReschedulePlannedItem,
     onExportBackup,
     onImportFile,
   };

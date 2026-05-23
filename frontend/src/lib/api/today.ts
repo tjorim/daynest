@@ -1,4 +1,5 @@
 import { getOidcAccessToken } from "@/lib/auth/session";
+import { enqueue as enqueueOffline } from "@/lib/offlineQueue";
 import { buildApiUrl } from "@/lib/api/serverConfig";
 import { z } from "zod";
 
@@ -424,6 +425,11 @@ async function fetchWithAuth(
   }
   const url =
     typeof input === "string" && !/^https?:\/\//i.test(input) ? buildApiUrl(input) : input;
+  const method = (init.method ?? "GET").toUpperCase();
+  if (typeof navigator !== "undefined" && !navigator.onLine && method !== "GET" && method !== "HEAD") {
+    enqueueOffline(url.toString(), init);
+    throw new ApiError("You are offline. This action will be replayed when you reconnect.", 0, false);
+  }
   return fetchWithRetry(url, withAuthHeader(init, token), retries);
 }
 
@@ -851,4 +857,207 @@ export async function deleteChoreTemplate(choreTemplateId: number): Promise<void
 
 export function isRetryableApiError(error: unknown): boolean {
   return error instanceof ApiError ? error.retryable : false;
+}
+
+// --- User Settings ---
+
+export interface UserSettings {
+  timezone: string;
+  default_snooze_days: number;
+  medication_reminder_minutes: number;
+  quiet_hours_start: string | null;
+  quiet_hours_end: string | null;
+  push_overdue_chores_enabled: boolean;
+  push_medication_reminders_enabled: boolean;
+  push_missed_medications_enabled: boolean;
+}
+
+export interface UserSettingsPatch {
+  timezone?: string;
+  default_snooze_days?: number;
+  medication_reminder_minutes?: number;
+  quiet_hours_start?: string | null;
+  quiet_hours_end?: string | null;
+  push_overdue_chores_enabled?: boolean;
+  push_medication_reminders_enabled?: boolean;
+  push_missed_medications_enabled?: boolean;
+}
+
+export async function fetchUserSettings(signal?: AbortSignal): Promise<UserSettings> {
+  const response = await fetchWithAuth("/api/v1/users/me/settings", {
+    headers: { Accept: "application/json" },
+    signal,
+  });
+  return parseJsonResponse<UserSettings>(response);
+}
+
+export async function updateUserSettings(patch: UserSettingsPatch): Promise<UserSettings> {
+  const response = await fetchWithAuth("/api/v1/users/me/settings", {
+    method: "PATCH",
+    headers: { Accept: "application/json", "Content-Type": "application/json" },
+    body: JSON.stringify(patch),
+  });
+  return parseJsonResponse<UserSettings>(response, "Failed to update settings", false);
+}
+
+// --- Analytics ---
+
+export type AnalyticsPeriod = "week" | "month" | "quarter" | "year";
+
+export interface DailyCount {
+  date: string;
+  completed: number;
+  total: number;
+  completion_rate: number;
+}
+
+export interface ChoreStreak {
+  chore_id: number;
+  name: string;
+  current_streak: number;
+  longest_streak: number;
+}
+
+export interface SkippedChore {
+  chore_id: number;
+  name: string;
+  skip_count: number;
+}
+
+export interface ChoreStats {
+  completion_rate: number;
+  total_completed: number;
+  total_scheduled: number;
+  daily_completions: DailyCount[];
+  streaks: ChoreStreak[];
+  most_skipped: SkippedChore[];
+}
+
+export interface DailyAdherence {
+  date: string;
+  taken: number;
+  total: number;
+  adherence_rate: number;
+}
+
+export interface MedicationAnalyticsStats {
+  adherence_rate: number;
+  total_taken: number;
+  total_scheduled: number;
+  daily_adherence: DailyAdherence[];
+}
+
+export interface PlannedItemAnalyticsStats {
+  completion_rate: number;
+  total_completed: number;
+  total_scheduled: number;
+  daily_completions: DailyCount[];
+}
+
+export interface RoutineStreak {
+  routine_id: number;
+  name: string;
+  current_streak: number;
+  longest_streak: number;
+}
+
+export interface RoutineAnalyticsStats {
+  completion_rate: number;
+  total_completed: number;
+  total_scheduled: number;
+  daily_completions: DailyCount[];
+  streaks: RoutineStreak[];
+}
+
+export interface AnalyticsSummary {
+  period: AnalyticsPeriod;
+  start_date: string;
+  end_date: string;
+  chores: ChoreStats;
+  medications: MedicationAnalyticsStats;
+  planned_items: PlannedItemAnalyticsStats;
+  routines: RoutineAnalyticsStats;
+}
+
+export async function fetchAnalyticsSummary(
+  period: AnalyticsPeriod = "week",
+  signal?: AbortSignal,
+): Promise<AnalyticsSummary> {
+  const response = await fetchWithAuth(`/api/v1/analytics/summary?period=${period}`, {
+    headers: { Accept: "application/json" },
+    signal,
+  });
+  return parseJsonResponse<AnalyticsSummary>(response, "Failed to load analytics");
+}
+
+// --- Search ---
+
+export interface RoutineSearchResult {
+  id: number;
+  name: string;
+  description: string | null;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface ChoreSearchResult {
+  id: number;
+  name: string;
+  description: string | null;
+  priority: string;
+  tags: string[];
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface MedicationSearchResult {
+  id: number;
+  name: string;
+  instructions: string;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface PlannedItemSearchResult {
+  id: number;
+  title: string;
+  notes: string | null;
+  planned_for: string;
+  priority: string;
+  tags: string[];
+  is_done: boolean;
+  created_at: string;
+}
+
+export interface SearchResponse {
+  query: string;
+  routine_templates: RoutineSearchResult[];
+  chore_templates: ChoreSearchResult[];
+  medication_plans: MedicationSearchResult[];
+  planned_items: PlannedItemSearchResult[];
+}
+
+export async function searchItems(
+  query: string,
+  signal?: AbortSignal,
+): Promise<SearchResponse> {
+  const response = await fetchWithAuth(
+    `/api/v1/search?q=${encodeURIComponent(query)}`,
+    { headers: { Accept: "application/json" }, signal },
+  );
+  return parseJsonResponse<SearchResponse>(response, "Search failed");
+}
+
+// --- Planned item reschedule ---
+
+export async function reschedulePlannedItem(
+  plannedItemId: number,
+  newDate: string,
+): Promise<PlannedTodayItem> {
+  const response = await fetchWithAuth(`/api/v1/planned-items/${plannedItemId}`, {
+    method: "PUT",
+    headers: { Accept: "application/json", "Content-Type": "application/json" },
+    body: JSON.stringify({ planned_for: newDate }),
+  });
+  return parseJsonResponse<PlannedTodayItem>(response, "Failed to reschedule item", false);
 }

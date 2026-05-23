@@ -6,6 +6,7 @@ import { CalendarPage } from "@/features/calendar/CalendarPage";
 import { MedicationPage } from "@/features/medication/MedicationPage";
 import { SettingsPage } from "@/features/settings/SettingsPage";
 import { TemplatesPage } from "@/features/templates/TemplatesPage";
+import { StatsPage } from "@/features/stats/StatsPage";
 
 function RequireAuth() {
   const location = useLocation();
@@ -42,6 +43,7 @@ export function AppRouter() {
         <Route path="/calendar" element={<CalendarPage />} />
         <Route path="/medication" element={<MedicationPage />} />
         <Route path="/templates" element={<TemplatesPage />} />
+        <Route path="/stats" element={<StatsPage />} />
         <Route path="/settings" element={<SettingsPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/today" replace />} />
