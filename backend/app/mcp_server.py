@@ -281,6 +281,7 @@ class DaynestMcpBackend:
         notes: str | None = None,
         module_key: PlannedItemModuleKey | None = None,
         recurrence_hint: str | None = None,
+        rrule: str | None = None,
         linked_source: str | None = None,
         linked_ref: str | None = None,
     ) -> dict[str, Any]:
@@ -290,6 +291,7 @@ class DaynestMcpBackend:
             notes=notes,
             module_key=module_key,
             recurrence_hint=recurrence_hint,
+            rrule=rrule,
             linked_source=linked_source,
             linked_ref=linked_ref,
         )
@@ -304,6 +306,7 @@ class DaynestMcpBackend:
         notes: str | None = None,
         module_key: PlannedItemModuleKey | None = None,
         recurrence_hint: str | None = None,
+        rrule: str | None = None,
         linked_source: str | None = None,
         linked_ref: str | None = None,
     ) -> dict[str, Any]:
@@ -314,6 +317,7 @@ class DaynestMcpBackend:
             notes=notes,
             module_key=module_key,
             recurrence_hint=recurrence_hint,
+            rrule=rrule,
             linked_source=linked_source,
             linked_ref=linked_ref,
         )
@@ -534,7 +538,8 @@ class DaynestMcpBackend:
         self._with_service(lambda _db, user, service: service.delete_medication_plan(user.id, medication_plan_id))
         return {"deleted": True, "medication_plan_id": medication_plan_id}
 
-    def get_medication_history(self) -> dict[str, Any]:
+    def get_medication_history(self, limit: int = 20, medication_plan_id: int | None = None) -> dict[str, Any]:
+        capped_limit = min(max(1, limit), 365)
         return self._with_service(
             lambda _db, user, service: {
                 "history": [
@@ -549,6 +554,8 @@ class DaynestMcpBackend:
                     for item in service.repository.get_medication_history(
                         user_id=user.id,
                         before_date=datetime.now().date(),
+                        limit=capped_limit,
+                        medication_plan_id=medication_plan_id,
                     )
                 ]
             }
@@ -690,10 +697,28 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
         notes: str | None = None,
         module_key: PlannedItemModuleKey | None = None,
         recurrence_hint: str | None = None,
+        rrule: str | None = None,
         linked_source: str | None = None,
         linked_ref: str | None = None,
     ) -> dict[str, Any]:
-        """Create a planned Daynest item."""
+        """Create a planned Daynest item.
+
+        Args:
+            title: Item title.
+            planned_for: Date in YYYY-MM-DD format or 'today'.
+            notes: Optional free-text notes.
+            module_key: Optional module association.
+            recurrence_hint: Human-readable recurrence label (e.g. "every Monday"). Purely
+                descriptive — use rrule to drive actual recurrence.
+            rrule: RFC 5545 recurrence rule. When supplied, Daynest generates up to 52
+                instances starting from planned_for. Examples:
+                  FREQ=DAILY;INTERVAL=5        every 5 days
+                  FREQ=WEEKLY;BYDAY=MO,TH      every Monday and Thursday
+                  FREQ=WEEKLY;BYDAY=SU         every Sunday
+                  FREQ=MONTHLY;BYDAY=1SA       first Saturday of each month
+            linked_source: Optional external source identifier.
+            linked_ref: Optional external reference identifier.
+        """
 
         return await to_thread.run_sync(
             daynest.create_planned_item,
@@ -702,6 +727,7 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
             notes,
             module_key,
             recurrence_hint,
+            rrule,
             linked_source,
             linked_ref,
         )
@@ -715,10 +741,25 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
         notes: str | None = None,
         module_key: PlannedItemModuleKey | None = None,
         recurrence_hint: str | None = None,
+        rrule: str | None = None,
         linked_source: str | None = None,
         linked_ref: str | None = None,
     ) -> dict[str, Any]:
-        """Update a planned Daynest item."""
+        """Update a planned Daynest item.
+
+        Args:
+            planned_item_id: ID of the item to update.
+            title: Updated title.
+            planned_for: Updated date in YYYY-MM-DD format or 'today'.
+            is_done: Mark the item as completed.
+            notes: Updated notes.
+            module_key: Updated module association.
+            recurrence_hint: Human-readable recurrence label. Purely descriptive.
+            rrule: RFC 5545 recurrence rule. Setting this on an existing item replaces
+                its rule; set to null to remove recurrence.
+            linked_source: Updated external source identifier.
+            linked_ref: Updated external reference identifier.
+        """
 
         return await to_thread.run_sync(
             daynest.update_planned_item,
@@ -729,6 +770,7 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
             notes,
             module_key,
             recurrence_hint,
+            rrule,
             linked_source,
             linked_ref,
         )
@@ -976,10 +1018,26 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
         return await to_thread.run_sync(daynest.delete_medication, medication_plan_id)
 
     @mcp.tool()
-    async def get_medication_history() -> dict[str, Any]:
-        """Return recent medication dose history for the active user."""
+    async def get_medication_history(
+        limit: int = 20,
+        medication_plan_id: int | None = None,
+    ) -> dict[str, Any]:
+        """Return medication dose history for the active user.
 
-        return await to_thread.run_sync(daynest.get_medication_history)
+        Args:
+            limit: Number of doses to return, most recent first. Default 20; max 365.
+                Use higher values for adherence analysis:
+                  limit=7    last week
+                  limit=90   quarterly review
+                  limit=365  full-year adherence check
+            medication_plan_id: When supplied, return history for this medication only.
+                Combine with a high limit to get the full history of one medication
+                (e.g. limit=90, medication_plan_id=3 → 90 doses of that medication,
+                roughly 90 days if taken daily). Omit to get a global slice across all
+                medications.
+        """
+
+        return await to_thread.run_sync(daynest.get_medication_history, limit, medication_plan_id)
 
     @mcp.resource("daynest://today/{for_date}")
     async def today_resource(for_date: str) -> str:

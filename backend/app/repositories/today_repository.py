@@ -181,14 +181,21 @@ class TodayRepository:
         )
         return list(self.db.scalars(stmt).all())
 
-    def get_medication_history(self, user_id: int, before_date: date, limit: int = 20) -> list[MedicationDoseInstance]:
+    def get_medication_history(
+        self,
+        user_id: int,
+        before_date: date,
+        limit: int = 20,
+        medication_plan_id: int | None = None,
+    ) -> list[MedicationDoseInstance]:
         stmt = (
             select(MedicationDoseInstance)
             .where(MedicationDoseInstance.user_id == user_id)
             .where(MedicationDoseInstance.scheduled_date < before_date)
-            .order_by(MedicationDoseInstance.scheduled_at.desc(), MedicationDoseInstance.id.desc())
-            .limit(limit)
         )
+        if medication_plan_id is not None:
+            stmt = stmt.where(MedicationDoseInstance.medication_plan_id == medication_plan_id)
+        stmt = stmt.order_by(MedicationDoseInstance.scheduled_at.desc(), MedicationDoseInstance.id.desc()).limit(limit)
         return list(self.db.scalars(stmt).all())
 
     def list_medication_plans(self, user_id: int) -> list[MedicationPlan]:
