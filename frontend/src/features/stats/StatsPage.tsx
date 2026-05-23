@@ -242,7 +242,7 @@ export function StatsPage() {
               <div className="card">
                 <div className="card-header fw-semibold py-2">Chores — daily completion rate</div>
                 <div className="card-body pb-2">
-                  <CompletionChart entries={summary.chores.daily_completions} color="#0d6efd" />
+                  <CompletionChart entries={summary.chores.daily_completions} color="var(--bs-primary)" fillColor="rgba(var(--bs-primary-rgb), 0.2)" />
                 </div>
               </div>
             </div>
@@ -254,7 +254,7 @@ export function StatsPage() {
               <div className="card">
                 <div className="card-header fw-semibold py-2">Routines — daily completion rate</div>
                 <div className="card-body pb-2">
-                  <CompletionChart entries={summary.routines.daily_completions} color="#198754" />
+                  <CompletionChart entries={summary.routines.daily_completions} color="var(--bs-success)" fillColor="rgba(var(--bs-success-rgb), 0.2)" />
                 </div>
               </div>
             </div>
@@ -277,8 +277,7 @@ export function StatsPage() {
   );
 }
 
-function CompletionChart({ entries, color }: { entries: DailyCount[]; color: string }) {
-  const fill = color + "33";
+function CompletionChart({ entries, color, fillColor }: { entries: DailyCount[]; color: string; fillColor: string }) {
   return (
     <ResponsiveContainer width="100%" height={140}>
       <AreaChart data={entries} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
@@ -309,7 +308,7 @@ function CompletionChart({ entries, color }: { entries: DailyCount[]; color: str
           type="monotone"
           dataKey="completion_rate"
           stroke={color}
-          fill={fill}
+          fill={fillColor}
           strokeWidth={2}
           dot={false}
           activeDot={{ r: 3 }}
@@ -349,8 +348,8 @@ function AdherenceChart({ entries }: { entries: AdherenceEntry[] }) {
         <Area
           type="monotone"
           dataKey="adherence_rate"
-          stroke="#0dcaf0"
-          fill="#0dcaf033"
+          stroke="var(--bs-info)"
+          fill="rgba(var(--bs-info-rgb), 0.2)"
           strokeWidth={2}
           dot={false}
           activeDot={{ r: 3 }}
