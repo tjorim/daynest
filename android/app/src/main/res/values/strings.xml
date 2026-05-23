@@ -155,6 +155,7 @@
     <string name="settings_new_key_dismiss">I\'ve copied it</string>
     <string name="settings_sessions_section">Active Sessions</string>
     <string name="settings_no_sessions">No active sessions.</string>
+    <string name="settings_sessions_error">Unable to load active sessions.</string>
     <string name="settings_session_last_active">Last active: %1$s</string>
     <string name="settings_revoke_session">Revoke</string>
 

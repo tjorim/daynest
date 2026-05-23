@@ -63,7 +63,8 @@ class SettingsViewModel
                         sessions = sessionsResult.getOrElse { emptyList() },
                         showCreateForm = false,
                         newApiKey = null,
-                        loadError = clientsResult.isFailure || sessionsResult.isFailure,
+                        clientsLoadError = clientsResult.isFailure,
+                        sessionsLoadError = sessionsResult.isFailure,
                         customServerUrl = prefs.customServerUrl,
                         defaultServerUrl = BuildConfig.API_BASE_URL,
                     )
@@ -163,7 +164,8 @@ sealed interface SettingsUiState {
         val sessions: List<OAuthSessionDto> = emptyList(),
         val showCreateForm: Boolean,
         val newApiKey: String?,
-        val loadError: Boolean,
+        val clientsLoadError: Boolean,
+        val sessionsLoadError: Boolean,
         val customServerUrl: String?,
         val defaultServerUrl: String,
     ) : SettingsUiState

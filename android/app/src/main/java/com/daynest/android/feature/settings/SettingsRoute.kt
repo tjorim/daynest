@@ -178,7 +178,7 @@ private fun SettingsContent(
             }
         }
 
-        if (state.loadError) {
+        if (state.clientsLoadError) {
             item {
                 Text(
                     text = stringResource(id = R.string.settings_clients_error),
@@ -211,7 +211,18 @@ private fun SettingsContent(
             )
         }
 
-        if (state.sessions.isEmpty()) {
+        if (state.sessionsLoadError) {
+            item {
+                Text(
+                    text = stringResource(id = R.string.settings_sessions_error),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+                TextButton(onClick = { onEvent(SettingsUiEvent.RetryClicked) }) {
+                    Text(text = stringResource(id = R.string.home_retry))
+                }
+            }
+        } else if (state.sessions.isEmpty()) {
             item {
                 Text(
                     text = stringResource(id = R.string.settings_no_sessions),
@@ -265,8 +276,8 @@ private fun OAuthSessionCard(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 val clientNames =
-                    session.clients.values
-                        .joinToString(", ")
+                    session.clients
+                        .joinToString(", ") { it.clientName ?: it.clientId }
                         .ifBlank { session.id.take(8) }
                 Text(text = clientNames, style = MaterialTheme.typography.bodyMedium)
                 if (!session.ipAddress.isNullOrBlank()) {
