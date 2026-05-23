@@ -169,6 +169,33 @@ private fun CreateChoreTemplateDialog(
 }
 
 @Composable
+private fun TemplateFormDialog(
+    title: String,
+    confirmText: String,
+    isConfirmEnabled: Boolean,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+    content: @Composable () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(text = title) },
+        text = content,
+        confirmButton = {
+            TextButton(
+                onClick = onConfirm,
+                enabled = isConfirmEnabled,
+            ) { Text(text = confirmText) }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.action_cancel))
+            }
+        },
+    )
+}
+
+@Composable
 private fun RoutineTemplateDialog(
     title: String,
     initial: RoutineFormState,
@@ -178,21 +205,13 @@ private fun RoutineTemplateDialog(
 ) {
     var form by remember { mutableStateOf(initial) }
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(text = title) },
-        text = { RoutineTemplateFields(form = form, onFormChange = { form = it }) },
-        confirmButton = {
-            TextButton(
-                onClick = { onConfirm(form.toInput()) },
-                enabled = form.name.isNotBlank(),
-            ) { Text(text = confirmText) }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.action_cancel))
-            }
-        },
+    TemplateFormDialog(
+        title = title,
+        confirmText = confirmText,
+        isConfirmEnabled = form.name.isNotBlank(),
+        onConfirm = { onConfirm(form.toInput()) },
+        onDismiss = onDismiss,
+        content = { RoutineTemplateFields(form = form, onFormChange = { form = it }) },
     )
 }
 
@@ -206,21 +225,13 @@ private fun ChoreTemplateDialog(
 ) {
     var form by remember { mutableStateOf(initial) }
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(text = title) },
-        text = { ChoreTemplateFields(form = form, onFormChange = { form = it }) },
-        confirmButton = {
-            TextButton(
-                onClick = { onConfirm(form.toInput()) },
-                enabled = form.name.isNotBlank(),
-            ) { Text(text = confirmText) }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.action_cancel))
-            }
-        },
+    TemplateFormDialog(
+        title = title,
+        confirmText = confirmText,
+        isConfirmEnabled = form.name.isNotBlank(),
+        onConfirm = { onConfirm(form.toInput()) },
+        onDismiss = onDismiss,
+        content = { ChoreTemplateFields(form = form, onFormChange = { form = it }) },
     )
 }
 
