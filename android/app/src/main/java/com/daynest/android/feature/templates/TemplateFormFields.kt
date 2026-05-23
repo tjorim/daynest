@@ -2,6 +2,7 @@
 
 package com.daynest.android.feature.templates
 
+import android.text.format.DateFormat
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
@@ -13,6 +14,8 @@ import androidx.compose.material3.TimePicker
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import com.daynest.android.R
 
@@ -200,11 +203,13 @@ private fun TemplateTimePickerDialog(
     onTimeSelected: (String) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val context = LocalContext.current
+    val is24Hour = remember(context) { DateFormat.is24HourFormat(context) }
     val timePickerState =
         rememberTimePickerState(
             initialHour = initialTime.timePartAt(0, defaultValue = 8, range = 0..23),
             initialMinute = initialTime.timePartAt(1, defaultValue = 0, range = 0..59),
-            is24Hour = true,
+            is24Hour = is24Hour,
         )
 
     AlertDialog(
