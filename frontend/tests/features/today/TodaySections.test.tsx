@@ -246,7 +246,15 @@ describe("Today section components", () => {
 
 });
 
-const plannedBase = { notes: null, module_key: null, recurrence_hint: null, linked_source: null, linked_ref: null };
+const plannedBase = {
+  notes: null,
+  time_of_day: null,
+  duration_minutes: null,
+  module_key: null,
+  recurrence_hint: null,
+  linked_source: null,
+  linked_ref: null,
+};
 
 describe("isItemActionable", () => {
   it("returns true for a pending chore", () => {
@@ -354,6 +362,20 @@ describe("build item helpers", () => {
   it("buildPlannedItems maps planned item fields", () => {
     const [item] = buildPlannedItems([{ id: 9, title: "Read", planned_for: "2026-05-20", is_done: false, ...plannedBase }]);
     expect(item).toMatchObject({ id: "planned-9", statusLabel: "Planned", statusTone: "secondary" });
+  });
+
+  it("buildPlannedItems prefixes title with HH:MM when time is set", () => {
+    const [item] = buildPlannedItems([{ id: 9, title: "Read", planned_for: "2026-05-20", is_done: false, ...plannedBase, time_of_day: "10:00:00" }]);
+    expect(item.title).toBe("10:00 · Read");
+  });
+
+  it("buildPlannedItems sorts timed items before untimed and by time", () => {
+    const items = buildPlannedItems([
+      { id: 1, title: "Untimed", planned_for: "2026-05-20", is_done: false, ...plannedBase, time_of_day: null },
+      { id: 2, title: "Late", planned_for: "2026-05-20", is_done: false, ...plannedBase, time_of_day: "12:00:00" },
+      { id: 3, title: "Early", planned_for: "2026-05-20", is_done: false, ...plannedBase, time_of_day: "09:30:00" },
+    ]);
+    expect(items.map((item) => item.id)).toEqual(["planned-3", "planned-2", "planned-1"]);
   });
 
   it("buildPlannedItems uses done tone when is_done", () => {

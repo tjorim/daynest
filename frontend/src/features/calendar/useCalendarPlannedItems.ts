@@ -38,6 +38,8 @@ export function useCalendarPlannedItems({
 }) {
   const [plannedItems, setPlannedItems] = useState<PlannedTodayItem[]>([]);
   const [title, setTitle] = useState("");
+  const [timeOfDay, setTimeOfDay] = useState("");
+  const [durationMinutes, setDurationMinutes] = useState<number | "">("");
   const [notes, setNotes] = useState("");
   const [moduleKey, setModuleKey] = useState<PlannedItemModuleKey | "">("");
   const [recurrenceHint, setRecurrenceHint] = useState("");
@@ -56,6 +58,8 @@ export function useCalendarPlannedItems({
   const resetPlannedForm = () => {
     setEditingPlannedItemId(null);
     setTitle("");
+    setTimeOfDay("");
+    setDurationMinutes("");
     setNotes("");
     setModuleKey("");
     setRecurrenceHint("");
@@ -67,6 +71,8 @@ export function useCalendarPlannedItems({
   const startEditing = (item: PlannedTodayItem) => {
     setEditingPlannedItemId(item.id);
     setTitle(item.title);
+    setTimeOfDay(item.time_of_day ? item.time_of_day.slice(0, 5) : "");
+    setDurationMinutes(item.duration_minutes ?? "");
     setNotes(item.notes ?? "");
     setModuleKey(item.module_key ?? "");
     setRecurrenceHint(item.recurrence_hint ?? "");
@@ -88,6 +94,8 @@ export function useCalendarPlannedItems({
       const payload = {
         title: title.trim(),
         planned_for: selectedDate,
+        time_of_day: timeOfDay.trim() || null,
+        duration_minutes: durationMinutes !== "" ? durationMinutes : null,
         notes: notes.trim() || null,
         module_key: moduleKey || null,
         recurrence_hint: recurrenceHint.trim() || null,
@@ -129,6 +137,8 @@ export function useCalendarPlannedItems({
         title: item.title,
         planned_for: item.planned_for,
         notes: item.notes,
+        time_of_day: item.time_of_day,
+        duration_minutes: item.duration_minutes,
         module_key: item.module_key,
         recurrence_hint: item.recurrence_hint,
         linked_source: item.linked_source,
@@ -200,6 +210,8 @@ export function useCalendarPlannedItems({
         items: items.map((item) => ({
           title: item.title,
           planned_for: item.planned_for,
+          time_of_day: item.time_of_day,
+          duration_minutes: item.duration_minutes,
           notes: item.notes,
           module_key: item.module_key,
           recurrence_hint: item.recurrence_hint,
@@ -245,6 +257,8 @@ export function useCalendarPlannedItems({
             createPlannedItem({
               title: item.title,
               planned_for: item.planned_for,
+              time_of_day: item.time_of_day,
+              duration_minutes: item.duration_minutes,
               notes: item.notes,
               module_key: item.module_key,
               recurrence_hint: item.recurrence_hint,
@@ -274,6 +288,8 @@ export function useCalendarPlannedItems({
     plannedItems,
     setPlannedItems: setPlanned,
     title,
+    timeOfDay,
+    durationMinutes,
     notes,
     moduleKey,
     recurrenceHint,
@@ -289,6 +305,8 @@ export function useCalendarPlannedItems({
     actionStatus,
     fileInputRef,
     setTitle,
+    setTimeOfDay,
+    setDurationMinutes,
     setNotes,
     setModuleKey,
     setRecurrenceHint,

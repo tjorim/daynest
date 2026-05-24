@@ -155,6 +155,8 @@ export function CalendarPage() {
             selectedDate={selectedDate}
             plannedItems={planned.plannedItems}
             title={planned.title}
+            timeOfDay={planned.timeOfDay}
+            durationMinutes={planned.durationMinutes}
             notes={planned.notes}
             moduleKey={planned.moduleKey}
             recurrenceHint={planned.recurrenceHint}
@@ -166,6 +168,14 @@ export function CalendarPage() {
             addError={planned.addError}
             onSetTitle={(value) => {
               planned.setTitle(value);
+              planned.setAddError(null);
+            }}
+            onSetTimeOfDay={(value) => {
+              planned.setTimeOfDay(value);
+              planned.setAddError(null);
+            }}
+            onSetDurationMinutes={(value) => {
+              planned.setDurationMinutes(value);
               planned.setAddError(null);
             }}
             onSetNotes={(value) => {

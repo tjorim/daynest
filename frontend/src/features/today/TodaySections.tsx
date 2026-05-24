@@ -161,9 +161,16 @@ export function buildUpcomingItems(items: UpcomingTodayItem[]): SectionItem[] {
 }
 
 export function buildPlannedItems(items: PlannedTodayItem[]): SectionItem[] {
-  return items.map((item) => ({
+  return [...items]
+    .sort((a, b) => {
+      if (a.time_of_day && b.time_of_day) return a.time_of_day.localeCompare(b.time_of_day);
+      if (a.time_of_day) return -1;
+      if (b.time_of_day) return 1;
+      return 0;
+    })
+    .map((item) => ({
     id: `planned-${item.id}`,
-    title: item.title,
+    title: item.time_of_day ? `${item.time_of_day.slice(0, 5)} · ${item.title}` : item.title,
     subtitle: formatSubtitle(
       `${item.is_done ? "Done" : "Planned"} for ${item.planned_for}`,
       item.module_key ? `Module: ${item.module_key}` : undefined,

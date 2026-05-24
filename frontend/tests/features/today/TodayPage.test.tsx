@@ -72,6 +72,8 @@ const todayPayload = {
       id: 5,
       title: "Order groceries",
       planned_for: "2026-05-15",
+      time_of_day: null,
+      duration_minutes: null,
       notes: null,
       module_key: "shopping_list",
       recurrence_hint: null,

@@ -83,6 +83,8 @@ const contractExample: TodayPayload = {
       id: 13,
       title: "Meal prep",
       planned_for: "2026-04-25",
+      time_of_day: "10:00:00",
+      duration_minutes: 90,
       notes: null,
       module_key: "meal_planning",
       recurrence_hint: "weekly",
