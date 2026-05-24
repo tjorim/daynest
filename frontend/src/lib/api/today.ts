@@ -195,7 +195,7 @@ const plannedTodayItemSchema = z.object({
   id: z.number(),
   title: z.string(),
   planned_for: z.string(),
-  time_of_day: z.string().nullable(),
+  time_of_day: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/).nullable(),
   duration_minutes: z.number().int().nullable(),
   notes: z.string().nullable(),
   module_key: plannedItemModuleKeySchema.nullable(),
