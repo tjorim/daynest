@@ -400,11 +400,11 @@ def test_get_today_threads_user_timezone_to_medication_generation() -> None:
 
 
 def test_skip_missed_medication_doses_default_cutoff_does_not_touch_today() -> None:
-    today = date.today()
+    fixed_today = _FIXED_NOW.date()
     missed_yesterday = _make_dose(MedicationDoseStatus.missed)
-    missed_yesterday.scheduled_date = today - timedelta(days=1)
+    missed_yesterday.scheduled_date = fixed_today - timedelta(days=1)
     missed_today = _make_dose(MedicationDoseStatus.missed)
-    missed_today.scheduled_date = today
+    missed_today.scheduled_date = fixed_today
     repo = StubTodayRepository(
         tasks=[],
         overdue=[],
@@ -419,7 +419,7 @@ def test_skip_missed_medication_doses_default_cutoff_does_not_touch_today() -> N
 
     count, cutoff = service.skip_missed_medication_doses(user_id=7)
 
-    assert cutoff == today
+    assert cutoff == fixed_today
     assert count == 1
     assert missed_yesterday.status == MedicationDoseStatus.skipped
     assert missed_today.status == MedicationDoseStatus.missed

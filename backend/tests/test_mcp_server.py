@@ -669,7 +669,7 @@ def test_mcp_backend_defer_planned_item(db_session: Session) -> None:
     )
     result = backend.defer_planned_item(created["id"], days=7)
 
-    expected = (date(2026, 5, 25) + timedelta(days=7)).isoformat()
+    expected = (datetime.now(timezone.utc).date() + timedelta(days=7)).isoformat()
     assert result["planned_for"] == expected
     assert result["title"] == "Defer me"
     assert result["notes"] == "preserve me"
