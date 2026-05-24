@@ -1,10 +1,10 @@
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
-import { setLanguageTag, languageTag } from "@/paraglide/runtime";
-import type { AvailableLanguageTag } from "@/paraglide/runtime";
+import { setLocale, getLocale } from "@/paraglide/runtime";
+import type { Locale } from "@/paraglide/runtime";
 
 const STORAGE_KEY = "daynest_lang";
 
-function detectLanguage(): AvailableLanguageTag {
+function detectLanguage(): Locale {
   const stored = localStorage.getItem(STORAGE_KEY);
   if (stored === "nl" || stored === "en") return stored;
   const browser = navigator.language.split("-")[0];
@@ -12,8 +12,8 @@ function detectLanguage(): AvailableLanguageTag {
 }
 
 type LanguageContextValue = {
-  language: AvailableLanguageTag;
-  setLanguage: (tag: AvailableLanguageTag) => void;
+  language: Locale;
+  setLanguage: (tag: Locale) => void;
 };
 
 const LanguageContext = createContext<LanguageContextValue>({
@@ -22,14 +22,14 @@ const LanguageContext = createContext<LanguageContextValue>({
 });
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const [language, setLanguageState] = useState<AvailableLanguageTag>(detectLanguage);
+  const [language, setLanguageState] = useState<Locale>(detectLanguage);
 
   useEffect(() => {
-    setLanguageTag(language);
+    setLocale(language, { reload: false });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const setLanguage = useCallback((tag: AvailableLanguageTag) => {
-    setLanguageTag(tag);
+  const setLanguage = useCallback((tag: Locale) => {
+    setLocale(tag, { reload: false });
     localStorage.setItem(STORAGE_KEY, tag);
     setLanguageState(tag);
   }, []);
@@ -45,4 +45,4 @@ export function useLanguage() {
   return useContext(LanguageContext);
 }
 
-export { languageTag };
+export { getLocale };

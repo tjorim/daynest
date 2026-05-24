@@ -3,7 +3,8 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { SettingsPage } from "@/features/settings/SettingsPage";
-import { setLanguageTag } from "@/paraglide/runtime";
+import { LanguageProvider } from "@/i18n/LanguageProvider";
+import { setLocale } from "@/paraglide/runtime";
 
 const apiMock = vi.hoisted(() => ({
   createIntegrationClient: vi.fn(),
@@ -34,7 +35,7 @@ vi.mock("@/app/pwa/installPrompt", () => ({
 
 describe("SettingsPage", () => {
   beforeEach(() => {
-    setLanguageTag("en");
+    setLocale("en");
     apiMock.createIntegrationClient.mockReset();
     apiMock.listIntegrationClients.mockReset();
     apiMock.fetchUserSettings.mockReset();
@@ -177,19 +178,21 @@ describe("SettingsPage", () => {
     });
   });
 
-  it("skips API call when toggle is reverted to server state", async () => {
+  it("skips API call when toggle is reverted before server confirms", async () => {
     const user = userEvent.setup();
-    apiMock.updateUserSettings.mockResolvedValue({});
+    let resolveFirst!: (v: unknown) => void;
+    apiMock.updateUserSettings.mockImplementationOnce(
+      () => new Promise((r) => { resolveFirst = r; }),
+    );
     render(<SettingsPage />);
 
     const overdueToggle = await screen.findByLabelText(/overdue chore reminders/i);
-    // Toggle off then back on (server state is true)
+    // Toggle off (API pending, server state still true)
     await user.click(overdueToggle);
-    await waitFor(() => {
-      expect(apiMock.updateUserSettings).toHaveBeenCalledTimes(1);
-    });
+    // Toggle back on before API resolves — no-op because UI matches server state
     await user.click(overdueToggle);
-    // Still only one API call — the second click reverted to server state
+    resolveFirst({});
+    // Only one API call was made — the revert was a no-op
     await waitFor(() => {
       expect(apiMock.updateUserSettings).toHaveBeenCalledTimes(1);
     });
@@ -218,7 +221,7 @@ describe("SettingsPage", () => {
 
   it("switches language to Dutch immediately", async () => {
     const user = userEvent.setup();
-    render(<SettingsPage />);
+    render(<LanguageProvider><SettingsPage /></LanguageProvider>);
 
     const languageSelect = await screen.findByRole("combobox", { name: /language/i });
     await user.selectOptions(languageSelect, "nl");

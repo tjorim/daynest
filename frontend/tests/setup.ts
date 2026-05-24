@@ -1,10 +1,10 @@
 import { cleanup } from "@testing-library/react";
 import "@testing-library/jest-dom/vitest";
 import { afterEach, beforeAll } from "vitest";
-import { setLanguageTag } from "@/paraglide/runtime";
+import { setLocale } from "@/paraglide/runtime";
 
 beforeAll(() => {
-  setLanguageTag("en");
+  setLocale("en", { reload: false });
 });
 
 afterEach(() => {
