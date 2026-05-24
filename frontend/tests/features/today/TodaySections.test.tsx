@@ -366,6 +366,8 @@ describe("build item helpers", () => {
 
   it("buildPlannedItems prefixes title with HH:MM when time is set", () => {
     const [item] = buildPlannedItems([{ id: 9, title: "Read", planned_for: "2026-05-20", is_done: false, ...plannedBase, time_of_day: "10:00:00" }]);
+    expect(item).toBeDefined();
+    if (!item) return;
     expect(item.title).toBe("10:00 · Read");
   });
 
