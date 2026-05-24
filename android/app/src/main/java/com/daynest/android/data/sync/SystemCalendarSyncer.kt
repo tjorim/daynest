@@ -81,7 +81,7 @@ class SystemCalendarSyncer
                     put(CalendarContract.Calendars.CALENDAR_DISPLAY_NAME, DAYNEST_CALENDAR_DISPLAY_NAME)
                     put(CalendarContract.Calendars.NAME, DAYNEST_CALENDAR_NAME)
                     put(CalendarContract.Calendars.CALENDAR_COLOR, 0xFF5E35B1.toInt())
-                    put(CalendarContract.Calendars.CALENDAR_ACCESS_LEVEL, CalendarContract.Calendars.CAL_ACCESS_OWNER)
+                    put(CalendarContract.Calendars.CALENDAR_ACCESS_LEVEL, CalendarContract.Calendars.CAL_ACCESS_READ)
                     put(CalendarContract.Calendars.CAN_MODIFY_TIME_ZONE, 0)
                     put(CalendarContract.Calendars.OWNER_ACCOUNT, DAYNEST_ACCOUNT_NAME)
                     put(CalendarContract.Calendars.VISIBLE, 1)

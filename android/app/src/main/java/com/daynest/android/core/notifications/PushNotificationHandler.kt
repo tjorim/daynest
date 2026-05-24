@@ -37,8 +37,10 @@ class PushNotificationHandler
                     else -> DaynestNotificationChannels.CHORE_CHANNEL_ID
                 }
             val openPendingIntent = createOpenIntent(type, itemId)
-            val completeIntent = createActionIntent(type, itemId, "complete", 1000)
-            val skipIntent = createActionIntent(type, itemId, "skip", 2000)
+            val primaryAction = primaryActionFor(type)
+            val secondaryAction = secondaryActionFor(type)
+            val primaryIntent = createActionIntent(type, itemId, primaryAction.action, 1000)
+            val secondaryIntent = createActionIntent(type, itemId, secondaryAction.action, 2000)
             val notification =
                 NotificationCompat
                     .Builder(context, channelId)
@@ -48,8 +50,8 @@ class PushNotificationHandler
                     .setPriority(NotificationCompat.PRIORITY_DEFAULT)
                     .setAutoCancel(true)
                     .setContentIntent(openPendingIntent)
-                    .addAction(0, context.getString(R.string.action_done), completeIntent)
-                    .addAction(0, context.getString(R.string.action_skip), skipIntent)
+                    .addAction(0, context.getString(primaryAction.labelRes), primaryIntent)
+                    .addAction(0, context.getString(secondaryAction.labelRes), secondaryIntent)
                     .build()
             try {
                 notificationManager.notify(itemId ?: type.hashCode(), notification)
@@ -113,4 +115,21 @@ class PushNotificationHandler
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
             )
         }
+
+        private fun primaryActionFor(type: String): NotificationAction =
+            when (type) {
+                "medication" -> NotificationAction(action = "complete", labelRes = R.string.action_take)
+                else -> NotificationAction(action = "complete", labelRes = R.string.home_action_complete)
+            }
+
+        private fun secondaryActionFor(type: String): NotificationAction =
+            when (type) {
+                "medication" -> NotificationAction(action = "skip", labelRes = R.string.action_skip)
+                else -> NotificationAction(action = "snooze", labelRes = R.string.action_snooze)
+            }
     }
+
+private data class NotificationAction(
+    val action: String,
+    val labelRes: Int,
+)
