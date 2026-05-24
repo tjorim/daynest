@@ -1,4 +1,4 @@
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from types import SimpleNamespace
 
 import pytest
@@ -12,7 +12,7 @@ _FIXED_NOW = datetime(2026, 4, 23, 10, 0, tzinfo=timezone.utc)
 
 
 class StubTodayRepository:
-    def __init__(self, tasks: list[SimpleNamespace], overdue: list[SimpleNamespace], due: list[SimpleNamespace], upcoming: list[SimpleNamespace], medication: list[SimpleNamespace], medication_history: list[SimpleNamespace], planned: list[SimpleNamespace], overdue_planned: list[SimpleNamespace] | None = None, dose: SimpleNamespace | None = None, timezone: str = "UTC"):
+    def __init__(self, tasks: list[SimpleNamespace], overdue: list[SimpleNamespace], due: list[SimpleNamespace], upcoming: list[SimpleNamespace], medication: list[SimpleNamespace], medication_history: list[SimpleNamespace], planned: list[SimpleNamespace], overdue_planned: list[SimpleNamespace] | None = None, dose: SimpleNamespace | None = None, timezone: str = "UTC", missed_doses: list[SimpleNamespace] | None = None):
         self._tasks = tasks
         self._overdue = overdue
         self._due = due
@@ -23,6 +23,7 @@ class StubTodayRepository:
         self._overdue_planned = overdue_planned if overdue_planned is not None else []
         self._dose = dose
         self._timezone = timezone
+        self._missed_doses = missed_doses if missed_doses is not None else []
         self.generated_through: date | None = None
         self.tasks_generated_through: date | None = None
         self.grace_minutes: int | None = None
@@ -81,6 +82,13 @@ class StubTodayRepository:
         if is_done is False and start_date is None and end_date is not None:
             return self._overdue_planned
         return self._planned
+
+    def get_missed_doses_before(self, user_id: int, before_date: date) -> list[SimpleNamespace]:
+        return [
+            dose
+            for dose in self._missed_doses
+            if dose.status == MedicationDoseStatus.missed and dose.scheduled_date < before_date
+        ]
 
 
 def test_get_today_shapes_chore_sections() -> None:
@@ -319,6 +327,22 @@ def test_mutate_medication_take_from_missed() -> None:
     assert repo.saved
 
 
+def test_mutate_medication_take_rejects_future_taken_at() -> None:
+    dose = _make_dose(MedicationDoseStatus.scheduled)
+    repo, service = _make_service(dose)
+
+    with pytest.raises(HTTPException) as exc_info:
+        service.mutate_medication_status(
+            user_id=7,
+            medication_dose_instance_id=1,
+            action="take",
+            taken_at=_FIXED_NOW + timedelta(minutes=1),
+        )
+
+    assert exc_info.value.status_code == 422
+    assert repo.saved is False
+
+
 def test_mutate_medication_skip_from_missed() -> None:
     """A missed dose can be explicitly skipped."""
     dose = _make_dose(MedicationDoseStatus.missed)
@@ -373,3 +397,29 @@ def test_get_today_threads_user_timezone_to_medication_generation() -> None:
     service = TodayService(repository=repo, app_settings=AppSettings())
     service.get_today(user_id=7, for_date=date(2026, 4, 23))
     assert repo.captured_user_timezone == "America/New_York"
+
+
+def test_skip_missed_medication_doses_default_cutoff_does_not_touch_today() -> None:
+    fixed_today = _FIXED_NOW.date()
+    missed_yesterday = _make_dose(MedicationDoseStatus.missed)
+    missed_yesterday.scheduled_date = fixed_today - timedelta(days=1)
+    missed_today = _make_dose(MedicationDoseStatus.missed)
+    missed_today.scheduled_date = fixed_today
+    repo = StubTodayRepository(
+        tasks=[],
+        overdue=[],
+        due=[],
+        upcoming=[],
+        medication=[],
+        medication_history=[],
+        planned=[],
+        missed_doses=[missed_yesterday, missed_today],
+    )
+    service = TodayService(repository=repo, app_settings=AppSettings())
+
+    count, cutoff = service.skip_missed_medication_doses(user_id=7)
+
+    assert cutoff == fixed_today
+    assert count == 1
+    assert missed_yesterday.status == MedicationDoseStatus.skipped
+    assert missed_today.status == MedicationDoseStatus.missed

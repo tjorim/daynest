@@ -566,6 +566,28 @@ class TodayService:
             if persist:
                 self.repository.save()
 
+    def defer_planned_item(self, user_id: int, planned_item_id: int, days: int = 1) -> PlannedTodayItem:
+        if days < 1:
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="days must be >= 1")
+        item = self._get_user_planned_item(user_id=user_id, planned_item_id=planned_item_id)
+        return self.update_planned_item(
+            user_id=user_id,
+            planned_item_id=planned_item_id,
+            request=PlannedItemUpdateRequest(
+                title=item.title,
+                planned_for=self.repository.utcnow().date() + timedelta(days=days),
+                is_done=False,
+                notes=item.notes,
+                module_key=cast(PlannedItemModuleKey | None, item.module_key),
+                recurrence_hint=item.recurrence_hint,
+                rrule=item.rrule,
+                linked_source=item.linked_source,
+                linked_ref=item.linked_ref,
+                priority=item.priority,
+                tags=item.tags or [],
+            ),
+        )
+
     def delete_planned_item_series(self, user_id: int, recurrence_series_id: str) -> int:
         from uuid import UUID as _UUID
         try:
@@ -897,7 +919,13 @@ class TodayService:
             raise ValueError(f"Medication plan {medication_plan_id} not found")
         self.repository.delete_medication_plan(plan)
 
-    def mutate_medication_status(self, user_id: int, medication_dose_instance_id: int, action: str):
+    def mutate_medication_status(
+        self,
+        user_id: int,
+        medication_dose_instance_id: int,
+        action: str,
+        taken_at: datetime | None = None,
+    ):
         instance = self.repository.get_dose_for_user(user_id=user_id, dose_id=medication_dose_instance_id)
         if instance is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Medication dose instance not found")
@@ -906,8 +934,16 @@ class TodayService:
         if action == "take":
             if instance.status not in {MedicationDoseStatus.scheduled, MedicationDoseStatus.missed}:
                 raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Medication dose can only be taken from scheduled or missed")
+            if taken_at is not None:
+                # Ensure timezone-aware for comparison
+                ta = taken_at if taken_at.tzinfo is not None else taken_at.replace(tzinfo=timezone.utc)
+                if ta > now:
+                    raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="taken_at must not be in the future")
+                resolved_taken_at = ta
+            else:
+                resolved_taken_at = now
             instance.status = MedicationDoseStatus.taken
-            instance.taken_at = now
+            instance.taken_at = resolved_taken_at
             instance.skipped_at = None
             instance.missed_at = None
         elif action == "skip":
@@ -929,3 +965,17 @@ class TodayService:
 
         self.repository.save()
         return instance
+
+    def skip_missed_medication_doses(self, user_id: int, before_date: date | None = None) -> tuple[int, date]:
+        """Skip all missed doses with scheduled_date strictly before before_date (defaults to today)."""
+        cutoff = before_date if before_date is not None else self.repository.utcnow().date()
+        doses = self.repository.get_missed_doses_before(user_id=user_id, before_date=cutoff)
+        now = self.repository.utcnow()
+        for dose in doses:
+            dose.status = MedicationDoseStatus.skipped
+            dose.skipped_at = now
+            dose.taken_at = None
+            dose.missed_at = None
+        if doses:
+            self.repository.save()
+        return len(doses), cutoff

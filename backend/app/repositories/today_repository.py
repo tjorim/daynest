@@ -4,8 +4,11 @@ from datetime import date, datetime, time, timedelta, timezone
 from uuid import UUID
 from zoneinfo import ZoneInfo
 
+from typing import cast
+
 from sqlalchemy import and_, delete, func, insert, or_, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
+from sqlalchemy.engine import CursorResult
 from sqlalchemy.orm import Session
 
 from app.core.enums import ChoreStatus, MedicationDoseStatus, Priority, TaskStatus
@@ -496,11 +499,14 @@ class TodayRepository:
         self.db.commit()
 
     def delete_planned_item_series(self, *, user_id: int, recurrence_series_id: UUID) -> int:
-        result = self.db.execute(
-            delete(PlannedItem).where(
-                PlannedItem.user_id == user_id,
-                PlannedItem.recurrence_series_id == recurrence_series_id,
-            )
+        result = cast(
+            CursorResult,
+            self.db.execute(
+                delete(PlannedItem).where(
+                    PlannedItem.user_id == user_id,
+                    PlannedItem.recurrence_series_id == recurrence_series_id,
+                )
+            ),
         )
         self.db.commit()
         return result.rowcount
@@ -563,6 +569,17 @@ class TodayRepository:
             .where(MedicationDoseInstance.scheduled_date <= end_date)
             .join(MedicationPlan, MedicationDoseInstance.medication_plan_id == MedicationPlan.id)
             .where(MedicationPlan.is_active.is_(True))
+        )
+        return list(self.db.scalars(stmt).all())
+
+    def get_missed_doses_before(self, user_id: int, before_date: date) -> list[MedicationDoseInstance]:
+        """Return all missed doses with scheduled_date strictly before before_date."""
+        stmt = (
+            select(MedicationDoseInstance)
+            .where(MedicationDoseInstance.user_id == user_id)
+            .where(MedicationDoseInstance.status == MedicationDoseStatus.missed)
+            .where(MedicationDoseInstance.scheduled_date < before_date)
+            .order_by(MedicationDoseInstance.scheduled_date.asc(), MedicationDoseInstance.id.asc())
         )
         return list(self.db.scalars(stmt).all())
 

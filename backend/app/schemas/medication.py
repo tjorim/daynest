@@ -31,6 +31,25 @@ class MedicationPlanResponse(BaseModel):
     is_active: bool
 
 
+class MedicationDoseTakeRequest(BaseModel):
+    taken_at: datetime | None = Field(
+        default=None,
+        description="Optional timestamp when the dose was actually taken. Must not be in the future. Defaults to now.",
+    )
+
+
+class SkipMissedDosesRequest(BaseModel):
+    before_date: date | None = Field(
+        default=None,
+        description="Skip all missed doses with scheduled_date strictly before this date. Defaults to today.",
+    )
+
+
+class SkipMissedDosesResponse(BaseModel):
+    skipped_count: int
+    before_date: date
+
+
 class MedicationDoseMutationResponse(BaseModel):
     medication_dose_instance_id: int
     status: MedicationDoseStatus
