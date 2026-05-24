@@ -21,6 +21,10 @@ class UserPreferencesRepositoryTest {
                 val prefs = awaitItem()
                 assertEquals(0L, prefs.lastTodayFetchEpochMillis)
                 assertEquals(null, prefs.customServerUrl)
+                assertEquals(false, prefs.biometricLockEnabled)
+                assertEquals(5, prefs.biometricIdleTimeoutMinutes)
+                assertEquals(true, prefs.pushNotificationsEnabled)
+                assertEquals(false, prefs.calendarSyncEnabled)
                 cancelAndIgnoreRemainingEvents()
             }
         }
@@ -63,6 +67,29 @@ class UserPreferencesRepositoryTest {
                 repository.updateCustomServerUrl(null)
 
                 assertEquals(null, awaitItem().customServerUrl)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `privacy toggles persist`() =
+        runTest {
+            repository.preferences.test {
+                awaitItem()
+
+                repository.updateBiometricLockEnabled(true)
+                awaitItem()
+                repository.updateBiometricIdleTimeoutMinutes(30)
+                awaitItem()
+                repository.updatePushNotificationsEnabled(false)
+                awaitItem()
+                repository.updateCalendarSyncEnabled(true)
+
+                val updated = awaitItem()
+                assertEquals(true, updated.biometricLockEnabled)
+                assertEquals(30, updated.biometricIdleTimeoutMinutes)
+                assertEquals(false, updated.pushNotificationsEnabled)
+                assertEquals(true, updated.calendarSyncEnabled)
                 cancelAndIgnoreRemainingEvents()
             }
         }

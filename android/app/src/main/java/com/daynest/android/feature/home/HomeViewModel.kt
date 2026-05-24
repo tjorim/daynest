@@ -16,8 +16,11 @@ import com.daynest.android.data.today.UpcomingTodayItemDto
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -33,8 +36,11 @@ class HomeViewModel
         private val plannedItemRepository: PlannedItemRepository,
     ) : ViewModel() {
         private val _uiState = MutableStateFlow<HomeUiState>(HomeUiState.Loading)
+        private val _effects = MutableSharedFlow<HomeUiEffect>()
+        private var latestPendingMutationCount = 0
 
         val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
+        val effects: SharedFlow<HomeUiEffect> = _effects.asSharedFlow()
 
         init {
             viewModelScope.launch {
@@ -45,7 +51,12 @@ class HomeViewModel
                         } else {
                             when (val c = current) {
                                 is HomeUiState.Content -> c.copy(summary = summary, isStale = false)
-                                else -> HomeUiState.Content(summary = summary, isStale = false)
+                                else ->
+                                    HomeUiState.Content(
+                                        summary = summary,
+                                        isStale = false,
+                                        pendingMutationCount = latestPendingMutationCount,
+                                    )
                             }
                         }
                     }
@@ -96,9 +107,29 @@ class HomeViewModel
                                         dueToday = response.dueToday,
                                         upcoming = response.upcoming,
                                         planned = response.planned,
+                                        pendingMutationCount = latestPendingMutationCount,
                                     )
                             }
                         }
+                    }
+                }
+            }
+            viewModelScope.launch {
+                repository.observePendingMutationCount().collect { count ->
+                    latestPendingMutationCount = count
+                    _uiState.update { current ->
+                        when (current) {
+                            is HomeUiState.Content -> current.copy(pendingMutationCount = count)
+                            else -> current
+                        }
+                    }
+                }
+            }
+            viewModelScope.launch {
+                repository.observeSyncNotices().collect { notices ->
+                    notices.forEach { notice ->
+                        _effects.emit(HomeUiEffect.ShowSnackbar(notice.message))
+                        repository.markSyncNoticeConsumed(notice.id)
                     }
                 }
             }
@@ -401,6 +432,7 @@ sealed interface HomeUiState {
         val upcoming: List<UpcomingTodayItemDto> = emptyList(),
         val planned: List<PlannedTodayItemDto> = emptyList(),
         val isStale: Boolean = false,
+        val pendingMutationCount: Int = 0,
         val selectedChoreIds: Set<Int> = emptySet(),
         val selectedRoutineIds: Set<Int> = emptySet(),
         val selectedPlannedIds: Set<Int> = emptySet(),
@@ -491,6 +523,12 @@ sealed interface HomeUiEvent {
     data class BulkUndo(
         val type: SectionType,
     ) : HomeUiEvent
+}
+
+sealed interface HomeUiEffect {
+    data class ShowSnackbar(
+        val message: String,
+    ) : HomeUiEffect
 }
 
 enum class SectionType { CHORES, ROUTINES, PLANNED }

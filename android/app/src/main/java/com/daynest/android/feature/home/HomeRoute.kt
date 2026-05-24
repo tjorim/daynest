@@ -21,9 +21,11 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -49,11 +51,21 @@ fun HomeRoute(
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(viewModel) {
+        viewModel.effects.collect { effect ->
+            when (effect) {
+                is HomeUiEffect.ShowSnackbar -> snackbarHostState.showSnackbar(effect.message)
+            }
+        }
+    }
 
     HomeScreen(
         uiState = uiState,
         onEvent = viewModel::onEvent,
         onNavigate = onNavigate,
+        snackbarHostState = snackbarHostState,
     )
 }
 
@@ -62,10 +74,12 @@ internal fun HomeScreen(
     uiState: HomeUiState,
     onEvent: (HomeUiEvent) -> Unit,
     onNavigate: (String) -> Unit = {},
+    snackbarHostState: SnackbarHostState? = null,
 ) {
     DaynestNavigationScaffold(
         currentRoute = DaynestDestination.HOME,
         onNavigate = onNavigate,
+        snackbarHostState = snackbarHostState,
     ) { innerPadding ->
         when (val state = uiState) {
             HomeUiState.Loading -> {
@@ -139,6 +153,18 @@ private fun TodayContent(
                 if (state.isStale) {
                     Text(
                         text = stringResource(id = R.string.home_stale_notice),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.outline,
+                    )
+                }
+                if (state.pendingMutationCount > 0) {
+                    Text(
+                        text =
+                            pluralStringResource(
+                                id = R.plurals.home_pending_mutations,
+                                count = state.pendingMutationCount,
+                                state.pendingMutationCount,
+                            ),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.outline,
                     )

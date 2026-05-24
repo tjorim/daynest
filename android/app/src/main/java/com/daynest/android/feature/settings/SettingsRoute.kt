@@ -2,6 +2,9 @@
 
 package com.daynest.android.feature.settings
 
+import android.Manifest
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,13 +14,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -28,6 +30,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -38,7 +41,6 @@ import com.daynest.android.app.navigation.DaynestNavigationScaffold
 import com.daynest.android.data.settings.IntegrationClientDto
 import com.daynest.android.data.settings.IntegrationClientInputDto
 import com.daynest.android.data.settings.OAuthSessionDto
-import com.daynest.android.ui.ServerUrlPicker
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -95,12 +97,25 @@ private fun SettingsScreen(
 }
 
 @Composable
-@Suppress("LongMethod")
 private fun SettingsContent(
     state: SettingsUiState.Content,
     onEvent: (SettingsUiEvent) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val context = LocalContext.current
+    val calendarPermissionLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
+            val granted =
+                result.isNotEmpty() &&
+                    result[Manifest.permission.READ_CALENDAR] == true &&
+                    result[Manifest.permission.WRITE_CALENDAR] == true
+            onEvent(SettingsUiEvent.UpdateCalendarSyncEnabled(granted))
+        }
+    val notificationsPermissionLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            onEvent(SettingsUiEvent.UpdatePushNotificationsEnabled(granted))
+        }
+
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
@@ -112,132 +127,17 @@ private fun SettingsContent(
                 style = MaterialTheme.typography.headlineMedium,
             )
         }
-
-        item {
-            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-            Text(
-                text = stringResource(id = R.string.settings_server_section),
-                style = MaterialTheme.typography.titleMedium,
-            )
-        }
-
-        item {
-            ServerUrlPicker(
-                defaultServerUrl = state.defaultServerUrl,
-                customServerUrl = state.customServerUrl,
-                onServerUrlChanged = { onEvent(SettingsUiEvent.UpdateServerUrl(it)) },
-            )
-        }
-
-        item {
-            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-            Text(
-                text = stringResource(id = R.string.settings_account_section),
-                style = MaterialTheme.typography.titleMedium,
-            )
-        }
-
-        item {
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Row(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        text = stringResource(id = R.string.settings_session_active),
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.weight(1f),
-                    )
-                    TextButton(onClick = { onEvent(SettingsUiEvent.SignOutClicked) }) {
-                        Text(
-                            text = stringResource(id = R.string.settings_sign_out),
-                            color = MaterialTheme.colorScheme.error,
-                        )
-                    }
-                }
-            }
-        }
-
-        item {
-            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = stringResource(id = R.string.settings_integrations_section),
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.weight(1f),
-                )
-                TextButton(onClick = { onEvent(SettingsUiEvent.ShowCreateClientForm) }) {
-                    Text(text = stringResource(id = R.string.settings_new_client))
-                }
-            }
-        }
-
-        if (state.clientsLoadError) {
-            item {
-                Text(
-                    text = stringResource(id = R.string.settings_clients_error),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error,
-                )
-                TextButton(onClick = { onEvent(SettingsUiEvent.RetryClicked) }) {
-                    Text(text = stringResource(id = R.string.home_retry))
-                }
-            }
-        } else if (state.clients.isEmpty()) {
-            item {
-                Text(
-                    text = stringResource(id = R.string.settings_no_clients),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.outline,
-                )
-            }
-        } else {
-            items(state.clients, key = { "client_${it.id}" }) { client ->
-                IntegrationClientCard(client = client)
-            }
-        }
-
-        item {
-            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-            Text(
-                text = stringResource(id = R.string.settings_sessions_section),
-                style = MaterialTheme.typography.titleMedium,
-            )
-        }
-
-        if (state.sessionsLoadError) {
-            item {
-                Text(
-                    text = stringResource(id = R.string.settings_sessions_error),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error,
-                )
-                TextButton(onClick = { onEvent(SettingsUiEvent.RetryClicked) }) {
-                    Text(text = stringResource(id = R.string.home_retry))
-                }
-            }
-        } else if (state.sessions.isEmpty()) {
-            item {
-                Text(
-                    text = stringResource(id = R.string.settings_no_sessions),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.outline,
-                )
-            }
-        } else {
-            items(state.sessions, key = { "session_${it.id}" }) { session ->
-                OAuthSessionCard(
-                    session = session,
-                    onRevoke = { onEvent(SettingsUiEvent.RevokeSessionClicked(session.id)) },
-                )
-            }
-        }
+        settingsServerSection(state, onEvent)
+        settingsPrivacySection(
+            state = state,
+            context = context,
+            notificationsPermissionLauncher = notificationsPermissionLauncher,
+            calendarPermissionLauncher = calendarPermissionLauncher,
+            onEvent = onEvent,
+        )
+        settingsAccountSection(onEvent)
+        settingsClientsSection(state, onEvent)
+        settingsSessionsSection(state, onEvent)
     }
 
     if (state.showCreateForm) {
@@ -256,7 +156,35 @@ private fun SettingsContent(
 }
 
 @Composable
-private fun OAuthSessionCard(
+internal fun SettingToggleCard(
+    title: String,
+    subtitle: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = title, style = MaterialTheme.typography.bodyMedium)
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.outline,
+                )
+            }
+            Switch(checked = checked, onCheckedChange = onCheckedChange)
+        }
+    }
+}
+
+@Composable
+internal fun OAuthSessionCard(
     session: OAuthSessionDto,
     onRevoke: () -> Unit,
 ) {
@@ -309,7 +237,7 @@ private fun OAuthSessionCard(
 }
 
 @Composable
-private fun IntegrationClientCard(client: IntegrationClientDto) {
+internal fun IntegrationClientCard(client: IntegrationClientDto) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(12.dp)) {
             Row(

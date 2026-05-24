@@ -2,6 +2,7 @@ package com.daynest.android.core.di
 
 import com.daynest.android.data.calendar.CalendarApi
 import com.daynest.android.data.medication.MedicationApi
+import com.daynest.android.data.push.PushApi
 import com.daynest.android.data.settings.SettingsApi
 import com.daynest.android.data.templates.TemplatesApi
 import com.daynest.android.data.today.PlannedItemApi
@@ -44,4 +45,8 @@ object NetworkApiDiModule {
     @Provides
     @Singleton
     fun provideSettingsApi(retrofit: Retrofit): SettingsApi = retrofit.create(SettingsApi::class.java)
+
+    @Provides
+    @Singleton
+    fun providePushApi(retrofit: Retrofit): PushApi = retrofit.create(PushApi::class.java)
 }

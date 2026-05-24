@@ -1,5 +1,7 @@
 package com.daynest.android.feature.templates
 
+import com.daynest.android.core.database.sync.CacheEntryDao
+import com.daynest.android.core.database.sync.CacheEntryEntity
 import com.daynest.android.data.templates.ChoreTemplateDto
 import com.daynest.android.data.templates.ChoreTemplateInputDto
 import com.daynest.android.data.templates.RoutineTemplateDto
@@ -8,6 +10,9 @@ import com.daynest.android.data.templates.TemplatesApi
 import com.daynest.android.data.templates.TemplatesRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -38,7 +43,11 @@ class TemplatesViewModelTest {
         runTest {
             val viewModel =
                 TemplatesViewModel(
-                    repository = TemplatesRepository(FakeTemplatesApi()),
+                    repository =
+                        TemplatesRepository(
+                            templatesApi = FakeTemplatesApi(),
+                            cacheEntryDao = FakeCacheEntryDao(),
+                        ),
                 )
 
             advanceUntilIdle()
@@ -56,7 +65,11 @@ class TemplatesViewModelTest {
         runTest {
             val viewModel =
                 TemplatesViewModel(
-                    repository = TemplatesRepository(FakeTemplatesApi()),
+                    repository =
+                        TemplatesRepository(
+                            templatesApi = FakeTemplatesApi(),
+                            cacheEntryDao = FakeCacheEntryDao(),
+                        ),
                 )
 
             advanceUntilIdle()
@@ -66,6 +79,18 @@ class TemplatesViewModelTest {
             val state = viewModel.uiState.value as TemplatesUiState.Content
             assertTrue(state.routines.isEmpty())
         }
+}
+
+private class FakeCacheEntryDao : CacheEntryDao {
+    private val state = MutableStateFlow<Map<String, CacheEntryEntity>>(emptyMap())
+
+    override fun observe(cacheKey: String): Flow<CacheEntryEntity?> = state.map { it[cacheKey] }
+
+    override suspend fun get(cacheKey: String): CacheEntryEntity? = state.value[cacheKey]
+
+    override suspend fun upsert(entry: CacheEntryEntity) {
+        state.value = state.value + (entry.cacheKey to entry)
+    }
 }
 
 private class FakeTemplatesApi : TemplatesApi {

@@ -1,5 +1,9 @@
 package com.daynest.android.feature.home
 
+import com.daynest.android.core.database.sync.CacheEntryDao
+import com.daynest.android.core.database.sync.CacheEntryEntity
+import com.daynest.android.core.database.sync.PendingMutationDao
+import com.daynest.android.core.database.sync.PendingMutationEntity
 import com.daynest.android.core.database.today.TodaySummaryDao
 import com.daynest.android.core.database.today.TodaySummaryEntity
 import com.daynest.android.data.today.ChoreMutationDto
@@ -27,6 +31,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -68,8 +73,15 @@ class HomeViewModelTest {
                                 },
                             todayActionsApi = StubTodayActionsApi(),
                             todaySummaryDao = FakeTodaySummaryDao(),
+                            cacheEntryDao = FakeCacheEntryDao(),
+                            pendingMutationDao = FakePendingMutationDao(),
                         ),
-                    plannedItemRepository = PlannedItemRepository(StubPlannedItemApi()),
+                    plannedItemRepository =
+                        PlannedItemRepository(
+                            plannedItemApi = StubPlannedItemApi(),
+                            cacheEntryDao = FakeCacheEntryDao(),
+                            pendingMutationDao = FakePendingMutationDao(),
+                        ),
                 )
 
             advanceUntilIdle()
@@ -96,8 +108,15 @@ class HomeViewModelTest {
                                 },
                             todayActionsApi = StubTodayActionsApi(),
                             todaySummaryDao = FakeTodaySummaryDao(),
+                            cacheEntryDao = FakeCacheEntryDao(),
+                            pendingMutationDao = FakePendingMutationDao(),
                         ),
-                    plannedItemRepository = PlannedItemRepository(StubPlannedItemApi()),
+                    plannedItemRepository =
+                        PlannedItemRepository(
+                            plannedItemApi = StubPlannedItemApi(),
+                            cacheEntryDao = FakeCacheEntryDao(),
+                            pendingMutationDao = FakePendingMutationDao(),
+                        ),
                 )
 
             advanceUntilIdle()
@@ -122,11 +141,18 @@ class HomeViewModelTest {
                     todayApi = api,
                     todayActionsApi = StubTodayActionsApi(),
                     todaySummaryDao = FakeTodaySummaryDao(),
+                    cacheEntryDao = FakeCacheEntryDao(),
+                    pendingMutationDao = FakePendingMutationDao(),
                 )
             val viewModel =
                 HomeViewModel(
                     repository = repository,
-                    plannedItemRepository = PlannedItemRepository(StubPlannedItemApi()),
+                    plannedItemRepository =
+                        PlannedItemRepository(
+                            plannedItemApi = StubPlannedItemApi(),
+                            cacheEntryDao = FakeCacheEntryDao(),
+                            pendingMutationDao = FakePendingMutationDao(),
+                        ),
                 )
 
             advanceUntilIdle()
@@ -159,8 +185,15 @@ class HomeViewModelTest {
                             todayApi = api,
                             todayActionsApi = StubTodayActionsApi(),
                             todaySummaryDao = dao,
+                            cacheEntryDao = FakeCacheEntryDao(),
+                            pendingMutationDao = FakePendingMutationDao(),
                         ),
-                    plannedItemRepository = PlannedItemRepository(StubPlannedItemApi()),
+                    plannedItemRepository =
+                        PlannedItemRepository(
+                            plannedItemApi = StubPlannedItemApi(),
+                            cacheEntryDao = FakeCacheEntryDao(),
+                            pendingMutationDao = FakePendingMutationDao(),
+                        ),
                 )
 
             advanceUntilIdle()
@@ -174,6 +207,53 @@ class HomeViewModelTest {
             assertTrue(state is HomeUiState.Content)
             assertTrue((state as HomeUiState.Content).isStale)
         }
+}
+
+private class FakeCacheEntryDao : CacheEntryDao {
+    private val state = MutableStateFlow<Map<String, CacheEntryEntity>>(emptyMap())
+
+    override fun observe(cacheKey: String): Flow<CacheEntryEntity?> = state.map { it[cacheKey] }
+
+    override suspend fun get(cacheKey: String): CacheEntryEntity? = state.value[cacheKey]
+
+    override suspend fun upsert(entry: CacheEntryEntity) {
+        state.value = state.value + (entry.cacheKey to entry)
+    }
+}
+
+private class FakePendingMutationDao : PendingMutationDao {
+    private val entries = mutableListOf<PendingMutationEntity>()
+    private val count = MutableStateFlow(0)
+
+    override fun observeCount(): Flow<Int> = count
+
+    override suspend fun listAll(): List<PendingMutationEntity> = entries.toList()
+
+    override suspend fun enqueue(entity: PendingMutationEntity) {
+        entries += entity.copy(id = entries.size + 1L)
+        count.value = entries.size
+    }
+
+    override suspend fun delete(id: Long) {
+        entries.removeAll { it.id == id }
+        count.value = entries.size
+    }
+
+    override suspend fun updateAttempts(
+        id: Long,
+        attempts: Int,
+    ) {
+        entries.replaceAll { entry -> if (entry.id == id) entry.copy(attempts = attempts) else entry }
+    }
+
+    override suspend fun markRemoteApplied(
+        id: Long,
+        appliedAtEpochMillis: Long,
+    ) {
+        entries.replaceAll { entry ->
+            if (entry.id == id) entry.copy(remoteAppliedAtEpochMillis = appliedAtEpochMillis) else entry
+        }
+    }
 }
 
 private class FakeTodaySummaryDao : TodaySummaryDao {

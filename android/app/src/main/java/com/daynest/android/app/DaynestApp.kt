@@ -9,6 +9,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.daynest.android.app.navigation.DaynestDestination
+import com.daynest.android.app.session.BiometricGate
 import com.daynest.android.app.session.SessionGateRoute
 import com.daynest.android.feature.auth.AuthRoute
 import com.daynest.android.feature.calendar.CalendarRoute
@@ -22,6 +23,7 @@ import com.daynest.android.ui.theme.DaynestTheme
 fun DaynestApp() {
     DaynestTheme {
         val navController = rememberNavController()
+        BiometricGate()
 
         NavHost(
             navController = navController,
