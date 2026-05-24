@@ -655,7 +655,7 @@ def test_mcp_backend_update_planned_item_with_priority_and_tags(db_session: Sess
 
 
 def test_mcp_backend_defer_planned_item(db_session: Session) -> None:
-    from datetime import date, timedelta
+    from datetime import timedelta
 
     user = _create_user(db_session, "planned-defer@example.com")
     backend = DaynestMcpBackend(_session_factory(db_session), user_email=user.email)
