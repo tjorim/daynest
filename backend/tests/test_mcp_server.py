@@ -595,16 +595,24 @@ def test_create_mcp_server_uses_backend_session_factory(db_session: Session, mon
     assert mcp.auth.session_factory == session_factory
 
 
-def test_mcp_server_version_contains_tool_version(db_session: Session, monkeypatch) -> None:
-    """MCP server version should embed _MCP_TOOL_VERSION so clients see manifest changes."""
-    from app import mcp_server as _ms
-
+def test_mcp_server_version_uses_build_version_env(db_session: Session, monkeypatch) -> None:
     monkeypatch.setattr(settings, "oidc_issuer_url", None)
     backend = DaynestMcpBackend(_session_factory(db_session))
+    monkeypatch.setenv("BUILD_VERSION", "abc1234")
 
     mcp = create_mcp_server(backend)
 
-    assert _ms._MCP_TOOL_VERSION in mcp.version
+    assert mcp.version == "abc1234"
+
+
+def test_mcp_server_version_defaults_to_dev_when_build_version_missing(db_session: Session, monkeypatch) -> None:
+    monkeypatch.setattr(settings, "oidc_issuer_url", None)
+    backend = DaynestMcpBackend(_session_factory(db_session))
+    monkeypatch.delenv("BUILD_VERSION", raising=False)
+
+    mcp = create_mcp_server(backend)
+
+    assert mcp.version == "dev"
 
 
 def test_mcp_backend_create_planned_item_with_priority_and_tags(db_session: Session) -> None:
@@ -627,31 +635,46 @@ def test_mcp_backend_update_planned_item_with_priority_and_tags(db_session: Sess
     user = _create_user(db_session, "planned-update-priority@example.com")
     backend = DaynestMcpBackend(_session_factory(db_session), user_email=user.email)
 
-    created = backend.create_planned_item(title="Task", planned_for="2026-05-25")
-    updated = backend.update_planned_item(
-        planned_item_id=created["id"],
+    created = backend.create_planned_item(
         title="Task",
         planned_for="2026-05-25",
+        notes="original notes",
+        tags=["home"],
+    )
+    updated = backend.update_planned_item(
+        planned_item_id=created["id"],
         priority="urgent",
         tags=["urgent-tag"],
     )
 
     assert updated["priority"] == "urgent"
     assert updated["tags"] == ["urgent-tag"]
+    assert updated["title"] == "Task"
+    assert updated["planned_for"] == "2026-05-25"
+    assert updated["notes"] == "original notes"
 
 
 def test_mcp_backend_defer_planned_item(db_session: Session) -> None:
-    from datetime import date
+    from datetime import date, timedelta
 
     user = _create_user(db_session, "planned-defer@example.com")
     backend = DaynestMcpBackend(_session_factory(db_session), user_email=user.email)
 
-    # Create an item for today
-    created = backend.create_planned_item(title="Defer me", planned_for="today")
-    result = backend.defer_planned_item(created["id"])
+    created = backend.create_planned_item(
+        title="Defer me",
+        planned_for="2026-05-25",
+        notes="preserve me",
+        priority="high",
+        tags=["work"],
+    )
+    result = backend.defer_planned_item(created["id"], days=7)
 
-    tomorrow = (date.today() + __import__("datetime").timedelta(days=1)).isoformat()
-    assert result["planned_for"] == tomorrow
+    expected = (date(2026, 5, 25) + timedelta(days=7)).isoformat()
+    assert result["planned_for"] == expected
+    assert result["title"] == "Defer me"
+    assert result["notes"] == "preserve me"
+    assert result["priority"] == "high"
+    assert result["tags"] == ["work"]
     assert result["is_done"] is False
 
 

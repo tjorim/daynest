@@ -8,7 +8,7 @@ from collections.abc import Callable
 from contextlib import contextmanager
 from datetime import date, datetime, time
 from secrets import token_urlsafe
-from typing import Any, TypeVar
+from typing import Any, TypeVar, cast
 
 from anyio import to_thread
 from fastapi import HTTPException
@@ -42,10 +42,6 @@ if not logger.handlers:
 
 DAYNEST_USER_EMAIL_ENV = "DAYNEST_USER_EMAIL"
 DAYNEST_MCP_RESOURCE_SERVER_URL_ENV = "DAYNEST_MCP_RESOURCE_SERVER_URL"
-
-# Bump this constant whenever tools or parameters are added/changed so MCP clients
-# that cache the tool manifest see the new version and reload their tool list.
-_MCP_TOOL_VERSION = "2026.05.1"
 
 T = TypeVar("T")
 
@@ -288,10 +284,9 @@ class DaynestMcpBackend:
         rrule: str | None = None,
         linked_source: str | None = None,
         linked_ref: str | None = None,
-        priority: str | None = None,
+        priority: str = "normal",
         tags: list[str] | None = None,
     ) -> dict[str, Any]:
-        from app.core.enums import Priority as _Priority
         request = PlannedItemCreateRequest(
             title=title,
             planned_for=_parse_date(planned_for),
@@ -301,7 +296,7 @@ class DaynestMcpBackend:
             rrule=rrule,
             linked_source=linked_source,
             linked_ref=linked_ref,
-            priority=_Priority(priority) if priority else _Priority.normal,
+            priority=Priority(priority),
             tags=tags or [],
         )
         return self._with_service(lambda _db, user, service: _jsonable(service.create_planned_item(user.id, request)))
@@ -309,9 +304,9 @@ class DaynestMcpBackend:
     def update_planned_item(
         self,
         planned_item_id: int,
-        title: str,
-        planned_for: str,
-        is_done: bool = False,
+        title: str | None = None,
+        planned_for: str | None = None,
+        is_done: bool | None = None,
         notes: str | None = None,
         module_key: PlannedItemModuleKey | None = None,
         recurrence_hint: str | None = None,
@@ -321,24 +316,29 @@ class DaynestMcpBackend:
         priority: str | None = None,
         tags: list[str] | None = None,
     ) -> dict[str, Any]:
-        from app.core.enums import Priority as _Priority
-        request = PlannedItemUpdateRequest(
-            title=title,
-            planned_for=_parse_date(planned_for),
-            is_done=is_done,
-            notes=notes,
-            module_key=module_key,
-            recurrence_hint=recurrence_hint,
-            rrule=rrule,
-            linked_source=linked_source,
-            linked_ref=linked_ref,
-            priority=_Priority(priority) if priority else _Priority.normal,
-            tags=tags or [],
-        )
-        return self._with_service(lambda _db, user, service: _jsonable(service.update_planned_item(user.id, planned_item_id, request)))
+        def _operation(_db: Session, user: User, service: TodayService) -> dict[str, Any]:
+            existing = service.repository.get_planned_item_for_user(user_id=user.id, planned_item_id=planned_item_id)
+            if existing is None:
+                raise HTTPException(status_code=404, detail="Planned item not found")
+            request = PlannedItemUpdateRequest(
+                title=title if title is not None else existing.title,
+                planned_for=_parse_date(planned_for) if planned_for is not None else existing.planned_for,
+                is_done=is_done if is_done is not None else existing.is_done,
+                notes=notes if notes is not None else existing.notes,
+                module_key=module_key if module_key is not None else cast(PlannedItemModuleKey | None, existing.module_key),
+                recurrence_hint=recurrence_hint if recurrence_hint is not None else existing.recurrence_hint,
+                rrule=rrule if rrule is not None else existing.rrule,
+                linked_source=linked_source if linked_source is not None else existing.linked_source,
+                linked_ref=linked_ref if linked_ref is not None else existing.linked_ref,
+                priority=Priority(priority) if priority is not None else existing.priority,
+                tags=tags if tags is not None else (existing.tags or []),
+            )
+            return _jsonable(service.update_planned_item(user.id, planned_item_id, request))
 
-    def defer_planned_item(self, planned_item_id: int) -> dict[str, Any]:
-        return self._with_service(lambda _db, user, service: _jsonable(service.defer_planned_item(user.id, planned_item_id)))
+        return self._with_service(_operation)
+
+    def defer_planned_item(self, planned_item_id: int, days: int = 1) -> dict[str, Any]:
+        return self._with_service(lambda _db, user, service: _jsonable(service.defer_planned_item(user.id, planned_item_id, days)))
 
     def delete_planned_item(self, planned_item_id: int) -> dict[str, Any]:
         self._with_service(lambda _db, user, service: service.delete_planned_item(user.id, planned_item_id))
@@ -670,7 +670,7 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
     _build_version = os.getenv("BUILD_VERSION", "dev")
     mcp = FastMCP(
         "Daynest",
-        version=f"{_build_version}+tools{_MCP_TOOL_VERSION}",
+        version=_build_version,
         auth=auth,
     )
 
@@ -736,7 +736,7 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
         rrule: str | None = None,
         linked_source: str | None = None,
         linked_ref: str | None = None,
-        priority: str | None = None,
+        priority: str = "normal",
         tags: list[str] | None = None,
     ) -> dict[str, Any]:
         """Create a planned Daynest item.
@@ -756,7 +756,7 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
                   FREQ=MONTHLY;BYDAY=1SA       first Saturday of each month
             linked_source: Optional external source identifier.
             linked_ref: Optional external reference identifier.
-            priority: Item priority — one of 'low', 'normal', 'high', 'urgent'. Defaults to 'normal'.
+            priority: Item priority — one of 'normal', 'high', 'urgent'. Defaults to 'normal'.
             tags: Optional list of free-text tags for filtering and organisation.
         """
 
@@ -777,9 +777,9 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
     @mcp.tool()
     async def update_planned_item(
         planned_item_id: int,
-        title: str,
-        planned_for: str,
-        is_done: bool = False,
+        title: str | None = None,
+        planned_for: str | None = None,
+        is_done: bool | None = None,
         notes: str | None = None,
         module_key: PlannedItemModuleKey | None = None,
         recurrence_hint: str | None = None,
@@ -793,18 +793,18 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
 
         Args:
             planned_item_id: ID of the item to update.
-            title: Updated title.
-            planned_for: Updated date in YYYY-MM-DD format or 'today'.
-            is_done: Mark the item as completed.
-            notes: Updated notes.
-            module_key: Updated module association.
-            recurrence_hint: Human-readable recurrence label. Purely descriptive.
+            title: Updated title. Omit to keep current value.
+            planned_for: Updated date in YYYY-MM-DD format or 'today'. Omit to keep current value.
+            is_done: Mark the item as completed. Omit to keep current value.
+            notes: Updated notes. Omit to keep current value.
+            module_key: Updated module association. Omit to keep current value.
+            recurrence_hint: Human-readable recurrence label. Purely descriptive. Omit to keep current value.
             rrule: RFC 5545 recurrence rule. Setting this on an existing item replaces
-                its rule; set to null to remove recurrence.
-            linked_source: Updated external source identifier.
-            linked_ref: Updated external reference identifier.
-            priority: Item priority — one of 'low', 'normal', 'high', 'urgent'. Omit to keep current value.
-            tags: Updated list of free-text tags. Omit to keep current value; pass [] to clear all tags.
+                its rule. Omit to keep current value.
+            linked_source: Updated external source identifier. Omit to keep current value.
+            linked_ref: Updated external reference identifier. Omit to keep current value.
+            priority: Item priority — one of 'normal', 'high', 'urgent'. Omit to keep current value.
+            tags: Updated list of free-text tags. Omit to keep current value; pass [] to replace with an empty list.
         """
 
         return await to_thread.run_sync(
@@ -824,18 +824,15 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
         )
 
     @mcp.tool()
-    async def defer_planned_item(planned_item_id: int) -> dict[str, Any]:
-        """Defer a planned Daynest item to tomorrow.
-
-        Moves the item's planned_for date to the day after today and clears its
-        done status, making it active again. Use this when you want to push a task
-        forward by one day without deleting it.
+    async def defer_planned_item(planned_item_id: int, days: int = 1) -> dict[str, Any]:
+        """Move a planned item forward by N days (default: 1 = tomorrow).
 
         Args:
             planned_item_id: ID of the planned item to defer.
+            days: Number of days to defer by. Use 1 for tomorrow, 7 for next week.
         """
 
-        return await to_thread.run_sync(daynest.defer_planned_item, planned_item_id)
+        return await to_thread.run_sync(daynest.defer_planned_item, planned_item_id, days)
 
     @mcp.tool()
     async def delete_planned_item(planned_item_id: int) -> dict[str, Any]:

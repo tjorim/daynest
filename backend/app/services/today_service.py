@@ -566,14 +566,27 @@ class TodayService:
             if persist:
                 self.repository.save()
 
-    def defer_planned_item(self, user_id: int, planned_item_id: int) -> PlannedTodayItem:
-        """Defer a planned item to tomorrow (from today's date)."""
+    def defer_planned_item(self, user_id: int, planned_item_id: int, days: int = 1) -> PlannedTodayItem:
+        if days < 1:
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="days must be >= 1")
         item = self._get_user_planned_item(user_id=user_id, planned_item_id=planned_item_id)
-        item.planned_for = date.today() + timedelta(days=1)
-        item.is_done = False
-        item.completed_at = None
-        self.repository.save()
-        return self._planned_item_to_schema(item)
+        return self.update_planned_item(
+            user_id=user_id,
+            planned_item_id=planned_item_id,
+            request=PlannedItemUpdateRequest(
+                title=item.title,
+                planned_for=item.planned_for + timedelta(days=days),
+                is_done=item.is_done,
+                notes=item.notes,
+                module_key=cast(PlannedItemModuleKey | None, item.module_key),
+                recurrence_hint=item.recurrence_hint,
+                rrule=item.rrule,
+                linked_source=item.linked_source,
+                linked_ref=item.linked_ref,
+                priority=item.priority,
+                tags=item.tags or [],
+            ),
+        )
 
     def delete_planned_item_series(self, user_id: int, recurrence_series_id: str) -> int:
         from uuid import UUID as _UUID
