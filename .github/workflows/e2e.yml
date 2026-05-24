@@ -14,13 +14,6 @@ permissions:
 jobs:
   e2e:
     runs-on: ubuntu-latest
-    services:
-      backend:
-        image: ghcr.io/tjorim/daynest-backend:latest
-        env:
-          DATABASE_URL: sqlite:///./test.db
-        ports:
-          - 8000:8000
     steps:
       - name: Checkout
         uses: actions/checkout@v4
