@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
+import com.daynest.android.R
 import com.daynest.android.core.database.sync.CacheEntryDao
 import com.daynest.android.core.database.sync.CacheEntryEntity
 import com.daynest.android.core.database.sync.PendingMutationDao
@@ -59,8 +60,7 @@ class DaynestSyncWorker
                     pendingMutationDao.delete(mutation.id)
                     syncNoticeDao.insert(
                         SyncNoticeEntity(
-                            message =
-                                "A queued offline change conflicted with the latest server state and was refreshed.",
+                            message = applicationContext.getString(R.string.sync_notice_conflict_refreshed),
                             createdAtEpochMillis = System.currentTimeMillis(),
                         ),
                     )
@@ -144,7 +144,7 @@ class DaynestSyncWorker
         }
 
         private suspend fun applyPendingMutation(mutation: PendingMutationEntity) {
-            val kind = PendingMutationKind.valueOf(mutation.kind)
+            val kind = PendingMutationKind.entries.find { it.name == mutation.kind } ?: return
             when (kind) {
                 PendingMutationKind.COMPLETE_CHORE -> {
                     val payload = decode<MutationIdPayload>(mutation.payload)

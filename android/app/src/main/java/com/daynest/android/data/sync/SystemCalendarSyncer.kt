@@ -1,11 +1,13 @@
 package com.daynest.android.data.sync
 
 import android.Manifest
+import android.content.ContentProviderOperation
 import android.content.ContentValues
 import android.content.Context
 import android.content.pm.PackageManager
 import android.provider.CalendarContract
 import androidx.core.content.ContextCompat
+import com.daynest.android.R
 import com.daynest.android.data.today.TodayResponseDto
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.time.Instant
@@ -27,22 +29,56 @@ class SystemCalendarSyncer
             val calendarId = ensureCalendar() ?: return
             val desired = buildEvents(today)
             val existing = loadExistingEvents(calendarId)
+            val ops = ArrayList<ContentProviderOperation>()
             desired.forEach { item ->
                 val existingEventId = existing[item.syncKey]
                 if (existingEventId != null) {
-                    updateEvent(existingEventId, calendarId, item)
-                    replaceReminder(existingEventId)
+                    ops +=
+                        ContentProviderOperation
+                            .newUpdate(CalendarContract.Events.CONTENT_URI)
+                            .withSelection("${CalendarContract.Events._ID}=?", arrayOf(existingEventId.toString()))
+                            .withValues(item.toContentValues(calendarId))
+                            .build()
+                    ops +=
+                        ContentProviderOperation
+                            .newDelete(CalendarContract.Reminders.CONTENT_URI)
+                            .withSelection(
+                                "${CalendarContract.Reminders.EVENT_ID}=?",
+                                arrayOf(existingEventId.toString()),
+                            ).build()
+                    ops +=
+                        ContentProviderOperation
+                            .newInsert(CalendarContract.Reminders.CONTENT_URI)
+                            .withValue(CalendarContract.Reminders.EVENT_ID, existingEventId)
+                            .withValue(CalendarContract.Reminders.MINUTES, DEFAULT_REMINDER_MINUTES)
+                            .withValue(CalendarContract.Reminders.METHOD, CalendarContract.Reminders.METHOD_ALERT)
+                            .build()
                 } else {
-                    insertEvent(calendarId, item)?.let { eventId -> replaceReminder(eventId) }
+                    val eventOpIndex = ops.size
+                    ops +=
+                        ContentProviderOperation
+                            .newInsert(CalendarContract.Events.CONTENT_URI)
+                            .withValues(item.toContentValues(calendarId))
+                            .build()
+                    ops +=
+                        ContentProviderOperation
+                            .newInsert(CalendarContract.Reminders.CONTENT_URI)
+                            .withValueBackReference(CalendarContract.Reminders.EVENT_ID, eventOpIndex)
+                            .withValue(CalendarContract.Reminders.MINUTES, DEFAULT_REMINDER_MINUTES)
+                            .withValue(CalendarContract.Reminders.METHOD, CalendarContract.Reminders.METHOD_ALERT)
+                            .build()
                 }
             }
             val desiredKeys = desired.map { it.syncKey }.toSet()
             existing.filterKeys { it !in desiredKeys }.values.forEach { eventId ->
-                context.contentResolver.delete(
-                    CalendarContract.Events.CONTENT_URI,
-                    "${CalendarContract.Events._ID}=?",
-                    arrayOf(eventId.toString()),
-                )
+                ops +=
+                    ContentProviderOperation
+                        .newDelete(CalendarContract.Events.CONTENT_URI)
+                        .withSelection("${CalendarContract.Events._ID}=?", arrayOf(eventId.toString()))
+                        .build()
+            }
+            if (ops.isNotEmpty()) {
+                runCatching { context.contentResolver.applyBatch(CalendarContract.AUTHORITY, ops) }
             }
         }
 
@@ -116,49 +152,9 @@ class SystemCalendarSyncer
             return map
         }
 
-        private fun insertEvent(
-            calendarId: Long,
-            event: SyncEvent,
-        ): Long? {
-            val uri =
-                context.contentResolver.insert(
-                    CalendarContract.Events.CONTENT_URI,
-                    event.toContentValues(calendarId),
-                )
-            return uri?.lastPathSegment?.toLongOrNull()
-        }
-
-        private fun updateEvent(
-            eventId: Long,
-            calendarId: Long,
-            event: SyncEvent,
-        ) {
-            context.contentResolver.update(
-                CalendarContract.Events.CONTENT_URI,
-                event.toContentValues(calendarId),
-                "${CalendarContract.Events._ID}=?",
-                arrayOf(eventId.toString()),
-            )
-        }
-
-        private fun replaceReminder(eventId: Long) {
-            context.contentResolver.delete(
-                CalendarContract.Reminders.CONTENT_URI,
-                "${CalendarContract.Reminders.EVENT_ID}=?",
-                arrayOf(eventId.toString()),
-            )
-            context.contentResolver.insert(
-                CalendarContract.Reminders.CONTENT_URI,
-                ContentValues().apply {
-                    put(CalendarContract.Reminders.EVENT_ID, eventId)
-                    put(CalendarContract.Reminders.MINUTES, DEFAULT_REMINDER_MINUTES)
-                    put(CalendarContract.Reminders.METHOD, CalendarContract.Reminders.METHOD_ALERT)
-                },
-            )
-        }
-
         private fun buildEvents(today: TodayResponseDto): List<SyncEvent> {
             val zone = ZoneId.systemDefault()
+            val description = context.getString(R.string.sync_event_description)
             val events = mutableListOf<SyncEvent>()
             today.dueToday.forEach { item ->
                 events +=
@@ -167,6 +163,7 @@ class SystemCalendarSyncer
                         item.title,
                         "${item.scheduledDate}T09:00:00",
                         zone,
+                        description,
                     )
             }
             today.overdue.forEach { item ->
@@ -177,6 +174,7 @@ class SystemCalendarSyncer
                         item.title,
                         "${date}T09:00:00",
                         zone,
+                        description,
                     )
             }
             today.upcoming.forEach { item ->
@@ -186,14 +184,15 @@ class SystemCalendarSyncer
                         item.title,
                         "${item.scheduledDate}T09:00:00",
                         zone,
+                        description,
                     )
             }
             today.planned.filter { !it.isDone }.forEach { item ->
-                events += SyncEvent("planned_${item.id}", item.title, "${item.plannedFor}T09:00:00", zone)
+                events += SyncEvent("planned_${item.id}", item.title, "${item.plannedFor}T09:00:00", zone, description)
             }
             today.medication.forEach { item ->
                 val scheduled = item.scheduledAt.ifBlank { "${LocalDate.now()}T09:00:00Z" }
-                events += SyncEvent("medication_${item.medicationDoseInstanceId}", item.name, scheduled, zone)
+                events += SyncEvent("medication_${item.medicationDoseInstanceId}", item.name, scheduled, zone, description)
             }
             return events
         }
@@ -204,6 +203,7 @@ private data class SyncEvent(
     val title: String,
     val startsAt: String,
     val zone: ZoneId,
+    val description: String,
 ) {
     fun toContentValues(calendarId: Long): ContentValues {
         val dtStart =
@@ -220,7 +220,7 @@ private data class SyncEvent(
         return ContentValues().apply {
             put(CalendarContract.Events.CALENDAR_ID, calendarId)
             put(CalendarContract.Events.TITLE, title)
-            put(CalendarContract.Events.DESCRIPTION, "Synced by Daynest")
+            put(CalendarContract.Events.DESCRIPTION, description)
             put(CalendarContract.Events.DTSTART, dtStart)
             put(CalendarContract.Events.DTEND, dtEnd)
             put(CalendarContract.Events.EVENT_TIMEZONE, zone.id)

@@ -63,7 +63,7 @@ class PushNotificationHandler
         fun handlePayload(payload: PushPayload) {
             handlePayload(
                 type = payload.type,
-                title = payload.title,
+                title = payload.title.ifBlank { defaultTitle(payload.type) },
                 body = payload.body,
                 itemId = payload.itemId,
             )
@@ -103,6 +103,7 @@ class PushNotificationHandler
             val completeActionIntent =
                 Intent(context, NotificationActionReceiver::class.java).apply {
                     setClass(context, NotificationActionReceiver::class.java)
+                    data = android.net.Uri.parse("daynest://notification/${itemId ?: 0}/$action")
                     `package` = context.packageName
                     putExtra("daynest_notification_type", type)
                     putExtra("daynest_notification_item_id", itemId)
@@ -126,6 +127,12 @@ class PushNotificationHandler
             when (type) {
                 "medication" -> NotificationAction(action = "skip", labelRes = R.string.action_skip)
                 else -> NotificationAction(action = "snooze", labelRes = R.string.action_snooze)
+            }
+
+        private fun defaultTitle(type: String): String =
+            when (type) {
+                "medication" -> context.getString(R.string.notification_title_medication_reminder)
+                else -> context.getString(R.string.notification_title_daynest_reminder)
             }
     }
 

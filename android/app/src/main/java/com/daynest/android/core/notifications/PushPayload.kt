@@ -11,7 +11,7 @@ data class PushPayload(
             val normalizedType = normalizeType(data["type"] ?: data["notification_type"].orEmpty())
             return PushPayload(
                 type = normalizedType,
-                title = data["title"].orEmpty().ifBlank { defaultTitle(normalizedType) },
+                title = data["title"].orEmpty(),
                 body = data["body"].orEmpty(),
                 itemId = data["item_id"]?.toIntOrNull() ?: data["id"]?.toIntOrNull(),
             )
@@ -22,12 +22,6 @@ data class PushPayload(
                 "medication", "medication_reminder", "missed_medication" -> "medication"
                 "overdue_chore", "chore" -> "chore"
                 else -> type.ifBlank { "chore" }
-            }
-
-        private fun defaultTitle(type: String): String =
-            when (type) {
-                "medication" -> "Medication reminder"
-                else -> "Daynest reminder"
             }
     }
 }

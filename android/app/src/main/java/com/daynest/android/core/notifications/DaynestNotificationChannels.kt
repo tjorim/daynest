@@ -4,6 +4,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
 import android.os.Build
+import com.daynest.android.R
 
 object DaynestNotificationChannels {
     const val CHORE_CHANNEL_ID = "daynest_chore_reminders"
@@ -16,12 +17,12 @@ object DaynestNotificationChannels {
             listOf(
                 NotificationChannel(
                     CHORE_CHANNEL_ID,
-                    "Chore reminders",
+                    context.getString(R.string.notification_channel_chore_reminders),
                     NotificationManager.IMPORTANCE_DEFAULT,
                 ),
                 NotificationChannel(
                     MEDICATION_CHANNEL_ID,
-                    "Medication reminders",
+                    context.getString(R.string.notification_channel_medication_reminders),
                     NotificationManager.IMPORTANCE_HIGH,
                 ),
             )

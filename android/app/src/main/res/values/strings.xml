@@ -144,6 +144,12 @@
     <string name="settings_privacy_section">Privacy &amp; device integration</string>
     <string name="settings_notifications_label">Push notifications</string>
     <string name="settings_notifications_hint">Enable reminder notifications (requires Android notification permission).</string>
+    <string name="notification_channel_chore_reminders">Chore reminders</string>
+    <string name="notification_channel_medication_reminders">Medication reminders</string>
+    <string name="notification_title_medication_reminder">Medication reminder</string>
+    <string name="notification_title_daynest_reminder">Daynest reminder</string>
+    <string name="sync_notice_conflict_refreshed">A queued offline change conflicted with the latest server state and was refreshed.</string>
+    <string name="sync_event_description">Synced by Daynest</string>
     <string name="settings_biometric_label">Biometric lock</string>
     <string name="settings_biometric_hint">Require fingerprint, face unlock, or device credential when returning after idle.</string>
     <string name="settings_biometric_timeout_label">Biometric idle timeout (minutes)</string>

@@ -19,7 +19,7 @@ import kotlinx.serialization.encodeToString
 import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlin.math.absoluteValue
+import kotlin.random.Random
 
 @Singleton
 class PlannedItemRepository
@@ -96,7 +96,7 @@ class PlannedItemRepository
                 )
                 scheduleSync()
                 PlannedTodayItemDto(
-                    id = -System.currentTimeMillis().toInt().absoluteValue,
+                    id = -Random.nextInt(1, Int.MAX_VALUE),
                     title = request.title,
                     isDone = false,
                     plannedFor = request.plannedFor,
