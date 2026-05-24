@@ -575,8 +575,8 @@ class TodayService:
             planned_item_id=planned_item_id,
             request=PlannedItemUpdateRequest(
                 title=item.title,
-                planned_for=item.planned_for + timedelta(days=days),
-                is_done=item.is_done,
+                planned_for=self.repository.utcnow().date() + timedelta(days=days),
+                is_done=False,
                 notes=item.notes,
                 module_key=cast(PlannedItemModuleKey | None, item.module_key),
                 recurrence_hint=item.recurrence_hint,
@@ -968,7 +968,7 @@ class TodayService:
 
     def skip_missed_medication_doses(self, user_id: int, before_date: date | None = None) -> tuple[int, date]:
         """Skip all missed doses with scheduled_date strictly before before_date (defaults to today)."""
-        cutoff = before_date if before_date is not None else date.today()
+        cutoff = before_date if before_date is not None else self.repository.utcnow().date()
         doses = self.repository.get_missed_doses_before(user_id=user_id, before_date=cutoff)
         now = self.repository.utcnow()
         for dose in doses:
