@@ -83,6 +83,11 @@ export function SettingsPage() {
   const [pushOverdueChores, setPushOverdueChores] = useState(true);
   const [pushMedicationReminders, setPushMedicationReminders] = useState(true);
   const [pushMissedMedications, setPushMissedMedications] = useState(true);
+  const [serverPushSettings, setServerPushSettings] = useState({
+    push_overdue_chores_enabled: true,
+    push_medication_reminders_enabled: true,
+    push_missed_medications_enabled: true,
+  });
   const [medicationReminderMinutes, setMedicationReminderMinutes] = useState(30);
   const [quietHoursStart, setQuietHoursStart] = useState("");
   const [quietHoursEnd, setQuietHoursEnd] = useState("");
@@ -249,10 +254,18 @@ export function SettingsPage() {
     fetchUserSettings(controller.signal)
       .then((settings) => {
         if (!controller.signal.aborted) {
+          const overdueEnabled = settings.push_overdue_chores_enabled ?? true;
+          const medRemindersEnabled = settings.push_medication_reminders_enabled ?? true;
+          const missedMedEnabled = settings.push_missed_medications_enabled ?? true;
           setTimezone(settings.timezone);
-          setPushOverdueChores(settings.push_overdue_chores_enabled ?? true);
-          setPushMedicationReminders(settings.push_medication_reminders_enabled ?? true);
-          setPushMissedMedications(settings.push_missed_medications_enabled ?? true);
+          setPushOverdueChores(overdueEnabled);
+          setPushMedicationReminders(medRemindersEnabled);
+          setPushMissedMedications(missedMedEnabled);
+          setServerPushSettings({
+            push_overdue_chores_enabled: overdueEnabled,
+            push_medication_reminders_enabled: medRemindersEnabled,
+            push_missed_medications_enabled: missedMedEnabled,
+          });
           setMedicationReminderMinutes(settings.medication_reminder_minutes ?? 30);
           setQuietHoursStart(settings.quiet_hours_start ?? "");
           setQuietHoursEnd(settings.quiet_hours_end ?? "");
@@ -294,16 +307,21 @@ export function SettingsPage() {
       | "push_missed_medications_enabled",
     checked: boolean,
   ) => {
-    const prevOverdue = pushOverdueChores;
-    const prevMed = pushMedicationReminders;
-    const prevMissed = pushMissedMedications;
     setNotificationError(null);
     setNotificationSuccess(null);
     if (field === "push_overdue_chores_enabled") setPushOverdueChores(checked);
     if (field === "push_medication_reminders_enabled") setPushMedicationReminders(checked);
     if (field === "push_missed_medications_enabled") setPushMissedMedications(checked);
+
+    // No-op: value was toggled back to the server-confirmed state
+    if (checked === serverPushSettings[field]) return;
+
+    const prevOverdue = pushOverdueChores;
+    const prevMed = pushMedicationReminders;
+    const prevMissed = pushMissedMedications;
     try {
       await updateUserSettings({ [field]: checked } as UserSettingsPatch);
+      setServerPushSettings((prev) => ({ ...prev, [field]: checked }));
     } catch (err) {
       setPushOverdueChores(prevOverdue);
       setPushMedicationReminders(prevMed);

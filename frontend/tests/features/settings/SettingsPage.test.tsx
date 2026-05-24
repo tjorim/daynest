@@ -177,6 +177,24 @@ describe("SettingsPage", () => {
     });
   });
 
+  it("skips API call when toggle is reverted to server state", async () => {
+    const user = userEvent.setup();
+    apiMock.updateUserSettings.mockResolvedValue({});
+    render(<SettingsPage />);
+
+    const overdueToggle = await screen.findByLabelText(/overdue chore reminders/i);
+    // Toggle off then back on (server state is true)
+    await user.click(overdueToggle);
+    await waitFor(() => {
+      expect(apiMock.updateUserSettings).toHaveBeenCalledTimes(1);
+    });
+    await user.click(overdueToggle);
+    // Still only one API call — the second click reverted to server state
+    await waitFor(() => {
+      expect(apiMock.updateUserSettings).toHaveBeenCalledTimes(1);
+    });
+  });
+
   it("saves notification numeric and quiet hours via apply button", async () => {
     const user = userEvent.setup();
     apiMock.updateUserSettings.mockResolvedValue({});
