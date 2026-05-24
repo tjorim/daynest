@@ -81,11 +81,10 @@ class PushNotificationHandler
             itemId: Int?,
         ): PendingIntent {
             val openIntent =
-                Intent(context, MainActivity::class.java).apply {
-                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-                    putExtra("daynest_notification_type", type)
-                    putExtra("daynest_notification_item_id", itemId)
-                }
+                Intent(context, MainActivity::class.java)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                    .putExtra("daynest_notification_type", type)
+                    .putExtra("daynest_notification_item_id", itemId)
             return PendingIntent.getActivity(
                 context,
                 itemId ?: 0,
@@ -100,19 +99,16 @@ class PushNotificationHandler
             action: String,
             requestCodeOffset: Int,
         ): PendingIntent {
-            val completeActionIntent =
-                Intent(context, NotificationActionReceiver::class.java).apply {
-                    setClass(context, NotificationActionReceiver::class.java)
-                    data = android.net.Uri.parse("daynest://notification/${itemId ?: 0}/$action")
-                    `package` = context.packageName
-                    putExtra("daynest_notification_type", type)
-                    putExtra("daynest_notification_item_id", itemId)
-                    putExtra("daynest_quick_action", action)
-                }
+            val intent =
+                Intent(context, NotificationActionReceiver::class.java)
+                    .setData(android.net.Uri.parse("daynest://notification/${itemId ?: 0}/$action"))
+                    .putExtra("daynest_notification_type", type)
+                    .putExtra("daynest_notification_item_id", itemId)
+                    .putExtra("daynest_quick_action", action)
             return PendingIntent.getBroadcast(
                 context,
                 (itemId ?: 0) + requestCodeOffset,
-                completeActionIntent,
+                intent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
             )
         }
