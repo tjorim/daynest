@@ -2,8 +2,11 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter, NavLink } from "react-router-dom";
 import { AuthProvider as OidcProvider } from "react-oidc-context";
+import { useTranslation } from "react-i18next";
+import i18n from "@/i18n";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "./app.css";
+import "@/i18n";
 
 import {
   setDeferredInstallPrompt,
@@ -18,6 +21,7 @@ import { drain as drainOfflineQueue, getQueuedCount } from "@/lib/offlineQueue";
 import { SearchOverlay } from "@/features/search/SearchOverlay";
 
 function App() {
+  const { t } = useTranslation();
   const { isAuthenticated, isLoading, logout, user } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const isOnline = useOnlineStatus();
@@ -65,12 +69,14 @@ function App() {
         <div className="alert alert-warning py-2 mb-3 d-flex align-items-center gap-2">
           <span>⚠️ You are offline.</span>
           {queuedCount > 0 ? (
-            <span className="text-muted small">{queuedCount} action{queuedCount === 1 ? "" : "s"} will sync when reconnected.</span>
+            <span className="text-muted small">
+              {t("app.offlineQueued", { count: queuedCount })}
+            </span>
           ) : null}
         </div>
       ) : queuedCount > 0 ? (
         <div className="alert alert-info py-2 mb-3">
-          Syncing {queuedCount} queued action{queuedCount === 1 ? "" : "s"}…
+          {t("app.syncingQueued", { count: queuedCount })}
         </div>
       ) : null}
       {searchOpen && isAuthenticated ? <SearchOverlay onClose={() => setSearchOpen(false)} /> : null}
@@ -79,7 +85,7 @@ function App() {
           <div>
             <h1 className="mb-1">Daynest</h1>
             <p className="text-muted mb-0">
-              Daily flow, calendar planning, and household tracking.
+              {t("app.subtitle")}
             </p>
           </div>
           <div className="d-flex flex-wrap align-items-center gap-2">
@@ -87,8 +93,8 @@ function App() {
               <button
                 type="button"
                 className="btn btn-outline-secondary btn-sm"
-                aria-label="Search"
-                title="Search (Ctrl+K)"
+                aria-label={t("app.search")}
+                title={t("app.searchShortcut")}
                 onClick={() => setSearchOpen(true)}
               >
                 🔍
@@ -97,8 +103,8 @@ function App() {
             <button
               type="button"
               className="btn btn-outline-secondary btn-sm"
-              aria-label={theme === "auto" ? "Switch to light mode" : theme === "light" ? "Switch to dark mode" : "Switch to auto mode"}
-              title={theme === "auto" ? "Auto (follows system)" : theme === "light" ? "Light mode" : "Dark mode"}
+              aria-label={theme === "auto" ? t("app.theme.switchToLight") : theme === "light" ? t("app.theme.switchToDark") : t("app.theme.switchToAuto")}
+              title={theme === "auto" ? t("app.theme.auto") : theme === "light" ? t("app.theme.light") : t("app.theme.dark")}
               onClick={toggleTheme}
             >
               {theme === "auto" ? "🌓" : theme === "light" ? "🌙" : "☀️"}
@@ -110,7 +116,7 @@ function App() {
                   <div>{user.email}</div>
                 </div>
                 <button type="button" className="btn btn-outline-secondary btn-sm" onClick={logout}>
-                  Logout
+                  {t("app.logout")}
                 </button>
               </div>
             ) : !isLoading ? (
@@ -120,7 +126,7 @@ function App() {
                 }
                 to="/auth"
               >
-                Login
+                {t("app.login")}
               </NavLink>
             ) : null}
           </div>
@@ -131,37 +137,37 @@ function App() {
               className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}
               to="/today"
             >
-              Today
+              {t("nav.today")}
             </NavLink>
             <NavLink
               className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}
               to="/calendar"
             >
-              Calendar
+              {t("nav.calendar")}
             </NavLink>
             <NavLink
               className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}
               to="/medication"
             >
-              Medication
+              {t("nav.medication")}
             </NavLink>
             <NavLink
               className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}
               to="/templates"
             >
-              Templates
+              {t("nav.templates")}
             </NavLink>
             <NavLink
               className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}
               to="/stats"
             >
-              Stats
+              {t("nav.stats")}
             </NavLink>
             <NavLink
               className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}
               to="/settings"
             >
-              Settings
+              {t("nav.settings")}
             </NavLink>
           </nav>
         ) : null}
@@ -180,7 +186,7 @@ async function bootstrap() {
     const root = document.getElementById("root");
     if (root) {
       root.textContent =
-        "Cannot connect to Daynest server. Please check your connection and try again.";
+        i18n.t("app.serverUnavailable");
     }
     return;
   }

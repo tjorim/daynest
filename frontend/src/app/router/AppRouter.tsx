@@ -1,4 +1,5 @@
 import { Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "@/app/providers/AuthProvider";
 import { AuthPage } from "@/features/auth/AuthPage";
 import { TodayPage } from "@/features/today/TodayPage";
@@ -9,11 +10,12 @@ import { TemplatesPage } from "@/features/templates/TemplatesPage";
 import { StatsPage } from "@/features/stats/StatsPage";
 
 function RequireAuth() {
+  const { t } = useTranslation();
   const location = useLocation();
   const { isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) {
-    return <div className="alert alert-info py-2">Loading session...</div>;
+    return <div className="alert alert-info py-2">{t("router.loadingSession")}</div>;
   }
 
   if (!isAuthenticated) {
@@ -30,7 +32,8 @@ function RequireAuth() {
 }
 
 function AuthCallback() {
-  return <div className="alert alert-info py-2">Completing sign in…</div>;
+  const { t } = useTranslation();
+  return <div className="alert alert-info py-2">{t("router.completingSignIn")}</div>;
 }
 
 export function AppRouter() {

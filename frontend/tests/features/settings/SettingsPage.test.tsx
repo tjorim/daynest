@@ -3,6 +3,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { SettingsPage } from "@/features/settings/SettingsPage";
+import i18n from "@/i18n";
 
 const apiMock = vi.hoisted(() => ({
   createIntegrationClient: vi.fn(),
@@ -32,7 +33,8 @@ vi.mock("@/app/pwa/installPrompt", () => ({
 }));
 
 describe("SettingsPage", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
+    await i18n.changeLanguage("en");
     apiMock.createIntegrationClient.mockReset();
     apiMock.listIntegrationClients.mockReset();
     apiMock.fetchUserSettings.mockReset();
@@ -41,7 +43,15 @@ describe("SettingsPage", () => {
     pwaMock.promptToInstallApp.mockReset();
     pwaMock.subscribeInstallPrompt.mockReset();
     apiMock.listIntegrationClients.mockResolvedValue([]);
-    apiMock.fetchUserSettings.mockResolvedValue({ timezone: "UTC" });
+    apiMock.fetchUserSettings.mockResolvedValue({
+      timezone: "UTC",
+      push_overdue_chores_enabled: true,
+      push_medication_reminders_enabled: true,
+      push_missed_medications_enabled: true,
+      medication_reminder_minutes: 30,
+      quiet_hours_start: null,
+      quiet_hours_end: null,
+    });
     apiMock.createIntegrationClient.mockResolvedValue({
       id: 1,
       name: "Home Assistant Automations",
@@ -129,7 +139,15 @@ describe("SettingsPage", () => {
 
   it("timezone selector loads current timezone and saves on change", async () => {
     const user = userEvent.setup();
-    apiMock.fetchUserSettings.mockResolvedValue({ timezone: "Europe/Brussels" });
+    apiMock.fetchUserSettings.mockResolvedValue({
+      timezone: "Europe/Brussels",
+      push_overdue_chores_enabled: true,
+      push_medication_reminders_enabled: true,
+      push_missed_medications_enabled: true,
+      medication_reminder_minutes: 30,
+      quiet_hours_start: null,
+      quiet_hours_end: null,
+    });
     apiMock.updateUserSettings.mockResolvedValue({ timezone: "America/New_York" });
 
     render(<SettingsPage />);
@@ -144,5 +162,49 @@ describe("SettingsPage", () => {
       expect(apiMock.updateUserSettings).toHaveBeenCalledWith({ timezone: "America/New_York" });
     });
     expect(await screen.findByText(/timezone saved/i)).toBeInTheDocument();
+  });
+
+  it("saves push toggle updates with only changed field", async () => {
+    const user = userEvent.setup();
+    apiMock.updateUserSettings.mockResolvedValue({});
+    render(<SettingsPage />);
+
+    const overdueToggle = await screen.findByLabelText(/overdue chore reminders/i);
+    await user.click(overdueToggle);
+
+    await waitFor(() => {
+      expect(apiMock.updateUserSettings).toHaveBeenCalledWith({ push_overdue_chores_enabled: false });
+    });
+  });
+
+  it("saves notification numeric and quiet hours via apply button", async () => {
+    const user = userEvent.setup();
+    apiMock.updateUserSettings.mockResolvedValue({});
+    render(<SettingsPage />);
+
+    const minutesInput = await screen.findByLabelText(/medication reminder \(minutes before\)/i);
+    await user.clear(minutesInput);
+    await user.type(minutesInput, "45");
+    await user.type(screen.getByPlaceholderText("From"), "22:00");
+    await user.type(screen.getByPlaceholderText("To"), "07:00");
+    await user.click(screen.getByRole("button", { name: /apply notification preferences/i }));
+
+    await waitFor(() => {
+      expect(apiMock.updateUserSettings).toHaveBeenCalledWith({
+        medication_reminder_minutes: 45,
+        quiet_hours_start: "22:00",
+        quiet_hours_end: "07:00",
+      });
+    });
+  });
+
+  it("switches language to Dutch immediately", async () => {
+    const user = userEvent.setup();
+    render(<SettingsPage />);
+
+    const languageSelect = await screen.findByRole("combobox", { name: /language/i });
+    await user.selectOptions(languageSelect, "nl");
+
+    expect(await screen.findByRole("heading", { level: 2, name: /instellingen/i })).toBeInTheDocument();
   });
 });

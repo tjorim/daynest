@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   getDeferredInstallPrompt,
   promptToInstallApp,
@@ -14,6 +15,7 @@ import {
   updateUserSettings,
   type IntegrationClient,
   type IntegrationClientCreateResponse,
+  type UserSettingsPatch,
 } from "@/lib/api/today";
 import {
   listOAuthSessions,
@@ -35,6 +37,7 @@ const HA_ENDPOINTS = [
 const HOME_ASSISTANT_REDIRECT_URI = "https://my.home-assistant.io/redirect/oauth";
 
 export function SettingsPage() {
+  const { t, i18n } = useTranslation();
   const [clients, setClients] = useState<IntegrationClient[]>([]);
   const [createdClient, setCreatedClient] = useState<IntegrationClientCreateResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -77,6 +80,18 @@ export function SettingsPage() {
   const [timezoneSaving, setTimezoneSaving] = useState(false);
   const [timezoneError, setTimezoneError] = useState<string | null>(null);
   const [timezoneSuccess, setTimezoneSuccess] = useState<string | null>(null);
+  const [pushOverdueChores, setPushOverdueChores] = useState(true);
+  const [pushMedicationReminders, setPushMedicationReminders] = useState(true);
+  const [pushMissedMedications, setPushMissedMedications] = useState(true);
+  const [medicationReminderMinutes, setMedicationReminderMinutes] = useState(30);
+  const [quietHoursStart, setQuietHoursStart] = useState("");
+  const [quietHoursEnd, setQuietHoursEnd] = useState("");
+  const [notificationSaving, setNotificationSaving] = useState(false);
+  const [notificationError, setNotificationError] = useState<string | null>(null);
+  const [notificationSuccess, setNotificationSuccess] = useState<string | null>(null);
+  const [notificationPermission, setNotificationPermission] = useState(() =>
+    typeof Notification === "undefined" ? "denied" : Notification.permission,
+  );
   const timezones = useMemo<string[]>(() => {
     try {
       return (Intl as { supportedValuesOf?: (key: string) => string[] }).supportedValuesOf?.("timeZone") ?? [];
@@ -235,11 +250,20 @@ export function SettingsPage() {
       .then((settings) => {
         if (!controller.signal.aborted) {
           setTimezone(settings.timezone);
+          setPushOverdueChores(settings.push_overdue_chores_enabled ?? true);
+          setPushMedicationReminders(settings.push_medication_reminders_enabled ?? true);
+          setPushMissedMedications(settings.push_missed_medications_enabled ?? true);
+          setMedicationReminderMinutes(settings.medication_reminder_minutes ?? 30);
+          setQuietHoursStart(settings.quiet_hours_start ?? "");
+          setQuietHoursEnd(settings.quiet_hours_end ?? "");
         }
       })
       .catch((err) => {
         if (!controller.signal.aborted) {
-          setTimezoneError(err instanceof Error ? err.message : "Failed to load timezone.");
+          setTimezoneError(err instanceof Error ? err.message : t("settings.timezoneLoadError"));
+          setNotificationError(
+            err instanceof Error ? err.message : t("settings.notificationPreferencesLoadError"),
+          );
         }
       })
       .finally(() => {
@@ -248,7 +272,7 @@ export function SettingsPage() {
         }
       });
     return () => controller.abort();
-  }, []);
+  }, [t]);
 
   const onSaveTimezone = async () => {
     if (!timezone) return;
@@ -257,12 +281,59 @@ export function SettingsPage() {
     setTimezoneSuccess(null);
     try {
       await updateUserSettings({ timezone });
-      setTimezoneSuccess("Timezone saved.");
+      setTimezoneSuccess(t("settings.timezoneSaved"));
     } catch (err) {
-      setTimezoneError(err instanceof Error ? err.message : "Failed to save timezone.");
+      setTimezoneError(err instanceof Error ? err.message : t("settings.timezoneSaveError"));
     } finally {
       setTimezoneSaving(false);
     }
+  };
+
+  const handlePushToggle = async (
+    field:
+      | "push_overdue_chores_enabled"
+      | "push_medication_reminders_enabled"
+      | "push_missed_medications_enabled",
+    checked: boolean,
+  ) => {
+    setNotificationError(null);
+    setNotificationSuccess(null);
+    if (field === "push_overdue_chores_enabled") setPushOverdueChores(checked);
+    if (field === "push_medication_reminders_enabled") setPushMedicationReminders(checked);
+    if (field === "push_missed_medications_enabled") setPushMissedMedications(checked);
+    try {
+      await updateUserSettings({ [field]: checked } as UserSettingsPatch);
+    } catch (err) {
+      setNotificationError(
+        err instanceof Error ? err.message : t("settings.notificationPreferencesSaveError"),
+      );
+    }
+  };
+
+  const onSaveNotificationPreferences = async () => {
+    setNotificationSaving(true);
+    setNotificationError(null);
+    setNotificationSuccess(null);
+    try {
+      await updateUserSettings({
+        medication_reminder_minutes: medicationReminderMinutes,
+        quiet_hours_start: quietHoursStart || null,
+        quiet_hours_end: quietHoursEnd || null,
+      });
+      setNotificationSuccess(t("settings.notificationPreferencesSaved"));
+    } catch (err) {
+      setNotificationError(
+        err instanceof Error ? err.message : t("settings.notificationPreferencesSaveError"),
+      );
+    } finally {
+      setNotificationSaving(false);
+    }
+  };
+
+  const requestPushPermission = async () => {
+    if (typeof Notification === "undefined") return;
+    const result = await Notification.requestPermission();
+    setNotificationPermission(result);
   };
 
   const onCreateClient = async () => {
@@ -324,7 +395,7 @@ export function SettingsPage() {
   return (
     <section>
       <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2 mb-2">
-        <h2 className="h4 mb-0">Settings</h2>
+        <h2 className="h4 mb-0">{t("settings.title")}</h2>
         <div className="d-flex gap-2 align-items-center flex-wrap">
           {canInstallApp ? (
             <button
@@ -333,7 +404,7 @@ export function SettingsPage() {
               disabled={isInstalling}
               onClick={() => void onInstallApp()}
             >
-              Install app
+              {t("settings.installApp")}
             </button>
           ) : null}
           <button
@@ -342,16 +413,15 @@ export function SettingsPage() {
             disabled={loading}
             onClick={() => void loadClients()}
           >
-            Refresh
+            {t("settings.refresh")}
           </button>
         </div>
       </div>
       <p className="text-muted mb-3">
-        Configure integration clients for Home Assistant and MCP consumers. OAuth client secrets are
-        shown only once when created.
+        {t("settings.subtitle")}
       </p>
 
-      {loading ? <div className="alert alert-info py-2">Loading settings...</div> : null}
+      {loading ? <div className="alert alert-info py-2">{t("settings.loading")}</div> : null}
       {error ? (
         <div className="alert alert-danger py-2 d-flex justify-content-between align-items-center gap-2 flex-wrap">
           <span>{error}</span>
@@ -361,7 +431,7 @@ export function SettingsPage() {
               className="btn btn-danger btn-sm"
               onClick={() => void loadClients()}
             >
-              Retry
+              {t("settings.retry")}
             </button>
           ) : null}
         </div>
@@ -371,7 +441,7 @@ export function SettingsPage() {
       <div className="row g-3">
         <div className="col-lg-5">
           <div className="card mb-3">
-            <div className="card-header fw-semibold py-2">Backend server</div>
+            <div className="card-header fw-semibold py-2">{t("settings.backendServer")}</div>
             <div className="card-body d-grid gap-2">
               <div className="d-flex gap-3">
                 <label className="form-check">
@@ -385,7 +455,7 @@ export function SettingsPage() {
                       setServerUrlError(null);
                     }}
                   />
-                  <span className="form-check-label">Default</span>
+                  <span className="form-check-label">{t("settings.default")}</span>
                 </label>
                 <label className="form-check">
                   <input
@@ -395,7 +465,7 @@ export function SettingsPage() {
                     checked={serverMode === "custom"}
                     onChange={() => setServerMode("custom")}
                   />
-                  <span className="form-check-label">Custom (self-hosted)</span>
+                  <span className="form-check-label">{t("settings.customSelfHosted")}</span>
                 </label>
               </div>
               {serverMode === "custom" ? (
@@ -407,7 +477,7 @@ export function SettingsPage() {
                       setCustomServerInput(event.target.value);
                       setServerUrlError(null);
                     }}
-                    placeholder="https://your-server.example.com"
+                    placeholder={t("settings.customPlaceholder")}
                   />
                   {serverUrlError ? (
                     <div className="invalid-feedback">{serverUrlError}</div>
@@ -419,15 +489,25 @@ export function SettingsPage() {
                 className="btn btn-outline-primary btn-sm"
                 onClick={applyServerUrl}
               >
-                Apply
+                {t("settings.apply")}
               </button>
             </div>
           </div>
 
           <div className="card mb-3">
-            <div className="card-header fw-semibold py-2">User preferences</div>
+            <div className="card-header fw-semibold py-2">{t("settings.userPreferences")}</div>
             <div className="card-body d-grid gap-2">
-              <label className="form-label small fw-semibold mb-1">Timezone</label>
+              <label className="form-label small fw-semibold mb-1">{t("settings.language")}</label>
+              <select
+                className="form-select mb-2"
+                value={i18n.language.split("-")[0]}
+                onChange={(event) => void i18n.changeLanguage(event.target.value)}
+                aria-label={t("settings.language")}
+              >
+                <option value="en">{t("settings.languageEnglish")}</option>
+                <option value="nl">{t("settings.languageDutch")}</option>
+              </select>
+              <label className="form-label small fw-semibold mb-1">{t("settings.timezone")}</label>
               {timezoneLoading ? (
                 <div className="text-muted small">Loading…</div>
               ) : (
@@ -440,7 +520,7 @@ export function SettingsPage() {
                       setTimezoneSuccess(null);
                       setTimezoneError(null);
                     }}
-                    aria-label="Timezone"
+                    aria-label={t("settings.timezone")}
                   >
                     {timezone && !timezones.includes(timezone) ? (
                       <option value={timezone}>{timezone}</option>
@@ -457,7 +537,7 @@ export function SettingsPage() {
                     disabled={timezoneSaving || !timezone}
                     onClick={() => void onSaveTimezone()}
                   >
-                    {timezoneSaving ? "Saving…" : "Save"}
+                    {timezoneSaving ? t("settings.saving") : t("settings.save")}
                   </button>
                 </div>
               )}
@@ -466,6 +546,106 @@ export function SettingsPage() {
               ) : null}
               {timezoneSuccess ? (
                 <div className="text-success small">{timezoneSuccess}</div>
+              ) : null}
+            </div>
+          </div>
+
+          <div className="card mb-3">
+            <div className="card-header fw-semibold py-2">{t("settings.notifications")}</div>
+            <div className="card-body d-grid gap-2">
+              <div className="form-check form-switch">
+                <input
+                  type="checkbox"
+                  className="form-check-input"
+                  id="pushOverdueChores"
+                  checked={pushOverdueChores}
+                  onChange={(e) =>
+                    void handlePushToggle("push_overdue_chores_enabled", e.target.checked)
+                  }
+                />
+                <label className="form-check-label" htmlFor="pushOverdueChores">
+                  {t("settings.overdueChoreReminders")}
+                </label>
+              </div>
+              <div className="form-check form-switch">
+                <input
+                  type="checkbox"
+                  className="form-check-input"
+                  id="pushMedReminders"
+                  checked={pushMedicationReminders}
+                  onChange={(e) =>
+                    void handlePushToggle("push_medication_reminders_enabled", e.target.checked)
+                  }
+                />
+                <label className="form-check-label" htmlFor="pushMedReminders">
+                  {t("settings.medicationReminders")}
+                </label>
+              </div>
+              <div className="form-check form-switch">
+                <input
+                  type="checkbox"
+                  className="form-check-input"
+                  id="pushMissedMed"
+                  checked={pushMissedMedications}
+                  onChange={(e) =>
+                    void handlePushToggle("push_missed_medications_enabled", e.target.checked)
+                  }
+                />
+                <label className="form-check-label" htmlFor="pushMissedMed">
+                  {t("settings.missedMedicationAlerts")}
+                </label>
+              </div>
+
+              <label className="form-label small fw-semibold" htmlFor="medicationReminderMinutes">
+                {t("settings.medicationReminderMinutes")}
+              </label>
+              <input
+                id="medicationReminderMinutes"
+                type="number"
+                className="form-control"
+                min={1}
+                max={120}
+                value={medicationReminderMinutes}
+                onChange={(e) => setMedicationReminderMinutes(Number(e.target.value))}
+              />
+
+              <label className="form-label small fw-semibold">{t("settings.quietHours")}</label>
+              <div className="d-flex gap-2">
+                <input
+                  type="time"
+                  className="form-control"
+                  value={quietHoursStart}
+                  onChange={(e) => setQuietHoursStart(e.target.value)}
+                  placeholder={t("settings.quietHoursFrom")}
+                />
+                <input
+                  type="time"
+                  className="form-control"
+                  value={quietHoursEnd}
+                  onChange={(e) => setQuietHoursEnd(e.target.value)}
+                  placeholder={t("settings.quietHoursTo")}
+                />
+              </div>
+
+              <button
+                type="button"
+                className="btn btn-outline-primary btn-sm"
+                onClick={() => void onSaveNotificationPreferences()}
+                disabled={notificationSaving}
+              >
+                {notificationSaving ? t("settings.saving") : t("settings.saveNotificationPreferences")}
+              </button>
+              {notificationError ? <div className="text-danger small">{notificationError}</div> : null}
+              {notificationSuccess ? <div className="text-success small">{notificationSuccess}</div> : null}
+
+              {notificationPermission === "default" ? (
+                <button
+                  type="button"
+                  className="btn btn-sm btn-outline-primary"
+                  onClick={() => void requestPushPermission()}
+                >
+                  {t("settings.enableBrowserNotifications")}
+                </button>
               ) : null}
             </div>
           </div>

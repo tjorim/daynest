@@ -1,0 +1,59 @@
+name: e2e
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    services:
+      backend:
+        image: ghcr.io/tjorim/daynest-backend:latest
+        env:
+          DATABASE_URL: sqlite:///./test.db
+        ports:
+          - 8000:8000
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Enable corepack
+        run: corepack enable
+
+      - name: Install frontend dependencies
+        run: corepack pnpm install --frozen-lockfile
+        working-directory: frontend
+
+      - name: Install Playwright browser
+        run: corepack pnpm exec playwright install --with-deps chromium
+        working-directory: frontend
+
+      - name: Run Playwright tests
+        run: corepack pnpm exec playwright test
+        working-directory: frontend
+        env:
+          E2E_BASE_URL: http://localhost:5173
+          E2E_EMAIL: ${{ secrets.E2E_EMAIL }}
+          E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
+
+      - name: Upload Playwright artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            frontend/playwright-report/
+            frontend/test-results/

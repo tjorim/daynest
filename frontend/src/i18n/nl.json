@@ -1,0 +1,76 @@
+{
+  "app": {
+    "subtitle": "Dagelijkse flow, kalenderplanning en huishoudelijke opvolging.",
+    "search": "Zoeken",
+    "searchShortcut": "Zoeken (Ctrl+K)",
+    "logout": "Uitloggen",
+    "login": "Inloggen",
+    "offlineQueued_one": "{{count}} actie wordt gesynchroniseerd zodra je opnieuw verbonden bent.",
+    "offlineQueued_other": "{{count}} acties worden gesynchroniseerd zodra je opnieuw verbonden bent.",
+    "syncingQueued_one": "{{count}} wachtrijactie wordt gesynchroniseerd…",
+    "syncingQueued_other": "{{count}} wachtrijacties worden gesynchroniseerd…",
+    "theme": {
+      "switchToLight": "Wissel naar lichte modus",
+      "switchToDark": "Wissel naar donkere modus",
+      "switchToAuto": "Wissel naar automatische modus",
+      "auto": "Automatisch (volgt systeem)",
+      "light": "Lichte modus",
+      "dark": "Donkere modus"
+    },
+    "serverUnavailable": "Kan geen verbinding maken met de Daynest-server. Controleer je verbinding en probeer het opnieuw."
+  },
+  "nav": {
+    "today": "Vandaag",
+    "calendar": "Kalender",
+    "medication": "Medicatie",
+    "templates": "Sjablonen",
+    "stats": "Statistieken",
+    "settings": "Instellingen"
+  },
+  "auth": {
+    "title": "Meld je aan bij Daynest",
+    "subtitle": "Gebruik je account om Vandaag, Kalender en toekomstige planningsmodules te synchroniseren.",
+    "signIn": "Aanmelden",
+    "loading": "Laden…"
+  },
+  "router": {
+    "loadingSession": "Sessie laden...",
+    "completingSignIn": "Aanmelding afronden…"
+  },
+  "settings": {
+    "title": "Instellingen",
+    "installApp": "App installeren",
+    "refresh": "Vernieuwen",
+    "subtitle": "Configureer integratieclients voor Home Assistant en MCP-gebruikers. OAuth-clientgeheimen worden slechts één keer getoond bij het aanmaken.",
+    "loading": "Instellingen laden...",
+    "retry": "Opnieuw proberen",
+    "userPreferences": "Gebruikersvoorkeuren",
+    "language": "Taal",
+    "languageEnglish": "English",
+    "languageDutch": "Nederlands",
+    "timezone": "Tijdzone",
+    "saving": "Opslaan…",
+    "save": "Opslaan",
+    "timezoneSaved": "Tijdzone opgeslagen.",
+    "timezoneLoadError": "Tijdzone laden mislukt.",
+    "timezoneSaveError": "Tijdzone opslaan mislukt.",
+    "notifications": "Meldingen",
+    "overdueChoreReminders": "Herinneringen voor achterstallige taken",
+    "medicationReminders": "Medicatieherinneringen",
+    "missedMedicationAlerts": "Waarschuwingen voor gemiste medicatie",
+    "medicationReminderMinutes": "Medicatieherinnering (minuten vooraf)",
+    "quietHours": "Stille uren",
+    "quietHoursFrom": "Van",
+    "quietHoursTo": "Tot",
+    "saveNotificationPreferences": "Meldingsvoorkeuren toepassen",
+    "notificationPreferencesSaved": "Meldingsvoorkeuren opgeslagen.",
+    "notificationPreferencesLoadError": "Meldingsvoorkeuren laden mislukt.",
+    "notificationPreferencesSaveError": "Meldingsvoorkeuren opslaan mislukt.",
+    "enableBrowserNotifications": "Browsermeldingen inschakelen",
+    "backendServer": "Backendserver",
+    "default": "Standaard",
+    "customSelfHosted": "Aangepast (self-hosted)",
+    "customPlaceholder": "https://jouw-server.voorbeeld.com",
+    "apply": "Toepassen"
+  }
+}
