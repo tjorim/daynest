@@ -19,7 +19,14 @@ function dayItemStatusClass(status: string): string {
 }
 
 function formatPlannedMeta(item: PlannedTodayItem): string {
+  const timeAndDuration = [
+    item.time_of_day ? item.time_of_day.slice(0, 5) : null,
+    item.duration_minutes ? `${item.duration_minutes} min` : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
   const values = [
+    timeAndDuration || null,
     item.is_done ? "Done" : "Planned",
     item.module_key ? `Module: ${item.module_key}` : null,
     item.recurrence_hint ? `Repeat: ${item.recurrence_hint}` : null,
@@ -276,6 +283,8 @@ export function PlannedItemsSidebar({
   selectedDate,
   plannedItems,
   title,
+  timeOfDay,
+  durationMinutes,
   notes,
   moduleKey,
   recurrenceHint,
@@ -286,6 +295,8 @@ export function PlannedItemsSidebar({
   isAdding,
   addError,
   onSetTitle,
+  onSetTimeOfDay,
+  onSetDurationMinutes,
   onSetNotes,
   onSetModuleKey,
   onSetRecurrenceHint,
@@ -308,6 +319,8 @@ export function PlannedItemsSidebar({
   selectedDate: string;
   plannedItems: PlannedTodayItem[];
   title: string;
+  timeOfDay: string;
+  durationMinutes: number | null;
   notes: string;
   moduleKey: PlannedItemModuleKey | "";
   recurrenceHint: string;
@@ -318,6 +331,8 @@ export function PlannedItemsSidebar({
   isAdding: boolean;
   addError: string | null;
   onSetTitle: (value: string) => void;
+  onSetTimeOfDay: (value: string) => void;
+  onSetDurationMinutes: (value: number | null) => void;
   onSetNotes: (value: string) => void;
   onSetModuleKey: (value: PlannedItemModuleKey | "") => void;
   onSetRecurrenceHint: (value: string) => void;
@@ -349,6 +364,24 @@ export function PlannedItemsSidebar({
               value={title}
               onChange={(event) => onSetTitle(event.target.value)}
               placeholder="Plan title"
+            />
+            <label htmlFor="planned-time-of-day" className="form-label mt-2 mb-1">Time of day (optional)</label>
+            <input
+              id="planned-time-of-day"
+              type="time"
+              className="form-control"
+              value={timeOfDay}
+              onChange={(event) => onSetTimeOfDay(event.target.value)}
+            />
+            <label htmlFor="planned-duration-minutes" className="form-label mt-2 mb-1">Duration in minutes (optional)</label>
+            <input
+              id="planned-duration-minutes"
+              type="number"
+              className="form-control"
+              min={1}
+              value={durationMinutes ?? ""}
+              onChange={(event) => onSetDurationMinutes(event.target.value === "" ? null : Number(event.target.value))}
+              placeholder="e.g. 45"
             />
             <textarea
               className="form-control"

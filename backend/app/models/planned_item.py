@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date, datetime, time
 from typing import TYPE_CHECKING
 from uuid import UUID
 
@@ -29,6 +29,8 @@ class PlannedItem(Base):
     linked_source: Mapped[str | None] = mapped_column(String(120), nullable=True)
     linked_ref: Mapped[str | None] = mapped_column(String(255), nullable=True)
     planned_for: Mapped[date] = mapped_column(Date, nullable=False, index=True)
+    time_of_day: Mapped[time | None] = mapped_column(sa.Time(), nullable=True)
+    duration_minutes: Mapped[int | None] = mapped_column(sa.Integer(), nullable=True)
     priority: Mapped[Priority] = mapped_column(
         String(20),
         nullable=False,

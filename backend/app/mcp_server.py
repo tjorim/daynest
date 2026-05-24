@@ -55,6 +55,17 @@ def _parse_date(value: str | None) -> date:
         raise ValueError(f"Invalid date '{value}'. Expected YYYY-MM-DD format or 'today'.")
 
 
+def _parse_time(value: str | None) -> time | None:
+    if not value:
+        return None
+    for fmt in ("%H:%M", "%H:%M:%S"):
+        try:
+            return datetime.strptime(value, fmt).time()
+        except ValueError:
+            continue
+    raise ValueError(f"Invalid time '{value}'. Expected HH:MM or HH:MM:SS format.")
+
+
 def _jsonable(value: Any) -> Any:
     if isinstance(value, BaseModel):
         return value.model_dump(mode="json")
@@ -278,6 +289,8 @@ class DaynestMcpBackend:
         self,
         title: str,
         planned_for: str,
+        time_of_day: str | None = None,
+        duration_minutes: int | None = None,
         notes: str | None = None,
         module_key: PlannedItemModuleKey | None = None,
         recurrence_hint: str | None = None,
@@ -290,6 +303,8 @@ class DaynestMcpBackend:
         request = PlannedItemCreateRequest(
             title=title,
             planned_for=_parse_date(planned_for),
+            time_of_day=_parse_time(time_of_day),
+            duration_minutes=duration_minutes,
             notes=notes,
             module_key=module_key,
             recurrence_hint=recurrence_hint,
@@ -306,6 +321,8 @@ class DaynestMcpBackend:
         planned_item_id: int,
         title: str | None = None,
         planned_for: str | None = None,
+        time_of_day: str | None = None,
+        duration_minutes: int | None = None,
         is_done: bool | None = None,
         notes: str | None = None,
         module_key: PlannedItemModuleKey | None = None,
@@ -323,6 +340,8 @@ class DaynestMcpBackend:
             request = PlannedItemUpdateRequest(
                 title=title if title is not None else existing.title,
                 planned_for=_parse_date(planned_for) if planned_for is not None else existing.planned_for,
+                time_of_day=_parse_time(time_of_day) if time_of_day is not None else existing.time_of_day,
+                duration_minutes=None if duration_minutes == 0 else (duration_minutes if duration_minutes is not None else existing.duration_minutes),
                 is_done=is_done if is_done is not None else existing.is_done,
                 notes=notes if notes is not None else existing.notes,
                 module_key=module_key if module_key is not None else cast(PlannedItemModuleKey | None, existing.module_key),
@@ -730,6 +749,8 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
     async def create_planned_item(
         title: str,
         planned_for: str,
+        time_of_day: str | None = None,
+        duration_minutes: int | None = None,
         notes: str | None = None,
         module_key: PlannedItemModuleKey | None = None,
         recurrence_hint: str | None = None,
@@ -744,6 +765,10 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
         Args:
             title: Item title.
             planned_for: Date in YYYY-MM-DD format or 'today'.
+            time_of_day: Optional time in HH:MM (24-hour) format, e.g. "10:00". Set to
+                express "meeting at 10:00". Enables time-aware day summaries.
+            duration_minutes: Optional estimated effort in minutes (positive integer), e.g.
+                45. Enables aggregate load reasoning ("~3h 20min today").
             notes: Optional free-text notes.
             module_key: Optional module association.
             recurrence_hint: Human-readable recurrence label (e.g. "every Monday"). Purely
@@ -764,6 +789,8 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
             daynest.create_planned_item,
             title,
             planned_for,
+            time_of_day,
+            duration_minutes,
             notes,
             module_key,
             recurrence_hint,
@@ -779,6 +806,8 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
         planned_item_id: int,
         title: str | None = None,
         planned_for: str | None = None,
+        time_of_day: str | None = None,
+        duration_minutes: int | None = None,
         is_done: bool | None = None,
         notes: str | None = None,
         module_key: PlannedItemModuleKey | None = None,
@@ -795,6 +824,12 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
             planned_item_id: ID of the item to update.
             title: Updated title. Omit to keep current value.
             planned_for: Updated date in YYYY-MM-DD format or 'today'. Omit to keep current value.
+            time_of_day: Updated time in HH:MM (24-hour) format. Set to express
+                "meeting at 10:00". Enables time-aware day summaries. Omit to keep current value;
+                pass "" to clear.
+            duration_minutes: Updated estimated effort in minutes (positive integer).
+                Enables aggregate load reasoning ("~3h 20min today"). Omit to keep current value;
+                pass 0 to clear.
             is_done: Mark the item as completed. Omit to keep current value.
             notes: Updated notes. Omit to keep current value.
             module_key: Updated module association. Omit to keep current value.
@@ -812,6 +847,8 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
             planned_item_id,
             title,
             planned_for,
+            time_of_day,
+            duration_minutes,
             is_done,
             notes,
             module_key,

@@ -139,6 +139,8 @@ describe("useTodayActions", () => {
           id: 22,
           title: "Order groceries",
           planned_for: "2026-05-17",
+          time_of_day: "10:00:00",
+          duration_minutes: 30,
           notes: "Before 6 PM",
           module_key: "shopping_list",
           recurrence_hint: null,
@@ -153,6 +155,8 @@ describe("useTodayActions", () => {
     expect(todayApiMock.updatePlannedItem).toHaveBeenCalledWith(22, {
       title: "Order groceries",
       planned_for: "2026-05-17",
+      time_of_day: "10:00:00",
+      duration_minutes: 30,
       notes: "Before 6 PM",
       module_key: "shopping_list",
       recurrence_hint: null,

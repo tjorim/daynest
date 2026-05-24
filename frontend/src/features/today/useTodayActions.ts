@@ -24,6 +24,8 @@ function buildPlannedItemPayload(item: PlannedTodayItem, isDone: boolean) {
   return {
     title: item.title,
     planned_for: item.planned_for,
+    time_of_day: item.time_of_day,
+    duration_minutes: item.duration_minutes,
     notes: item.notes,
     module_key: item.module_key,
     recurrence_hint: item.recurrence_hint,
@@ -91,6 +93,8 @@ export function useTodayActions(onRefresh: () => Promise<void>) {
       updates: {
         title: string;
         planned_for: string;
+        time_of_day?: string | null;
+        duration_minutes?: number | null;
         notes?: string | null;
         module_key?: PlannedItemModuleKey | null;
         recurrence_hint?: string | null;
@@ -109,4 +113,3 @@ export function useTodayActions(onRefresh: () => Promise<void>) {
       ),
   };
 }
-

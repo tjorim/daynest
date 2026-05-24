@@ -116,6 +116,8 @@ def test_mcp_backend_can_create_and_update_planned_items(db_session: Session) ->
     created = backend.create_planned_item(
         title="Pick up groceries",
         planned_for="2026-04-25",
+        time_of_day="10:00",
+        duration_minutes=30,
         notes="Milk and eggs",
         module_key="shopping_list",
     )
@@ -123,13 +125,19 @@ def test_mcp_backend_can_create_and_update_planned_items(db_session: Session) ->
         planned_item_id=created["id"],
         title="Pick up groceries",
         planned_for="2026-04-25",
+        time_of_day="11:15",
+        duration_minutes=45,
         is_done=True,
         notes="Milk and eggs",
         module_key="shopping_list",
     )
 
     assert created["title"] == "Pick up groceries"
+    assert created["time_of_day"] == "10:00:00"
+    assert created["duration_minutes"] == 30
     assert updated["is_done"] is True
+    assert updated["time_of_day"] == "11:15:00"
+    assert updated["duration_minutes"] == 45
 
 
 def test_mcp_backend_can_list_medications(db_session: Session) -> None:

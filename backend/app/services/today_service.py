@@ -503,6 +503,8 @@ class TodayService:
                     linked_source=request.linked_source,
                     linked_ref=request.linked_ref,
                     planned_for=planned_for,
+                    time_of_day=request.time_of_day,
+                    duration_minutes=request.duration_minutes,
                     priority=request.priority,
                     tags=request.tags,
                     is_done=False,
@@ -522,6 +524,8 @@ class TodayService:
                 linked_source=request.linked_source,
                 linked_ref=request.linked_ref,
                 planned_for=request.planned_for,
+                time_of_day=request.time_of_day,
+                duration_minutes=request.duration_minutes,
                 priority=request.priority,
                 tags=request.tags,
                 is_done=False,
@@ -539,6 +543,8 @@ class TodayService:
         item.linked_source = request.linked_source
         item.linked_ref = request.linked_ref
         item.planned_for = request.planned_for
+        item.time_of_day = request.time_of_day
+        item.duration_minutes = request.duration_minutes
         item.priority = request.priority
         item.tags = request.tags
         if request.is_done and not item.is_done:
@@ -583,6 +589,8 @@ class TodayService:
                 rrule=item.rrule,
                 linked_source=item.linked_source,
                 linked_ref=item.linked_ref,
+                time_of_day=item.time_of_day,
+                duration_minutes=item.duration_minutes,
                 priority=item.priority,
                 tags=item.tags or [],
             ),
@@ -711,11 +719,13 @@ class TodayService:
             id=item.id,
             title=item.title,
             planned_for=item.planned_for,
+            time_of_day=item.time_of_day,
+            duration_minutes=item.duration_minutes,
             notes=item.notes,
             module_key=cast(PlannedItemModuleKey | None, item.module_key),
             recurrence_hint=item.recurrence_hint,
-            rrule=getattr(item, "rrule", None),
-            recurrence_series_id=getattr(item, "recurrence_series_id", None),
+            rrule=item.rrule,
+            recurrence_series_id=item.recurrence_series_id,
             linked_source=item.linked_source,
             linked_ref=item.linked_ref,
             priority=item.priority,

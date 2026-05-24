@@ -66,6 +66,8 @@ export interface PlannedTodayItem {
   id: number;
   title: string;
   planned_for: string;
+  time_of_day: string | null;
+  duration_minutes: number | null;
   notes: string | null;
   module_key: PlannedItemModuleKey | null;
   recurrence_hint: string | null;
@@ -77,6 +79,8 @@ export interface PlannedTodayItem {
 export interface PlannedItemInput {
   title: string;
   planned_for: string;
+  time_of_day?: string | null;
+  duration_minutes?: number | null;
   notes?: string | null;
   module_key?: PlannedItemModuleKey | null;
   recurrence_hint?: string | null;
@@ -191,6 +195,8 @@ const plannedTodayItemSchema = z.object({
   id: z.number(),
   title: z.string(),
   planned_for: z.string(),
+  time_of_day: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/).nullable(),
+  duration_minutes: z.number().int().nullable(),
   notes: z.string().nullable(),
   module_key: plannedItemModuleKeySchema.nullable(),
   recurrence_hint: z.string().nullable(),

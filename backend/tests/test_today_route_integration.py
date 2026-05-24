@@ -379,6 +379,8 @@ def test_calendar_and_planned_endpoints(client: TestClient, db_session: Session)
             json={
                 "title": "Meal prep",
                 "planned_for": "2026-04-24",
+                "time_of_day": "10:00",
+                "duration_minutes": 90,
                 "notes": "Sunday batch",
                 "module_key": "meal_planning",
                 "linked_source": "google_calendar",
@@ -387,6 +389,8 @@ def test_calendar_and_planned_endpoints(client: TestClient, db_session: Session)
         )
         assert create_planned.status_code == 200
         assert create_planned.json()["module_key"] == "meal_planning"
+        assert create_planned.json()["time_of_day"] == "10:00:00"
+        assert create_planned.json()["duration_minutes"] == 90
         assert create_planned.json()["linked_source"] == "google_calendar"
         assert create_planned.json()["linked_ref"] == "meal-prep-2026-04-24"
         planned_id = create_planned.json()["id"]
@@ -400,6 +404,8 @@ def test_calendar_and_planned_endpoints(client: TestClient, db_session: Session)
             json={
                 "title": "Meal prep",
                 "planned_for": "2026-04-24",
+                "time_of_day": "11:30",
+                "duration_minutes": 45,
                 "notes": "Sunday batch",
                 "module_key": "meal_planning",
                 "recurrence_hint": "weekly",
@@ -410,6 +416,8 @@ def test_calendar_and_planned_endpoints(client: TestClient, db_session: Session)
         )
         assert update_planned.status_code == 200
         assert update_planned.json()["is_done"] is True
+        assert update_planned.json()["time_of_day"] == "11:30:00"
+        assert update_planned.json()["duration_minutes"] == 45
         assert update_planned.json()["recurrence_hint"] == "weekly"
         assert update_planned.json()["linked_source"] == "google_calendar"
         assert update_planned.json()["linked_ref"] == "meal-prep-2026-04-24"

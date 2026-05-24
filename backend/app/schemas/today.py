@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import date, datetime, time
 from typing import Literal
 from uuid import UUID
 
@@ -64,6 +64,8 @@ class PlannedTodayItem(BaseModel):
     id: int
     title: str
     planned_for: date
+    time_of_day: time | None = None
+    duration_minutes: int | None = None
     notes: str | None = None
     module_key: PlannedItemModuleKey | None = None
     recurrence_hint: str | None = None
@@ -79,6 +81,8 @@ class PlannedTodayItem(BaseModel):
 class PlannedItemBase(BaseModel):
     title: str = Field(..., min_length=1, max_length=255)
     planned_for: date
+    time_of_day: time | None = None
+    duration_minutes: int | None = Field(default=None, ge=1)
     notes: str | None = Field(default=None, max_length=4000)
     module_key: PlannedItemModuleKey | None = None
     recurrence_hint: str | None = Field(default=None, max_length=255)
