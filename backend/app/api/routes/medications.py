@@ -11,11 +11,14 @@ from app.models.user import User
 from app.repositories.today_repository import TodayRepository
 from app.schemas.medication import (
     MedicationDoseMutationResponse,
+    MedicationDoseTakeRequest,
     MedicationHistoryItem,
     MedicationHistoryResponse,
     MedicationPlanCreateRequest,
     MedicationPlanResponse,
     MedicationPlanUpdateRequest,
+    SkipMissedDosesRequest,
+    SkipMissedDosesResponse,
 )
 from app.services.today_service import TodayService
 
@@ -46,6 +49,7 @@ def _mutate_medication_dose_action(
     action: str,
     db: Session,
     current_user: User,
+    taken_at: datetime | None = None,
 ) -> MedicationDoseMutationResponse:
     repository = TodayRepository(db)
     service = TodayService(repository, app_settings=settings)
@@ -53,6 +57,7 @@ def _mutate_medication_dose_action(
         user_id=current_user.id,
         medication_dose_instance_id=medication_dose_instance_id,
         action=action,
+        taken_at=taken_at,
     )
     return MedicationDoseMutationResponse(
         medication_dose_instance_id=dose.id,
@@ -128,10 +133,12 @@ def delete_medication(
 @router.post("/medication-doses/{medication_dose_instance_id}/take", response_model=MedicationDoseMutationResponse)
 def take_medication_dose(
     medication_dose_instance_id: int,
+    request: MedicationDoseTakeRequest | None = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> MedicationDoseMutationResponse:
-    return _mutate_medication_dose_action(medication_dose_instance_id, "take", db, current_user)
+    taken_at = request.taken_at if request is not None else None
+    return _mutate_medication_dose_action(medication_dose_instance_id, "take", db, current_user, taken_at=taken_at)
 
 
 @router.post("/medication-doses/{medication_dose_instance_id}/skip", response_model=MedicationDoseMutationResponse)
@@ -150,6 +157,19 @@ def miss_medication_dose(
     current_user: User = Depends(get_current_user),
 ) -> MedicationDoseMutationResponse:
     return _mutate_medication_dose_action(medication_dose_instance_id, "miss", db, current_user)
+
+
+@router.post("/medication-doses/skip-missed", response_model=SkipMissedDosesResponse)
+def skip_missed_medication_doses(
+    request: SkipMissedDosesRequest | None = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> SkipMissedDosesResponse:
+    before_date = request.before_date if request is not None else None
+    repository = TodayRepository(db)
+    service = TodayService(repository, app_settings=settings)
+    count, cutoff = service.skip_missed_medication_doses(user_id=current_user.id, before_date=before_date)
+    return SkipMissedDosesResponse(skipped_count=count, before_date=cutoff)
 
 
 @router.get("/medication-doses/history", response_model=MedicationHistoryResponse)

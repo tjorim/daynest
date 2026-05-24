@@ -566,6 +566,17 @@ class TodayRepository:
         )
         return list(self.db.scalars(stmt).all())
 
+    def get_missed_doses_before(self, user_id: int, before_date: date) -> list[MedicationDoseInstance]:
+        """Return all missed doses with scheduled_date strictly before before_date."""
+        stmt = (
+            select(MedicationDoseInstance)
+            .where(MedicationDoseInstance.user_id == user_id)
+            .where(MedicationDoseInstance.status == MedicationDoseStatus.missed)
+            .where(MedicationDoseInstance.scheduled_date < before_date)
+            .order_by(MedicationDoseInstance.scheduled_date.asc(), MedicationDoseInstance.id.asc())
+        )
+        return list(self.db.scalars(stmt).all())
+
     def save(self) -> None:
         self.db.commit()
 

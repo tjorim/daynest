@@ -43,6 +43,10 @@ if not logger.handlers:
 DAYNEST_USER_EMAIL_ENV = "DAYNEST_USER_EMAIL"
 DAYNEST_MCP_RESOURCE_SERVER_URL_ENV = "DAYNEST_MCP_RESOURCE_SERVER_URL"
 
+# Bump this constant whenever tools or parameters are added/changed so MCP clients
+# that cache the tool manifest see the new version and reload their tool list.
+_MCP_TOOL_VERSION = "2026.05.1"
+
 T = TypeVar("T")
 
 
@@ -284,7 +288,10 @@ class DaynestMcpBackend:
         rrule: str | None = None,
         linked_source: str | None = None,
         linked_ref: str | None = None,
+        priority: str | None = None,
+        tags: list[str] | None = None,
     ) -> dict[str, Any]:
+        from app.core.enums import Priority as _Priority
         request = PlannedItemCreateRequest(
             title=title,
             planned_for=_parse_date(planned_for),
@@ -294,6 +301,8 @@ class DaynestMcpBackend:
             rrule=rrule,
             linked_source=linked_source,
             linked_ref=linked_ref,
+            priority=_Priority(priority) if priority else _Priority.normal,
+            tags=tags or [],
         )
         return self._with_service(lambda _db, user, service: _jsonable(service.create_planned_item(user.id, request)))
 
@@ -309,7 +318,10 @@ class DaynestMcpBackend:
         rrule: str | None = None,
         linked_source: str | None = None,
         linked_ref: str | None = None,
+        priority: str | None = None,
+        tags: list[str] | None = None,
     ) -> dict[str, Any]:
+        from app.core.enums import Priority as _Priority
         request = PlannedItemUpdateRequest(
             title=title,
             planned_for=_parse_date(planned_for),
@@ -320,8 +332,13 @@ class DaynestMcpBackend:
             rrule=rrule,
             linked_source=linked_source,
             linked_ref=linked_ref,
+            priority=_Priority(priority) if priority else _Priority.normal,
+            tags=tags or [],
         )
         return self._with_service(lambda _db, user, service: _jsonable(service.update_planned_item(user.id, planned_item_id, request)))
+
+    def defer_planned_item(self, planned_item_id: int) -> dict[str, Any]:
+        return self._with_service(lambda _db, user, service: _jsonable(service.defer_planned_item(user.id, planned_item_id)))
 
     def delete_planned_item(self, planned_item_id: int) -> dict[str, Any]:
         self._with_service(lambda _db, user, service: service.delete_planned_item(user.id, planned_item_id))
@@ -477,8 +494,14 @@ class DaynestMcpBackend:
         self._with_service(lambda _db, user, service: service.delete_chore_template(user.id, chore_template_id))
         return {"deleted": True, "chore_template_id": chore_template_id}
 
-    def take_medication_dose(self, medication_dose_instance_id: int) -> dict[str, Any]:
-        return self._mutate_medication(medication_dose_instance_id, "take")
+    def take_medication_dose(self, medication_dose_instance_id: int, taken_at: str | None = None) -> dict[str, Any]:
+        parsed_taken_at: datetime | None = None
+        if taken_at is not None:
+            try:
+                parsed_taken_at = datetime.fromisoformat(taken_at)
+            except ValueError:
+                raise ValueError(f"Invalid taken_at format: '{taken_at}'. Expected ISO 8601 datetime.")
+        return self._mutate_medication(medication_dose_instance_id, "take", taken_at=parsed_taken_at)
 
     def skip_medication_dose(self, medication_dose_instance_id: int) -> dict[str, Any]:
         return self._mutate_medication(medication_dose_instance_id, "skip")
@@ -565,9 +588,16 @@ class DaynestMcpBackend:
             }
         )
 
-    def _mutate_medication(self, medication_dose_instance_id: int, action: str) -> dict[str, Any]:
+    def skip_missed_medication_doses(self, before_date: str | None = None) -> dict[str, Any]:
+        parsed = _parse_date(before_date) if before_date else None
         def _operation(_db: Session, user: User, service: TodayService) -> dict[str, Any]:
-            instance = service.mutate_medication_status(user.id, medication_dose_instance_id, action)
+            count, cutoff = service.skip_missed_medication_doses(user_id=user.id, before_date=parsed)
+            return {"skipped_count": count, "before_date": cutoff.isoformat()}
+        return self._with_service(_operation)
+
+    def _mutate_medication(self, medication_dose_instance_id: int, action: str, *, taken_at: datetime | None = None) -> dict[str, Any]:
+        def _operation(_db: Session, user: User, service: TodayService) -> dict[str, Any]:
+            instance = service.mutate_medication_status(user.id, medication_dose_instance_id, action, taken_at=taken_at)
             return {
                 "medication_dose_instance_id": instance.id,
                 "medication_plan_id": instance.medication_plan_id,
@@ -640,7 +670,7 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
     _build_version = os.getenv("BUILD_VERSION", "dev")
     mcp = FastMCP(
         "Daynest",
-        version=_build_version,
+        version=f"{_build_version}+tools{_MCP_TOOL_VERSION}",
         auth=auth,
     )
 
@@ -706,6 +736,8 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
         rrule: str | None = None,
         linked_source: str | None = None,
         linked_ref: str | None = None,
+        priority: str | None = None,
+        tags: list[str] | None = None,
     ) -> dict[str, Any]:
         """Create a planned Daynest item.
 
@@ -724,6 +756,8 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
                   FREQ=MONTHLY;BYDAY=1SA       first Saturday of each month
             linked_source: Optional external source identifier.
             linked_ref: Optional external reference identifier.
+            priority: Item priority — one of 'low', 'normal', 'high', 'urgent'. Defaults to 'normal'.
+            tags: Optional list of free-text tags for filtering and organisation.
         """
 
         return await to_thread.run_sync(
@@ -736,6 +770,8 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
             rrule,
             linked_source,
             linked_ref,
+            priority,
+            tags,
         )
 
     @mcp.tool()
@@ -750,6 +786,8 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
         rrule: str | None = None,
         linked_source: str | None = None,
         linked_ref: str | None = None,
+        priority: str | None = None,
+        tags: list[str] | None = None,
     ) -> dict[str, Any]:
         """Update a planned Daynest item.
 
@@ -765,6 +803,8 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
                 its rule; set to null to remove recurrence.
             linked_source: Updated external source identifier.
             linked_ref: Updated external reference identifier.
+            priority: Item priority — one of 'low', 'normal', 'high', 'urgent'. Omit to keep current value.
+            tags: Updated list of free-text tags. Omit to keep current value; pass [] to clear all tags.
         """
 
         return await to_thread.run_sync(
@@ -779,7 +819,23 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
             rrule,
             linked_source,
             linked_ref,
+            priority,
+            tags,
         )
+
+    @mcp.tool()
+    async def defer_planned_item(planned_item_id: int) -> dict[str, Any]:
+        """Defer a planned Daynest item to tomorrow.
+
+        Moves the item's planned_for date to the day after today and clears its
+        done status, making it active again. Use this when you want to push a task
+        forward by one day without deleting it.
+
+        Args:
+            planned_item_id: ID of the planned item to defer.
+        """
+
+        return await to_thread.run_sync(daynest.defer_planned_item, planned_item_id)
 
     @mcp.tool()
     async def delete_planned_item(planned_item_id: int) -> dict[str, Any]:
@@ -953,16 +1009,46 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
         return await to_thread.run_sync(daynest.delete_chore_template, chore_template_id)
 
     @mcp.tool()
-    async def take_medication_dose(medication_dose_instance_id: int) -> dict[str, Any]:
-        """Mark a Daynest medication dose as taken. Accepts doses in scheduled or missed status."""
+    async def take_medication_dose(
+        medication_dose_instance_id: int,
+        taken_at: str | None = None,
+    ) -> dict[str, Any]:
+        """Mark a Daynest medication dose as taken. Accepts doses in scheduled or missed status.
 
-        return await to_thread.run_sync(daynest.take_medication_dose, medication_dose_instance_id)
+        Args:
+            medication_dose_instance_id: ID of the dose instance to mark as taken.
+            taken_at: Optional ISO 8601 datetime when the dose was actually taken
+                (e.g. "2026-05-24T08:15:00+02:00"). Must not be in the future.
+                Defaults to the current time when omitted.
+        """
+
+        return await to_thread.run_sync(daynest.take_medication_dose, medication_dose_instance_id, taken_at)
 
     @mcp.tool()
     async def skip_medication_dose(medication_dose_instance_id: int) -> dict[str, Any]:
         """Mark a Daynest medication dose as skipped. Accepts doses in scheduled or missed status."""
 
         return await to_thread.run_sync(daynest.skip_medication_dose, medication_dose_instance_id)
+
+    @mcp.tool()
+    async def skip_missed_medication_doses(before_date: str | None = None) -> dict[str, Any]:
+        """Skip all missed Daynest medication doses before a given date in one call.
+
+        Use this to bulk-dismiss a backlog of missed doses — for example after
+        coming back from a trip or after resolving a sync gap.
+
+        Args:
+            before_date: Skip all missed doses with scheduled_date strictly before
+                this date in YYYY-MM-DD format or 'today'. Defaults to today so
+                that today's doses are never touched. Pass an explicit earlier date
+                to limit the window further.
+
+        Returns a dict with:
+            skipped_count: Number of doses skipped.
+            before_date: The cutoff date that was used.
+        """
+
+        return await to_thread.run_sync(daynest.skip_missed_medication_doses, before_date)
 
     @mcp.tool()
     async def list_medications() -> list[dict[str, Any]]:

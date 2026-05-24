@@ -593,3 +593,220 @@ def test_create_mcp_server_uses_backend_session_factory(db_session: Session, mon
 
     assert isinstance(mcp.auth, IntegrationKeyTokenVerifier)
     assert mcp.auth.session_factory == session_factory
+
+
+def test_mcp_server_version_contains_tool_version(db_session: Session, monkeypatch) -> None:
+    """MCP server version should embed _MCP_TOOL_VERSION so clients see manifest changes."""
+    from app import mcp_server as _ms
+
+    monkeypatch.setattr(settings, "oidc_issuer_url", None)
+    backend = DaynestMcpBackend(_session_factory(db_session))
+
+    mcp = create_mcp_server(backend)
+
+    assert _ms._MCP_TOOL_VERSION in mcp.version
+
+
+def test_mcp_backend_create_planned_item_with_priority_and_tags(db_session: Session) -> None:
+    user = _create_user(db_session, "planned-priority@example.com")
+    backend = DaynestMcpBackend(_session_factory(db_session), user_email=user.email)
+
+    result = backend.create_planned_item(
+        title="Urgent task",
+        planned_for="2026-05-25",
+        priority="high",
+        tags=["work", "important"],
+    )
+
+    assert result["title"] == "Urgent task"
+    assert result["priority"] == "high"
+    assert result["tags"] == ["work", "important"]
+
+
+def test_mcp_backend_update_planned_item_with_priority_and_tags(db_session: Session) -> None:
+    user = _create_user(db_session, "planned-update-priority@example.com")
+    backend = DaynestMcpBackend(_session_factory(db_session), user_email=user.email)
+
+    created = backend.create_planned_item(title="Task", planned_for="2026-05-25")
+    updated = backend.update_planned_item(
+        planned_item_id=created["id"],
+        title="Task",
+        planned_for="2026-05-25",
+        priority="urgent",
+        tags=["urgent-tag"],
+    )
+
+    assert updated["priority"] == "urgent"
+    assert updated["tags"] == ["urgent-tag"]
+
+
+def test_mcp_backend_defer_planned_item(db_session: Session) -> None:
+    from datetime import date
+
+    user = _create_user(db_session, "planned-defer@example.com")
+    backend = DaynestMcpBackend(_session_factory(db_session), user_email=user.email)
+
+    # Create an item for today
+    created = backend.create_planned_item(title="Defer me", planned_for="today")
+    result = backend.defer_planned_item(created["id"])
+
+    tomorrow = (date.today() + __import__("datetime").timedelta(days=1)).isoformat()
+    assert result["planned_for"] == tomorrow
+    assert result["is_done"] is False
+
+
+def test_mcp_backend_take_medication_dose_with_custom_taken_at(db_session: Session) -> None:
+    utc_today = datetime.now(timezone.utc).date()
+    user = _create_user(db_session, "med-take-takenat@example.com")
+    plan = MedicationPlan(
+        user_id=user.id,
+        name="Aspirin",
+        instructions="Take with water",
+        start_date=utc_today,
+        schedule_time=time(8, 0),
+        every_n_days=1,
+        is_active=True,
+    )
+    db_session.add(plan)
+    db_session.commit()
+    db_session.refresh(plan)
+
+    past_time = datetime.now(timezone.utc) - timedelta(hours=2)
+    dose = MedicationDoseInstance(
+        user_id=user.id,
+        medication_plan_id=plan.id,
+        name=plan.name,
+        instructions=plan.instructions,
+        scheduled_date=utc_today,
+        scheduled_at=datetime(utc_today.year, utc_today.month, utc_today.day, 8, 0, tzinfo=timezone.utc),
+        status=MedicationDoseStatus.missed,
+    )
+    db_session.add(dose)
+    db_session.commit()
+    db_session.refresh(dose)
+
+    backend = DaynestMcpBackend(_session_factory(db_session), user_email=user.email)
+    result = backend.take_medication_dose(dose.id, taken_at=past_time.isoformat())
+
+    assert result["status"] == "taken"
+    assert result["taken_at"] is not None
+
+
+def test_mcp_backend_take_medication_dose_rejects_future_taken_at(db_session: Session) -> None:
+    from fastapi import HTTPException
+
+    utc_today = datetime.now(timezone.utc).date()
+    user = _create_user(db_session, "med-take-future@example.com")
+    plan = MedicationPlan(
+        user_id=user.id,
+        name="Vitamin C",
+        instructions="Take with juice",
+        start_date=utc_today,
+        schedule_time=time(9, 0),
+        every_n_days=1,
+        is_active=True,
+    )
+    db_session.add(plan)
+    db_session.commit()
+    db_session.refresh(plan)
+
+    dose = MedicationDoseInstance(
+        user_id=user.id,
+        medication_plan_id=plan.id,
+        name=plan.name,
+        instructions=plan.instructions,
+        scheduled_date=utc_today,
+        scheduled_at=datetime(utc_today.year, utc_today.month, utc_today.day, 9, 0, tzinfo=timezone.utc),
+        status=MedicationDoseStatus.scheduled,
+    )
+    db_session.add(dose)
+    db_session.commit()
+    db_session.refresh(dose)
+
+    future_time = (datetime.now(timezone.utc) + timedelta(hours=2)).isoformat()
+    backend = DaynestMcpBackend(_session_factory(db_session), user_email=user.email)
+
+    with pytest.raises(HTTPException) as exc_info:
+        backend.take_medication_dose(dose.id, taken_at=future_time)
+    assert exc_info.value.status_code == 422
+
+
+def test_mcp_backend_skip_missed_medication_doses(db_session: Session) -> None:
+    utc_today = datetime.now(timezone.utc).date()
+    user = _create_user(db_session, "med-skip-missed@example.com")
+    plan = MedicationPlan(
+        user_id=user.id,
+        name="Iron",
+        instructions="Take with juice",
+        start_date=utc_today - timedelta(days=3),
+        schedule_time=time(8, 0),
+        every_n_days=1,
+        is_active=True,
+    )
+    db_session.add(plan)
+    db_session.commit()
+    db_session.refresh(plan)
+
+    # Two missed doses from the past
+    for delta in (1, 2):
+        d = utc_today - timedelta(days=delta)
+        db_session.add(MedicationDoseInstance(
+            user_id=user.id,
+            medication_plan_id=plan.id,
+            name=plan.name,
+            instructions=plan.instructions,
+            scheduled_date=d,
+            scheduled_at=datetime(d.year, d.month, d.day, 8, 0, tzinfo=timezone.utc),
+            status=MedicationDoseStatus.missed,
+        ))
+    # One scheduled dose for today — should not be touched
+    db_session.add(MedicationDoseInstance(
+        user_id=user.id,
+        medication_plan_id=plan.id,
+        name=plan.name,
+        instructions=plan.instructions,
+        scheduled_date=utc_today,
+        scheduled_at=datetime(utc_today.year, utc_today.month, utc_today.day, 8, 0, tzinfo=timezone.utc),
+        status=MedicationDoseStatus.scheduled,
+    ))
+    db_session.commit()
+
+    backend = DaynestMcpBackend(_session_factory(db_session), user_email=user.email)
+    result = backend.skip_missed_medication_doses()  # default: before today
+
+    assert result["skipped_count"] == 2
+    assert result["before_date"] == utc_today.isoformat()
+
+
+def test_mcp_backend_skip_missed_doses_does_not_touch_today(db_session: Session) -> None:
+    utc_today = datetime.now(timezone.utc).date()
+    user = _create_user(db_session, "med-skip-today-safe@example.com")
+    plan = MedicationPlan(
+        user_id=user.id,
+        name="Magnesium",
+        instructions="Take at night",
+        start_date=utc_today,
+        schedule_time=time(22, 0),
+        every_n_days=1,
+        is_active=True,
+    )
+    db_session.add(plan)
+    db_session.commit()
+    db_session.refresh(plan)
+
+    # A missed dose for today (edge case — should NOT be skipped by default cutoff)
+    db_session.add(MedicationDoseInstance(
+        user_id=user.id,
+        medication_plan_id=plan.id,
+        name=plan.name,
+        instructions=plan.instructions,
+        scheduled_date=utc_today,
+        scheduled_at=datetime(utc_today.year, utc_today.month, utc_today.day, 22, 0, tzinfo=timezone.utc),
+        status=MedicationDoseStatus.missed,
+    ))
+    db_session.commit()
+
+    backend = DaynestMcpBackend(_session_factory(db_session), user_email=user.email)
+    result = backend.skip_missed_medication_doses()  # default: before today
+
+    assert result["skipped_count"] == 0

@@ -114,6 +114,18 @@ def update_planned_item(
     return item
 
 
+@router.post("/planned-items/{planned_item_id}/defer", response_model=PlannedTodayItem)
+def defer_planned_item(
+    planned_item_id: int,
+    service: TodayService = Depends(get_today_service),
+    event_bus: EventBus = Depends(get_event_bus),
+    current_user: User = Depends(get_current_user),
+) -> PlannedTodayItem:
+    item = service.defer_planned_item(user_id=current_user.id, planned_item_id=planned_item_id)
+    event_bus.publish(current_user.id, {"type": "today_updated"})
+    return item
+
+
 @router.delete("/planned-items/{planned_item_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_planned_item(
     planned_item_id: int,
