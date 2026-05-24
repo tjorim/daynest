@@ -3,7 +3,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { SettingsPage } from "@/features/settings/SettingsPage";
-import i18n from "@/i18n";
+import { setLanguageTag } from "@/paraglide/runtime";
 
 const apiMock = vi.hoisted(() => ({
   createIntegrationClient: vi.fn(),
@@ -33,8 +33,8 @@ vi.mock("@/app/pwa/installPrompt", () => ({
 }));
 
 describe("SettingsPage", () => {
-  beforeEach(async () => {
-    await i18n.changeLanguage("en");
+  beforeEach(() => {
+    setLanguageTag("en");
     apiMock.createIntegrationClient.mockReset();
     apiMock.listIntegrationClients.mockReset();
     apiMock.fetchUserSettings.mockReset();

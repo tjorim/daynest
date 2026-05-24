@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import * as m from "@/paraglide/messages";
 import {
   createChoreTemplate,
   createRoutineTemplate,
@@ -117,12 +118,12 @@ export function TemplatesPage() {
 
   const submitRoutine = async () => {
     if (!routineName.trim()) {
-      setSubmitError("Routine name is required.");
+      setSubmitError(m.templates_routine_name_required());
       return;
     }
     const everyNDaysRoutine = parseInt(routineEveryNDays, 10);
     if (!Number.isInteger(everyNDaysRoutine) || everyNDaysRoutine < 1) {
-      setSubmitError("Every N days must be a positive integer.");
+      setSubmitError(m.templates_every_n_error());
       return;
     }
     setIsSubmitting(true);
@@ -144,11 +145,11 @@ export function TemplatesPage() {
       }
       resetRoutineForm();
       setSuccessMessage(
-        editingRoutineId !== null ? "Routine template updated." : "Routine template created.",
+        editingRoutineId !== null ? m.templates_routine_updated() : m.templates_routine_created(),
       );
       await loadTemplates();
     } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : "Failed to save routine template.");
+      setSubmitError(err instanceof Error ? err.message : m.templates_routine_save_failed());
     } finally {
       setIsSubmitting(false);
     }
@@ -156,12 +157,12 @@ export function TemplatesPage() {
 
   const submitChore = async () => {
     if (!choreName.trim()) {
-      setSubmitError("Chore name is required.");
+      setSubmitError(m.templates_chore_name_required());
       return;
     }
     const everyNDaysChore = parseInt(choreEveryNDays, 10);
     if (!Number.isInteger(everyNDaysChore) || everyNDaysChore < 1) {
-      setSubmitError("Every N days must be a positive integer.");
+      setSubmitError(m.templates_every_n_error());
       return;
     }
     setIsSubmitting(true);
@@ -182,11 +183,11 @@ export function TemplatesPage() {
       }
       resetChoreForm();
       setSuccessMessage(
-        editingChoreId !== null ? "Chore template updated." : "Chore template created.",
+        editingChoreId !== null ? m.templates_chore_updated() : m.templates_chore_created(),
       );
       await loadTemplates();
     } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : "Failed to save chore template.");
+      setSubmitError(err instanceof Error ? err.message : m.templates_chore_save_failed());
     } finally {
       setIsSubmitting(false);
     }
@@ -200,10 +201,10 @@ export function TemplatesPage() {
     try {
       await deleteRoutineTemplate(routineId);
       if (editingRoutineId === routineId) resetRoutineForm();
-      setSuccessMessage("Routine template deleted.");
+      setSuccessMessage(m.templates_routine_deleted());
       await loadTemplates();
     } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : "Failed to delete routine template.");
+      setSubmitError(err instanceof Error ? err.message : m.templates_routine_delete_failed());
     } finally {
       setIsSubmitting(false);
     }
@@ -217,10 +218,10 @@ export function TemplatesPage() {
     try {
       await deleteChoreTemplate(choreId);
       if (editingChoreId === choreId) resetChoreForm();
-      setSuccessMessage("Chore template deleted.");
+      setSuccessMessage(m.templates_chore_deleted());
       await loadTemplates();
     } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : "Failed to delete chore template.");
+      setSubmitError(err instanceof Error ? err.message : m.templates_chore_delete_failed());
     } finally {
       setIsSubmitting(false);
     }
@@ -229,22 +230,21 @@ export function TemplatesPage() {
   return (
     <section>
       <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2 mb-2">
-        <h2 className="h4 mb-0">Templates</h2>
+        <h2 className="h4 mb-0">{m.templates_title()}</h2>
         <button
           type="button"
           className="btn btn-outline-primary btn-sm"
           disabled={loading}
           onClick={() => void loadTemplates()}
         >
-          Refresh
+          {m.action_refresh()}
         </button>
       </div>
       <p className="text-muted mb-3">
-        Manage reusable routine and chore templates. Both template types now generate scheduled work
-        from their recurrence settings.
+        {m.templates_subtitle()}
       </p>
 
-      {loading ? <div className="alert alert-info py-2">Loading templates...</div> : null}
+      {loading ? <div className="alert alert-info py-2">{m.templates_loading()}</div> : null}
       {error ? (
         <div className="alert alert-danger py-2 d-flex justify-content-between align-items-center gap-2 flex-wrap">
           <span>{error}</span>
@@ -254,7 +254,7 @@ export function TemplatesPage() {
               className="btn btn-danger btn-sm"
               onClick={() => void loadTemplates()}
             >
-              Retry
+              {m.action_retry()}
             </button>
           ) : null}
         </div>
@@ -265,24 +265,24 @@ export function TemplatesPage() {
       <div className="row g-3">
         <div className="col-xl-6">
           <div className="card mb-3">
-            <div className="card-header fw-semibold py-2">Routine template</div>
+            <div className="card-header fw-semibold py-2">{m.templates_routine_form_header()}</div>
             <div className="card-body d-grid gap-2">
               <input
                 className="form-control"
                 value={routineName}
                 onChange={(event) => setRoutineName(event.target.value)}
-                placeholder="Routine name"
+                placeholder={m.templates_routine_name_placeholder()}
               />
               <textarea
                 className="form-control"
                 rows={3}
                 value={routineDescription}
                 onChange={(event) => setRoutineDescription(event.target.value)}
-                placeholder="Description"
+                placeholder={m.templates_description_placeholder()}
               />
               <div className="row g-2">
                 <div className="col-sm-6">
-                  <label className="form-label small fw-semibold mb-1">Start date</label>
+                  <label className="form-label small fw-semibold mb-1">{m.templates_start_date_label()}</label>
                   <input
                     className="form-control"
                     type="date"
@@ -291,7 +291,7 @@ export function TemplatesPage() {
                   />
                 </div>
                 <div className="col-sm-6">
-                  <label className="form-label small fw-semibold mb-1">Every N days</label>
+                  <label className="form-label small fw-semibold mb-1">{m.templates_every_n_days_label()}</label>
                   <input
                     className="form-control"
                     type="number"
@@ -302,7 +302,7 @@ export function TemplatesPage() {
                 </div>
               </div>
               <div>
-                <label className="form-label small fw-semibold mb-1">Due time</label>
+                <label className="form-label small fw-semibold mb-1">{m.templates_due_time_label()}</label>
                 <input
                   className="form-control"
                   type="time"
@@ -317,7 +317,7 @@ export function TemplatesPage() {
                   checked={routineActive}
                   onChange={(event) => setRoutineActive(event.target.checked)}
                 />
-                <span className="form-check-label">Active</span>
+                <span className="form-check-label">{m.templates_active_label()}</span>
               </label>
               <div className="d-flex gap-2 flex-column flex-sm-row">
                 <button
@@ -328,11 +328,11 @@ export function TemplatesPage() {
                 >
                   {isSubmitting
                     ? editingRoutineId !== null
-                      ? "Saving…"
-                      : "Creating…"
+                      ? m.action_saving()
+                      : m.action_creating()
                     : editingRoutineId !== null
-                      ? "Save routine"
-                      : "Create routine"}
+                      ? m.templates_save_routine()
+                      : m.templates_create_routine()}
                 </button>
                 {editingRoutineId !== null ? (
                   <button
@@ -341,7 +341,7 @@ export function TemplatesPage() {
                     disabled={isSubmitting}
                     onClick={resetRoutineForm}
                   >
-                    Cancel edit
+                    {m.templates_cancel_edit()}
                   </button>
                 ) : null}
               </div>
@@ -349,10 +349,10 @@ export function TemplatesPage() {
           </div>
 
           <div className="card">
-            <div className="card-header fw-semibold py-2">Routine templates</div>
+            <div className="card-header fw-semibold py-2">{m.templates_routine_list_header()}</div>
             <ul className="list-group list-group-flush">
               {routines.length === 0 ? (
-                <li className="list-group-item py-2 text-muted">No routine templates yet.</li>
+                <li className="list-group-item py-2 text-muted">{m.templates_no_routines()}</li>
               ) : (
                 routines.map((routine) => (
                   <li key={routine.id} className="list-group-item py-2">
@@ -363,19 +363,21 @@ export function TemplatesPage() {
                           <small className="d-block">{routine.description}</small>
                         ) : null}
                         <small className="text-muted d-block">
-                          Starts {formatDate(routine.start_date)} • every {routine.every_n_days} day
-                          {routine.every_n_days === 1 ? "" : "s"}
+                          {m.templates_starts({ date: formatDate(routine.start_date) })} •{" "}
+                          {routine.every_n_days === 1
+                            ? m.templates_every_day({ count: routine.every_n_days })
+                            : m.templates_every_days({ count: routine.every_n_days })}
                           {routine.due_time ? ` • ${routine.due_time.slice(0, 5)}` : ""}
                         </small>
                         <small className="text-muted d-block">
-                          Created {formatDate(routine.created_at)}
+                          {m.templates_created({ date: formatDate(routine.created_at) })}
                         </small>
                       </div>
                       <div className="d-grid gap-2">
                         <span
                           className={`badge ${routine.is_active ? "text-bg-success" : "text-bg-secondary"}`}
                         >
-                          {routine.is_active ? "Active" : "Inactive"}
+                          {routine.is_active ? m.status_active() : m.status_inactive()}
                         </span>
                         {(() => {
                           const streak = routineStreakMap.get(routine.id);
@@ -400,7 +402,7 @@ export function TemplatesPage() {
                             setSubmitError(null);
                           }}
                         >
-                          Edit
+                          {m.action_edit()}
                         </button>
                         {confirmDeleteRoutineId === routine.id ? (
                           <div className="d-flex gap-1">
@@ -410,7 +412,7 @@ export function TemplatesPage() {
                               disabled={isSubmitting}
                               onClick={() => void handleDeleteRoutine(routine.id)}
                             >
-                              Confirm
+                              {m.action_confirm()}
                             </button>
                             <button
                               type="button"
@@ -418,7 +420,7 @@ export function TemplatesPage() {
                               disabled={isSubmitting}
                               onClick={() => setConfirmDeleteRoutineId(null)}
                             >
-                              Cancel
+                              {m.action_cancel()}
                             </button>
                           </div>
                         ) : (
@@ -427,7 +429,7 @@ export function TemplatesPage() {
                             className="btn btn-outline-danger btn-sm"
                             onClick={() => setConfirmDeleteRoutineId(routine.id)}
                           >
-                            Delete
+                            {m.action_delete()}
                           </button>
                         )}
                       </div>
@@ -441,24 +443,24 @@ export function TemplatesPage() {
 
         <div className="col-xl-6">
           <div className="card mb-3">
-            <div className="card-header fw-semibold py-2">Chore template</div>
+            <div className="card-header fw-semibold py-2">{m.templates_chore_form_header()}</div>
             <div className="card-body d-grid gap-2">
               <input
                 className="form-control"
                 value={choreName}
                 onChange={(event) => setChoreName(event.target.value)}
-                placeholder="Chore name"
+                placeholder={m.templates_chore_name_placeholder()}
               />
               <textarea
                 className="form-control"
                 rows={3}
                 value={choreDescription}
                 onChange={(event) => setChoreDescription(event.target.value)}
-                placeholder="Description"
+                placeholder={m.templates_description_placeholder()}
               />
               <div className="row g-2">
                 <div className="col-sm-6">
-                  <label className="form-label small fw-semibold mb-1">Start date</label>
+                  <label className="form-label small fw-semibold mb-1">{m.templates_start_date_label()}</label>
                   <input
                     className="form-control"
                     type="date"
@@ -467,7 +469,7 @@ export function TemplatesPage() {
                   />
                 </div>
                 <div className="col-sm-6">
-                  <label className="form-label small fw-semibold mb-1">Every N days</label>
+                  <label className="form-label small fw-semibold mb-1">{m.templates_every_n_days_label()}</label>
                   <input
                     className="form-control"
                     type="number"
@@ -484,7 +486,7 @@ export function TemplatesPage() {
                   checked={choreActive}
                   onChange={(event) => setChoreActive(event.target.checked)}
                 />
-                <span className="form-check-label">Active</span>
+                <span className="form-check-label">{m.templates_active_label()}</span>
               </label>
               <div className="d-flex gap-2 flex-column flex-sm-row">
                 <button
@@ -495,11 +497,11 @@ export function TemplatesPage() {
                 >
                   {isSubmitting
                     ? editingChoreId !== null
-                      ? "Saving…"
-                      : "Creating…"
+                      ? m.action_saving()
+                      : m.action_creating()
                     : editingChoreId !== null
-                      ? "Save chore"
-                      : "Create chore"}
+                      ? m.templates_save_chore()
+                      : m.templates_create_chore()}
                 </button>
                 {editingChoreId !== null ? (
                   <button
@@ -508,7 +510,7 @@ export function TemplatesPage() {
                     disabled={isSubmitting}
                     onClick={resetChoreForm}
                   >
-                    Cancel edit
+                    {m.templates_cancel_edit()}
                   </button>
                 ) : null}
               </div>
@@ -516,10 +518,10 @@ export function TemplatesPage() {
           </div>
 
           <div className="card">
-            <div className="card-header fw-semibold py-2">Chore templates</div>
+            <div className="card-header fw-semibold py-2">{m.templates_chore_list_header()}</div>
             <ul className="list-group list-group-flush">
               {chores.length === 0 ? (
-                <li className="list-group-item py-2 text-muted">No chore templates yet.</li>
+                <li className="list-group-item py-2 text-muted">{m.templates_no_chores()}</li>
               ) : (
                 chores.map((chore) => (
                   <li key={chore.id} className="list-group-item py-2">
@@ -530,15 +532,17 @@ export function TemplatesPage() {
                           <small className="d-block">{chore.description}</small>
                         ) : null}
                         <small className="text-muted d-block">
-                          Starts {formatDate(chore.start_date)} • every {chore.every_n_days} day
-                          {chore.every_n_days === 1 ? "" : "s"}
+                          {m.templates_starts({ date: formatDate(chore.start_date) })} •{" "}
+                          {chore.every_n_days === 1
+                            ? m.templates_every_day({ count: chore.every_n_days })
+                            : m.templates_every_days({ count: chore.every_n_days })}
                         </small>
                       </div>
                       <div className="d-grid gap-2">
                         <span
                           className={`badge ${chore.is_active ? "text-bg-success" : "text-bg-secondary"}`}
                         >
-                          {chore.is_active ? "Active" : "Inactive"}
+                          {chore.is_active ? m.status_active() : m.status_inactive()}
                         </span>
                         {(() => {
                           const streak = choreStreakMap.get(chore.id);
@@ -562,7 +566,7 @@ export function TemplatesPage() {
                             setSubmitError(null);
                           }}
                         >
-                          Edit
+                          {m.action_edit()}
                         </button>
                         {confirmDeleteChoreId === chore.id ? (
                           <div className="d-flex gap-1">
@@ -572,7 +576,7 @@ export function TemplatesPage() {
                               disabled={isSubmitting}
                               onClick={() => void handleDeleteChore(chore.id)}
                             >
-                              Confirm
+                              {m.action_confirm()}
                             </button>
                             <button
                               type="button"
@@ -580,7 +584,7 @@ export function TemplatesPage() {
                               disabled={isSubmitting}
                               onClick={() => setConfirmDeleteChoreId(null)}
                             >
-                              Cancel
+                              {m.action_cancel()}
                             </button>
                           </div>
                         ) : (
@@ -589,7 +593,7 @@ export function TemplatesPage() {
                             className="btn btn-outline-danger btn-sm"
                             onClick={() => setConfirmDeleteChoreId(chore.id)}
                           >
-                            Delete
+                            {m.action_delete()}
                           </button>
                         )}
                       </div>

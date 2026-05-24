@@ -1,7 +1,11 @@
 import { cleanup } from "@testing-library/react";
 import "@testing-library/jest-dom/vitest";
-import { afterEach } from "vitest";
-import "@/i18n";
+import { afterEach, beforeAll } from "vitest";
+import { setLanguageTag } from "@/paraglide/runtime";
+
+beforeAll(() => {
+  setLanguageTag("en");
+});
 
 afterEach(() => {
   cleanup();

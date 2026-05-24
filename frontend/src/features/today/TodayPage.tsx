@@ -1,5 +1,6 @@
 import confetti from "canvas-confetti";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import * as m from "@/paraglide/messages";
 import { fetchToday, isRetryableApiError, type TodayPayload } from "@/lib/api/today";
 import { PlannedSection } from "@/features/today/PlannedSection";
 import {
@@ -72,14 +73,14 @@ export function TodayPage() {
     () => [
       {
         key: "routine-done",
-        label: "Bulk Done",
+        label: m.action_done(),
         buttonClassName: "btn-success",
         isAvailable: (item) => Boolean(item.taskInstanceId && isItemActionable(item)),
         run: (item) => actions.completeRoutineTask(item.taskInstanceId as number, { refresh: false }),
       },
       {
         key: "routine-skip",
-        label: "Bulk Skip",
+        label: m.action_skip(),
         buttonClassName: "btn-outline-secondary",
         isAvailable: (item) => Boolean(item.taskInstanceId && isItemActionable(item)),
         run: (item) => actions.skipRoutineTask(item.taskInstanceId as number, { refresh: false }),
@@ -92,14 +93,14 @@ export function TodayPage() {
     () => [
       {
         key: "chore-done",
-        label: "Bulk Done",
+        label: m.action_done(),
         buttonClassName: "btn-success",
         isAvailable: (item) => Boolean(item.choreInstanceId && isItemActionable(item)),
         run: (item) => actions.completeChore(item.choreInstanceId as number, { refresh: false }),
       },
       {
         key: "chore-skip",
-        label: "Bulk Skip",
+        label: m.action_skip(),
         buttonClassName: "btn-outline-secondary",
         isAvailable: (item) => Boolean(item.choreInstanceId && isItemActionable(item)),
         run: (item) => actions.skipChore(item.choreInstanceId as number, { refresh: false }),
@@ -112,14 +113,14 @@ export function TodayPage() {
     () => [
       {
         key: "planned-done",
-        label: "Bulk Done",
+        label: m.action_done(),
         buttonClassName: "btn-success",
         isAvailable: (item) => Boolean(item.plannedItem && isItemActionable(item)),
         run: (item) => actions.togglePlannedItem(item.plannedItem!, true, { refresh: false }),
       },
       {
         key: "planned-undo",
-        label: "Bulk Undo",
+        label: m.action_undo(),
         buttonClassName: "btn-outline-success",
         isAvailable: (item) => Boolean(item.plannedItem && isItemCompleted(item)),
         run: (item) => actions.togglePlannedItem(item.plannedItem!, false, { refresh: false }),
@@ -133,41 +134,41 @@ export function TodayPage() {
     ? [
         {
           key: "medication-today",
-          heading: "Medication Today",
+          heading: m.today_section_medication(),
           items: buildMedicationItems(today.medication),
         },
         {
           key: "medication-history",
-          heading: "Medication History",
+          heading: m.today_section_medication_history(),
           items: buildMedicationHistoryItems(today.medication_history),
         },
         {
           key: "routines",
-          heading: "Routines",
+          heading: m.today_section_routines(),
           items: buildRoutineItems(today.routines),
           bulkActions: routineBulkActions,
         },
         {
           key: "overdue",
-          heading: "Overdue",
+          heading: m.today_section_overdue(),
           items: buildOverdueItems(today.overdue),
           bulkActions: choreBulkActions,
         },
         {
           key: "due-today",
-          heading: "Due Today",
+          heading: m.today_section_due_today(),
           items: buildDueTodayItems(today.due_today),
           bulkActions: choreBulkActions,
         },
         {
           key: "planned",
-          heading: "Planned",
+          heading: m.today_section_planned(),
           items: buildPlannedItems(today.planned),
           bulkActions: plannedBulkActions,
         },
         {
           key: "upcoming",
-          heading: "Upcoming",
+          heading: m.today_section_upcoming(),
           items: buildUpcomingItems(today.upcoming),
           bulkActions: choreBulkActions,
         },
@@ -191,7 +192,7 @@ export function TodayPage() {
   return (
     <section>
       <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2 mb-2">
-        <h2 className="h4 mb-0">Today</h2>
+        <h2 className="h4 mb-0">{m.nav_today()}</h2>
         <div className="d-flex gap-2 align-items-start flex-wrap w-100 w-md-auto">
           <button
             className="btn btn-outline-primary btn-sm flex-md-grow-0"
@@ -199,15 +200,15 @@ export function TodayPage() {
             disabled={isLoading}
             onClick={() => void loadToday()}
           >
-            Refresh
+            {m.action_refresh()}
           </button>
         </div>
       </div>
       <p className="text-muted mb-3">
-        Medication, routines, chores, and planned tasks — everything due or active today.
+        {m.today_subtitle()}
       </p>
 
-      {isLoading ? <div className="alert alert-info py-2">Loading today...</div> : null}
+      {isLoading ? <div className="alert alert-info py-2">{m.today_loading()}</div> : null}
       {!isLoading && error ? (
         <div className="alert alert-danger py-2 d-flex justify-content-between align-items-center gap-2 flex-wrap">
           <span>{error}</span>
@@ -217,23 +218,23 @@ export function TodayPage() {
               className="btn btn-danger btn-sm"
               onClick={() => void loadToday()}
             >
-              Retry
+              {m.action_retry()}
             </button>
           ) : null}
         </div>
       ) : null}
       {!isLoading && !error && today && !hasAnyItems ? (
-        <div className="alert alert-secondary py-2">Nothing scheduled for today yet.</div>
+        <div className="alert alert-secondary py-2">{m.today_nothing_scheduled()}</div>
       ) : null}
 
       {!isLoading && !error && today ? (
         <>
           <div className="row g-3 mb-3">
-            <SummaryCard label="Overdue" value={today.overdue.length} tone="danger" />
-            <SummaryCard label="Due Today" value={today.due_today.length} tone="warning" />
-            <SummaryCard label="Medication Due" value={scheduledMedicationCount} tone="info" />
-            <SummaryCard label="Open Plans" value={openPlannedCount} tone="primary" />
-            <SummaryCard label="Open Routines" value={routineOpenCount} tone="secondary" />
+            <SummaryCard label={m.today_summary_overdue()} value={today.overdue.length} tone="danger" />
+            <SummaryCard label={m.today_summary_due_today()} value={today.due_today.length} tone="warning" />
+            <SummaryCard label={m.today_summary_medication_due()} value={scheduledMedicationCount} tone="info" />
+            <SummaryCard label={m.today_summary_open_plans()} value={openPlannedCount} tone="primary" />
+            <SummaryCard label={m.today_summary_open_routines()} value={routineOpenCount} tone="secondary" />
           </div>
           <WebFocusPanel sections={sections} />
           <PlannedSection

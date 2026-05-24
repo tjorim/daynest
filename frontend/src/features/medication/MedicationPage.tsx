@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import * as m from "@/paraglide/messages";
 import {
   createMedicationPlan,
   deleteMedicationPlan,
@@ -69,13 +70,13 @@ export function MedicationPage() {
 
   const onCreatePlan = async () => {
     if (!name.trim() || !instructions.trim()) {
-      setSubmitError("Name and instructions are required.");
+      setSubmitError(m.medication_required_fields());
       return;
     }
 
     const parsedEvery = parseInt(everyNDays, 10);
     if (!Number.isInteger(parsedEvery) || parsedEvery < 1) {
-      setSubmitError("Every N days must be a positive integer.");
+      setSubmitError(m.medication_every_n_error());
       return;
     }
 
@@ -96,10 +97,10 @@ export function MedicationPage() {
       setStartDate(todayLocalDate());
       setScheduleTime("09:00:00");
       setEveryNDays("1");
-      setSuccessMessage("Medication plan created.");
+      setSuccessMessage(m.medication_plan_created());
       await loadMedication();
     } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : "Failed to create medication plan.");
+      setSubmitError(err instanceof Error ? err.message : m.medication_create_failed());
     } finally {
       setIsSubmitting(false);
     }
@@ -113,10 +114,10 @@ export function MedicationPage() {
     try {
       await updateMedicationPlan(planId, input);
       setEditingPlan(null);
-      setSuccessMessage("Medication plan updated.");
+      setSuccessMessage(m.medication_plan_updated());
       await loadMedication();
     } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : "Failed to update medication plan.");
+      setSubmitError(err instanceof Error ? err.message : m.medication_update_failed());
     } finally {
       setIsSubmitting(false);
     }
@@ -129,10 +130,10 @@ export function MedicationPage() {
 
     try {
       await deleteMedicationPlan(planId);
-      setSuccessMessage("Medication plan deleted.");
+      setSuccessMessage(m.medication_plan_deleted());
       await loadMedication();
     } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : "Failed to delete medication plan.");
+      setSubmitError(err instanceof Error ? err.message : m.medication_delete_failed());
     } finally {
       setDeletingPlanId(null);
     }
@@ -141,21 +142,21 @@ export function MedicationPage() {
   return (
     <section>
       <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2 mb-2">
-        <h2 className="h4 mb-0">Medication</h2>
+        <h2 className="h4 mb-0">{m.medication_title()}</h2>
         <button
           type="button"
           className="btn btn-outline-primary btn-sm"
           disabled={loading}
           onClick={() => void loadMedication()}
         >
-          Refresh
+          {m.action_refresh()}
         </button>
       </div>
       <p className="text-muted mb-3">
-        Manage recurring medication plans and review recent dose history outside the Today workflow.
+        {m.medication_subtitle()}
       </p>
 
-      {loading ? <div className="alert alert-info py-2">Loading medication...</div> : null}
+      {loading ? <div className="alert alert-info py-2">{m.medication_loading()}</div> : null}
       {error ? (
         <div className="alert alert-danger py-2 d-flex justify-content-between align-items-center gap-2 flex-wrap">
           <span>{error}</span>
@@ -165,7 +166,7 @@ export function MedicationPage() {
               className="btn btn-danger btn-sm"
               onClick={() => void loadMedication()}
             >
-              Retry
+              {m.action_retry()}
             </button>
           ) : null}
         </div>
@@ -175,7 +176,7 @@ export function MedicationPage() {
       <div className="row g-3">
         <div className="col-lg-5">
           <div className="card mb-3">
-            <div className="card-header fw-semibold py-2">Create medication plan</div>
+            <div className="card-header fw-semibold py-2">{m.medication_create_plan_header()}</div>
             <div className="card-body d-grid gap-2">
               <input
                 className="form-control"
@@ -185,7 +186,7 @@ export function MedicationPage() {
                   setSubmitError(null);
                   setSuccessMessage(null);
                 }}
-                placeholder="Medication name"
+                placeholder={m.medication_name_placeholder()}
               />
               <textarea
                 className="form-control"
@@ -196,11 +197,11 @@ export function MedicationPage() {
                   setSubmitError(null);
                   setSuccessMessage(null);
                 }}
-                placeholder="Instructions"
+                placeholder={m.medication_instructions_placeholder()}
               />
               <div className="row g-2">
                 <div className="col-sm-6">
-                  <label className="form-label small fw-semibold mb-1">Start date</label>
+                  <label className="form-label small fw-semibold mb-1">{m.medication_start_date_label()}</label>
                   <input
                     className="form-control"
                     type="date"
@@ -209,7 +210,7 @@ export function MedicationPage() {
                   />
                 </div>
                 <div className="col-sm-6">
-                  <label className="form-label small fw-semibold mb-1">Schedule time</label>
+                  <label className="form-label small fw-semibold mb-1">{m.medication_schedule_time_label()}</label>
                   <input
                     className="form-control"
                     type="time"
@@ -219,7 +220,7 @@ export function MedicationPage() {
                 </div>
               </div>
               <div>
-                <label className="form-label small fw-semibold mb-1">Every N days</label>
+                <label className="form-label small fw-semibold mb-1">{m.medication_every_n_days_label()}</label>
                 <input
                   className="form-control"
                   type="number"
@@ -238,7 +239,7 @@ export function MedicationPage() {
                 disabled={isSubmitting}
                 onClick={() => void onCreatePlan()}
               >
-                {isSubmitting ? "Creating…" : "Create plan"}
+                {isSubmitting ? m.action_creating() : m.medication_create_button()}
               </button>
             </div>
             {submitError ? (
@@ -247,10 +248,10 @@ export function MedicationPage() {
           </div>
 
           <div className="card">
-            <div className="card-header fw-semibold py-2">Active plans</div>
+            <div className="card-header fw-semibold py-2">{m.medication_active_plans_header()}</div>
             <ul className="list-group list-group-flush">
               {plans.length === 0 ? (
-                <li className="list-group-item py-2 text-muted">No medication plans yet.</li>
+                <li className="list-group-item py-2 text-muted">{m.medication_no_plans()}</li>
               ) : (
                 plans.map((plan) => (
                   <li key={plan.id} className="list-group-item py-2">
@@ -258,8 +259,10 @@ export function MedicationPage() {
                       <div>
                         <div className="fw-semibold">{plan.name}</div>
                         <small className="text-muted d-block">
-                          Starts {formatDate(plan.start_date)} • {plan.schedule_time.slice(0, 5)} •
-                          every {plan.every_n_days} day{plan.every_n_days === 1 ? "" : "s"}
+                          {m.medication_starts({ date: formatDate(plan.start_date) })} • {plan.schedule_time.slice(0, 5)} •{" "}
+                          {plan.every_n_days === 1
+                            ? m.medication_every_day({ count: plan.every_n_days })
+                            : m.medication_every_days({ count: plan.every_n_days })}
                         </small>
                         <small className="d-block mt-1">{plan.instructions}</small>
                       </div>
@@ -267,14 +270,14 @@ export function MedicationPage() {
                         <span
                           className={`badge align-self-start ${plan.is_active ? "text-bg-success" : "text-bg-secondary"}`}
                         >
-                          {plan.is_active ? "Active" : "Inactive"}
+                          {plan.is_active ? m.status_active() : m.status_inactive()}
                         </span>
                         <button
                           type="button"
                           className="btn btn-outline-primary btn-sm"
                           onClick={() => setEditingPlan(plan)}
                         >
-                          Edit
+                          {m.action_edit()}
                         </button>
                         <button
                           type="button"
@@ -282,7 +285,7 @@ export function MedicationPage() {
                           disabled={deletingPlanId === plan.id}
                           onClick={() => void onDeletePlan(plan.id)}
                         >
-                          {deletingPlanId === plan.id ? "Deleting…" : "Delete"}
+                          {deletingPlanId === plan.id ? m.action_deleting() : m.action_delete()}
                         </button>
                       </div>
                     </div>
@@ -295,10 +298,10 @@ export function MedicationPage() {
 
         <div className="col-lg-7">
           <div className="card">
-            <div className="card-header fw-semibold py-2">Dose history</div>
+            <div className="card-header fw-semibold py-2">{m.medication_dose_history_header()}</div>
             <ul className="list-group list-group-flush">
               {history.length === 0 ? (
-                <li className="list-group-item py-2 text-muted">No recent medication history.</li>
+                <li className="list-group-item py-2 text-muted">{m.medication_no_history()}</li>
               ) : (
                 history.map((item) => (
                   <li key={item.medication_dose_instance_id} className="list-group-item py-2">
@@ -357,11 +360,11 @@ function EditMedicationPlanDialog({
   const submit = () => {
     const parsedEvery = parseInt(everyNDays, 10);
     if (!name.trim() || !instructions.trim()) {
-      setError("Name and instructions are required.");
+      setError(m.medication_required_fields());
       return;
     }
     if (!Number.isInteger(parsedEvery) || parsedEvery < 1) {
-      setError("Every N days must be a positive integer.");
+      setError(m.medication_every_n_error());
       return;
     }
     onSubmit({
@@ -379,7 +382,7 @@ function EditMedicationPlanDialog({
       <div className="modal-dialog">
         <div className="modal-content">
           <div className="modal-header">
-            <h3 className="modal-title h5">Edit medication plan</h3>
+            <h3 className="modal-title h5">{m.medication_edit_title()}</h3>
             <button type="button" className="btn-close" aria-label="Close" onClick={onCancel} />
           </div>
           <div className="modal-body d-grid gap-2">
@@ -393,7 +396,7 @@ function EditMedicationPlanDialog({
             />
             <div className="row g-2">
               <div className="col-sm-6">
-                <label className="form-label small fw-semibold mb-1">Start date</label>
+                <label className="form-label small fw-semibold mb-1">{m.medication_start_date_label()}</label>
                 <input
                   className="form-control"
                   type="date"
@@ -402,7 +405,7 @@ function EditMedicationPlanDialog({
                 />
               </div>
               <div className="col-sm-6">
-                <label className="form-label small fw-semibold mb-1">Schedule time</label>
+                <label className="form-label small fw-semibold mb-1">{m.medication_schedule_time_label()}</label>
                 <input
                   className="form-control"
                   type="time"
@@ -412,7 +415,7 @@ function EditMedicationPlanDialog({
               </div>
             </div>
             <div>
-              <label className="form-label small fw-semibold mb-1">Every N days</label>
+              <label className="form-label small fw-semibold mb-1">{m.medication_every_n_days_label()}</label>
               <input
                 className="form-control"
                 type="number"
@@ -428,15 +431,15 @@ function EditMedicationPlanDialog({
                 checked={isActive}
                 onChange={(event) => setIsActive(event.target.checked)}
               />
-              <span className="form-check-label">Active</span>
+              <span className="form-check-label">{m.medication_active_label()}</span>
             </label>
           </div>
           <div className="modal-footer">
             <button type="button" className="btn btn-outline-secondary" onClick={onCancel}>
-              Cancel
+              {m.action_cancel()}
             </button>
             <button type="button" className="btn btn-primary" disabled={isSubmitting} onClick={submit}>
-              {isSubmitting ? "Saving…" : "Save"}
+              {isSubmitting ? m.action_saving() : m.action_save()}
             </button>
           </div>
         </div>

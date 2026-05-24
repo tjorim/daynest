@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
+import * as m from "@/paraglide/messages";
 import { dayjs, toIsoDate } from "@/lib/dateUtils";
 import { type PlannedTodayItem } from "@/lib/api/today";
 import { SectionCard, buildPlannedItems, type BulkAction } from "@/features/today/TodaySections";
@@ -30,7 +31,7 @@ function QuickAddPlanned({ onRefresh }: { onRefresh: () => Promise<void> }) {
         className="btn btn-outline-secondary btn-sm"
         onClick={() => setIsOpen(true)}
       >
-        + Quick add
+        {m.today_quick_add()}
       </button>
     );
   }
@@ -42,7 +43,7 @@ function QuickAddPlanned({ onRefresh }: { onRefresh: () => Promise<void> }) {
         style={{ minWidth: "12rem" }}
         value={title}
         autoFocus
-        placeholder="Plan title for today…"
+        placeholder={m.today_quick_add_placeholder()}
         disabled={actions.isSubmitting}
         onChange={(event) => {
           setTitle(event.target.value);
@@ -54,7 +55,7 @@ function QuickAddPlanned({ onRefresh }: { onRefresh: () => Promise<void> }) {
         className="btn btn-primary btn-sm"
         disabled={actions.isSubmitting || !title.trim()}
       >
-        {actions.isSubmitting ? "Adding…" : "Add"}
+        {actions.isSubmitting ? m.action_adding() : m.action_add()}
       </button>
       <button
         type="button"
@@ -66,7 +67,7 @@ function QuickAddPlanned({ onRefresh }: { onRefresh: () => Promise<void> }) {
           actions.clearActionError();
         }}
       >
-        Cancel
+        {m.action_cancel()}
       </button>
       {actions.actionError ? <small className="w-100 text-danger">{actions.actionError}</small> : null}
     </form>
@@ -87,7 +88,7 @@ export function PlannedSection({
       <QuickAddPlanned onRefresh={onRefresh} />
       <SectionCard
         sectionId="planned"
-        heading="Planned"
+        heading={m.today_section_planned()}
         items={buildPlannedItems(items)}
         onRefresh={onRefresh}
         bulkActions={bulkActions}
@@ -95,4 +96,3 @@ export function PlannedSection({
     </>
   );
 }
-

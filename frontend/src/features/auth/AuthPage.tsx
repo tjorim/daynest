@@ -1,5 +1,5 @@
 import { Navigate, useLocation } from "react-router-dom";
-import { useTranslation } from "react-i18next";
+import * as m from "@/paraglide/messages";
 import { useAuth } from "@/app/providers/AuthProvider";
 
 function buildRedirectPath(value: unknown): string {
@@ -17,7 +17,6 @@ function buildRedirectPath(value: unknown): string {
 }
 
 export function AuthPage() {
-  const { t } = useTranslation();
   const { isAuthenticated, isLoading, login } = useAuth();
   const location = useLocation();
   const redirectTo = buildRedirectPath(location.state);
@@ -30,9 +29,9 @@ export function AuthPage() {
     <section className="auth-shell">
       <div className="card shadow-sm">
         <div className="card-body p-4 text-center">
-          <h2 className="h4 mb-1">{t("auth.title")}</h2>
+          <h2 className="h4 mb-1">{m.auth_title()}</h2>
           <p className="text-muted mb-3">
-            {t("auth.subtitle")}
+            {m.auth_subtitle()}
           </p>
           <button
             type="button"
@@ -40,7 +39,7 @@ export function AuthPage() {
             onClick={login}
             disabled={isLoading}
           >
-            {isLoading ? t("auth.loading") : t("auth.signIn")}
+            {isLoading ? m.auth_loading() : m.auth_sign_in()}
           </button>
         </div>
       </div>

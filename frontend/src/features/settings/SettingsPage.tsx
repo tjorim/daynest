@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { useTranslation } from "react-i18next";
+import * as m from "@/paraglide/messages";
+import { useLanguage } from "@/i18n/LanguageProvider";
 import {
   getDeferredInstallPrompt,
   promptToInstallApp,
@@ -37,7 +38,7 @@ const HA_ENDPOINTS = [
 const HOME_ASSISTANT_REDIRECT_URI = "https://my.home-assistant.io/redirect/oauth";
 
 export function SettingsPage() {
-  const { t, i18n } = useTranslation();
+  const { language, setLanguage } = useLanguage();
   const [clients, setClients] = useState<IntegrationClient[]>([]);
   const [createdClient, setCreatedClient] = useState<IntegrationClientCreateResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -74,7 +75,6 @@ export function SettingsPage() {
     return custom ?? window.location.origin;
   });
 
-  // Timezone settings
   const [timezone, setTimezone] = useState("");
   const [timezoneLoading, setTimezoneLoading] = useState(true);
   const [timezoneSaving, setTimezoneSaving] = useState(false);
@@ -260,10 +260,8 @@ export function SettingsPage() {
       })
       .catch((err) => {
         if (!controller.signal.aborted) {
-          setTimezoneError(err instanceof Error ? err.message : t("settings.timezoneLoadError"));
-          setNotificationError(
-            err instanceof Error ? err.message : t("settings.notificationPreferencesLoadError"),
-          );
+          const msg = err instanceof Error ? err.message : m.settings_timezone_load_error();
+          setTimezoneError(msg);
         }
       })
       .finally(() => {
@@ -272,7 +270,7 @@ export function SettingsPage() {
         }
       });
     return () => controller.abort();
-  }, [t]);
+  }, []);
 
   const onSaveTimezone = async () => {
     if (!timezone) return;
@@ -281,9 +279,9 @@ export function SettingsPage() {
     setTimezoneSuccess(null);
     try {
       await updateUserSettings({ timezone });
-      setTimezoneSuccess(t("settings.timezoneSaved"));
+      setTimezoneSuccess(m.settings_timezone_saved());
     } catch (err) {
-      setTimezoneError(err instanceof Error ? err.message : t("settings.timezoneSaveError"));
+      setTimezoneError(err instanceof Error ? err.message : m.settings_timezone_save_error());
     } finally {
       setTimezoneSaving(false);
     }
@@ -296,6 +294,9 @@ export function SettingsPage() {
       | "push_missed_medications_enabled",
     checked: boolean,
   ) => {
+    const prevOverdue = pushOverdueChores;
+    const prevMed = pushMedicationReminders;
+    const prevMissed = pushMissedMedications;
     setNotificationError(null);
     setNotificationSuccess(null);
     if (field === "push_overdue_chores_enabled") setPushOverdueChores(checked);
@@ -304,8 +305,11 @@ export function SettingsPage() {
     try {
       await updateUserSettings({ [field]: checked } as UserSettingsPatch);
     } catch (err) {
+      setPushOverdueChores(prevOverdue);
+      setPushMedicationReminders(prevMed);
+      setPushMissedMedications(prevMissed);
       setNotificationError(
-        err instanceof Error ? err.message : t("settings.notificationPreferencesSaveError"),
+        err instanceof Error ? err.message : m.settings_notification_prefs_save_error(),
       );
     }
   };
@@ -320,10 +324,10 @@ export function SettingsPage() {
         quiet_hours_start: quietHoursStart || null,
         quiet_hours_end: quietHoursEnd || null,
       });
-      setNotificationSuccess(t("settings.notificationPreferencesSaved"));
+      setNotificationSuccess(m.settings_notification_prefs_saved());
     } catch (err) {
       setNotificationError(
-        err instanceof Error ? err.message : t("settings.notificationPreferencesSaveError"),
+        err instanceof Error ? err.message : m.settings_notification_prefs_save_error(),
       );
     } finally {
       setNotificationSaving(false);
@@ -395,7 +399,7 @@ export function SettingsPage() {
   return (
     <section>
       <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2 mb-2">
-        <h2 className="h4 mb-0">{t("settings.title")}</h2>
+        <h2 className="h4 mb-0">{m.settings_title()}</h2>
         <div className="d-flex gap-2 align-items-center flex-wrap">
           {canInstallApp ? (
             <button
@@ -404,7 +408,7 @@ export function SettingsPage() {
               disabled={isInstalling}
               onClick={() => void onInstallApp()}
             >
-              {t("settings.installApp")}
+              {m.settings_install_app()}
             </button>
           ) : null}
           <button
@@ -413,15 +417,15 @@ export function SettingsPage() {
             disabled={loading}
             onClick={() => void loadClients()}
           >
-            {t("settings.refresh")}
+            {m.settings_refresh()}
           </button>
         </div>
       </div>
       <p className="text-muted mb-3">
-        {t("settings.subtitle")}
+        {m.settings_subtitle()}
       </p>
 
-      {loading ? <div className="alert alert-info py-2">{t("settings.loading")}</div> : null}
+      {loading ? <div className="alert alert-info py-2">{m.settings_loading()}</div> : null}
       {error ? (
         <div className="alert alert-danger py-2 d-flex justify-content-between align-items-center gap-2 flex-wrap">
           <span>{error}</span>
@@ -431,7 +435,7 @@ export function SettingsPage() {
               className="btn btn-danger btn-sm"
               onClick={() => void loadClients()}
             >
-              {t("settings.retry")}
+              {m.settings_retry()}
             </button>
           ) : null}
         </div>
@@ -441,7 +445,7 @@ export function SettingsPage() {
       <div className="row g-3">
         <div className="col-lg-5">
           <div className="card mb-3">
-            <div className="card-header fw-semibold py-2">{t("settings.backendServer")}</div>
+            <div className="card-header fw-semibold py-2">{m.settings_backend_server_header()}</div>
             <div className="card-body d-grid gap-2">
               <div className="d-flex gap-3">
                 <label className="form-check">
@@ -455,7 +459,7 @@ export function SettingsPage() {
                       setServerUrlError(null);
                     }}
                   />
-                  <span className="form-check-label">{t("settings.default")}</span>
+                  <span className="form-check-label">{m.settings_default()}</span>
                 </label>
                 <label className="form-check">
                   <input
@@ -465,7 +469,7 @@ export function SettingsPage() {
                     checked={serverMode === "custom"}
                     onChange={() => setServerMode("custom")}
                   />
-                  <span className="form-check-label">{t("settings.customSelfHosted")}</span>
+                  <span className="form-check-label">{m.settings_custom_self_hosted()}</span>
                 </label>
               </div>
               {serverMode === "custom" ? (
@@ -477,7 +481,7 @@ export function SettingsPage() {
                       setCustomServerInput(event.target.value);
                       setServerUrlError(null);
                     }}
-                    placeholder={t("settings.customPlaceholder")}
+                    placeholder={m.settings_custom_placeholder()}
                   />
                   {serverUrlError ? (
                     <div className="invalid-feedback">{serverUrlError}</div>
@@ -489,25 +493,25 @@ export function SettingsPage() {
                 className="btn btn-outline-primary btn-sm"
                 onClick={applyServerUrl}
               >
-                {t("settings.apply")}
+                {m.settings_apply()}
               </button>
             </div>
           </div>
 
           <div className="card mb-3">
-            <div className="card-header fw-semibold py-2">{t("settings.userPreferences")}</div>
+            <div className="card-header fw-semibold py-2">{m.settings_user_prefs_header()}</div>
             <div className="card-body d-grid gap-2">
-              <label className="form-label small fw-semibold mb-1">{t("settings.language")}</label>
+              <label className="form-label small fw-semibold mb-1">{m.settings_language()}</label>
               <select
                 className="form-select mb-2"
-                value={i18n.language.split("-")[0]}
-                onChange={(event) => void i18n.changeLanguage(event.target.value)}
-                aria-label={t("settings.language")}
+                value={language}
+                onChange={(event) => setLanguage(event.target.value as "en" | "nl")}
+                aria-label={m.settings_language()}
               >
-                <option value="en">{t("settings.languageEnglish")}</option>
-                <option value="nl">{t("settings.languageDutch")}</option>
+                <option value="en">{m.settings_language_english()}</option>
+                <option value="nl">{m.settings_language_dutch()}</option>
               </select>
-              <label className="form-label small fw-semibold mb-1">{t("settings.timezone")}</label>
+              <label className="form-label small fw-semibold mb-1">{m.settings_timezone()}</label>
               {timezoneLoading ? (
                 <div className="text-muted small">Loading…</div>
               ) : (
@@ -520,7 +524,7 @@ export function SettingsPage() {
                       setTimezoneSuccess(null);
                       setTimezoneError(null);
                     }}
-                    aria-label={t("settings.timezone")}
+                    aria-label={m.settings_timezone()}
                   >
                     {timezone && !timezones.includes(timezone) ? (
                       <option value={timezone}>{timezone}</option>
@@ -537,7 +541,7 @@ export function SettingsPage() {
                     disabled={timezoneSaving || !timezone}
                     onClick={() => void onSaveTimezone()}
                   >
-                    {timezoneSaving ? t("settings.saving") : t("settings.save")}
+                    {timezoneSaving ? m.settings_saving() : m.settings_save()}
                   </button>
                 </div>
               )}
@@ -551,7 +555,7 @@ export function SettingsPage() {
           </div>
 
           <div className="card mb-3">
-            <div className="card-header fw-semibold py-2">{t("settings.notifications")}</div>
+            <div className="card-header fw-semibold py-2">{m.settings_notifications_header()}</div>
             <div className="card-body d-grid gap-2">
               <div className="form-check form-switch">
                 <input
@@ -564,7 +568,7 @@ export function SettingsPage() {
                   }
                 />
                 <label className="form-check-label" htmlFor="pushOverdueChores">
-                  {t("settings.overdueChoreReminders")}
+                  {m.settings_overdue_chore_reminders()}
                 </label>
               </div>
               <div className="form-check form-switch">
@@ -578,7 +582,7 @@ export function SettingsPage() {
                   }
                 />
                 <label className="form-check-label" htmlFor="pushMedReminders">
-                  {t("settings.medicationReminders")}
+                  {m.settings_medication_reminders()}
                 </label>
               </div>
               <div className="form-check form-switch">
@@ -592,12 +596,12 @@ export function SettingsPage() {
                   }
                 />
                 <label className="form-check-label" htmlFor="pushMissedMed">
-                  {t("settings.missedMedicationAlerts")}
+                  {m.settings_missed_medication_alerts()}
                 </label>
               </div>
 
               <label className="form-label small fw-semibold" htmlFor="medicationReminderMinutes">
-                {t("settings.medicationReminderMinutes")}
+                {m.settings_medication_reminder_minutes()}
               </label>
               <input
                 id="medicationReminderMinutes"
@@ -609,21 +613,21 @@ export function SettingsPage() {
                 onChange={(e) => setMedicationReminderMinutes(Number(e.target.value))}
               />
 
-              <label className="form-label small fw-semibold">{t("settings.quietHours")}</label>
+              <label className="form-label small fw-semibold">{m.settings_quiet_hours()}</label>
               <div className="d-flex gap-2">
                 <input
                   type="time"
                   className="form-control"
                   value={quietHoursStart}
                   onChange={(e) => setQuietHoursStart(e.target.value)}
-                  placeholder={t("settings.quietHoursFrom")}
+                  placeholder={m.settings_quiet_hours_from()}
                 />
                 <input
                   type="time"
                   className="form-control"
                   value={quietHoursEnd}
                   onChange={(e) => setQuietHoursEnd(e.target.value)}
-                  placeholder={t("settings.quietHoursTo")}
+                  placeholder={m.settings_quiet_hours_to()}
                 />
               </div>
 
@@ -633,7 +637,7 @@ export function SettingsPage() {
                 onClick={() => void onSaveNotificationPreferences()}
                 disabled={notificationSaving}
               >
-                {notificationSaving ? t("settings.saving") : t("settings.saveNotificationPreferences")}
+                {notificationSaving ? m.settings_saving() : m.settings_save_notification_prefs()}
               </button>
               {notificationError ? <div className="text-danger small">{notificationError}</div> : null}
               {notificationSuccess ? <div className="text-success small">{notificationSuccess}</div> : null}
@@ -644,14 +648,14 @@ export function SettingsPage() {
                   className="btn btn-sm btn-outline-primary"
                   onClick={() => void requestPushPermission()}
                 >
-                  {t("settings.enableBrowserNotifications")}
+                  {m.settings_enable_browser_notifications()}
                 </button>
               ) : null}
             </div>
           </div>
 
           <div className="card mb-3">
-            <div className="card-header fw-semibold py-2">Create integration client</div>
+            <div className="card-header fw-semibold py-2">{m.settings_create_client_header()}</div>
             <div className="card-body d-grid gap-3">
               <input
                 className="form-control"
@@ -660,10 +664,10 @@ export function SettingsPage() {
                   setName(event.target.value);
                   setSubmitError(null);
                 }}
-                placeholder="Client name"
+                placeholder={m.settings_client_name_placeholder()}
               />
               <div>
-                <label className="form-label small fw-semibold mb-1">Rate limit per minute</label>
+                <label className="form-label small fw-semibold mb-1">{m.settings_rate_limit_label()}</label>
                 <input
                   className="form-control"
                   type="number"
@@ -676,7 +680,7 @@ export function SettingsPage() {
                   }}
                 />
                 <small className="text-muted d-block mt-1">
-                  Default is 120/min. Lower this for stricter external clients or testing.
+                  {m.settings_rate_limit_hint()}
                 </small>
               </div>
               <button
@@ -685,7 +689,7 @@ export function SettingsPage() {
                 disabled={isSubmitting}
                 onClick={() => void onCreateClient()}
               >
-                {isSubmitting ? "Creating…" : "Create client"}
+                {isSubmitting ? m.settings_creating() : m.settings_create_client()}
               </button>
             </div>
             {submitError ? (
@@ -694,28 +698,27 @@ export function SettingsPage() {
           </div>
 
           <div className="card mb-3">
-            <div className="card-header fw-semibold py-2">Home Assistant connection details</div>
+            <div className="card-header fw-semibold py-2">{m.settings_ha_header()}</div>
             <div className="card-body">
               <p className="text-muted small mb-2">
-                Setup now uses browser-based OAuth redirect. Enter the Daynest base URL in Home
-                Assistant and it will open the Daynest sign-in page automatically.
+                {m.settings_ha_description()}
               </p>
               <dl className="row small mb-0">
-                <dt className="col-sm-4">Base URL</dt>
+                <dt className="col-sm-4">{m.settings_ha_base_url()}</dt>
                 <dd className="col-sm-8">
                   <code>{backendBaseUrl}</code>
                 </dd>
-                <dt className="col-sm-4">OAuth callback</dt>
+                <dt className="col-sm-4">{m.settings_ha_oauth_callback()}</dt>
                 <dd className="col-sm-8">
                   <code>{HOME_ASSISTANT_REDIRECT_URI}</code>
                 </dd>
-                <dt className="col-sm-4">Contract</dt>
+                <dt className="col-sm-4">{m.settings_ha_contract()}</dt>
                 <dd className="col-sm-8">
                   <code>home-assistant; version=ha.v1</code>
                 </dd>
               </dl>
               <details className="mt-3">
-                <summary className="small fw-semibold">Home Assistant endpoints</summary>
+                <summary className="small fw-semibold">{m.settings_ha_endpoints_summary()}</summary>
                 <ul className="settings-endpoint-list mt-2 mb-0">
                   {HA_ENDPOINTS.map((endpoint) => (
                     <li key={endpoint}>
@@ -775,10 +778,10 @@ export function SettingsPage() {
 
         <div className="col-lg-7">
           <div className="card">
-            <div className="card-header fw-semibold py-2">Integration clients</div>
+            <div className="card-header fw-semibold py-2">{m.settings_integration_clients_header()}</div>
             <ul className="list-group list-group-flush">
               {clients.length === 0 ? (
-                <li className="list-group-item py-2 text-muted">No integration clients yet.</li>
+                <li className="list-group-item py-2 text-muted">{m.settings_no_clients()}</li>
               ) : (
                 clients.map((client) => (
                   <li key={client.id} className="list-group-item py-2">
@@ -793,7 +796,7 @@ export function SettingsPage() {
                         <span
                           className={`badge ${client.is_active ? "text-bg-success" : "text-bg-secondary"}`}
                         >
-                          {client.is_active ? "Active" : "Inactive"}
+                          {client.is_active ? m.status_active() : m.status_inactive()}
                         </span>
                         <button
                           type="button"
@@ -801,7 +804,7 @@ export function SettingsPage() {
                           disabled={rotatingClient === client.id || revokingClient === client.id}
                           onClick={() => void onRotateClient(client.id)}
                         >
-                          {rotatingClient === client.id ? "Rotating…" : "Rotate secret"}
+                          {rotatingClient === client.id ? m.settings_rotating() : m.settings_rotate_secret()}
                         </button>
                         <button
                           type="button"
@@ -809,7 +812,7 @@ export function SettingsPage() {
                           disabled={revokingClient === client.id || rotatingClient === client.id}
                           onClick={() => void onRevokeClient(client.id)}
                         >
-                          {revokingClient === client.id ? "Revoking…" : "Revoke"}
+                          {revokingClient === client.id ? m.settings_revoking() : m.settings_revoke()}
                         </button>
                       </div>
                     </div>
@@ -827,24 +830,24 @@ export function SettingsPage() {
 
           <div className="card mt-3">
             <div className="card-header d-flex justify-content-between align-items-center py-2">
-              <span className="fw-semibold">Active OAuth sessions</span>
+              <span className="fw-semibold">{m.settings_oauth_sessions_header()}</span>
               <button
                 type="button"
                 className="btn btn-outline-secondary btn-sm"
                 disabled={sessionsLoading}
                 onClick={() => void loadSessions()}
               >
-                Refresh
+                {m.settings_refresh()}
               </button>
             </div>
             {sessionsLoading ? (
-              <div className="card-body py-2 text-muted small">Loading sessions…</div>
+              <div className="card-body py-2 text-muted small">{m.settings_loading_sessions()}</div>
             ) : sessionsError ? (
               <div className="card-body py-2 text-danger small">{sessionsError}</div>
             ) : (
               <ul className="list-group list-group-flush">
                 {oauthSessions.length === 0 ? (
-                  <li className="list-group-item py-2 text-muted">No active OAuth sessions.</li>
+                  <li className="list-group-item py-2 text-muted">{m.settings_no_sessions()}</li>
                 ) : (
                   oauthSessions.map((session) => {
                     const clientNames = session.clients.map((c) => c.clientName ?? c.clientId);
@@ -852,15 +855,15 @@ export function SettingsPage() {
                       ? new Date(session.last_access).toLocaleString()
                       : null;
                     const metaParts = [
-                      session.ip_address ? `IP: ${session.ip_address}` : null,
-                      lastAccess ? `Last active: ${lastAccess}` : null,
+                      session.ip_address ? m.settings_ip_address({ ip: session.ip_address }) : null,
+                      lastAccess ? m.settings_last_active({ date: lastAccess }) : null,
                     ].filter(Boolean);
                     return (
                       <li key={session.id} className="list-group-item py-2">
                         <div className="d-flex justify-content-between align-items-start gap-3">
                           <div>
                             <div className="fw-semibold">
-                              {clientNames.length > 0 ? clientNames.join(", ") : "Unknown client"}
+                              {clientNames.length > 0 ? clientNames.join(", ") : m.settings_unknown_client()}
                             </div>
                             {metaParts.length > 0 ? (
                               <small className="text-muted d-block">{metaParts.join(" • ")}</small>
@@ -872,7 +875,7 @@ export function SettingsPage() {
                             disabled={revokingSession === session.id}
                             onClick={() => void onRevokeSession(session.id)}
                           >
-                            {revokingSession === session.id ? "Revoking…" : "Revoke"}
+                            {revokingSession === session.id ? m.settings_revoking() : m.settings_revoke()}
                           </button>
                         </div>
                       </li>

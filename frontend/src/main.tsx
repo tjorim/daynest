@@ -2,12 +2,11 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter, NavLink } from "react-router-dom";
 import { AuthProvider as OidcProvider } from "react-oidc-context";
-import { useTranslation } from "react-i18next";
-import i18n from "@/i18n";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "./app.css";
-import "@/i18n";
 
+import * as m from "@/paraglide/messages";
+import { LanguageProvider } from "@/i18n/LanguageProvider";
 import {
   setDeferredInstallPrompt,
   type BeforeInstallPromptEvent,
@@ -21,7 +20,6 @@ import { drain as drainOfflineQueue, getQueuedCount } from "@/lib/offlineQueue";
 import { SearchOverlay } from "@/features/search/SearchOverlay";
 
 function App() {
-  const { t } = useTranslation();
   const { isAuthenticated, isLoading, logout, user } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const isOnline = useOnlineStatus();
@@ -63,6 +61,20 @@ function App() {
     return () => document.removeEventListener("keydown", handler);
   }, [isAuthenticated]);
 
+  const themeLabel =
+    theme === "auto"
+      ? m.app_theme_switch_to_light()
+      : theme === "light"
+        ? m.app_theme_switch_to_dark()
+        : m.app_theme_switch_to_auto();
+
+  const themeTitle =
+    theme === "auto"
+      ? m.app_theme_auto()
+      : theme === "light"
+        ? m.app_theme_light()
+        : m.app_theme_dark();
+
   return (
     <main className="container py-3 py-md-4">
       {!isOnline ? (
@@ -70,13 +82,13 @@ function App() {
           <span>⚠️ You are offline.</span>
           {queuedCount > 0 ? (
             <span className="text-muted small">
-              {t("app.offlineQueued", { count: queuedCount })}
+              {m.app_offline_queued({ count: queuedCount })}
             </span>
           ) : null}
         </div>
       ) : queuedCount > 0 ? (
         <div className="alert alert-info py-2 mb-3">
-          {t("app.syncingQueued", { count: queuedCount })}
+          {m.app_syncing_queued({ count: queuedCount })}
         </div>
       ) : null}
       {searchOpen && isAuthenticated ? <SearchOverlay onClose={() => setSearchOpen(false)} /> : null}
@@ -85,7 +97,7 @@ function App() {
           <div>
             <h1 className="mb-1">Daynest</h1>
             <p className="text-muted mb-0">
-              {t("app.subtitle")}
+              {m.app_subtitle()}
             </p>
           </div>
           <div className="d-flex flex-wrap align-items-center gap-2">
@@ -93,8 +105,8 @@ function App() {
               <button
                 type="button"
                 className="btn btn-outline-secondary btn-sm"
-                aria-label={t("app.search")}
-                title={t("app.searchShortcut")}
+                aria-label={m.app_search()}
+                title={m.app_search_shortcut()}
                 onClick={() => setSearchOpen(true)}
               >
                 🔍
@@ -103,8 +115,8 @@ function App() {
             <button
               type="button"
               className="btn btn-outline-secondary btn-sm"
-              aria-label={theme === "auto" ? t("app.theme.switchToLight") : theme === "light" ? t("app.theme.switchToDark") : t("app.theme.switchToAuto")}
-              title={theme === "auto" ? t("app.theme.auto") : theme === "light" ? t("app.theme.light") : t("app.theme.dark")}
+              aria-label={themeLabel}
+              title={themeTitle}
               onClick={toggleTheme}
             >
               {theme === "auto" ? "🌓" : theme === "light" ? "🌙" : "☀️"}
@@ -116,7 +128,7 @@ function App() {
                   <div>{user.email}</div>
                 </div>
                 <button type="button" className="btn btn-outline-secondary btn-sm" onClick={logout}>
-                  {t("app.logout")}
+                  {m.app_logout()}
                 </button>
               </div>
             ) : !isLoading ? (
@@ -126,7 +138,7 @@ function App() {
                 }
                 to="/auth"
               >
-                {t("app.login")}
+                {m.app_login()}
               </NavLink>
             ) : null}
           </div>
@@ -137,37 +149,37 @@ function App() {
               className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}
               to="/today"
             >
-              {t("nav.today")}
+              {m.nav_today()}
             </NavLink>
             <NavLink
               className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}
               to="/calendar"
             >
-              {t("nav.calendar")}
+              {m.nav_calendar()}
             </NavLink>
             <NavLink
               className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}
               to="/medication"
             >
-              {t("nav.medication")}
+              {m.nav_medication()}
             </NavLink>
             <NavLink
               className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}
               to="/templates"
             >
-              {t("nav.templates")}
+              {m.nav_templates()}
             </NavLink>
             <NavLink
               className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}
               to="/stats"
             >
-              {t("nav.stats")}
+              {m.nav_stats()}
             </NavLink>
             <NavLink
               className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}
               to="/settings"
             >
-              {t("nav.settings")}
+              {m.nav_settings()}
             </NavLink>
           </nav>
         ) : null}
@@ -185,8 +197,7 @@ async function bootstrap() {
     console.error("Failed to fetch OIDC config", err);
     const root = document.getElementById("root");
     if (root) {
-      root.textContent =
-        i18n.t("app.serverUnavailable");
+      root.textContent = m.app_server_unavailable();
     }
     return;
   }
@@ -195,11 +206,13 @@ async function bootstrap() {
     <React.StrictMode>
       <OidcProvider {...oidcConfig}>
         <BrowserRouter>
-          <AuthProvider>
-            <ThemeProvider>
-              <App />
-            </ThemeProvider>
-          </AuthProvider>
+          <LanguageProvider>
+            <AuthProvider>
+              <ThemeProvider>
+                <App />
+              </ThemeProvider>
+            </AuthProvider>
+          </LanguageProvider>
         </BrowserRouter>
       </OidcProvider>
     </React.StrictMode>,
