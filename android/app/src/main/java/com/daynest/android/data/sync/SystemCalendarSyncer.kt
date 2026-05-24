@@ -192,7 +192,8 @@ class SystemCalendarSyncer
             }
             today.medication.forEach { item ->
                 val scheduled = item.scheduledAt.ifBlank { "${LocalDate.now()}T09:00:00Z" }
-                events += SyncEvent("medication_${item.medicationDoseInstanceId}", item.name, scheduled, zone, description)
+                events +=
+                    SyncEvent("medication_${item.medicationDoseInstanceId}", item.name, scheduled, zone, description)
             }
             return events
         }
