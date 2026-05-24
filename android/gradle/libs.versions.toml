@@ -29,6 +29,7 @@ retrofit = "3.0.0"
 okhttp = "5.3.2"
 turbine = "1.2.1"
 junit = "4.13.2"
+firebase-bom = "34.13.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "androidx-core" }
@@ -76,6 +77,8 @@ okhttp-mockwebserver = { group = "com.squareup.okhttp3", name = "mockwebserver",
 turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 openid-appauth = { group = "net.openid", name = "appauth", version.ref = "appauth" }
+firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebase-bom" }
+firebase-messaging = { group = "com.google.firebase", name = "firebase-messaging" }
 
 [bundles]
 androidx-lifecycle = [

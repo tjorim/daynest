@@ -58,6 +58,15 @@ class PushNotificationHandler
             }
         }
 
+        fun handlePayload(payload: PushPayload) {
+            handlePayload(
+                type = payload.type,
+                title = payload.title,
+                body = payload.body,
+                itemId = payload.itemId,
+            )
+        }
+
         private fun canPostNotifications(notificationManager: NotificationManagerCompat): Boolean {
             if (!notificationManager.areNotificationsEnabled()) return false
             return Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
@@ -90,15 +99,14 @@ class PushNotificationHandler
             requestCodeOffset: Int,
         ): PendingIntent {
             val completeActionIntent =
-                Intent(context, MainActivity::class.java).apply {
-                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-                    setClass(context, MainActivity::class.java)
+                Intent(context, NotificationActionReceiver::class.java).apply {
+                    setClass(context, NotificationActionReceiver::class.java)
                     `package` = context.packageName
                     putExtra("daynest_notification_type", type)
                     putExtra("daynest_notification_item_id", itemId)
                     putExtra("daynest_quick_action", action)
                 }
-            return PendingIntent.getActivity(
+            return PendingIntent.getBroadcast(
                 context,
                 (itemId ?: 0) + requestCodeOffset,
                 completeActionIntent,

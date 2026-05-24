@@ -36,6 +36,10 @@ class DaynestApplication :
         DaynestSyncScheduler.schedulePeriodic(this)
         ProcessLifecycleOwner.get().lifecycle.addObserver(
             object : DefaultLifecycleObserver {
+                override fun onStart(owner: LifecycleOwner) {
+                    DaynestSyncScheduler.enqueueOneShot(this@DaynestApplication)
+                }
+
                 override fun onStop(owner: LifecycleOwner) {
                     owner.lifecycleScope.launch(Dispatchers.IO) {
                         userPreferencesRepository.updateLastBackgroundEpochMillis(System.currentTimeMillis())

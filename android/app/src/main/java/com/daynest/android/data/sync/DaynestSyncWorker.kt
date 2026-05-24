@@ -8,6 +8,8 @@ import com.daynest.android.core.database.sync.CacheEntryDao
 import com.daynest.android.core.database.sync.CacheEntryEntity
 import com.daynest.android.core.database.sync.PendingMutationDao
 import com.daynest.android.core.database.sync.PendingMutationEntity
+import com.daynest.android.core.database.sync.SyncNoticeDao
+import com.daynest.android.core.database.sync.SyncNoticeEntity
 import com.daynest.android.core.database.today.TodaySummaryDao
 import com.daynest.android.core.database.today.TodaySummaryEntity
 import com.daynest.android.core.network.JsonSerializer
@@ -23,6 +25,7 @@ import com.daynest.android.data.today.TodayResponseDto
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.first
+import retrofit2.HttpException
 
 @HiltWorker
 class DaynestSyncWorker
@@ -31,6 +34,7 @@ class DaynestSyncWorker
         @Assisted appContext: Context,
         @Assisted params: WorkerParameters,
         private val pendingMutationDao: PendingMutationDao,
+        private val syncNoticeDao: SyncNoticeDao,
         private val cacheEntryDao: CacheEntryDao,
         private val todaySummaryDao: TodaySummaryDao,
         private val todayApi: TodayApi,
@@ -47,10 +51,19 @@ class DaynestSyncWorker
                     runCatching { pendingMutationDao.delete(mutation.id) }
                     return@forEach
                 }
-                val processed = runCatching { applyPendingMutation(mutation) }.isSuccess
-                if (processed) {
+                val result = runCatching { applyPendingMutation(mutation) }
+                if (result.isSuccess) {
                     pendingMutationDao.markRemoteApplied(mutation.id, System.currentTimeMillis())
                     runCatching { pendingMutationDao.delete(mutation.id) }
+                } else if (result.exceptionOrNull().isConflict()) {
+                    pendingMutationDao.delete(mutation.id)
+                    syncNoticeDao.insert(
+                        SyncNoticeEntity(
+                            message =
+                                "A queued offline change conflicted with the latest server state and was refreshed.",
+                            createdAtEpochMillis = System.currentTimeMillis(),
+                        ),
+                    )
                 } else {
                     pendingMutationDao.updateAttempts(mutation.id, mutation.attempts + 1)
                 }
@@ -182,3 +195,7 @@ class DaynestSyncWorker
 
         private inline fun <reified T> decode(payload: String): T = JsonSerializer.config.decodeFromString(payload)
     }
+
+private fun Throwable?.isConflict(): Boolean = this is HttpException && code() == HTTP_CONFLICT
+
+private const val HTTP_CONFLICT = 409

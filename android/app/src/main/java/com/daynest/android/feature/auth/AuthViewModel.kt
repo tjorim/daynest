@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.daynest.android.BuildConfig
 import com.daynest.android.core.auth.OidcAuthService
 import com.daynest.android.core.storage.preferences.UserPreferencesRepository
+import com.daynest.android.data.push.PushRegistrationManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -25,6 +26,7 @@ class AuthViewModel
     constructor(
         private val oidcAuthService: OidcAuthService,
         private val userPreferencesRepository: UserPreferencesRepository,
+        private val pushRegistrationManager: PushRegistrationManager,
     ) : ViewModel() {
         private val _uiState =
             MutableStateFlow(AuthUiState(defaultServerUrl = BuildConfig.API_BASE_URL))
@@ -70,6 +72,9 @@ class AuthViewModel
             viewModelScope.launch {
                 _uiState.update { it.copy(isLoading = true, error = null) }
                 val succeeded = oidcAuthService.handleAuthorizationResult(resultCode, data)
+                if (succeeded) {
+                    runCatching { pushRegistrationManager.registerIfEnabled() }
+                }
                 _uiState.update {
                     it.copy(
                         isLoading = false,

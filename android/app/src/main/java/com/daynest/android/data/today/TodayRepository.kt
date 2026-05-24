@@ -5,6 +5,8 @@ import com.daynest.android.core.database.sync.CacheEntryDao
 import com.daynest.android.core.database.sync.CacheEntryEntity
 import com.daynest.android.core.database.sync.PendingMutationDao
 import com.daynest.android.core.database.sync.PendingMutationEntity
+import com.daynest.android.core.database.sync.SyncNoticeDao
+import com.daynest.android.core.database.sync.SyncNoticeEntity
 import com.daynest.android.core.database.today.TodaySummaryDao
 import com.daynest.android.core.database.today.TodaySummaryEntity
 import com.daynest.android.core.model.TodaySummary
@@ -17,6 +19,7 @@ import com.daynest.android.data.sync.SyncCacheKeys
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.encodeToString
 import java.io.IOException
@@ -32,9 +35,16 @@ class TodayRepository
         private val todaySummaryDao: TodaySummaryDao,
         private val cacheEntryDao: CacheEntryDao,
         private val pendingMutationDao: PendingMutationDao,
+        private val syncNoticeDao: SyncNoticeDao = NoopSyncNoticeDao,
         @ApplicationContext private val appContext: Context? = null,
     ) {
         fun observePendingMutationCount(): Flow<Int> = pendingMutationDao.observeCount()
+
+        fun observeSyncNotices(): Flow<List<SyncNoticeEntity>> = syncNoticeDao.observeUnconsumed()
+
+        suspend fun markSyncNoticeConsumed(id: Long) {
+            syncNoticeDao.markConsumed(id, System.currentTimeMillis())
+        }
 
         fun observeTodaySummary(): Flow<TodaySummary?> = todaySummaryDao.observe().map { entity -> entity?.toDomain() }
 
@@ -147,22 +157,28 @@ class TodayRepository
             payload: P,
             fallback: () -> R,
             crossinline call: suspend () -> R,
-        ): Result<R> =
-            runCatching { call() }
-                .recoverCatching { error ->
-                    if (error is CancellationException) {
-                        throw error
-                    }
-                    if (error is IOException) {
-                        enqueue(kind, payload)
-                        appContext?.let { context ->
-                            runCatching { DaynestSyncScheduler.enqueueOneShot(context) }
-                        }
-                        fallback()
-                    } else {
-                        throw error
-                    }
+        ): Result<R> {
+            val mutationResult = runCatching { call() }
+            mutationResult.onSuccess {
+                appContext?.let { context ->
+                    runCatching { DaynestSyncScheduler.enqueueOneShot(context) }
                 }
+            }
+            return mutationResult.recoverCatching { error ->
+                if (error is CancellationException) {
+                    throw error
+                }
+                if (error is IOException) {
+                    enqueue(kind, payload)
+                    appContext?.let { context ->
+                        runCatching { DaynestSyncScheduler.enqueueOneShot(context) }
+                    }
+                    fallback()
+                } else {
+                    throw error
+                }
+            }
+        }
 
         private suspend inline fun <reified T : Any> enqueue(
             kind: PendingMutationKind,
@@ -185,3 +201,14 @@ private fun TodaySummaryEntity.toDomain() =
         medicationsCount = medicationsCount,
         plannedPendingCount = plannedPendingCount,
     )
+
+private object NoopSyncNoticeDao : SyncNoticeDao {
+    override fun observeUnconsumed(): Flow<List<SyncNoticeEntity>> = flowOf(emptyList())
+
+    override suspend fun insert(entity: SyncNoticeEntity) = Unit
+
+    override suspend fun markConsumed(
+        id: Long,
+        consumedAtEpochMillis: Long,
+    ) = Unit
+}

@@ -31,8 +31,9 @@ class SystemCalendarSyncer
                 val existingEventId = existing[item.syncKey]
                 if (existingEventId != null) {
                     updateEvent(existingEventId, calendarId, item)
+                    replaceReminder(existingEventId)
                 } else {
-                    insertEvent(calendarId, item)
+                    insertEvent(calendarId, item)?.let { eventId -> replaceReminder(eventId) }
                 }
             }
             val desiredKeys = desired.map { it.syncKey }.toSet()
@@ -81,6 +82,7 @@ class SystemCalendarSyncer
                     put(CalendarContract.Calendars.NAME, DAYNEST_CALENDAR_NAME)
                     put(CalendarContract.Calendars.CALENDAR_COLOR, 0xFF5E35B1.toInt())
                     put(CalendarContract.Calendars.CALENDAR_ACCESS_LEVEL, CalendarContract.Calendars.CAL_ACCESS_OWNER)
+                    put(CalendarContract.Calendars.CAN_MODIFY_TIME_ZONE, 0)
                     put(CalendarContract.Calendars.OWNER_ACCOUNT, DAYNEST_ACCOUNT_NAME)
                     put(CalendarContract.Calendars.VISIBLE, 1)
                     put(CalendarContract.Calendars.SYNC_EVENTS, 1)
@@ -117,11 +119,13 @@ class SystemCalendarSyncer
         private fun insertEvent(
             calendarId: Long,
             event: SyncEvent,
-        ) {
-            context.contentResolver.insert(
-                CalendarContract.Events.CONTENT_URI,
-                event.toContentValues(calendarId),
-            )
+        ): Long? {
+            val uri =
+                context.contentResolver.insert(
+                    CalendarContract.Events.CONTENT_URI,
+                    event.toContentValues(calendarId),
+                )
+            return uri?.lastPathSegment?.toLongOrNull()
         }
 
         private fun updateEvent(
@@ -134,6 +138,22 @@ class SystemCalendarSyncer
                 event.toContentValues(calendarId),
                 "${CalendarContract.Events._ID}=?",
                 arrayOf(eventId.toString()),
+            )
+        }
+
+        private fun replaceReminder(eventId: Long) {
+            context.contentResolver.delete(
+                CalendarContract.Reminders.CONTENT_URI,
+                "${CalendarContract.Reminders.EVENT_ID}=?",
+                arrayOf(eventId.toString()),
+            )
+            context.contentResolver.insert(
+                CalendarContract.Reminders.CONTENT_URI,
+                ContentValues().apply {
+                    put(CalendarContract.Reminders.EVENT_ID, eventId)
+                    put(CalendarContract.Reminders.MINUTES, DEFAULT_REMINDER_MINUTES)
+                    put(CalendarContract.Reminders.METHOD, CalendarContract.Reminders.METHOD_ALERT)
+                },
             )
         }
 
@@ -205,6 +225,7 @@ private data class SyncEvent(
             put(CalendarContract.Events.DTEND, dtEnd)
             put(CalendarContract.Events.EVENT_TIMEZONE, zone.id)
             put(CalendarContract.Events.SYNC_DATA1, syncKey)
+            put(CalendarContract.Events.HAS_ALARM, 1)
         }
     }
 }
@@ -212,3 +233,4 @@ private data class SyncEvent(
 private const val DAYNEST_ACCOUNT_NAME = "daynest.local"
 private const val DAYNEST_CALENDAR_DISPLAY_NAME = "Daynest"
 private const val DAYNEST_CALENDAR_NAME = "daynest"
+private const val DEFAULT_REMINDER_MINUTES = 15

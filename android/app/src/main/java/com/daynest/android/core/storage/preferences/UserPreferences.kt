@@ -8,4 +8,6 @@ data class UserPreferences(
     val pushNotificationsEnabled: Boolean = true,
     val calendarSyncEnabled: Boolean = false,
     val lastBackgroundEpochMillis: Long = 0L,
+    val lastFcmEndpoint: String? = null,
+    val lastUnifiedPushEndpoint: String? = null,
 )

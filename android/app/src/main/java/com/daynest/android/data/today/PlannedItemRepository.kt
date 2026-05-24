@@ -53,12 +53,14 @@ class PlannedItemRepository
             id: Int,
             input: PlannedItemUpdateDto,
         ): Result<PlannedTodayItemDto> =
-            safeApiCall { plannedItemApi.updatePlannedItem(id, input) }.recoverOffline {
+            safeApiCall {
+                plannedItemApi.updatePlannedItem(id, input).also { scheduleSync() }
+            }.recoverOffline {
                 enqueue(
                     kind = PendingMutationKind.UPDATE_PLANNED,
                     payload = UpdatePlannedPayload(id, input),
                 )
-                appContext?.let { DaynestSyncScheduler.enqueueOneShot(it) }
+                scheduleSync()
                 PlannedTodayItemDto(
                     id = id,
                     title = input.title,
@@ -73,22 +75,26 @@ class PlannedItemRepository
             }
 
         suspend fun deletePlannedItem(id: Int): Result<Unit> =
-            safeApiCall { plannedItemApi.deletePlannedItem(id) }.recoverOffline {
+            safeApiCall {
+                plannedItemApi.deletePlannedItem(id).also { scheduleSync() }
+            }.recoverOffline {
                 enqueue(
                     kind = PendingMutationKind.DELETE_PLANNED,
                     payload = DeletePlannedPayload(id),
                 )
-                appContext?.let { DaynestSyncScheduler.enqueueOneShot(it) }
+                scheduleSync()
                 Unit
             }
 
         suspend fun createPlannedItem(request: PlannedItemCreateDto): Result<PlannedTodayItemDto> =
-            safeApiCall { plannedItemApi.createPlannedItem(request) }.recoverOffline {
+            safeApiCall {
+                plannedItemApi.createPlannedItem(request).also { scheduleSync() }
+            }.recoverOffline {
                 enqueue(
                     kind = PendingMutationKind.CREATE_PLANNED,
                     payload = CreatePlannedPayload(request),
                 )
-                appContext?.let { DaynestSyncScheduler.enqueueOneShot(it) }
+                scheduleSync()
                 PlannedTodayItemDto(
                     id = -System.currentTimeMillis().toInt().absoluteValue,
                     title = request.title,
@@ -141,6 +147,10 @@ class PlannedItemRepository
                     createdAtEpochMillis = System.currentTimeMillis(),
                 ),
             )
+        }
+
+        private fun scheduleSync() {
+            appContext?.let { DaynestSyncScheduler.enqueueOneShot(it) }
         }
 
         private suspend inline fun <T> Result<T>.recoverOffline(crossinline fallback: suspend () -> T): Result<T> {

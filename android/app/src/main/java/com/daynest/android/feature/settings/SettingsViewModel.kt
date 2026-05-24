@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.daynest.android.BuildConfig
 import com.daynest.android.core.auth.OidcAuthService
 import com.daynest.android.core.storage.preferences.UserPreferencesRepository
+import com.daynest.android.data.push.PushRegistrationManager
 import com.daynest.android.data.settings.IntegrationClientCreateResponseDto
 import com.daynest.android.data.settings.IntegrationClientDto
 import com.daynest.android.data.settings.IntegrationClientInputDto
@@ -30,6 +31,7 @@ class SettingsViewModel
         private val settingsRepository: SettingsRepository,
         private val oidcAuthService: OidcAuthService,
         private val userPreferencesRepository: UserPreferencesRepository,
+        private val pushRegistrationManager: PushRegistrationManager,
         @ApplicationContext private val appContext: Context,
     ) : ViewModel() {
         private val _uiState = MutableStateFlow<SettingsUiState>(SettingsUiState.Loading)
@@ -43,6 +45,7 @@ class SettingsViewModel
             when (event) {
                 SettingsUiEvent.RetryClicked -> load()
                 SettingsUiEvent.SignOutClicked -> {
+                    viewModelScope.launch { runCatching { pushRegistrationManager.unregisterAllKnownEndpoints() } }
                     oidcAuthService.signOut()
                     _uiState.value = SettingsUiState.SignedOut
                 }
@@ -117,6 +120,11 @@ class SettingsViewModel
         private fun updatePushNotificationsEnabled(enabled: Boolean) {
             viewModelScope.launch {
                 runCatching { userPreferencesRepository.updatePushNotificationsEnabled(enabled) }.onSuccess {
+                    if (enabled) {
+                        runCatching { pushRegistrationManager.registerIfEnabled() }
+                    } else {
+                        runCatching { pushRegistrationManager.unregisterAllKnownEndpoints() }
+                    }
                     _uiState.update { current ->
                         if (current is SettingsUiState.Content) {
                             current.copy(pushNotificationsEnabled = enabled)

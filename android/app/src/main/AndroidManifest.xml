@@ -47,6 +47,24 @@
                 <data android:scheme="com.daynest.android" />
             </intent-filter>
         </activity>
+        <service
+            android:name=".core.notifications.DaynestFirebaseMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+        <receiver
+            android:name=".core.notifications.NotificationActionReceiver"
+            android:exported="false" />
+        <receiver
+            android:name=".core.notifications.UnifiedPushReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="org.unifiedpush.android.connector.NEW_ENDPOINT" />
+                <action android:name="org.unifiedpush.android.connector.MESSAGE" />
+            </intent-filter>
+        </receiver>
     </application>
 
 </manifest>

@@ -28,6 +28,8 @@ class UserPreferencesRepository
                     pushNotificationsEnabled = prefs[PUSH_NOTIFICATIONS_ENABLED] ?: true,
                     calendarSyncEnabled = prefs[CALENDAR_SYNC_ENABLED] ?: false,
                     lastBackgroundEpochMillis = prefs[LAST_BACKGROUND_EPOCH_MILLIS] ?: 0L,
+                    lastFcmEndpoint = prefs[LAST_FCM_ENDPOINT],
+                    lastUnifiedPushEndpoint = prefs[LAST_UNIFIED_PUSH_ENDPOINT],
                 )
             }
 
@@ -78,6 +80,26 @@ class UserPreferencesRepository
             }
         }
 
+        suspend fun updateLastFcmEndpoint(endpoint: String?) {
+            dataStore.edit { prefs ->
+                if (endpoint.isNullOrBlank()) {
+                    prefs.remove(LAST_FCM_ENDPOINT)
+                } else {
+                    prefs[LAST_FCM_ENDPOINT] = endpoint
+                }
+            }
+        }
+
+        suspend fun updateLastUnifiedPushEndpoint(endpoint: String?) {
+            dataStore.edit { prefs ->
+                if (endpoint.isNullOrBlank()) {
+                    prefs.remove(LAST_UNIFIED_PUSH_ENDPOINT)
+                } else {
+                    prefs[LAST_UNIFIED_PUSH_ENDPOINT] = endpoint
+                }
+            }
+        }
+
         private companion object {
             const val MIN_BIOMETRIC_TIMEOUT_MINUTES = 1
             const val MAX_BIOMETRIC_TIMEOUT_MINUTES = 240
@@ -89,5 +111,7 @@ class UserPreferencesRepository
             val PUSH_NOTIFICATIONS_ENABLED = booleanPreferencesKey("push_notifications_enabled")
             val CALENDAR_SYNC_ENABLED = booleanPreferencesKey("calendar_sync_enabled")
             val LAST_BACKGROUND_EPOCH_MILLIS = longPreferencesKey("last_background_epoch_millis")
+            val LAST_FCM_ENDPOINT = stringPreferencesKey("last_fcm_endpoint")
+            val LAST_UNIFIED_PUSH_ENDPOINT = stringPreferencesKey("last_unified_push_endpoint")
         }
     }
