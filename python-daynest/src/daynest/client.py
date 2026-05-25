@@ -358,11 +358,10 @@ class DaynestClient:
             raise ValueError(msg)
         if "planned_for" in payload_fields and isinstance(payload_fields["planned_for"], date):
             payload_fields["planned_for"] = payload_fields["planned_for"].isoformat()
-        result = await self._send_action(
-            "put",
-            path=f"/api/v1/planned-items/{resolved_item_id}?scope={scope}",
-            payload=payload_fields,
-        )
+        path = f"/api/v1/planned-items/{resolved_item_id}"
+        if scope != "this":
+            path += f"?scope={scope}"
+        result = await self._send_action("put", path=path, payload=payload_fields)
         return PlannedItem.from_dict(result)
 
     async def async_delete_planned_item(
@@ -381,7 +380,10 @@ class DaynestClient:
         if resolved_item_id is None:
             msg = "item_id is required"
             raise ValueError(msg)
-        await self._send_no_content_action("delete", path=f"/api/v1/planned-items/{resolved_item_id}?scope={scope}")
+        path = f"/api/v1/planned-items/{resolved_item_id}"
+        if scope != "this":
+            path += f"?scope={scope}"
+        await self._send_no_content_action("delete", path=path)
 
     async def async_get_calendar(
         self,
