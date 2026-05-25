@@ -1,5 +1,5 @@
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.core.enums import HouseholdMemberRole
 from app.models.household import Household
@@ -75,6 +75,7 @@ class HouseholdRepository:
     def list_members(self, household_id: int) -> list[HouseholdMember]:
         stmt = (
             select(HouseholdMember)
+            .options(joinedload(HouseholdMember.user))
             .where(HouseholdMember.household_id == household_id)
             .order_by(HouseholdMember.id.asc())
         )
