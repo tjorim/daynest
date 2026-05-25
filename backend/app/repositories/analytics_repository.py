@@ -1,5 +1,6 @@
 from collections import defaultdict
-from datetime import date, timedelta
+from dataclasses import dataclass
+from datetime import date, datetime, timedelta
 
 from sqlalchemy import case, func, select
 from sqlalchemy.orm import Session
@@ -18,12 +19,26 @@ from app.schemas.analytics import (
     DailyCount,
     MedicationStats,
     PlannedItemStats,
+    SchedulingSuggestion,
     RoutineStats,
     RoutineStreak,
     SkippedChore,
 )
 
 _MIN_STREAK_LOOKBACK_DAYS = 90
+_SUGGESTION_LOOKBACK_DAYS = 56
+_OVERLOAD_THRESHOLD = 8
+_OVERLOAD_MOVE_COUNT = 3
+_WEEKDAY_NAMES = ("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
+
+
+@dataclass
+class _MedicationSuggestionStats:
+    name: str = ""
+    total: int = 0
+    not_taken: int = 0
+    taken: int = 0
+    time_label: str = ""
 
 
 def _date_range(start: date, end: date) -> list[date]:
@@ -291,3 +306,186 @@ def get_routine_stats(db: Session, user_id: int, start_date: date, end_date: dat
         daily_completions=daily_completions,
         streaks=streaks,
     )
+
+
+def _weekday_name(value: int) -> str:
+    return _WEEKDAY_NAMES[value % 7]
+
+
+def _shift_time_label(base_time: datetime, *, minutes: int) -> str:
+    shifted = base_time + timedelta(minutes=minutes)
+    return shifted.strftime("%H:%M")
+
+
+def get_scheduling_suggestions(db: Session, user_id: int, for_date: date) -> list[SchedulingSuggestion]:
+    suggestions: list[SchedulingSuggestion] = []
+    lookback_start = for_date - timedelta(days=_SUGGESTION_LOOKBACK_DAYS - 1)
+
+    chore_templates = {
+        template.id: template.name
+        for template in db.scalars(select(ChoreTemplate).where(ChoreTemplate.user_id == user_id)).all()
+    }
+    chore_rows = db.scalars(
+        select(ChoreInstance)
+        .where(ChoreInstance.user_id == user_id)
+        .where(ChoreInstance.scheduled_date >= lookback_start)
+        .where(ChoreInstance.scheduled_date <= for_date)
+        .where(ChoreInstance.status.in_([ChoreStatus.completed, ChoreStatus.skipped]))
+    ).all()
+    chore_weekday_counts: dict[tuple[int, int], dict[str, int]] = defaultdict(lambda: {"skipped": 0, "completed": 0})
+    for chore in chore_rows:
+        key = (chore.chore_template_id, chore.scheduled_date.weekday())
+        if chore.status == ChoreStatus.skipped:
+            chore_weekday_counts[key]["skipped"] += 1
+        elif chore.status == ChoreStatus.completed:
+            chore_weekday_counts[key]["completed"] += 1
+
+    best_chore: tuple[int, int, int, int] | None = None
+    for (template_id, weekday), counts in chore_weekday_counts.items():
+        skipped = counts["skipped"]
+        completed = counts["completed"]
+        if skipped >= 2 and skipped > completed:
+            candidate = (skipped, -completed, template_id, weekday)
+            if best_chore is None or candidate > best_chore:
+                best_chore = candidate
+
+    if best_chore is not None:
+        skipped, neg_completed, template_id, weekday = best_chore
+        completed = -neg_completed
+        suggested_weekday = (weekday + 1) % 7
+        chore_name = chore_templates.get(template_id, f"Chore #{template_id}")
+        suggestions.append(
+            SchedulingSuggestion(
+                suggestion_type="chore_reschedule",
+                message=(
+                    f"You often skip {chore_name} on {_weekday_name(weekday)}s — "
+                    f"consider rescheduling to {_weekday_name(suggested_weekday)}."
+                ),
+                metadata={
+                    "chore_template_id": template_id,
+                    "weekday": _weekday_name(weekday),
+                    "suggested_weekday": _weekday_name(suggested_weekday),
+                    "skip_count": skipped,
+                    "completed_count": completed,
+                },
+            )
+        )
+
+    medication_rows = db.scalars(
+        select(MedicationDoseInstance)
+        .where(MedicationDoseInstance.user_id == user_id)
+        .where(MedicationDoseInstance.scheduled_date >= lookback_start)
+        .where(MedicationDoseInstance.scheduled_date <= for_date)
+    ).all()
+    medication_counts: dict[int, _MedicationSuggestionStats] = defaultdict(_MedicationSuggestionStats)
+    for dose in medication_rows:
+        item = medication_counts[dose.medication_plan_id]
+        item.name = dose.name
+        item.time_label = dose.scheduled_at.strftime("%H:%M")
+        item.total += 1
+        if dose.status == MedicationDoseStatus.taken:
+            item.taken += 1
+        elif dose.status in (MedicationDoseStatus.skipped, MedicationDoseStatus.missed):
+            item.not_taken += 1
+
+    weakest_medication: tuple[float, int] | None = None
+    for medication_plan_id, stats in medication_counts.items():
+        total = stats.total
+        not_taken = stats.not_taken
+        if total < 4 or not_taken < 2:
+            continue
+        adherence = (total - not_taken) / total
+        if adherence >= 0.7:
+            continue
+        candidate = (adherence, medication_plan_id)
+        if weakest_medication is None or candidate < weakest_medication:
+            weakest_medication = candidate
+
+    if weakest_medication is not None:
+        _, medication_plan_id = weakest_medication
+        stats = medication_counts[medication_plan_id]
+        current_time = stats.time_label or "09:00"
+        base_time = datetime.strptime(current_time, "%H:%M")
+        suggested_time = _shift_time_label(base_time, minutes=-30)
+        suggestions.append(
+            SchedulingSuggestion(
+                suggestion_type="medication_reminder_adjustment",
+                message=(
+                    f"{stats.name} is frequently missed at {current_time} — "
+                    f"consider a reminder around {suggested_time}."
+                ),
+                metadata={
+                    "medication_plan_id": medication_plan_id,
+                    "current_time": current_time,
+                    "suggested_time": suggested_time,
+                    "total_doses": stats.total,
+                    "not_taken_count": stats.not_taken,
+                },
+            )
+        )
+
+    window_end = for_date + timedelta(days=6)
+    day_totals: dict[date, int] = defaultdict(int)
+    for scheduled_date, count in db.execute(
+        select(ChoreInstance.scheduled_date, func.count(ChoreInstance.id))
+        .where(ChoreInstance.user_id == user_id)
+        .where(ChoreInstance.scheduled_date >= for_date)
+        .where(ChoreInstance.scheduled_date <= window_end)
+        .group_by(ChoreInstance.scheduled_date)
+    ).all():
+        day_totals[scheduled_date] += int(count)
+    for scheduled_date, count in db.execute(
+        select(TaskInstance.scheduled_date, func.count(TaskInstance.id))
+        .where(TaskInstance.user_id == user_id)
+        .where(TaskInstance.scheduled_date >= for_date)
+        .where(TaskInstance.scheduled_date <= window_end)
+        .group_by(TaskInstance.scheduled_date)
+    ).all():
+        day_totals[scheduled_date] += int(count)
+    for scheduled_date, count in db.execute(
+        select(MedicationDoseInstance.scheduled_date, func.count(MedicationDoseInstance.id))
+        .where(MedicationDoseInstance.user_id == user_id)
+        .where(MedicationDoseInstance.scheduled_date >= for_date)
+        .where(MedicationDoseInstance.scheduled_date <= window_end)
+        .group_by(MedicationDoseInstance.scheduled_date)
+    ).all():
+        day_totals[scheduled_date] += int(count)
+    for planned_for, count in db.execute(
+        select(PlannedItem.planned_for, func.count(PlannedItem.id))
+        .where(PlannedItem.user_id == user_id)
+        .where(PlannedItem.planned_for >= for_date)
+        .where(PlannedItem.planned_for <= window_end)
+        .where(PlannedItem.is_done.is_(False))
+        .group_by(PlannedItem.planned_for)
+    ).all():
+        day_totals[planned_for] += int(count)
+
+    if day_totals:
+        overloaded_day, overloaded_count = max(day_totals.items(), key=lambda item: item[1])
+        candidate_days = [
+            (day, count)
+            for day, count in day_totals.items()
+            if day != overloaded_day and count <= overloaded_count - 3
+        ]
+        if overloaded_count >= _OVERLOAD_THRESHOLD and candidate_days:
+            target_day, target_count = min(candidate_days, key=lambda item: item[1])
+            move_count = min(_OVERLOAD_MOVE_COUNT, overloaded_count - target_count)
+            if move_count > 0:
+                suggestions.append(
+                    SchedulingSuggestion(
+                        suggestion_type="load_balancing",
+                        message=(
+                            f"{_weekday_name(overloaded_day.weekday())} has {overloaded_count} items — "
+                            f"move {move_count} to {_weekday_name(target_day.weekday())}?"
+                        ),
+                        metadata={
+                            "overloaded_date": overloaded_day.isoformat(),
+                            "overloaded_count": overloaded_count,
+                            "target_date": target_day.isoformat(),
+                            "target_count": target_count,
+                            "move_count": move_count,
+                        },
+                    )
+                )
+
+    return suggestions

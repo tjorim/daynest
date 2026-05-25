@@ -1,7 +1,7 @@
 from datetime import date
 from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class DailyCount(BaseModel):
@@ -77,3 +77,18 @@ class AnalyticsSummaryResponse(BaseModel):
     medications: MedicationStats
     planned_items: PlannedItemStats
     routines: RoutineStats
+
+
+SuggestionType = Literal["chore_reschedule", "medication_reminder_adjustment", "load_balancing"]
+SuggestionValue = str | int | float | bool | None
+
+
+class SchedulingSuggestion(BaseModel):
+    suggestion_type: SuggestionType
+    message: str
+    metadata: dict[str, SuggestionValue] = Field(default_factory=dict)
+
+
+class SchedulingSuggestionsResponse(BaseModel):
+    for_date: date
+    suggestions: list[SchedulingSuggestion]

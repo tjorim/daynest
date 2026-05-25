@@ -337,3 +337,64 @@ def test_analytics_summary_response_includes_routines_key(client: TestClient, db
     assert "routines" in payload
     assert "streaks" in payload["routines"]
     assert "daily_completions" in payload["routines"]
+
+
+def test_analytics_suggestions_include_chore_medication_and_load_balancing(client: TestClient, db_session: Session) -> None:
+    user = _create_user(db_session, email="analytics-suggestions@example.com")
+    today = date.today()
+
+    chore_template = ChoreTemplate(
+        user_id=user.id,
+        name="Bathroom cleaning",
+        description=None,
+        start_date=today - timedelta(days=21),
+        every_n_days=7,
+        is_active=True,
+    )
+    medication_plan = MedicationPlan(
+        user_id=user.id,
+        name="Vitamin D",
+        instructions="Take with breakfast",
+        start_date=today - timedelta(days=7),
+        schedule_time=time(9, 0),
+        every_n_days=1,
+        is_active=True,
+    )
+    db_session.add_all([chore_template, medication_plan])
+    db_session.commit()
+    db_session.refresh(chore_template)
+    db_session.refresh(medication_plan)
+
+    _add_chore(db_session, user, chore_template, today - timedelta(days=14), ChoreStatus.skipped)
+    _add_chore(db_session, user, chore_template, today - timedelta(days=7), ChoreStatus.skipped)
+    _add_chore(db_session, user, chore_template, today, ChoreStatus.skipped)
+
+    _add_medication_dose(db_session, user, medication_plan, today - timedelta(days=3), MedicationDoseStatus.missed)
+    _add_medication_dose(db_session, user, medication_plan, today - timedelta(days=2), MedicationDoseStatus.skipped)
+    _add_medication_dose(db_session, user, medication_plan, today - timedelta(days=1), MedicationDoseStatus.missed)
+    _add_medication_dose(db_session, user, medication_plan, today, MedicationDoseStatus.taken)
+
+    overloaded_day = today + timedelta(days=2)
+    light_day = today + timedelta(days=3)
+    db_session.add_all(
+        [
+            PlannedItem(user_id=user.id, title=f"Overload {i}", planned_for=overloaded_day, is_done=False)
+            for i in range(8)
+        ]
+        + [PlannedItem(user_id=user.id, title="Light day", planned_for=light_day, is_done=False)]
+    )
+    db_session.commit()
+
+    _auth_as(user)
+    try:
+        response = client.get("/api/v1/analytics/suggestions")
+    finally:
+        _clear_auth()
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["for_date"] == today.isoformat()
+    suggestion_types = {item["suggestion_type"] for item in payload["suggestions"]}
+    assert "chore_reschedule" in suggestion_types
+    assert "medication_reminder_adjustment" in suggestion_types
+    assert "load_balancing" in suggestion_types
