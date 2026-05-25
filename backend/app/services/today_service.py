@@ -40,7 +40,11 @@ from app.schemas.today import (
     UnifiedDayItem,
     UpcomingTodayItem,
 )
-from app.services.recurrence_service import RecurrenceValidationError, generate_recurrence_dates
+from app.services.recurrence_service import (
+    RecurrenceValidationError,
+    generate_recurrence_dates,
+    recurrence_has_occurrence_after,
+)
 
 _PRIORITY_RANK: dict[str, int] = {
     Priority.urgent: 0,
@@ -110,7 +114,7 @@ class TodayService:
         if from_date > through_date:
             return
         new_dates = generate_recurrence_dates(from_date, series.rrule, dtstart=series.start_date, through_date=through_date)
-        if not new_dates or new_dates[-1] < through_date:
+        if not recurrence_has_occurrence_after(through_date, series.rrule, dtstart=series.start_date):
             effective_through_date = RECURRENCE_EXHAUSTED_SENTINEL
         else:
             effective_through_date = through_date

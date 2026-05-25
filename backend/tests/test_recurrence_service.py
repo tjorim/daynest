@@ -4,7 +4,11 @@ from datetime import date, timedelta
 
 import pytest
 
-from app.services.recurrence_service import RecurrenceValidationError, generate_recurrence_dates
+from app.services.recurrence_service import (
+    RecurrenceValidationError,
+    generate_recurrence_dates,
+    recurrence_has_occurrence_after,
+)
 
 
 def test_daily_rule_capped_at_horizon() -> None:
@@ -105,3 +109,19 @@ def test_exhausted_rule_returns_start_date() -> None:
     start = date(2026, 6, 1)
     dates = generate_recurrence_dates(start, "FREQ=DAILY;UNTIL=20260101T000000Z")
     assert dates == [start]
+
+
+def test_recurrence_has_occurrence_after_distinguishes_sparse_future_rules() -> None:
+    assert recurrence_has_occurrence_after(
+        date(2026, 5, 27),
+        "FREQ=WEEKLY;COUNT=4",
+        dtstart=date(2026, 5, 21),
+    )
+
+
+def test_recurrence_has_occurrence_after_returns_false_when_count_exhausted() -> None:
+    assert not recurrence_has_occurrence_after(
+        date(2026, 6, 30),
+        "FREQ=WEEKLY;COUNT=4",
+        dtstart=date(2026, 5, 21),
+    )

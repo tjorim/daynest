@@ -129,6 +129,37 @@ def test_list_planned_items_materialization_is_idempotent(client: TestClient, db
     assert len(items) == 3
 
 
+def test_sparse_recurrence_is_not_marked_exhausted_before_next_occurrence(
+    client: TestClient,
+    db_session: Session,
+) -> None:
+    user = _create_user(db_session, "planned-lazy-sparse@example.com")
+    _auth_as(user)
+    try:
+        create = client.post(
+            "/api/v1/planned-items",
+            json={
+                "title": "Weekly review",
+                "planned_for": "2026-05-21",
+                "rrule": "FREQ=WEEKLY;COUNT=4",
+            },
+        )
+        assert create.status_code == 200
+
+        before_next = client.get("/api/v1/planned-items?start_date=2026-05-21&end_date=2026-05-27")
+        assert before_next.status_code == 200
+        after_next = client.get("/api/v1/planned-items?start_date=2026-05-21&end_date=2026-05-28")
+    finally:
+        _clear_auth()
+
+    assert after_next.status_code == 200
+    assert [item["planned_for"] for item in before_next.json()] == ["2026-05-21"]
+    assert [item["planned_for"] for item in after_next.json()] == ["2026-05-21", "2026-05-28"]
+
+    series = db_session.query(RecurrenceSeries).filter(RecurrenceSeries.user_id == user.id).one()
+    assert series.materialized_through == date(2026, 5, 28)
+
+
 def test_create_planned_item_with_invalid_rrule_returns_422(client: TestClient, db_session: Session) -> None:
     user = _create_user(db_session, "planned-invalid-rrule@example.com")
     _auth_as(user)

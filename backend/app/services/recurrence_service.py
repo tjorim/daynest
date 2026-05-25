@@ -40,3 +40,18 @@ def generate_recurrence_dates(
     if not dates:
         return [start_date]
     return dates
+
+
+def recurrence_has_occurrence_after(
+    after_date: date,
+    rrule: str,
+    *,
+    dtstart: date | None = None,
+) -> bool:
+    try:
+        start_dt = datetime.combine(dtstart or after_date, time.min)
+        rule = rrulestr(rrule, dtstart=start_dt, ignoretz=True)
+    except ValueError as exc:
+        raise RecurrenceValidationError("Invalid recurrence rule") from exc
+
+    return rule.after(datetime.combine(after_date, time.min), inc=False) is not None
