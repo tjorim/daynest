@@ -338,9 +338,15 @@ class DaynestClient:
     async def async_update_planned_item(
         self,
         item_id: int | None = None,
+        *,
+        scope: str = "this",
         **fields: Any,
     ) -> PlannedItem:
-        """Update a planned item."""
+        """Update a planned item.
+
+        scope: "this" (default), "future", or "all" — controls which items in a
+        recurring series are updated. Non-recurring items ignore this parameter.
+        """
         payload_fields = dict(fields)
         resolved_item_id = item_id
         if resolved_item_id is None:
@@ -354,18 +360,28 @@ class DaynestClient:
             payload_fields["planned_for"] = payload_fields["planned_for"].isoformat()
         result = await self._send_action(
             "put",
-            path=f"/api/v1/planned-items/{resolved_item_id}",
+            path=f"/api/v1/planned-items/{resolved_item_id}?scope={scope}",
             payload=payload_fields,
         )
         return PlannedItem.from_dict(result)
 
-    async def async_delete_planned_item(self, item_id: int | None = None, *, planned_item_id: int | None = None) -> None:
-        """Delete a planned item."""
+    async def async_delete_planned_item(
+        self,
+        item_id: int | None = None,
+        *,
+        planned_item_id: int | None = None,
+        scope: str = "this",
+    ) -> None:
+        """Delete a planned item.
+
+        scope: "this" (default) or "future" — controls which items in a recurring
+        series are deleted. Non-recurring items ignore this parameter.
+        """
         resolved_item_id = item_id if item_id is not None else planned_item_id
         if resolved_item_id is None:
             msg = "item_id is required"
             raise ValueError(msg)
-        await self._send_no_content_action("delete", path=f"/api/v1/planned-items/{resolved_item_id}")
+        await self._send_no_content_action("delete", path=f"/api/v1/planned-items/{resolved_item_id}?scope={scope}")
 
     async def async_get_calendar(
         self,
