@@ -17,6 +17,7 @@ from custom_components.daynest.services import (
     ATTR_RRULE,
     ATTR_SCOPE,
     ATTR_TITLE,
+    SCOPE_THIS,
     SERVICE_COMPLETE_TASK,
     SERVICE_CREATE_PLANNED_ITEM,
     SERVICE_MARK_MEDICATION_TAKEN,
@@ -588,7 +589,8 @@ class TestHandleUpdatePlannedItem:
         await async_setup_services(hass)
         handler = await _get_handler(hass, SERVICE_UPDATE_PLANNED_ITEM)
 
-        await handler(_make_service_call(**{ATTR_PLANNED_ITEM_ID: 42}))
+        # Schema injects the default; simulate that here since handler is called directly.
+        await handler(_make_service_call(**{ATTR_PLANNED_ITEM_ID: 42, ATTR_SCOPE: SCOPE_THIS}))
 
         client.async_update_planned_item.assert_awaited_once_with(
             item_id=42,
