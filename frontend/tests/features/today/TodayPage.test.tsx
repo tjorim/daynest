@@ -76,6 +76,8 @@ const todayPayload = {
       duration_minutes: null,
       notes: null,
       module_key: "shopping_list",
+      rrule: null,
+      recurrence_series_id: null,
       recurrence_hint: null,
       linked_source: null,
       linked_ref: null,
