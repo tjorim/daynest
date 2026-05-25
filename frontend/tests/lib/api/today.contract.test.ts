@@ -88,6 +88,8 @@ const contractExample: TodayPayload = {
       notes: null,
       module_key: "meal_planning",
       recurrence_hint: "weekly",
+      rrule: "FREQ=WEEKLY;BYDAY=SA",
+      recurrence_series_id: "4e0ec825-8486-4fab-8fb3-f54e89a6a2de",
       linked_source: "google_calendar",
       linked_ref: "event_13",
       is_done: false,

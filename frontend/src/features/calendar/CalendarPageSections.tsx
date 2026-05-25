@@ -30,6 +30,7 @@ function formatPlannedMeta(item: PlannedTodayItem): string {
     timeAndDuration || null,
     item.is_done ? m.search_done() : m.search_planned(),
     item.module_key ? m.calendar_module_label({ key: item.module_key }) : null,
+    item.rrule || item.recurrence_series_id ? "🔁 Repeats" : null,
     item.recurrence_hint ? `Repeat: ${item.recurrence_hint}` : null,
     item.linked_source ? `Source: ${item.linked_source}` : null,
   ];
@@ -46,6 +47,16 @@ const WEEKDAYS = [
   m.calendar_weekday_sat,
   m.calendar_weekday_sun,
 ];
+
+const WEEKDAY_REPEAT_OPTIONS = [
+  { code: "MO", label: m.calendar_weekday_mon },
+  { code: "TU", label: m.calendar_weekday_tue },
+  { code: "WE", label: m.calendar_weekday_wed },
+  { code: "TH", label: m.calendar_weekday_thu },
+  { code: "FR", label: m.calendar_weekday_fri },
+  { code: "SA", label: m.calendar_weekday_sat },
+  { code: "SU", label: m.calendar_weekday_sun },
+] as const;
 
 export function MonthNavigationControls({
   onRefresh,
@@ -202,7 +213,10 @@ export function DayDetailsPanel({
             <li key={`${item.item_type}-${item.item_id}`} className="list-group-item py-2">
               <div className="d-flex justify-content-between align-items-start gap-3">
                 <div>
-                  <div className="fw-semibold">{item.title}</div>
+                  <div className="fw-semibold">
+                    {item.rrule || item.recurrence_series_id ? "🔁 " : ""}
+                    {item.title}
+                  </div>
                   <small className="text-muted">{capitalize(item.status)}</small>
                   {item.detail ? <small className="d-block">{item.detail}</small> : null}
                   {item.module_key ? (
@@ -299,6 +313,10 @@ export function PlannedItemsSidebar({
   notes,
   moduleKey,
   recurrenceHint,
+  isRepeating,
+  repeatPreset,
+  repeatWeekdays,
+  customInterval,
   linkedSource,
   linkedRef,
   editingPlannedItemId,
@@ -311,6 +329,10 @@ export function PlannedItemsSidebar({
   onSetNotes,
   onSetModuleKey,
   onSetRecurrenceHint,
+  onSetIsRepeating,
+  onSetRepeatPreset,
+  onSetRepeatWeekdays,
+  onSetCustomInterval,
   onSetLinkedSource,
   onSetLinkedRef,
   onAddPlanned,
@@ -335,6 +357,10 @@ export function PlannedItemsSidebar({
   notes: string;
   moduleKey: PlannedItemModuleKey | "";
   recurrenceHint: string;
+  isRepeating: boolean;
+  repeatPreset: "daily" | "weekly" | "monthly" | "custom";
+  repeatWeekdays: string[];
+  customInterval: number;
   linkedSource: string;
   linkedRef: string;
   editingPlannedItemId: number | null;
@@ -347,6 +373,10 @@ export function PlannedItemsSidebar({
   onSetNotes: (value: string) => void;
   onSetModuleKey: (value: PlannedItemModuleKey | "") => void;
   onSetRecurrenceHint: (value: string) => void;
+  onSetIsRepeating: (value: boolean) => void;
+  onSetRepeatPreset: (value: "daily" | "weekly" | "monthly" | "custom") => void;
+  onSetRepeatWeekdays: (value: string[]) => void;
+  onSetCustomInterval: (value: number) => void;
   onSetLinkedSource: (value: string) => void;
   onSetLinkedRef: (value: string) => void;
   onAddPlanned: () => Promise<void>;
@@ -354,7 +384,7 @@ export function PlannedItemsSidebar({
   onToggleDone: (item: PlannedTodayItem) => Promise<void>;
   onStartEdit: (item: PlannedTodayItem) => void;
   onSetConfirmDeleteId: (id: number | null) => void;
-  onRemovePlannedItem: (itemId: number) => Promise<void>;
+  onRemovePlannedItem: (itemId: number, scope?: "this" | "future") => Promise<void>;
   isExporting: boolean;
   isImporting: boolean;
   backupStatus: string | null;
@@ -419,12 +449,79 @@ export function PlannedItemsSidebar({
               <option value="recurring_grocery">{m.calendar_module_grocery()}</option>
               <option value="shared_calendar">{m.calendar_module_shared()}</option>
             </select>
-            <input
-              className="form-control"
-              value={recurrenceHint}
-              onChange={(event) => onSetRecurrenceHint(event.target.value)}
-              placeholder={m.calendar_recurrence_placeholder()}
-            />
+            <div className="form-check">
+              <input
+                id="planned-repeat-toggle"
+                className="form-check-input"
+                type="checkbox"
+                checked={isRepeating}
+                onChange={(event) => onSetIsRepeating(event.target.checked)}
+              />
+              <label className="form-check-label" htmlFor="planned-repeat-toggle">
+                Repeat
+              </label>
+            </div>
+            {isRepeating ? (
+              <div className="d-grid gap-2 border rounded p-2">
+                <select
+                  className="form-select"
+                  value={repeatPreset}
+                  onChange={(event) =>
+                    onSetRepeatPreset(event.target.value as "daily" | "weekly" | "monthly" | "custom")
+                  }
+                  aria-label="Repeat schedule"
+                >
+                  <option value="daily">Daily</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="monthly">Monthly</option>
+                  <option value="custom">Custom interval</option>
+                </select>
+                {repeatPreset === "weekly" ? (
+                  <div className="d-flex flex-wrap gap-2">
+                    {WEEKDAY_REPEAT_OPTIONS.map((weekday) => (
+                      <label key={weekday.code} className="form-check form-check-inline mb-0">
+                        <input
+                          type="checkbox"
+                          className="form-check-input"
+                          checked={repeatWeekdays.includes(weekday.code)}
+                          onChange={(event) => {
+                            if (event.target.checked) {
+                              onSetRepeatWeekdays([...repeatWeekdays, weekday.code]);
+                              return;
+                            }
+                            const next = repeatWeekdays.filter((value) => value !== weekday.code);
+                            onSetRepeatWeekdays(next);
+                          }}
+                        />
+                        <span className="form-check-label">{weekday.label()}</span>
+                      </label>
+                    ))}
+                  </div>
+                ) : null}
+                {repeatPreset === "custom" ? (
+                  <div className="input-group">
+                    <span className="input-group-text">Every</span>
+                    <input
+                      type="number"
+                      className="form-control"
+                      min={2}
+                      value={customInterval}
+                      onChange={(event) =>
+                        onSetCustomInterval(Math.max(2, Number(event.target.value || 2)))
+                      }
+                    />
+                    <span className="input-group-text">days</span>
+                  </div>
+                ) : null}
+              </div>
+            ) : (
+              <input
+                className="form-control"
+                value={recurrenceHint}
+                onChange={(event) => onSetRecurrenceHint(event.target.value)}
+                placeholder={m.calendar_recurrence_placeholder()}
+              />
+            )}
             <input
               className="form-control"
               value={linkedSource}
@@ -541,14 +638,35 @@ export function PlannedItemsSidebar({
                     </button>
                     {confirmDeleteId === item.id ? (
                       <div className="d-flex gap-1">
-                        <button
-                          type="button"
-                          className="btn btn-danger btn-sm"
-                          disabled={isAdding}
-                          onClick={() => void onRemovePlannedItem(item.id)}
-                        >
-                          {m.action_confirm()}
-                        </button>
+                        {item.rrule || item.recurrence_series_id ? (
+                          <>
+                            <button
+                              type="button"
+                              className="btn btn-danger btn-sm"
+                              disabled={isAdding}
+                              onClick={() => void onRemovePlannedItem(item.id, "this")}
+                            >
+                              This
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn-outline-danger btn-sm"
+                              disabled={isAdding}
+                              onClick={() => void onRemovePlannedItem(item.id, "future")}
+                            >
+                              This + future
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            type="button"
+                            className="btn btn-danger btn-sm"
+                            disabled={isAdding}
+                            onClick={() => void onRemovePlannedItem(item.id)}
+                          >
+                            {m.action_confirm()}
+                          </button>
+                        )}
                         <button
                           type="button"
                           className="btn btn-outline-secondary btn-sm"

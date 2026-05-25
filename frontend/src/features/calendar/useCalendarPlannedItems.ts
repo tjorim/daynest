@@ -8,9 +8,48 @@ import {
   reschedulePlannedItem,
   updatePlannedItem,
   type PlannedItemBackupFile,
+  type PlannedItemDeleteScope,
   type PlannedItemModuleKey,
   type PlannedTodayItem,
 } from "@/lib/api/today";
+
+type RepeatPreset = "daily" | "weekly" | "monthly" | "custom";
+
+const WEEKDAY_CODES = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"] as const;
+
+function selectedDateWeekdayCode(selectedDate: string): string {
+  return WEEKDAY_CODES[dayjs(selectedDate).day()] ?? "MO";
+}
+
+function parseRRule(
+  rrule: string,
+  fallbackWeekday: string,
+): { preset: RepeatPreset; weekdays: string[]; customInterval: number } {
+  const parts = new Map(
+    rrule
+      .split(";")
+      .map((part) => part.split("=", 2))
+      .filter((entry): entry is [string, string] => entry.length === 2),
+  );
+  const freq = (parts.get("FREQ") ?? "").toUpperCase();
+  const interval = Number(parts.get("INTERVAL") ?? "1");
+
+  if (freq === "WEEKLY") {
+    const weekdays = (parts.get("BYDAY") ?? fallbackWeekday)
+      .split(",")
+      .map((value) => value.trim().toUpperCase())
+      .filter(Boolean);
+    return { preset: "weekly", weekdays, customInterval: 2 };
+  }
+  if (freq === "MONTHLY") {
+    return { preset: "monthly", weekdays: [fallbackWeekday], customInterval: 2 };
+  }
+  if (freq === "DAILY" && interval > 1) {
+    return { preset: "custom", weekdays: [fallbackWeekday], customInterval: interval };
+  }
+
+  return { preset: "daily", weekdays: [fallbackWeekday], customInterval: 2 };
+}
 
 function safeParseBackup(raw: string): PlannedItemBackupFile {
   const parsed = JSON.parse(raw) as Partial<PlannedItemBackupFile>;
@@ -43,6 +82,10 @@ export function useCalendarPlannedItems({
   const [notes, setNotes] = useState("");
   const [moduleKey, setModuleKey] = useState<PlannedItemModuleKey | "">("");
   const [recurrenceHint, setRecurrenceHint] = useState("");
+  const [isRepeating, setIsRepeating] = useState(false);
+  const [repeatPreset, setRepeatPreset] = useState<RepeatPreset>("weekly");
+  const [repeatWeekdays, setRepeatWeekdays] = useState<string[]>([selectedDateWeekdayCode(selectedDate)]);
+  const [customInterval, setCustomInterval] = useState(2);
   const [linkedSource, setLinkedSource] = useState("");
   const [linkedRef, setLinkedRef] = useState("");
   const [editingPlannedItemId, setEditingPlannedItemId] = useState<number | null>(null);
@@ -56,6 +99,7 @@ export function useCalendarPlannedItems({
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const resetPlannedForm = () => {
+    const weekdayCode = selectedDateWeekdayCode(selectedDate);
     setEditingPlannedItemId(null);
     setTitle("");
     setTimeOfDay("");
@@ -63,12 +107,17 @@ export function useCalendarPlannedItems({
     setNotes("");
     setModuleKey("");
     setRecurrenceHint("");
+    setIsRepeating(false);
+    setRepeatPreset("weekly");
+    setRepeatWeekdays([weekdayCode]);
+    setCustomInterval(2);
     setLinkedSource("");
     setLinkedRef("");
     setAddError(null);
   };
 
   const startEditing = (item: PlannedTodayItem) => {
+    const fallbackWeekday = selectedDateWeekdayCode(item.planned_for);
     setEditingPlannedItemId(item.id);
     setTitle(item.title);
     setTimeOfDay(item.time_of_day ? item.time_of_day.slice(0, 5) : "");
@@ -76,6 +125,17 @@ export function useCalendarPlannedItems({
     setNotes(item.notes ?? "");
     setModuleKey(item.module_key ?? "");
     setRecurrenceHint(item.recurrence_hint ?? "");
+    setIsRepeating(Boolean(item.rrule));
+    if (item.rrule) {
+      const parsed = parseRRule(item.rrule, fallbackWeekday);
+      setRepeatPreset(parsed.preset);
+      setRepeatWeekdays(parsed.weekdays);
+      setCustomInterval(parsed.customInterval);
+    } else {
+      setRepeatPreset("weekly");
+      setRepeatWeekdays([fallbackWeekday]);
+      setCustomInterval(2);
+    }
     setLinkedSource(item.linked_source ?? "");
     setLinkedRef(item.linked_ref ?? "");
     setAddError(null);
@@ -91,6 +151,15 @@ export function useCalendarPlannedItems({
     setAddError(null);
     setActionStatus(null);
     try {
+      const rrule = isRepeating
+        ? repeatPreset === "daily"
+          ? "FREQ=DAILY"
+          : repeatPreset === "weekly"
+            ? `FREQ=WEEKLY;BYDAY=${(repeatWeekdays.length ? repeatWeekdays : [selectedDateWeekdayCode(selectedDate)]).join(",")}`
+            : repeatPreset === "monthly"
+              ? "FREQ=MONTHLY"
+              : `FREQ=DAILY;INTERVAL=${Math.max(2, customInterval)}`
+        : null;
       const payload = {
         title: title.trim(),
         planned_for: selectedDate,
@@ -98,7 +167,12 @@ export function useCalendarPlannedItems({
         duration_minutes: durationMinutes,
         notes: notes.trim() || null,
         module_key: moduleKey || null,
-        recurrence_hint: recurrenceHint.trim() || null,
+        recurrence_hint: isRepeating
+          ? repeatPreset === "custom"
+            ? `every ${Math.max(2, customInterval)} days`
+            : repeatPreset
+          : recurrenceHint.trim() || null,
+        rrule,
         linked_source: linkedSource.trim() || null,
         linked_ref: linkedRef.trim() || null,
       };
@@ -141,6 +215,7 @@ export function useCalendarPlannedItems({
         duration_minutes: item.duration_minutes,
         module_key: item.module_key,
         recurrence_hint: item.recurrence_hint,
+        rrule: item.rrule,
         linked_source: item.linked_source,
         linked_ref: item.linked_ref,
         is_done: !item.is_done,
@@ -154,13 +229,13 @@ export function useCalendarPlannedItems({
     }
   };
 
-  const removePlannedItem = async (itemId: number) => {
+  const removePlannedItem = async (itemId: number, scope: PlannedItemDeleteScope = "this") => {
     setConfirmDeleteId(null);
     setAddError(null);
     setIsAdding(true);
     setActionStatus(null);
     try {
-      await deletePlannedItem(itemId);
+      await deletePlannedItem(itemId, scope);
       if (editingPlannedItemId === itemId) {
         resetPlannedForm();
       }
@@ -215,6 +290,7 @@ export function useCalendarPlannedItems({
           notes: item.notes,
           module_key: item.module_key,
           recurrence_hint: item.recurrence_hint,
+          rrule: item.rrule,
           linked_source: item.linked_source,
           linked_ref: item.linked_ref,
         })),
@@ -262,6 +338,7 @@ export function useCalendarPlannedItems({
               notes: item.notes,
               module_key: item.module_key,
               recurrence_hint: item.recurrence_hint,
+              rrule: item.rrule,
               linked_source: item.linked_source,
               linked_ref: item.linked_ref,
             }),
@@ -293,6 +370,10 @@ export function useCalendarPlannedItems({
     notes,
     moduleKey,
     recurrenceHint,
+    isRepeating,
+    repeatPreset,
+    repeatWeekdays,
+    customInterval,
     linkedSource,
     linkedRef,
     editingPlannedItemId,
@@ -310,6 +391,10 @@ export function useCalendarPlannedItems({
     setNotes,
     setModuleKey,
     setRecurrenceHint,
+    setIsRepeating,
+    setRepeatPreset,
+    setRepeatWeekdays,
+    setCustomInterval,
     setLinkedSource,
     setLinkedRef,
     setAddError,

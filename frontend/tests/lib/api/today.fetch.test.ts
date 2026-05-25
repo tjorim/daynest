@@ -5,6 +5,7 @@ vi.mock("@/lib/auth/session", () => ({
 }));
 
 import {
+  deletePlannedItem,
   fetchCalendarMonth,
   fetchToday,
   type CalendarMonthPayload,
@@ -72,5 +73,17 @@ describe("today API response validation", () => {
       name: "ApiError",
       message: expect.stringContaining("days.0.total"),
     });
+  });
+
+  it("passes delete scope for recurring planned-item removal", async () => {
+    const fetchMock = vi.fn(async () => new Response(null, { status: 204 }));
+    vi.stubGlobal("fetch", fetchMock);
+    vi.stubGlobal("navigator", { onLine: true });
+
+    await expect(deletePlannedItem(42, "future")).resolves.toBeUndefined();
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("/api/v1/planned-items/42?scope=future"),
+      expect.objectContaining({ method: "DELETE" }),
+    );
   });
 });

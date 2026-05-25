@@ -71,6 +71,8 @@ export interface PlannedTodayItem {
   notes: string | null;
   module_key: PlannedItemModuleKey | null;
   recurrence_hint: string | null;
+  rrule: string | null;
+  recurrence_series_id: string | null;
   linked_source: string | null;
   linked_ref: string | null;
   is_done: boolean;
@@ -84,6 +86,7 @@ export interface PlannedItemInput {
   notes?: string | null;
   module_key?: PlannedItemModuleKey | null;
   recurrence_hint?: string | null;
+  rrule?: string | null;
   linked_source?: string | null;
   linked_ref?: string | null;
 }
@@ -91,6 +94,8 @@ export interface PlannedItemInput {
 export interface PlannedItemUpdateInput extends PlannedItemInput {
   is_done: boolean;
 }
+
+export type PlannedItemDeleteScope = "this" | "future";
 
 export type StatusTone = "primary" | "secondary" | "warning" | "success" | "info" | "danger";
 
@@ -200,6 +205,8 @@ const plannedTodayItemSchema = z.object({
   notes: z.string().nullable(),
   module_key: plannedItemModuleKeySchema.nullable(),
   recurrence_hint: z.string().nullable(),
+  rrule: z.string().nullable(),
+  recurrence_series_id: z.string().nullable(),
   linked_source: z.string().nullable(),
   linked_ref: z.string().nullable(),
   is_done: z.boolean(),
@@ -566,8 +573,11 @@ export async function updatePlannedItem(
   return parseJsonResponse<PlannedTodayItem>(response, "Request failed", false);
 }
 
-export async function deletePlannedItem(plannedItemId: number): Promise<void> {
-  const response = await fetchWithAuth(`/api/v1/planned-items/${plannedItemId}`, {
+export async function deletePlannedItem(
+  plannedItemId: number,
+  scope: PlannedItemDeleteScope = "this",
+): Promise<void> {
+  const response = await fetchWithAuth(`/api/v1/planned-items/${plannedItemId}?scope=${scope}`, {
     method: "DELETE",
     headers: { Accept: "application/json" },
   });

@@ -161,6 +161,10 @@ export function CalendarPage() {
             notes={planned.notes}
             moduleKey={planned.moduleKey}
             recurrenceHint={planned.recurrenceHint}
+            isRepeating={planned.isRepeating}
+            repeatPreset={planned.repeatPreset}
+            repeatWeekdays={planned.repeatWeekdays}
+            customInterval={planned.customInterval}
             linkedSource={planned.linkedSource}
             linkedRef={planned.linkedRef}
             editingPlannedItemId={planned.editingPlannedItemId}
@@ -189,6 +193,22 @@ export function CalendarPage() {
             }}
             onSetRecurrenceHint={(value) => {
               planned.setRecurrenceHint(value);
+              planned.setAddError(null);
+            }}
+            onSetIsRepeating={(value) => {
+              planned.setIsRepeating(value);
+              planned.setAddError(null);
+            }}
+            onSetRepeatPreset={(value) => {
+              planned.setRepeatPreset(value);
+              planned.setAddError(null);
+            }}
+            onSetRepeatWeekdays={(value) => {
+              planned.setRepeatWeekdays(value);
+              planned.setAddError(null);
+            }}
+            onSetCustomInterval={(value) => {
+              planned.setCustomInterval(value);
               planned.setAddError(null);
             }}
             onSetLinkedSource={(value) => {
