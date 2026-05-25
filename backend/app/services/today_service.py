@@ -655,12 +655,11 @@ class TodayService:
         recurrence_series.rrule = patch.rrule or recurrence_series.rrule
         recurrence_series.linked_source = patch.linked_source
         recurrence_series.linked_ref = patch.linked_ref
-        recurrence_series.start_date = patch.planned_for
         recurrence_series.time_of_day = patch.time_of_day
         recurrence_series.duration_minutes = patch.duration_minutes
         recurrence_series.priority = patch.priority
         recurrence_series.tags = patch.tags
-        recurrence_series.materialized_through = patch.planned_for - timedelta(days=1)
+        recurrence_series.materialized_through = recurrence_series.start_date - timedelta(days=1)
         self.repository.delete_materialized_planned_items_for_series(
             user_id=user_id,
             recurrence_series_id=series_id,
