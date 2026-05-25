@@ -180,8 +180,10 @@ internal fun PlannedItemCard(
         ) {
             Checkbox(checked = isSelected, onCheckedChange = { onToggleSelect() })
             Column(modifier = Modifier.weight(1f)) {
+                val displayTitle =
+                    if (isRecurring) stringResource(R.string.planned_item_recurring_title, item.title) else item.title
                 Text(
-                    text = if (isRecurring) stringResource(R.string.planned_item_recurring_title, item.title) else item.title,
+                    text = displayTitle,
                     style = MaterialTheme.typography.bodyMedium,
                     textDecoration = if (item.isDone) TextDecoration.LineThrough else TextDecoration.None,
                 )
