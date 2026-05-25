@@ -550,7 +550,7 @@ export function PlannedItemsSidebar({
                 className="form-select"
                 value={editScope}
                 onChange={(event) => onSetEditScope(event.target.value as PlannedItemEditScope)}
-                aria-label="Recurring edit scope"
+                aria-label={m.calendar_planned_edit_scope_label()}
               >
                 <option value="this">{m.calendar_planned_edit_scope_this()}</option>
                 <option value="future">{m.calendar_planned_edit_scope_future()}</option>

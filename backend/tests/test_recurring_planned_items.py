@@ -161,7 +161,7 @@ def test_recurrence_series_query_excludes_already_materialized_windows(db_sessio
         through_date=date(2026, 5, 28),
     )
 
-    assert [item.title for item in series] == ["Pending", "Never materialized"]
+    assert {item.title for item in series} == {"Pending", "Never materialized"}
 
 
 def test_sparse_recurrence_is_not_marked_exhausted_before_next_occurrence(

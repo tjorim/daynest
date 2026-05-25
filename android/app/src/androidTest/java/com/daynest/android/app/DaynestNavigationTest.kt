@@ -25,7 +25,9 @@ import com.daynest.android.data.auth.AuthSessionDto
 import com.daynest.android.data.auth.RefreshRequestDto
 import com.daynest.android.data.auth.SignInRequestDto
 import com.daynest.android.data.today.ChoreMutationDto
+import com.daynest.android.data.today.DeleteScope
 import com.daynest.android.data.today.DoseMutationDto
+import com.daynest.android.data.today.EditScope
 import com.daynest.android.data.today.PlannedItemCreateDto
 import com.daynest.android.data.today.PlannedItemUpdateDto
 import com.daynest.android.data.today.PlannedTodayItemDto
@@ -246,9 +248,13 @@ private fun makeHomeViewModel(): HomeViewModel =
                         override suspend fun updatePlannedItem(
                             id: Int,
                             request: PlannedItemUpdateDto,
+                            scope: EditScope,
                         ): PlannedTodayItemDto = PlannedTodayItemDto(id, request.title, request.isDone)
 
-                        override suspend fun deletePlannedItem(id: Int) = Unit
+                        override suspend fun deletePlannedItem(
+                            id: Int,
+                            scope: DeleteScope,
+                        ) = Unit
 
                         override suspend fun createPlannedItem(request: PlannedItemCreateDto): PlannedTodayItemDto =
                             PlannedTodayItemDto(0, request.title, false)

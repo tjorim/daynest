@@ -484,7 +484,7 @@ function PlannedItemActions({
             value={editScope}
             disabled={actions.isSubmitting}
             onChange={(e) => setEditScope(e.target.value as PlannedItemEditScope)}
-            aria-label="Recurring edit scope"
+            aria-label={m.calendar_planned_edit_scope_label()}
           >
             <option value="this">{m.calendar_planned_edit_scope_this()}</option>
             <option value="future">{m.calendar_planned_edit_scope_future()}</option>

@@ -57,6 +57,7 @@ logger = logging.getLogger(__name__)
 
 MAX_CALENDAR_RANGE_DAYS = 366
 RECURRENCE_EXHAUSTED_SENTINEL = date(9999, 12, 31)
+DEFAULT_PLANNED_ITEMS_LOOKAHEAD_DAYS = 90
 
 
 @dataclass
@@ -520,9 +521,11 @@ class TodayService:
     def create_planned_item(self, user_id: int, request: PlannedItemCreateRequest) -> PlannedTodayItem:
         if request.rrule:
             try:
-                generate_recurrence_dates(request.planned_for, request.rrule, max_instances=1)
+                first_dates = generate_recurrence_dates(request.planned_for, request.rrule, max_instances=1)
             except RecurrenceValidationError as exc:
                 raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)) from exc
+            if not first_dates:
+                raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Recurrence rule produces no occurrences")
 
             series = self.repository.add_recurrence_series(
                 RecurrenceSeries(
@@ -614,6 +617,11 @@ class TodayService:
         recurrence_series = self.repository.get_recurrence_series_for_user(user_id=user_id, recurrence_series_id=series_id)
         if recurrence_series is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Recurrence series not found")
+        if patch.rrule:
+            try:
+                generate_recurrence_dates(patch.planned_for, patch.rrule, max_instances=1)
+            except RecurrenceValidationError as exc:
+                raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)) from exc
         recurrence_series.title = patch.title
         recurrence_series.notes = patch.notes
         recurrence_series.module_key = patch.module_key
@@ -648,6 +656,11 @@ class TodayService:
         recurrence_series = self.repository.get_recurrence_series_for_user(user_id=user_id, recurrence_series_id=series_id)
         if recurrence_series is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Recurrence series not found")
+        if patch.rrule:
+            try:
+                generate_recurrence_dates(recurrence_series.start_date, patch.rrule, max_instances=1)
+            except RecurrenceValidationError as exc:
+                raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)) from exc
         recurrence_series.title = patch.title
         recurrence_series.notes = patch.notes
         recurrence_series.module_key = patch.module_key
@@ -701,7 +714,7 @@ class TodayService:
         return self._planned_item_to_schema(item)
 
     def list_planned_items(self, user_id: int, start_date: date | None = None, end_date: date | None = None, tags: list[str] | None = None) -> list[PlannedTodayItem]:
-        materialize_through = end_date or start_date
+        materialize_through = end_date or (start_date + timedelta(days=DEFAULT_PLANNED_ITEMS_LOOKAHEAD_DAYS) if start_date else None)
         if materialize_through is not None:
             self._materialize_planned_items_through(user_id=user_id, through_date=materialize_through)
         return [

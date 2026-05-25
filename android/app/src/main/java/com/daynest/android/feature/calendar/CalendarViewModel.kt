@@ -186,12 +186,16 @@ class CalendarViewModel
             viewModelScope.launch {
                 val result = plannedItemRepository.updatePlannedItem(id, input, scope)
                 result.onSuccess { updated ->
-                    _uiState.update { current ->
-                        if (current is CalendarUiState.Content) {
-                            current.withUpdatedPlannedItem(id = id, sourceDate = date, updated = updated)
-                        } else {
-                            current
+                    if (scope == EditScope.THIS) {
+                        _uiState.update { current ->
+                            if (current is CalendarUiState.Content) {
+                                current.withUpdatedPlannedItem(id = id, sourceDate = date, updated = updated)
+                            } else {
+                                current
+                            }
                         }
+                    } else {
+                        retryCurrentMonth()
                     }
                 }
             }

@@ -55,18 +55,10 @@ def generate_recurrence(
     for i in range(max_instances):
         occurrence = rule.after(cursor, inc=(i == 0))
         if occurrence is None:
-            if not dates and through_date is not None:
-                return RecurrenceGeneration(dates=[], has_occurrence_after_horizon=False)
-            if not dates:
-                return RecurrenceGeneration(dates=[start_date], has_occurrence_after_horizon=False)
             return RecurrenceGeneration(dates=dates, has_occurrence_after_horizon=False)
         if occurrence.date() >= horizon:
             return RecurrenceGeneration(dates=dates, has_occurrence_after_horizon=True)
         dates.append(occurrence.date())
         cursor = occurrence
 
-    if not dates and through_date is not None:
-        return RecurrenceGeneration(dates=[], has_occurrence_after_horizon=True)
-    if not dates:
-        return RecurrenceGeneration(dates=[start_date], has_occurrence_after_horizon=True)
     return RecurrenceGeneration(dates=dates, has_occurrence_after_horizon=True)
