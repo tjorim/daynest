@@ -88,7 +88,7 @@ describe("useTodayActions", () => {
     {
       label: "deletePlannedItem",
       call: (actions: ReturnType<typeof useTodayActions>) => actions.deletePlannedItem(15),
-      verify: () => expect(todayApiMock.deletePlannedItem).toHaveBeenCalledWith(15),
+      verify: () => expect(todayApiMock.deletePlannedItem).toHaveBeenCalledWith(15, "this"),
     },
   ])("runs $label and refreshes by default", async ({ call, verify }) => {
     const onRefresh = vi.fn().mockResolvedValue(undefined);
@@ -144,6 +144,8 @@ describe("useTodayActions", () => {
           notes: "Before 6 PM",
           module_key: "shopping_list",
           recurrence_hint: null,
+          rrule: "FREQ=WEEKLY;BYDAY=SU",
+          recurrence_series_id: "bc0fbf8b-e4ae-40ba-a5b6-1424be5ca5dc",
           linked_source: "note",
           linked_ref: "abc",
           is_done: false,
@@ -160,6 +162,7 @@ describe("useTodayActions", () => {
       notes: "Before 6 PM",
       module_key: "shopping_list",
       recurrence_hint: null,
+      rrule: "FREQ=WEEKLY;BYDAY=SU",
       linked_source: "note",
       linked_ref: "abc",
       is_done: true,
@@ -172,9 +175,14 @@ describe("useTodayActions", () => {
     const { result } = renderHook(() => useTodayActions(onRefresh));
 
     await act(async () => {
-      await result.current.deletePlannedItem(21, { refresh: false });
+      await result.current.deletePlannedItem(21, "this", { refresh: false });
     });
     expect(onRefresh).not.toHaveBeenCalled();
+
+    await act(async () => {
+      await result.current.deletePlannedItem(21, "future", { refresh: false });
+    });
+    expect(todayApiMock.deletePlannedItem).toHaveBeenCalledWith(21, "future");
 
     const mutationError = new Error("Action failed hard");
     todayApiMock.skipChore.mockRejectedValueOnce(mutationError);

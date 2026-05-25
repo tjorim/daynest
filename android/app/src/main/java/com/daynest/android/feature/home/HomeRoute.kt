@@ -40,6 +40,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.daynest.android.R
 import com.daynest.android.app.navigation.DaynestDestination
 import com.daynest.android.app.navigation.DaynestNavigationScaffold
+import com.daynest.android.data.today.DeleteScope
 import com.daynest.android.data.today.PlannedTodayItemDto
 import com.daynest.android.feature.home.SectionType
 import com.daynest.android.ui.PlannedItemFormDialog
@@ -350,7 +351,13 @@ private fun TodayContent(
                     onToggleSelect = { onEvent(HomeUiEvent.ToggleSelection(SectionType.PLANNED, item.id)) },
                     onToggleDone = { onEvent(HomeUiEvent.MarkPlannedDoneClicked(item.id, !item.isDone)) },
                     onEdit = { plannedEditTarget = item },
-                    onDelete = { onEvent(HomeUiEvent.DeletePlannedClicked(item.id)) },
+                    onDelete = { onEvent(HomeUiEvent.DeletePlannedClicked(item.id, DeleteScope.THIS)) },
+                    onDeleteFuture =
+                        if (item.rrule != null || item.recurrenceSeriesId != null) {
+                            { onEvent(HomeUiEvent.DeletePlannedClicked(item.id, DeleteScope.FUTURE)) }
+                        } else {
+                            null
+                        },
                 )
             }
         }

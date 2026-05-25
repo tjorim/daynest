@@ -171,7 +171,9 @@ export function buildPlannedItems(items: PlannedTodayItem[]): SectionItem[] {
     })
     .map((item) => ({
     id: `planned-${item.id}`,
-    title: item.time_of_day ? `${item.time_of_day.slice(0, 5)} · ${item.title}` : item.title,
+    title: item.time_of_day
+      ? `${item.time_of_day.slice(0, 5)} · ${item.rrule || item.recurrence_series_id ? "🔁 " : ""}${item.title}`
+      : `${item.rrule || item.recurrence_series_id ? "🔁 " : ""}${item.title}`,
     subtitle: formatSubtitle(
       item.is_done
         ? m.today_planned_done_for({ date: formatDate(item.planned_for) })
@@ -437,6 +439,7 @@ function PlannedItemActions({
       notes: editNotes.trim() || null,
       module_key: plannedItem.module_key,
       recurrence_hint: plannedItem.recurrence_hint,
+      rrule: plannedItem.rrule,
       linked_source: plannedItem.linked_source,
       linked_ref: plannedItem.linked_ref,
     });
@@ -518,14 +521,35 @@ function PlannedItemActions({
         >
           {m.action_edit()}
         </button>
-        <button
-          type="button"
-          className="btn btn-outline-danger btn-sm"
-          disabled={actions.isSubmitting}
-          onClick={() => void actions.deletePlannedItem(plannedItem.id)}
-        >
-          {m.action_delete()}
-        </button>
+        {plannedItem.rrule || plannedItem.recurrence_series_id ? (
+          <>
+            <button
+              type="button"
+              className="btn btn-outline-danger btn-sm"
+              disabled={actions.isSubmitting}
+              onClick={() => void actions.deletePlannedItem(plannedItem.id, "this")}
+            >
+              {m.planned_delete_this()}
+            </button>
+            <button
+              type="button"
+              className="btn btn-danger btn-sm"
+              disabled={actions.isSubmitting}
+              onClick={() => void actions.deletePlannedItem(plannedItem.id, "future")}
+            >
+              {m.calendar_delete_this_and_future()}
+            </button>
+          </>
+        ) : (
+          <button
+            type="button"
+            className="btn btn-outline-danger btn-sm"
+            disabled={actions.isSubmitting}
+            onClick={() => void actions.deletePlannedItem(plannedItem.id)}
+          >
+            {m.action_delete()}
+          </button>
+        )}
       </div>
     </div>
   );

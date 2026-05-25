@@ -252,6 +252,8 @@ const plannedBase = {
   duration_minutes: null,
   module_key: null,
   recurrence_hint: null,
+  rrule: null,
+  recurrence_series_id: null,
   linked_source: null,
   linked_ref: null,
 };
@@ -383,6 +385,20 @@ describe("build item helpers", () => {
   it("buildPlannedItems uses done tone when is_done", () => {
     const [item] = buildPlannedItems([{ id: 9, title: "Read", planned_for: "2026-05-20", is_done: true, ...plannedBase }]);
     expect(item).toMatchObject({ statusLabel: "Done", statusTone: "success" });
+  });
+
+  it("buildPlannedItems adds repeat indicator prefix for recurring items", () => {
+    const [item] = buildPlannedItems([
+      {
+        id: 9,
+        title: "Read",
+        planned_for: "2026-05-20",
+        is_done: false,
+        ...plannedBase,
+        rrule: "FREQ=DAILY",
+      },
+    ]);
+    expect(item?.title).toContain("🔁");
   });
 
   it("buildMedicationItems maps medication fields", () => {

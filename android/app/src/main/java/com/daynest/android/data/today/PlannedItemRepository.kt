@@ -43,6 +43,7 @@ class PlannedItemRepository
                     isDone = isDone,
                     notes = item.notes,
                     moduleKey = item.moduleKey,
+                    rrule = item.rrule,
                     recurrenceHint = item.recurrenceHint,
                     linkedSource = item.linkedSource,
                     linkedRef = item.linkedRef,
@@ -68,19 +69,23 @@ class PlannedItemRepository
                     isDone = input.isDone,
                     notes = input.notes,
                     moduleKey = input.moduleKey,
+                    rrule = input.rrule,
                     recurrenceHint = input.recurrenceHint,
                     linkedSource = input.linkedSource,
                     linkedRef = input.linkedRef,
                 )
             }
 
-        suspend fun deletePlannedItem(id: Int): Result<Unit> =
+        suspend fun deletePlannedItem(
+            id: Int,
+            scope: DeleteScope = DeleteScope.THIS,
+        ): Result<Unit> =
             safeApiCall {
-                plannedItemApi.deletePlannedItem(id).also { scheduleSync() }
+                plannedItemApi.deletePlannedItem(id, scope).also { scheduleSync() }
             }.recoverOffline {
                 enqueue(
                     kind = PendingMutationKind.DELETE_PLANNED,
-                    payload = DeletePlannedPayload(id),
+                    payload = DeletePlannedPayload(id, scope),
                 )
                 scheduleSync()
                 Unit
@@ -102,6 +107,7 @@ class PlannedItemRepository
                     plannedFor = request.plannedFor,
                     notes = request.notes,
                     moduleKey = request.moduleKey,
+                    rrule = request.rrule,
                     recurrenceHint = request.recurrenceHint,
                     linkedSource = request.linkedSource,
                     linkedRef = request.linkedRef,

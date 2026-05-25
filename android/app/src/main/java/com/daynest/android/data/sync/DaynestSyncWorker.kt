@@ -184,7 +184,7 @@ class DaynestSyncWorker
                 }
                 PendingMutationKind.DELETE_PLANNED -> {
                     val payload = decode<DeletePlannedPayload>(mutation.payload)
-                    plannedItemApi.deletePlannedItem(payload.id)
+                    plannedItemApi.deletePlannedItem(payload.id, payload.scope)
                 }
                 PendingMutationKind.CREATE_PLANNED -> {
                     val payload = decode<CreatePlannedPayload>(mutation.payload)

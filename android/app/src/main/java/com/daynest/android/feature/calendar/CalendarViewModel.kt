@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.daynest.android.data.calendar.CalendarDaySummaryDto
 import com.daynest.android.data.calendar.CalendarRepository
 import com.daynest.android.data.calendar.UnifiedDayItemDto
+import com.daynest.android.data.today.DeleteScope
 import com.daynest.android.data.today.PlannedItemCreateDto
 import com.daynest.android.data.today.PlannedItemRepository
 import com.daynest.android.data.today.PlannedItemUpdateDto
@@ -52,7 +53,7 @@ class CalendarViewModel
                 is CalendarUiEvent.DayDeselected -> clearDay()
                 is CalendarUiEvent.AddPlannedItem -> addPlannedItem(event.input)
                 is CalendarUiEvent.UpdatePlannedItem -> updatePlannedItem(event.id, event.date, event.input)
-                is CalendarUiEvent.DeletePlannedItem -> deletePlannedItem(event.id, event.date)
+                is CalendarUiEvent.DeletePlannedItem -> deletePlannedItem(event.id, event.date, event.scope)
                 is CalendarUiEvent.RetryClicked -> retryCurrentMonth()
                 is CalendarUiEvent.ExportMonthBackup -> backupHandler.exportMonthBackup(event.onReady)
                 is CalendarUiEvent.ImportBackup -> backupHandler.importBackup(event.items)
@@ -219,9 +220,10 @@ class CalendarViewModel
         private fun deletePlannedItem(
             id: Int,
             date: String,
+            scope: DeleteScope = DeleteScope.THIS,
         ) {
             viewModelScope.launch {
-                val result = plannedItemRepository.deletePlannedItem(id)
+                val result = plannedItemRepository.deletePlannedItem(id, scope)
                 if (result.isSuccess) {
                     _uiState.update { current ->
                         if (current is CalendarUiState.Content) {
@@ -252,6 +254,8 @@ private fun PlannedTodayItemDto.toUnifiedDayItem() =
         scheduledDate = plannedFor,
         detail = notes,
         moduleKey = moduleKey,
+        rrule = rrule,
+        recurrenceSeriesId = recurrenceSeriesId,
         recurrenceHint = recurrenceHint,
         linkedSource = linkedSource,
         linkedRef = linkedRef,
@@ -402,6 +406,7 @@ sealed interface CalendarUiEvent {
     data class DeletePlannedItem(
         val id: Int,
         val date: String,
+        val scope: DeleteScope = DeleteScope.THIS,
     ) : CalendarUiEvent
 
     data object RetryClicked : CalendarUiEvent
@@ -446,6 +451,7 @@ data class PlannedItemBackupItemDto(
     val notes: String? = null,
     @SerialName("module_key")
     val moduleKey: String? = null,
+    val rrule: String? = null,
     @SerialName("recurrence_hint")
     val recurrenceHint: String? = null,
     @SerialName("linked_source")

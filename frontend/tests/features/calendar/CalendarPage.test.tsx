@@ -43,7 +43,31 @@ describe("CalendarPage", () => {
     expect(screen.getByRole("button", { name: "This month" })).toBeInTheDocument();
     expect(await screen.findByText(/Day details/i)).toBeInTheDocument();
     expect(screen.getByText("Quick add planned item")).toBeInTheDocument();
+    expect(screen.getByLabelText("Repeat")).toBeInTheDocument();
     expect(screen.getByText("Backup export/import")).toBeInTheDocument();
   });
-});
 
+  it("shows a repeat indicator for recurring planned items in calendar view", async () => {
+    calendarApiMock.listPlannedItems.mockResolvedValueOnce([
+      {
+        id: 99,
+        title: "Grocery run",
+        planned_for: "2026-05-16",
+        time_of_day: null,
+        duration_minutes: null,
+        notes: null,
+        module_key: "recurring_grocery",
+        recurrence_hint: "weekly",
+        rrule: "FREQ=WEEKLY;BYDAY=SA",
+        recurrence_series_id: "9f5ed4cc-f797-4e6e-b331-a6ca889fbcb7",
+        linked_source: null,
+        linked_ref: null,
+        is_done: false,
+      },
+    ]);
+
+    render(<CalendarPage />);
+
+    expect(await screen.findByText(/🔁 Grocery run/)).toBeInTheDocument();
+  });
+});

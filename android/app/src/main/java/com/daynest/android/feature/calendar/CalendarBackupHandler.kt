@@ -77,6 +77,7 @@ private fun PlannedTodayItemDto.toBackupItem() =
         plannedFor = plannedFor,
         notes = notes,
         moduleKey = moduleKey,
+        rrule = rrule,
         recurrenceHint = recurrenceHint,
         linkedSource = linkedSource,
         linkedRef = linkedRef,

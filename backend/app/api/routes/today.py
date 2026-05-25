@@ -1,6 +1,7 @@
 import asyncio
 import json
 from datetime import date
+from typing import Literal, cast
 
 from fastapi import APIRouter, Depends, Query, Request, Response, status
 from sse_starlette import EventSourceResponse
@@ -139,7 +140,7 @@ def delete_planned_item(
     event_bus: EventBus = Depends(get_event_bus),
     current_user: User = Depends(get_current_user),
 ) -> Response:
-    service.delete_planned_item(user_id=current_user.id, planned_item_id=planned_item_id, scope=scope)
+    service.delete_planned_item(user_id=current_user.id, planned_item_id=planned_item_id, scope=cast(Literal["this", "future"], scope))
     event_bus.publish(current_user.id, {"type": "today_updated"})
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 

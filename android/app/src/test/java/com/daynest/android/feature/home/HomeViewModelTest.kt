@@ -7,6 +7,7 @@ import com.daynest.android.core.database.sync.PendingMutationEntity
 import com.daynest.android.core.database.today.TodaySummaryDao
 import com.daynest.android.core.database.today.TodaySummaryEntity
 import com.daynest.android.data.today.ChoreMutationDto
+import com.daynest.android.data.today.DeleteScope
 import com.daynest.android.data.today.DoseMutationDto
 import com.daynest.android.data.today.DueTodayItemDto
 import com.daynest.android.data.today.MedicationHistoryItemDto
@@ -358,7 +359,10 @@ private class StubPlannedItemApi : PlannedItemApi {
         request: PlannedItemUpdateDto,
     ): PlannedTodayItemDto = PlannedTodayItemDto(id, request.title, request.isDone)
 
-    override suspend fun deletePlannedItem(id: Int) = Unit
+    override suspend fun deletePlannedItem(
+        id: Int,
+        scope: DeleteScope,
+    ) = Unit
 
     override suspend fun createPlannedItem(request: PlannedItemCreateDto): PlannedTodayItemDto =
         PlannedTodayItemDto(0, request.title, false)

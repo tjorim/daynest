@@ -20,6 +20,7 @@ interface PlannedItemApi {
     @DELETE("api/v1/planned-items/{id}")
     suspend fun deletePlannedItem(
         @Path("id") id: Int,
+        @Query("scope") scope: DeleteScope = DeleteScope.THIS,
     )
 
     @POST("api/v1/planned-items")
@@ -44,6 +45,7 @@ data class PlannedItemUpdateDto(
     val notes: String? = null,
     @SerialName("module_key")
     val moduleKey: String? = null,
+    val rrule: String? = null,
     @SerialName("recurrence_hint")
     val recurrenceHint: String? = null,
     @SerialName("linked_source")
@@ -60,6 +62,7 @@ data class PlannedItemCreateDto(
     val notes: String? = null,
     @SerialName("module_key")
     val moduleKey: String? = null,
+    val rrule: String? = null,
     @SerialName("recurrence_hint")
     val recurrenceHint: String? = null,
     @SerialName("linked_source")

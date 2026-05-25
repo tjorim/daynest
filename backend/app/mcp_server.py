@@ -8,7 +8,7 @@ from collections.abc import Callable
 from contextlib import contextmanager
 from datetime import date, datetime, time
 from secrets import token_urlsafe
-from typing import Any, TypeVar, cast
+from typing import Any, Literal, TypeVar, cast
 
 from anyio import to_thread
 from fastapi import HTTPException
@@ -359,9 +359,9 @@ class DaynestMcpBackend:
     def defer_planned_item(self, planned_item_id: int, days: int = 1) -> dict[str, Any]:
         return self._with_service(lambda _db, user, service: _jsonable(service.defer_planned_item(user.id, planned_item_id, days)))
 
-    def delete_planned_item(self, planned_item_id: int) -> dict[str, Any]:
-        self._with_service(lambda _db, user, service: service.delete_planned_item(user.id, planned_item_id))
-        return {"deleted": True, "planned_item_id": planned_item_id}
+    def delete_planned_item(self, planned_item_id: int, scope: Literal["this", "future"] = "this") -> dict[str, Any]:
+        self._with_service(lambda _db, user, service: service.delete_planned_item(user.id, planned_item_id, scope=scope))
+        return {"deleted": True, "planned_item_id": planned_item_id, "scope": scope}
 
     def delete_planned_item_series(self, recurrence_series_id: str) -> dict[str, Any]:
         count = self._with_service(lambda _db, user, service: service.delete_planned_item_series(user.id, recurrence_series_id))
@@ -773,12 +773,16 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
             module_key: Optional module association.
             recurrence_hint: Human-readable recurrence label (e.g. "every Monday"). Purely
                 descriptive — use rrule to drive actual recurrence.
-            rrule: RFC 5545 recurrence rule. When supplied, Daynest generates up to 52
-                instances starting from planned_for. Examples:
-                  FREQ=DAILY;INTERVAL=5        every 5 days
-                  FREQ=WEEKLY;BYDAY=MO,TH      every Monday and Thursday
-                  FREQ=WEEKLY;BYDAY=SU         every Sunday
-                  FREQ=MONTHLY;BYDAY=1SA       first Saturday of each month
+            rrule: RFC 5545 recurrence rule. When supplied, Daynest pre-materialises
+                instances within a 365-day horizon from planned_for (hard backstop: 500
+                instances). Examples:
+                  FREQ=DAILY;INTERVAL=5        every 5 days (~73 instances)
+                  FREQ=WEEKLY;BYDAY=MO,TH      every Monday and Thursday (~104 instances)
+                  FREQ=WEEKLY;BYDAY=SU         every Sunday (~52 instances)
+                  FREQ=MONTHLY;BYDAY=1SA       first Saturday of each month (~12 instances)
+                Warning: open-ended high-frequency rules (e.g. FREQ=DAILY without COUNT/UNTIL)
+                will generate up to 365 instances. Prefer adding COUNT or UNTIL when the
+                recurrence has a known end, or use delete_planned_item_series to clean up.
             linked_source: Optional external source identifier.
             linked_ref: Optional external reference identifier.
             priority: Item priority — one of 'normal', 'high', 'urgent'. Defaults to 'normal'.
@@ -872,10 +876,18 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
         return await to_thread.run_sync(daynest.defer_planned_item, planned_item_id, days)
 
     @mcp.tool()
-    async def delete_planned_item(planned_item_id: int) -> dict[str, Any]:
-        """Delete a planned Daynest item by id."""
+    async def delete_planned_item(planned_item_id: int, scope: Literal["this", "future"] = "this") -> dict[str, Any]:
+        """Delete a planned item by id.
 
-        return await to_thread.run_sync(daynest.delete_planned_item, planned_item_id)
+        Args:
+            planned_item_id: ID of the planned item to delete.
+            scope: How much of the series to remove. Valid values:
+                "this"   — delete only this single instance (default).
+                "future" — delete this instance and all future instances in the
+                           same recurrence series. Has no effect for non-recurring items.
+        """
+
+        return await to_thread.run_sync(daynest.delete_planned_item, planned_item_id, scope)
 
     @mcp.tool()
     async def delete_planned_item_series(recurrence_series_id: str) -> dict[str, Any]:

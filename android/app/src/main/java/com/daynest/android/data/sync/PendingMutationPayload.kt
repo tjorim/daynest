@@ -1,5 +1,6 @@
 package com.daynest.android.data.sync
 
+import com.daynest.android.data.today.DeleteScope
 import com.daynest.android.data.today.PlannedItemCreateDto
 import com.daynest.android.data.today.PlannedItemUpdateDto
 import kotlinx.serialization.Serializable
@@ -24,6 +25,7 @@ data class UpdatePlannedPayload(
 @Serializable
 data class DeletePlannedPayload(
     val id: Int,
+    val scope: DeleteScope = DeleteScope.THIS,
 )
 
 @Serializable

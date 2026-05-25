@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -43,6 +42,7 @@ import com.daynest.android.app.navigation.DaynestDestination
 import com.daynest.android.app.navigation.DaynestNavigationScaffold
 import com.daynest.android.data.calendar.CalendarDaySummaryDto
 import com.daynest.android.data.calendar.UnifiedDayItemDto
+import com.daynest.android.data.today.DeleteScope
 import com.daynest.android.data.today.PlannedItemCreateDto
 import com.daynest.android.data.today.PlannedItemUpdateDto
 import com.daynest.android.ui.PlannedItemFormDialog
@@ -278,7 +278,29 @@ private fun CalendarContent(
                             },
                         onDelete =
                             if (item.itemType == "planned") {
-                                { onEvent(CalendarUiEvent.DeletePlannedItem(item.itemId, state.selectedDate)) }
+                                {
+                                    onEvent(
+                                        CalendarUiEvent.DeletePlannedItem(
+                                            item.itemId,
+                                            state.selectedDate,
+                                            DeleteScope.THIS,
+                                        ),
+                                    )
+                                }
+                            } else {
+                                null
+                            },
+                        onDeleteFuture =
+                            if (item.itemType == "planned" && (item.rrule != null || item.recurrenceSeriesId != null)) {
+                                {
+                                    onEvent(
+                                        CalendarUiEvent.DeletePlannedItem(
+                                            item.itemId,
+                                            state.selectedDate,
+                                            DeleteScope.FUTURE,
+                                        ),
+                                    )
+                                }
                             } else {
                                 null
                             },
@@ -431,61 +453,6 @@ private fun MonthGrid(
 }
 
 @Composable
-private fun DayItemCard(
-    item: UnifiedDayItemDto,
-    onEdit: (() -> Unit)?,
-    onDelete: (() -> Unit)?,
-) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(text = item.title, style = MaterialTheme.typography.bodyMedium)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        text = item.itemType,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                    if (item.status.isNotEmpty()) {
-                        Text(
-                            text = item.status,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.outline,
-                        )
-                    }
-                }
-                if (!item.detail.isNullOrBlank()) {
-                    Text(
-                        text = item.detail,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline,
-                    )
-                }
-            }
-            if (onEdit != null) {
-                TextButton(onClick = onEdit) {
-                    Text(text = stringResource(id = R.string.action_edit))
-                }
-            }
-            if (onDelete != null) {
-                TextButton(onClick = onDelete) {
-                    Text(
-                        text = stringResource(id = R.string.action_delete),
-                        color = MaterialTheme.colorScheme.error,
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
 private fun EditPlannedItemDialog(
     item: UnifiedDayItemDto,
     onConfirm: (PlannedItemUpdateDto) -> Unit,
@@ -512,6 +479,7 @@ private fun EditPlannedItemDialog(
                     isDone = item.status == "done",
                     notes = form.notes,
                     moduleKey = form.moduleKey,
+                    rrule = item.rrule,
                     recurrenceHint = form.recurrenceHint,
                     linkedSource = form.linkedSource,
                     linkedRef = form.linkedRef,

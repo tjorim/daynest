@@ -11,6 +11,7 @@ import {
   startRoutineTask,
   takeMedicationDose,
   updatePlannedItem,
+  type PlannedItemDeleteScope,
   type PlannedItemModuleKey,
   type PlannedTodayItem,
 } from "@/lib/api/today";
@@ -29,6 +30,7 @@ function buildPlannedItemPayload(item: PlannedTodayItem, isDone: boolean) {
     notes: item.notes,
     module_key: item.module_key,
     recurrence_hint: item.recurrence_hint,
+    rrule: item.rrule,
     linked_source: item.linked_source,
     linked_ref: item.linked_ref,
     is_done: isDone,
@@ -84,8 +86,11 @@ export function useTodayActions(onRefresh: () => Promise<void>) {
       runAction(() => skipMedicationDose(medicationDoseInstanceId), options),
     togglePlannedItem: (item: PlannedTodayItem, isDone: boolean, options?: MutationOptions) =>
       runAction(() => updatePlannedItem(item.id, buildPlannedItemPayload(item, isDone)), options),
-    deletePlannedItem: (plannedItemId: number, options?: MutationOptions) =>
-      runAction(() => deletePlannedItem(plannedItemId), options),
+    deletePlannedItem: (
+      plannedItemId: number,
+      scope: PlannedItemDeleteScope = "this",
+      options?: MutationOptions,
+    ) => runAction(() => deletePlannedItem(plannedItemId, scope), options),
     createPlannedItem: (title: string, plannedFor: string, options?: MutationOptions) =>
       runAction(() => createPlannedItem({ title, planned_for: plannedFor }), options),
     editPlannedItem: (
@@ -98,6 +103,7 @@ export function useTodayActions(onRefresh: () => Promise<void>) {
         notes?: string | null;
         module_key?: PlannedItemModuleKey | null;
         recurrence_hint?: string | null;
+        rrule?: string | null;
         linked_source?: string | null;
         linked_ref?: string | null;
       },

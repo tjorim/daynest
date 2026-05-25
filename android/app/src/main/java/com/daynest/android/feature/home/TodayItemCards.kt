@@ -167,7 +167,9 @@ internal fun PlannedItemCard(
     onToggleDone: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
+    onDeleteFuture: (() -> Unit)? = null,
 ) {
+    val isRecurring = item.rrule != null || item.recurrenceSeriesId != null
     Card(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier =
@@ -178,8 +180,10 @@ internal fun PlannedItemCard(
         ) {
             Checkbox(checked = isSelected, onCheckedChange = { onToggleSelect() })
             Column(modifier = Modifier.weight(1f)) {
+                val displayTitle =
+                    if (isRecurring) stringResource(R.string.planned_item_recurring_title, item.title) else item.title
                 Text(
-                    text = item.title,
+                    text = displayTitle,
                     style = MaterialTheme.typography.bodyMedium,
                     textDecoration = if (item.isDone) TextDecoration.LineThrough else TextDecoration.None,
                 )
@@ -211,15 +215,36 @@ internal fun PlannedItemCard(
             TextButton(onClick = onEdit) {
                 Text(text = stringResource(id = R.string.action_edit))
             }
-            TextButton(
-                onClick = onDelete,
-                colors =
-                    ButtonDefaults.textButtonColors(
-                        contentColor = MaterialTheme.colorScheme.error,
-                    ),
-            ) {
-                Text(text = stringResource(id = R.string.action_delete))
-            }
+            PlannedItemDeleteButtons(isRecurring, onDelete, onDeleteFuture)
+        }
+    }
+}
+
+@Composable
+private fun PlannedItemDeleteButtons(
+    isRecurring: Boolean,
+    onDelete: () -> Unit,
+    onDeleteFuture: (() -> Unit)?,
+) {
+    if (isRecurring && onDeleteFuture != null) {
+        TextButton(
+            onClick = onDelete,
+            colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+        ) {
+            Text(text = stringResource(id = R.string.action_delete_this))
+        }
+        TextButton(
+            onClick = onDeleteFuture,
+            colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+        ) {
+            Text(text = stringResource(id = R.string.action_delete_this_and_future))
+        }
+    } else {
+        TextButton(
+            onClick = onDelete,
+            colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+        ) {
+            Text(text = stringResource(id = R.string.action_delete))
         }
     }
 }

@@ -28,6 +28,9 @@
     <string name="today_section_planned">Gepland</string>
     <string name="today_overdue_since">Achterstallig sinds %1$s</string>
 
+    <!-- Terugkerend item weergave -->
+    <string name="planned_item_recurring_title">🔁 %1$s</string>
+
     <!-- Veelgebruikte acties -->
     <string name="action_snooze">Snoozen</string>
     <string name="home_action_complete">Voltooien</string>
@@ -40,6 +43,8 @@
     <string name="action_save">Opslaan</string>
     <string name="action_reschedule">Herplannen</string>
     <string name="action_delete">Verwijderen</string>
+    <string name="action_delete_this">Dit verwijderen</string>
+    <string name="action_delete_this_and_future">Dit + toekomstige</string>
     <string name="action_add">Toevoegen</string>
     <string name="action_cancel">Annuleren</string>
 

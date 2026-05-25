@@ -3,7 +3,7 @@ from calendar import monthrange
 from collections import defaultdict
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta, timezone
-from typing import cast
+from typing import Literal, cast
 from uuid import uuid4
 from zoneinfo import ZoneInfo
 
@@ -350,6 +350,8 @@ class TodayService:
                     scheduled_date=plan.planned_for,
                     detail=plan.notes,
                     module_key=cast(PlannedItemModuleKey | None, plan.module_key),
+                    rrule=plan.rrule,
+                    recurrence_series_id=str(plan.recurrence_series_id) if plan.recurrence_series_id else None,
                     recurrence_hint=plan.recurrence_hint,
                     linked_source=plan.linked_source,
                     linked_ref=plan.linked_ref,
@@ -486,7 +488,7 @@ class TodayService:
     def create_planned_item(self, user_id: int, request: PlannedItemCreateRequest) -> PlannedTodayItem:
         if request.rrule:
             try:
-                recurrence_dates = generate_recurrence_dates(request.planned_for, request.rrule, max_instances=52)
+                recurrence_dates = generate_recurrence_dates(request.planned_for, request.rrule)
             except RecurrenceValidationError as exc:
                 raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)) from exc
 
@@ -604,7 +606,7 @@ class TodayService:
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Invalid recurrence_series_id format") from exc
         return self.repository.delete_planned_item_series(user_id=user_id, recurrence_series_id=series_uuid)
 
-    def delete_planned_item(self, user_id: int, planned_item_id: int, *, scope: str = "this") -> None:
+    def delete_planned_item(self, user_id: int, planned_item_id: int, *, scope: Literal["this", "future"] = "this") -> None:
         item = self._get_user_planned_item(user_id=user_id, planned_item_id=planned_item_id)
         if scope == "future" and item.recurrence_series_id is not None:
             self.repository.delete_planned_item_scope_future(

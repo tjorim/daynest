@@ -95,6 +95,9 @@ data class PlannedTodayItemDto(
     val notes: String? = null,
     @SerialName("module_key")
     val moduleKey: String? = null,
+    val rrule: String? = null,
+    @SerialName("recurrence_series_id")
+    val recurrenceSeriesId: String? = null,
     @SerialName("recurrence_hint")
     val recurrenceHint: String? = null,
     @SerialName("linked_source")
