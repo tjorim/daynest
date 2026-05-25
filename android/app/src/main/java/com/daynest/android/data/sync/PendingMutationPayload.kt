@@ -1,6 +1,7 @@
 package com.daynest.android.data.sync
 
 import com.daynest.android.data.today.DeleteScope
+import com.daynest.android.data.today.EditScope
 import com.daynest.android.data.today.PlannedItemCreateDto
 import com.daynest.android.data.today.PlannedItemUpdateDto
 import kotlinx.serialization.Serializable
@@ -20,6 +21,7 @@ data class ReschedulePayload(
 data class UpdatePlannedPayload(
     val id: Int,
     val request: PlannedItemUpdateDto,
+    val scope: EditScope = EditScope.THIS,
 )
 
 @Serializable

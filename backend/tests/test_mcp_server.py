@@ -662,6 +662,24 @@ def test_mcp_backend_update_planned_item_with_priority_and_tags(db_session: Sess
     assert updated["notes"] == "original notes"
 
 
+def test_mcp_backend_update_planned_item_scope_future(db_session: Session) -> None:
+    user = _create_user(db_session, "planned-update-scope@example.com")
+    backend = DaynestMcpBackend(_session_factory(db_session), user_email=user.email)
+
+    created = backend.create_planned_item(
+        title="Recurring task",
+        planned_for="2026-05-25",
+        rrule="FREQ=DAILY;COUNT=3",
+    )
+    updated = backend.update_planned_item(
+        planned_item_id=created["id"],
+        title="Recurring task updated",
+        scope="future",
+    )
+
+    assert updated["title"] == "Recurring task updated"
+
+
 def test_mcp_backend_defer_planned_item(db_session: Session) -> None:
     from datetime import timedelta
 

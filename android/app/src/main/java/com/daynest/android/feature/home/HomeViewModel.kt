@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.daynest.android.core.model.TodaySummary
 import com.daynest.android.data.today.DeleteScope
 import com.daynest.android.data.today.DueTodayItemDto
+import com.daynest.android.data.today.EditScope
 import com.daynest.android.data.today.MedicationHistoryItemDto
 import com.daynest.android.data.today.MedicationTodayItemDto
 import com.daynest.android.data.today.OverdueTodayItemDto
@@ -158,7 +159,7 @@ class HomeViewModel
                 is HomeUiEvent.TakeMedicationClicked -> doseAction(event.doseInstanceId, take = true)
                 is HomeUiEvent.SkipMedicationClicked -> doseAction(event.doseInstanceId, take = false)
                 is HomeUiEvent.MarkPlannedDoneClicked -> markPlannedDone(event.id, event.isDone)
-                is HomeUiEvent.UpdatePlannedClicked -> updatePlanned(event.item)
+                is HomeUiEvent.UpdatePlannedClicked -> updatePlanned(event.item, event.scope)
                 is HomeUiEvent.DeletePlannedClicked -> deletePlanned(event.id, event.scope)
             }
         }
@@ -353,9 +354,12 @@ class HomeViewModel
             }
         }
 
-        private fun updatePlanned(item: PlannedTodayItemDto) {
+        private fun updatePlanned(
+            item: PlannedTodayItemDto,
+            scope: EditScope = EditScope.THIS,
+        ) {
             viewModelScope.launch {
-                val result = plannedItemRepository.updatePlannedItem(item.id, item.toUpdateDto())
+                val result = plannedItemRepository.updatePlannedItem(item.id, item.toUpdateDto(), scope)
                 if (result.isSuccess) refresh()
             }
         }
@@ -496,6 +500,7 @@ sealed interface HomeUiEvent {
 
     data class UpdatePlannedClicked(
         val item: PlannedTodayItemDto,
+        val scope: EditScope = EditScope.THIS,
     ) : HomeUiEvent
 
     data class DeletePlannedClicked(

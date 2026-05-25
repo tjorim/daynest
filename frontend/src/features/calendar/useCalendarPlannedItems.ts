@@ -8,6 +8,7 @@ import {
   reschedulePlannedItem,
   updatePlannedItem,
   type PlannedItemBackupFile,
+  type PlannedItemEditScope,
   type PlannedItemDeleteScope,
   type PlannedItemModuleKey,
   type PlannedTodayItem,
@@ -89,6 +90,7 @@ export function useCalendarPlannedItems({
   const [linkedSource, setLinkedSource] = useState("");
   const [linkedRef, setLinkedRef] = useState("");
   const [editingPlannedItemId, setEditingPlannedItemId] = useState<number | null>(null);
+  const [editScope, setEditScope] = useState<PlannedItemEditScope>("this");
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
   const [backupStatus, setBackupStatus] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
@@ -113,6 +115,7 @@ export function useCalendarPlannedItems({
     setCustomInterval(2);
     setLinkedSource("");
     setLinkedRef("");
+    setEditScope("this");
     setAddError(null);
   };
 
@@ -138,6 +141,7 @@ export function useCalendarPlannedItems({
     }
     setLinkedSource(item.linked_source ?? "");
     setLinkedRef(item.linked_ref ?? "");
+    setEditScope("this");
     setAddError(null);
   };
 
@@ -178,7 +182,7 @@ export function useCalendarPlannedItems({
         await updatePlannedItem(editingPlannedItemId, {
           ...payload,
           is_done: currentItem?.is_done ?? false,
-        });
+        }, editScope);
       } else {
         await createPlannedItem(payload);
       }
@@ -373,6 +377,7 @@ export function useCalendarPlannedItems({
     linkedSource,
     linkedRef,
     editingPlannedItemId,
+    editScope,
     confirmDeleteId,
     backupStatus,
     isAdding,
@@ -396,6 +401,7 @@ export function useCalendarPlannedItems({
     setAddError,
     clearAddError: () => setAddError(null),
     setConfirmDeleteId,
+    setEditScope,
     onAddPlanned,
     resetPlannedForm,
     startEditing,

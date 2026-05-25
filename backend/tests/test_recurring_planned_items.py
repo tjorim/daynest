@@ -245,3 +245,162 @@ def test_delete_planned_item_scope_future_deletes_series_from_today(client: Test
 
     remaining = db_session.query(PlannedItem).filter(PlannedItem.user_id == user.id).all()
     assert [item.id for item in remaining] == [keep_id]
+
+
+def test_update_planned_item_scope_future_updates_template_and_clears_materialized_future(
+    client: TestClient,
+    db_session: Session,
+) -> None:
+    user = _create_user(db_session, "planned-update-future@example.com")
+    _auth_as(user)
+    start = date.today()
+    end = start + (date.resolution * 3)
+    try:
+        create = client.post(
+            "/api/v1/planned-items",
+            json={
+                "title": "Recurring cleanup",
+                "planned_for": start.isoformat(),
+                "rrule": "FREQ=DAILY;COUNT=4",
+            },
+        )
+        assert create.status_code == 200
+        planned_id = create.json()["id"]
+        listed = client.get(
+            f"/api/v1/planned-items?start_date={start.isoformat()}&end_date={end.isoformat()}"
+        )
+        assert listed.status_code == 200
+
+        update = client.put(
+            f"/api/v1/planned-items/{planned_id}?scope=future",
+            json={
+                "title": "Recurring cleanup updated",
+                "planned_for": start.isoformat(),
+                "is_done": False,
+                "rrule": "FREQ=DAILY;COUNT=4",
+            },
+        )
+    finally:
+        _clear_auth()
+
+    assert update.status_code == 200
+    assert update.json()["title"] == "Recurring cleanup updated"
+
+    series = db_session.query(RecurrenceSeries).filter(RecurrenceSeries.user_id == user.id).one()
+    assert series.title == "Recurring cleanup updated"
+    assert series.materialized_through == start - date.resolution
+
+    remaining = (
+        db_session.query(PlannedItem)
+        .filter(PlannedItem.user_id == user.id, PlannedItem.recurrence_series_id == series.id)
+        .all()
+    )
+    assert [item.id for item in remaining] == [planned_id]
+
+
+def test_update_planned_item_scope_all_updates_template_and_clears_materialized_series(
+    client: TestClient,
+    db_session: Session,
+) -> None:
+    user = _create_user(db_session, "planned-update-all@example.com")
+    _auth_as(user)
+    start = date.today()
+    end = start + (date.resolution * 3)
+    try:
+        create = client.post(
+            "/api/v1/planned-items",
+            json={
+                "title": "Recurring cleanup",
+                "planned_for": start.isoformat(),
+                "rrule": "FREQ=DAILY;COUNT=4",
+            },
+        )
+        assert create.status_code == 200
+        planned_id = create.json()["id"]
+        listed = client.get(
+            f"/api/v1/planned-items?start_date={start.isoformat()}&end_date={end.isoformat()}"
+        )
+        assert listed.status_code == 200
+
+        update = client.put(
+            f"/api/v1/planned-items/{planned_id}?scope=all",
+            json={
+                "title": "Recurring cleanup all updated",
+                "planned_for": start.isoformat(),
+                "is_done": False,
+                "rrule": "FREQ=DAILY;COUNT=4",
+            },
+        )
+    finally:
+        _clear_auth()
+
+    assert update.status_code == 200
+    assert update.json()["title"] == "Recurring cleanup all updated"
+
+    series = db_session.query(RecurrenceSeries).filter(RecurrenceSeries.user_id == user.id).one()
+    assert series.title == "Recurring cleanup all updated"
+    assert series.materialized_through == start - date.resolution
+
+    remaining = (
+        db_session.query(PlannedItem)
+        .filter(PlannedItem.user_id == user.id, PlannedItem.recurrence_series_id == series.id)
+        .all()
+    )
+    assert [item.id for item in remaining] == [planned_id]
+
+
+def test_update_planned_item_scope_all_from_later_instance_preserves_series_start(
+    client: TestClient,
+    db_session: Session,
+) -> None:
+    user = _create_user(db_session, "planned-update-all-later@example.com")
+    _auth_as(user)
+    start = date.today()
+    edit_date = start + date.resolution
+    end = start + (date.resolution * 3)
+    try:
+        create = client.post(
+            "/api/v1/planned-items",
+            json={
+                "title": "Recurring cleanup",
+                "planned_for": start.isoformat(),
+                "rrule": "FREQ=DAILY;COUNT=4",
+            },
+        )
+        assert create.status_code == 200
+        listed = client.get(
+            f"/api/v1/planned-items?start_date={start.isoformat()}&end_date={end.isoformat()}"
+        )
+        assert listed.status_code == 200
+        planned_id = next(item["id"] for item in listed.json() if item["planned_for"] == edit_date.isoformat())
+
+        update = client.put(
+            f"/api/v1/planned-items/{planned_id}?scope=all",
+            json={
+                "title": "Recurring cleanup all updated",
+                "planned_for": edit_date.isoformat(),
+                "is_done": False,
+                "rrule": "FREQ=DAILY;COUNT=4",
+            },
+        )
+        refreshed = client.get(
+            f"/api/v1/planned-items?start_date={start.isoformat()}&end_date={end.isoformat()}"
+        )
+    finally:
+        _clear_auth()
+
+    assert update.status_code == 200
+
+    series = db_session.query(RecurrenceSeries).filter(RecurrenceSeries.user_id == user.id).one()
+    assert series.start_date == start
+    assert series.title == "Recurring cleanup all updated"
+    assert series.materialized_through == date(9999, 12, 31)
+
+    assert refreshed.status_code == 200
+    assert [item["planned_for"] for item in refreshed.json()] == [
+        start.isoformat(),
+        edit_date.isoformat(),
+        (start + (date.resolution * 2)).isoformat(),
+        end.isoformat(),
+    ]
+    assert {item["title"] for item in refreshed.json()} == {"Recurring cleanup all updated"}

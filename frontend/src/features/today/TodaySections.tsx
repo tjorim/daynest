@@ -5,6 +5,7 @@ import {
   type MedicationHistoryItem,
   type MedicationTodayItem,
   type OverdueTodayItem,
+  type PlannedItemEditScope,
   type PlannedTodayItem,
   type RoutineTodayItem,
   type SectionItem,
@@ -420,6 +421,7 @@ function PlannedItemActions({
   const [editTitle, setEditTitle] = useState("");
   const [editPlannedFor, setEditPlannedFor] = useState("");
   const [editNotes, setEditNotes] = useState("");
+  const [editScope, setEditScope] = useState<PlannedItemEditScope>("this");
   const actions = useTodayActions(onRefresh);
 
   const openEdit = () => {
@@ -427,6 +429,7 @@ function PlannedItemActions({
     setEditTitle(plannedItem.title);
     setEditPlannedFor(plannedItem.planned_for);
     setEditNotes(plannedItem.notes ?? "");
+    setEditScope("this");
     actions.clearActionError();
     setIsEditing(true);
   };
@@ -442,7 +445,7 @@ function PlannedItemActions({
       rrule: plannedItem.rrule,
       linked_source: plannedItem.linked_source,
       linked_ref: plannedItem.linked_ref,
-    });
+    }, editScope);
     setIsEditing(false);
   };
 
@@ -475,6 +478,19 @@ function PlannedItemActions({
           disabled={actions.isSubmitting}
           onChange={(e) => setEditNotes(e.target.value)}
         />
+        {plannedItem.rrule || plannedItem.recurrence_series_id ? (
+          <select
+            className="form-select form-select-sm"
+            value={editScope}
+            disabled={actions.isSubmitting}
+            onChange={(e) => setEditScope(e.target.value as PlannedItemEditScope)}
+            aria-label="Recurring edit scope"
+          >
+            <option value="this">{m.calendar_planned_edit_scope_this()}</option>
+            <option value="future">{m.calendar_planned_edit_scope_future()}</option>
+            <option value="all">{m.calendar_planned_edit_scope_all()}</option>
+          </select>
+        ) : null}
         {actions.actionError ? <small className="text-danger">{actions.actionError}</small> : null}
         <div className="d-flex gap-2">
           <button

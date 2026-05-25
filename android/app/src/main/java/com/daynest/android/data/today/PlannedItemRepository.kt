@@ -34,6 +34,7 @@ class PlannedItemRepository
             id: Int,
             item: PlannedTodayItemDto,
             isDone: Boolean,
+            scope: EditScope = EditScope.THIS,
         ): Result<PlannedTodayItemDto> =
             updatePlannedItem(
                 id,
@@ -48,18 +49,20 @@ class PlannedItemRepository
                     linkedSource = item.linkedSource,
                     linkedRef = item.linkedRef,
                 ),
+                scope,
             )
 
         suspend fun updatePlannedItem(
             id: Int,
             input: PlannedItemUpdateDto,
+            scope: EditScope = EditScope.THIS,
         ): Result<PlannedTodayItemDto> =
             safeApiCall {
-                plannedItemApi.updatePlannedItem(id, input).also { scheduleSync() }
+                plannedItemApi.updatePlannedItem(id, input, scope).also { scheduleSync() }
             }.recoverOffline {
                 enqueue(
                     kind = PendingMutationKind.UPDATE_PLANNED,
-                    payload = UpdatePlannedPayload(id, input),
+                    payload = UpdatePlannedPayload(id, input, scope),
                 )
                 scheduleSync()
                 PlannedTodayItemDto(
