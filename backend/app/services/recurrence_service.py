@@ -8,6 +8,13 @@ class RecurrenceValidationError(ValueError):
     pass
 
 
+def truncate_rrule_until(rrule: str, until_date: date) -> str:
+    parts = [part for part in rrule.split(";") if part and not part.startswith("UNTIL=") and not part.startswith("COUNT=")]
+    until_value = f"{until_date.strftime('%Y%m%d')}T235959"
+    parts.append(f"UNTIL={until_value}")
+    return ";".join(parts)
+
+
 @dataclass(frozen=True)
 class RecurrenceGeneration:
     dates: list[date]

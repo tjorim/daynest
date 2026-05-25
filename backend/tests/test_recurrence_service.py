@@ -104,11 +104,11 @@ def test_through_date_generation_keeps_original_dtstart_for_count_rules() -> Non
 
 
 def test_exhausted_rule_returns_start_date() -> None:
-    """A rule with UNTIL before start returns [start_date] as fallback."""
+    """A rule with UNTIL before start returns an empty list."""
     # UNTIL in the past relative to start_date → no occurrences
     start = date(2026, 6, 1)
     dates = generate_recurrence_dates(start, "FREQ=DAILY;UNTIL=20260101T000000Z")
-    assert dates == [start]
+    assert dates == []
 
 
 def test_generate_recurrence_result_distinguishes_sparse_future_rules() -> None:

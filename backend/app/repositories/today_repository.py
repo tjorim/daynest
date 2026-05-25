@@ -501,6 +501,25 @@ class TodayRepository:
         self.db.refresh(series)
         return series
 
+    def add_recurrence_series_with_first_planned_item(
+        self,
+        *,
+        series: RecurrenceSeries,
+        item: PlannedItem,
+    ) -> tuple[RecurrenceSeries, PlannedItem]:
+        self.db.add(series)
+        self.db.flush()
+        item.recurrence_series_id = series.id
+        self.db.add(item)
+        try:
+            self.db.commit()
+        except Exception:
+            self.db.rollback()
+            raise
+        self.db.refresh(series)
+        self.db.refresh(item)
+        return series, item
+
     def materialize_planned_items_for_series(
         self,
         *,
@@ -598,6 +617,12 @@ class TodayRepository:
             .where(PlannedItem.recurrence_series_id == recurrence_series_id)
         ) or 0
         self.db.execute(
+            delete(PlannedItem).where(
+                PlannedItem.user_id == user_id,
+                PlannedItem.recurrence_series_id == recurrence_series_id,
+            )
+        )
+        self.db.execute(
             delete(RecurrenceSeries).where(
                 RecurrenceSeries.user_id == user_id,
                 RecurrenceSeries.id == recurrence_series_id,
@@ -613,6 +638,8 @@ class TodayRepository:
         item_id: int,
         recurrence_series_id: UUID,
         start_date: date,
+        series_rrule: str,
+        materialized_through: date,
     ) -> None:
         self.db.execute(
             delete(PlannedItem).where(
@@ -625,7 +652,7 @@ class TodayRepository:
             update(RecurrenceSeries)
             .where(RecurrenceSeries.user_id == user_id)
             .where(RecurrenceSeries.id == recurrence_series_id)
-            .values(materialized_through=date(9999, 12, 31))
+            .values(rrule=series_rrule, materialized_through=materialized_through)
         )
         self.db.commit()
 
