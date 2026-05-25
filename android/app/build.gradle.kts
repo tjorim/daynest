@@ -257,6 +257,9 @@ dependencies {
     ksp(libs.androidx.hilt.compiler)
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.messaging)
+    implementation(libs.androidx.wear.tiles)
+    implementation(libs.androidx.watchface.complications.data.source.ktx)
+    implementation(libs.play.services.wearable)
 
     debugImplementation(libs.compose.ui.tooling)
     debugImplementation(libs.compose.ui.test.manifest)

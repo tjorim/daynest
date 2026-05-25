@@ -50,3 +50,4 @@ Today is backed by the shared API read model. The other top-level areas currentl
 - ✅ Login flow and session persistence
 - ✅ Today, Calendar, Medication, Templates, Settings screens backed by real API data
 - ✅ Instrumented tests (navigation + home screen)
+- ✅ Wear OS companion surface: Today tile, short-text complication, and quick-action due list activity backed by the existing Today repository/actions

@@ -24,6 +24,40 @@ import kotlin.collections.ArrayDeque
 @OptIn(ExperimentalCoroutinesApi::class)
 class TodayRepositoryTest {
     @Test
+    fun `getCachedTodayResponse returns decoded cached payload`() =
+        runTest {
+            val expected =
+                TodayResponseDto(
+                    medication = listOf(MedicationTodayItemDto(7, "Vitamin D", status = "scheduled")),
+                    dueToday = listOf(DueTodayItemDto(2, "Dishes")),
+                    overdue = listOf(OverdueTodayItemDto(3, "Laundry")),
+                )
+            val cacheDao = FakeCacheEntryDao()
+            cacheDao.upsert(
+                CacheEntryEntity(
+                    cacheKey = "today_response",
+                    payload = com.daynest.android.core.network.JsonSerializer.config.encodeToString(
+                        TodayResponseDto.serializer(),
+                        expected,
+                    ),
+                    updatedAtEpochMillis = 123L,
+                ),
+            )
+            val repository =
+                TodayRepository(
+                    todayApi = FakeTodayApi(),
+                    todayActionsApi = StubTodayActionsApi(),
+                    todaySummaryDao = FakeTodaySummaryDao(),
+                    cacheEntryDao = cacheDao,
+                    pendingMutationDao = FakePendingMutationDao(),
+                    appContext = null,
+                )
+
+            val cached = repository.getCachedTodayResponse()
+            assertEquals(expected, cached)
+        }
+
+    @Test
     fun `network success - entity upserted and flow emits domain model`() =
         runTest {
             val dao = FakeTodaySummaryDao()
