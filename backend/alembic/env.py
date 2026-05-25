@@ -6,6 +6,8 @@ from sqlalchemy import JSON, Column, engine_from_config, pool
 from app.core.config import settings
 from app.db.base import Base
 from app.models import RoutineTemplate, TaskInstance, User  # noqa: F401
+from app.models.household import Household  # noqa: F401
+from app.models.household_member import HouseholdMember  # noqa: F401
 from app.models.refresh_token import RefreshToken  # noqa: F401
 
 config = context.config

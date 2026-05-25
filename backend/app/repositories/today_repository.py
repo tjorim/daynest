@@ -12,6 +12,7 @@ from app.core.enums import ChoreStatus, MedicationDoseStatus, Priority, TaskStat
 from app.models.user import User
 from app.models.chore_instance import ChoreInstance
 from app.models.chore_template import ChoreTemplate
+from app.models.household_member import HouseholdMember
 from app.models.medication_dose_instance import MedicationDoseInstance
 from app.models.medication_plan import MedicationPlan
 from app.models.planned_item import PlannedItem
@@ -32,11 +33,32 @@ class TodayRepository:
     def __init__(self, db: Session):
         self.db = db
 
+    def get_user_household_ids(self, user_id: int) -> list[int]:
+        rows = self.db.execute(
+            select(HouseholdMember.household_id).where(HouseholdMember.user_id == user_id)
+        ).all()
+        return [row[0] for row in rows]
+
     def ensure_chore_instances_generated(self, user_id: int, through_date: date) -> None:
+        household_ids = self.get_user_household_ids(user_id)
+        # Personal templates owned by user
+        personal_condition = and_(
+            ChoreTemplate.user_id == user_id,
+            ChoreTemplate.household_id.is_(None),
+        )
+        # Household templates for households the user belongs to
+        if household_ids:
+            template_condition = or_(
+                personal_condition,
+                ChoreTemplate.household_id.in_(household_ids),
+            )
+        else:
+            template_condition = personal_condition
+
         templates = list(
             self.db.scalars(
                 select(ChoreTemplate)
-                .where(ChoreTemplate.user_id == user_id)
+                .where(template_condition)
                 .where(ChoreTemplate.is_active.is_(True))
             ).all()
         )
@@ -56,6 +78,9 @@ class TodayRepository:
             if template.start_date > through_date:
                 continue
 
+            # For household templates, use the template owner's user_id for the instance
+            instance_user_id = template.user_id
+
             last = last_generated_map.get(template.id)
 
             rrule_generated = False
@@ -73,7 +98,7 @@ class TodayRepository:
                     rrule_generated = True
                     for dt in occurrences:
                         rows.append({
-                            "user_id": user_id,
+                            "user_id": instance_user_id,
                             "chore_template_id": template.id,
                             "title": template.name,
                             "scheduled_date": dt.date(),
@@ -85,7 +110,7 @@ class TodayRepository:
                 cursor = template.start_date if last is None else date.fromordinal(last.toordinal() + step)
                 while cursor <= through_date:
                     rows.append({
-                        "user_id": user_id,
+                        "user_id": instance_user_id,
                         "chore_template_id": template.id,
                         "title": template.name,
                         "scheduled_date": cursor,
@@ -325,7 +350,15 @@ class TodayRepository:
         return template
 
     def list_chore_templates(self, user_id: int, tags: list[str] | None = None) -> list[ChoreTemplate]:
-        stmt = select(ChoreTemplate).where(ChoreTemplate.user_id == user_id).order_by(ChoreTemplate.id.asc())
+        household_ids = self.get_user_household_ids(user_id)
+        if household_ids:
+            condition = or_(
+                ChoreTemplate.user_id == user_id,
+                ChoreTemplate.household_id.in_(household_ids),
+            )
+        else:
+            condition = ChoreTemplate.user_id == user_id
+        stmt = select(ChoreTemplate).where(condition).order_by(ChoreTemplate.id.asc())
         templates = list(self.db.scalars(stmt).all())
         if tags:
             templates = [t for t in templates if any(tag in (t.tags or []) for tag in tags)]
@@ -338,7 +371,19 @@ class TodayRepository:
         return template
 
     def get_chore_template_for_user(self, user_id: int, chore_template_id: int) -> ChoreTemplate | None:
-        stmt = select(ChoreTemplate).where(ChoreTemplate.user_id == user_id).where(ChoreTemplate.id == chore_template_id)
+        household_ids = self.get_user_household_ids(user_id)
+        if household_ids:
+            condition = or_(
+                ChoreTemplate.user_id == user_id,
+                ChoreTemplate.household_id.in_(household_ids),
+            )
+        else:
+            condition = ChoreTemplate.user_id == user_id
+        stmt = (
+            select(ChoreTemplate)
+            .where(condition)
+            .where(ChoreTemplate.id == chore_template_id)
+        )
         return self.db.scalar(stmt)
 
     def delete_chore_template(self, template: ChoreTemplate) -> None:
@@ -356,6 +401,7 @@ class TodayRepository:
         priority: Priority,
         tags: list,
         is_active: bool,
+        household_id: int | None = None,
     ) -> ChoreTemplate:
         template.name = name
         template.description = description
@@ -365,6 +411,7 @@ class TodayRepository:
         template.priority = priority
         template.tags = tags
         template.is_active = is_active
+        template.household_id = household_id
         self.db.commit()
         self.db.refresh(template)
         return template
@@ -415,6 +462,21 @@ class TodayRepository:
         stmt = select(TaskInstance).where(TaskInstance.user_id == user_id).where(TaskInstance.id == task_instance_id)
         return self.db.scalar(stmt)
 
+    def _chore_access_condition(self, user_id: int, household_ids: list[int] | None = None):
+        """Build a SQLAlchemy filter condition for chore instances accessible to user.
+
+        Includes personal chores (owned by user, no household) and household chores
+        (templates belonging to any of the provided household_ids).
+        Requires a JOIN with ChoreTemplate to be present on the query when household_ids is not empty.
+        """
+        personal = ChoreInstance.user_id == user_id
+        if not household_ids:
+            return personal
+        return or_(
+            personal,
+            ChoreTemplate.household_id.in_(household_ids),
+        )
+
     def get_today_routines(self, user_id: int, for_date: date) -> list[TaskInstance]:
         stmt = (
             select(TaskInstance)
@@ -427,9 +489,11 @@ class TodayRepository:
         return list(self.db.scalars(stmt).all())
 
     def get_overdue_chores(self, user_id: int, for_date: date) -> list[ChoreInstance]:
+        household_ids = self.get_user_household_ids(user_id)
         stmt = (
             select(ChoreInstance)
-            .where(ChoreInstance.user_id == user_id)
+            .join(ChoreTemplate, ChoreInstance.chore_template_id == ChoreTemplate.id)
+            .where(self._chore_access_condition(user_id, household_ids))
             .where(ChoreInstance.scheduled_date < for_date)
             .where(ChoreInstance.status == ChoreStatus.pending)
             .order_by(ChoreInstance.scheduled_date.asc(), ChoreInstance.id.asc())
@@ -437,9 +501,11 @@ class TodayRepository:
         return list(self.db.scalars(stmt).all())
 
     def get_due_today_chores(self, user_id: int, for_date: date) -> list[ChoreInstance]:
+        household_ids = self.get_user_household_ids(user_id)
         stmt = (
             select(ChoreInstance)
-            .where(ChoreInstance.user_id == user_id)
+            .join(ChoreTemplate, ChoreInstance.chore_template_id == ChoreTemplate.id)
+            .where(self._chore_access_condition(user_id, household_ids))
             .where(ChoreInstance.scheduled_date == for_date)
             .where(ChoreInstance.status == ChoreStatus.pending)
             .order_by(ChoreInstance.id.asc())
@@ -448,9 +514,11 @@ class TodayRepository:
 
     def get_upcoming_chores(self, user_id: int, for_date: date, horizon_days: int = 7) -> list[ChoreInstance]:
         end_date = date.fromordinal(for_date.toordinal() + horizon_days)
+        household_ids = self.get_user_household_ids(user_id)
         stmt = (
             select(ChoreInstance)
-            .where(ChoreInstance.user_id == user_id)
+            .join(ChoreTemplate, ChoreInstance.chore_template_id == ChoreTemplate.id)
+            .where(self._chore_access_condition(user_id, household_ids))
             .where(and_(ChoreInstance.scheduled_date > for_date, ChoreInstance.scheduled_date <= end_date))
             .where(ChoreInstance.status == ChoreStatus.pending)
             .order_by(ChoreInstance.scheduled_date.asc(), ChoreInstance.id.asc())
@@ -458,7 +526,13 @@ class TodayRepository:
         return list(self.db.scalars(stmt).all())
 
     def get_chore_instance_for_user(self, user_id: int, chore_instance_id: int) -> ChoreInstance | None:
-        stmt = select(ChoreInstance).where(ChoreInstance.user_id == user_id).where(ChoreInstance.id == chore_instance_id)
+        household_ids = self.get_user_household_ids(user_id)
+        stmt = (
+            select(ChoreInstance)
+            .join(ChoreTemplate, ChoreInstance.chore_template_id == ChoreTemplate.id)
+            .where(self._chore_access_condition(user_id, household_ids))
+            .where(ChoreInstance.id == chore_instance_id)
+        )
         return self.db.scalar(stmt)
 
     def list_planned_items(self, user_id: int, start_date: date | None = None, end_date: date | None = None, is_done: bool | None = None, tags: list[str] | None = None) -> list[PlannedItem]:
@@ -657,23 +731,25 @@ class TodayRepository:
         self.db.commit()
 
     def get_day_chores(self, user_id: int, target_date: date) -> list[ChoreInstance]:
+        household_ids = self.get_user_household_ids(user_id)
         stmt = (
             select(ChoreInstance)
-            .where(ChoreInstance.user_id == user_id)
-            .where(ChoreInstance.scheduled_date == target_date)
             .join(ChoreTemplate, ChoreInstance.chore_template_id == ChoreTemplate.id)
+            .where(self._chore_access_condition(user_id, household_ids))
+            .where(ChoreInstance.scheduled_date == target_date)
             .where(ChoreTemplate.is_active.is_(True))
             .order_by(ChoreInstance.id.asc())
         )
         return list(self.db.scalars(stmt).all())
 
     def get_month_chores(self, user_id: int, start_date: date, end_date: date) -> list[ChoreInstance]:
+        household_ids = self.get_user_household_ids(user_id)
         stmt = (
             select(ChoreInstance)
-            .where(ChoreInstance.user_id == user_id)
+            .join(ChoreTemplate, ChoreInstance.chore_template_id == ChoreTemplate.id)
+            .where(self._chore_access_condition(user_id, household_ids))
             .where(ChoreInstance.scheduled_date >= start_date)
             .where(ChoreInstance.scheduled_date <= end_date)
-            .join(ChoreTemplate, ChoreInstance.chore_template_id == ChoreTemplate.id)
             .where(ChoreTemplate.is_active.is_(True))
         )
         return list(self.db.scalars(stmt).all())

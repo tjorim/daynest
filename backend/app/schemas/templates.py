@@ -37,6 +37,7 @@ class ChoreTemplateBase(BaseModel):
     priority: Priority = Priority.normal
     tags: list[str] = Field(default_factory=list)
     is_active: bool = True
+    household_id: int | None = None
 
 
 class ChoreTemplateCreateRequest(ChoreTemplateBase):

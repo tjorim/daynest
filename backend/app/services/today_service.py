@@ -165,6 +165,9 @@ class TodayService:
                 title=item.title,
                 status=item.status,
                 scheduled_date=item.scheduled_date,
+                household_id=getattr(getattr(item, "chore_template", None), "household_id", None),
+                assigned_to=getattr(item, "assigned_to", None),
+                completed_by=getattr(item, "completed_by", None),
             )
             for item in data.overdue + data.all_chores
         ]
@@ -271,6 +274,9 @@ class TodayService:
                     title=item.title,
                     status=item.status,
                     overdue_since=item.scheduled_date,
+                    household_id=getattr(getattr(item, "chore_template", None), "household_id", None),
+                    assigned_to=getattr(item, "assigned_to", None),
+                    completed_by=getattr(item, "completed_by", None),
                 )
                 for item in overdue_chores
             ],
@@ -281,6 +287,9 @@ class TodayService:
                     title=item.title,
                     status=item.status,
                     scheduled_date=item.scheduled_date,
+                    household_id=getattr(getattr(item, "chore_template", None), "household_id", None),
+                    assigned_to=getattr(item, "assigned_to", None),
+                    completed_by=getattr(item, "completed_by", None),
                 )
                 for item in due_today_chores
             ],
@@ -290,6 +299,8 @@ class TodayService:
                     chore_template_id=item.chore_template_id,
                     title=item.title,
                     scheduled_date=item.scheduled_date,
+                    household_id=getattr(getattr(item, "chore_template", None), "household_id", None),
+                    assigned_to=getattr(item, "assigned_to", None),
                 )
                 for item in upcoming_chores
             ],
@@ -804,6 +815,7 @@ class TodayService:
         instance = self._get_user_chore(user_id, chore_instance_id)
         instance.status = ChoreStatus.completed
         instance.completed_at = self.repository.utcnow()
+        instance.completed_by = user_id
         instance.skipped_at = None
         if persist:
             self.repository.save()
@@ -813,6 +825,7 @@ class TodayService:
             scheduled_date=instance.scheduled_date,
             completed_at=instance.completed_at,
             skipped_at=instance.skipped_at,
+            completed_by=instance.completed_by,
         )
 
     def start_routine_task(self, user_id: int, task_instance_id: int) -> TaskInstanceMutationResponse:
@@ -852,6 +865,7 @@ class TodayService:
         instance.status = ChoreStatus.skipped
         instance.skipped_at = self.repository.utcnow()
         instance.completed_at = None
+        instance.completed_by = None
         if persist:
             self.repository.save()
         return ChoreInstanceMutationResponse(
@@ -860,6 +874,7 @@ class TodayService:
             scheduled_date=instance.scheduled_date,
             completed_at=instance.completed_at,
             skipped_at=instance.skipped_at,
+            completed_by=instance.completed_by,
         )
 
     def reschedule_chore(self, user_id: int, chore_instance_id: int, scheduled_date: date) -> ChoreInstanceMutationResponse:
@@ -870,6 +885,7 @@ class TodayService:
         instance.status = ChoreStatus.pending
         instance.completed_at = None
         instance.skipped_at = None
+        instance.completed_by = None
         self.repository.save()
         return ChoreInstanceMutationResponse(
             chore_instance_id=instance.id,
@@ -877,6 +893,7 @@ class TodayService:
             scheduled_date=instance.scheduled_date,
             completed_at=instance.completed_at,
             skipped_at=instance.skipped_at,
+            completed_by=instance.completed_by,
         )
 
     def _get_user_chore(self, user_id: int, chore_instance_id: int):
@@ -884,6 +901,19 @@ class TodayService:
         if instance is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chore instance not found")
         return instance
+
+    def assign_chore(self, user_id: int, chore_instance_id: int, assigned_to: int | None) -> ChoreInstanceMutationResponse:
+        instance = self._get_user_chore(user_id, chore_instance_id)
+        instance.assigned_to = assigned_to
+        self.repository.save()
+        return ChoreInstanceMutationResponse(
+            chore_instance_id=instance.id,
+            status=instance.status,
+            scheduled_date=instance.scheduled_date,
+            completed_at=instance.completed_at,
+            skipped_at=instance.skipped_at,
+            completed_by=instance.completed_by,
+        )
 
     def _get_user_task(self, user_id: int, task_instance_id: int) -> TaskInstance:
         instance = self.repository.get_task_instance_for_user(user_id=user_id, task_instance_id=task_instance_id)

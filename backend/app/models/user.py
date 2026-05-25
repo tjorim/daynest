@@ -12,6 +12,7 @@ from app.db.base import Base
 if TYPE_CHECKING:
     from app.models.chore_instance import ChoreInstance
     from app.models.chore_template import ChoreTemplate
+    from app.models.household_member import HouseholdMember
     from app.models.integration_client import IntegrationClient
     from app.models.medication_dose_instance import MedicationDoseInstance
     from app.models.medication_plan import MedicationPlan
@@ -61,7 +62,11 @@ class User(Base):
     routine_templates: Mapped[list["RoutineTemplate"]] = relationship(back_populates="user", cascade="all, delete-orphan")
     task_instances: Mapped[list["TaskInstance"]] = relationship(back_populates="user", cascade="all, delete-orphan")
     chore_templates: Mapped[list["ChoreTemplate"]] = relationship(back_populates="user", cascade="all, delete-orphan")
-    chore_instances: Mapped[list["ChoreInstance"]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    chore_instances: Mapped[list["ChoreInstance"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+        foreign_keys="[ChoreInstance.user_id]",
+    )
     medication_plans: Mapped[list["MedicationPlan"]] = relationship(back_populates="user", cascade="all, delete-orphan")
     medication_dose_instances: Mapped[list["MedicationDoseInstance"]] = relationship(
         back_populates="user",
@@ -78,6 +83,10 @@ class User(Base):
         cascade="all, delete-orphan",
     )
     push_subscriptions: Mapped[list["PushSubscription"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+    household_members: Mapped[list["HouseholdMember"]] = relationship(
         back_populates="user",
         cascade="all, delete-orphan",
     )

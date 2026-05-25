@@ -40,6 +40,9 @@ class OverdueTodayItem(BaseModel):
     title: str
     status: ChoreStatus
     overdue_since: date
+    household_id: int | None = None
+    assigned_to: int | None = None
+    completed_by: int | None = None
 
 
 class DueTodayItem(BaseModel):
@@ -48,6 +51,9 @@ class DueTodayItem(BaseModel):
     title: str
     status: ChoreStatus
     scheduled_date: date
+    household_id: int | None = None
+    assigned_to: int | None = None
+    completed_by: int | None = None
 
 
 class UpcomingTodayItem(BaseModel):
@@ -55,6 +61,8 @@ class UpcomingTodayItem(BaseModel):
     chore_template_id: int
     title: str
     scheduled_date: date
+    household_id: int | None = None
+    assigned_to: int | None = None
 
 
 PlannedItemModuleKey = Literal["shopping_list", "meal_planning", "recurring_grocery", "shared_calendar"]
@@ -161,6 +169,7 @@ class ChoreInstanceMutationResponse(BaseModel):
     scheduled_date: date
     completed_at: datetime | None = None
     skipped_at: datetime | None = None
+    completed_by: int | None = None
 
 
 class TaskInstanceMutationResponse(BaseModel):
@@ -173,3 +182,7 @@ class TaskInstanceMutationResponse(BaseModel):
 
 class RescheduleChoreRequest(BaseModel):
     scheduled_date: date = Field(..., description="New date for the chore instance")
+
+
+class AssignChoreRequest(BaseModel):
+    assigned_to: int | None = Field(default=None, description="User ID to assign the chore to, or null to unassign")

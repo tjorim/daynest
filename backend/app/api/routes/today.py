@@ -11,6 +11,7 @@ from app.api.dependencies.events import get_event_bus
 from app.api.dependencies.today import get_today_service
 from app.models.user import User
 from app.schemas.today import (
+    AssignChoreRequest,
     CalendarDayResponse,
     CalendarMonthResponse,
     ChoreInstanceMutationResponse,
@@ -153,6 +154,23 @@ def delete_planned_item(
     service.delete_planned_item(user_id=current_user.id, planned_item_id=planned_item_id, scope=cast(Literal["this", "future"], scope))
     event_bus.publish(current_user.id, {"type": "today_updated"})
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.post("/chores/{chore_instance_id}/assign", response_model=ChoreInstanceMutationResponse)
+def assign_chore(
+    chore_instance_id: int,
+    request: AssignChoreRequest,
+    service: TodayService = Depends(get_today_service),
+    event_bus: EventBus = Depends(get_event_bus),
+    current_user: User = Depends(get_current_user),
+) -> ChoreInstanceMutationResponse:
+    result = service.assign_chore(
+        user_id=current_user.id,
+        chore_instance_id=chore_instance_id,
+        assigned_to=request.assigned_to,
+    )
+    event_bus.publish(current_user.id, {"type": "today_updated"})
+    return result
 
 
 @router.post("/chores/{chore_instance_id}/complete", response_model=ChoreInstanceMutationResponse)

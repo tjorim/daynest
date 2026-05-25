@@ -1,6 +1,8 @@
 from app.core.enums import ChoreStatus, MedicationDoseStatus, TaskStatus
 from app.models.chore_instance import ChoreInstance
 from app.models.chore_template import ChoreTemplate
+from app.models.household import Household
+from app.models.household_member import HouseholdMember
 from app.models.integration_client import IntegrationClient
 from app.models.medication_dose_instance import MedicationDoseInstance
 from app.models.medication_plan import MedicationPlan
@@ -17,6 +19,8 @@ __all__ = [
     "ChoreInstance",
     "ChoreStatus",
     "ChoreTemplate",
+    "Household",
+    "HouseholdMember",
     "IntegrationClient",
     "MedicationDoseInstance",
     "MedicationDoseStatus",

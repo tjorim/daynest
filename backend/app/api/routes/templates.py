@@ -6,6 +6,7 @@ from app.db.session import get_db
 from app.models.chore_template import ChoreTemplate
 from app.models.routine_template import RoutineTemplate
 from app.models.user import User
+from app.repositories.household_repository import HouseholdRepository
 from app.repositories.today_repository import TodayRepository
 from app.schemas.templates import (
     ChoreTemplateCreateRequest,
@@ -44,6 +45,7 @@ def _chore_to_response(template: ChoreTemplate) -> ChoreTemplateResponse:
         priority=template.priority,
         tags=template.tags or [],
         is_active=template.is_active,
+        household_id=template.household_id,
         created_at=template.created_at,
     )
 
@@ -60,6 +62,17 @@ def _get_user_chore_template(repository: TodayRepository, user_id: int, chore_te
     if template is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chore template not found")
     return template
+
+
+def _validate_household_membership(db: Session, user_id: int, household_id: int) -> None:
+    """Raise 403 if user is not a member of the given household."""
+    household_repo = HouseholdRepository(db)
+    membership = household_repo.get_membership(household_id=household_id, user_id=user_id)
+    if membership is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You are not a member of this household",
+        )
 
 
 @router.get("/routines", response_model=list[RoutineTemplateResponse])
@@ -144,6 +157,8 @@ def create_chore_template(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> ChoreTemplateResponse:
+    if request.household_id is not None:
+        _validate_household_membership(db, current_user.id, request.household_id)
     repository = TodayRepository(db)
     template = repository.add_chore_template(
         ChoreTemplate(
@@ -156,6 +171,7 @@ def create_chore_template(
             priority=request.priority,
             tags=request.tags,
             is_active=request.is_active,
+            household_id=request.household_id,
         )
     )
     return _chore_to_response(template)
@@ -168,8 +184,13 @@ def update_chore_template(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> ChoreTemplateResponse:
+    if request.household_id is not None:
+        _validate_household_membership(db, current_user.id, request.household_id)
     repository = TodayRepository(db)
     template = _get_user_chore_template(repository, current_user.id, chore_template_id)
+    # Only template owner can change household_id
+    if template.user_id != current_user.id and request.household_id != template.household_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only the template owner can change the household assignment")
     updated = repository.update_chore_template(
         template,
         name=request.name,
@@ -180,6 +201,7 @@ def update_chore_template(
         priority=request.priority,
         tags=request.tags,
         is_active=request.is_active,
+        household_id=request.household_id,
     )
     return _chore_to_response(updated)
 

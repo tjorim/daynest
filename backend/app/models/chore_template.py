@@ -12,6 +12,7 @@ from app.db.base import Base
 
 if TYPE_CHECKING:
     from app.models.chore_instance import ChoreInstance
+    from app.models.household import Household
     from app.models.user import User
 
 
@@ -20,6 +21,11 @@ class ChoreTemplate(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    household_id: Mapped[int | None] = mapped_column(
+        ForeignKey("households.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     start_date: Mapped[date] = mapped_column(Date, nullable=False)
@@ -36,6 +42,7 @@ class ChoreTemplate(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
     user: Mapped["User"] = relationship(back_populates="chore_templates")
+    household: Mapped["Household | None"] = relationship()
     chore_instances: Mapped[list["ChoreInstance"]] = relationship(
         back_populates="chore_template",
         cascade="all, delete-orphan",
