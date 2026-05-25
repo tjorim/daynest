@@ -1,7 +1,7 @@
 from logging.config import fileConfig
 
 from alembic import context
-from sqlalchemy import engine_from_config, pool
+from sqlalchemy import JSON, Column, engine_from_config, pool
 
 from app.core.config import settings
 from app.db.base import Base
@@ -14,6 +14,19 @@ if config.config_file_name is not None:
 
 config.set_main_option("sqlalchemy.url", settings.resolved_database_url)
 target_metadata = Base.metadata
+
+
+def _compare_server_default(
+    context,
+    inspected_column,
+    metadata_column: Column,
+    inspected_default,
+    metadata_default,
+    rendered_metadata_default,
+) -> bool | None:
+    if isinstance(metadata_column.type, JSON):
+        return False
+    return None
 
 
 def run_migrations_offline() -> None:
@@ -41,7 +54,7 @@ def run_migrations_online() -> None:
             connection=connection,
             target_metadata=target_metadata,
             compare_type=True,
-            compare_server_default=True,
+            compare_server_default=_compare_server_default,
         )
 
         with context.begin_transaction():
