@@ -158,7 +158,7 @@ class HomeViewModel
                 is HomeUiEvent.SkipMedicationClicked -> doseAction(event.doseInstanceId, take = false)
                 is HomeUiEvent.MarkPlannedDoneClicked -> markPlannedDone(event.id, event.isDone)
                 is HomeUiEvent.UpdatePlannedClicked -> updatePlanned(event.item)
-                is HomeUiEvent.DeletePlannedClicked -> deletePlanned(event.id)
+                is HomeUiEvent.DeletePlannedClicked -> deletePlanned(event.id, event.scope)
             }
         }
 
@@ -374,9 +374,9 @@ class HomeViewModel
             }
         }
 
-        private fun deletePlanned(id: Int) {
+        private fun deletePlanned(id: Int, scope: String = "this") {
             viewModelScope.launch {
-                val result = plannedItemRepository.deletePlannedItem(id)
+                val result = plannedItemRepository.deletePlannedItem(id, scope)
                 if (result.isSuccess) {
                     _uiState.update { current ->
                         if (current is HomeUiState.Content) {
@@ -496,6 +496,7 @@ sealed interface HomeUiEvent {
 
     data class DeletePlannedClicked(
         val id: Int,
+        val scope: String = "this",
     ) : HomeUiEvent
 
     data class ToggleSelection(
@@ -542,6 +543,7 @@ private fun PlannedTodayItemDto.toUpdateDto() =
         isDone = isDone,
         notes = notes,
         moduleKey = moduleKey,
+        rrule = rrule,
         recurrenceHint = recurrenceHint,
         linkedSource = linkedSource,
         linkedRef = linkedRef,

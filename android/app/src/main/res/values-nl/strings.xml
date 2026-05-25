@@ -40,6 +40,8 @@
     <string name="action_save">Opslaan</string>
     <string name="action_reschedule">Herplannen</string>
     <string name="action_delete">Verwijderen</string>
+    <string name="action_delete_this">Dit verwijderen</string>
+    <string name="action_delete_this_and_future">Dit + toekomstige</string>
     <string name="action_add">Toevoegen</string>
     <string name="action_cancel">Annuleren</string>
 

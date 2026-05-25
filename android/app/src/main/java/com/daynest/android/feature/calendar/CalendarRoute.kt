@@ -278,7 +278,13 @@ private fun CalendarContent(
                             },
                         onDelete =
                             if (item.itemType == "planned") {
-                                { onEvent(CalendarUiEvent.DeletePlannedItem(item.itemId, state.selectedDate)) }
+                                { onEvent(CalendarUiEvent.DeletePlannedItem(item.itemId, state.selectedDate, "this")) }
+                            } else {
+                                null
+                            },
+                        onDeleteFuture =
+                            if (item.itemType == "planned" && (item.rrule != null || item.recurrenceSeriesId != null)) {
+                                { onEvent(CalendarUiEvent.DeletePlannedItem(item.itemId, state.selectedDate, "future")) }
                             } else {
                                 null
                             },
@@ -435,7 +441,9 @@ private fun DayItemCard(
     item: UnifiedDayItemDto,
     onEdit: (() -> Unit)?,
     onDelete: (() -> Unit)?,
+    onDeleteFuture: (() -> Unit)? = null,
 ) {
+    val isRecurring = item.rrule != null || item.recurrenceSeriesId != null
     Card(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier =
@@ -445,7 +453,10 @@ private fun DayItemCard(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(text = item.title, style = MaterialTheme.typography.bodyMedium)
+                Text(
+                    text = if (isRecurring) "🔁 ${item.title}" else item.title,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
                         text = item.itemType,
@@ -474,11 +485,26 @@ private fun DayItemCard(
                 }
             }
             if (onDelete != null) {
-                TextButton(onClick = onDelete) {
-                    Text(
-                        text = stringResource(id = R.string.action_delete),
-                        color = MaterialTheme.colorScheme.error,
-                    )
+                if (isRecurring && onDeleteFuture != null) {
+                    TextButton(onClick = onDelete) {
+                        Text(
+                            text = stringResource(id = R.string.action_delete_this),
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
+                    TextButton(onClick = onDeleteFuture) {
+                        Text(
+                            text = stringResource(id = R.string.action_delete_this_and_future),
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
+                } else {
+                    TextButton(onClick = onDelete) {
+                        Text(
+                            text = stringResource(id = R.string.action_delete),
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
                 }
             }
         }

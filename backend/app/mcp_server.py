@@ -359,9 +359,9 @@ class DaynestMcpBackend:
     def defer_planned_item(self, planned_item_id: int, days: int = 1) -> dict[str, Any]:
         return self._with_service(lambda _db, user, service: _jsonable(service.defer_planned_item(user.id, planned_item_id, days)))
 
-    def delete_planned_item(self, planned_item_id: int) -> dict[str, Any]:
-        self._with_service(lambda _db, user, service: service.delete_planned_item(user.id, planned_item_id))
-        return {"deleted": True, "planned_item_id": planned_item_id}
+    def delete_planned_item(self, planned_item_id: int, scope: str = "this") -> dict[str, Any]:
+        self._with_service(lambda _db, user, service: service.delete_planned_item(user.id, planned_item_id, scope=scope))
+        return {"deleted": True, "planned_item_id": planned_item_id, "scope": scope}
 
     def delete_planned_item_series(self, recurrence_series_id: str) -> dict[str, Any]:
         count = self._with_service(lambda _db, user, service: service.delete_planned_item_series(user.id, recurrence_series_id))

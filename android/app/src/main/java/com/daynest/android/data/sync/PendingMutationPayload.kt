@@ -24,6 +24,7 @@ data class UpdatePlannedPayload(
 @Serializable
 data class DeletePlannedPayload(
     val id: Int,
+    val scope: String = "this",
 )
 
 @Serializable
