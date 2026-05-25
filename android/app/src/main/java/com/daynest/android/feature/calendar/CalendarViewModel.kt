@@ -53,7 +53,8 @@ class CalendarViewModel
                 is CalendarUiEvent.DaySelected -> loadDay(event.date)
                 is CalendarUiEvent.DayDeselected -> clearDay()
                 is CalendarUiEvent.AddPlannedItem -> addPlannedItem(event.input)
-                is CalendarUiEvent.UpdatePlannedItem -> updatePlannedItem(event.id, event.date, event.input, event.scope)
+                is CalendarUiEvent.UpdatePlannedItem ->
+                    updatePlannedItem(event.id, event.date, event.input, event.scope)
                 is CalendarUiEvent.DeletePlannedItem -> deletePlannedItem(event.id, event.date, event.scope)
                 is CalendarUiEvent.RetryClicked -> retryCurrentMonth()
                 is CalendarUiEvent.ExportMonthBackup -> backupHandler.exportMonthBackup(event.onReady)
