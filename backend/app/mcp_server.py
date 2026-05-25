@@ -773,12 +773,16 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
             module_key: Optional module association.
             recurrence_hint: Human-readable recurrence label (e.g. "every Monday"). Purely
                 descriptive — use rrule to drive actual recurrence.
-            rrule: RFC 5545 recurrence rule. When supplied, Daynest generates up to 52
-                instances starting from planned_for. Examples:
-                  FREQ=DAILY;INTERVAL=5        every 5 days
-                  FREQ=WEEKLY;BYDAY=MO,TH      every Monday and Thursday
-                  FREQ=WEEKLY;BYDAY=SU         every Sunday
-                  FREQ=MONTHLY;BYDAY=1SA       first Saturday of each month
+            rrule: RFC 5545 recurrence rule. When supplied, Daynest pre-materialises
+                instances within a 365-day horizon from planned_for (hard backstop: 500
+                instances). Examples:
+                  FREQ=DAILY;INTERVAL=5        every 5 days (~73 instances)
+                  FREQ=WEEKLY;BYDAY=MO,TH      every Monday and Thursday (~104 instances)
+                  FREQ=WEEKLY;BYDAY=SU         every Sunday (~52 instances)
+                  FREQ=MONTHLY;BYDAY=1SA       first Saturday of each month (~12 instances)
+                Warning: open-ended high-frequency rules (e.g. FREQ=DAILY without COUNT/UNTIL)
+                will generate up to 365 instances. Prefer adding COUNT or UNTIL when the
+                recurrence has a known end, or use delete_planned_item_series to clean up.
             linked_source: Optional external source identifier.
             linked_ref: Optional external reference identifier.
             priority: Item priority — one of 'normal', 'high', 'urgent'. Defaults to 'normal'.

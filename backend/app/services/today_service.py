@@ -486,7 +486,7 @@ class TodayService:
     def create_planned_item(self, user_id: int, request: PlannedItemCreateRequest) -> PlannedTodayItem:
         if request.rrule:
             try:
-                recurrence_dates = generate_recurrence_dates(request.planned_for, request.rrule, max_instances=52)
+                recurrence_dates = generate_recurrence_dates(request.planned_for, request.rrule)
             except RecurrenceValidationError as exc:
                 raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)) from exc
 
