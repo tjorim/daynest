@@ -8,6 +8,7 @@ node_modules/
 dist/
 *.tsbuildinfo
 .vite/
+frontend/src/paraglide/
 custom_components/daynest/frontend/daynest-card.js
 
 # Local dev/runtime artifacts

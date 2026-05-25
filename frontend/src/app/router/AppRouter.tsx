@@ -1,4 +1,5 @@
 import { Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
+import * as m from "@/paraglide/messages";
 import { useAuth } from "@/app/providers/AuthProvider";
 import { AuthPage } from "@/features/auth/AuthPage";
 import { TodayPage } from "@/features/today/TodayPage";
@@ -13,7 +14,7 @@ function RequireAuth() {
   const { isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) {
-    return <div className="alert alert-info py-2">Loading session...</div>;
+    return <div className="alert alert-info py-2">{m.router_loading_session()}</div>;
   }
 
   if (!isAuthenticated) {
@@ -30,7 +31,7 @@ function RequireAuth() {
 }
 
 function AuthCallback() {
-  return <div className="alert alert-info py-2">Completing sign in…</div>;
+  return <div className="alert alert-info py-2">{m.router_completing_sign_in()}</div>;
 }
 
 export function AppRouter() {

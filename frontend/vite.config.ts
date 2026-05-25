@@ -2,10 +2,14 @@
 import path from "path";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import { paraglideVitePlugin } from "@inlang/paraglide-js";
 import packageJson from "./package.json";
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    paraglideVitePlugin({ project: "./project.inlang", outdir: "./src/paraglide", strategy: ["globalVariable", "baseLocale"], emitTsDeclarations: true }),
+  ],
   define: {
     __APP_VERSION__: JSON.stringify(packageJson.version),
   },

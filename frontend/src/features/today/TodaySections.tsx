@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import * as m from "@/paraglide/messages";
 import {
   type DueTodayItem,
   type MedicationHistoryItem,
@@ -124,8 +125,8 @@ export function buildOverdueItems(items: OverdueTodayItem[]): SectionItem[] {
   return items.map((item) => ({
     id: `overdue-${item.chore_instance_id}`,
     title: item.title,
-    subtitle: `Overdue since ${formatDate(item.overdue_since)}`,
-    statusLabel: "Overdue",
+    subtitle: m.today_overdue_since({ date: formatDate(item.overdue_since) }),
+    statusLabel: m.today_section_overdue(),
     statusTone: "danger",
     choreInstanceId: item.chore_instance_id,
     choreStatus: "pending",
@@ -151,8 +152,8 @@ export function buildUpcomingItems(items: UpcomingTodayItem[]): SectionItem[] {
   return items.map((item) => ({
     id: `upcoming-${item.chore_instance_id}`,
     title: item.title,
-    subtitle: `Scheduled ${formatDate(item.scheduled_date)}`,
-    statusLabel: "Upcoming",
+    subtitle: m.today_scheduled_on({ date: formatDate(item.scheduled_date) }),
+    statusLabel: m.today_section_upcoming(),
     statusTone: "primary",
     choreInstanceId: item.chore_instance_id,
     choreStatus: "pending",
@@ -172,11 +173,13 @@ export function buildPlannedItems(items: PlannedTodayItem[]): SectionItem[] {
     id: `planned-${item.id}`,
     title: item.time_of_day ? `${item.time_of_day.slice(0, 5)} · ${item.title}` : item.title,
     subtitle: formatSubtitle(
-      `${item.is_done ? "Done" : "Planned"} for ${item.planned_for}`,
-      item.module_key ? `Module: ${item.module_key}` : undefined,
+      item.is_done
+        ? m.today_planned_done_for({ date: formatDate(item.planned_for) })
+        : m.today_planned_for({ date: formatDate(item.planned_for) }),
+      item.module_key ? m.today_planned_module({ key: item.module_key }) : undefined,
     ),
     instructions: item.notes ?? undefined,
-    statusLabel: item.is_done ? "Done" : "Planned",
+    statusLabel: item.is_done ? m.search_done() : m.search_planned(),
     statusTone: item.is_done ? "success" : "secondary",
     plannedItem: item,
   }));
@@ -223,23 +226,23 @@ export function WebFocusPanel({ sections }: { sections: TodaySection[] }) {
       <div className="card-body">
         <div className="d-flex flex-column flex-lg-row justify-content-between gap-3">
           <div>
-            <div className="text-uppercase text-muted small fw-semibold">Today's focus</div>
-            <h3 className="h5 mb-1">{nextItem ? nextItem.title : "All clear for now"}</h3>
+            <div className="text-uppercase text-muted small fw-semibold">{m.today_focus_panel_title()}</div>
+            <h3 className="h5 mb-1">{nextItem ? nextItem.title : m.today_focus_all_clear()}</h3>
             <p className="text-muted mb-0">
               {nextItem
-                ? `${nextSection?.heading ?? "Today"} is the next section that needs attention.`
-                : "No open actions remain for today."}
+                ? m.today_focus_next_attention({ heading: nextSection?.heading ?? "Today" })
+                : m.today_focus_no_open_actions()}
             </p>
           </div>
-          <div className="focus-progress" aria-label={`${completionPercent}% complete`}>
+          <div className="focus-progress" aria-label={`${completionPercent}% ${m.today_focus_complete()}`}>
             <span className="focus-progress-value">{completionPercent}%</span>
-            <span className="text-muted small">complete</span>
+            <span className="text-muted small">{m.today_focus_complete()}</span>
           </div>
         </div>
         <div
           className="progress my-3"
           role="progressbar"
-          aria-label="Today completion"
+          aria-label={m.today_completion()}
           aria-valuenow={completionPercent}
           aria-valuemin={0}
           aria-valuemax={100}
@@ -291,7 +294,7 @@ function TaskActions({
           disabled={actions.isSubmitting}
           onClick={() => void actions.completeChore(choreInstanceId)}
         >
-          Done
+          {m.action_done()}
         </button>
         <button
           type="button"
@@ -299,7 +302,7 @@ function TaskActions({
           disabled={actions.isSubmitting}
           onClick={() => void actions.skipChore(choreInstanceId)}
         >
-          Skip
+          {m.action_skip()}
         </button>
         <button
           type="button"
@@ -307,7 +310,7 @@ function TaskActions({
           disabled={actions.isSubmitting}
           onClick={() => void actions.rescheduleChoreByOneDay(choreInstanceId, scheduledDate)}
         >
-          +1 day
+          {m.action_reschedule_1_day()}
         </button>
       </div>
     </div>
@@ -339,7 +342,7 @@ function MedicationActions({
           disabled={actions.isSubmitting}
           onClick={() => void actions.takeMedicationDose(medicationDoseInstanceId)}
         >
-          Taken
+          {m.action_taken()}
         </button>
         <button
           type="button"
@@ -347,7 +350,7 @@ function MedicationActions({
           disabled={actions.isSubmitting}
           onClick={() => void actions.skipMedicationDose(medicationDoseInstanceId)}
         >
-          Skip
+          {m.action_skip()}
         </button>
       </div>
     </div>
@@ -380,7 +383,7 @@ function RoutineActions({
             disabled={actions.isSubmitting}
             onClick={() => void actions.startRoutineTask(taskInstanceId)}
           >
-            Start
+            {m.action_start()}
           </button>
         ) : null}
         <button
@@ -389,7 +392,7 @@ function RoutineActions({
           disabled={actions.isSubmitting}
           onClick={() => void actions.completeRoutineTask(taskInstanceId)}
         >
-          Done
+          {m.action_done()}
         </button>
         <button
           type="button"
@@ -397,7 +400,7 @@ function RoutineActions({
           disabled={actions.isSubmitting}
           onClick={() => void actions.skipRoutineTask(taskInstanceId)}
         >
-          Skip
+          {m.action_skip()}
         </button>
       </div>
     </div>
@@ -450,7 +453,7 @@ function PlannedItemActions({
         <input
           className="form-control form-control-sm"
           value={editTitle}
-          placeholder="Title"
+          placeholder={m.today_title_placeholder()}
           autoFocus
           disabled={actions.isSubmitting}
           onChange={(e) => setEditTitle(e.target.value)}
@@ -465,7 +468,7 @@ function PlannedItemActions({
         <input
           className="form-control form-control-sm"
           value={editNotes}
-          placeholder="Notes (optional)"
+          placeholder={m.today_notes_optional()}
           disabled={actions.isSubmitting}
           onChange={(e) => setEditNotes(e.target.value)}
         />
@@ -477,7 +480,7 @@ function PlannedItemActions({
             disabled={actions.isSubmitting || !editTitle.trim()}
             onClick={() => void onSave()}
           >
-            {actions.isSubmitting ? "Saving…" : "Save"}
+            {actions.isSubmitting ? m.action_saving() : m.action_save()}
           </button>
           <button
             type="button"
@@ -488,7 +491,7 @@ function PlannedItemActions({
               actions.clearActionError();
             }}
           >
-            Cancel
+            {m.action_cancel()}
           </button>
         </div>
       </div>
@@ -505,7 +508,7 @@ function PlannedItemActions({
           disabled={actions.isSubmitting}
           onClick={() => void actions.togglePlannedItem(plannedItem, !plannedItem.is_done)}
         >
-          {plannedItem.is_done ? "Undo" : "Done"}
+          {plannedItem.is_done ? m.action_undo() : m.action_done()}
         </button>
         <button
           type="button"
@@ -513,7 +516,7 @@ function PlannedItemActions({
           disabled={actions.isSubmitting}
           onClick={openEdit}
         >
-          Edit
+          {m.action_edit()}
         </button>
         <button
           type="button"
@@ -521,7 +524,7 @@ function PlannedItemActions({
           disabled={actions.isSubmitting}
           onClick={() => void actions.deletePlannedItem(plannedItem.id)}
         >
-          Delete
+          {m.action_delete()}
         </button>
       </div>
     </div>
@@ -585,17 +588,17 @@ export function SectionCard({
     if (failureCount === 0) {
       setBulkFeedback({
         tone: "success",
-        text: `${action.label} applied to ${successCount} ${successCount === 1 ? "item" : "items"}.`,
+        text: m.today_bulk_action_success({ action: action.label, count: successCount }),
       });
     } else if (successCount === 0) {
       setBulkFeedback({
         tone: "danger",
-        text: `${action.label} failed for all ${failureCount} selected ${failureCount === 1 ? "item" : "items"}.`,
+        text: m.today_bulk_action_failed({ action: action.label, count: failureCount }),
       });
     } else {
       setBulkFeedback({
         tone: "warning",
-        text: `${action.label} updated ${successCount} ${successCount === 1 ? "item" : "items"} and failed for ${failureCount}.`,
+        text: m.today_bulk_action_partial({ action: action.label, successCount, failureCount }),
       });
     }
 
@@ -617,7 +620,7 @@ export function SectionCard({
                   disabled={isBulkSubmitting || selectableItems.length === 0}
                   onChange={toggleAllSelected}
                 />{" "}
-                Select all
+                {m.today_select_all()}
               </label>
             ) : null}
           </div>
@@ -650,7 +653,7 @@ export function SectionCard({
       </div>
       <ul className="list-group list-group-flush">
         {items.length === 0 ? (
-          <li className="list-group-item py-2 text-muted">No items.</li>
+          <li className="list-group-item py-2 text-muted">{m.today_no_items()}</li>
         ) : (
           items.map((item) => (
             <li
@@ -664,14 +667,14 @@ export function SectionCard({
                     type="checkbox"
                     checked={selectedIds.includes(item.id)}
                     disabled={isBulkSubmitting}
-                    aria-label={`Select ${item.title}`}
+                    aria-label={m.today_select_item({ title: item.title })}
                     onChange={() => toggleSelected(item.id)}
                   />
                 ) : null}
                 <div>
                   <div className="fw-medium">{item.title}</div>
                   {item.instructions ? (
-                    <small className="d-block">Instructions: {item.instructions}</small>
+                    <small className="d-block">{m.today_instructions({ text: item.instructions })}</small>
                   ) : null}
                   {item.subtitle ? <small className="text-muted">{item.subtitle}</small> : null}
                 </div>

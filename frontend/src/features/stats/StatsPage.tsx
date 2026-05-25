@@ -8,6 +8,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import * as m from "@/paraglide/messages";
 import {
   fetchAnalyticsSummary,
   isRetryableApiError,
@@ -15,13 +16,6 @@ import {
   type AnalyticsSummary,
   type DailyCount,
 } from "@/lib/api/today";
-
-const PERIODS: { value: AnalyticsPeriod; label: string }[] = [
-  { value: "week", label: "Week" },
-  { value: "month", label: "Month" },
-  { value: "quarter", label: "3 Months" },
-  { value: "year", label: "Year" },
-];
 
 function pct(rate: number): string {
   return `${Math.round(rate * 100)}%`;
@@ -45,6 +39,13 @@ export function StatsPage() {
   const [error, setError] = useState<string | null>(null);
   const [canRetry, setCanRetry] = useState(false);
   const controllerRef = useRef<AbortController | null>(null);
+
+  const periods: { value: AnalyticsPeriod; label: string }[] = [
+    { value: "week", label: m.stats_period_week() },
+    { value: "month", label: m.stats_period_month() },
+    { value: "quarter", label: m.stats_period_quarter() },
+    { value: "year", label: m.stats_period_year() },
+  ];
 
   const load = (p: AnalyticsPeriod) => {
     controllerRef.current?.abort();
@@ -77,10 +78,10 @@ export function StatsPage() {
   return (
     <section>
       <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2 mb-3">
-        <h2 className="h4 mb-0">Statistics</h2>
+        <h2 className="h4 mb-0">{m.stats_title()}</h2>
         <div className="d-flex gap-2 align-items-center flex-wrap">
-          <div className="btn-group btn-group-sm" role="group" aria-label="Period">
-            {PERIODS.map((p) => (
+          <div className="btn-group btn-group-sm" role="group" aria-label={m.stats_title()}>
+            {periods.map((p) => (
               <button
                 key={p.value}
                 type="button"
@@ -97,12 +98,12 @@ export function StatsPage() {
             disabled={loading}
             onClick={() => load(period)}
           >
-            Refresh
+            {m.action_refresh()}
           </button>
         </div>
       </div>
 
-      {loading ? <div className="alert alert-info py-2">Loading statistics...</div> : null}
+      {loading ? <div className="alert alert-info py-2">{m.stats_loading()}</div> : null}
       {error ? (
         <div className="alert alert-danger py-2 d-flex justify-content-between align-items-center gap-2 flex-wrap">
           <span>{error}</span>
@@ -112,7 +113,7 @@ export function StatsPage() {
               className="btn btn-danger btn-sm"
               onClick={() => load(period)}
             >
-              Retry
+              {m.action_retry()}
             </button>
           ) : null}
         </div>
@@ -120,18 +121,17 @@ export function StatsPage() {
 
       {summary ? (
         <div className="row g-3">
-          {/* Completion rates overview */}
           <div className="col-12">
             <div className="card">
               <div className="card-header fw-semibold py-2">
-                Completion rates · {summary.start_date} → {summary.end_date}
+                {m.stats_completion_header({ start: summary.start_date, end: summary.end_date })}
               </div>
               <div className="card-body">
                 <div className="row g-3">
                   <div className="col-sm-3">
                     <div className="text-center p-2">
                       <div className="fs-4 fw-bold text-primary">{pct(summary.chores.completion_rate)}</div>
-                      <div className="small text-muted mt-1">Chores</div>
+                      <div className="small text-muted mt-1">{m.stats_chores()}</div>
                       <div className="small text-muted">
                         {summary.chores.total_completed}/{summary.chores.total_scheduled}
                       </div>
@@ -140,7 +140,7 @@ export function StatsPage() {
                   <div className="col-sm-3">
                     <div className="text-center p-2">
                       <div className="fs-4 fw-bold text-success">{pct(summary.routines.completion_rate)}</div>
-                      <div className="small text-muted mt-1">Routines</div>
+                      <div className="small text-muted mt-1">{m.stats_routines()}</div>
                       <div className="small text-muted">
                         {summary.routines.total_completed}/{summary.routines.total_scheduled}
                       </div>
@@ -149,7 +149,7 @@ export function StatsPage() {
                   <div className="col-sm-3">
                     <div className="text-center p-2">
                       <div className="fs-4 fw-bold text-info">{pct(summary.medications.adherence_rate)}</div>
-                      <div className="small text-muted mt-1">Medication</div>
+                      <div className="small text-muted mt-1">{m.stats_medication()}</div>
                       <div className="small text-muted">
                         {summary.medications.total_taken}/{summary.medications.total_scheduled}
                       </div>
@@ -158,7 +158,7 @@ export function StatsPage() {
                   <div className="col-sm-3">
                     <div className="text-center p-2">
                       <div className="fs-4 fw-bold text-warning">{pct(summary.planned_items.completion_rate)}</div>
-                      <div className="small text-muted mt-1">Planned items</div>
+                      <div className="small text-muted mt-1">{m.stats_planned_items()}</div>
                       <div className="small text-muted">
                         {summary.planned_items.total_completed}/{summary.planned_items.total_scheduled}
                       </div>
@@ -169,13 +169,12 @@ export function StatsPage() {
             </div>
           </div>
 
-          {/* Streak leaderboard */}
           <div className="col-lg-6">
             <div className="card h-100">
-              <div className="card-header fw-semibold py-2">🔥 Streak leaderboard</div>
+              <div className="card-header fw-semibold py-2">{m.stats_streak_header()}</div>
               <ul className="list-group list-group-flush">
                 {summary.chores.streaks.length === 0 && summary.routines.streaks.length === 0 ? (
-                  <li className="list-group-item py-2 text-muted">No active streaks.</li>
+                  <li className="list-group-item py-2 text-muted">{m.stats_no_streaks()}</li>
                 ) : (
                   [
                     ...summary.chores.streaks.map((s) => ({
@@ -183,14 +182,14 @@ export function StatsPage() {
                       name: s.name,
                       current: s.current_streak,
                       best: s.longest_streak,
-                      type: "Chore",
+                      type: m.stats_chore_type(),
                     })),
                     ...summary.routines.streaks.map((s) => ({
                       key: `routine-${s.routine_id}`,
                       name: s.name,
                       current: s.current_streak,
                       best: s.longest_streak,
-                      type: "Routine",
+                      type: m.stats_routine_type(),
                     })),
                   ]
                     .sort((a, b) => b.current - a.current)
@@ -205,7 +204,7 @@ export function StatsPage() {
                             {item.current > 0 ? (
                               <span className="badge text-bg-warning me-1">🔥 {item.current}</span>
                             ) : null}
-                            <small className="text-muted d-block">Best: {item.best}</small>
+                            <small className="text-muted d-block">{m.stats_best({ count: item.best })}</small>
                           </div>
                         </div>
                       </li>
@@ -215,19 +214,22 @@ export function StatsPage() {
             </div>
           </div>
 
-          {/* Most-skipped chores */}
           <div className="col-lg-6">
             <div className="card h-100">
-              <div className="card-header fw-semibold py-2">Most-skipped chores</div>
+              <div className="card-header fw-semibold py-2">{m.stats_most_skipped_header()}</div>
               <ul className="list-group list-group-flush">
                 {summary.chores.most_skipped.length === 0 ? (
-                  <li className="list-group-item py-2 text-muted">No skipped chores.</li>
+                  <li className="list-group-item py-2 text-muted">{m.stats_no_skipped()}</li>
                 ) : (
                   summary.chores.most_skipped.map((item) => (
                     <li key={item.chore_id} className="list-group-item py-2">
                       <div className="d-flex justify-content-between align-items-center gap-2">
                         <div className="fw-semibold">{item.name}</div>
-                        <span className="badge text-bg-secondary">{item.skip_count} skip{item.skip_count === 1 ? "" : "s"}</span>
+                        <span className="badge text-bg-secondary">
+                          {item.skip_count === 1
+                            ? m.stats_skip({ count: item.skip_count })
+                            : m.stats_skips({ count: item.skip_count })}
+                        </span>
                       </div>
                     </li>
                   ))
@@ -236,11 +238,10 @@ export function StatsPage() {
             </div>
           </div>
 
-          {/* Daily completions - chores */}
           {summary.chores.daily_completions.length > 0 ? (
             <div className="col-lg-6">
               <div className="card">
-                <div className="card-header fw-semibold py-2">Chores — daily completion rate</div>
+                <div className="card-header fw-semibold py-2">{m.stats_chores_daily_header()}</div>
                 <div className="card-body pb-2">
                   <CompletionChart entries={summary.chores.daily_completions} color="var(--bs-primary)" fillColor="rgba(var(--bs-primary-rgb), 0.2)" />
                 </div>
@@ -248,11 +249,10 @@ export function StatsPage() {
             </div>
           ) : null}
 
-          {/* Daily completions - routines */}
           {summary.routines.daily_completions.length > 0 ? (
             <div className="col-lg-6">
               <div className="card">
-                <div className="card-header fw-semibold py-2">Routines — daily completion rate</div>
+                <div className="card-header fw-semibold py-2">{m.stats_routines_daily_header()}</div>
                 <div className="card-body pb-2">
                   <CompletionChart entries={summary.routines.daily_completions} color="var(--bs-success)" fillColor="rgba(var(--bs-success-rgb), 0.2)" />
                 </div>
@@ -260,11 +260,10 @@ export function StatsPage() {
             </div>
           ) : null}
 
-          {/* Medication adherence */}
           {summary.medications.daily_adherence.length > 0 ? (
             <div className="col-lg-6">
               <div className="card">
-                <div className="card-header fw-semibold py-2">Medication adherence</div>
+                <div className="card-header fw-semibold py-2">{m.stats_medication_adherence_header()}</div>
                 <div className="card-body pb-2">
                   <AdherenceChart entries={summary.medications.daily_adherence} />
                 </div>
@@ -296,7 +295,7 @@ function CompletionChart({ entries, color, fillColor }: { entries: DailyCount[];
           tickLine={false}
         />
         <Tooltip
-          formatter={(v: unknown) => [`${Math.round((v as number) * 100)}%`, "Completion"]}
+          formatter={(v: unknown) => [`${Math.round((v as number) * 100)}%`, m.stats_completion_tooltip()]}
           labelFormatter={(l: unknown) => String(l)}
           contentStyle={{
             background: "var(--bs-body-bg)",
@@ -337,7 +336,7 @@ function AdherenceChart({ entries }: { entries: AdherenceEntry[] }) {
           tickLine={false}
         />
         <Tooltip
-          formatter={(v: unknown) => [`${Math.round((v as number) * 100)}%`, "Adherence"]}
+          formatter={(v: unknown) => [`${Math.round((v as number) * 100)}%`, m.stats_adherence_tooltip()]}
           labelFormatter={(l: unknown) => String(l)}
           contentStyle={{
             background: "var(--bs-body-bg)",

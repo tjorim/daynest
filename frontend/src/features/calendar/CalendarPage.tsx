@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import * as m from "@/paraglide/messages";
 import {
   completeChore,
   completeRoutineTask,
@@ -100,15 +101,15 @@ export function CalendarPage() {
         onCurrentMonth={() => setCurrentMonth(dayjs())}
         onNextMonth={() => setCurrentMonth(currentMonth.add(1, "month"))}
       />
-      <p className="text-muted">{formatMonthYear(monthStart)} unified month/day planning view.</p>
+      <p className="text-muted">{formatMonthYear(monthStart)} {m.calendar_subtitle()}</p>
 
-      {loading ? <div className="alert alert-info py-2">Loading calendar...</div> : null}
+      {loading ? <div className="alert alert-info py-2">{m.calendar_loading()}</div> : null}
       {error ? (
         <div className="alert alert-danger py-2 d-flex justify-content-between align-items-center gap-2 flex-wrap">
           <span>{error}</span>
           {canRetry ? (
             <button type="button" className="btn btn-danger btn-sm" onClick={() => void loadCalendar()}>
-              Retry
+              {m.action_retry()}
             </button>
           ) : null}
         </div>
@@ -136,17 +137,17 @@ export function CalendarPage() {
             selectedDate={selectedDate}
             dayItems={dayPayload?.items ?? []}
             isAdding={planned.isAdding || isRunningDayAction}
-            onStartRoutine={(itemId) => runDayItemAction(() => startRoutineTask(itemId), "Routine started.")}
+            onStartRoutine={(itemId) => runDayItemAction(() => startRoutineTask(itemId), m.action_start())}
             onCompleteRoutine={(itemId) =>
-              runDayItemAction(() => completeRoutineTask(itemId), "Routine completed.")
+              runDayItemAction(() => completeRoutineTask(itemId), m.action_done())
             }
-            onSkipRoutine={(itemId) => runDayItemAction(() => skipRoutineTask(itemId), "Routine skipped.")}
-            onCompleteChore={(itemId) => runDayItemAction(() => completeChore(itemId), "Chore completed.")}
-            onSkipChore={(itemId) => runDayItemAction(() => skipChore(itemId), "Chore skipped.")}
+            onSkipRoutine={(itemId) => runDayItemAction(() => skipRoutineTask(itemId), m.action_skip())}
+            onCompleteChore={(itemId) => runDayItemAction(() => completeChore(itemId), m.action_done())}
+            onSkipChore={(itemId) => runDayItemAction(() => skipChore(itemId), m.action_skip())}
             onRescheduleChore={(itemId, scheduledDate) =>
               runDayItemAction(
                 () => rescheduleChore(itemId, toIsoDate(dayjs(scheduledDate).add(1, "day"))),
-                "Chore rescheduled.",
+                m.action_reschedule_1_day(),
               )
             }
           />

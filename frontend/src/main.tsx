@@ -5,6 +5,8 @@ import { AuthProvider as OidcProvider } from "react-oidc-context";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "./app.css";
 
+import * as m from "@/paraglide/messages";
+import { LanguageProvider } from "@/i18n/LanguageProvider";
 import {
   setDeferredInstallPrompt,
   type BeforeInstallPromptEvent,
@@ -59,18 +61,34 @@ function App() {
     return () => document.removeEventListener("keydown", handler);
   }, [isAuthenticated]);
 
+  const themeLabel =
+    theme === "auto"
+      ? m.app_theme_switch_to_light()
+      : theme === "light"
+        ? m.app_theme_switch_to_dark()
+        : m.app_theme_switch_to_auto();
+
+  const themeTitle =
+    theme === "auto"
+      ? m.app_theme_auto()
+      : theme === "light"
+        ? m.app_theme_light()
+        : m.app_theme_dark();
+
   return (
     <main className="container py-3 py-md-4">
       {!isOnline ? (
         <div className="alert alert-warning py-2 mb-3 d-flex align-items-center gap-2">
-          <span>⚠️ You are offline.</span>
+          <span>⚠️ {m.app_offline_banner()}</span>
           {queuedCount > 0 ? (
-            <span className="text-muted small">{queuedCount} action{queuedCount === 1 ? "" : "s"} will sync when reconnected.</span>
+            <span className="text-muted small">
+              {m.app_offline_queued({ count: queuedCount })}
+            </span>
           ) : null}
         </div>
       ) : queuedCount > 0 ? (
         <div className="alert alert-info py-2 mb-3">
-          Syncing {queuedCount} queued action{queuedCount === 1 ? "" : "s"}…
+          {m.app_syncing_queued({ count: queuedCount })}
         </div>
       ) : null}
       {searchOpen && isAuthenticated ? <SearchOverlay onClose={() => setSearchOpen(false)} /> : null}
@@ -79,7 +97,7 @@ function App() {
           <div>
             <h1 className="mb-1">Daynest</h1>
             <p className="text-muted mb-0">
-              Daily flow, calendar planning, and household tracking.
+              {m.app_subtitle()}
             </p>
           </div>
           <div className="d-flex flex-wrap align-items-center gap-2">
@@ -87,8 +105,8 @@ function App() {
               <button
                 type="button"
                 className="btn btn-outline-secondary btn-sm"
-                aria-label="Search"
-                title="Search (Ctrl+K)"
+                aria-label={m.app_search()}
+                title={m.app_search_shortcut()}
                 onClick={() => setSearchOpen(true)}
               >
                 🔍
@@ -97,8 +115,8 @@ function App() {
             <button
               type="button"
               className="btn btn-outline-secondary btn-sm"
-              aria-label={theme === "auto" ? "Switch to light mode" : theme === "light" ? "Switch to dark mode" : "Switch to auto mode"}
-              title={theme === "auto" ? "Auto (follows system)" : theme === "light" ? "Light mode" : "Dark mode"}
+              aria-label={themeLabel}
+              title={themeTitle}
               onClick={toggleTheme}
             >
               {theme === "auto" ? "🌓" : theme === "light" ? "🌙" : "☀️"}
@@ -110,7 +128,7 @@ function App() {
                   <div>{user.email}</div>
                 </div>
                 <button type="button" className="btn btn-outline-secondary btn-sm" onClick={logout}>
-                  Logout
+                  {m.app_logout()}
                 </button>
               </div>
             ) : !isLoading ? (
@@ -120,7 +138,7 @@ function App() {
                 }
                 to="/auth"
               >
-                Login
+                {m.app_login()}
               </NavLink>
             ) : null}
           </div>
@@ -131,37 +149,37 @@ function App() {
               className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}
               to="/today"
             >
-              Today
+              {m.nav_today()}
             </NavLink>
             <NavLink
               className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}
               to="/calendar"
             >
-              Calendar
+              {m.nav_calendar()}
             </NavLink>
             <NavLink
               className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}
               to="/medication"
             >
-              Medication
+              {m.nav_medication()}
             </NavLink>
             <NavLink
               className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}
               to="/templates"
             >
-              Templates
+              {m.nav_templates()}
             </NavLink>
             <NavLink
               className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}
               to="/stats"
             >
-              Stats
+              {m.nav_stats()}
             </NavLink>
             <NavLink
               className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}
               to="/settings"
             >
-              Settings
+              {m.nav_settings()}
             </NavLink>
           </nav>
         ) : null}
@@ -179,8 +197,7 @@ async function bootstrap() {
     console.error("Failed to fetch OIDC config", err);
     const root = document.getElementById("root");
     if (root) {
-      root.textContent =
-        "Cannot connect to Daynest server. Please check your connection and try again.";
+      root.textContent = m.app_server_unavailable();
     }
     return;
   }
@@ -189,11 +206,13 @@ async function bootstrap() {
     <React.StrictMode>
       <OidcProvider {...oidcConfig}>
         <BrowserRouter>
-          <AuthProvider>
-            <ThemeProvider>
-              <App />
-            </ThemeProvider>
-          </AuthProvider>
+          <LanguageProvider>
+            <AuthProvider>
+              <ThemeProvider>
+                <App />
+              </ThemeProvider>
+            </AuthProvider>
+          </LanguageProvider>
         </BrowserRouter>
       </OidcProvider>
     </React.StrictMode>,

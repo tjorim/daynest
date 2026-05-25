@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState, type ChangeEvent, type RefObject } from "react";
 import type { Dayjs } from "dayjs";
+import * as m from "@/paraglide/messages";
 import { capitalize, formatDate, toIsoDate } from "@/lib/dateUtils";
 import { type CalendarDayPayload, type CalendarMonthDaySummary, type PlannedItemModuleKey, type PlannedTodayItem } from "@/lib/api/today";
 
@@ -27,14 +28,24 @@ function formatPlannedMeta(item: PlannedTodayItem): string {
     .join(" · ");
   const values = [
     timeAndDuration || null,
-    item.is_done ? "Done" : "Planned",
-    item.module_key ? `Module: ${item.module_key}` : null,
+    item.is_done ? m.search_done() : m.search_planned(),
+    item.module_key ? m.calendar_module_label({ key: item.module_key }) : null,
     item.recurrence_hint ? `Repeat: ${item.recurrence_hint}` : null,
     item.linked_source ? `Source: ${item.linked_source}` : null,
   ];
 
   return values.filter(Boolean).join(" • ");
 }
+
+const WEEKDAYS = [
+  m.calendar_weekday_mon,
+  m.calendar_weekday_tue,
+  m.calendar_weekday_wed,
+  m.calendar_weekday_thu,
+  m.calendar_weekday_fri,
+  m.calendar_weekday_sat,
+  m.calendar_weekday_sun,
+];
 
 export function MonthNavigationControls({
   onRefresh,
@@ -50,20 +61,20 @@ export function MonthNavigationControls({
   return (
     <div className="d-flex flex-column gap-2 mb-2">
       <div className="d-flex justify-content-between align-items-center">
-        <h2 className="h4 mb-0">Calendar</h2>
+        <h2 className="h4 mb-0">{m.calendar_title()}</h2>
         <button type="button" className="btn btn-outline-primary btn-sm" onClick={onRefresh}>
-          Refresh
+          {m.action_refresh()}
         </button>
       </div>
       <div className="btn-group btn-group-sm w-100" role="group" aria-label="Quick month controls">
         <button type="button" className="btn btn-outline-secondary" onClick={onPrevMonth}>
-          Prev
+          {m.calendar_prev()}
         </button>
         <button type="button" className="btn btn-outline-secondary" onClick={onCurrentMonth}>
-          This month
+          {m.calendar_this_month()}
         </button>
         <button type="button" className="btn btn-outline-secondary" onClick={onNextMonth}>
-          Next
+          {m.calendar_next()}
         </button>
       </div>
     </div>
@@ -93,9 +104,9 @@ export function CalendarMonthGrid({
     <div className="card">
       <div className="card-body p-2 p-md-3">
         <div className="row row-cols-7 g-1 g-md-2">
-          {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((weekday) => (
-            <div key={weekday} className="col text-center small fw-semibold text-muted">
-              {weekday}
+          {WEEKDAYS.map((wd) => (
+            <div key={wd()} className="col text-center small fw-semibold text-muted">
+              {wd()}
             </div>
           ))}
           {Array.from({ length: totalCalendarCells }).map((_, idx) => {
@@ -126,7 +137,7 @@ export function CalendarMonthGrid({
                   } : undefined}
                 >
                   <div className="fw-semibold lh-1">{dayNumber}</div>
-                  <small>{summary ? `${summary.total} items` : "No items"}</small>
+                  <small>{summary ? m.calendar_n_items({ count: summary.total }) : m.calendar_no_items()}</small>
                   {summary ? (
                     <div className="calendar-cell-meta mt-2">
                       {summary.routines ? (
@@ -182,10 +193,10 @@ export function DayDetailsPanel({
 }) {
   return (
     <div className="card mb-3">
-      <div className="card-header fw-semibold py-2">Day details · {formatDate(selectedDate)}</div>
+      <div className="card-header fw-semibold py-2">{m.calendar_day_details_header({ date: formatDate(selectedDate) })}</div>
       <ul className="list-group list-group-flush">
         {dayItems.length === 0 ? (
-          <li className="list-group-item py-2 text-muted">No items for this day.</li>
+          <li className="list-group-item py-2 text-muted">{m.calendar_no_items_for_day()}</li>
         ) : (
           dayItems.map((item) => (
             <li key={`${item.item_type}-${item.item_id}`} className="list-group-item py-2">
@@ -195,7 +206,7 @@ export function DayDetailsPanel({
                   <small className="text-muted">{capitalize(item.status)}</small>
                   {item.detail ? <small className="d-block">{item.detail}</small> : null}
                   {item.module_key ? (
-                    <small className="d-block text-muted">Module: {item.module_key}</small>
+                    <small className="d-block text-muted">{m.calendar_module_label({ key: item.module_key })}</small>
                   ) : null}
                   <div className="d-flex gap-2 flex-wrap mt-2">
                     {item.item_type === "routine" && item.status === "pending" ? (
@@ -205,7 +216,7 @@ export function DayDetailsPanel({
                         disabled={isAdding}
                         onClick={() => void onStartRoutine(item.item_id)}
                       >
-                        Start
+                        {m.action_start()}
                       </button>
                     ) : null}
                     {item.item_type === "routine" &&
@@ -218,7 +229,7 @@ export function DayDetailsPanel({
                           disabled={isAdding}
                           onClick={() => void onCompleteRoutine(item.item_id)}
                         >
-                          Done
+                          {m.action_done()}
                         </button>
                         <button
                           type="button"
@@ -226,7 +237,7 @@ export function DayDetailsPanel({
                           disabled={isAdding}
                           onClick={() => void onSkipRoutine(item.item_id)}
                         >
-                          Skip
+                          {m.action_skip()}
                         </button>
                       </>
                     ) : null}
@@ -238,7 +249,7 @@ export function DayDetailsPanel({
                           disabled={isAdding}
                           onClick={() => void onCompleteChore(item.item_id)}
                         >
-                          Done
+                          {m.action_done()}
                         </button>
                         <button
                           type="button"
@@ -246,7 +257,7 @@ export function DayDetailsPanel({
                           disabled={isAdding}
                           onClick={() => void onSkipChore(item.item_id)}
                         >
-                          Skip
+                          {m.action_skip()}
                         </button>
                         {item.scheduled_date ? (
                           <button
@@ -257,7 +268,7 @@ export function DayDetailsPanel({
                               void onRescheduleChore(item.item_id, item.scheduled_date as string)
                             }
                           >
-                            +1 day
+                            {m.action_reschedule_1_day()}
                           </button>
                         ) : null}
                       </>
@@ -356,16 +367,18 @@ export function PlannedItemsSidebar({
   return (
     <>
       <div className="card mb-3">
-        <div className="card-header fw-semibold py-2">Quick add planned item</div>
+        <div className="card-header fw-semibold py-2">{m.calendar_quick_add_header()}</div>
         <div className="card-body d-grid gap-3">
           <div className="d-grid gap-2">
             <input
               className="form-control"
               value={title}
               onChange={(event) => onSetTitle(event.target.value)}
-              placeholder="Plan title"
+              placeholder={m.calendar_plan_title_placeholder()}
             />
-            <label htmlFor="planned-time-of-day" className="form-label mt-2 mb-1">Time of day (optional)</label>
+            <label htmlFor="planned-time-of-day" className="form-label mt-2 mb-1">
+              {m.calendar_time_of_day_label()}
+            </label>
             <input
               id="planned-time-of-day"
               type="time"
@@ -373,22 +386,26 @@ export function PlannedItemsSidebar({
               value={timeOfDay}
               onChange={(event) => onSetTimeOfDay(event.target.value)}
             />
-            <label htmlFor="planned-duration-minutes" className="form-label mt-2 mb-1">Duration in minutes (optional)</label>
+            <label htmlFor="planned-duration-minutes" className="form-label mt-2 mb-1">
+              {m.calendar_duration_label()}
+            </label>
             <input
               id="planned-duration-minutes"
               type="number"
               className="form-control"
               min={1}
               value={durationMinutes ?? ""}
-              onChange={(event) => onSetDurationMinutes(event.target.value === "" ? null : Number(event.target.value))}
-              placeholder="e.g. 45"
+              onChange={(event) =>
+                onSetDurationMinutes(event.target.value === "" ? null : Number(event.target.value))
+              }
+              placeholder={m.calendar_duration_placeholder()}
             />
             <textarea
               className="form-control"
               rows={3}
               value={notes}
               onChange={(event) => onSetNotes(event.target.value)}
-              placeholder="Notes"
+              placeholder={m.calendar_notes_placeholder()}
             />
             <select
               className="form-select"
@@ -396,29 +413,29 @@ export function PlannedItemsSidebar({
               onChange={(event) => onSetModuleKey(event.target.value as PlannedItemModuleKey | "")}
               aria-label="Optional module"
             >
-              <option value="">General</option>
-              <option value="shopping_list">Shopping list</option>
-              <option value="meal_planning">Meal planning</option>
-              <option value="recurring_grocery">Recurring grocery</option>
-              <option value="shared_calendar">Shared calendar</option>
+              <option value="">{m.calendar_module_general()}</option>
+              <option value="shopping_list">{m.calendar_module_shopping()}</option>
+              <option value="meal_planning">{m.calendar_module_meal()}</option>
+              <option value="recurring_grocery">{m.calendar_module_grocery()}</option>
+              <option value="shared_calendar">{m.calendar_module_shared()}</option>
             </select>
             <input
               className="form-control"
               value={recurrenceHint}
               onChange={(event) => onSetRecurrenceHint(event.target.value)}
-              placeholder="Recurrence hint (optional)"
+              placeholder={m.calendar_recurrence_placeholder()}
             />
             <input
               className="form-control"
               value={linkedSource}
               onChange={(event) => onSetLinkedSource(event.target.value)}
-              placeholder="Linked source (optional)"
+              placeholder={m.calendar_linked_source_placeholder()}
             />
             <input
               className="form-control"
               value={linkedRef}
               onChange={(event) => onSetLinkedRef(event.target.value)}
-              placeholder="Linked reference (optional)"
+              placeholder={m.calendar_linked_ref_placeholder()}
             />
           </div>
           <div className="d-flex gap-2 flex-column flex-sm-row">
@@ -430,11 +447,11 @@ export function PlannedItemsSidebar({
             >
               {isAdding
                 ? editingPlannedItemId !== null
-                  ? "Saving…"
-                  : "Adding…"
+                  ? m.action_saving()
+                  : m.action_adding()
                 : editingPlannedItemId !== null
-                  ? "Save item"
-                  : "Add item"}
+                  ? m.calendar_save_item()
+                  : m.calendar_add_item()}
             </button>
             {editingPlannedItemId !== null ? (
               <button
@@ -443,7 +460,7 @@ export function PlannedItemsSidebar({
                 disabled={isAdding}
                 onClick={onCancelEdit}
               >
-                Cancel edit
+                {m.calendar_cancel_edit()}
               </button>
             ) : null}
           </div>
@@ -454,10 +471,10 @@ export function PlannedItemsSidebar({
       </div>
 
       <div className="card mb-3">
-        <div className="card-header fw-semibold py-2">Planned items · {formatDate(selectedDate)}</div>
+        <div className="card-header fw-semibold py-2">{m.calendar_planned_items_header({ date: formatDate(selectedDate) })}</div>
         <ul className="list-group list-group-flush">
           {plannedItems.length === 0 ? (
-            <li className="list-group-item py-2 text-muted">No planned items for this day.</li>
+            <li className="list-group-item py-2 text-muted">{m.calendar_no_planned_items()}</li>
           ) : (
             plannedItems.map((item) => (
               <li
@@ -502,7 +519,7 @@ export function PlannedItemsSidebar({
                     <small className="text-muted d-block">{formatPlannedMeta(item)}</small>
                     {item.notes ? <small className="d-block mt-1">{item.notes}</small> : null}
                     {item.linked_ref ? (
-                      <small className="d-block text-muted">Ref: {item.linked_ref}</small>
+                      <small className="d-block text-muted">{m.calendar_ref_label({ ref: item.linked_ref })}</small>
                     ) : null}
                   </div>
                   <div className="d-grid gap-2">
@@ -512,7 +529,7 @@ export function PlannedItemsSidebar({
                       disabled={isAdding}
                       onClick={() => void onToggleDone(item)}
                     >
-                      {item.is_done ? "Undo" : "Done"}
+                      {item.is_done ? m.action_undo() : m.action_done()}
                     </button>
                     <button
                       type="button"
@@ -520,7 +537,7 @@ export function PlannedItemsSidebar({
                       disabled={isAdding}
                       onClick={() => onStartEdit(item)}
                     >
-                      Edit
+                      {m.action_edit()}
                     </button>
                     {confirmDeleteId === item.id ? (
                       <div className="d-flex gap-1">
@@ -530,7 +547,7 @@ export function PlannedItemsSidebar({
                           disabled={isAdding}
                           onClick={() => void onRemovePlannedItem(item.id)}
                         >
-                          Confirm
+                          {m.action_confirm()}
                         </button>
                         <button
                           type="button"
@@ -538,7 +555,7 @@ export function PlannedItemsSidebar({
                           disabled={isAdding}
                           onClick={() => onSetConfirmDeleteId(null)}
                         >
-                          Cancel
+                          {m.action_cancel()}
                         </button>
                       </div>
                     ) : (
@@ -548,7 +565,7 @@ export function PlannedItemsSidebar({
                         disabled={isAdding}
                         onClick={() => onSetConfirmDeleteId(item.id)}
                       >
-                        Delete
+                        {m.action_delete()}
                       </button>
                     )}
                   </div>
@@ -560,7 +577,7 @@ export function PlannedItemsSidebar({
       </div>
 
       <div className="card">
-        <div className="card-header fw-semibold py-2">Backup export/import</div>
+        <div className="card-header fw-semibold py-2">{m.calendar_backup_header()}</div>
         <div className="card-body">
           <div className="d-flex flex-column flex-sm-row gap-2">
             <button
@@ -569,7 +586,7 @@ export function PlannedItemsSidebar({
               disabled={isExporting || isImporting}
               onClick={() => void onExportBackup()}
             >
-              {isExporting ? "Exporting…" : "Export month backup"}
+              {isExporting ? m.calendar_exporting() : m.calendar_export_backup()}
             </button>
             <button
               type="button"
@@ -577,7 +594,7 @@ export function PlannedItemsSidebar({
               disabled={isExporting || isImporting}
               onClick={() => fileInputRef.current?.click()}
             >
-              {isImporting ? "Importing…" : "Import backup"}
+              {isImporting ? m.calendar_importing() : m.calendar_import_backup()}
             </button>
             <input
               ref={fileInputRef}

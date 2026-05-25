@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import * as m from "@/paraglide/messages";
+import { useLanguage } from "@/i18n/LanguageProvider";
 import {
   getDeferredInstallPrompt,
   promptToInstallApp,
@@ -14,6 +16,7 @@ import {
   updateUserSettings,
   type IntegrationClient,
   type IntegrationClientCreateResponse,
+  type UserSettingsPatch,
 } from "@/lib/api/today";
 import {
   listOAuthSessions,
@@ -35,6 +38,7 @@ const HA_ENDPOINTS = [
 const HOME_ASSISTANT_REDIRECT_URI = "https://my.home-assistant.io/redirect/oauth";
 
 export function SettingsPage() {
+  const { language, setLanguage } = useLanguage();
   const [clients, setClients] = useState<IntegrationClient[]>([]);
   const [createdClient, setCreatedClient] = useState<IntegrationClientCreateResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -71,12 +75,26 @@ export function SettingsPage() {
     return custom ?? window.location.origin;
   });
 
-  // Timezone settings
   const [timezone, setTimezone] = useState("");
   const [timezoneLoading, setTimezoneLoading] = useState(true);
   const [timezoneSaving, setTimezoneSaving] = useState(false);
   const [timezoneError, setTimezoneError] = useState<string | null>(null);
   const [timezoneSuccess, setTimezoneSuccess] = useState<string | null>(null);
+  const [pushOverdueChores, setPushOverdueChores] = useState(true);
+  const [pushMedicationReminders, setPushMedicationReminders] = useState(true);
+  const [pushMissedMedications, setPushMissedMedications] = useState(true);
+  const [serverConfirmedOverdue, setServerConfirmedOverdue] = useState(true);
+  const [serverConfirmedMedReminders, setServerConfirmedMedReminders] = useState(true);
+  const [serverConfirmedMissedMed, setServerConfirmedMissedMed] = useState(true);
+  const [medicationReminderMinutes, setMedicationReminderMinutes] = useState(30);
+  const [quietHoursStart, setQuietHoursStart] = useState("");
+  const [quietHoursEnd, setQuietHoursEnd] = useState("");
+  const [notificationSaving, setNotificationSaving] = useState(false);
+  const [notificationError, setNotificationError] = useState<string | null>(null);
+  const [notificationSuccess, setNotificationSuccess] = useState<string | null>(null);
+  const [notificationPermission, setNotificationPermission] = useState(() =>
+    typeof Notification === "undefined" ? "denied" : Notification.permission,
+  );
   const timezones = useMemo<string[]>(() => {
     try {
       return (Intl as { supportedValuesOf?: (key: string) => string[] }).supportedValuesOf?.("timeZone") ?? [];
@@ -234,12 +252,25 @@ export function SettingsPage() {
     fetchUserSettings(controller.signal)
       .then((settings) => {
         if (!controller.signal.aborted) {
+          const overdueEnabled = settings.push_overdue_chores_enabled ?? true;
+          const medRemindersEnabled = settings.push_medication_reminders_enabled ?? true;
+          const missedMedEnabled = settings.push_missed_medications_enabled ?? true;
           setTimezone(settings.timezone);
+          setPushOverdueChores(overdueEnabled);
+          setPushMedicationReminders(medRemindersEnabled);
+          setPushMissedMedications(missedMedEnabled);
+          setServerConfirmedOverdue(overdueEnabled);
+          setServerConfirmedMedReminders(medRemindersEnabled);
+          setServerConfirmedMissedMed(missedMedEnabled);
+          setMedicationReminderMinutes(settings.medication_reminder_minutes ?? 30);
+          setQuietHoursStart(settings.quiet_hours_start ?? "");
+          setQuietHoursEnd(settings.quiet_hours_end ?? "");
         }
       })
       .catch((err) => {
         if (!controller.signal.aborted) {
-          setTimezoneError(err instanceof Error ? err.message : "Failed to load timezone.");
+          const msg = err instanceof Error ? err.message : m.settings_timezone_load_error();
+          setTimezoneError(msg);
         }
       })
       .finally(() => {
@@ -257,12 +288,75 @@ export function SettingsPage() {
     setTimezoneSuccess(null);
     try {
       await updateUserSettings({ timezone });
-      setTimezoneSuccess("Timezone saved.");
+      setTimezoneSuccess(m.settings_timezone_saved());
     } catch (err) {
-      setTimezoneError(err instanceof Error ? err.message : "Failed to save timezone.");
+      setTimezoneError(err instanceof Error ? err.message : m.settings_timezone_save_error());
     } finally {
       setTimezoneSaving(false);
     }
+  };
+
+  const handlePushToggle = async (
+    field:
+      | "push_overdue_chores_enabled"
+      | "push_medication_reminders_enabled"
+      | "push_missed_medications_enabled",
+    checked: boolean,
+  ) => {
+    setNotificationError(null);
+    setNotificationSuccess(null);
+    if (field === "push_overdue_chores_enabled") setPushOverdueChores(checked);
+    if (field === "push_medication_reminders_enabled") setPushMedicationReminders(checked);
+    if (field === "push_missed_medications_enabled") setPushMissedMedications(checked);
+
+    const serverValue =
+      field === "push_overdue_chores_enabled" ? serverConfirmedOverdue :
+      field === "push_medication_reminders_enabled" ? serverConfirmedMedReminders :
+      serverConfirmedMissedMed;
+    if (checked === serverValue) return;
+
+    const prevOverdue = pushOverdueChores;
+    const prevMed = pushMedicationReminders;
+    const prevMissed = pushMissedMedications;
+    try {
+      await updateUserSettings({ [field]: checked } as UserSettingsPatch);
+      if (field === "push_overdue_chores_enabled") setServerConfirmedOverdue(checked);
+      if (field === "push_medication_reminders_enabled") setServerConfirmedMedReminders(checked);
+      if (field === "push_missed_medications_enabled") setServerConfirmedMissedMed(checked);
+    } catch (err) {
+      setPushOverdueChores(prevOverdue);
+      setPushMedicationReminders(prevMed);
+      setPushMissedMedications(prevMissed);
+      setNotificationError(
+        err instanceof Error ? err.message : m.settings_notification_prefs_save_error(),
+      );
+    }
+  };
+
+  const onSaveNotificationPreferences = async () => {
+    setNotificationSaving(true);
+    setNotificationError(null);
+    setNotificationSuccess(null);
+    try {
+      await updateUserSettings({
+        medication_reminder_minutes: medicationReminderMinutes,
+        quiet_hours_start: quietHoursStart || null,
+        quiet_hours_end: quietHoursEnd || null,
+      });
+      setNotificationSuccess(m.settings_notification_prefs_saved());
+    } catch (err) {
+      setNotificationError(
+        err instanceof Error ? err.message : m.settings_notification_prefs_save_error(),
+      );
+    } finally {
+      setNotificationSaving(false);
+    }
+  };
+
+  const requestPushPermission = async () => {
+    if (typeof Notification === "undefined") return;
+    const result = await Notification.requestPermission();
+    setNotificationPermission(result);
   };
 
   const onCreateClient = async () => {
@@ -324,7 +418,7 @@ export function SettingsPage() {
   return (
     <section>
       <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2 mb-2">
-        <h2 className="h4 mb-0">Settings</h2>
+        <h2 className="h4 mb-0">{m.settings_title()}</h2>
         <div className="d-flex gap-2 align-items-center flex-wrap">
           {canInstallApp ? (
             <button
@@ -333,7 +427,7 @@ export function SettingsPage() {
               disabled={isInstalling}
               onClick={() => void onInstallApp()}
             >
-              Install app
+              {m.settings_install_app()}
             </button>
           ) : null}
           <button
@@ -342,16 +436,15 @@ export function SettingsPage() {
             disabled={loading}
             onClick={() => void loadClients()}
           >
-            Refresh
+            {m.settings_refresh()}
           </button>
         </div>
       </div>
       <p className="text-muted mb-3">
-        Configure integration clients for Home Assistant and MCP consumers. OAuth client secrets are
-        shown only once when created.
+        {m.settings_subtitle()}
       </p>
 
-      {loading ? <div className="alert alert-info py-2">Loading settings...</div> : null}
+      {loading ? <div className="alert alert-info py-2">{m.settings_loading()}</div> : null}
       {error ? (
         <div className="alert alert-danger py-2 d-flex justify-content-between align-items-center gap-2 flex-wrap">
           <span>{error}</span>
@@ -361,7 +454,7 @@ export function SettingsPage() {
               className="btn btn-danger btn-sm"
               onClick={() => void loadClients()}
             >
-              Retry
+              {m.settings_retry()}
             </button>
           ) : null}
         </div>
@@ -371,7 +464,7 @@ export function SettingsPage() {
       <div className="row g-3">
         <div className="col-lg-5">
           <div className="card mb-3">
-            <div className="card-header fw-semibold py-2">Backend server</div>
+            <div className="card-header fw-semibold py-2">{m.settings_backend_server_header()}</div>
             <div className="card-body d-grid gap-2">
               <div className="d-flex gap-3">
                 <label className="form-check">
@@ -385,7 +478,7 @@ export function SettingsPage() {
                       setServerUrlError(null);
                     }}
                   />
-                  <span className="form-check-label">Default</span>
+                  <span className="form-check-label">{m.settings_default()}</span>
                 </label>
                 <label className="form-check">
                   <input
@@ -395,7 +488,7 @@ export function SettingsPage() {
                     checked={serverMode === "custom"}
                     onChange={() => setServerMode("custom")}
                   />
-                  <span className="form-check-label">Custom (self-hosted)</span>
+                  <span className="form-check-label">{m.settings_custom_self_hosted()}</span>
                 </label>
               </div>
               {serverMode === "custom" ? (
@@ -407,7 +500,7 @@ export function SettingsPage() {
                       setCustomServerInput(event.target.value);
                       setServerUrlError(null);
                     }}
-                    placeholder="https://your-server.example.com"
+                    placeholder={m.settings_custom_placeholder()}
                   />
                   {serverUrlError ? (
                     <div className="invalid-feedback">{serverUrlError}</div>
@@ -419,17 +512,27 @@ export function SettingsPage() {
                 className="btn btn-outline-primary btn-sm"
                 onClick={applyServerUrl}
               >
-                Apply
+                {m.settings_apply()}
               </button>
             </div>
           </div>
 
           <div className="card mb-3">
-            <div className="card-header fw-semibold py-2">User preferences</div>
+            <div className="card-header fw-semibold py-2">{m.settings_user_prefs_header()}</div>
             <div className="card-body d-grid gap-2">
-              <label className="form-label small fw-semibold mb-1">Timezone</label>
+              <label className="form-label small fw-semibold mb-1">{m.settings_language()}</label>
+              <select
+                className="form-select mb-2"
+                value={language}
+                onChange={(event) => setLanguage(event.target.value as "en" | "nl")}
+                aria-label={m.settings_language()}
+              >
+                <option value="en">{m.settings_language_english()}</option>
+                <option value="nl">{m.settings_language_dutch()}</option>
+              </select>
+              <label className="form-label small fw-semibold mb-1">{m.settings_timezone()}</label>
               {timezoneLoading ? (
-                <div className="text-muted small">Loading…</div>
+                <div className="text-muted small">{m.settings_timezone_loading()}</div>
               ) : (
                 <div className="d-flex gap-2 flex-wrap">
                   <select
@@ -440,7 +543,7 @@ export function SettingsPage() {
                       setTimezoneSuccess(null);
                       setTimezoneError(null);
                     }}
-                    aria-label="Timezone"
+                    aria-label={m.settings_timezone()}
                   >
                     {timezone && !timezones.includes(timezone) ? (
                       <option value={timezone}>{timezone}</option>
@@ -457,7 +560,7 @@ export function SettingsPage() {
                     disabled={timezoneSaving || !timezone}
                     onClick={() => void onSaveTimezone()}
                   >
-                    {timezoneSaving ? "Saving…" : "Save"}
+                    {timezoneSaving ? m.settings_saving() : m.settings_save()}
                   </button>
                 </div>
               )}
@@ -471,7 +574,117 @@ export function SettingsPage() {
           </div>
 
           <div className="card mb-3">
-            <div className="card-header fw-semibold py-2">Create integration client</div>
+            <div className="card-header fw-semibold py-2">{m.settings_notifications_header()}</div>
+            <div className="card-body d-grid gap-2">
+              <div className="form-check form-switch">
+                <input
+                  type="checkbox"
+                  className="form-check-input"
+                  id="pushOverdueChores"
+                  checked={pushOverdueChores}
+                  onChange={(e) =>
+                    void handlePushToggle("push_overdue_chores_enabled", e.target.checked)
+                  }
+                />
+                <label className="form-check-label" htmlFor="pushOverdueChores">
+                  {m.settings_overdue_chore_reminders()}
+                </label>
+              </div>
+              <div className="form-check form-switch">
+                <input
+                  type="checkbox"
+                  className="form-check-input"
+                  id="pushMedReminders"
+                  checked={pushMedicationReminders}
+                  onChange={(e) =>
+                    void handlePushToggle("push_medication_reminders_enabled", e.target.checked)
+                  }
+                />
+                <label className="form-check-label" htmlFor="pushMedReminders">
+                  {m.settings_medication_reminders()}
+                </label>
+              </div>
+              <div className="form-check form-switch">
+                <input
+                  type="checkbox"
+                  className="form-check-input"
+                  id="pushMissedMed"
+                  checked={pushMissedMedications}
+                  onChange={(e) =>
+                    void handlePushToggle("push_missed_medications_enabled", e.target.checked)
+                  }
+                />
+                <label className="form-check-label" htmlFor="pushMissedMed">
+                  {m.settings_missed_medication_alerts()}
+                </label>
+              </div>
+
+              <label className="form-label small fw-semibold" htmlFor="medicationReminderMinutes">
+                {m.settings_medication_reminder_minutes()}
+              </label>
+              <input
+                id="medicationReminderMinutes"
+                type="number"
+                className="form-control"
+                min={1}
+                max={120}
+                value={medicationReminderMinutes}
+                onChange={(e) => setMedicationReminderMinutes(Number(e.target.value))}
+              />
+
+              <label className="form-label small fw-semibold">{m.settings_quiet_hours()}</label>
+              <div className="d-flex gap-2">
+                <div className="flex-fill">
+                  <label htmlFor="quietHoursStart" className="form-label small mb-1">
+                    {m.settings_quiet_hours_from()}
+                  </label>
+                  <input
+                    id="quietHoursStart"
+                    type="time"
+                    className="form-control"
+                    value={quietHoursStart}
+                    onChange={(e) => setQuietHoursStart(e.target.value)}
+                  />
+                </div>
+                <div className="flex-fill">
+                  <label htmlFor="quietHoursEnd" className="form-label small mb-1">
+                    {m.settings_quiet_hours_to()}
+                  </label>
+                  <input
+                    id="quietHoursEnd"
+                    type="time"
+                    className="form-control"
+                    value={quietHoursEnd}
+                    onChange={(e) => setQuietHoursEnd(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <button
+                type="button"
+                className="btn btn-outline-primary btn-sm"
+                onClick={() => void onSaveNotificationPreferences()}
+                disabled={notificationSaving}
+              >
+                {notificationSaving ? m.settings_saving() : m.settings_save_notification_prefs()}
+              </button>
+              {notificationError ? <div className="text-danger small">{notificationError}</div> : null}
+              {notificationSuccess ? <div className="text-success small">{notificationSuccess}</div> : null}
+
+              {notificationPermission === "default" ? (
+                <button
+                  type="button"
+                  className="btn btn-sm btn-outline-primary"
+                  onClick={() => void requestPushPermission()}
+                >
+                  {m.settings_enable_browser_notifications()}
+                </button>
+              ) : null}
+            </div>
+          </div>
+
+          <div className="card mb-3">
+            <div className="card-header fw-semibold py-2">{m.settings_create_client_header()}</div>
             <div className="card-body d-grid gap-3">
               <input
                 className="form-control"
@@ -480,10 +693,10 @@ export function SettingsPage() {
                   setName(event.target.value);
                   setSubmitError(null);
                 }}
-                placeholder="Client name"
+                placeholder={m.settings_client_name_placeholder()}
               />
               <div>
-                <label className="form-label small fw-semibold mb-1">Rate limit per minute</label>
+                <label className="form-label small fw-semibold mb-1">{m.settings_rate_limit_label()}</label>
                 <input
                   className="form-control"
                   type="number"
@@ -496,7 +709,7 @@ export function SettingsPage() {
                   }}
                 />
                 <small className="text-muted d-block mt-1">
-                  Default is 120/min. Lower this for stricter external clients or testing.
+                  {m.settings_rate_limit_hint()}
                 </small>
               </div>
               <button
@@ -505,7 +718,7 @@ export function SettingsPage() {
                 disabled={isSubmitting}
                 onClick={() => void onCreateClient()}
               >
-                {isSubmitting ? "Creating…" : "Create client"}
+                {isSubmitting ? m.settings_creating() : m.settings_create_client()}
               </button>
             </div>
             {submitError ? (
@@ -514,28 +727,27 @@ export function SettingsPage() {
           </div>
 
           <div className="card mb-3">
-            <div className="card-header fw-semibold py-2">Home Assistant connection details</div>
+            <div className="card-header fw-semibold py-2">{m.settings_ha_header()}</div>
             <div className="card-body">
               <p className="text-muted small mb-2">
-                Setup now uses browser-based OAuth redirect. Enter the Daynest base URL in Home
-                Assistant and it will open the Daynest sign-in page automatically.
+                {m.settings_ha_description()}
               </p>
               <dl className="row small mb-0">
-                <dt className="col-sm-4">Base URL</dt>
+                <dt className="col-sm-4">{m.settings_ha_base_url()}</dt>
                 <dd className="col-sm-8">
                   <code>{backendBaseUrl}</code>
                 </dd>
-                <dt className="col-sm-4">OAuth callback</dt>
+                <dt className="col-sm-4">{m.settings_ha_oauth_callback()}</dt>
                 <dd className="col-sm-8">
                   <code>{HOME_ASSISTANT_REDIRECT_URI}</code>
                 </dd>
-                <dt className="col-sm-4">Contract</dt>
+                <dt className="col-sm-4">{m.settings_ha_contract()}</dt>
                 <dd className="col-sm-8">
                   <code>home-assistant; version=ha.v1</code>
                 </dd>
               </dl>
               <details className="mt-3">
-                <summary className="small fw-semibold">Home Assistant endpoints</summary>
+                <summary className="small fw-semibold">{m.settings_ha_endpoints_summary()}</summary>
                 <ul className="settings-endpoint-list mt-2 mb-0">
                   {HA_ENDPOINTS.map((endpoint) => (
                     <li key={endpoint}>
@@ -595,10 +807,10 @@ export function SettingsPage() {
 
         <div className="col-lg-7">
           <div className="card">
-            <div className="card-header fw-semibold py-2">Integration clients</div>
+            <div className="card-header fw-semibold py-2">{m.settings_integration_clients_header()}</div>
             <ul className="list-group list-group-flush">
               {clients.length === 0 ? (
-                <li className="list-group-item py-2 text-muted">No integration clients yet.</li>
+                <li className="list-group-item py-2 text-muted">{m.settings_no_clients()}</li>
               ) : (
                 clients.map((client) => (
                   <li key={client.id} className="list-group-item py-2">
@@ -613,7 +825,7 @@ export function SettingsPage() {
                         <span
                           className={`badge ${client.is_active ? "text-bg-success" : "text-bg-secondary"}`}
                         >
-                          {client.is_active ? "Active" : "Inactive"}
+                          {client.is_active ? m.status_active() : m.status_inactive()}
                         </span>
                         <button
                           type="button"
@@ -621,7 +833,7 @@ export function SettingsPage() {
                           disabled={rotatingClient === client.id || revokingClient === client.id}
                           onClick={() => void onRotateClient(client.id)}
                         >
-                          {rotatingClient === client.id ? "Rotating…" : "Rotate secret"}
+                          {rotatingClient === client.id ? m.settings_rotating() : m.settings_rotate_secret()}
                         </button>
                         <button
                           type="button"
@@ -629,7 +841,7 @@ export function SettingsPage() {
                           disabled={revokingClient === client.id || rotatingClient === client.id}
                           onClick={() => void onRevokeClient(client.id)}
                         >
-                          {revokingClient === client.id ? "Revoking…" : "Revoke"}
+                          {revokingClient === client.id ? m.settings_revoking() : m.settings_revoke()}
                         </button>
                       </div>
                     </div>
@@ -647,24 +859,24 @@ export function SettingsPage() {
 
           <div className="card mt-3">
             <div className="card-header d-flex justify-content-between align-items-center py-2">
-              <span className="fw-semibold">Active OAuth sessions</span>
+              <span className="fw-semibold">{m.settings_oauth_sessions_header()}</span>
               <button
                 type="button"
                 className="btn btn-outline-secondary btn-sm"
                 disabled={sessionsLoading}
                 onClick={() => void loadSessions()}
               >
-                Refresh
+                {m.settings_refresh()}
               </button>
             </div>
             {sessionsLoading ? (
-              <div className="card-body py-2 text-muted small">Loading sessions…</div>
+              <div className="card-body py-2 text-muted small">{m.settings_loading_sessions()}</div>
             ) : sessionsError ? (
               <div className="card-body py-2 text-danger small">{sessionsError}</div>
             ) : (
               <ul className="list-group list-group-flush">
                 {oauthSessions.length === 0 ? (
-                  <li className="list-group-item py-2 text-muted">No active OAuth sessions.</li>
+                  <li className="list-group-item py-2 text-muted">{m.settings_no_sessions()}</li>
                 ) : (
                   oauthSessions.map((session) => {
                     const clientNames = session.clients.map((c) => c.clientName ?? c.clientId);
@@ -672,15 +884,15 @@ export function SettingsPage() {
                       ? new Date(session.last_access).toLocaleString()
                       : null;
                     const metaParts = [
-                      session.ip_address ? `IP: ${session.ip_address}` : null,
-                      lastAccess ? `Last active: ${lastAccess}` : null,
+                      session.ip_address ? m.settings_ip_address({ ip: session.ip_address }) : null,
+                      lastAccess ? m.settings_last_active({ date: lastAccess }) : null,
                     ].filter(Boolean);
                     return (
                       <li key={session.id} className="list-group-item py-2">
                         <div className="d-flex justify-content-between align-items-start gap-3">
                           <div>
                             <div className="fw-semibold">
-                              {clientNames.length > 0 ? clientNames.join(", ") : "Unknown client"}
+                              {clientNames.length > 0 ? clientNames.join(", ") : m.settings_unknown_client()}
                             </div>
                             {metaParts.length > 0 ? (
                               <small className="text-muted d-block">{metaParts.join(" • ")}</small>
@@ -692,7 +904,7 @@ export function SettingsPage() {
                             disabled={revokingSession === session.id}
                             onClick={() => void onRevokeSession(session.id)}
                           >
-                            {revokingSession === session.id ? "Revoking…" : "Revoke"}
+                            {revokingSession === session.id ? m.settings_revoking() : m.settings_revoke()}
                           </button>
                         </div>
                       </li>

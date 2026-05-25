@@ -1,4 +1,5 @@
 import { Navigate, useLocation } from "react-router-dom";
+import * as m from "@/paraglide/messages";
 import { useAuth } from "@/app/providers/AuthProvider";
 
 function buildRedirectPath(value: unknown): string {
@@ -28,9 +29,9 @@ export function AuthPage() {
     <section className="auth-shell">
       <div className="card shadow-sm">
         <div className="card-body p-4 text-center">
-          <h2 className="h4 mb-1">Sign in to Daynest</h2>
+          <h2 className="h4 mb-1">{m.auth_title()}</h2>
           <p className="text-muted mb-3">
-            Use your account to sync Today, Calendar, and future planning modules.
+            {m.auth_subtitle()}
           </p>
           <button
             type="button"
@@ -38,7 +39,7 @@ export function AuthPage() {
             onClick={login}
             disabled={isLoading}
           >
-            {isLoading ? "Loading…" : "Sign in"}
+            {isLoading ? m.auth_loading() : m.auth_sign_in()}
           </button>
         </div>
       </div>
