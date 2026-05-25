@@ -485,17 +485,15 @@ class TodayRepository:
             select(RecurrenceSeries)
             .where(RecurrenceSeries.user_id == user_id)
             .where(RecurrenceSeries.start_date <= through_date)
+            .where(
+                or_(
+                    RecurrenceSeries.materialized_through.is_(None),
+                    RecurrenceSeries.materialized_through < through_date,
+                )
+            )
             .order_by(RecurrenceSeries.start_date.asc(), RecurrenceSeries.created_at.asc())
         )
         return list(self.db.scalars(stmt).all())
-
-    def get_recurrence_series_for_user(self, *, user_id: int, recurrence_series_id: UUID) -> RecurrenceSeries | None:
-        stmt = (
-            select(RecurrenceSeries)
-            .where(RecurrenceSeries.user_id == user_id)
-            .where(RecurrenceSeries.id == recurrence_series_id)
-        )
-        return self.db.scalar(stmt)
 
     def add_recurrence_series(self, series: RecurrenceSeries) -> RecurrenceSeries:
         self.db.add(series)

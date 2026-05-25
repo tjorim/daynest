@@ -6,8 +6,8 @@ import pytest
 
 from app.services.recurrence_service import (
     RecurrenceValidationError,
+    generate_recurrence,
     generate_recurrence_dates,
-    recurrence_has_occurrence_after,
 )
 
 
@@ -111,17 +111,23 @@ def test_exhausted_rule_returns_start_date() -> None:
     assert dates == [start]
 
 
-def test_recurrence_has_occurrence_after_distinguishes_sparse_future_rules() -> None:
-    assert recurrence_has_occurrence_after(
-        date(2026, 5, 27),
+def test_generate_recurrence_result_distinguishes_sparse_future_rules() -> None:
+    result = generate_recurrence(
+        date(2026, 5, 22),
         "FREQ=WEEKLY;COUNT=4",
         dtstart=date(2026, 5, 21),
+        through_date=date(2026, 5, 27),
     )
+    assert result.dates == []
+    assert result.has_occurrence_after_horizon
 
 
-def test_recurrence_has_occurrence_after_returns_false_when_count_exhausted() -> None:
-    assert not recurrence_has_occurrence_after(
-        date(2026, 6, 30),
+def test_generate_recurrence_result_marks_count_exhausted() -> None:
+    result = generate_recurrence(
+        date(2026, 6, 12),
         "FREQ=WEEKLY;COUNT=4",
         dtstart=date(2026, 5, 21),
+        through_date=date(2026, 6, 30),
     )
+    assert result.dates == []
+    assert not result.has_occurrence_after_horizon

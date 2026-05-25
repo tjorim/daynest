@@ -87,9 +87,6 @@ class StubTodayRepository:
     def list_recurrence_series_overlapping(self, *, user_id: int, through_date: date) -> list[SimpleNamespace]:
         return self._recurrence_series
 
-    def get_recurrence_series_for_user(self, *, user_id: int, recurrence_series_id):
-        return next((series for series in self._recurrence_series if series.id == recurrence_series_id), None)
-
     def materialize_planned_items_for_series(self, *, series, through_date: date, materialized_dates: list[date]) -> None:
         return None
 

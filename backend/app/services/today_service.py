@@ -4,7 +4,6 @@ from collections import defaultdict
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta, timezone
 from typing import Literal, cast
-from uuid import UUID, uuid4
 from zoneinfo import ZoneInfo
 
 from fastapi import HTTPException, status
@@ -42,8 +41,8 @@ from app.schemas.today import (
 )
 from app.services.recurrence_service import (
     RecurrenceValidationError,
+    generate_recurrence,
     generate_recurrence_dates,
-    recurrence_has_occurrence_after,
 )
 
 _PRIORITY_RANK: dict[str, int] = {
@@ -102,26 +101,23 @@ class TodayService:
 
     def _materialize_planned_items_through(self, *, user_id: int, through_date: date) -> None:
         for series in self.repository.list_recurrence_series_overlapping(user_id=user_id, through_date=through_date):
-            self.materialize_through(user_id=user_id, series_id=series.id, through_date=through_date)
+            self._materialize_series(series=series, through_date=through_date)
 
-    def materialize_through(self, *, user_id: int, series_id: UUID, through_date: date) -> None:
-        series = self.repository.get_recurrence_series_for_user(user_id=user_id, recurrence_series_id=series_id)
-        if series is None:
-            return
+    def _materialize_series(self, *, series: RecurrenceSeries, through_date: date) -> None:
         if series.materialized_through is not None and series.materialized_through >= through_date:
             return
         from_date = series.start_date if series.materialized_through is None else (series.materialized_through + timedelta(days=1))
         if from_date > through_date:
             return
-        new_dates = generate_recurrence_dates(from_date, series.rrule, dtstart=series.start_date, through_date=through_date)
-        if not recurrence_has_occurrence_after(through_date, series.rrule, dtstart=series.start_date):
+        generation = generate_recurrence(from_date, series.rrule, dtstart=series.start_date, through_date=through_date)
+        if not generation.has_occurrence_after_horizon:
             effective_through_date = RECURRENCE_EXHAUSTED_SENTINEL
         else:
             effective_through_date = through_date
         self.repository.materialize_planned_items_for_series(
             series=series,
             through_date=effective_through_date,
-            materialized_dates=new_dates,
+            materialized_dates=generation.dates,
         )
 
     @staticmethod
@@ -529,7 +525,6 @@ class TodayService:
 
             series = self.repository.add_recurrence_series(
                 RecurrenceSeries(
-                    id=uuid4(),
                     user_id=user_id,
                     title=request.title,
                     rrule=request.rrule,

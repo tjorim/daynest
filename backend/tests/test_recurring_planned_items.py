@@ -8,6 +8,7 @@ from app.main import app
 from app.models.planned_item import PlannedItem
 from app.models.recurrence_series import RecurrenceSeries
 from app.models.user import User
+from app.repositories.today_repository import TodayRepository
 
 
 def _create_user(db_session: Session, email: str) -> User:
@@ -127,6 +128,40 @@ def test_list_planned_items_materialization_is_idempotent(client: TestClient, db
     assert len(second.json()) == 3
     items = db_session.query(PlannedItem).filter(PlannedItem.user_id == user.id).all()
     assert len(items) == 3
+
+
+def test_recurrence_series_query_excludes_already_materialized_windows(db_session: Session) -> None:
+    user = _create_user(db_session, "planned-query-filter@example.com")
+    pending = RecurrenceSeries(
+        user_id=user.id,
+        title="Pending",
+        rrule="FREQ=DAILY",
+        start_date=date(2026, 5, 21),
+        materialized_through=date(2026, 5, 27),
+    )
+    covered = RecurrenceSeries(
+        user_id=user.id,
+        title="Covered",
+        rrule="FREQ=DAILY",
+        start_date=date(2026, 5, 21),
+        materialized_through=date(2026, 5, 28),
+    )
+    never_materialized = RecurrenceSeries(
+        user_id=user.id,
+        title="Never materialized",
+        rrule="FREQ=DAILY",
+        start_date=date(2026, 5, 21),
+        materialized_through=None,
+    )
+    db_session.add_all([pending, covered, never_materialized])
+    db_session.commit()
+
+    series = TodayRepository(db_session).list_recurrence_series_overlapping(
+        user_id=user.id,
+        through_date=date(2026, 5, 28),
+    )
+
+    assert [item.title for item in series] == ["Pending", "Never materialized"]
 
 
 def test_sparse_recurrence_is_not_marked_exhausted_before_next_occurrence(

@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 
 from dateutil.rrule import rrulestr
@@ -5,6 +6,12 @@ from dateutil.rrule import rrulestr
 
 class RecurrenceValidationError(ValueError):
     pass
+
+
+@dataclass(frozen=True)
+class RecurrenceGeneration:
+    dates: list[date]
+    has_occurrence_after_horizon: bool
 
 
 def generate_recurrence_dates(
@@ -16,6 +23,25 @@ def generate_recurrence_dates(
     max_horizon_days: int = 365,
     max_instances: int = 500,
 ) -> list[date]:
+    return generate_recurrence(
+        start_date,
+        rrule,
+        dtstart=dtstart,
+        through_date=through_date,
+        max_horizon_days=max_horizon_days,
+        max_instances=max_instances,
+    ).dates
+
+
+def generate_recurrence(
+    start_date: date,
+    rrule: str,
+    *,
+    dtstart: date | None = None,
+    through_date: date | None = None,
+    max_horizon_days: int = 365,
+    max_instances: int = 500,
+) -> RecurrenceGeneration:
     try:
         start_dt = datetime.combine(dtstart or start_date, time.min)
         rule = rrulestr(rrule, dtstart=start_dt, ignoretz=True)
@@ -29,29 +55,18 @@ def generate_recurrence_dates(
     for i in range(max_instances):
         occurrence = rule.after(cursor, inc=(i == 0))
         if occurrence is None:
-            break
+            if not dates and through_date is not None:
+                return RecurrenceGeneration(dates=[], has_occurrence_after_horizon=False)
+            if not dates:
+                return RecurrenceGeneration(dates=[start_date], has_occurrence_after_horizon=False)
+            return RecurrenceGeneration(dates=dates, has_occurrence_after_horizon=False)
         if occurrence.date() >= horizon:
-            break
+            return RecurrenceGeneration(dates=dates, has_occurrence_after_horizon=True)
         dates.append(occurrence.date())
         cursor = occurrence
 
     if not dates and through_date is not None:
-        return []
+        return RecurrenceGeneration(dates=[], has_occurrence_after_horizon=True)
     if not dates:
-        return [start_date]
-    return dates
-
-
-def recurrence_has_occurrence_after(
-    after_date: date,
-    rrule: str,
-    *,
-    dtstart: date | None = None,
-) -> bool:
-    try:
-        start_dt = datetime.combine(dtstart or after_date, time.min)
-        rule = rrulestr(rrule, dtstart=start_dt, ignoretz=True)
-    except ValueError as exc:
-        raise RecurrenceValidationError("Invalid recurrence rule") from exc
-
-    return rule.after(datetime.combine(after_date, time.min), inc=False) is not None
+        return RecurrenceGeneration(dates=[start_date], has_occurrence_after_horizon=True)
+    return RecurrenceGeneration(dates=dates, has_occurrence_after_horizon=True)
