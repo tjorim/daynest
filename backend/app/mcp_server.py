@@ -8,7 +8,7 @@ from collections.abc import Callable
 from contextlib import contextmanager
 from datetime import date, datetime, time
 from secrets import token_urlsafe
-from typing import Any, TypeVar, cast
+from typing import Any, Literal, TypeVar, cast
 
 from anyio import to_thread
 from fastapi import HTTPException
@@ -359,7 +359,7 @@ class DaynestMcpBackend:
     def defer_planned_item(self, planned_item_id: int, days: int = 1) -> dict[str, Any]:
         return self._with_service(lambda _db, user, service: _jsonable(service.defer_planned_item(user.id, planned_item_id, days)))
 
-    def delete_planned_item(self, planned_item_id: int, scope: str = "this") -> dict[str, Any]:
+    def delete_planned_item(self, planned_item_id: int, scope: Literal["this", "future"] = "this") -> dict[str, Any]:
         self._with_service(lambda _db, user, service: service.delete_planned_item(user.id, planned_item_id, scope=scope))
         return {"deleted": True, "planned_item_id": planned_item_id, "scope": scope}
 
@@ -876,10 +876,18 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
         return await to_thread.run_sync(daynest.defer_planned_item, planned_item_id, days)
 
     @mcp.tool()
-    async def delete_planned_item(planned_item_id: int) -> dict[str, Any]:
-        """Delete a planned Daynest item by id."""
+    async def delete_planned_item(planned_item_id: int, scope: str = "this") -> dict[str, Any]:
+        """Delete a planned item by id.
 
-        return await to_thread.run_sync(daynest.delete_planned_item, planned_item_id)
+        Args:
+            planned_item_id: ID of the planned item to delete.
+            scope: How much of the series to remove. Valid values:
+                "this"   — delete only this single instance (default).
+                "future" — delete this instance and all future instances in the
+                           same recurrence series. Has no effect for non-recurring items.
+        """
+
+        return await to_thread.run_sync(daynest.delete_planned_item, planned_item_id, cast(Literal["this", "future"], scope))
 
     @mcp.tool()
     async def delete_planned_item_series(recurrence_series_id: str) -> dict[str, Any]:

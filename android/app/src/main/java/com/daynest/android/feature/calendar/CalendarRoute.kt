@@ -284,7 +284,11 @@ private fun CalendarContent(
                             },
                         onDeleteFuture =
                             if (item.itemType == "planned" && (item.rrule != null || item.recurrenceSeriesId != null)) {
-                                { onEvent(CalendarUiEvent.DeletePlannedItem(item.itemId, state.selectedDate, "future")) }
+                                {
+                                    onEvent(
+                                        CalendarUiEvent.DeletePlannedItem(item.itemId, state.selectedDate, "future"),
+                                    )
+                                }
                             } else {
                                 null
                             },
@@ -454,7 +458,7 @@ private fun DayItemCard(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = if (isRecurring) "🔁 ${item.title}" else item.title,
+                    text = if (isRecurring) stringResource(R.string.planned_item_recurring_title, item.title) else item.title,
                     style = MaterialTheme.typography.bodyMedium,
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -485,28 +489,37 @@ private fun DayItemCard(
                 }
             }
             if (onDelete != null) {
-                if (isRecurring && onDeleteFuture != null) {
-                    TextButton(onClick = onDelete) {
-                        Text(
-                            text = stringResource(id = R.string.action_delete_this),
-                            color = MaterialTheme.colorScheme.error,
-                        )
-                    }
-                    TextButton(onClick = onDeleteFuture) {
-                        Text(
-                            text = stringResource(id = R.string.action_delete_this_and_future),
-                            color = MaterialTheme.colorScheme.error,
-                        )
-                    }
-                } else {
-                    TextButton(onClick = onDelete) {
-                        Text(
-                            text = stringResource(id = R.string.action_delete),
-                            color = MaterialTheme.colorScheme.error,
-                        )
-                    }
-                }
+                DayItemDeleteButtons(isRecurring, onDelete, onDeleteFuture)
             }
+        }
+    }
+}
+
+@Composable
+private fun DayItemDeleteButtons(
+    isRecurring: Boolean,
+    onDelete: () -> Unit,
+    onDeleteFuture: (() -> Unit)?,
+) {
+    if (isRecurring && onDeleteFuture != null) {
+        TextButton(onClick = onDelete) {
+            Text(
+                text = stringResource(id = R.string.action_delete_this),
+                color = MaterialTheme.colorScheme.error,
+            )
+        }
+        TextButton(onClick = onDeleteFuture) {
+            Text(
+                text = stringResource(id = R.string.action_delete_this_and_future),
+                color = MaterialTheme.colorScheme.error,
+            )
+        }
+    } else {
+        TextButton(onClick = onDelete) {
+            Text(
+                text = stringResource(id = R.string.action_delete),
+                color = MaterialTheme.colorScheme.error,
+            )
         }
     }
 }
@@ -538,6 +551,7 @@ private fun EditPlannedItemDialog(
                     isDone = item.status == "done",
                     notes = form.notes,
                     moduleKey = form.moduleKey,
+                    rrule = item.rrule,
                     recurrenceHint = form.recurrenceHint,
                     linkedSource = form.linkedSource,
                     linkedRef = form.linkedRef,

@@ -28,7 +28,6 @@ data class PlannedItemFormState(
     val plannedFor: String,
     val notes: String? = null,
     val moduleKey: String? = null,
-    val rrule: String? = null,
     val recurrenceHint: String? = null,
     val linkedSource: String? = null,
     val linkedRef: String? = null,

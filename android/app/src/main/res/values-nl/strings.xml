@@ -28,6 +28,9 @@
     <string name="today_section_planned">Gepland</string>
     <string name="today_overdue_since">Achterstallig sinds %1$s</string>
 
+    <!-- Terugkerend item weergave -->
+    <string name="planned_item_recurring_title">🔁 %1$s</string>
+
     <!-- Veelgebruikte acties -->
     <string name="action_snooze">Snoozen</string>
     <string name="home_action_complete">Voltooien</string>

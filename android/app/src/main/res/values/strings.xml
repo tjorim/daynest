@@ -28,6 +28,9 @@
     <string name="today_section_planned">Planned</string>
     <string name="today_overdue_since">Overdue since %1$s</string>
 
+    <!-- Recurring item display -->
+    <string name="planned_item_recurring_title">🔁 %1$s</string>
+
     <!-- Common actions -->
     <string name="action_snooze">Snooze</string>
     <string name="home_action_complete">Complete</string>

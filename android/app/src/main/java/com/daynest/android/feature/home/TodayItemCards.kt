@@ -181,7 +181,7 @@ internal fun PlannedItemCard(
             Checkbox(checked = isSelected, onCheckedChange = { onToggleSelect() })
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = if (isRecurring) "🔁 ${item.title}" else item.title,
+                    text = if (isRecurring) stringResource(R.string.planned_item_recurring_title, item.title) else item.title,
                     style = MaterialTheme.typography.bodyMedium,
                     textDecoration = if (item.isDone) TextDecoration.LineThrough else TextDecoration.None,
                 )
@@ -213,27 +213,36 @@ internal fun PlannedItemCard(
             TextButton(onClick = onEdit) {
                 Text(text = stringResource(id = R.string.action_edit))
             }
-            if (isRecurring && onDeleteFuture != null) {
-                TextButton(
-                    onClick = onDelete,
-                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
-                ) {
-                    Text(text = stringResource(id = R.string.action_delete_this))
-                }
-                TextButton(
-                    onClick = onDeleteFuture,
-                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
-                ) {
-                    Text(text = stringResource(id = R.string.action_delete_this_and_future))
-                }
-            } else {
-                TextButton(
-                    onClick = onDelete,
-                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
-                ) {
-                    Text(text = stringResource(id = R.string.action_delete))
-                }
-            }
+            PlannedItemDeleteButtons(isRecurring, onDelete, onDeleteFuture)
+        }
+    }
+}
+
+@Composable
+private fun PlannedItemDeleteButtons(
+    isRecurring: Boolean,
+    onDelete: () -> Unit,
+    onDeleteFuture: (() -> Unit)?,
+) {
+    if (isRecurring && onDeleteFuture != null) {
+        TextButton(
+            onClick = onDelete,
+            colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+        ) {
+            Text(text = stringResource(id = R.string.action_delete_this))
+        }
+        TextButton(
+            onClick = onDeleteFuture,
+            colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+        ) {
+            Text(text = stringResource(id = R.string.action_delete_this_and_future))
+        }
+    } else {
+        TextButton(
+            onClick = onDelete,
+            colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+        ) {
+            Text(text = stringResource(id = R.string.action_delete))
         }
     }
 }
