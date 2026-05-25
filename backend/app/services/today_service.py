@@ -655,6 +655,7 @@ class TodayService:
         recurrence_series.rrule = patch.rrule or recurrence_series.rrule
         recurrence_series.linked_source = patch.linked_source
         recurrence_series.linked_ref = patch.linked_ref
+        recurrence_series.start_date = patch.planned_for
         recurrence_series.time_of_day = patch.time_of_day
         recurrence_series.duration_minutes = patch.duration_minutes
         recurrence_series.priority = patch.priority
