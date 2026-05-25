@@ -374,7 +374,10 @@ class HomeViewModel
             }
         }
 
-        private fun deletePlanned(id: Int, scope: String = "this") {
+        private fun deletePlanned(
+            id: Int,
+            scope: String = "this",
+        ) {
             viewModelScope.launch {
                 val result = plannedItemRepository.deletePlannedItem(id, scope)
                 if (result.isSuccess) {

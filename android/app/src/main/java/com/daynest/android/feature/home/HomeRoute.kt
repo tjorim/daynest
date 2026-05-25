@@ -351,11 +351,12 @@ private fun TodayContent(
                     onToggleDone = { onEvent(HomeUiEvent.MarkPlannedDoneClicked(item.id, !item.isDone)) },
                     onEdit = { plannedEditTarget = item },
                     onDelete = { onEvent(HomeUiEvent.DeletePlannedClicked(item.id, "this")) },
-                    onDeleteFuture = if (item.rrule != null || item.recurrenceSeriesId != null) {
-                        { onEvent(HomeUiEvent.DeletePlannedClicked(item.id, "future")) }
-                    } else {
-                        null
-                    },
+                    onDeleteFuture =
+                        if (item.rrule != null || item.recurrenceSeriesId != null) {
+                            { onEvent(HomeUiEvent.DeletePlannedClicked(item.id, "future")) }
+                        } else {
+                            null
+                        },
                 )
             }
         }

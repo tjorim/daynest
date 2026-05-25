@@ -76,7 +76,10 @@ class PlannedItemRepository
                 )
             }
 
-        suspend fun deletePlannedItem(id: Int, scope: String = "this"): Result<Unit> =
+        suspend fun deletePlannedItem(
+            id: Int,
+            scope: String = "this",
+        ): Result<Unit> =
             safeApiCall {
                 plannedItemApi.deletePlannedItem(id, scope).also { scheduleSync() }
             }.recoverOffline {
