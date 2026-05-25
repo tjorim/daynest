@@ -86,11 +86,29 @@ update_planned_item:
       required: false
       selector:
         date: {}
+    time_of_day:
+      required: false
+      selector:
+        time: {}
+    duration_minutes:
+      required: false
+      selector:
+        number:
+          min: 1
+          mode: box
     notes:
       required: false
       selector:
         text:
           multiline: true
+    priority:
+      required: false
+      selector:
+        text: {}
+    is_done:
+      required: false
+      selector:
+        boolean: {}
     rrule:
       required: false
       selector:

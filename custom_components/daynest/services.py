@@ -310,7 +310,7 @@ async def _handle_create_planned_item(hass: HomeAssistant, call: ServiceCall) ->
 async def _handle_update_planned_item(hass: HomeAssistant, call: ServiceCall) -> None:
     """Update a planned item."""
     planned_item_id: int = call.data[ATTR_PLANNED_ITEM_ID]
-    scope: str = call.data.get(ATTR_SCOPE, SCOPE_THIS)
+    scope: str = call.data[ATTR_SCOPE]
     entry = _get_single_entry(hass, SERVICE_UPDATE_PLANNED_ITEM, call.data.get(ATTR_ENTRY_ID))
     if entry is None:
         return
