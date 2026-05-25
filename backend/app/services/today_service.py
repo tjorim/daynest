@@ -350,6 +350,8 @@ class TodayService:
                     scheduled_date=plan.planned_for,
                     detail=plan.notes,
                     module_key=cast(PlannedItemModuleKey | None, plan.module_key),
+                    rrule=plan.rrule,
+                    recurrence_series_id=plan.recurrence_series_id,
                     recurrence_hint=plan.recurrence_hint,
                     linked_source=plan.linked_source,
                     linked_ref=plan.linked_ref,

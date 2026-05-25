@@ -167,11 +167,7 @@ export function useCalendarPlannedItems({
         duration_minutes: durationMinutes,
         notes: notes.trim() || null,
         module_key: moduleKey || null,
-        recurrence_hint: isRepeating
-          ? repeatPreset === "custom"
-            ? `every ${Math.max(2, customInterval)} days`
-            : repeatPreset
-          : recurrenceHint.trim() || null,
+        recurrence_hint: isRepeating ? null : recurrenceHint.trim() || null,
         rrule,
         linked_source: linkedSource.trim() || null,
         linked_ref: linkedRef.trim() || null,

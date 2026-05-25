@@ -30,8 +30,11 @@ function formatPlannedMeta(item: PlannedTodayItem): string {
     timeAndDuration || null,
     item.is_done ? m.search_done() : m.search_planned(),
     item.module_key ? m.calendar_module_label({ key: item.module_key }) : null,
-    item.rrule || item.recurrence_series_id ? "🔁 Repeats" : null,
-    item.recurrence_hint ? `Repeat: ${item.recurrence_hint}` : null,
+    item.rrule || item.recurrence_series_id
+      ? item.recurrence_hint
+        ? m.calendar_repeat_hint({ hint: item.recurrence_hint })
+        : m.calendar_repeats()
+      : null,
     item.linked_source ? `Source: ${item.linked_source}` : null,
   ];
 
@@ -214,7 +217,7 @@ export function DayDetailsPanel({
               <div className="d-flex justify-content-between align-items-start gap-3">
                 <div>
                   <div className="fw-semibold">
-                    {item.recurrence_hint ? "🔁 " : ""}
+                    {item.rrule || item.recurrence_series_id ? "🔁 " : ""}
                     {item.title}
                   </div>
                   <small className="text-muted">{capitalize(item.status)}</small>
@@ -458,7 +461,7 @@ export function PlannedItemsSidebar({
                 onChange={(event) => onSetIsRepeating(event.target.checked)}
               />
               <label className="form-check-label" htmlFor="planned-repeat-toggle">
-                Repeat
+                {m.calendar_repeat_label()}
               </label>
             </div>
             {isRepeating ? (
@@ -469,12 +472,12 @@ export function PlannedItemsSidebar({
                   onChange={(event) =>
                     onSetRepeatPreset(event.target.value as "daily" | "weekly" | "monthly" | "custom")
                   }
-                  aria-label="Repeat schedule"
+                  aria-label={m.calendar_repeat_schedule_aria()}
                 >
-                  <option value="daily">Daily</option>
-                  <option value="weekly">Weekly</option>
-                  <option value="monthly">Monthly</option>
-                  <option value="custom">Custom interval</option>
+                  <option value="daily">{m.calendar_repeat_daily()}</option>
+                  <option value="weekly">{m.calendar_repeat_weekly()}</option>
+                  <option value="monthly">{m.calendar_repeat_monthly()}</option>
+                  <option value="custom">{m.calendar_repeat_custom()}</option>
                 </select>
                 {repeatPreset === "weekly" ? (
                   <div className="d-flex flex-wrap gap-2">
@@ -500,7 +503,7 @@ export function PlannedItemsSidebar({
                 ) : null}
                 {repeatPreset === "custom" ? (
                   <div className="input-group">
-                    <span className="input-group-text">Every</span>
+                    <span className="input-group-text">{m.calendar_repeat_every()}</span>
                     <input
                       type="number"
                       className="form-control"
@@ -510,7 +513,7 @@ export function PlannedItemsSidebar({
                         onSetCustomInterval(Math.max(2, Number(event.target.value || 2)))
                       }
                     />
-                    <span className="input-group-text">days</span>
+                    <span className="input-group-text">{m.calendar_repeat_days()}</span>
                   </div>
                 ) : null}
               </div>
@@ -649,7 +652,7 @@ export function PlannedItemsSidebar({
                               disabled={isAdding}
                               onClick={() => void onRemovePlannedItem(item.id, "this")}
                             >
-                              This
+                              {m.calendar_delete_this()}
                             </button>
                             <button
                               type="button"
@@ -657,7 +660,7 @@ export function PlannedItemsSidebar({
                               disabled={isAdding}
                               onClick={() => void onRemovePlannedItem(item.id, "future")}
                             >
-                              This + future
+                              {m.calendar_delete_this_and_future()}
                             </button>
                           </>
                         ) : (

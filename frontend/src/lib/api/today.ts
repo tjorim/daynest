@@ -132,6 +132,8 @@ export interface UnifiedDayItem {
   scheduled_date: string | null;
   detail: string | null;
   module_key: PlannedItemModuleKey | null;
+  rrule?: string | null;
+  recurrence_series_id?: string | null;
   recurrence_hint?: string | null;
   linked_source?: string | null;
   linked_ref?: string | null;
@@ -221,6 +223,8 @@ const unifiedDayItemSchema = z.object({
   scheduled_date: z.string().nullable(),
   detail: z.string().nullable(),
   module_key: plannedItemModuleKeySchema.nullable(),
+  rrule: z.string().nullable().optional(),
+  recurrence_series_id: z.string().nullable().optional(),
   recurrence_hint: z.string().nullable().optional(),
   linked_source: z.string().nullable().optional(),
   linked_ref: z.string().nullable().optional(),

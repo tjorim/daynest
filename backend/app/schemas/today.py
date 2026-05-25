@@ -116,6 +116,8 @@ class UnifiedDayItem(BaseModel):
     scheduled_date: date | None = None
     detail: str | None = None
     module_key: PlannedItemModuleKey | None = None
+    rrule: str | None = None
+    recurrence_series_id: str | None = None
     recurrence_hint: str | None = None
     linked_source: str | None = None
     linked_ref: str | None = None

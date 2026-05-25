@@ -529,7 +529,7 @@ function PlannedItemActions({
               disabled={actions.isSubmitting}
               onClick={() => void actions.deletePlannedItem(plannedItem.id, "this")}
             >
-              Delete this
+              {m.planned_delete_this()}
             </button>
             <button
               type="button"
@@ -537,7 +537,7 @@ function PlannedItemActions({
               disabled={actions.isSubmitting}
               onClick={() => void actions.deletePlannedItem(plannedItem.id, "future")}
             >
-              This + future
+              {m.calendar_delete_this_and_future()}
             </button>
           </>
         ) : (
