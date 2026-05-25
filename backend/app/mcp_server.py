@@ -876,7 +876,7 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
         return await to_thread.run_sync(daynest.defer_planned_item, planned_item_id, days)
 
     @mcp.tool()
-    async def delete_planned_item(planned_item_id: int, scope: str = "this") -> dict[str, Any]:
+    async def delete_planned_item(planned_item_id: int, scope: Literal["this", "future"] = "this") -> dict[str, Any]:
         """Delete a planned item by id.
 
         Args:
@@ -887,7 +887,7 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
                            same recurrence series. Has no effect for non-recurring items.
         """
 
-        return await to_thread.run_sync(daynest.delete_planned_item, planned_item_id, cast(Literal["this", "future"], scope))
+        return await to_thread.run_sync(daynest.delete_planned_item, planned_item_id, scope)
 
     @mcp.tool()
     async def delete_planned_item_series(recurrence_series_id: str) -> dict[str, Any]:

@@ -20,7 +20,7 @@ interface PlannedItemApi {
     @DELETE("api/v1/planned-items/{id}")
     suspend fun deletePlannedItem(
         @Path("id") id: Int,
-        @Query("scope") scope: String = "this",
+        @Query("scope") scope: DeleteScope = DeleteScope.THIS,
     )
 
     @POST("api/v1/planned-items")

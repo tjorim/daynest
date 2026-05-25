@@ -3,6 +3,7 @@ package com.daynest.android.feature.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.daynest.android.core.model.TodaySummary
+import com.daynest.android.data.today.DeleteScope
 import com.daynest.android.data.today.DueTodayItemDto
 import com.daynest.android.data.today.MedicationHistoryItemDto
 import com.daynest.android.data.today.MedicationTodayItemDto
@@ -376,7 +377,7 @@ class HomeViewModel
 
         private fun deletePlanned(
             id: Int,
-            scope: String = "this",
+            scope: DeleteScope = DeleteScope.THIS,
         ) {
             viewModelScope.launch {
                 val result = plannedItemRepository.deletePlannedItem(id, scope)
@@ -499,7 +500,7 @@ sealed interface HomeUiEvent {
 
     data class DeletePlannedClicked(
         val id: Int,
-        val scope: String = "this",
+        val scope: DeleteScope = DeleteScope.THIS,
     ) : HomeUiEvent
 
     data class ToggleSelection(

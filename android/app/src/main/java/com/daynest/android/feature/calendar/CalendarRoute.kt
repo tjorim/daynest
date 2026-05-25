@@ -42,6 +42,7 @@ import com.daynest.android.app.navigation.DaynestDestination
 import com.daynest.android.app.navigation.DaynestNavigationScaffold
 import com.daynest.android.data.calendar.CalendarDaySummaryDto
 import com.daynest.android.data.calendar.UnifiedDayItemDto
+import com.daynest.android.data.today.DeleteScope
 import com.daynest.android.data.today.PlannedItemCreateDto
 import com.daynest.android.data.today.PlannedItemUpdateDto
 import com.daynest.android.ui.PlannedItemFormDialog
@@ -277,7 +278,15 @@ private fun CalendarContent(
                             },
                         onDelete =
                             if (item.itemType == "planned") {
-                                { onEvent(CalendarUiEvent.DeletePlannedItem(item.itemId, state.selectedDate, "this")) }
+                                {
+                                    onEvent(
+                                        CalendarUiEvent.DeletePlannedItem(
+                                            item.itemId,
+                                            state.selectedDate,
+                                            DeleteScope.THIS,
+                                        ),
+                                    )
+                                }
                             } else {
                                 null
                             },
@@ -285,7 +294,11 @@ private fun CalendarContent(
                             if (item.itemType == "planned" && (item.rrule != null || item.recurrenceSeriesId != null)) {
                                 {
                                     onEvent(
-                                        CalendarUiEvent.DeletePlannedItem(item.itemId, state.selectedDate, "future"),
+                                        CalendarUiEvent.DeletePlannedItem(
+                                            item.itemId,
+                                            state.selectedDate,
+                                            DeleteScope.FUTURE,
+                                        ),
                                     )
                                 }
                             } else {
