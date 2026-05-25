@@ -358,7 +358,10 @@ private class StubPlannedItemApi : PlannedItemApi {
         request: PlannedItemUpdateDto,
     ): PlannedTodayItemDto = PlannedTodayItemDto(id, request.title, request.isDone)
 
-    override suspend fun deletePlannedItem(id: Int) = Unit
+    override suspend fun deletePlannedItem(
+        id: Int,
+        scope: String,
+    ) = Unit
 
     override suspend fun createPlannedItem(request: PlannedItemCreateDto): PlannedTodayItemDto =
         PlannedTodayItemDto(0, request.title, false)
