@@ -4,6 +4,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta, timezone
 from typing import Literal, cast
+from uuid import UUID
 from zoneinfo import ZoneInfo
 
 from fastapi import HTTPException, status
@@ -582,8 +583,7 @@ class TodayService:
         )
         return self._planned_item_to_schema(item)
 
-    def update_planned_item(self, user_id: int, planned_item_id: int, request: PlannedItemUpdateRequest) -> PlannedTodayItem:
-        item = self._get_user_planned_item(user_id=user_id, planned_item_id=planned_item_id)
+    def _apply_planned_item_patch(self, item: PlannedItem, request: PlannedItemUpdateRequest) -> None:
         item.title = request.title
         item.notes = request.notes
         item.module_key = request.module_key
@@ -601,6 +601,103 @@ class TodayService:
         elif not request.is_done:
             item.completed_at = None
         item.is_done = request.is_done
+
+    def update_planned_item_scope_future(
+        self,
+        *,
+        user_id: int,
+        item_id: int,
+        series_id: UUID,
+        from_date: date,
+        patch: PlannedItemUpdateRequest,
+    ) -> None:
+        recurrence_series = self.repository.get_recurrence_series_for_user(user_id=user_id, recurrence_series_id=series_id)
+        if recurrence_series is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Recurrence series not found")
+        recurrence_series.title = patch.title
+        recurrence_series.notes = patch.notes
+        recurrence_series.module_key = patch.module_key
+        recurrence_series.recurrence_hint = patch.recurrence_hint
+        recurrence_series.rrule = patch.rrule or recurrence_series.rrule
+        recurrence_series.linked_source = patch.linked_source
+        recurrence_series.linked_ref = patch.linked_ref
+        recurrence_series.start_date = patch.planned_for
+        recurrence_series.time_of_day = patch.time_of_day
+        recurrence_series.duration_minutes = patch.duration_minutes
+        recurrence_series.priority = patch.priority
+        recurrence_series.tags = patch.tags
+        recurrence_series.materialized_through = from_date - timedelta(days=1)
+        self.repository.delete_materialized_planned_items_for_series(
+            user_id=user_id,
+            recurrence_series_id=series_id,
+            from_date=from_date,
+            exclude_item_id=item_id,
+        )
+        item = self._get_user_planned_item(user_id=user_id, planned_item_id=item_id)
+        self._apply_planned_item_patch(item, patch)
+        self.repository.save()
+
+    def update_planned_item_series(
+        self,
+        *,
+        user_id: int,
+        series_id: UUID,
+        patch: PlannedItemUpdateRequest,
+        item_id: int | None = None,
+    ) -> None:
+        recurrence_series = self.repository.get_recurrence_series_for_user(user_id=user_id, recurrence_series_id=series_id)
+        if recurrence_series is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Recurrence series not found")
+        recurrence_series.title = patch.title
+        recurrence_series.notes = patch.notes
+        recurrence_series.module_key = patch.module_key
+        recurrence_series.recurrence_hint = patch.recurrence_hint
+        recurrence_series.rrule = patch.rrule or recurrence_series.rrule
+        recurrence_series.linked_source = patch.linked_source
+        recurrence_series.linked_ref = patch.linked_ref
+        recurrence_series.start_date = patch.planned_for
+        recurrence_series.time_of_day = patch.time_of_day
+        recurrence_series.duration_minutes = patch.duration_minutes
+        recurrence_series.priority = patch.priority
+        recurrence_series.tags = patch.tags
+        recurrence_series.materialized_through = patch.planned_for - timedelta(days=1)
+        self.repository.delete_materialized_planned_items_for_series(
+            user_id=user_id,
+            recurrence_series_id=series_id,
+            exclude_item_id=item_id,
+        )
+        if item_id is not None:
+            item = self._get_user_planned_item(user_id=user_id, planned_item_id=item_id)
+            self._apply_planned_item_patch(item, patch)
+        self.repository.save()
+
+    def update_planned_item(
+        self,
+        user_id: int,
+        planned_item_id: int,
+        request: PlannedItemUpdateRequest,
+        *,
+        scope: Literal["this", "future", "all"] = "this",
+    ) -> PlannedTodayItem:
+        item = self._get_user_planned_item(user_id=user_id, planned_item_id=planned_item_id)
+        if item.recurrence_series_id is not None and scope == "future":
+            self.update_planned_item_scope_future(
+                user_id=user_id,
+                item_id=item.id,
+                series_id=item.recurrence_series_id,
+                from_date=item.planned_for,
+                patch=request,
+            )
+            return self._planned_item_to_schema(item)
+        if item.recurrence_series_id is not None and scope == "all":
+            self.update_planned_item_series(
+                user_id=user_id,
+                series_id=item.recurrence_series_id,
+                patch=request,
+                item_id=item.id,
+            )
+            return self._planned_item_to_schema(item)
+        self._apply_planned_item_patch(item, request)
         self.repository.save()
         return self._planned_item_to_schema(item)
 

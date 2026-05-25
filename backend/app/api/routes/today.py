@@ -106,11 +106,21 @@ def create_planned_item(
 def update_planned_item(
     planned_item_id: int,
     request: PlannedItemUpdateRequest,
+    scope: str = Query(
+        default="this",
+        pattern="^(this|future|all)$",
+        description="Update scope: 'this' updates only this item; 'future' updates this and future items in the same series; 'all' updates all items in the same series.",
+    ),
     service: TodayService = Depends(get_today_service),
     event_bus: EventBus = Depends(get_event_bus),
     current_user: User = Depends(get_current_user),
 ) -> PlannedTodayItem:
-    item = service.update_planned_item(user_id=current_user.id, planned_item_id=planned_item_id, request=request)
+    item = service.update_planned_item(
+        user_id=current_user.id,
+        planned_item_id=planned_item_id,
+        request=request,
+        scope=cast(Literal["this", "future", "all"], scope),
+    )
     event_bus.publish(current_user.id, {"type": "today_updated"})
     return item
 

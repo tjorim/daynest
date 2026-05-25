@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -22,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.daynest.android.R
+import com.daynest.android.data.today.EditScope
 
 data class PlannedItemFormState(
     val title: String,
@@ -31,6 +33,7 @@ data class PlannedItemFormState(
     val recurrenceHint: String? = null,
     val linkedSource: String? = null,
     val linkedRef: String? = null,
+    val editScope: EditScope = EditScope.THIS,
 )
 
 @Composable
@@ -39,6 +42,7 @@ fun PlannedItemFormDialog(
     @StringRes titleRes: Int,
     @StringRes confirmTextRes: Int,
     initialState: PlannedItemFormState,
+    showEditScope: Boolean = false,
     onConfirm: (PlannedItemFormState) -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -49,6 +53,7 @@ fun PlannedItemFormDialog(
     var recurrenceHint by remember(initialState) { mutableStateOf(initialState.recurrenceHint.orEmpty()) }
     var linkedSource by remember(initialState) { mutableStateOf(initialState.linkedSource.orEmpty()) }
     var linkedRef by remember(initialState) { mutableStateOf(initialState.linkedRef.orEmpty()) }
+    var editScope by remember(initialState) { mutableStateOf(initialState.editScope) }
     val trimmedTitle = title.trim()
     val trimmedPlannedFor = plannedFor.trim()
 
@@ -105,6 +110,21 @@ fun PlannedItemFormDialog(
                     label = { Text(text = stringResource(id = R.string.calendar_planned_linked_ref_label)) },
                     singleLine = true,
                 )
+                if (showEditScope) {
+                    Text(text = stringResource(id = R.string.calendar_planned_edit_scope_label))
+                    EditScope.entries.forEach { scope ->
+                        RowWithRadio(
+                            label =
+                                when (scope) {
+                                    EditScope.THIS -> stringResource(id = R.string.calendar_planned_edit_scope_this)
+                                    EditScope.FUTURE -> stringResource(id = R.string.calendar_planned_edit_scope_future)
+                                    EditScope.ALL -> stringResource(id = R.string.calendar_planned_edit_scope_all)
+                                },
+                            selected = editScope == scope,
+                            onSelect = { editScope = scope },
+                        )
+                    }
+                }
             }
         },
         confirmButton = {
@@ -119,6 +139,7 @@ fun PlannedItemFormDialog(
                             recurrenceHint = recurrenceHint.trim().ifBlank { null },
                             linkedSource = linkedSource.trim().ifBlank { null },
                             linkedRef = linkedRef.trim().ifBlank { null },
+                            editScope = editScope,
                         ),
                     )
                 },
@@ -133,4 +154,19 @@ fun PlannedItemFormDialog(
             }
         },
     )
+}
+
+@Composable
+private fun RowWithRadio(
+    label: String,
+    selected: Boolean,
+    onSelect: () -> Unit,
+) {
+    androidx.compose.foundation.layout.Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        RadioButton(selected = selected, onClick = onSelect)
+        Text(text = label)
+    }
 }

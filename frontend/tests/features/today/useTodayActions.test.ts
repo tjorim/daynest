@@ -204,4 +204,45 @@ describe("useTodayActions", () => {
     expect(result.current.actionError).toBeNull();
     expect(result.current.isSubmitting).toBe(false);
   });
+
+  it("passes recurring edit scope when editing planned items", async () => {
+    const onRefresh = vi.fn().mockResolvedValue(undefined);
+    const { result } = renderHook(() => useTodayActions(onRefresh));
+
+    await act(async () => {
+      await result.current.editPlannedItem(
+        {
+          id: 51,
+          title: "Recurring",
+          planned_for: "2026-05-17",
+          time_of_day: null,
+          duration_minutes: null,
+          notes: null,
+          module_key: null,
+          recurrence_hint: null,
+          rrule: "FREQ=DAILY",
+          recurrence_series_id: "series",
+          linked_source: null,
+          linked_ref: null,
+          is_done: false,
+        },
+        {
+          title: "Recurring updated",
+          planned_for: "2026-05-17",
+        },
+        "future",
+      );
+    });
+
+    expect(todayApiMock.updatePlannedItem).toHaveBeenCalledWith(
+      51,
+      expect.objectContaining({
+        title: "Recurring updated",
+        planned_for: "2026-05-17",
+        is_done: false,
+      }),
+      "future",
+    );
+    expect(onRefresh).toHaveBeenCalledTimes(1);
+  });
 });

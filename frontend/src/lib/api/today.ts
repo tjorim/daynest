@@ -95,6 +95,7 @@ export interface PlannedItemUpdateInput extends PlannedItemInput {
   is_done: boolean;
 }
 
+export type PlannedItemEditScope = "this" | "future" | "all";
 export type PlannedItemDeleteScope = "this" | "future";
 
 export type StatusTone = "primary" | "secondary" | "warning" | "success" | "info" | "danger";
@@ -565,8 +566,9 @@ export async function createPlannedItem(input: PlannedItemInput): Promise<Planne
 export async function updatePlannedItem(
   plannedItemId: number,
   input: PlannedItemUpdateInput,
+  scope: PlannedItemEditScope = "this",
 ): Promise<PlannedTodayItem> {
-  const response = await fetchWithAuth(`/api/v1/planned-items/${plannedItemId}`, {
+  const response = await fetchWithAuth(`/api/v1/planned-items/${plannedItemId}?scope=${scope}`, {
     method: "PUT",
     headers: {
       Accept: "application/json",

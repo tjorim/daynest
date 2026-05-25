@@ -564,9 +564,31 @@ class TodayRepository:
         stmt = select(PlannedItem).where(PlannedItem.user_id == user_id).where(PlannedItem.id == planned_item_id)
         return self.db.scalar(stmt)
 
+    def get_recurrence_series_for_user(self, user_id: int, recurrence_series_id: UUID) -> RecurrenceSeries | None:
+        stmt = select(RecurrenceSeries).where(RecurrenceSeries.user_id == user_id).where(RecurrenceSeries.id == recurrence_series_id)
+        return self.db.scalar(stmt)
+
     def delete_planned_item(self, item: PlannedItem) -> None:
         self.db.delete(item)
         self.db.commit()
+
+    def delete_materialized_planned_items_for_series(
+        self,
+        *,
+        user_id: int,
+        recurrence_series_id: UUID,
+        from_date: date | None = None,
+        exclude_item_id: int | None = None,
+    ) -> None:
+        conditions = [
+            PlannedItem.user_id == user_id,
+            PlannedItem.recurrence_series_id == recurrence_series_id,
+        ]
+        if from_date is not None:
+            conditions.append(PlannedItem.planned_for >= from_date)
+        if exclude_item_id is not None:
+            conditions.append(PlannedItem.id != exclude_item_id)
+        self.db.execute(delete(PlannedItem).where(*conditions))
 
     def delete_planned_item_series(self, *, user_id: int, recurrence_series_id: UUID) -> int:
         delete_count = self.db.scalar(

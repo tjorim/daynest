@@ -168,6 +168,7 @@ export function CalendarPage() {
             linkedSource={planned.linkedSource}
             linkedRef={planned.linkedRef}
             editingPlannedItemId={planned.editingPlannedItemId}
+            editScope={planned.editScope}
             confirmDeleteId={planned.confirmDeleteId}
             isAdding={planned.isAdding || isRunningDayAction}
             addError={planned.addError}
@@ -219,6 +220,7 @@ export function CalendarPage() {
               planned.setLinkedRef(value);
               planned.setAddError(null);
             }}
+            onSetEditScope={planned.setEditScope}
             onAddPlanned={planned.onAddPlanned}
             onCancelEdit={planned.resetPlannedForm}
             onToggleDone={planned.togglePlannedDone}

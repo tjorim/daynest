@@ -332,6 +332,7 @@ class DaynestMcpBackend:
         linked_ref: str | None = None,
         priority: str | None = None,
         tags: list[str] | None = None,
+        scope: Literal["this", "future", "all"] = "this",
     ) -> dict[str, Any]:
         def _operation(_db: Session, user: User, service: TodayService) -> dict[str, Any]:
             existing = service.repository.get_planned_item_for_user(user_id=user.id, planned_item_id=planned_item_id)
@@ -352,7 +353,7 @@ class DaynestMcpBackend:
                 priority=Priority(priority) if priority is not None else existing.priority,
                 tags=tags if tags is not None else (existing.tags or []),
             )
-            return _jsonable(service.update_planned_item(user.id, planned_item_id, request))
+            return _jsonable(service.update_planned_item(user.id, planned_item_id, request, scope=scope))
 
         return self._with_service(_operation)
 
@@ -821,6 +822,7 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
         linked_ref: str | None = None,
         priority: str | None = None,
         tags: list[str] | None = None,
+        scope: Literal["this", "future", "all"] = "this",
     ) -> dict[str, Any]:
         """Update a planned Daynest item.
 
@@ -844,6 +846,7 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
             linked_ref: Updated external reference identifier. Omit to keep current value.
             priority: Item priority — one of 'normal', 'high', 'urgent'. Omit to keep current value.
             tags: Updated list of free-text tags. Omit to keep current value; pass [] to replace with an empty list.
+            scope: Recurrence edit scope — 'this' updates one instance, 'future' updates this and future instances, and 'all' updates the whole series.
         """
 
         return await to_thread.run_sync(
@@ -862,6 +865,7 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
             linked_ref,
             priority,
             tags,
+            scope,
         )
 
     @mcp.tool()

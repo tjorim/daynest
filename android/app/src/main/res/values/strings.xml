@@ -74,6 +74,10 @@
     <string name="calendar_planned_recurrence_label">Recurrence hint</string>
     <string name="calendar_planned_linked_source_label">Linked source</string>
     <string name="calendar_planned_linked_ref_label">Linked reference</string>
+    <string name="calendar_planned_edit_scope_label">Apply changes to</string>
+    <string name="calendar_planned_edit_scope_this">This item</string>
+    <string name="calendar_planned_edit_scope_future">This and future items</string>
+    <string name="calendar_planned_edit_scope_all">All items</string>
     <string name="calendar_reschedule_chore_title">Reschedule chore</string>
     <string name="calendar_export_backup">Export month</string>
     <string name="calendar_import_backup">Import backup</string>
