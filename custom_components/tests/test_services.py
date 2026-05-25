@@ -14,6 +14,8 @@ from custom_components.daynest.services import (
     ATTR_NOTES,
     ATTR_PLANNED_FOR,
     ATTR_PLANNED_ITEM_ID,
+    ATTR_RRULE,
+    ATTR_SCOPE,
     ATTR_TITLE,
     SERVICE_COMPLETE_TASK,
     SERVICE_CREATE_PLANNED_ITEM,
@@ -23,6 +25,7 @@ from custom_components.daynest.services import (
     SERVICE_SKIP_MEDICATION,
     SERVICE_SKIP_TASK,
     SERVICE_SNOOZE_TASK,
+    SERVICE_UPDATE_PLANNED_ITEM,
     async_setup_services,
     async_unload_services,
 )
@@ -81,6 +84,7 @@ class TestAsyncSetupServices:
         assert SERVICE_SKIP_TASK in hass._registered_services
         assert SERVICE_SKIP_MEDICATION in hass._registered_services
         assert SERVICE_CREATE_PLANNED_ITEM in hass._registered_services
+        assert SERVICE_UPDATE_PLANNED_ITEM in hass._registered_services
 
     async def test_unload_removes_all_services(self) -> None:
         hass = _make_hass()
@@ -94,6 +98,7 @@ class TestAsyncSetupServices:
         assert SERVICE_SKIP_TASK not in hass._registered_services
         assert SERVICE_SKIP_MEDICATION not in hass._registered_services
         assert SERVICE_CREATE_PLANNED_ITEM not in hass._registered_services
+        assert SERVICE_UPDATE_PLANNED_ITEM not in hass._registered_services
 
 
 @pytest.mark.unit
@@ -537,5 +542,56 @@ class TestHandleCreatePlannedItem:
             title="Buy bread",
             planned_for="2026-05-24",
             notes=None,
+        )
+        entry.runtime_data.coordinator.async_refresh.assert_awaited_once()
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+class TestHandleUpdatePlannedItem:
+    """Tests for the update_planned_item service handler."""
+
+    async def test_success_calls_client_and_refreshes(self) -> None:
+        client = AsyncMock()
+        entry = _make_entry(client=client)
+        hass = _make_hass(entries=[entry])
+        await async_setup_services(hass)
+        handler = await _get_handler(hass, SERVICE_UPDATE_PLANNED_ITEM)
+
+        await handler(
+            _make_service_call(
+                **{
+                    ATTR_PLANNED_ITEM_ID: 42,
+                    ATTR_SCOPE: "future",
+                    ATTR_TITLE: "Buy milk",
+                    ATTR_PLANNED_FOR: date(2026, 5, 21),
+                    ATTR_NOTES: "2L",
+                    ATTR_RRULE: "FREQ=WEEKLY",
+                }
+            )
+        )
+
+        client.async_update_planned_item.assert_awaited_once_with(
+            item_id=42,
+            scope="future",
+            title="Buy milk",
+            planned_for=date(2026, 5, 21),
+            notes="2L",
+            rrule="FREQ=WEEKLY",
+        )
+        entry.runtime_data.coordinator.async_refresh.assert_awaited_once()
+
+    async def test_missing_scope_defaults_to_this(self) -> None:
+        client = AsyncMock()
+        entry = _make_entry(client=client)
+        hass = _make_hass(entries=[entry])
+        await async_setup_services(hass)
+        handler = await _get_handler(hass, SERVICE_UPDATE_PLANNED_ITEM)
+
+        await handler(_make_service_call(**{ATTR_PLANNED_ITEM_ID: 42}))
+
+        client.async_update_planned_item.assert_awaited_once_with(
+            item_id=42,
+            scope="this",
         )
         entry.runtime_data.coordinator.async_refresh.assert_awaited_once()

@@ -25,6 +25,7 @@ SERVICE_SNOOZE_TASK = "snooze_task"
 SERVICE_MARK_MEDICATION_TAKEN = "mark_medication_taken"
 SERVICE_MARK_PLANNED_DONE = "mark_planned_done"
 SERVICE_CREATE_PLANNED_ITEM = "create_planned_item"
+SERVICE_UPDATE_PLANNED_ITEM = "update_planned_item"
 SERVICE_SKIP_TASK = "skip_task"
 SERVICE_SKIP_MEDICATION = "skip_medication"
 
@@ -36,6 +37,21 @@ ATTR_ENTRY_ID = "entry_id"
 ATTR_TITLE = "title"
 ATTR_PLANNED_FOR = "planned_for"
 ATTR_NOTES = "notes"
+ATTR_TIME_OF_DAY = "time_of_day"
+ATTR_DURATION_MINUTES = "duration_minutes"
+ATTR_MODULE_KEY = "module_key"
+ATTR_RECURRENCE_HINT = "recurrence_hint"
+ATTR_RRULE = "rrule"
+ATTR_LINKED_SOURCE = "linked_source"
+ATTR_LINKED_REF = "linked_ref"
+ATTR_PRIORITY = "priority"
+ATTR_TAGS = "tags"
+ATTR_IS_DONE = "is_done"
+ATTR_SCOPE = "scope"
+
+SCOPE_THIS = "this"
+SCOPE_FUTURE = "future"
+SCOPE_ALL = "all"
 
 SERVICE_COMPLETE_TASK_SCHEMA = vol.Schema(
     {
@@ -85,6 +101,27 @@ SERVICE_CREATE_PLANNED_ITEM_SCHEMA = vol.Schema(
         vol.Required(ATTR_TITLE): vol.All(str, vol.Length(min=1)),
         vol.Optional(ATTR_PLANNED_FOR): vol.Any(str, date),
         vol.Optional(ATTR_NOTES): str,
+        vol.Optional(ATTR_ENTRY_ID): str,
+    }
+)
+
+SERVICE_UPDATE_PLANNED_ITEM_SCHEMA = vol.Schema(
+    {
+        vol.Required(ATTR_PLANNED_ITEM_ID): vol.All(int, vol.Range(min=1)),
+        vol.Optional(ATTR_TITLE): vol.All(str, vol.Length(min=1)),
+        vol.Optional(ATTR_PLANNED_FOR): vol.Any(str, date),
+        vol.Optional(ATTR_TIME_OF_DAY): vol.Any(str, None),
+        vol.Optional(ATTR_DURATION_MINUTES): vol.Any(vol.All(int, vol.Range(min=1)), None),
+        vol.Optional(ATTR_NOTES): vol.Any(str, None),
+        vol.Optional(ATTR_MODULE_KEY): vol.Any(str, None),
+        vol.Optional(ATTR_RECURRENCE_HINT): vol.Any(str, None),
+        vol.Optional(ATTR_RRULE): vol.Any(str, None),
+        vol.Optional(ATTR_LINKED_SOURCE): vol.Any(str, None),
+        vol.Optional(ATTR_LINKED_REF): vol.Any(str, None),
+        vol.Optional(ATTR_PRIORITY): vol.Any(str, None),
+        vol.Optional(ATTR_TAGS): vol.Any([str], None),
+        vol.Optional(ATTR_IS_DONE): bool,
+        vol.Optional(ATTR_SCOPE, default=SCOPE_THIS): vol.In([SCOPE_THIS, SCOPE_FUTURE, SCOPE_ALL]),
         vol.Optional(ATTR_ENTRY_ID): str,
     }
 )
@@ -270,6 +307,26 @@ async def _handle_create_planned_item(hass: HomeAssistant, call: ServiceCall) ->
     )
 
 
+async def _handle_update_planned_item(hass: HomeAssistant, call: ServiceCall) -> None:
+    """Update a planned item."""
+    planned_item_id: int = call.data[ATTR_PLANNED_ITEM_ID]
+    scope: str = call.data.get(ATTR_SCOPE, SCOPE_THIS)
+    entry = _get_single_entry(hass, SERVICE_UPDATE_PLANNED_ITEM, call.data.get(ATTR_ENTRY_ID))
+    if entry is None:
+        return
+    patch_fields = {
+        key: value
+        for key, value in call.data.items()
+        if key not in {ATTR_PLANNED_ITEM_ID, ATTR_SCOPE, ATTR_ENTRY_ID}
+    }
+    await _call_client(
+        entry,
+        SERVICE_UPDATE_PLANNED_ITEM,
+        planned_item_id,
+        entry.runtime_data.client.async_update_planned_item(item_id=planned_item_id, scope=scope, **patch_fields),
+    )
+
+
 async def async_setup_services(hass: HomeAssistant) -> None:
     """Register Daynest Home Assistant services."""
     hass.services.async_register(DOMAIN, SERVICE_REFRESH, partial(_handle_refresh, hass))
@@ -294,6 +351,9 @@ async def async_setup_services(hass: HomeAssistant) -> None:
     hass.services.async_register(
         DOMAIN, SERVICE_CREATE_PLANNED_ITEM, partial(_handle_create_planned_item, hass), schema=SERVICE_CREATE_PLANNED_ITEM_SCHEMA
     )
+    hass.services.async_register(
+        DOMAIN, SERVICE_UPDATE_PLANNED_ITEM, partial(_handle_update_planned_item, hass), schema=SERVICE_UPDATE_PLANNED_ITEM_SCHEMA
+    )
 
 
 def async_unload_services(hass: HomeAssistant) -> None:
@@ -306,6 +366,7 @@ def async_unload_services(hass: HomeAssistant) -> None:
     hass.services.async_remove(DOMAIN, SERVICE_SKIP_MEDICATION)
     hass.services.async_remove(DOMAIN, SERVICE_MARK_PLANNED_DONE)
     hass.services.async_remove(DOMAIN, SERVICE_CREATE_PLANNED_ITEM)
+    hass.services.async_remove(DOMAIN, SERVICE_UPDATE_PLANNED_ITEM)
 
 
 __all__ = [
@@ -313,9 +374,16 @@ __all__ = [
     "ATTR_DAYS",
     "ATTR_ENTRY_ID",
     "ATTR_MEDICATION_DOSE_ID",
+    "ATTR_MODULE_KEY",
     "ATTR_NOTES",
     "ATTR_PLANNED_FOR",
     "ATTR_PLANNED_ITEM_ID",
+    "ATTR_PRIORITY",
+    "ATTR_RECURRENCE_HINT",
+    "ATTR_RRULE",
+    "ATTR_SCOPE",
+    "ATTR_TAGS",
+    "ATTR_TIME_OF_DAY",
     "ATTR_TITLE",
     "SERVICE_COMPLETE_TASK",
     "SERVICE_CREATE_PLANNED_ITEM",
@@ -325,6 +393,7 @@ __all__ = [
     "SERVICE_SKIP_MEDICATION",
     "SERVICE_SKIP_TASK",
     "SERVICE_SNOOZE_TASK",
+    "SERVICE_UPDATE_PLANNED_ITEM",
     "async_setup_services",
     "async_unload_services",
 ]

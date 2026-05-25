@@ -69,3 +69,39 @@ create_planned_item:
       selector:
         text:
           multiline: true
+
+update_planned_item:
+  fields:
+    planned_item_id:
+      required: true
+      selector:
+        number:
+          min: 1
+          mode: box
+    title:
+      required: false
+      selector:
+        text: {}
+    planned_for:
+      required: false
+      selector:
+        date: {}
+    notes:
+      required: false
+      selector:
+        text:
+          multiline: true
+    rrule:
+      required: false
+      selector:
+        text: {}
+    scope:
+      required: false
+      default: this
+      selector:
+        select:
+          mode: dropdown
+          options:
+            - this
+            - future
+            - all
