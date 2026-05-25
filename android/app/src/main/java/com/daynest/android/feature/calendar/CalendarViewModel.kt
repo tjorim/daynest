@@ -6,6 +6,7 @@ import com.daynest.android.data.calendar.CalendarDaySummaryDto
 import com.daynest.android.data.calendar.CalendarRepository
 import com.daynest.android.data.calendar.UnifiedDayItemDto
 import com.daynest.android.data.today.DeleteScope
+import com.daynest.android.data.today.EditScope
 import com.daynest.android.data.today.PlannedItemCreateDto
 import com.daynest.android.data.today.PlannedItemRepository
 import com.daynest.android.data.today.PlannedItemUpdateDto
@@ -52,7 +53,8 @@ class CalendarViewModel
                 is CalendarUiEvent.DaySelected -> loadDay(event.date)
                 is CalendarUiEvent.DayDeselected -> clearDay()
                 is CalendarUiEvent.AddPlannedItem -> addPlannedItem(event.input)
-                is CalendarUiEvent.UpdatePlannedItem -> updatePlannedItem(event.id, event.date, event.input)
+                is CalendarUiEvent.UpdatePlannedItem ->
+                    updatePlannedItem(event.id, event.date, event.input, event.scope)
                 is CalendarUiEvent.DeletePlannedItem -> deletePlannedItem(event.id, event.date, event.scope)
                 is CalendarUiEvent.RetryClicked -> retryCurrentMonth()
                 is CalendarUiEvent.ExportMonthBackup -> backupHandler.exportMonthBackup(event.onReady)
@@ -179,16 +181,21 @@ class CalendarViewModel
             id: Int,
             date: String,
             input: PlannedItemUpdateDto,
+            scope: EditScope = EditScope.THIS,
         ) {
             viewModelScope.launch {
-                val result = plannedItemRepository.updatePlannedItem(id, input)
+                val result = plannedItemRepository.updatePlannedItem(id, input, scope)
                 result.onSuccess { updated ->
-                    _uiState.update { current ->
-                        if (current is CalendarUiState.Content) {
-                            current.withUpdatedPlannedItem(id = id, sourceDate = date, updated = updated)
-                        } else {
-                            current
+                    if (scope == EditScope.THIS) {
+                        _uiState.update { current ->
+                            if (current is CalendarUiState.Content) {
+                                current.withUpdatedPlannedItem(id = id, sourceDate = date, updated = updated)
+                            } else {
+                                current
+                            }
                         }
+                    } else {
+                        retryCurrentMonth()
                     }
                 }
             }
@@ -401,6 +408,7 @@ sealed interface CalendarUiEvent {
         val id: Int,
         val date: String,
         val input: PlannedItemUpdateDto,
+        val scope: EditScope = EditScope.THIS,
     ) : CalendarUiEvent
 
     data class DeletePlannedItem(

@@ -4,7 +4,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta, timezone
 from typing import Literal, cast
-from uuid import uuid4
+from uuid import UUID
 from zoneinfo import ZoneInfo
 
 from fastapi import HTTPException, status
@@ -16,6 +16,7 @@ from app.models.chore_template import ChoreTemplate
 from app.models.medication_dose_instance import MedicationDoseInstance
 from app.models.medication_plan import MedicationPlan
 from app.models.planned_item import PlannedItem
+from app.models.recurrence_series import RecurrenceSeries
 from app.models.routine_template import RoutineTemplate
 from app.models.task_instance import TaskInstance
 from app.repositories.today_repository import TodayRepository
@@ -39,7 +40,12 @@ from app.schemas.today import (
     UnifiedDayItem,
     UpcomingTodayItem,
 )
-from app.services.recurrence_service import RecurrenceValidationError, generate_recurrence_dates
+from app.services.recurrence_service import (
+    RecurrenceValidationError,
+    generate_recurrence,
+    generate_recurrence_dates,
+    truncate_rrule_until,
+)
 
 _PRIORITY_RANK: dict[str, int] = {
     Priority.urgent: 0,
@@ -51,6 +57,8 @@ _PRIORITY_RANK: dict[str, int] = {
 logger = logging.getLogger(__name__)
 
 MAX_CALENDAR_RANGE_DAYS = 366
+RECURRENCE_EXHAUSTED_SENTINEL = date(9999, 12, 31)
+DEFAULT_PLANNED_ITEMS_LOOKAHEAD_DAYS = 90
 
 
 @dataclass
@@ -84,6 +92,7 @@ class TodayService:
             now=self.repository.utcnow(),
             grace_minutes=self._medication_missed_grace_minutes,
         )
+        self._materialize_planned_items_through(user_id=user_id, through_date=for_date)
         return _TodayData(
             overdue=self.repository.get_overdue_chores(user_id=user_id, for_date=for_date),
             due_today=self.repository.get_due_today_chores(user_id=user_id, for_date=for_date),
@@ -91,6 +100,36 @@ class TodayService:
             routines=self.repository.get_today_routines(user_id=user_id, for_date=for_date),
             planned=self.repository.list_planned_items(user_id=user_id, start_date=for_date, end_date=for_date),
             medication=self.repository.get_today_medication(user_id=user_id, for_date=for_date),
+        )
+
+    def _materialize_planned_items_through(self, *, user_id: int, through_date: date) -> None:
+        for series in self.repository.list_recurrence_series_overlapping(user_id=user_id, through_date=through_date):
+            self._materialize_series(series=series, through_date=through_date)
+
+    @staticmethod
+    def _validate_rrule_start_or_422(*, start_date: date, rrule: str) -> None:
+        try:
+            first_dates = generate_recurrence_dates(start_date, rrule, max_instances=1)
+        except RecurrenceValidationError as exc:
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Invalid rrule") from exc
+        if not first_dates or first_dates[0] != start_date:
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Invalid rrule")
+
+    def _materialize_series(self, *, series: RecurrenceSeries, through_date: date) -> None:
+        if series.materialized_through is not None and series.materialized_through >= through_date:
+            return
+        from_date = series.start_date if series.materialized_through is None else (series.materialized_through + timedelta(days=1))
+        if from_date > through_date:
+            return
+        generation = generate_recurrence(from_date, series.rrule, dtstart=series.start_date, through_date=through_date)
+        if not generation.has_occurrence_after_horizon:
+            effective_through_date = RECURRENCE_EXHAUSTED_SENTINEL
+        else:
+            effective_through_date = through_date
+        self.repository.materialize_planned_items_for_series(
+            series=series,
+            through_date=effective_through_date,
+            materialized_dates=generation.dates,
         )
 
     @staticmethod
@@ -175,6 +214,7 @@ class TodayService:
             now=self.repository.utcnow(),
             grace_minutes=self._medication_missed_grace_minutes,
         )
+        self._materialize_planned_items_through(user_id=user_id, through_date=for_date)
 
         today_medication = self.repository.get_today_medication(user_id=user_id, for_date=for_date)
         medication_history = self.repository.get_medication_history(user_id=user_id, before_date=for_date)
@@ -287,6 +327,7 @@ class TodayService:
             now=self.repository.utcnow(),
             grace_minutes=self._medication_missed_grace_minutes,
         )
+        self._materialize_planned_items_through(user_id=user_id, through_date=for_date)
 
         routines = self.repository.get_today_routines(user_id=user_id, for_date=for_date)
         chores = self.repository.get_day_chores(user_id=user_id, target_date=for_date)
@@ -384,6 +425,7 @@ class TodayService:
             now=self.repository.utcnow(),
             grace_minutes=self._medication_missed_grace_minutes,
         )
+        self._materialize_planned_items_through(user_id=user_id, through_date=end_date)
 
         by_day: dict[date, dict[str, int]] = defaultdict(lambda: {"routine": 0, "chore": 0, "medication": 0, "planned": 0})
 
@@ -428,6 +470,7 @@ class TodayService:
         self.repository.ensure_chore_instances_generated(user_id=user_id, through_date=end_date)
         self.repository.ensure_task_instances_generated(user_id=user_id, through_date=end_date)
         self.repository.ensure_medication_dose_instances_generated(user_id=user_id, through_date=end_date, user_timezone=user_tz_str)
+        self._materialize_planned_items_through(user_id=user_id, through_date=end_date)
 
         events: list[HACalendarEvent] = []
 
@@ -487,33 +530,43 @@ class TodayService:
 
     def create_planned_item(self, user_id: int, request: PlannedItemCreateRequest) -> PlannedTodayItem:
         if request.rrule:
-            try:
-                recurrence_dates = generate_recurrence_dates(request.planned_for, request.rrule)
-            except RecurrenceValidationError as exc:
-                raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)) from exc
+            self._validate_rrule_start_or_422(start_date=request.planned_for, rrule=request.rrule)
 
-            series_id = uuid4()
-            items = self.repository.add_planned_items([
-                PlannedItem(
+            _, item = self.repository.add_recurrence_series_with_first_planned_item(
+                series=RecurrenceSeries(
+                    user_id=user_id,
+                    title=request.title,
+                    rrule=request.rrule,
+                    start_date=request.planned_for,
+                    time_of_day=request.time_of_day,
+                    duration_minutes=request.duration_minutes,
+                    notes=request.notes,
+                    module_key=request.module_key,
+                    recurrence_hint=request.recurrence_hint,
+                    linked_source=request.linked_source,
+                    linked_ref=request.linked_ref,
+                    priority=request.priority,
+                    tags=request.tags,
+                    materialized_through=request.planned_for,
+                ),
+                item=PlannedItem(
                     user_id=user_id,
                     title=request.title,
                     notes=request.notes,
                     module_key=request.module_key,
                     recurrence_hint=request.recurrence_hint,
                     rrule=request.rrule,
-                    recurrence_series_id=series_id,
                     linked_source=request.linked_source,
                     linked_ref=request.linked_ref,
-                    planned_for=planned_for,
+                    planned_for=request.planned_for,
                     time_of_day=request.time_of_day,
                     duration_minutes=request.duration_minutes,
                     priority=request.priority,
                     tags=request.tags,
                     is_done=False,
-                )
-                for planned_for in recurrence_dates
-            ])
-            return self._planned_item_to_schema(items[0])
+                ),
+            )
+            return self._planned_item_to_schema(item)
 
         item = self.repository.add_planned_item(
             PlannedItem(
@@ -535,8 +588,7 @@ class TodayService:
         )
         return self._planned_item_to_schema(item)
 
-    def update_planned_item(self, user_id: int, planned_item_id: int, request: PlannedItemUpdateRequest) -> PlannedTodayItem:
-        item = self._get_user_planned_item(user_id=user_id, planned_item_id=planned_item_id)
+    def _apply_planned_item_patch(self, item: PlannedItem, request: PlannedItemUpdateRequest) -> None:
         item.title = request.title
         item.notes = request.notes
         item.module_key = request.module_key
@@ -554,10 +606,119 @@ class TodayService:
         elif not request.is_done:
             item.completed_at = None
         item.is_done = request.is_done
+
+    def update_planned_item_scope_future(
+        self,
+        *,
+        user_id: int,
+        item_id: int,
+        series_id: UUID,
+        from_date: date,
+        patch: PlannedItemUpdateRequest,
+    ) -> None:
+        recurrence_series = self.repository.get_recurrence_series_for_user(user_id=user_id, recurrence_series_id=series_id)
+        if recurrence_series is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Recurrence series not found")
+        if patch.rrule:
+            self._validate_rrule_start_or_422(start_date=patch.planned_for, rrule=patch.rrule)
+        recurrence_series.title = patch.title
+        recurrence_series.notes = patch.notes
+        recurrence_series.module_key = patch.module_key
+        recurrence_series.recurrence_hint = patch.recurrence_hint
+        recurrence_series.rrule = patch.rrule or recurrence_series.rrule
+        recurrence_series.linked_source = patch.linked_source
+        recurrence_series.linked_ref = patch.linked_ref
+        recurrence_series.start_date = patch.planned_for
+        recurrence_series.time_of_day = patch.time_of_day
+        recurrence_series.duration_minutes = patch.duration_minutes
+        recurrence_series.priority = patch.priority
+        recurrence_series.tags = patch.tags
+        recurrence_series.materialized_through = from_date - timedelta(days=1)
+        self.repository.delete_materialized_planned_items_for_series(
+            user_id=user_id,
+            recurrence_series_id=series_id,
+            from_date=from_date,
+            exclude_item_id=item_id,
+        )
+        item = self._get_user_planned_item(user_id=user_id, planned_item_id=item_id)
+        self._apply_planned_item_patch(item, patch)
+        self.repository.save()
+
+    def update_planned_item_series(
+        self,
+        *,
+        user_id: int,
+        series_id: UUID,
+        patch: PlannedItemUpdateRequest,
+        original_planned_for: date | None = None,
+        item_id: int | None = None,
+    ) -> None:
+        recurrence_series = self.repository.get_recurrence_series_for_user(user_id=user_id, recurrence_series_id=series_id)
+        if recurrence_series is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Recurrence series not found")
+        new_start_date = recurrence_series.start_date
+        if original_planned_for is not None:
+            new_start_date = recurrence_series.start_date + (patch.planned_for - original_planned_for)
+        if patch.rrule:
+            self._validate_rrule_start_or_422(start_date=new_start_date, rrule=patch.rrule)
+        recurrence_series.title = patch.title
+        recurrence_series.notes = patch.notes
+        recurrence_series.module_key = patch.module_key
+        recurrence_series.recurrence_hint = patch.recurrence_hint
+        recurrence_series.rrule = patch.rrule or recurrence_series.rrule
+        recurrence_series.linked_source = patch.linked_source
+        recurrence_series.linked_ref = patch.linked_ref
+        recurrence_series.start_date = new_start_date
+        recurrence_series.time_of_day = patch.time_of_day
+        recurrence_series.duration_minutes = patch.duration_minutes
+        recurrence_series.priority = patch.priority
+        recurrence_series.tags = patch.tags
+        recurrence_series.materialized_through = new_start_date - timedelta(days=1)
+        self.repository.delete_materialized_planned_items_for_series(
+            user_id=user_id,
+            recurrence_series_id=series_id,
+            exclude_item_id=item_id,
+        )
+        if item_id is not None:
+            item = self._get_user_planned_item(user_id=user_id, planned_item_id=item_id)
+            self._apply_planned_item_patch(item, patch)
+        self.repository.save()
+
+    def update_planned_item(
+        self,
+        user_id: int,
+        planned_item_id: int,
+        request: PlannedItemUpdateRequest,
+        *,
+        scope: Literal["this", "future", "all"] = "this",
+    ) -> PlannedTodayItem:
+        item = self._get_user_planned_item(user_id=user_id, planned_item_id=planned_item_id)
+        if item.recurrence_series_id is not None and scope == "future":
+            self.update_planned_item_scope_future(
+                user_id=user_id,
+                item_id=item.id,
+                series_id=item.recurrence_series_id,
+                from_date=item.planned_for,
+                patch=request,
+            )
+            return self._planned_item_to_schema(item)
+        if item.recurrence_series_id is not None and scope == "all":
+            self.update_planned_item_series(
+                user_id=user_id,
+                series_id=item.recurrence_series_id,
+                patch=request,
+                original_planned_for=item.planned_for,
+                item_id=item.id,
+            )
+            return self._planned_item_to_schema(item)
+        self._apply_planned_item_patch(item, request)
         self.repository.save()
         return self._planned_item_to_schema(item)
 
     def list_planned_items(self, user_id: int, start_date: date | None = None, end_date: date | None = None, tags: list[str] | None = None) -> list[PlannedTodayItem]:
+        materialize_through = end_date or (start_date + timedelta(days=DEFAULT_PLANNED_ITEMS_LOOKAHEAD_DAYS) if start_date else None)
+        if materialize_through is not None:
+            self._materialize_planned_items_through(user_id=user_id, through_date=materialize_through)
         return [
             self._planned_item_to_schema(item)
             for item in self.repository.list_planned_items(user_id=user_id, start_date=start_date, end_date=end_date, tags=tags)
@@ -609,11 +770,32 @@ class TodayService:
     def delete_planned_item(self, user_id: int, planned_item_id: int, *, scope: Literal["this", "future"] = "this") -> None:
         item = self._get_user_planned_item(user_id=user_id, planned_item_id=planned_item_id)
         if scope == "future" and item.recurrence_series_id is not None:
+            recurrence_series = self.repository.get_recurrence_series_for_user(
+                user_id=user_id,
+                recurrence_series_id=item.recurrence_series_id,
+            )
+            if recurrence_series is None:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Recurrence series not found")
+            cutoff_date = item.planned_for - timedelta(days=1)
+            cutoff_dates = generate_recurrence_dates(
+                recurrence_series.start_date,
+                recurrence_series.rrule,
+                dtstart=recurrence_series.start_date,
+                through_date=cutoff_date,
+            )
+            if not cutoff_dates:
+                self.repository.delete_planned_item_series(
+                    user_id=user_id,
+                    recurrence_series_id=item.recurrence_series_id,
+                )
+                return
             self.repository.delete_planned_item_scope_future(
                 user_id=user_id,
                 item_id=item.id,
                 recurrence_series_id=item.recurrence_series_id,
                 start_date=item.planned_for,
+                series_rrule=truncate_rrule_until(recurrence_series.rrule, cutoff_dates[-1]),
+                materialized_through=cutoff_dates[-1],
             )
             return
         self.repository.delete_planned_item(item)

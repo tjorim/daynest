@@ -5,18 +5,22 @@ from typing import TYPE_CHECKING
 from uuid import UUID
 
 import sqlalchemy as sa
-from sqlalchemy import Boolean, Date, DateTime, ForeignKey, JSON, String, Text, func
+from sqlalchemy import Boolean, Date, DateTime, ForeignKey, JSON, String, Text, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.enums import Priority
 from app.db.base import Base
 
 if TYPE_CHECKING:
+    from app.models.recurrence_series import RecurrenceSeries
     from app.models.user import User
 
 
 class PlannedItem(Base):
     __tablename__ = "planned_items"
+    __table_args__ = (
+        UniqueConstraint("recurrence_series_id", "planned_for", name="uq_planned_items_series_planned_for"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
@@ -25,7 +29,11 @@ class PlannedItem(Base):
     module_key: Mapped[str | None] = mapped_column(String(50), nullable=True, index=True)
     recurrence_hint: Mapped[str | None] = mapped_column(String(255), nullable=True)
     rrule: Mapped[str | None] = mapped_column(String(500), nullable=True)
-    recurrence_series_id: Mapped[UUID | None] = mapped_column(sa.Uuid(as_uuid=True), nullable=True, index=True)
+    recurrence_series_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("recurrence_series.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+    )
     linked_source: Mapped[str | None] = mapped_column(String(120), nullable=True)
     linked_ref: Mapped[str | None] = mapped_column(String(255), nullable=True)
     planned_for: Mapped[date] = mapped_column(Date, nullable=False, index=True)
@@ -43,3 +51,4 @@ class PlannedItem(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
     user: Mapped["User"] = relationship(back_populates="planned_items")
+    recurrence_series: Mapped["RecurrenceSeries | None"] = relationship(back_populates="planned_items")

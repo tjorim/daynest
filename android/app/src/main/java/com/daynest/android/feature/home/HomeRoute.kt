@@ -41,6 +41,7 @@ import com.daynest.android.R
 import com.daynest.android.app.navigation.DaynestDestination
 import com.daynest.android.app.navigation.DaynestNavigationScaffold
 import com.daynest.android.data.today.DeleteScope
+import com.daynest.android.data.today.EditScope
 import com.daynest.android.data.today.PlannedTodayItemDto
 import com.daynest.android.feature.home.SectionType
 import com.daynest.android.ui.PlannedItemFormDialog
@@ -430,8 +431,8 @@ private fun TodayContent(
         PlannedItemDialog(
             titleRes = R.string.calendar_edit_planned_title,
             item = item,
-            onConfirm = {
-                onEvent(HomeUiEvent.UpdatePlannedClicked(it))
+            onConfirm = { updated, scope ->
+                onEvent(HomeUiEvent.UpdatePlannedClicked(updated, scope))
                 plannedEditTarget = null
             },
             onDismiss = { plannedEditTarget = null },
@@ -629,7 +630,7 @@ private fun RescheduleChoreDialog(
 private fun PlannedItemDialog(
     titleRes: Int,
     item: PlannedTodayItemDto,
-    onConfirm: (PlannedTodayItemDto) -> Unit,
+    onConfirm: (PlannedTodayItemDto, EditScope) -> Unit,
     onDismiss: () -> Unit,
 ) {
     PlannedItemFormDialog(
@@ -644,7 +645,9 @@ private fun PlannedItemDialog(
                 recurrenceHint = item.recurrenceHint,
                 linkedSource = item.linkedSource,
                 linkedRef = item.linkedRef,
+                editScope = EditScope.THIS,
             ),
+        showEditScope = item.rrule != null || item.recurrenceSeriesId != null,
         onConfirm = { form ->
             onConfirm(
                 item.copy(
@@ -656,6 +659,7 @@ private fun PlannedItemDialog(
                     linkedSource = form.linkedSource,
                     linkedRef = form.linkedRef,
                 ),
+                form.editScope,
             )
         },
         onDismiss = onDismiss,

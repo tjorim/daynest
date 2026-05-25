@@ -74,6 +74,10 @@
     <string name="calendar_planned_recurrence_label">Herhalingsaanwijzing</string>
     <string name="calendar_planned_linked_source_label">Gekoppelde bron</string>
     <string name="calendar_planned_linked_ref_label">Gekoppelde referentie</string>
+    <string name="calendar_planned_edit_scope_label">Wijzigingen toepassen op</string>
+    <string name="calendar_planned_edit_scope_this">Dit item</string>
+    <string name="calendar_planned_edit_scope_future">Dit en toekomstige items</string>
+    <string name="calendar_planned_edit_scope_all">Alle items</string>
     <string name="calendar_reschedule_chore_title">Klusje herplannen</string>
     <string name="calendar_export_backup">Maand exporteren</string>
     <string name="calendar_import_backup">Back-up importeren</string>

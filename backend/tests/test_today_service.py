@@ -30,6 +30,7 @@ class StubTodayRepository:
         self.upcoming_horizon_days: int | None = None
         self.saved = False
         self.captured_user_timezone: str | None = None
+        self._recurrence_series: list[SimpleNamespace] = []
 
     def ensure_chore_instances_generated(self, user_id: int, through_date: date) -> None:
         self.generated_through = through_date
@@ -82,6 +83,12 @@ class StubTodayRepository:
         if is_done is False and start_date is None and end_date is not None:
             return self._overdue_planned
         return self._planned
+
+    def list_recurrence_series_overlapping(self, *, user_id: int, through_date: date) -> list[SimpleNamespace]:
+        return self._recurrence_series
+
+    def materialize_planned_items_for_series(self, *, series, through_date: date, materialized_dates: list[date]) -> None:
+        return None
 
     def get_missed_doses_before(self, user_id: int, before_date: date) -> list[SimpleNamespace]:
         return [

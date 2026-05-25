@@ -43,6 +43,7 @@ import com.daynest.android.app.navigation.DaynestNavigationScaffold
 import com.daynest.android.data.calendar.CalendarDaySummaryDto
 import com.daynest.android.data.calendar.UnifiedDayItemDto
 import com.daynest.android.data.today.DeleteScope
+import com.daynest.android.data.today.EditScope
 import com.daynest.android.data.today.PlannedItemCreateDto
 import com.daynest.android.data.today.PlannedItemUpdateDto
 import com.daynest.android.ui.PlannedItemFormDialog
@@ -325,8 +326,8 @@ private fun CalendarContent(
     if (currentEditingItem != null && state.selectedDate != null) {
         EditPlannedItemDialog(
             item = currentEditingItem,
-            onConfirm = { input ->
-                onEvent(CalendarUiEvent.UpdatePlannedItem(currentEditingItem.itemId, state.selectedDate, input))
+            onConfirm = { input, scope ->
+                onEvent(CalendarUiEvent.UpdatePlannedItem(currentEditingItem.itemId, state.selectedDate, input, scope))
                 editingItem = null
             },
             onDismiss = { editingItem = null },
@@ -455,7 +456,7 @@ private fun MonthGrid(
 @Composable
 private fun EditPlannedItemDialog(
     item: UnifiedDayItemDto,
-    onConfirm: (PlannedItemUpdateDto) -> Unit,
+    onConfirm: (PlannedItemUpdateDto, EditScope) -> Unit,
     onDismiss: () -> Unit,
 ) {
     PlannedItemFormDialog(
@@ -470,7 +471,9 @@ private fun EditPlannedItemDialog(
                 recurrenceHint = item.recurrenceHint,
                 linkedSource = item.linkedSource,
                 linkedRef = item.linkedRef,
+                editScope = EditScope.THIS,
             ),
+        showEditScope = item.rrule != null || item.recurrenceSeriesId != null,
         onConfirm = { form ->
             onConfirm(
                 PlannedItemUpdateDto(
@@ -484,6 +487,7 @@ private fun EditPlannedItemDialog(
                     linkedSource = form.linkedSource,
                     linkedRef = form.linkedRef,
                 ),
+                form.editScope,
             )
         },
         onDismiss = onDismiss,

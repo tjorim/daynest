@@ -15,6 +15,7 @@ interface PlannedItemApi {
     suspend fun updatePlannedItem(
         @Path("id") id: Int,
         @Body request: PlannedItemUpdateDto,
+        @Query("scope") scope: EditScope = EditScope.THIS,
     ): PlannedTodayItemDto
 
     @DELETE("api/v1/planned-items/{id}")

@@ -7,6 +7,7 @@ from app.models.medication_plan import MedicationPlan
 from app.models.notification_sent import NotificationSent
 from app.models.planned_item import PlannedItem
 from app.models.push_subscription import PushSubscription
+from app.models.recurrence_series import RecurrenceSeries
 from app.models.refresh_token import RefreshToken
 from app.models.routine_template import RoutineTemplate
 from app.models.task_instance import TaskInstance
@@ -23,6 +24,7 @@ __all__ = [
     "NotificationSent",
     "PlannedItem",
     "PushSubscription",
+    "RecurrenceSeries",
     "RefreshToken",
     "RoutineTemplate",
     "TaskInstance",

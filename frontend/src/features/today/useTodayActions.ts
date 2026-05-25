@@ -12,6 +12,7 @@ import {
   takeMedicationDose,
   updatePlannedItem,
   type PlannedItemDeleteScope,
+  type PlannedItemEditScope,
   type PlannedItemModuleKey,
   type PlannedTodayItem,
 } from "@/lib/api/today";
@@ -107,6 +108,7 @@ export function useTodayActions(onRefresh: () => Promise<void>) {
         linked_source?: string | null;
         linked_ref?: string | null;
       },
+      scope: PlannedItemEditScope = "this",
       options?: MutationOptions,
     ) =>
       runAction(
@@ -114,7 +116,7 @@ export function useTodayActions(onRefresh: () => Promise<void>) {
           updatePlannedItem(item.id, {
             ...updates,
             is_done: item.is_done,
-          }),
+          }, scope),
         options,
       ),
   };

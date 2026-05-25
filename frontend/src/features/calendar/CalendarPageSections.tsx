@@ -2,7 +2,7 @@ import { useMemo, useRef, useState, type ChangeEvent, type RefObject } from "rea
 import type { Dayjs } from "dayjs";
 import * as m from "@/paraglide/messages";
 import { capitalize, formatDate, toIsoDate } from "@/lib/dateUtils";
-import { type CalendarDayPayload, type CalendarMonthDaySummary, type PlannedItemModuleKey, type PlannedTodayItem } from "@/lib/api/today";
+import { type CalendarDayPayload, type CalendarMonthDaySummary, type PlannedItemEditScope, type PlannedItemModuleKey, type PlannedTodayItem } from "@/lib/api/today";
 
 function itemBadgeClass(itemType: string): string {
   if (itemType === "medication") return "text-bg-info";
@@ -323,6 +323,7 @@ export function PlannedItemsSidebar({
   linkedSource,
   linkedRef,
   editingPlannedItemId,
+  editScope,
   confirmDeleteId,
   isAdding,
   addError,
@@ -338,6 +339,7 @@ export function PlannedItemsSidebar({
   onSetCustomInterval,
   onSetLinkedSource,
   onSetLinkedRef,
+  onSetEditScope,
   onAddPlanned,
   onCancelEdit,
   onToggleDone,
@@ -367,6 +369,7 @@ export function PlannedItemsSidebar({
   linkedSource: string;
   linkedRef: string;
   editingPlannedItemId: number | null;
+  editScope: PlannedItemEditScope;
   confirmDeleteId: number | null;
   isAdding: boolean;
   addError: string | null;
@@ -382,6 +385,7 @@ export function PlannedItemsSidebar({
   onSetCustomInterval: (value: number) => void;
   onSetLinkedSource: (value: string) => void;
   onSetLinkedRef: (value: string) => void;
+  onSetEditScope: (value: PlannedItemEditScope) => void;
   onAddPlanned: () => Promise<void>;
   onCancelEdit: () => void;
   onToggleDone: (item: PlannedTodayItem) => Promise<void>;
@@ -537,6 +541,22 @@ export function PlannedItemsSidebar({
               onChange={(event) => onSetLinkedRef(event.target.value)}
               placeholder={m.calendar_linked_ref_placeholder()}
             />
+            {editingPlannedItemId !== null &&
+            (() => {
+              const editingItem = plannedItems.find((item) => item.id === editingPlannedItemId);
+              return Boolean(editingItem?.rrule || editingItem?.recurrence_series_id);
+            })() ? (
+              <select
+                className="form-select"
+                value={editScope}
+                onChange={(event) => onSetEditScope(event.target.value as PlannedItemEditScope)}
+                aria-label={m.calendar_planned_edit_scope_label()}
+              >
+                <option value="this">{m.calendar_planned_edit_scope_this()}</option>
+                <option value="future">{m.calendar_planned_edit_scope_future()}</option>
+                <option value="all">{m.calendar_planned_edit_scope_all()}</option>
+              </select>
+            ) : null}
           </div>
           <div className="d-flex gap-2 flex-column flex-sm-row">
             <button

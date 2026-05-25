@@ -8,6 +8,7 @@ import {
   deletePlannedItem,
   fetchCalendarMonth,
   fetchToday,
+  updatePlannedItem,
   type CalendarMonthPayload,
   type TodayPayload,
 } from "@/lib/api/today";
@@ -84,6 +85,24 @@ describe("today API response validation", () => {
     expect(fetchMock).toHaveBeenCalledWith(
       expect.stringContaining("/api/v1/planned-items/42?scope=future"),
       expect.objectContaining({ method: "DELETE" }),
+    );
+  });
+
+  it("passes edit scope for recurring planned-item updates", async () => {
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ id: 42 }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    vi.stubGlobal("navigator", { onLine: true });
+
+    await expect(
+      updatePlannedItem(
+        42,
+        { title: "Update", planned_for: "2026-05-20", is_done: false },
+        "all",
+      ),
+    ).resolves.toBeDefined();
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("/api/v1/planned-items/42?scope=all"),
+      expect.objectContaining({ method: "PUT" }),
     );
   });
 });
