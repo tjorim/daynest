@@ -23,10 +23,9 @@ def generate_recurrence_dates(
     horizon = start_date + timedelta(days=max_horizon_days)
 
     dates: list[date] = []
-    # Start just before dtstart so the first `after(..., inc=False)` call can include dtstart occurrences.
-    cursor = start_dt - timedelta(seconds=1)
-    for _ in range(max_instances):
-        occurrence = rule.after(cursor, inc=False)
+    cursor = start_dt
+    for i in range(max_instances):
+        occurrence = rule.after(cursor, inc=(i == 0))
         if occurrence is None:
             break
         if occurrence.date() >= horizon:
