@@ -214,7 +214,7 @@ export function DayDetailsPanel({
               <div className="d-flex justify-content-between align-items-start gap-3">
                 <div>
                   <div className="fw-semibold">
-                    {item.rrule || item.recurrence_series_id ? "🔁 " : ""}
+                    {item.recurrence_hint ? "🔁 " : ""}
                     {item.title}
                   </div>
                   <small className="text-muted">{capitalize(item.status)}</small>
@@ -612,7 +612,10 @@ export function PlannedItemsSidebar({
               >
                 <div className="d-flex justify-content-between align-items-start gap-3">
                   <div>
-                    <div className="fw-semibold">{item.title}</div>
+                    <div className="fw-semibold">
+                      {item.rrule || item.recurrence_series_id ? "🔁 " : ""}
+                      {item.title}
+                    </div>
                     <small className="text-muted d-block">{formatPlannedMeta(item)}</small>
                     {item.notes ? <small className="d-block mt-1">{item.notes}</small> : null}
                     {item.linked_ref ? (
