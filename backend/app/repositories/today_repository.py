@@ -4,11 +4,8 @@ from datetime import date, datetime, time, timedelta, timezone
 from uuid import UUID
 from zoneinfo import ZoneInfo
 
-from typing import cast
-
 from sqlalchemy import and_, delete, func, insert, or_, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
-from sqlalchemy.engine import CursorResult
 from sqlalchemy.orm import Session
 
 from app.core.enums import ChoreStatus, MedicationDoseStatus, Priority, TaskStatus
@@ -18,6 +15,7 @@ from app.models.chore_template import ChoreTemplate
 from app.models.medication_dose_instance import MedicationDoseInstance
 from app.models.medication_plan import MedicationPlan
 from app.models.planned_item import PlannedItem
+from app.models.recurrence_series import RecurrenceSeries
 from app.models.routine_template import RoutineTemplate
 from app.models.task_instance import TaskInstance
 
@@ -477,6 +475,80 @@ class TodayRepository:
             items = [item for item in items if any(tag in (item.tags or []) for tag in tags)]
         return items
 
+    def list_recurrence_series_overlapping(
+        self,
+        *,
+        user_id: int,
+        through_date: date,
+    ) -> list[RecurrenceSeries]:
+        stmt = (
+            select(RecurrenceSeries)
+            .where(RecurrenceSeries.user_id == user_id)
+            .where(RecurrenceSeries.start_date <= through_date)
+            .order_by(RecurrenceSeries.start_date.asc(), RecurrenceSeries.created_at.asc())
+        )
+        return list(self.db.scalars(stmt).all())
+
+    def get_recurrence_series_for_user(self, *, user_id: int, recurrence_series_id: UUID) -> RecurrenceSeries | None:
+        stmt = (
+            select(RecurrenceSeries)
+            .where(RecurrenceSeries.user_id == user_id)
+            .where(RecurrenceSeries.id == recurrence_series_id)
+        )
+        return self.db.scalar(stmt)
+
+    def add_recurrence_series(self, series: RecurrenceSeries) -> RecurrenceSeries:
+        self.db.add(series)
+        self.db.commit()
+        self.db.refresh(series)
+        return series
+
+    def materialize_planned_items_for_series(
+        self,
+        *,
+        series: RecurrenceSeries,
+        through_date: date,
+        materialized_dates: Sequence[date],
+    ) -> None:
+        rows = [
+            {
+                "user_id": series.user_id,
+                "title": series.title,
+                "notes": series.notes,
+                "module_key": series.module_key,
+                "recurrence_hint": series.recurrence_hint,
+                "rrule": series.rrule,
+                "recurrence_series_id": series.id,
+                "linked_source": series.linked_source,
+                "linked_ref": series.linked_ref,
+                "planned_for": planned_for,
+                "time_of_day": series.time_of_day,
+                "duration_minutes": series.duration_minutes,
+                "priority": series.priority,
+                "tags": series.tags or [],
+                "is_done": False,
+            }
+            for planned_for in materialized_dates
+        ]
+
+        dialect_name = self.db.connection().dialect.name
+        if rows:
+            if dialect_name == "postgresql":
+                self.db.execute(
+                    pg_insert(PlannedItem).values(rows).on_conflict_do_nothing(
+                        index_elements=["recurrence_series_id", "planned_for"]
+                    )
+                )
+            else:
+                self.db.execute(insert(PlannedItem).prefix_with("OR IGNORE").values(rows))
+
+        self.db.execute(
+            update(RecurrenceSeries)
+            .where(RecurrenceSeries.id == series.id)
+            .values(materialized_through=through_date)
+        )
+        self.db.commit()
+
     def add_planned_item(self, item: PlannedItem) -> PlannedItem:
         self.db.add(item)
         self.db.commit()
@@ -499,17 +571,20 @@ class TodayRepository:
         self.db.commit()
 
     def delete_planned_item_series(self, *, user_id: int, recurrence_series_id: UUID) -> int:
-        result = cast(
-            CursorResult,
-            self.db.execute(
-                delete(PlannedItem).where(
-                    PlannedItem.user_id == user_id,
-                    PlannedItem.recurrence_series_id == recurrence_series_id,
-                )
-            ),
+        delete_count = self.db.scalar(
+            select(func.count())
+            .select_from(PlannedItem)
+            .where(PlannedItem.user_id == user_id)
+            .where(PlannedItem.recurrence_series_id == recurrence_series_id)
+        ) or 0
+        self.db.execute(
+            delete(RecurrenceSeries).where(
+                RecurrenceSeries.user_id == user_id,
+                RecurrenceSeries.id == recurrence_series_id,
+            )
         )
         self.db.commit()
-        return result.rowcount
+        return int(delete_count)
 
     def delete_planned_item_scope_future(
         self,
@@ -525,6 +600,12 @@ class TodayRepository:
                 PlannedItem.recurrence_series_id == recurrence_series_id,
                 or_(PlannedItem.id == item_id, PlannedItem.planned_for >= start_date),
             )
+        )
+        self.db.execute(
+            update(RecurrenceSeries)
+            .where(RecurrenceSeries.user_id == user_id)
+            .where(RecurrenceSeries.id == recurrence_series_id)
+            .values(materialized_through=date(9999, 12, 31))
         )
         self.db.commit()
 

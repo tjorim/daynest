@@ -4,7 +4,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta, timezone
 from typing import Literal, cast
-from uuid import uuid4
+from uuid import UUID, uuid4
 from zoneinfo import ZoneInfo
 
 from fastapi import HTTPException, status
@@ -16,6 +16,7 @@ from app.models.chore_template import ChoreTemplate
 from app.models.medication_dose_instance import MedicationDoseInstance
 from app.models.medication_plan import MedicationPlan
 from app.models.planned_item import PlannedItem
+from app.models.recurrence_series import RecurrenceSeries
 from app.models.routine_template import RoutineTemplate
 from app.models.task_instance import TaskInstance
 from app.repositories.today_repository import TodayRepository
@@ -51,6 +52,7 @@ _PRIORITY_RANK: dict[str, int] = {
 logger = logging.getLogger(__name__)
 
 MAX_CALENDAR_RANGE_DAYS = 366
+RECURRENCE_EXHAUSTED_SENTINEL = date(9999, 12, 31)
 
 
 @dataclass
@@ -84,6 +86,7 @@ class TodayService:
             now=self.repository.utcnow(),
             grace_minutes=self._medication_missed_grace_minutes,
         )
+        self._materialize_planned_items_through(user_id=user_id, through_date=for_date)
         return _TodayData(
             overdue=self.repository.get_overdue_chores(user_id=user_id, for_date=for_date),
             due_today=self.repository.get_due_today_chores(user_id=user_id, for_date=for_date),
@@ -91,6 +94,30 @@ class TodayService:
             routines=self.repository.get_today_routines(user_id=user_id, for_date=for_date),
             planned=self.repository.list_planned_items(user_id=user_id, start_date=for_date, end_date=for_date),
             medication=self.repository.get_today_medication(user_id=user_id, for_date=for_date),
+        )
+
+    def _materialize_planned_items_through(self, *, user_id: int, through_date: date) -> None:
+        for series in self.repository.list_recurrence_series_overlapping(user_id=user_id, through_date=through_date):
+            self.materialize_through(user_id=user_id, series_id=series.id, through_date=through_date)
+
+    def materialize_through(self, *, user_id: int, series_id: UUID, through_date: date) -> None:
+        series = self.repository.get_recurrence_series_for_user(user_id=user_id, recurrence_series_id=series_id)
+        if series is None:
+            return
+        if series.materialized_through is not None and series.materialized_through >= through_date:
+            return
+        from_date = series.start_date if series.materialized_through is None else (series.materialized_through + timedelta(days=1))
+        if from_date > through_date:
+            return
+        new_dates = generate_recurrence_dates(from_date, series.rrule, dtstart=series.start_date, through_date=through_date)
+        if not new_dates or new_dates[-1] < through_date:
+            effective_through_date = RECURRENCE_EXHAUSTED_SENTINEL
+        else:
+            effective_through_date = through_date
+        self.repository.materialize_planned_items_for_series(
+            series=series,
+            through_date=effective_through_date,
+            materialized_dates=new_dates,
         )
 
     @staticmethod
@@ -175,6 +202,7 @@ class TodayService:
             now=self.repository.utcnow(),
             grace_minutes=self._medication_missed_grace_minutes,
         )
+        self._materialize_planned_items_through(user_id=user_id, through_date=for_date)
 
         today_medication = self.repository.get_today_medication(user_id=user_id, for_date=for_date)
         medication_history = self.repository.get_medication_history(user_id=user_id, before_date=for_date)
@@ -287,6 +315,7 @@ class TodayService:
             now=self.repository.utcnow(),
             grace_minutes=self._medication_missed_grace_minutes,
         )
+        self._materialize_planned_items_through(user_id=user_id, through_date=for_date)
 
         routines = self.repository.get_today_routines(user_id=user_id, for_date=for_date)
         chores = self.repository.get_day_chores(user_id=user_id, target_date=for_date)
@@ -384,6 +413,7 @@ class TodayService:
             now=self.repository.utcnow(),
             grace_minutes=self._medication_missed_grace_minutes,
         )
+        self._materialize_planned_items_through(user_id=user_id, through_date=end_date)
 
         by_day: dict[date, dict[str, int]] = defaultdict(lambda: {"routine": 0, "chore": 0, "medication": 0, "planned": 0})
 
@@ -428,6 +458,7 @@ class TodayService:
         self.repository.ensure_chore_instances_generated(user_id=user_id, through_date=end_date)
         self.repository.ensure_task_instances_generated(user_id=user_id, through_date=end_date)
         self.repository.ensure_medication_dose_instances_generated(user_id=user_id, through_date=end_date, user_timezone=user_tz_str)
+        self._materialize_planned_items_through(user_id=user_id, through_date=end_date)
 
         events: list[HACalendarEvent] = []
 
@@ -488,12 +519,30 @@ class TodayService:
     def create_planned_item(self, user_id: int, request: PlannedItemCreateRequest) -> PlannedTodayItem:
         if request.rrule:
             try:
-                recurrence_dates = generate_recurrence_dates(request.planned_for, request.rrule)
+                generate_recurrence_dates(request.planned_for, request.rrule, max_instances=1)
             except RecurrenceValidationError as exc:
                 raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)) from exc
 
-            series_id = uuid4()
-            items = self.repository.add_planned_items([
+            series = self.repository.add_recurrence_series(
+                RecurrenceSeries(
+                    id=uuid4(),
+                    user_id=user_id,
+                    title=request.title,
+                    rrule=request.rrule,
+                    start_date=request.planned_for,
+                    time_of_day=request.time_of_day,
+                    duration_minutes=request.duration_minutes,
+                    notes=request.notes,
+                    module_key=request.module_key,
+                    recurrence_hint=request.recurrence_hint,
+                    linked_source=request.linked_source,
+                    linked_ref=request.linked_ref,
+                    priority=request.priority,
+                    tags=request.tags,
+                    materialized_through=request.planned_for,
+                )
+            )
+            item = self.repository.add_planned_item(
                 PlannedItem(
                     user_id=user_id,
                     title=request.title,
@@ -501,19 +550,18 @@ class TodayService:
                     module_key=request.module_key,
                     recurrence_hint=request.recurrence_hint,
                     rrule=request.rrule,
-                    recurrence_series_id=series_id,
+                    recurrence_series_id=series.id,
                     linked_source=request.linked_source,
                     linked_ref=request.linked_ref,
-                    planned_for=planned_for,
+                    planned_for=request.planned_for,
                     time_of_day=request.time_of_day,
                     duration_minutes=request.duration_minutes,
                     priority=request.priority,
                     tags=request.tags,
                     is_done=False,
                 )
-                for planned_for in recurrence_dates
-            ])
-            return self._planned_item_to_schema(items[0])
+            )
+            return self._planned_item_to_schema(item)
 
         item = self.repository.add_planned_item(
             PlannedItem(
@@ -558,6 +606,9 @@ class TodayService:
         return self._planned_item_to_schema(item)
 
     def list_planned_items(self, user_id: int, start_date: date | None = None, end_date: date | None = None, tags: list[str] | None = None) -> list[PlannedTodayItem]:
+        materialize_through = end_date or start_date
+        if materialize_through is not None:
+            self._materialize_planned_items_through(user_id=user_id, through_date=materialize_through)
         return [
             self._planned_item_to_schema(item)
             for item in self.repository.list_planned_items(user_id=user_id, start_date=start_date, end_date=end_date, tags=tags)

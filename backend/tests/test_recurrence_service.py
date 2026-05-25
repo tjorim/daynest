@@ -74,6 +74,31 @@ def test_invalid_rrule_raises_validation_error() -> None:
         generate_recurrence_dates(date(2026, 1, 1), "NOT_A_VALID_RRULE")
 
 
+def test_through_date_generation_is_inclusive() -> None:
+    start = date(2026, 5, 21)
+    dates = generate_recurrence_dates(start, "FREQ=DAILY;COUNT=3", through_date=date(2026, 5, 23))
+    assert dates == [date(2026, 5, 21), date(2026, 5, 22), date(2026, 5, 23)]
+
+
+def test_through_date_generation_returns_empty_when_rule_is_exhausted() -> None:
+    dates = generate_recurrence_dates(
+        date(2026, 6, 1),
+        "FREQ=DAILY;UNTIL=20260101T000000Z",
+        through_date=date(2026, 6, 7),
+    )
+    assert dates == []
+
+
+def test_through_date_generation_keeps_original_dtstart_for_count_rules() -> None:
+    dates = generate_recurrence_dates(
+        date(2026, 5, 22),
+        "FREQ=WEEKLY;COUNT=4",
+        dtstart=date(2026, 5, 21),
+        through_date=date(2026, 6, 30),
+    )
+    assert dates == [date(2026, 5, 28), date(2026, 6, 4), date(2026, 6, 11)]
+
+
 def test_exhausted_rule_returns_start_date() -> None:
     """A rule with UNTIL before start returns [start_date] as fallback."""
     # UNTIL in the past relative to start_date → no occurrences
