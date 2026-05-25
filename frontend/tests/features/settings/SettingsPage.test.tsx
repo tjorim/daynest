@@ -207,8 +207,8 @@ describe("SettingsPage", () => {
     const minutesInput = await screen.findByLabelText(/medication reminder \(minutes before\)/i);
     await user.clear(minutesInput);
     await user.type(minutesInput, "45");
-    await user.type(screen.getByPlaceholderText("From"), "22:00");
-    await user.type(screen.getByPlaceholderText("To"), "07:00");
+    await user.type(screen.getByLabelText(/^from$/i), "22:00");
+    await user.type(screen.getByLabelText(/^to$/i), "07:00");
     await user.click(screen.getByRole("button", { name: /apply notification preferences/i }));
 
     await waitFor(() => {

@@ -10,6 +10,6 @@ export default defineConfig({
   webServer: {
     command: "corepack pnpm preview",
     url: "http://localhost:4173",
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: true,
   },
 });

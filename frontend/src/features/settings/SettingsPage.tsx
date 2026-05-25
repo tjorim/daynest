@@ -83,6 +83,9 @@ export function SettingsPage() {
   const [pushOverdueChores, setPushOverdueChores] = useState(true);
   const [pushMedicationReminders, setPushMedicationReminders] = useState(true);
   const [pushMissedMedications, setPushMissedMedications] = useState(true);
+  const [serverConfirmedOverdue, setServerConfirmedOverdue] = useState(true);
+  const [serverConfirmedMedReminders, setServerConfirmedMedReminders] = useState(true);
+  const [serverConfirmedMissedMed, setServerConfirmedMissedMed] = useState(true);
   const [medicationReminderMinutes, setMedicationReminderMinutes] = useState(30);
   const [quietHoursStart, setQuietHoursStart] = useState("");
   const [quietHoursEnd, setQuietHoursEnd] = useState("");
@@ -256,6 +259,9 @@ export function SettingsPage() {
           setPushOverdueChores(overdueEnabled);
           setPushMedicationReminders(medRemindersEnabled);
           setPushMissedMedications(missedMedEnabled);
+          setServerConfirmedOverdue(overdueEnabled);
+          setServerConfirmedMedReminders(medRemindersEnabled);
+          setServerConfirmedMissedMed(missedMedEnabled);
           setMedicationReminderMinutes(settings.medication_reminder_minutes ?? 30);
           setQuietHoursStart(settings.quiet_hours_start ?? "");
           setQuietHoursEnd(settings.quiet_hours_end ?? "");
@@ -303,11 +309,20 @@ export function SettingsPage() {
     if (field === "push_medication_reminders_enabled") setPushMedicationReminders(checked);
     if (field === "push_missed_medications_enabled") setPushMissedMedications(checked);
 
+    const serverValue =
+      field === "push_overdue_chores_enabled" ? serverConfirmedOverdue :
+      field === "push_medication_reminders_enabled" ? serverConfirmedMedReminders :
+      serverConfirmedMissedMed;
+    if (checked === serverValue) return;
+
     const prevOverdue = pushOverdueChores;
     const prevMed = pushMedicationReminders;
     const prevMissed = pushMissedMedications;
     try {
       await updateUserSettings({ [field]: checked } as UserSettingsPatch);
+      if (field === "push_overdue_chores_enabled") setServerConfirmedOverdue(checked);
+      if (field === "push_medication_reminders_enabled") setServerConfirmedMedReminders(checked);
+      if (field === "push_missed_medications_enabled") setServerConfirmedMissedMed(checked);
     } catch (err) {
       setPushOverdueChores(prevOverdue);
       setPushMedicationReminders(prevMed);
