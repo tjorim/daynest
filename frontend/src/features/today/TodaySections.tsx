@@ -174,8 +174,8 @@ export function buildPlannedItems(items: PlannedTodayItem[]): SectionItem[] {
     title: item.time_of_day ? `${item.time_of_day.slice(0, 5)} · ${item.title}` : item.title,
     subtitle: formatSubtitle(
       item.is_done
-        ? m.today_planned_done_for({ date: item.planned_for })
-        : m.today_planned_for({ date: item.planned_for }),
+        ? m.today_planned_done_for({ date: formatDate(item.planned_for) })
+        : m.today_planned_for({ date: formatDate(item.planned_for) }),
       item.module_key ? m.today_planned_module({ key: item.module_key }) : undefined,
     ),
     instructions: item.notes ?? undefined,
@@ -242,7 +242,7 @@ export function WebFocusPanel({ sections }: { sections: TodaySection[] }) {
         <div
           className="progress my-3"
           role="progressbar"
-          aria-label="Today completion"
+          aria-label={m.today_completion()}
           aria-valuenow={completionPercent}
           aria-valuemin={0}
           aria-valuemax={100}
@@ -588,17 +588,17 @@ export function SectionCard({
     if (failureCount === 0) {
       setBulkFeedback({
         tone: "success",
-        text: `${action.label} applied to ${successCount} ${successCount === 1 ? "item" : "items"}.`,
+        text: m.today_bulk_action_success({ action: action.label, count: successCount }),
       });
     } else if (successCount === 0) {
       setBulkFeedback({
         tone: "danger",
-        text: `${action.label} failed for all ${failureCount} selected ${failureCount === 1 ? "item" : "items"}.`,
+        text: m.today_bulk_action_failed({ action: action.label, count: failureCount }),
       });
     } else {
       setBulkFeedback({
         tone: "warning",
-        text: `${action.label} updated ${successCount} ${successCount === 1 ? "item" : "items"} and failed for ${failureCount}.`,
+        text: m.today_bulk_action_partial({ action: action.label, successCount, failureCount }),
       });
     }
 
@@ -667,7 +667,7 @@ export function SectionCard({
                     type="checkbox"
                     checked={selectedIds.includes(item.id)}
                     disabled={isBulkSubmitting}
-                    aria-label={`Select ${item.title}`}
+                    aria-label={m.today_select_item({ title: item.title })}
                     onChange={() => toggleSelected(item.id)}
                   />
                 ) : null}

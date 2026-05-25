@@ -83,11 +83,6 @@ export function SettingsPage() {
   const [pushOverdueChores, setPushOverdueChores] = useState(true);
   const [pushMedicationReminders, setPushMedicationReminders] = useState(true);
   const [pushMissedMedications, setPushMissedMedications] = useState(true);
-  const [serverPushSettings, setServerPushSettings] = useState({
-    push_overdue_chores_enabled: true,
-    push_medication_reminders_enabled: true,
-    push_missed_medications_enabled: true,
-  });
   const [medicationReminderMinutes, setMedicationReminderMinutes] = useState(30);
   const [quietHoursStart, setQuietHoursStart] = useState("");
   const [quietHoursEnd, setQuietHoursEnd] = useState("");
@@ -261,11 +256,6 @@ export function SettingsPage() {
           setPushOverdueChores(overdueEnabled);
           setPushMedicationReminders(medRemindersEnabled);
           setPushMissedMedications(missedMedEnabled);
-          setServerPushSettings({
-            push_overdue_chores_enabled: overdueEnabled,
-            push_medication_reminders_enabled: medRemindersEnabled,
-            push_missed_medications_enabled: missedMedEnabled,
-          });
           setMedicationReminderMinutes(settings.medication_reminder_minutes ?? 30);
           setQuietHoursStart(settings.quiet_hours_start ?? "");
           setQuietHoursEnd(settings.quiet_hours_end ?? "");
@@ -313,15 +303,11 @@ export function SettingsPage() {
     if (field === "push_medication_reminders_enabled") setPushMedicationReminders(checked);
     if (field === "push_missed_medications_enabled") setPushMissedMedications(checked);
 
-    // No-op: value was toggled back to the server-confirmed state
-    if (checked === serverPushSettings[field]) return;
-
     const prevOverdue = pushOverdueChores;
     const prevMed = pushMedicationReminders;
     const prevMissed = pushMissedMedications;
     try {
       await updateUserSettings({ [field]: checked } as UserSettingsPatch);
-      setServerPushSettings((prev) => ({ ...prev, [field]: checked }));
     } catch (err) {
       setPushOverdueChores(prevOverdue);
       setPushMedicationReminders(prevMed);
@@ -531,7 +517,7 @@ export function SettingsPage() {
               </select>
               <label className="form-label small fw-semibold mb-1">{m.settings_timezone()}</label>
               {timezoneLoading ? (
-                <div className="text-muted small">Loading…</div>
+                <div className="text-muted small">{m.settings_timezone_loading()}</div>
               ) : (
                 <div className="d-flex gap-2 flex-wrap">
                   <select
@@ -633,20 +619,30 @@ export function SettingsPage() {
 
               <label className="form-label small fw-semibold">{m.settings_quiet_hours()}</label>
               <div className="d-flex gap-2">
-                <input
-                  type="time"
-                  className="form-control"
-                  value={quietHoursStart}
-                  onChange={(e) => setQuietHoursStart(e.target.value)}
-                  placeholder={m.settings_quiet_hours_from()}
-                />
-                <input
-                  type="time"
-                  className="form-control"
-                  value={quietHoursEnd}
-                  onChange={(e) => setQuietHoursEnd(e.target.value)}
-                  placeholder={m.settings_quiet_hours_to()}
-                />
+                <div className="flex-fill">
+                  <label htmlFor="quietHoursStart" className="form-label small mb-1">
+                    {m.settings_quiet_hours_from()}
+                  </label>
+                  <input
+                    id="quietHoursStart"
+                    type="time"
+                    className="form-control"
+                    value={quietHoursStart}
+                    onChange={(e) => setQuietHoursStart(e.target.value)}
+                  />
+                </div>
+                <div className="flex-fill">
+                  <label htmlFor="quietHoursEnd" className="form-label small mb-1">
+                    {m.settings_quiet_hours_to()}
+                  </label>
+                  <input
+                    id="quietHoursEnd"
+                    type="time"
+                    className="form-control"
+                    value={quietHoursEnd}
+                    onChange={(e) => setQuietHoursEnd(e.target.value)}
+                  />
+                </div>
               </div>
 
               <button

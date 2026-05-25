@@ -35,6 +35,7 @@ vi.mock("@/app/pwa/installPrompt", () => ({
 
 describe("SettingsPage", () => {
   beforeEach(() => {
+    localStorage.removeItem("daynest_lang");
     setLocale("en");
     apiMock.createIntegrationClient.mockReset();
     apiMock.listIntegrationClients.mockReset();

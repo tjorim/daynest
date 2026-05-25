@@ -101,7 +101,7 @@ export function CalendarPage() {
         onCurrentMonth={() => setCurrentMonth(dayjs())}
         onNextMonth={() => setCurrentMonth(currentMonth.add(1, "month"))}
       />
-      <p className="text-muted">{formatMonthYear(monthStart)} unified month/day planning view.</p>
+      <p className="text-muted">{formatMonthYear(monthStart)} {m.calendar_subtitle()}</p>
 
       {loading ? <div className="alert alert-info py-2">{m.calendar_loading()}</div> : null}
       {error ? (

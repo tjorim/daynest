@@ -79,7 +79,7 @@ function App() {
     <main className="container py-3 py-md-4">
       {!isOnline ? (
         <div className="alert alert-warning py-2 mb-3 d-flex align-items-center gap-2">
-          <span>⚠️ You are offline.</span>
+          <span>⚠️ {m.app_offline_banner()}</span>
           {queuedCount > 0 ? (
             <span className="text-muted small">
               {m.app_offline_queued({ count: queuedCount })}

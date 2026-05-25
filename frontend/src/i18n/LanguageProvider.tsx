@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { createContext, useContext, useState, useCallback } from "react";
 import { setLocale, getLocale } from "@/paraglide/runtime";
 import type { Locale } from "@/paraglide/runtime";
 
@@ -22,11 +22,11 @@ const LanguageContext = createContext<LanguageContextValue>({
 });
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const [language, setLanguageState] = useState<Locale>(detectLanguage);
-
-  useEffect(() => {
-    setLocale(language, { reload: false });
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const [language, setLanguageState] = useState<Locale>(() => {
+    const initial = detectLanguage();
+    setLocale(initial, { reload: false });
+    return initial;
+  });
 
   const setLanguage = useCallback((tag: Locale) => {
     setLocale(tag, { reload: false });
