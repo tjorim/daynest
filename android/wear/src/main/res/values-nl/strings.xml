@@ -1,0 +1,17 @@
+<resources>
+    <string name="app_name">Daynest Wear</string>
+    <string name="wear_title">Daynest Vandaag</string>
+    <string name="wear_error">Kan gegevens voor je horloge niet laden.</string>
+    <string name="wear_completion_percent">Klaar: %1$d%%</string>
+    <string name="wear_completion_short">%1$d%% klaar</string>
+    <string name="wear_overdue_count">Achterstallig: %1$d</string>
+    <string name="wear_overdue_short">%1$d achterstallig</string>
+    <string name="wear_next_medication">Volgende medicatie: %1$s</string>
+    <string name="wear_next_medication_none">Geen aankomende medicatie</string>
+    <string name="home_retry">Opnieuw proberen</string>
+    <string name="home_stale_notice">Gecachte gegevens worden weergegeven.</string>
+    <string name="home_all_caught_up">Je bent helemaal bijgewerkt voor vandaag.</string>
+    <string name="home_action_complete">Voltooien</string>
+    <string name="action_take">Innemen</string>
+    <string name="action_refresh">Vernieuwen</string>
+</resources>
