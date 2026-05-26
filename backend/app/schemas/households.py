@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, EmailStr, Field
 
 from app.core.enums import HouseholdMemberRole
 
@@ -29,4 +29,4 @@ class HouseholdResponse(BaseModel):
 
 
 class InviteRequest(BaseModel):
-    email: str = Field(..., description="Email of the user to invite")
+    email: EmailStr = Field(..., description="Email of the user to invite")

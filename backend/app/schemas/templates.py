@@ -1,6 +1,6 @@
 from datetime import date, datetime, time
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, PositiveInt
 
 from app.core.enums import Priority
 
@@ -37,7 +37,7 @@ class ChoreTemplateBase(BaseModel):
     priority: Priority = Priority.normal
     tags: list[str] = Field(default_factory=list)
     is_active: bool = True
-    household_id: int | None = None
+    household_id: PositiveInt | None = None
 
 
 class ChoreTemplateCreateRequest(ChoreTemplateBase):

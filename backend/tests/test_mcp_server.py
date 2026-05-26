@@ -237,7 +237,7 @@ def test_mcp_backend_can_get_scheduling_suggestions(db_session: Session) -> None
     db_session.commit()
 
     backend = DaynestMcpBackend(_session_factory(db_session), user_email=user.email)
-    payload = backend.get_scheduling_suggestions()
+    payload = backend.get_scheduling_suggestions(utc_today.isoformat())
 
     assert payload["for_date"] == utc_today.isoformat()
     assert any(item["suggestion_type"] == "chore_reschedule" for item in payload["suggestions"])

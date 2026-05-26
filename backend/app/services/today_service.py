@@ -925,6 +925,7 @@ class TodayService:
             scheduled_date=instance.scheduled_date,
             completed_at=instance.completed_at,
             skipped_at=instance.skipped_at,
+            assigned_to=instance.assigned_to,
             completed_by=instance.completed_by,
         )
 

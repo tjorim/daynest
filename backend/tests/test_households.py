@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.api.dependencies.auth import get_current_user
 from app.main import app
+from app.models.chore_instance import ChoreInstance
 from app.models.user import User
 from app.core.enums import HouseholdMemberRole
 
@@ -390,6 +391,13 @@ def test_assign_chore(client: TestClient, db_session: Session) -> None:
         json={"assigned_to": member.id},
     )
     assert response.status_code == 200
+    assert response.json()["assigned_to"] == member.id
+
+    # Verify persisted state
+    db_session.expire_all()
+    instance = db_session.get(ChoreInstance, chore_instance_id)
+    assert instance is not None
+    assert instance.assigned_to == member.id
 
 
 def test_assign_household_chore_rejects_non_member(client: TestClient, db_session: Session) -> None:

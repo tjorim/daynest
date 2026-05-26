@@ -170,6 +170,8 @@ def assign_chore(
         assigned_to=request.assigned_to,
     )
     event_bus.publish(current_user.id, {"type": "today_updated"})
+    if request.assigned_to is not None and request.assigned_to != current_user.id:
+        event_bus.publish(request.assigned_to, {"type": "today_updated"})
     return result
 
 

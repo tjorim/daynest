@@ -169,6 +169,7 @@ class ChoreInstanceMutationResponse(BaseModel):
     scheduled_date: date
     completed_at: datetime | None = None
     skipped_at: datetime | None = None
+    assigned_to: int | None = None
     completed_by: int | None = None
 
 

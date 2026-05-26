@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Response, status
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.api.dependencies.auth import get_current_user
@@ -120,7 +121,11 @@ def invite_member(
     if existing is not None:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="User is already a member of this household")
 
-    new_membership = repo.add_member(household, invitee)
+    try:
+        new_membership = repo.add_member(household, invitee)
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="User is already a member of this household")
     return HouseholdMemberResponse(
         user_id=invitee.id,
         email=invitee.email,
