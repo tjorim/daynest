@@ -398,3 +398,150 @@ def test_analytics_suggestions_include_chore_medication_and_load_balancing(clien
     assert "chore_reschedule" in suggestion_types
     assert "medication_reminder_adjustment" in suggestion_types
     assert "load_balancing" in suggestion_types
+
+
+def test_load_balancing_suggestions_ignore_completed_items(client: TestClient, db_session: Session) -> None:
+    user = _create_user(db_session, email="analytics-load-completed@example.com")
+    today = date.today()
+    chore_templates = [
+        ChoreTemplate(
+            user_id=user.id,
+            name=f"Completed chore {i}",
+            description=None,
+            start_date=today,
+            every_n_days=1,
+            is_active=True,
+        )
+        for i in range(8)
+    ]
+    db_session.add_all(chore_templates)
+    db_session.commit()
+    for chore_template in chore_templates:
+        db_session.refresh(chore_template)
+
+    for chore_template in chore_templates:
+        _add_chore(db_session, user, chore_template, today, ChoreStatus.completed)
+    db_session.commit()
+
+    _auth_as(user)
+    try:
+        response = client.get("/api/v1/analytics/suggestions")
+    finally:
+        _clear_auth()
+
+    assert response.status_code == 200
+    suggestion_types = {item["suggestion_type"] for item in response.json()["suggestions"]}
+    assert "load_balancing" not in suggestion_types
+
+
+def test_load_balancing_suggestions_consider_empty_target_days(client: TestClient, db_session: Session) -> None:
+    user = _create_user(db_session, email="analytics-load-empty-days@example.com")
+    today = date.today()
+    overloaded_day = today + timedelta(days=1)
+    db_session.add_all(
+        [
+            PlannedItem(user_id=user.id, title=f"Overload {i}", planned_for=overloaded_day, is_done=False)
+            for i in range(8)
+        ]
+    )
+    db_session.commit()
+
+    _auth_as(user)
+    try:
+        response = client.get("/api/v1/analytics/suggestions")
+    finally:
+        _clear_auth()
+
+    assert response.status_code == 200
+    load_suggestion = next(
+        item for item in response.json()["suggestions"] if item["suggestion_type"] == "load_balancing"
+    )
+    assert load_suggestion["metadata"]["target_count"] == 0
+    assert load_suggestion["metadata"]["target_date"] != overloaded_day.isoformat()
+
+
+def test_load_balancing_move_count_does_not_overload_target(client: TestClient, db_session: Session) -> None:
+    user = _create_user(db_session, email="analytics-load-move-count@example.com")
+    today = date.today()
+    overloaded_day = today
+    db_session.add_all(
+        [
+            PlannedItem(user_id=user.id, title=f"Overload {i}", planned_for=overloaded_day, is_done=False)
+            for i in range(8)
+        ]
+        + [
+            PlannedItem(
+                user_id=user.id,
+                title=f"Target {day}-{i}",
+                planned_for=today + timedelta(days=day),
+                is_done=False,
+            )
+            for day in range(1, 7)
+            for i in range(5)
+        ]
+    )
+    db_session.commit()
+
+    _auth_as(user)
+    try:
+        response = client.get("/api/v1/analytics/suggestions")
+    finally:
+        _clear_auth()
+
+    assert response.status_code == 200
+    load_suggestion = next(
+        item for item in response.json()["suggestions"] if item["suggestion_type"] == "load_balancing"
+    )
+    assert load_suggestion["metadata"]["target_count"] == 5
+    assert load_suggestion["metadata"]["move_count"] == 1
+
+
+def test_medication_suggestion_uses_plan_schedule_time(client: TestClient, db_session: Session) -> None:
+    user = _create_user(db_session, email="analytics-medication-local-time@example.com")
+    today = date.today()
+    medication_plan = MedicationPlan(
+        user_id=user.id,
+        name="Vitamin B",
+        instructions="Take with breakfast",
+        start_date=today - timedelta(days=7),
+        schedule_time=time(9, 0),
+        every_n_days=1,
+        is_active=True,
+    )
+    db_session.add(medication_plan)
+    db_session.commit()
+    db_session.refresh(medication_plan)
+
+    for offset, status in enumerate(
+        [
+            MedicationDoseStatus.missed,
+            MedicationDoseStatus.skipped,
+            MedicationDoseStatus.missed,
+            MedicationDoseStatus.taken,
+        ]
+    ):
+        scheduled_date = today - timedelta(days=offset)
+        db_session.add(
+            MedicationDoseInstance(
+                user_id=user.id,
+                medication_plan_id=medication_plan.id,
+                name=medication_plan.name,
+                instructions=medication_plan.instructions,
+                scheduled_date=scheduled_date,
+                scheduled_at=datetime.combine(scheduled_date, time(7, 0), tzinfo=timezone.utc),
+                status=status,
+            )
+        )
+    db_session.commit()
+
+    _auth_as(user)
+    try:
+        response = client.get("/api/v1/analytics/suggestions")
+    finally:
+        _clear_auth()
+
+    assert response.status_code == 200
+    medication_suggestion = next(
+        item for item in response.json()["suggestions"] if item["suggestion_type"] == "medication_reminder_adjustment"
+    )
+    assert medication_suggestion["metadata"]["current_time"] == "09:00"

@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 
 from sqlalchemy import case, func, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.core.enums import ChoreStatus, MedicationDoseStatus, TaskStatus
 from app.models.chore_instance import ChoreInstance
@@ -373,6 +373,7 @@ def get_scheduling_suggestions(db: Session, user_id: int, for_date: date) -> lis
 
     medication_rows = db.scalars(
         select(MedicationDoseInstance)
+        .options(joinedload(MedicationDoseInstance.medication_plan))
         .where(MedicationDoseInstance.user_id == user_id)
         .where(MedicationDoseInstance.scheduled_date >= lookback_start)
         .where(MedicationDoseInstance.scheduled_date <= for_date)
@@ -381,7 +382,7 @@ def get_scheduling_suggestions(db: Session, user_id: int, for_date: date) -> lis
     for dose in medication_rows:
         item = medication_counts[dose.medication_plan_id]
         item.name = dose.name
-        item.time_label = dose.scheduled_at.strftime("%H:%M")
+        item.time_label = dose.medication_plan.schedule_time.strftime("%H:%M")
         item.total += 1
         if dose.status == MedicationDoseStatus.taken:
             item.taken += 1
@@ -425,12 +426,13 @@ def get_scheduling_suggestions(db: Session, user_id: int, for_date: date) -> lis
         )
 
     window_end = for_date + timedelta(days=6)
-    day_totals: dict[date, int] = defaultdict(int)
+    day_totals: dict[date, int] = {for_date + timedelta(days=i): 0 for i in range(7)}
     for scheduled_date, count in db.execute(
         select(ChoreInstance.scheduled_date, func.count(ChoreInstance.id))
         .where(ChoreInstance.user_id == user_id)
         .where(ChoreInstance.scheduled_date >= for_date)
         .where(ChoreInstance.scheduled_date <= window_end)
+        .where(ChoreInstance.status == ChoreStatus.pending)
         .group_by(ChoreInstance.scheduled_date)
     ).all():
         day_totals[scheduled_date] += int(count)
@@ -439,6 +441,7 @@ def get_scheduling_suggestions(db: Session, user_id: int, for_date: date) -> lis
         .where(TaskInstance.user_id == user_id)
         .where(TaskInstance.scheduled_date >= for_date)
         .where(TaskInstance.scheduled_date <= window_end)
+        .where(TaskInstance.status.in_([TaskStatus.pending, TaskStatus.in_progress]))
         .group_by(TaskInstance.scheduled_date)
     ).all():
         day_totals[scheduled_date] += int(count)
@@ -447,6 +450,7 @@ def get_scheduling_suggestions(db: Session, user_id: int, for_date: date) -> lis
         .where(MedicationDoseInstance.user_id == user_id)
         .where(MedicationDoseInstance.scheduled_date >= for_date)
         .where(MedicationDoseInstance.scheduled_date <= window_end)
+        .where(MedicationDoseInstance.status == MedicationDoseStatus.scheduled)
         .group_by(MedicationDoseInstance.scheduled_date)
     ).all():
         day_totals[scheduled_date] += int(count)
@@ -469,7 +473,7 @@ def get_scheduling_suggestions(db: Session, user_id: int, for_date: date) -> lis
         ]
         if overloaded_count >= _OVERLOAD_THRESHOLD and candidate_days:
             target_day, target_count = min(candidate_days, key=lambda item: item[1])
-            move_count = min(_OVERLOAD_MOVE_COUNT, overloaded_count - target_count)
+            move_count = min(_OVERLOAD_MOVE_COUNT, (overloaded_count - target_count) // 2)
             if move_count > 0:
                 suggestions.append(
                     SchedulingSuggestion(
