@@ -203,6 +203,22 @@
 
     <string name="parity_more_coming">Native bewerkingsbediening blijft groeien vanuit dezelfde gedeelde API-contracten.</string>
 
+    <!-- Startscherm-widgets -->
+    <string name="widget_small_label">Daynest (klein)</string>
+    <string name="widget_medium_label">Daynest (middel)</string>
+    <string name="widget_small_description">Toont het voltooiingspercentage en het aantal achterstallige items van vandaag.</string>
+    <string name="widget_medium_description">Toont de voortgangsbalk, achterstallige items, volgende medicatie en de top te-doen items van vandaag.</string>
+    <string name="widget_title">Vandaag</string>
+    <string name="widget_no_data">Open Daynest om te synchroniseren</string>
+    <string name="widget_completion_percent">%1$d%%</string>
+    <string name="widget_completion_done">%1$d%% klaar</string>
+    <string name="widget_medication_chip">💊 %1$s</string>
+    <string name="widget_due_item">• %1$s</string>
+    <plurals name="widget_overdue_count">
+        <item quantity="one">⚠ %1$d achterstallig</item>
+        <item quantity="other">⚠ %1$d achterstallig</item>
+    </plurals>
+
     <plurals name="home_items_remaining">
         <item quantity="one">Je hebt nog %1$d item te verwerken vandaag.</item>
         <item quantity="other">Je hebt nog %1$d items te verwerken vandaag.</item>
