@@ -30,9 +30,13 @@ class DaynestComplicationDataSourceService : SuspendingComplicationDataSourceSer
     }
 
     override fun getPreviewData(type: ComplicationType): ComplicationData? =
-        shortTextComplication(getString(R.string.wear_completion_short, 75))
+        shortTextComplication(getString(R.string.wear_completion_short, PREVIEW_COMPLETION_PERCENT))
 
     private fun shortTextComplication(text: String): ComplicationData {
+        val contentDescription =
+            PlainComplicationText
+                .Builder(getString(R.string.wear_title))
+                .build()
         val openIntent =
             PendingIntent.getActivity(
                 this,
@@ -40,13 +44,19 @@ class DaynestComplicationDataSourceService : SuspendingComplicationDataSourceSer
                 Intent(this, WearCompanionActivity::class.java),
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
             )
-        return ShortTextComplicationData.Builder(
-            text = PlainComplicationText.Builder(text).build(),
-            contentDescription = PlainComplicationText.Builder(getString(R.string.wear_title)).build(),
-        ).setTapAction(openIntent).build()
+        return ShortTextComplicationData
+            .Builder(
+                text = PlainComplicationText.Builder(text).build(),
+                contentDescription = contentDescription,
+            ).setTapAction(openIntent)
+            .build()
     }
 
-    private suspend fun loadSnapshot(): WearTodaySnapshot? {
-        return todayRepository.getCachedTodayResponse()?.toWearTodaySnapshot()
+    private suspend fun loadSnapshot(): WearTodaySnapshot? = cachedToday()?.toWearTodaySnapshot()
+
+    private suspend fun cachedToday() = todayRepository.getCachedTodayResponse()
+
+    private companion object {
+        const val PREVIEW_COMPLETION_PERCENT = 75
     }
 }

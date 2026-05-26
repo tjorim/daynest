@@ -64,101 +64,118 @@ private fun WearCompanionScreen(
     onComplete: (WearDueItem) -> Unit,
 ) {
     when (uiState) {
-        WearCompanionUiState.Loading ->
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center,
-            ) {
-                CircularProgressIndicator()
-            }
+        WearCompanionUiState.Loading -> WearLoadingContent()
 
-        WearCompanionUiState.Error ->
-            Column(
-                modifier =
-                    Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 24.dp),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Text(text = stringResource(id = R.string.wear_error))
-                Chip(
-                    onClick = onRefresh,
-                    label = { Text(text = stringResource(id = R.string.home_retry)) },
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(top = 12.dp),
-                )
-            }
+        WearCompanionUiState.Error -> WearErrorContent(onRefresh = onRefresh)
 
-        is WearCompanionUiState.Content -> {
-            val snapshot = uiState.snapshot
-            ScalingLazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 28.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                item {
-                    Text(
-                        text = stringResource(id = R.string.wear_title),
-                        style = MaterialTheme.typography.title3,
-                        fontWeight = FontWeight.Bold,
-                    )
-                }
-                item {
-                    Text(
-                        text =
-                            stringResource(
-                                id = R.string.wear_completion_percent,
-                                snapshot.completionPercent,
-                            ),
-                    )
-                }
-                item {
-                    Text(
-                        text =
-                            stringResource(
-                                id = R.string.wear_overdue_count,
-                                snapshot.overdueCount,
-                            ),
-                    )
-                }
-                item {
-                    Text(
-                        text =
-                            snapshot.nextMedication?.let {
-                                stringResource(id = R.string.wear_next_medication, it)
-                            } ?: stringResource(id = R.string.wear_next_medication_none),
-                    )
-                }
-                if (uiState.isStale) {
-                    item {
-                        Text(
-                            text = stringResource(id = R.string.home_stale_notice),
-                            style = MaterialTheme.typography.caption2,
-                        )
-                    }
-                }
-                if (snapshot.dueItems.isEmpty()) {
-                    item {
-                        Text(text = stringResource(id = R.string.home_all_caught_up))
-                    }
-                } else {
-                    items(snapshot.dueItems, key = { "${it.type}_${it.id}" }) { item ->
-                        WearDueItemRow(item = item, onComplete = { onComplete(item) })
-                    }
-                }
-                item {
-                    Chip(
-                        onClick = onRefresh,
-                        label = { Text(text = stringResource(id = R.string.action_refresh)) },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
+        is WearCompanionUiState.Content ->
+            WearContentList(
+                uiState = uiState,
+                onRefresh = onRefresh,
+                onComplete = onComplete,
+            )
+    }
+}
+
+@Composable
+private fun WearLoadingContent() {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center,
+    ) {
+        CircularProgressIndicator()
+    }
+}
+
+@Composable
+private fun WearErrorContent(onRefresh: () -> Unit) {
+    Column(
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .padding(horizontal = 24.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(text = stringResource(id = R.string.wear_error))
+        Chip(
+            onClick = onRefresh,
+            label = { Text(text = stringResource(id = R.string.home_retry)) },
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(top = 12.dp),
+        )
+    }
+}
+
+@Composable
+private fun WearContentList(
+    uiState: WearCompanionUiState.Content,
+    onRefresh: () -> Unit,
+    onComplete: (WearDueItem) -> Unit,
+) {
+    ScalingLazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 28.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        item { WearSummary(snapshot = uiState.snapshot) }
+        if (uiState.isStale) {
+            item { WearStaleNotice() }
+        }
+        if (uiState.snapshot.dueItems.isEmpty()) {
+            item { Text(text = stringResource(id = R.string.home_all_caught_up)) }
+        } else {
+            items(uiState.snapshot.dueItems, key = { "${it.type}_${it.id}" }) { item ->
+                WearDueItemRow(item = item, onComplete = { onComplete(item) })
             }
         }
+        item {
+            Chip(
+                onClick = onRefresh,
+                label = { Text(text = stringResource(id = R.string.action_refresh)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
     }
+}
+
+@Composable
+private fun WearSummary(snapshot: WearTodaySnapshot) {
+    Text(
+        text = stringResource(id = R.string.wear_title),
+        style = MaterialTheme.typography.title3,
+        fontWeight = FontWeight.Bold,
+    )
+    Text(
+        text =
+            stringResource(
+                id = R.string.wear_completion_percent,
+                snapshot.completionPercent,
+            ),
+    )
+    Text(
+        text =
+            stringResource(
+                id = R.string.wear_overdue_count,
+                snapshot.overdueCount,
+            ),
+    )
+    Text(
+        text =
+            snapshot.nextMedication?.let {
+                stringResource(id = R.string.wear_next_medication, it)
+            } ?: stringResource(id = R.string.wear_next_medication_none),
+    )
+}
+
+@Composable
+private fun WearStaleNotice() {
+    Text(
+        text = stringResource(id = R.string.home_stale_notice),
+        style = MaterialTheme.typography.caption2,
+    )
 }
 
 @Composable

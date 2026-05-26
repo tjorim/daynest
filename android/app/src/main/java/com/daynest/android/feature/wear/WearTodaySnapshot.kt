@@ -22,74 +22,88 @@ enum class WearDueItemType {
     MEDICATION,
 }
 
-fun TodayResponseDto.toWearTodaySnapshot(): WearTodaySnapshot {
-    val totalCount = routines.size + dueToday.size + overdue.size + medication.size
+fun TodayResponseDto.toWearTodaySnapshot(): WearTodaySnapshot =
+    WearTodaySnapshot(
+        completionPercent = completionPercent(),
+        overdueCount = overdue.count { !it.status.isDoneStatus() },
+        nextMedication = nextMedicationName(),
+        dueItems = dueItems(),
+    )
+
+private fun TodayResponseDto.completionPercent(): Int {
+    val totalCount =
+        routines.size +
+            dueToday.size +
+            overdue.count { !it.status.isDoneStatus() } +
+            medication.size
     val completedCount =
         routines.count { it.status.isDoneStatus() } +
             dueToday.count { it.status.isDoneStatus() } +
             overdue.count { it.status.isDoneStatus() } +
             medication.count { it.status.isMedicationDoneStatus() }
-    val completionPercent =
-        if (totalCount == 0) {
-            100
-        } else {
-            ((completedCount.toFloat() / totalCount.toFloat()) * 100f).roundToInt().coerceIn(0, 100)
-        }
-    val overdueCount = overdue.count { !it.status.isDoneStatus() }
-    val nextMedication =
-        medication
-            .filter { !it.status.isMedicationDoneStatus() }
-            .minByOrNull { it.scheduledAt.ifBlank { "9999-99-99T99:99:99" } }
-            ?.name
-    val dueItems =
-        buildList {
-            overdue
-                .filter { !it.status.isDoneStatus() }
-                .forEach { item ->
-                    add(
-                        WearDueItem(
-                            type = WearDueItemType.CHORE,
-                            id = item.choreInstanceId,
-                            title = item.title,
-                            subtitle = item.overdueSince.takeIf { it.isNotBlank() },
-                        ),
-                    )
-                }
-            dueToday
-                .filter { !it.status.isDoneStatus() }
-                .forEach { item ->
-                    add(
-                        WearDueItem(
-                            type = WearDueItemType.CHORE,
-                            id = item.choreInstanceId,
-                            title = item.title,
-                            subtitle = item.scheduledDate.takeIf { it.isNotBlank() },
-                        ),
-                    )
-                }
-            medication
-                .filter { !it.status.isMedicationDoneStatus() }
-                .forEach { item ->
-                    add(
-                        WearDueItem(
-                            type = WearDueItemType.MEDICATION,
-                            id = item.medicationDoseInstanceId,
-                            title = item.name,
-                            subtitle = item.scheduledAt.takeIf { it.isNotBlank() },
-                        ),
-                    )
-                }
-        }
-    return WearTodaySnapshot(
-        completionPercent = completionPercent,
-        overdueCount = overdueCount,
-        nextMedication = nextMedication,
-        dueItems = dueItems,
-    )
+    return if (totalCount == 0) {
+        FULL_COMPLETION_PERCENT
+    } else {
+        ((completedCount.toFloat() / totalCount.toFloat()) * FULL_COMPLETION_PERCENT_FLOAT)
+            .roundToInt()
+            .coerceIn(MIN_COMPLETION_PERCENT, FULL_COMPLETION_PERCENT)
+    }
 }
+
+private fun TodayResponseDto.nextMedicationName(): String? =
+    medication
+        .filter { !it.status.isMedicationDoneStatus() }
+        .minByOrNull { it.scheduledAt.ifBlank { LAST_SORT_KEY } }
+        ?.name
+
+private fun TodayResponseDto.dueItems(): List<WearDueItem> =
+    overdueChoreItems() +
+        dueTodayChoreItems() +
+        medicationItems()
+
+private fun TodayResponseDto.overdueChoreItems(): List<WearDueItem> =
+    overdue
+        .filter { !it.status.isDoneStatus() }
+        .map { item ->
+            WearDueItem(
+                type = WearDueItemType.CHORE,
+                id = item.choreInstanceId,
+                title = item.title,
+                subtitle = item.overdueSince.takeIf { it.isNotBlank() },
+            )
+        }
+
+private fun TodayResponseDto.dueTodayChoreItems(): List<WearDueItem> =
+    dueToday
+        .filter { !it.status.isDoneStatus() }
+        .map { item ->
+            WearDueItem(
+                type = WearDueItemType.CHORE,
+                id = item.choreInstanceId,
+                title = item.title,
+                subtitle = item.scheduledDate.takeIf { it.isNotBlank() },
+            )
+        }
+
+private fun TodayResponseDto.medicationItems(): List<WearDueItem> =
+    medication
+        .filter { !it.status.isMedicationDoneStatus() }
+        .map { item ->
+            WearDueItem(
+                type = WearDueItemType.MEDICATION,
+                id = item.medicationDoseInstanceId,
+                title = item.name,
+                subtitle = item.scheduledAt.takeIf { it.isNotBlank() },
+            )
+        }
 
 private fun String.isDoneStatus(): Boolean = equals("done", ignoreCase = true) || equals("completed", ignoreCase = true)
 
 private fun String.isMedicationDoneStatus(): Boolean =
     equals("taken", ignoreCase = true) ||
         equals("skipped", ignoreCase = true)
+
+private const val LAST_SORT_KEY = "9999-99-99T99:99:99"
+private const val MIN_COMPLETION_PERCENT = 0
+private const val FULL_COMPLETION_PERCENT = 100
+private const val FULL_COMPLETION_PERCENT_FLOAT = 100f

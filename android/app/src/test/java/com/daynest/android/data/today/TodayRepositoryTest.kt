@@ -7,6 +7,7 @@ import com.daynest.android.core.database.sync.PendingMutationDao
 import com.daynest.android.core.database.sync.PendingMutationEntity
 import com.daynest.android.core.database.today.TodaySummaryDao
 import com.daynest.android.core.database.today.TodaySummaryEntity
+import com.daynest.android.core.network.JsonSerializer
 import com.daynest.android.fakes.StubTodayActionsApi
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -36,10 +37,11 @@ class TodayRepositoryTest {
             cacheDao.upsert(
                 CacheEntryEntity(
                     cacheKey = "today_response",
-                    payload = com.daynest.android.core.network.JsonSerializer.config.encodeToString(
-                        TodayResponseDto.serializer(),
-                        expected,
-                    ),
+                    payload =
+                        JsonSerializer.config.encodeToString(
+                            TodayResponseDto.serializer(),
+                            expected,
+                        ),
                     updatedAtEpochMillis = 123L,
                 ),
             )

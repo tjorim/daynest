@@ -5,10 +5,6 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.READ_CALENDAR" />
     <uses-permission android:name="android.permission.WRITE_CALENDAR" />
-    <uses-feature
-        android:name="android.hardware.type.watch"
-        android:required="false" />
-
     <application
         android:name=".DaynestApplication"
         android:allowBackup="true"
@@ -20,6 +16,10 @@
         android:networkSecurityConfig="@xml/network_security_config"
         android:supportsRtl="true"
         android:theme="@style/Theme.NativeAndroidApp">
+        <meta-data
+            android:name="com.google.android.wearable.standalone"
+            android:value="false" />
+
         <provider
             android:name="androidx.startup.InitializationProvider"
             android:authorities="${applicationId}.androidx-startup"
@@ -94,7 +94,11 @@
             android:name=".feature.wear.WearCompanionMessageService"
             android:exported="true">
             <intent-filter>
-                <action android:name="com.google.android.gms.wearable.BIND_LISTENER" />
+                <action android:name="com.google.android.gms.wearable.MESSAGE_RECEIVED" />
+                <data
+                    android:host="*"
+                    android:pathPrefix="/daynest/actions"
+                    android:scheme="wear" />
             </intent-filter>
         </service>
         <receiver

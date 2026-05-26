@@ -39,7 +39,10 @@ class WearCompanionViewModel
                 val today = todayRepository.getCachedTodayResponse()
                 _uiState.value =
                     if (today != null) {
-                        WearCompanionUiState.Content(snapshot = today.toWearTodaySnapshot(), isStale = refreshed.isFailure)
+                        WearCompanionUiState.Content(
+                            snapshot = today.toWearTodaySnapshot(),
+                            isStale = refreshed.isFailure,
+                        )
                     } else {
                         WearCompanionUiState.Error
                     }
