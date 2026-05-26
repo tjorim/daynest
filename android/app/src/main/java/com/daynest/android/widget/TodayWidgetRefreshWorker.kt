@@ -11,7 +11,9 @@ import androidx.hilt.work.HiltWorker
 import androidx.work.Constraints
 import androidx.work.CoroutineWorker
 import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.ExistingWorkPolicy
 import androidx.work.NetworkType
+import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
@@ -73,10 +75,10 @@ class TodayWidgetRefreshWorker
                     today.medicationHistory.size +
                     today.planned.size
             val pendingItems =
-                today.routines.count { it.status == "pending" } +
+                    today.routines.count { it.status == "pending" } +
                     today.dueToday.count { it.status == "pending" } +
                     today.overdue.size + // overdue items are always pending
-                    today.medication.size + // scheduled doses are pending
+                    today.medication.count { it.status == "scheduled" } + // scheduled doses are pending
                     today.planned.count { !it.isDone }
             val doneItems = (totalItems - pendingItems).coerceAtLeast(0)
             val completionPercent =
@@ -146,6 +148,17 @@ class TodayWidgetRefreshWorker
             internal const val IMMEDIATE_WORK_NAME = "daynest_widget_refresh_immediate"
             private const val PERIODIC_WORK_NAME = "daynest_widget_refresh_periodic"
             private const val MAX_DUE_ITEMS = 3
+
+            /** Enqueue an immediate one-shot widget refresh. */
+            fun enqueueImmediateRefresh(context: Context) {
+                WorkManager
+                    .getInstance(context)
+                    .enqueueUniqueWork(
+                        IMMEDIATE_WORK_NAME,
+                        ExistingWorkPolicy.REPLACE,
+                        OneTimeWorkRequestBuilder<TodayWidgetRefreshWorker>().build(),
+                    )
+            }
 
             /** Schedule the 15-minute periodic widget refresh via WorkManager. */
             fun schedulePeriodic(context: Context) {

@@ -20,7 +20,7 @@ class TodayWidgetMediumReceiver : GlanceAppWidgetReceiver() {
         appWidgetIds: IntArray,
     ) {
         super.onUpdate(context, appWidgetManager, appWidgetIds)
-        TodayWidgetSmallReceiver.enqueueImmediateRefresh(context)
+        TodayWidgetRefreshWorker.enqueueImmediateRefresh(context)
     }
 
     override fun onEnabled(context: Context) {

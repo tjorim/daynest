@@ -4,9 +4,6 @@ import android.appwidget.AppWidgetManager
 import android.content.Context
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
-import androidx.work.ExistingWorkPolicy
-import androidx.work.OneTimeWorkRequestBuilder
-import androidx.work.WorkManager
 
 /**
  * AppWidget broadcast receiver for the small (2×1) Today widget.
@@ -23,7 +20,7 @@ class TodayWidgetSmallReceiver : GlanceAppWidgetReceiver() {
         appWidgetIds: IntArray,
     ) {
         super.onUpdate(context, appWidgetManager, appWidgetIds)
-        enqueueImmediateRefresh(context)
+        TodayWidgetRefreshWorker.enqueueImmediateRefresh(context)
     }
 
     override fun onEnabled(context: Context) {
@@ -36,15 +33,4 @@ class TodayWidgetSmallReceiver : GlanceAppWidgetReceiver() {
         TodayWidgetRefreshWorker.cancelPeriodicIfNoWidgets(context)
     }
 
-    companion object {
-        internal fun enqueueImmediateRefresh(context: Context) {
-            WorkManager
-                .getInstance(context)
-                .enqueueUniqueWork(
-                    TodayWidgetRefreshWorker.IMMEDIATE_WORK_NAME,
-                    ExistingWorkPolicy.REPLACE,
-                    OneTimeWorkRequestBuilder<TodayWidgetRefreshWorker>().build(),
-                )
-        }
-    }
 }
