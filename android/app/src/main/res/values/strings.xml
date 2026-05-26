@@ -47,6 +47,7 @@
     <string name="action_delete_this_and_future">This + future</string>
     <string name="action_add">Add</string>
     <string name="action_cancel">Cancel</string>
+    <string name="action_refresh">Refresh</string>
 
     <!-- Top-level destinations -->
     <string name="today_title">Today</string>
@@ -191,6 +192,14 @@
     <string name="settings_sessions_error">Unable to load active sessions.</string>
     <string name="settings_session_last_active">Last active: %1$s</string>
     <string name="settings_revoke_session">Revoke</string>
+    <string name="wear_title">Daynest Today</string>
+    <string name="wear_error">Unable to load data for your watch.</string>
+    <string name="wear_completion_percent">Done: %1$d%%</string>
+    <string name="wear_completion_short">%1$d%% done</string>
+    <string name="wear_overdue_count">Overdue: %1$d</string>
+    <string name="wear_overdue_short">%1$d overdue</string>
+    <string name="wear_next_medication">Next medication: %1$s</string>
+    <string name="wear_next_medication_none">No upcoming medication</string>
 
     <string name="parity_more_coming">Native editing controls will continue to grow from the same shared API contracts.</string>
 
