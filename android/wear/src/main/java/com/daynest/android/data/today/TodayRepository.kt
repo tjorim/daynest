@@ -39,6 +39,5 @@ class TodayRepository
         suspend fun completeChore(choreInstanceId: Int): Result<ChoreMutationDto> =
             safeApiCall { todayActionsApi.completeChore(choreInstanceId) }
 
-        suspend fun takeDose(doseInstanceId: Int): Result<DoseMutationDto> =
-            safeApiCall { todayActionsApi.takeDose(doseInstanceId) }
+        suspend fun takeDose(doseInstanceId: Int): Result<DoseMutationDto> = safeApiCall { todayActionsApi.takeDose(doseInstanceId) }
     }
