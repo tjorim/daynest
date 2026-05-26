@@ -21,3 +21,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "NativeAndroidApp"
 include(":app")
+include(":wear")

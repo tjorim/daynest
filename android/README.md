@@ -51,4 +51,4 @@ Today is backed by the shared API read model. The other top-level areas currentl
 - ✅ Today, Calendar, Medication, Templates, Settings screens backed by real API data
 - ✅ Instrumented tests (navigation + home screen)
 - ✅ Home-screen widgets (Glance): small 2×1 and medium 4×2, refreshed every 15 min via WorkManager
-- ✅ Wear OS companion surface: Today tile, short-text complication, and quick-action due list activity backed by the existing Today repository/actions
+- ✅ Wear OS companion surface in dedicated `:wear` module: Today tile, short-text complication, and quick-action due list activity
