@@ -38,6 +38,7 @@ internal object TodayWidgetStateKeys {
     val DATA_LOADED = booleanPreferencesKey("data_loaded")
 
     // ── Configurable section visibility (defaults to true) ─────────────────
+
     /** Show the next-medication chip in the medium widget. */
     val SHOW_MEDICATION = booleanPreferencesKey("show_medication")
 

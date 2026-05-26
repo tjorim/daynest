@@ -32,5 +32,4 @@ class TodayWidgetSmallReceiver : GlanceAppWidgetReceiver() {
         super.onDisabled(context)
         TodayWidgetRefreshWorker.cancelPeriodicIfNoWidgets(context)
     }
-
 }

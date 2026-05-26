@@ -63,53 +63,89 @@ private fun SmallWidgetContent() {
         }
 
     GlanceTheme {
-        Box(
-            modifier =
-                GlanceModifier
-                    .fillMaxSize()
-                    .background(GlanceTheme.colors.surface)
-                    .clickable(actionStartActivity(launchIntent))
-                    .padding(12.dp),
-            contentAlignment = Alignment.CenterStart,
-        ) {
-            if (!dataLoaded) {
-                Text(
-                    text = context.getString(R.string.widget_no_data),
-                    style =
-                        TextStyle(
-                            color = GlanceTheme.colors.onSurface,
-                            fontSize = 12.sp,
-                        ),
+        SmallWidgetContainer(launchIntent = launchIntent) {
+            if (dataLoaded) {
+                SmallWidgetLoadedContent(
+                    completionPercent = completionPercent,
+                    overdueCount = overdueCount,
+                    context = context,
                 )
             } else {
-                Column {
-                    Text(
-                        text = context.getString(R.string.widget_completion_percent, completionPercent),
-                        style =
-                            TextStyle(
-                                color = GlanceTheme.colors.primary,
-                                fontSize = 26.sp,
-                                fontWeight = FontWeight.Bold,
-                            ),
-                    )
-                    if (overdueCount > 0) {
-                        Spacer(modifier = GlanceModifier.height(2.dp))
-                        Text(
-                            text =
-                                context.resources.getQuantityString(
-                                    R.plurals.widget_overdue_count,
-                                    overdueCount,
-                                    overdueCount,
-                                ),
-                            style =
-                                TextStyle(
-                                    color = GlanceTheme.colors.error,
-                                    fontSize = 11.sp,
-                                ),
-                        )
-                    }
-                }
+                SmallWidgetNoData(context = context)
             }
         }
     }
+}
+
+@Composable
+private fun SmallWidgetContainer(
+    launchIntent: Intent,
+    content: @Composable () -> Unit,
+) {
+    Box(
+        modifier =
+            GlanceModifier
+                .fillMaxSize()
+                .background(GlanceTheme.colors.surface)
+                .clickable(actionStartActivity(launchIntent))
+                .padding(12.dp),
+        contentAlignment = Alignment.CenterStart,
+    ) {
+        content()
+    }
+}
+
+@Composable
+private fun SmallWidgetNoData(context: Context) {
+    Text(
+        text = context.getString(R.string.widget_no_data),
+        style =
+            TextStyle(
+                color = GlanceTheme.colors.onSurface,
+                fontSize = 12.sp,
+            ),
+    )
+}
+
+@Composable
+private fun SmallWidgetLoadedContent(
+    completionPercent: Int,
+    overdueCount: Int,
+    context: Context,
+) {
+    Column {
+        Text(
+            text = context.getString(R.string.widget_completion_percent, completionPercent),
+            style =
+                TextStyle(
+                    color = GlanceTheme.colors.primary,
+                    fontSize = 26.sp,
+                    fontWeight = FontWeight.Bold,
+                ),
+        )
+        if (overdueCount > 0) {
+            Spacer(modifier = GlanceModifier.height(2.dp))
+            SmallWidgetOverdueCount(overdueCount = overdueCount, context = context)
+        }
+    }
+}
+
+@Composable
+private fun SmallWidgetOverdueCount(
+    overdueCount: Int,
+    context: Context,
+) {
+    Text(
+        text =
+            context.resources.getQuantityString(
+                R.plurals.widget_overdue_count,
+                overdueCount,
+                overdueCount,
+            ),
+        style =
+            TextStyle(
+                color = GlanceTheme.colors.error,
+                fontSize = 11.sp,
+            ),
+    )
 }
