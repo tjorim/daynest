@@ -46,46 +46,49 @@ export function useTodayActions(onRefresh: () => Promise<void>) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
-  const invalidateRelatedQueries = async () => {
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: queryKeys.today.all }),
-      queryClient.invalidateQueries({ queryKey: queryKeys.plannedItems.all }),
-      queryClient.invalidateQueries({ queryKey: queryKeys.calendar.all }),
-    ]);
+  const invalidateRelatedQueries = async (options?: { calendar?: boolean; plannedItems?: boolean }) => {
+    const calls = [queryClient.invalidateQueries({ queryKey: queryKeys.today.all })];
+    if (options?.plannedItems) {
+      calls.push(queryClient.invalidateQueries({ queryKey: queryKeys.plannedItems.all }));
+    }
+    if (options?.calendar) {
+      calls.push(queryClient.invalidateQueries({ queryKey: queryKeys.calendar.all }));
+    }
+    await Promise.all(calls);
   };
 
   const startRoutineTaskMutation = useMutation({
     mutationFn: (taskInstanceId: number) => startRoutineTask(taskInstanceId),
-    onSuccess: invalidateRelatedQueries,
+    onSuccess: () => invalidateRelatedQueries({ calendar: true }),
   });
   const completeRoutineTaskMutation = useMutation({
     mutationFn: (taskInstanceId: number) => completeRoutineTask(taskInstanceId),
-    onSuccess: invalidateRelatedQueries,
+    onSuccess: () => invalidateRelatedQueries({ calendar: true }),
   });
   const skipRoutineTaskMutation = useMutation({
     mutationFn: (taskInstanceId: number) => skipRoutineTask(taskInstanceId),
-    onSuccess: invalidateRelatedQueries,
+    onSuccess: () => invalidateRelatedQueries({ calendar: true }),
   });
   const completeChoreMutation = useMutation({
     mutationFn: (choreInstanceId: number) => completeChore(choreInstanceId),
-    onSuccess: invalidateRelatedQueries,
+    onSuccess: () => invalidateRelatedQueries({ calendar: true }),
   });
   const skipChoreMutation = useMutation({
     mutationFn: (choreInstanceId: number) => skipChore(choreInstanceId),
-    onSuccess: invalidateRelatedQueries,
+    onSuccess: () => invalidateRelatedQueries({ calendar: true }),
   });
   const rescheduleChoreMutation = useMutation({
     mutationFn: ({ choreInstanceId, scheduledDate }: { choreInstanceId: number; scheduledDate: string }) =>
       rescheduleChore(choreInstanceId, scheduledDate),
-    onSuccess: invalidateRelatedQueries,
+    onSuccess: () => invalidateRelatedQueries({ calendar: true }),
   });
   const takeMedicationDoseMutation = useMutation({
     mutationFn: (medicationDoseInstanceId: number) => takeMedicationDose(medicationDoseInstanceId),
-    onSuccess: invalidateRelatedQueries,
+    onSuccess: () => invalidateRelatedQueries({ calendar: true }),
   });
   const skipMedicationDoseMutation = useMutation({
     mutationFn: (medicationDoseInstanceId: number) => skipMedicationDose(medicationDoseInstanceId),
-    onSuccess: invalidateRelatedQueries,
+    onSuccess: () => invalidateRelatedQueries({ calendar: true }),
   });
   const updatePlannedItemMutation = useMutation({
     mutationFn: ({
@@ -97,17 +100,17 @@ export function useTodayActions(onRefresh: () => Promise<void>) {
       input: PlannedItemUpdateInput;
       scope: PlannedItemEditScope;
     }) => updatePlannedItem(plannedItemId, input, scope),
-    onSuccess: invalidateRelatedQueries,
+    onSuccess: () => invalidateRelatedQueries({ calendar: true, plannedItems: true }),
   });
   const deletePlannedItemMutation = useMutation({
     mutationFn: ({ plannedItemId, scope }: { plannedItemId: number; scope: PlannedItemDeleteScope }) =>
       deletePlannedItem(plannedItemId, scope),
-    onSuccess: invalidateRelatedQueries,
+    onSuccess: () => invalidateRelatedQueries({ calendar: true, plannedItems: true }),
   });
   const createPlannedItemMutation = useMutation({
     mutationFn: ({ title, plannedFor }: { title: string; plannedFor: string }) =>
       createPlannedItem({ title, planned_for: plannedFor }),
-    onSuccess: invalidateRelatedQueries,
+    onSuccess: () => invalidateRelatedQueries({ calendar: true, plannedItems: true }),
   });
 
   const runAction = async <TVariables>(
@@ -148,20 +151,24 @@ export function useTodayActions(onRefresh: () => Promise<void>) {
       choreInstanceId: number,
       scheduledDate: string,
       options?: MutationOptions,
-    ) =>
-      runAction(rescheduleChoreMutation, {
-        choreInstanceId,
-        scheduledDate: toIsoDate(dayjs(scheduledDate).add(1, "day")),
-      }, options),
+    ) => {
+      const nextDate = toIsoDate(dayjs(scheduledDate).add(1, "day"));
+      return runAction(rescheduleChoreMutation, { choreInstanceId, scheduledDate: nextDate }, options);
+    },
     takeMedicationDose: (medicationDoseInstanceId: number, options?: MutationOptions) =>
       runAction(takeMedicationDoseMutation, medicationDoseInstanceId, options),
     skipMedicationDose: (medicationDoseInstanceId: number, options?: MutationOptions) =>
       runAction(skipMedicationDoseMutation, medicationDoseInstanceId, options),
-    togglePlannedItem: (item: PlannedTodayItem, isDone: boolean, options?: MutationOptions) =>
+    togglePlannedItem: (
+      item: PlannedTodayItem,
+      isDone: boolean,
+      options?: MutationOptions,
+      scope: PlannedItemEditScope = "this",
+    ) =>
       runAction(updatePlannedItemMutation, {
         plannedItemId: item.id,
         input: buildPlannedItemPayload(item, isDone),
-        scope: "this",
+        scope,
       }, options),
     deletePlannedItem: (
       plannedItemId: number,
