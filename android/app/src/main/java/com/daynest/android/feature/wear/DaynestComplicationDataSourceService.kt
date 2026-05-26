@@ -47,7 +47,6 @@ class DaynestComplicationDataSourceService : SuspendingComplicationDataSourceSer
     }
 
     private suspend fun loadSnapshot(): WearTodaySnapshot? {
-        todayRepository.refresh()
         return todayRepository.getCachedTodayResponse()?.toWearTodaySnapshot()
     }
 }

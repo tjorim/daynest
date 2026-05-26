@@ -1,17 +1,23 @@
 package com.daynest.android.feature.wear
 
-import androidx.wear.protolayout.ActionBuilders
-import androidx.wear.protolayout.DimensionBuilders
-import androidx.wear.protolayout.LayoutElementBuilders
-import androidx.wear.protolayout.ModifiersBuilders
-import androidx.wear.protolayout.ResourceBuilders
+import androidx.wear.tiles.ActionBuilders
+import androidx.wear.tiles.DimensionBuilders
+import androidx.wear.tiles.LayoutElementBuilders
+import androidx.wear.tiles.ModifiersBuilders
 import androidx.wear.tiles.RequestBuilders
 import androidx.wear.tiles.TileBuilders
 import androidx.wear.tiles.TileService
 import androidx.wear.tiles.TimelineBuilders
+import androidx.wear.protolayout.ResourceBuilders
 import com.daynest.android.R
 import com.daynest.android.data.today.TodayRepository
+import com.google.common.util.concurrent.ListenableFuture
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.guava.future
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -19,8 +25,26 @@ class DaynestTileService : TileService() {
     @Inject
     lateinit var todayRepository: TodayRepository
 
-    override suspend fun onTileRequest(requestParams: RequestBuilders.TileRequest): TileBuilders.Tile {
-        val snapshot = loadSnapshot()
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    override fun onTileRequest(requestParams: RequestBuilders.TileRequest): ListenableFuture<TileBuilders.Tile> =
+        serviceScope.future {
+            buildTile(loadSnapshot())
+        }
+
+    override fun onTileResourcesRequest(
+        requestParams: RequestBuilders.ResourcesRequest,
+    ): ListenableFuture<ResourceBuilders.Resources> =
+        serviceScope.future {
+            ResourceBuilders.Resources.Builder().setVersion(RESOURCES_VERSION).build()
+        }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        serviceScope.cancel()
+    }
+
+    private fun buildTile(snapshot: WearTodaySnapshot?): TileBuilders.Tile {
         val layout =
             LayoutElementBuilders.Layout.Builder()
                 .setRoot(
@@ -85,12 +109,7 @@ class DaynestTileService : TileService() {
             ).build()
     }
 
-    override suspend fun onTileResourcesRequest(
-        requestParams: RequestBuilders.ResourcesRequest,
-    ): ResourceBuilders.Resources = ResourceBuilders.Resources.Builder().setVersion(RESOURCES_VERSION).build()
-
     private suspend fun loadSnapshot(): WearTodaySnapshot? {
-        todayRepository.refresh()
         return todayRepository.getCachedTodayResponse()?.toWearTodaySnapshot()
     }
 

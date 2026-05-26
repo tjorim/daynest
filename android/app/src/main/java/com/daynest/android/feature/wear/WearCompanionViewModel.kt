@@ -25,7 +25,14 @@ class WearCompanionViewModel
 
         fun refresh() {
             viewModelScope.launch {
-                if (_uiState.value !is WearCompanionUiState.Content) {
+                val cachedToday = todayRepository.getCachedTodayResponse()
+                if (cachedToday != null) {
+                    _uiState.value =
+                        WearCompanionUiState.Content(
+                            snapshot = cachedToday.toWearTodaySnapshot(),
+                            isStale = false,
+                        )
+                } else {
                     _uiState.value = WearCompanionUiState.Loading
                 }
                 val refreshed = todayRepository.refresh()

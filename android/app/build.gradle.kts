@@ -241,6 +241,7 @@ dependencies {
     implementation(libs.bundles.compose)
     implementation(libs.material)
     implementation(libs.kotlinx.serialization.json)
+    implementation(libs.kotlinx.coroutines.guava)
     implementation(libs.retrofit)
     implementation(libs.retrofit.converter.kotlinx.serialization)
     implementation(libs.okhttp)
@@ -258,6 +259,8 @@ dependencies {
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.messaging)
     implementation(libs.androidx.wear.tiles)
+    implementation(libs.androidx.wear.compose.foundation)
+    implementation(libs.androidx.wear.compose.material)
     implementation(libs.androidx.watchface.complications.data.source.ktx)
     implementation(libs.play.services.wearable)
 

@@ -5,30 +5,31 @@ package com.daynest.android.feature.wear
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
+import androidx.wear.compose.foundation.lazy.items
+import androidx.wear.compose.material.Chip
+import androidx.wear.compose.material.CircularProgressIndicator
+import androidx.wear.compose.material.MaterialTheme
+import androidx.wear.compose.material.Text
 import com.daynest.android.R
-import com.daynest.android.ui.theme.DaynestTheme
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -36,8 +37,15 @@ class WearCompanionActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            DaynestTheme {
-                WearCompanionRoute()
+            MaterialTheme {
+                Box(
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .background(Color.Black),
+                ) {
+                    WearCompanionRoute()
+                }
             }
         }
     }
@@ -57,38 +65,44 @@ private fun WearCompanionScreen(
 ) {
     when (uiState) {
         WearCompanionUiState.Loading ->
-            Column(
-                modifier = Modifier.fillMaxSize().padding(16.dp),
-                verticalArrangement = Arrangement.Center,
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center,
             ) {
                 CircularProgressIndicator()
             }
 
         WearCompanionUiState.Error ->
             Column(
-                modifier = Modifier.fillMaxSize().padding(16.dp),
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 24.dp),
                 verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Text(text = stringResource(id = R.string.wear_error))
-                Button(
+                Chip(
                     onClick = onRefresh,
-                    modifier = Modifier.padding(top = 12.dp),
-                ) {
-                    Text(text = stringResource(id = R.string.home_retry))
-                }
+                    label = { Text(text = stringResource(id = R.string.home_retry)) },
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(top = 12.dp),
+                )
             }
 
         is WearCompanionUiState.Content -> {
             val snapshot = uiState.snapshot
-            LazyColumn(
+            ScalingLazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(12.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 28.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 item {
                     Text(
                         text = stringResource(id = R.string.wear_title),
-                        style = MaterialTheme.typography.titleMedium,
+                        style = MaterialTheme.typography.title3,
                         fontWeight = FontWeight.Bold,
                     )
                 }
@@ -122,7 +136,7 @@ private fun WearCompanionScreen(
                     item {
                         Text(
                             text = stringResource(id = R.string.home_stale_notice),
-                            style = MaterialTheme.typography.labelSmall,
+                            style = MaterialTheme.typography.caption2,
                         )
                     }
                 }
@@ -136,9 +150,11 @@ private fun WearCompanionScreen(
                     }
                 }
                 item {
-                    TextButton(onClick = onRefresh, modifier = Modifier.fillMaxWidth()) {
-                        Text(text = stringResource(id = R.string.action_refresh))
-                    }
+                    Chip(
+                        onClick = onRefresh,
+                        label = { Text(text = stringResource(id = R.string.action_refresh)) },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
                 }
             }
         }
@@ -150,27 +166,23 @@ private fun WearDueItemRow(
     item: WearDueItem,
     onComplete: () -> Unit,
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
-        Column(
-            modifier = Modifier.weight(1f),
-        ) {
+    val actionText =
+        if (item.type == WearDueItemType.MEDICATION) {
+            stringResource(id = R.string.action_take)
+        } else {
+            stringResource(id = R.string.home_action_complete)
+        }
+    Chip(
+        onClick = onComplete,
+        label = {
             Text(text = item.title, fontWeight = FontWeight.SemiBold)
-            item.subtitle?.let {
-                Text(text = it, style = MaterialTheme.typography.labelSmall)
-            }
-        }
-        Button(onClick = onComplete) {
+        },
+        secondaryLabel = {
             Text(
-                text =
-                    if (item.type == WearDueItemType.MEDICATION) {
-                        stringResource(id = R.string.action_take)
-                    } else {
-                        stringResource(id = R.string.home_action_complete)
-                    },
+                text = item.subtitle ?: actionText,
+                style = MaterialTheme.typography.caption2,
             )
-        }
-    }
+        },
+        modifier = Modifier.fillMaxWidth(),
+    )
 }
