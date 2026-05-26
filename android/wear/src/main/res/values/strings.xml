@@ -10,7 +10,7 @@
     <string name="wear_next_medication_none">No upcoming medication</string>
     <string name="home_retry">Retry</string>
     <string name="home_stale_notice">Showing cached data.</string>
-    <string name="home_all_caught_up">You're all caught up for today.</string>
+    <string name="home_all_caught_up">You\'re all caught up for today.</string>
     <string name="home_action_complete">Complete</string>
     <string name="action_take">Take</string>
     <string name="action_refresh">Refresh</string>
