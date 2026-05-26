@@ -47,6 +47,7 @@
     <string name="action_delete_this_and_future">Dit + toekomstige</string>
     <string name="action_add">Toevoegen</string>
     <string name="action_cancel">Annuleren</string>
+    <string name="action_refresh">Vernieuwen</string>
 
     <!-- Hoofdnavigatie -->
     <string name="today_title">Vandaag</string>
@@ -191,8 +192,32 @@
     <string name="settings_sessions_error">Kan actieve sessies niet laden.</string>
     <string name="settings_session_last_active">Laatst actief: %1$s</string>
     <string name="settings_revoke_session">Intrekken</string>
+    <string name="wear_title">Daynest Vandaag</string>
+    <string name="wear_error">Kan gegevens voor je horloge niet laden.</string>
+    <string name="wear_completion_percent">Klaar: %1$d%%</string>
+    <string name="wear_completion_short">%1$d%% klaar</string>
+    <string name="wear_overdue_count">Achterstallig: %1$d</string>
+    <string name="wear_overdue_short">%1$d achterstallig</string>
+    <string name="wear_next_medication">Volgende medicatie: %1$s</string>
+    <string name="wear_next_medication_none">Geen aankomende medicatie</string>
 
     <string name="parity_more_coming">Native bewerkingsbediening blijft groeien vanuit dezelfde gedeelde API-contracten.</string>
+
+    <!-- Startscherm-widgets -->
+    <string name="widget_small_label">Daynest (klein)</string>
+    <string name="widget_medium_label">Daynest (middel)</string>
+    <string name="widget_small_description">Toont het voltooiingspercentage en het aantal achterstallige items van vandaag.</string>
+    <string name="widget_medium_description">Toont de voortgangsbalk, achterstallige items, volgende medicatie en de top te-doen items van vandaag.</string>
+    <string name="widget_title">Vandaag</string>
+    <string name="widget_no_data">Open Daynest om te synchroniseren</string>
+    <string name="widget_completion_percent">%1$d%%</string>
+    <string name="widget_completion_done">%1$d%% klaar</string>
+    <string name="widget_medication_chip">💊 %1$s</string>
+    <string name="widget_due_item">• %1$s</string>
+    <plurals name="widget_overdue_count">
+        <item quantity="one">⚠ %1$d achterstallig</item>
+        <item quantity="other">⚠ %1$d achterstallig</item>
+    </plurals>
 
     <plurals name="home_items_remaining">
         <item quantity="one">Je hebt nog %1$d item te verwerken vandaag.</item>

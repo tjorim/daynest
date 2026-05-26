@@ -57,6 +57,13 @@ class TodayRepository
                 }
             }
 
+        suspend fun getCachedTodayResponse(): TodayResponseDto? {
+            val entry = cacheEntryDao.get(SyncCacheKeys.TODAY) ?: return null
+            return runCatching {
+                JsonSerializer.config.decodeFromString(TodayResponseDto.serializer(), entry.payload)
+            }.getOrNull()
+        }
+
         suspend fun refresh(): Result<Unit> =
             try {
                 val today = todayApi.getToday()

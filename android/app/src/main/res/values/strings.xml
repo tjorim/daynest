@@ -47,6 +47,7 @@
     <string name="action_delete_this_and_future">This + future</string>
     <string name="action_add">Add</string>
     <string name="action_cancel">Cancel</string>
+    <string name="action_refresh">Refresh</string>
 
     <!-- Top-level destinations -->
     <string name="today_title">Today</string>
@@ -191,8 +192,32 @@
     <string name="settings_sessions_error">Unable to load active sessions.</string>
     <string name="settings_session_last_active">Last active: %1$s</string>
     <string name="settings_revoke_session">Revoke</string>
+    <string name="wear_title">Daynest Today</string>
+    <string name="wear_error">Unable to load data for your watch.</string>
+    <string name="wear_completion_percent">Done: %1$d%%</string>
+    <string name="wear_completion_short">%1$d%% done</string>
+    <string name="wear_overdue_count">Overdue: %1$d</string>
+    <string name="wear_overdue_short">%1$d overdue</string>
+    <string name="wear_next_medication">Next medication: %1$s</string>
+    <string name="wear_next_medication_none">No upcoming medication</string>
 
     <string name="parity_more_coming">Native editing controls will continue to grow from the same shared API contracts.</string>
+
+    <!-- Home-screen widgets -->
+    <string name="widget_small_label">Daynest (small)</string>
+    <string name="widget_medium_label">Daynest (medium)</string>
+    <string name="widget_small_description">Shows today\'s completion percentage and overdue count.</string>
+    <string name="widget_medium_description">Shows today\'s completion bar, overdue count, next medication, and top due items.</string>
+    <string name="widget_title">Today</string>
+    <string name="widget_no_data">Open Daynest to sync</string>
+    <string name="widget_completion_percent">%1$d%%</string>
+    <string name="widget_completion_done">%1$d%% done</string>
+    <string name="widget_medication_chip">💊 %1$s</string>
+    <string name="widget_due_item">• %1$s</string>
+    <plurals name="widget_overdue_count">
+        <item quantity="one">⚠ %1$d overdue</item>
+        <item quantity="other">⚠ %1$d overdue</item>
+    </plurals>
 
     <plurals name="home_items_remaining">
         <item quantity="one">You have %1$d item to handle today.</item>

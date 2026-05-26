@@ -11,6 +11,7 @@ import com.daynest.android.core.network.ServerUrlHolder
 import com.daynest.android.core.notifications.DaynestNotificationChannels
 import com.daynest.android.core.storage.preferences.UserPreferencesRepository
 import com.daynest.android.data.sync.DaynestSyncScheduler
+import com.daynest.android.widget.TodayWidgetRefreshWorker
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.map
@@ -34,6 +35,7 @@ class DaynestApplication :
         super.onCreate()
         DaynestNotificationChannels.ensureCreated(this)
         DaynestSyncScheduler.schedulePeriodic(this)
+        TodayWidgetRefreshWorker.schedulePeriodic(this)
         ProcessLifecycleOwner.get().lifecycle.addObserver(
             object : DefaultLifecycleObserver {
                 override fun onStart(owner: LifecycleOwner) {
