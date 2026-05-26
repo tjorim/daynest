@@ -31,6 +31,7 @@ from app.core.oidc import get_or_create_local_user
 from app.db.session import SessionLocal
 from app.models.integration_client import IntegrationClient
 from app.models.user import User
+from app.repositories.analytics_repository import get_scheduling_suggestions as build_scheduling_suggestions
 from app.repositories.today_repository import TodayRepository
 from app.schemas.today import PlannedItemCreateRequest, PlannedItemModuleKey, PlannedItemUpdateRequest
 from app.services.today_service import TodayService
@@ -615,6 +616,16 @@ class DaynestMcpBackend:
             return {"skipped_count": count, "before_date": cutoff.isoformat()}
         return self._with_service(_operation)
 
+    def get_scheduling_suggestions(self, for_date: str | None = None) -> dict[str, Any]:
+        parsed_date = _parse_date(for_date) if for_date else date.today()
+        with self._session_scope() as db:
+            user = self.resolve_user(db)
+            suggestions = build_scheduling_suggestions(db, user.id, parsed_date)
+            return {
+                "for_date": parsed_date.isoformat(),
+                "suggestions": [item.model_dump(mode="json") for item in suggestions],
+            }
+
     def _mutate_medication(self, medication_dose_instance_id: int, action: str, *, taken_at: datetime | None = None) -> dict[str, Any]:
         def _operation(_db: Session, user: User, service: TodayService) -> dict[str, Any]:
             instance = service.mutate_medication_status(user.id, medication_dose_instance_id, action, taken_at=taken_at)
@@ -1193,6 +1204,12 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
         """
 
         return await to_thread.run_sync(daynest.get_medication_history, limit, medication_plan_id)
+
+    @mcp.tool()
+    async def get_scheduling_suggestions(for_date: str = "today") -> dict[str, Any]:
+        """Generate non-intrusive scheduling suggestions based on recent habits."""
+
+        return await to_thread.run_sync(daynest.get_scheduling_suggestions, for_date)
 
     @mcp.resource("daynest://today/{for_date}")
     async def today_resource(for_date: str) -> str:

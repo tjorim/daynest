@@ -7,8 +7,14 @@ from sqlalchemy.orm import Session
 from app.api.dependencies.auth import get_current_user
 from app.db.session import get_db
 from app.models.user import User
-from app.repositories.analytics_repository import get_chore_stats, get_medication_stats, get_planned_item_stats, get_routine_stats
-from app.schemas.analytics import AnalyticsSummaryResponse
+from app.repositories.analytics_repository import (
+    get_chore_stats,
+    get_medication_stats,
+    get_planned_item_stats,
+    get_routine_stats,
+    get_scheduling_suggestions as build_scheduling_suggestions,
+)
+from app.schemas.analytics import AnalyticsSummaryResponse, SchedulingSuggestionsResponse
 
 router = APIRouter(prefix="/analytics", tags=["analytics"])
 
@@ -40,3 +46,13 @@ def get_analytics_summary(
         planned_items=get_planned_item_stats(db, current_user.id, start_date, end_date),
         routines=get_routine_stats(db, current_user.id, start_date, end_date),
     )
+
+
+@router.get("/suggestions", response_model=SchedulingSuggestionsResponse)
+def get_scheduling_suggestions(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> SchedulingSuggestionsResponse:
+    for_date = date.today()
+    suggestions = build_scheduling_suggestions(db, current_user.id, for_date)
+    return SchedulingSuggestionsResponse(for_date=for_date, suggestions=suggestions)
