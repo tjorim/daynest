@@ -5,7 +5,7 @@ import com.daynest.android.core.database.sync.CacheEntryEntity
 import com.daynest.android.core.network.JsonSerializer
 import com.daynest.android.data.sync.SyncCacheKeys
 import kotlinx.serialization.encodeToString
-import java.io.IOException
+import kotlinx.coroutines.CancellationException
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -35,19 +35,27 @@ class TodayRepository
                     ),
                 )
                 Result.success(Unit)
-            } catch (e: IOException) {
-                Result.failure(e)
-            } catch (e: IllegalStateException) {
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
                 Result.failure(e)
             }
 
         suspend fun completeChore(choreInstanceId: Int): Result<ChoreMutationDto> =
-            runCatching {
-                todayActionsApi.completeChore(choreInstanceId)
+            try {
+                Result.success(todayActionsApi.completeChore(choreInstanceId))
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Result.failure(e)
             }
 
         suspend fun takeDose(doseInstanceId: Int): Result<DoseMutationDto> =
-            runCatching {
-                todayActionsApi.takeDose(doseInstanceId)
+            try {
+                Result.success(todayActionsApi.takeDose(doseInstanceId))
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Result.failure(e)
             }
     }
