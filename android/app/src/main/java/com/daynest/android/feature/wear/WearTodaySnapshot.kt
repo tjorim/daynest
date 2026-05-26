@@ -34,7 +34,7 @@ private fun TodayResponseDto.completionPercent(): Int {
     val totalCount =
         routines.size +
             dueToday.size +
-            overdue.count { !it.status.isDoneStatus() } +
+            overdue.size +
             medication.size
     val completedCount =
         routines.count { it.status.isDoneStatus() } +

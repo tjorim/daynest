@@ -45,11 +45,13 @@ class TodayWidgetRefreshWorker
         private val cacheEntryDao: CacheEntryDao,
     ) : CoroutineWorker(appContext, params) {
         override suspend fun doWork(): Result {
-            // Nothing in cache yet – leave widgets as-is and succeed quietly.
-            val today = loadToday() ?: return Result.success()
-            val widgetState = today.toWidgetState()
-
             val manager = GlanceAppWidgetManager(appContext)
+            val today = loadToday()
+            if (today == null) {
+                clearWidgetsToNoData(manager)
+                return Result.success()
+            }
+            val widgetState = today.toWidgetState()
             updateSmallWidgets(manager, widgetState)
             updateMediumWidgets(manager, widgetState)
 
@@ -120,6 +122,21 @@ class TodayWidgetRefreshWorker
             }
         }
 
+        private suspend fun clearWidgetsToNoData(manager: GlanceAppWidgetManager) {
+            for (id in manager.getGlanceIds(TodayWidgetSmall::class.java)) {
+                updateAppWidgetState(appContext, PreferencesGlanceStateDefinition, id) { prefs ->
+                    prefs.toMutablePreferences().applyNoDataState().toPreferences()
+                }
+                TodayWidgetSmall().update(appContext, id)
+            }
+            for (id in manager.getGlanceIds(TodayWidgetMedium::class.java)) {
+                updateAppWidgetState(appContext, PreferencesGlanceStateDefinition, id) { prefs ->
+                    prefs.toMutablePreferences().applyNoDataState().toPreferences()
+                }
+                TodayWidgetMedium().update(appContext, id)
+            }
+        }
+
         private suspend fun updateMediumWidget(
             id: GlanceId,
             widgetState: TodayWidgetState,
@@ -149,6 +166,19 @@ class TodayWidgetRefreshWorker
                 putOrRemove(TodayWidgetStateKeys.DUE_ITEM_0, widgetState.topDueItems.getOrNull(0))
                 putOrRemove(TodayWidgetStateKeys.DUE_ITEM_1, widgetState.topDueItems.getOrNull(1))
                 putOrRemove(TodayWidgetStateKeys.DUE_ITEM_2, widgetState.topDueItems.getOrNull(2))
+            }
+
+        private fun MutablePreferences.applyNoDataState(): MutablePreferences =
+            apply {
+                this[TodayWidgetStateKeys.DATA_LOADED] = false
+                this[TodayWidgetStateKeys.COMPLETION_PERCENT] = 0
+                this[TodayWidgetStateKeys.DONE_COUNT] = 0
+                this[TodayWidgetStateKeys.TOTAL_COUNT] = 0
+                this[TodayWidgetStateKeys.OVERDUE_COUNT] = 0
+                remove(TodayWidgetStateKeys.NEXT_MEDICATION_NAME)
+                remove(TodayWidgetStateKeys.DUE_ITEM_0)
+                remove(TodayWidgetStateKeys.DUE_ITEM_1)
+                remove(TodayWidgetStateKeys.DUE_ITEM_2)
             }
 
         private fun MutablePreferences.putOrRemove(

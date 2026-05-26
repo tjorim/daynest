@@ -19,6 +19,9 @@ class DaynestComplicationDataSourceService : SuspendingComplicationDataSourceSer
     lateinit var todayRepository: TodayRepository
 
     override suspend fun onComplicationRequest(request: ComplicationRequest): ComplicationData? {
+        if (request.complicationType != ComplicationType.SHORT_TEXT) {
+            return null
+        }
         val snapshot = loadSnapshot()
         val text =
             if ((snapshot?.overdueCount ?: 0) > 0) {
@@ -30,7 +33,11 @@ class DaynestComplicationDataSourceService : SuspendingComplicationDataSourceSer
     }
 
     override fun getPreviewData(type: ComplicationType): ComplicationData? =
-        shortTextComplication(getString(R.string.wear_completion_short, PREVIEW_COMPLETION_PERCENT))
+        if (type == ComplicationType.SHORT_TEXT) {
+            shortTextComplication(getString(R.string.wear_completion_short, PREVIEW_COMPLETION_PERCENT))
+        } else {
+            null
+        }
 
     private fun shortTextComplication(text: String): ComplicationData {
         val contentDescription =

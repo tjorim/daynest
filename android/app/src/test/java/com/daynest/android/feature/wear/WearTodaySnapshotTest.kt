@@ -44,7 +44,7 @@ class WearTodaySnapshotTest {
 
         val snapshot = today.toWearTodaySnapshot()
 
-        assertEquals(50, snapshot.completionPercent)
+        assertEquals(43, snapshot.completionPercent)
         assertEquals(1, snapshot.overdueCount)
         assertEquals("Omega 3", snapshot.nextMedication)
         assertEquals(3, snapshot.dueItems.size)

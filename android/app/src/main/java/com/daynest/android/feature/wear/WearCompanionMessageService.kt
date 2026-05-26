@@ -22,6 +22,9 @@ class WearCompanionMessageService : WearableListenerService() {
         val path = messageEvent.path
         val payload = messageEvent.data.toString(Charsets.UTF_8).trim()
         val id = payload.toIntOrNull() ?: return
+        if (id <= 0) {
+            return
+        }
         serviceScope.launch {
             when (path) {
                 ACTION_COMPLETE_CHORE -> todayRepository.completeChore(id)
