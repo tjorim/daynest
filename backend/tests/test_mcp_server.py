@@ -9,7 +9,9 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from app.api.dependencies.integration_auth import hash_integration_key
 from app.core.config import settings
+from app.core.enums import ChoreStatus
 from app.mcp_server import DaynestMcpBackend, IntegrationKeyTokenVerifier, create_mcp_server
+from app.models.chore_instance import ChoreInstance
 from app.models.chore_template import ChoreTemplate
 from app.models.integration_client import IntegrationClient
 from app.models.medication_dose_instance import MedicationDoseInstance
@@ -197,6 +199,48 @@ def test_mcp_backend_can_get_medication_history(db_session: Session) -> None:
     assert history["history"][0]["medication_plan_id"] == plan.id
     assert history["history"][0]["name"] == "Vitamin D"
     assert history["history"][0]["status"] == "taken"
+
+
+def test_mcp_backend_can_get_scheduling_suggestions(db_session: Session) -> None:
+    utc_today = datetime.now(timezone.utc).date()
+    user = _create_user(db_session, "mcp-suggestions@example.com")
+    chore_template = ChoreTemplate(
+        user_id=user.id,
+        name="Bathroom cleaning",
+        description=None,
+        start_date=utc_today - timedelta(days=21),
+        every_n_days=7,
+        is_active=True,
+    )
+    db_session.add(chore_template)
+    db_session.commit()
+    db_session.refresh(chore_template)
+
+    db_session.add_all(
+        [
+            ChoreInstance(
+                user_id=user.id,
+                chore_template_id=chore_template.id,
+                title=chore_template.name,
+                scheduled_date=utc_today - timedelta(days=14),
+                status=ChoreStatus.skipped,
+            ),
+            ChoreInstance(
+                user_id=user.id,
+                chore_template_id=chore_template.id,
+                title=chore_template.name,
+                scheduled_date=utc_today - timedelta(days=7),
+                status=ChoreStatus.skipped,
+            ),
+        ]
+    )
+    db_session.commit()
+
+    backend = DaynestMcpBackend(_session_factory(db_session), user_email=user.email)
+    payload = backend.get_scheduling_suggestions(utc_today.isoformat())
+
+    assert payload["for_date"] == utc_today.isoformat()
+    assert any(item["suggestion_type"] == "chore_reschedule" for item in payload["suggestions"])
 
 
 def test_mcp_backend_can_create_medication(db_session: Session) -> None:

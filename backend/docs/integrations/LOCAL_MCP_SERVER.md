@@ -91,6 +91,7 @@ The server exposes Daynest tools for:
 - routine start, complete, and skip
 - medication plan CRUD (list, create, update, delete)
 - medication dose take and skip
+- scheduling suggestions (`get_scheduling_suggestions`)
 
 It also exposes JSON resources for:
 

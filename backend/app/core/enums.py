@@ -31,3 +31,8 @@ class MedicationDoseStatus(str, enum.Enum):
 class PushPlatform(str, enum.Enum):
     fcm = "fcm"
     webpush = "webpush"
+
+
+class HouseholdMemberRole(str, enum.Enum):
+    owner = "owner"
+    member = "member"
