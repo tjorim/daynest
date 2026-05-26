@@ -13,6 +13,7 @@ import {
 } from "@/app/pwa/installPrompt";
 import { AppRouter } from "@/app/router/AppRouter";
 import { AuthProvider, useAuth } from "@/app/providers/AuthProvider";
+import { QueryProvider } from "@/app/providers/QueryProvider";
 import { fetchOidcConfig } from "@/config/oidc";
 import { ThemeProvider, useTheme } from "@/app/theme/ThemeContext";
 import { useOnlineStatus } from "@/app/pwa/useOnlineStatus";
@@ -208,9 +209,11 @@ async function bootstrap() {
         <BrowserRouter>
           <LanguageProvider>
             <AuthProvider>
-              <ThemeProvider>
-                <App />
-              </ThemeProvider>
+              <QueryProvider>
+                <ThemeProvider>
+                  <App />
+                </ThemeProvider>
+              </QueryProvider>
             </AuthProvider>
           </LanguageProvider>
         </BrowserRouter>

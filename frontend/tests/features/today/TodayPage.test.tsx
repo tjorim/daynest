@@ -2,6 +2,7 @@
 import { render, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { TodayPage } from "@/features/today/TodayPage";
+import { QueryTestProvider } from "../../utils/queryTestProvider";
 
 const todayApiMock = vi.hoisted(() => ({
   fetchToday: vi.fn(),
@@ -94,7 +95,11 @@ describe("TodayPage", () => {
   });
 
   it("shows the web focus panel with the next actionable item and progress", async () => {
-    render(<TodayPage />);
+    render(
+      <QueryTestProvider>
+        <TodayPage />
+      </QueryTestProvider>,
+    );
 
     expect(await screen.findByText("Today's focus")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Morning vitamin" })).toBeInTheDocument();
@@ -106,7 +111,11 @@ describe("TodayPage", () => {
   });
 
   it("renders quick-jump counts for each today section", async () => {
-    render(<TodayPage />);
+    render(
+      <QueryTestProvider>
+        <TodayPage />
+      </QueryTestProvider>,
+    );
 
     const medicationJump = await screen.findByRole("link", { name: /medication today/i });
     expect(medicationJump).toHaveAttribute("href", "#medication-today");
@@ -115,5 +124,18 @@ describe("TodayPage", () => {
     const dueTodayJump = screen.getByRole("link", { name: /due today/i });
     expect(dueTodayJump).toHaveAttribute("href", "#due-today");
     expect(within(dueTodayJump).getByText("1")).toBeInTheDocument();
+  });
+
+  it("shows query error state and retry action", async () => {
+    todayApiMock.fetchToday.mockRejectedValueOnce(new Error("Not authenticated"));
+
+    render(
+      <QueryTestProvider>
+        <TodayPage />
+      </QueryTestProvider>,
+    );
+
+    expect(await screen.findByText("Not authenticated")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Retry" })).not.toBeInTheDocument();
   });
 });
