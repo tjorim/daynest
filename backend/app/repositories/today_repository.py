@@ -6,7 +6,7 @@ from zoneinfo import ZoneInfo
 
 from sqlalchemy import and_, delete, func, insert, or_, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.core.enums import ChoreStatus, MedicationDoseStatus, Priority, TaskStatus
 from app.models.user import User
@@ -493,6 +493,7 @@ class TodayRepository:
         stmt = (
             select(ChoreInstance)
             .join(ChoreTemplate, ChoreInstance.chore_template_id == ChoreTemplate.id)
+            .options(joinedload(ChoreInstance.chore_template))
             .where(self._chore_access_condition(user_id, household_ids))
             .where(ChoreInstance.scheduled_date < for_date)
             .where(ChoreInstance.status == ChoreStatus.pending)
@@ -505,6 +506,7 @@ class TodayRepository:
         stmt = (
             select(ChoreInstance)
             .join(ChoreTemplate, ChoreInstance.chore_template_id == ChoreTemplate.id)
+            .options(joinedload(ChoreInstance.chore_template))
             .where(self._chore_access_condition(user_id, household_ids))
             .where(ChoreInstance.scheduled_date == for_date)
             .where(ChoreInstance.status == ChoreStatus.pending)
@@ -518,6 +520,7 @@ class TodayRepository:
         stmt = (
             select(ChoreInstance)
             .join(ChoreTemplate, ChoreInstance.chore_template_id == ChoreTemplate.id)
+            .options(joinedload(ChoreInstance.chore_template))
             .where(self._chore_access_condition(user_id, household_ids))
             .where(and_(ChoreInstance.scheduled_date > for_date, ChoreInstance.scheduled_date <= end_date))
             .where(ChoreInstance.status == ChoreStatus.pending)
@@ -530,6 +533,7 @@ class TodayRepository:
         stmt = (
             select(ChoreInstance)
             .join(ChoreTemplate, ChoreInstance.chore_template_id == ChoreTemplate.id)
+            .options(joinedload(ChoreInstance.chore_template))
             .where(self._chore_access_condition(user_id, household_ids))
             .where(ChoreInstance.id == chore_instance_id)
         )
@@ -735,6 +739,7 @@ class TodayRepository:
         stmt = (
             select(ChoreInstance)
             .join(ChoreTemplate, ChoreInstance.chore_template_id == ChoreTemplate.id)
+            .options(joinedload(ChoreInstance.chore_template))
             .where(self._chore_access_condition(user_id, household_ids))
             .where(ChoreInstance.scheduled_date == target_date)
             .where(ChoreTemplate.is_active.is_(True))
@@ -747,6 +752,7 @@ class TodayRepository:
         stmt = (
             select(ChoreInstance)
             .join(ChoreTemplate, ChoreInstance.chore_template_id == ChoreTemplate.id)
+            .options(joinedload(ChoreInstance.chore_template))
             .where(self._chore_access_condition(user_id, household_ids))
             .where(ChoreInstance.scheduled_date >= start_date)
             .where(ChoreInstance.scheduled_date <= end_date)

@@ -54,11 +54,7 @@ def list_households(
 ) -> list[HouseholdResponse]:
     repo = HouseholdRepository(db)
     households = repo.list_user_households(current_user.id)
-    result = []
-    for household in households:
-        members = repo.list_members(household.id)
-        result.append(_household_to_response(household, members))
-    return result
+    return [_household_to_response(household, household.members) for household in households]
 
 
 @router.get("/{household_id}", response_model=HouseholdResponse)

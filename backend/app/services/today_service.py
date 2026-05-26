@@ -904,6 +904,19 @@ class TodayService:
 
     def assign_chore(self, user_id: int, chore_instance_id: int, assigned_to: int | None) -> ChoreInstanceMutationResponse:
         instance = self._get_user_chore(user_id, chore_instance_id)
+        if assigned_to is not None:
+            household_id = instance.chore_template.household_id
+            if household_id is None:
+                if assigned_to != instance.user_id:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="Personal chores can only be assigned to the owner",
+                    )
+            elif household_id not in self.repository.get_user_household_ids(assigned_to):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Assigned user is not a member of this household",
+                )
         instance.assigned_to = assigned_to
         self.repository.save()
         return ChoreInstanceMutationResponse(

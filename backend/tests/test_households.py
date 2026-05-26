@@ -300,6 +300,62 @@ def test_member_can_see_household_chore_templates(client: TestClient, db_session
     assert "Shared Chore" in names
 
 
+def test_member_cannot_update_household_chore_template(client: TestClient, db_session: Session) -> None:
+    owner = _create_user(db_session, "owner19@example.com")
+    member = _create_user(db_session, "member19@example.com")
+
+    _auth_as(owner)
+    created_household = client.post("/api/v1/households", json={"name": "Home"}).json()
+    household_id = created_household["id"]
+    client.post(f"/api/v1/households/{household_id}/invite", json={"email": member.email})
+    created_template = client.post(
+        "/api/v1/templates/chores",
+        json={
+            "name": "Shared Chore",
+            "start_date": str(date.today()),
+            "every_n_days": 1,
+            "household_id": household_id,
+        },
+    ).json()
+
+    _auth_as(member)
+    response = client.put(
+        f"/api/v1/templates/chores/{created_template['id']}",
+        json={
+            "name": "Renamed Chore",
+            "start_date": str(date.today()),
+            "every_n_days": 1,
+            "household_id": household_id,
+        },
+    )
+
+    assert response.status_code == 403
+
+
+def test_member_cannot_delete_household_chore_template(client: TestClient, db_session: Session) -> None:
+    owner = _create_user(db_session, "owner20@example.com")
+    member = _create_user(db_session, "member20@example.com")
+
+    _auth_as(owner)
+    created_household = client.post("/api/v1/households", json={"name": "Home"}).json()
+    household_id = created_household["id"]
+    client.post(f"/api/v1/households/{household_id}/invite", json={"email": member.email})
+    created_template = client.post(
+        "/api/v1/templates/chores",
+        json={
+            "name": "Shared Chore",
+            "start_date": str(date.today()),
+            "every_n_days": 1,
+            "household_id": household_id,
+        },
+    ).json()
+
+    _auth_as(member)
+    response = client.delete(f"/api/v1/templates/chores/{created_template['id']}")
+
+    assert response.status_code == 403
+
+
 # ── Assign chore ─────────────────────────────────────────────────────────────
 
 
@@ -334,6 +390,57 @@ def test_assign_chore(client: TestClient, db_session: Session) -> None:
         json={"assigned_to": member.id},
     )
     assert response.status_code == 200
+
+
+def test_assign_household_chore_rejects_non_member(client: TestClient, db_session: Session) -> None:
+    owner = _create_user(db_session, "owner21@example.com")
+    non_member = _create_user(db_session, "nonmember21@example.com")
+
+    _auth_as(owner)
+    created_household = client.post("/api/v1/households", json={"name": "Home"}).json()
+    household_id = created_household["id"]
+    client.post(
+        "/api/v1/templates/chores",
+        json={
+            "name": "Wash Dishes",
+            "start_date": str(date.today()),
+            "every_n_days": 1,
+            "household_id": household_id,
+        },
+    )
+    today_response = client.get("/api/v1/today").json()
+    chore_instance_id = today_response["due_today"][0]["chore_instance_id"]
+
+    response = client.post(
+        f"/api/v1/chores/{chore_instance_id}/assign",
+        json={"assigned_to": non_member.id},
+    )
+
+    assert response.status_code == 400
+
+
+def test_assign_personal_chore_rejects_other_user(client: TestClient, db_session: Session) -> None:
+    owner = _create_user(db_session, "owner22@example.com")
+    other = _create_user(db_session, "other22@example.com")
+
+    _auth_as(owner)
+    client.post(
+        "/api/v1/templates/chores",
+        json={
+            "name": "Personal Chore",
+            "start_date": str(date.today()),
+            "every_n_days": 1,
+        },
+    )
+    today_response = client.get("/api/v1/today").json()
+    chore_instance_id = today_response["due_today"][0]["chore_instance_id"]
+
+    response = client.post(
+        f"/api/v1/chores/{chore_instance_id}/assign",
+        json={"assigned_to": other.id},
+    )
+
+    assert response.status_code == 400
 
 
 def test_complete_chore_sets_completed_by(client: TestClient, db_session: Session) -> None:

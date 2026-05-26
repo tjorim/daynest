@@ -188,9 +188,11 @@ def update_chore_template(
         _validate_household_membership(db, current_user.id, request.household_id)
     repository = TodayRepository(db)
     template = _get_user_chore_template(repository, current_user.id, chore_template_id)
-    # Only template owner can change household_id
-    if template.user_id != current_user.id and request.household_id != template.household_id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only the template owner can change the household assignment")
+    if template.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only the template owner can update this chore template",
+        )
     updated = repository.update_chore_template(
         template,
         name=request.name,
@@ -214,5 +216,10 @@ def delete_chore_template(
 ) -> Response:
     repository = TodayRepository(db)
     template = _get_user_chore_template(repository, current_user.id, chore_template_id)
+    if template.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only the template owner can delete this chore template",
+        )
     repository.delete_chore_template(template)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

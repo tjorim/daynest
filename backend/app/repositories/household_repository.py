@@ -49,10 +49,11 @@ class HouseholdRepository:
         stmt = (
             select(Household)
             .join(HouseholdMember, Household.id == HouseholdMember.household_id)
+            .options(joinedload(Household.members).joinedload(HouseholdMember.user))
             .where(HouseholdMember.user_id == user_id)
             .order_by(Household.id.asc())
         )
-        return list(self.db.scalars(stmt).all())
+        return list(self.db.scalars(stmt).unique().all())
 
     def get_user_by_email(self, email: str) -> User | None:
         return self.db.scalar(select(User).where(User.email == email))
