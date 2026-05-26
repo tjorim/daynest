@@ -231,7 +231,8 @@ private fun makeHomeViewModel(): HomeViewModel =
                     },
                 todayActionsApi =
                     object : TodayActionsApi {
-                        override suspend fun completeChore(id: Int): ChoreMutationDto = ChoreMutationDto(id, "completed")
+                        override suspend fun completeChore(id: Int): ChoreMutationDto =
+                            ChoreMutationDto(id, "completed")
 
                         override suspend fun skipChore(id: Int): ChoreMutationDto = ChoreMutationDto(id, "skipped")
 
@@ -286,7 +287,8 @@ private class FakeNavAuthApi(
 
     override suspend fun restoreSession(): AuthSessionDto = restoreResult.getOrThrow()
 
-    override suspend fun refresh(request: RefreshRequestDto): AuthSessionDto = throw UnsupportedOperationException("refresh not expected")
+    override suspend fun refresh(request: RefreshRequestDto): AuthSessionDto =
+        throw UnsupportedOperationException("refresh not expected")
 }
 
 private class FakeNavTokenStorage(
