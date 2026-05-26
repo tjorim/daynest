@@ -3,9 +3,9 @@ package com.daynest.android.data.today
 import com.daynest.android.core.database.sync.CacheEntryDao
 import com.daynest.android.core.database.sync.CacheEntryEntity
 import com.daynest.android.core.network.JsonSerializer
+import com.daynest.android.data.safeApiCall
 import com.daynest.android.data.sync.SyncCacheKeys
 import kotlinx.serialization.encodeToString
-import kotlinx.coroutines.CancellationException
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -25,7 +25,7 @@ class TodayRepository
         }
 
         suspend fun refresh(): Result<Unit> =
-            try {
+            safeApiCall {
                 val today = todayApi.getToday()
                 cacheEntryDao.upsert(
                     CacheEntryEntity(
@@ -34,28 +34,11 @@ class TodayRepository
                         updatedAtEpochMillis = System.currentTimeMillis(),
                     ),
                 )
-                Result.success(Unit)
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                Result.failure(e)
             }
 
         suspend fun completeChore(choreInstanceId: Int): Result<ChoreMutationDto> =
-            try {
-                Result.success(todayActionsApi.completeChore(choreInstanceId))
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                Result.failure(e)
-            }
+            safeApiCall { todayActionsApi.completeChore(choreInstanceId) }
 
         suspend fun takeDose(doseInstanceId: Int): Result<DoseMutationDto> =
-            try {
-                Result.success(todayActionsApi.takeDose(doseInstanceId))
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                Result.failure(e)
-            }
+            safeApiCall { todayActionsApi.takeDose(doseInstanceId) }
     }
