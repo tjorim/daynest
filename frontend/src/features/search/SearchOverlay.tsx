@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "@tanstack/react-router";
 import * as m from "@/paraglide/messages";
 import {
   searchItems,
@@ -105,7 +105,7 @@ export function SearchOverlay({ onClose }: { onClose: () => void }) {
 
   const navigateTo = (path: string) => {
     onClose();
-    navigate(path);
+    void navigate({ to: path });
   };
 
   const onInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {

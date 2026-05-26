@@ -1,9 +1,8 @@
 // @vitest-environment jsdom
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { MemoryRouter } from "react-router-dom";
-import { AuthPage } from "@/features/auth/AuthPage";
+import { renderWithRouter } from "../../utils/router";
 
 const authMock = vi.hoisted(() => ({
   loginStub: vi.fn(),
@@ -23,11 +22,10 @@ vi.mock("@/app/providers/AuthProvider", () => ({
 }));
 
 function renderAuthPage() {
-  return render(
-    <MemoryRouter initialEntries={["/auth"]}>
-      <AuthPage />
-    </MemoryRouter>,
-  );
+  return renderWithRouter({
+    path: "/auth",
+    auth: { isAuthenticated: false, isLoading: false },
+  });
 }
 
 describe("AuthPage", () => {

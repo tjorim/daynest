@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate, useSearch } from "@tanstack/react-router";
 import * as m from "@/paraglide/messages";
 import {
   completeChore,
@@ -23,10 +24,32 @@ import {
 } from "@/features/calendar/CalendarPageSections";
 import { useCalendarPlannedItems } from "@/features/calendar/useCalendarPlannedItems";
 
+function parseMonth(value?: string) {
+  if (!value) return null;
+  const parsed = dayjs(`${value}-01`);
+  if (!parsed.isValid() || parsed.format("YYYY-MM") !== value) {
+    return null;
+  }
+  return parsed;
+}
+
+function parseDate(value?: string) {
+  if (!value) return null;
+  const parsed = dayjs(value);
+  if (!parsed.isValid() || parsed.format("YYYY-MM-DD") !== value) {
+    return null;
+  }
+  return parsed;
+}
+
 export function CalendarPage() {
-  const [currentMonth, setCurrentMonth] = useState(() => dayjs());
+  const navigate = useNavigate();
+  const search = useSearch({ from: "/protected/calendar" });
+  const [currentMonth, setCurrentMonth] = useState(() => parseMonth(search.month) ?? dayjs());
   const [monthItems, setMonthItems] = useState<CalendarMonthDaySummary[]>([]);
-  const [selectedDate, setSelectedDate] = useState(() => toIsoDate(dayjs()));
+  const [selectedDate, setSelectedDate] = useState(() =>
+    toIsoDate(parseDate(search.date) ?? dayjs()),
+  );
   const [dayPayload, setDayPayload] = useState<CalendarDayPayload | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,6 +62,33 @@ export function CalendarPage() {
     [currentMonth],
   );
   const monthStart = currentMonth.startOf("month");
+
+  useEffect(() => {
+    const searchMonth = parseMonth(search.month);
+    if (searchMonth && !searchMonth.isSame(currentMonth, "month")) {
+      setCurrentMonth(searchMonth);
+    }
+  }, [currentMonth, search.month]);
+
+  useEffect(() => {
+    const searchDate = parseDate(search.date);
+    if (searchDate) {
+      const searchDateString = toIsoDate(searchDate);
+      if (searchDateString !== selectedDate) {
+        setSelectedDate(searchDateString);
+      }
+    }
+  }, [search.date, selectedDate]);
+
+  const updateSearch = (nextMonth: dayjs.Dayjs, nextDate: string) => {
+    void navigate({
+      search: {
+        month: nextMonth.format("YYYY-MM"),
+        date: nextDate,
+      },
+      replace: true,
+    });
+  };
 
   const loadCalendar = async (signal?: AbortSignal) => {
     setLoading(true);
@@ -97,9 +147,23 @@ export function CalendarPage() {
     <section>
       <MonthNavigationControls
         onRefresh={() => void loadCalendar()}
-        onPrevMonth={() => setCurrentMonth(currentMonth.subtract(1, "month"))}
-        onCurrentMonth={() => setCurrentMonth(dayjs())}
-        onNextMonth={() => setCurrentMonth(currentMonth.add(1, "month"))}
+        onPrevMonth={() => {
+          const nextMonth = currentMonth.subtract(1, "month");
+          setCurrentMonth(nextMonth);
+          updateSearch(nextMonth, selectedDate);
+        }}
+        onCurrentMonth={() => {
+          const nextMonth = dayjs();
+          const nextDate = toIsoDate(nextMonth);
+          setCurrentMonth(nextMonth);
+          setSelectedDate(nextDate);
+          updateSearch(nextMonth, nextDate);
+        }}
+        onNextMonth={() => {
+          const nextMonth = currentMonth.add(1, "month");
+          setCurrentMonth(nextMonth);
+          updateSearch(nextMonth, selectedDate);
+        }}
       />
       <p className="text-muted">{formatMonthYear(monthStart)} {m.calendar_subtitle()}</p>
 
@@ -127,7 +191,10 @@ export function CalendarPage() {
             monthStart={monthStart}
             monthItems={monthItems}
             selectedDate={selectedDate}
-            onSelectDate={setSelectedDate}
+            onSelectDate={(date) => {
+              setSelectedDate(date);
+              updateSearch(currentMonth, date);
+            }}
             onDropReschedule={planned.dragReschedulePlannedItem}
           />
         </div>
