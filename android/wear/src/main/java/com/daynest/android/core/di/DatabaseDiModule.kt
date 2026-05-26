@@ -21,6 +21,7 @@ object DatabaseDiModule {
     ): DaynestWearDatabase =
         Room
             .databaseBuilder(context, DaynestWearDatabase::class.java, "daynest-wear.db")
+            .fallbackToDestructiveMigration()
             .build()
 
     @Provides

@@ -5,6 +5,7 @@ import com.daynest.android.core.database.sync.CacheEntryEntity
 import com.daynest.android.core.network.JsonSerializer
 import com.daynest.android.data.safeApiCall
 import com.daynest.android.data.sync.SyncCacheKeys
+import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -20,7 +21,7 @@ class TodayRepository
         suspend fun getCachedTodayResponse(): TodayResponseDto? {
             val entry = cacheEntryDao.get(SyncCacheKeys.TODAY) ?: return null
             return runCatching {
-                JsonSerializer.config.decodeFromString(TodayResponseDto.serializer(), entry.payload)
+                JsonSerializer.config.decodeFromString<TodayResponseDto>(entry.payload)
             }.getOrNull()
         }
 
@@ -30,7 +31,7 @@ class TodayRepository
                 cacheEntryDao.upsert(
                     CacheEntryEntity(
                         cacheKey = SyncCacheKeys.TODAY,
-                        payload = JsonSerializer.config.encodeToString(TodayResponseDto.serializer(), today),
+                        payload = JsonSerializer.config.encodeToString(today),
                         updatedAtEpochMillis = System.currentTimeMillis(),
                     ),
                 )
