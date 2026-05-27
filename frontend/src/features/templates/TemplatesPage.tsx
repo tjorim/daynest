@@ -1,32 +1,42 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import * as m from "@/paraglide/messages";
 import {
-  createChoreTemplate,
-  createRoutineTemplate,
-  deleteChoreTemplate,
-  deleteRoutineTemplate,
-  fetchAnalyticsSummary,
   isRetryableApiError,
-  listChoreTemplates,
-  listRoutineTemplates,
-  updateChoreTemplate,
-  updateRoutineTemplate,
   type AnalyticsSummary,
-  type ChoreTemplate,
-  type RoutineTemplate,
 } from "@/lib/api/today";
 import { formatDate, toIsoDate } from "@/lib/dateUtils";
+import {
+  useChoreTemplatesQuery,
+  useCreateChoreTemplateMutation,
+  useCreateRoutineTemplateMutation,
+  useDeleteChoreTemplateMutation,
+  useDeleteRoutineTemplateMutation,
+  useRoutineTemplatesQuery,
+  useTemplateAnalyticsQuery,
+  useUpdateChoreTemplateMutation,
+  useUpdateRoutineTemplateMutation,
+} from "@/features/templates/useTemplateQueries";
 
 export function TemplatesPage() {
-  const [routines, setRoutines] = useState<RoutineTemplate[]>([]);
-  const [chores, setChores] = useState<ChoreTemplate[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [canRetry, setCanRetry] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [analytics, setAnalytics] = useState<AnalyticsSummary | null>(null);
+  const routinesQuery = useRoutineTemplatesQuery();
+  const choresQuery = useChoreTemplatesQuery();
+  const analyticsQuery = useTemplateAnalyticsQuery();
+  const createRoutineMutation = useCreateRoutineTemplateMutation();
+  const updateRoutineMutation = useUpdateRoutineTemplateMutation();
+  const deleteRoutineMutation = useDeleteRoutineTemplateMutation();
+  const createChoreMutation = useCreateChoreTemplateMutation();
+  const updateChoreMutation = useUpdateChoreTemplateMutation();
+  const deleteChoreMutation = useDeleteChoreTemplateMutation();
+  const routines = routinesQuery.data ?? [];
+  const chores = choresQuery.data ?? [];
+  const analytics = (analyticsQuery.data as AnalyticsSummary | undefined) ?? null;
+  const loading = routinesQuery.isPending || choresQuery.isPending;
+  const queryError = routinesQuery.error ?? choresQuery.error;
+  const error = queryError instanceof Error ? queryError.message : queryError ? "Unable to load template data." : null;
+  const canRetry = queryError ? isRetryableApiError(queryError) : false;
 
   const routineStreakMap = useMemo(
     () => new Map(analytics?.routines.streaks.map((s) => [s.routine_id, s]) ?? []),
@@ -54,48 +64,9 @@ export function TemplatesPage() {
   const [choreActive, setChoreActive] = useState(true);
   const [editingChoreId, setEditingChoreId] = useState<number | null>(null);
 
-  const loadTemplates = async (signal?: AbortSignal) => {
-    setLoading(true);
-    setError(null);
-    setCanRetry(false);
-    try {
-      const [nextRoutines, nextChores] = await Promise.all([
-        listRoutineTemplates(signal),
-        listChoreTemplates(signal),
-      ]);
-      if (!signal?.aborted) {
-        setRoutines(nextRoutines);
-        setChores(nextChores);
-      }
-    } catch (err) {
-      if (!signal?.aborted) {
-        setCanRetry(isRetryableApiError(err));
-        setError(err instanceof Error ? err.message : "Unable to load template data.");
-      }
-    } finally {
-      if (!signal?.aborted) {
-        setLoading(false);
-      }
-    }
+  const loadTemplates = async () => {
+    await Promise.all([routinesQuery.refetch(), choresQuery.refetch()]);
   };
-
-  useEffect(() => {
-    const controller = new AbortController();
-    void loadTemplates(controller.signal);
-    return () => controller.abort();
-  }, []);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    fetchAnalyticsSummary("week", controller.signal)
-      .then((data) => {
-        if (!controller.signal.aborted) setAnalytics(data);
-      })
-      .catch(() => {
-        // analytics are supplementary; silently ignore errors
-      });
-    return () => controller.abort();
-  }, []);
 
   const resetRoutineForm = () => {
     setEditingRoutineId(null);
@@ -139,15 +110,14 @@ export function TemplatesPage() {
         is_active: routineActive,
       };
       if (editingRoutineId !== null) {
-        await updateRoutineTemplate(editingRoutineId, payload);
+        await updateRoutineMutation.mutateAsync({ routineTemplateId: editingRoutineId, input: payload });
       } else {
-        await createRoutineTemplate(payload);
+        await createRoutineMutation.mutateAsync(payload);
       }
       resetRoutineForm();
       setSuccessMessage(
         editingRoutineId !== null ? m.templates_routine_updated() : m.templates_routine_created(),
       );
-      await loadTemplates();
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : m.templates_routine_save_failed());
     } finally {
@@ -177,15 +147,14 @@ export function TemplatesPage() {
         is_active: choreActive,
       };
       if (editingChoreId !== null) {
-        await updateChoreTemplate(editingChoreId, payload);
+        await updateChoreMutation.mutateAsync({ choreTemplateId: editingChoreId, input: payload });
       } else {
-        await createChoreTemplate(payload);
+        await createChoreMutation.mutateAsync(payload);
       }
       resetChoreForm();
       setSuccessMessage(
         editingChoreId !== null ? m.templates_chore_updated() : m.templates_chore_created(),
       );
-      await loadTemplates();
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : m.templates_chore_save_failed());
     } finally {
@@ -199,10 +168,9 @@ export function TemplatesPage() {
     setSubmitError(null);
     setSuccessMessage(null);
     try {
-      await deleteRoutineTemplate(routineId);
+      await deleteRoutineMutation.mutateAsync(routineId);
       if (editingRoutineId === routineId) resetRoutineForm();
       setSuccessMessage(m.templates_routine_deleted());
-      await loadTemplates();
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : m.templates_routine_delete_failed());
     } finally {
@@ -216,10 +184,9 @@ export function TemplatesPage() {
     setSubmitError(null);
     setSuccessMessage(null);
     try {
-      await deleteChoreTemplate(choreId);
+      await deleteChoreMutation.mutateAsync(choreId);
       if (editingChoreId === choreId) resetChoreForm();
       setSuccessMessage(m.templates_chore_deleted());
-      await loadTemplates();
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : m.templates_chore_delete_failed());
     } finally {

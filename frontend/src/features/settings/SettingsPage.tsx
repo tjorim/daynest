@@ -7,16 +7,8 @@ import {
   subscribeInstallPrompt,
 } from "@/app/pwa/installPrompt";
 import {
-  createIntegrationClient,
-  fetchUserSettings,
   isRetryableApiError,
-  listIntegrationClients,
-  revokeIntegrationClient,
-  rotateIntegrationClient,
-  updateUserSettings,
-  type IntegrationClient,
   type IntegrationClientCreateResponse,
-  type UserSettingsPatch,
 } from "@/lib/api/today";
 import {
   listOAuthSessions,
@@ -24,6 +16,14 @@ import {
   type OAuthSession,
 } from "@/lib/api/auth";
 import { getCustomServerUrl, setCustomServerUrl } from "@/lib/api/serverConfig";
+import {
+  useCreateIntegrationClientMutation,
+  useIntegrationClientsQuery,
+  useRevokeIntegrationClientMutation,
+  useRotateIntegrationClientMutation,
+  useUpdateUserSettingsMutation,
+  useUserSettingsQuery,
+} from "@/features/settings/useSettingsQueries";
 
 const HA_ENDPOINTS = [
   "GET /api/v1/integrations/home-assistant/summary",
@@ -39,11 +39,7 @@ const HOME_ASSISTANT_REDIRECT_URI = "https://my.home-assistant.io/redirect/oauth
 
 export function SettingsPage() {
   const { language, setLanguage } = useLanguage();
-  const [clients, setClients] = useState<IntegrationClient[]>([]);
   const [createdClient, setCreatedClient] = useState<IntegrationClientCreateResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [canRetry, setCanRetry] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -76,7 +72,7 @@ export function SettingsPage() {
   });
 
   const [timezone, setTimezone] = useState("");
-  const [timezoneLoading, setTimezoneLoading] = useState(true);
+  const [timezoneInitialized, setTimezoneInitialized] = useState(false);
   const [timezoneSaving, setTimezoneSaving] = useState(false);
   const [timezoneError, setTimezoneError] = useState<string | null>(null);
   const [timezoneSuccess, setTimezoneSuccess] = useState<string | null>(null);
@@ -95,6 +91,21 @@ export function SettingsPage() {
   const [notificationPermission, setNotificationPermission] = useState(() =>
     typeof Notification === "undefined" ? "denied" : Notification.permission,
   );
+  const clientsQuery = useIntegrationClientsQuery();
+  const userSettingsQuery = useUserSettingsQuery();
+  const createClientMutation = useCreateIntegrationClientMutation();
+  const rotateClientMutation = useRotateIntegrationClientMutation();
+  const revokeClientMutation = useRevokeIntegrationClientMutation();
+  const updateUserSettingsMutation = useUpdateUserSettingsMutation();
+  const clients = clientsQuery.data ?? [];
+  const loading = clientsQuery.isPending;
+  const error = clientsQuery.error instanceof Error
+    ? clientsQuery.error.message
+    : clientsQuery.error
+      ? "Unable to load integration clients."
+      : null;
+  const canRetry = clientsQuery.error ? isRetryableApiError(clientsQuery.error) : false;
+  const timezoneLoading = userSettingsQuery.isPending && !timezoneInitialized;
   const timezones = useMemo<string[]>(() => {
     try {
       return (Intl as { supportedValuesOf?: (key: string) => string[] }).supportedValuesOf?.("timeZone") ?? [];
@@ -146,25 +157,8 @@ export function SettingsPage() {
     setServerUrlError(null);
   };
 
-  const loadClients = async (signal?: AbortSignal) => {
-    setLoading(true);
-    setError(null);
-    setCanRetry(false);
-    try {
-      const nextClients = await listIntegrationClients(signal);
-      if (!signal?.aborted) {
-        setClients(nextClients);
-      }
-    } catch (err) {
-      if (!signal?.aborted) {
-        setCanRetry(isRetryableApiError(err));
-        setError(err instanceof Error ? err.message : "Unable to load integration clients.");
-      }
-    } finally {
-      if (!signal?.aborted) {
-        setLoading(false);
-      }
-    }
+  const loadClients = async () => {
+    await clientsQuery.refetch();
   };
 
   const loadSessions = async (signal?: AbortSignal) => {
@@ -190,11 +184,10 @@ export function SettingsPage() {
     setRotatingClient(clientId);
     setRotateClientError(null);
     try {
-      const rotated = await rotateIntegrationClient(clientId);
+      const rotated = await rotateClientMutation.mutateAsync(clientId);
       setCreatedClient(rotated);
       setCopyStatus(null);
       setSuccessMessage("OAuth client secret rotated. Copy the new secret now; it will not be shown again.");
-      await loadClients();
     } catch (err) {
       setRotateClientError(err instanceof Error ? err.message : "Failed to rotate integration client key.");
     } finally {
@@ -206,8 +199,7 @@ export function SettingsPage() {
     setRevokingClient(clientId);
     setRevokeClientError(null);
     try {
-      await revokeIntegrationClient(clientId);
-      await loadClients();
+      await revokeClientMutation.mutateAsync(clientId);
     } catch (err) {
       setRevokeClientError(err instanceof Error ? err.message : "Failed to revoke integration client.");
     } finally {
@@ -230,12 +222,6 @@ export function SettingsPage() {
 
   useEffect(() => {
     const controller = new AbortController();
-    void loadClients(controller.signal);
-    return () => controller.abort();
-  }, []);
-
-  useEffect(() => {
-    const controller = new AbortController();
     void loadSessions(controller.signal);
     return () => controller.abort();
   }, []);
@@ -248,38 +234,31 @@ export function SettingsPage() {
   }, []);
 
   useEffect(() => {
-    const controller = new AbortController();
-    fetchUserSettings(controller.signal)
-      .then((settings) => {
-        if (!controller.signal.aborted) {
-          const overdueEnabled = settings.push_overdue_chores_enabled ?? true;
-          const medRemindersEnabled = settings.push_medication_reminders_enabled ?? true;
-          const missedMedEnabled = settings.push_missed_medications_enabled ?? true;
-          setTimezone(settings.timezone);
-          setPushOverdueChores(overdueEnabled);
-          setPushMedicationReminders(medRemindersEnabled);
-          setPushMissedMedications(missedMedEnabled);
-          setServerConfirmedOverdue(overdueEnabled);
-          setServerConfirmedMedReminders(medRemindersEnabled);
-          setServerConfirmedMissedMed(missedMedEnabled);
-          setMedicationReminderMinutes(settings.medication_reminder_minutes ?? 30);
-          setQuietHoursStart(settings.quiet_hours_start ?? "");
-          setQuietHoursEnd(settings.quiet_hours_end ?? "");
-        }
-      })
-      .catch((err) => {
-        if (!controller.signal.aborted) {
-          const msg = err instanceof Error ? err.message : m.settings_timezone_load_error();
-          setTimezoneError(msg);
-        }
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) {
-          setTimezoneLoading(false);
-        }
-      });
-    return () => controller.abort();
-  }, []);
+    if (!userSettingsQuery.data) {
+      if (userSettingsQuery.error) {
+        const msg = userSettingsQuery.error instanceof Error
+          ? userSettingsQuery.error.message
+          : m.settings_timezone_load_error();
+        setTimezoneError(msg);
+      }
+      return;
+    }
+    const settings = userSettingsQuery.data;
+    const overdueEnabled = settings.push_overdue_chores_enabled ?? true;
+    const medRemindersEnabled = settings.push_medication_reminders_enabled ?? true;
+    const missedMedEnabled = settings.push_missed_medications_enabled ?? true;
+    setTimezone(settings.timezone);
+    setPushOverdueChores(overdueEnabled);
+    setPushMedicationReminders(medRemindersEnabled);
+    setPushMissedMedications(missedMedEnabled);
+    setServerConfirmedOverdue(overdueEnabled);
+    setServerConfirmedMedReminders(medRemindersEnabled);
+    setServerConfirmedMissedMed(missedMedEnabled);
+    setMedicationReminderMinutes(settings.medication_reminder_minutes ?? 30);
+    setQuietHoursStart(settings.quiet_hours_start ?? "");
+    setQuietHoursEnd(settings.quiet_hours_end ?? "");
+    setTimezoneInitialized(true);
+  }, [userSettingsQuery.data, userSettingsQuery.error]);
 
   const onSaveTimezone = async () => {
     if (!timezone) return;
@@ -287,7 +266,7 @@ export function SettingsPage() {
     setTimezoneError(null);
     setTimezoneSuccess(null);
     try {
-      await updateUserSettings({ timezone });
+      await updateUserSettingsMutation.mutateAsync({ timezone });
       setTimezoneSuccess(m.settings_timezone_saved());
     } catch (err) {
       setTimezoneError(err instanceof Error ? err.message : m.settings_timezone_save_error());
@@ -319,7 +298,7 @@ export function SettingsPage() {
     const prevMed = pushMedicationReminders;
     const prevMissed = pushMissedMedications;
     try {
-      await updateUserSettings({ [field]: checked } as UserSettingsPatch);
+      await updateUserSettingsMutation.mutateAsync({ [field]: checked });
       if (field === "push_overdue_chores_enabled") setServerConfirmedOverdue(checked);
       if (field === "push_medication_reminders_enabled") setServerConfirmedMedReminders(checked);
       if (field === "push_missed_medications_enabled") setServerConfirmedMissedMed(checked);
@@ -338,7 +317,7 @@ export function SettingsPage() {
     setNotificationError(null);
     setNotificationSuccess(null);
     try {
-      await updateUserSettings({
+      await updateUserSettingsMutation.mutateAsync({
         medication_reminder_minutes: medicationReminderMinutes,
         quiet_hours_start: quietHoursStart || null,
         quiet_hours_end: quietHoursEnd || null,
@@ -376,7 +355,7 @@ export function SettingsPage() {
     setSuccessMessage(null);
 
     try {
-      const created = await createIntegrationClient({
+      const created = await createClientMutation.mutateAsync({
         name: name.trim(),
         rate_limit_per_minute: parsedRateLimit,
       });
@@ -384,7 +363,6 @@ export function SettingsPage() {
       setSuccessMessage(
         "Integration client created. Copy the OAuth client secret now; it will not be shown again.",
       );
-      await loadClients();
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : "Failed to create integration client.");
     } finally {

@@ -1,17 +1,18 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import * as m from "@/paraglide/messages";
 import {
-  createMedicationPlan,
-  deleteMedicationPlan,
-  fetchMedicationHistory,
   isRetryableApiError,
-  listMedicationPlans,
-  updateMedicationPlan,
-  type MedicationHistoryItem,
   type MedicationPlan,
   type MedicationPlanUpdateInput,
 } from "@/lib/api/today";
 import { formatDate, formatDateTime } from "@/lib/dateUtils";
+import {
+  useCreateMedicationPlanMutation,
+  useDeleteMedicationPlanMutation,
+  useMedicationHistoryQuery,
+  useMedicationPlansQuery,
+  useUpdateMedicationPlanMutation,
+} from "@/features/medication/useMedicationQueries";
 
 function todayLocalDate(): string {
   const d = new Date();
@@ -20,11 +21,6 @@ function todayLocalDate(): string {
 }
 
 export function MedicationPage() {
-  const [plans, setPlans] = useState<MedicationPlan[]>([]);
-  const [history, setHistory] = useState<MedicationHistoryItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [canRetry, setCanRetry] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -36,37 +32,22 @@ export function MedicationPage() {
   const [startDate, setStartDate] = useState(todayLocalDate);
   const [scheduleTime, setScheduleTime] = useState("09:00:00");
   const [everyNDays, setEveryNDays] = useState("1");
+  const plansQuery = useMedicationPlansQuery();
+  const historyQuery = useMedicationHistoryQuery();
+  const createPlanMutation = useCreateMedicationPlanMutation();
+  const updatePlanMutation = useUpdateMedicationPlanMutation();
+  const deletePlanMutation = useDeleteMedicationPlanMutation();
 
-  const loadMedication = async (signal?: AbortSignal) => {
-    setLoading(true);
-    setError(null);
-    setCanRetry(false);
-    try {
-      const [nextPlans, nextHistory] = await Promise.all([
-        listMedicationPlans(signal),
-        fetchMedicationHistory(signal),
-      ]);
-      if (!signal?.aborted) {
-        setPlans(nextPlans);
-        setHistory(nextHistory);
-      }
-    } catch (err) {
-      if (!signal?.aborted) {
-        setCanRetry(isRetryableApiError(err));
-        setError(err instanceof Error ? err.message : "Unable to load medication data.");
-      }
-    } finally {
-      if (!signal?.aborted) {
-        setLoading(false);
-      }
-    }
+  const plans = plansQuery.data ?? [];
+  const history = historyQuery.data ?? [];
+  const loading = plansQuery.isPending || historyQuery.isPending;
+  const queryError = plansQuery.error ?? historyQuery.error;
+  const error = queryError instanceof Error ? queryError.message : queryError ? "Unable to load medication data." : null;
+  const canRetry = queryError ? isRetryableApiError(queryError) : false;
+
+  const loadMedication = async () => {
+    await Promise.all([plansQuery.refetch(), historyQuery.refetch()]);
   };
-
-  useEffect(() => {
-    const controller = new AbortController();
-    void loadMedication(controller.signal);
-    return () => controller.abort();
-  }, []);
 
   const onCreatePlan = async () => {
     if (!name.trim() || !instructions.trim()) {
@@ -85,7 +66,7 @@ export function MedicationPage() {
     setSuccessMessage(null);
 
     try {
-      await createMedicationPlan({
+      await createPlanMutation.mutateAsync({
         name: name.trim(),
         instructions: instructions.trim(),
         start_date: startDate,
@@ -98,7 +79,6 @@ export function MedicationPage() {
       setScheduleTime("09:00:00");
       setEveryNDays("1");
       setSuccessMessage(m.medication_plan_created());
-      await loadMedication();
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : m.medication_create_failed());
     } finally {
@@ -112,10 +92,9 @@ export function MedicationPage() {
     setSuccessMessage(null);
 
     try {
-      await updateMedicationPlan(planId, input);
+      await updatePlanMutation.mutateAsync({ planId, input });
       setEditingPlan(null);
       setSuccessMessage(m.medication_plan_updated());
-      await loadMedication();
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : m.medication_update_failed());
     } finally {
@@ -129,9 +108,8 @@ export function MedicationPage() {
     setSuccessMessage(null);
 
     try {
-      await deleteMedicationPlan(planId);
+      await deletePlanMutation.mutateAsync(planId);
       setSuccessMessage(m.medication_plan_deleted());
-      await loadMedication();
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : m.medication_delete_failed());
     } finally {

@@ -13,4 +13,27 @@ export const queryKeys = {
     range: (startDate?: string, endDate?: string) =>
       [...queryKeys.plannedItems.all, "range", startDate ?? null, endDate ?? null] as const,
   },
+  medication: {
+    all: ["medication"] as const,
+    plans: () => [...queryKeys.medication.all, "plans"] as const,
+    history: () => [...queryKeys.medication.all, "history"] as const,
+  },
+  templates: {
+    all: ["templates"] as const,
+    routines: () => [...queryKeys.templates.all, "routines"] as const,
+    chores: () => [...queryKeys.templates.all, "chores"] as const,
+  },
+  settings: {
+    all: ["settings"] as const,
+    user: () => [...queryKeys.settings.all, "user"] as const,
+    integrationClients: () => [...queryKeys.settings.all, "integration-clients"] as const,
+  },
+  search: {
+    all: ["search"] as const,
+    items: (query: string) => [...queryKeys.search.all, "items", query] as const,
+  },
+  analytics: {
+    all: ["analytics"] as const,
+    summary: (period: string) => [...queryKeys.analytics.all, "summary", period] as const,
+  },
 } as const;

@@ -2,18 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import * as m from "@/paraglide/messages";
 import {
-  completeChore,
-  completeRoutineTask,
-  type CalendarDayPayload,
-  type CalendarMonthDaySummary,
-  fetchCalendarDay,
-  fetchCalendarMonth,
   isRetryableApiError,
-  listPlannedItems,
-  rescheduleChore,
-  skipRoutineTask,
-  skipChore,
-  startRoutineTask,
 } from "@/lib/api/today";
 import { dayjs, formatMonthYear, toIsoDate } from "@/lib/dateUtils";
 import {
@@ -22,6 +11,17 @@ import {
   MonthNavigationControls,
   PlannedItemsSidebar,
 } from "@/features/calendar/CalendarPageSections";
+import {
+  useCalendarDayQuery,
+  useCalendarMonthQuery,
+  useCalendarPlannedItemsQuery,
+  useCompleteChoreMutation,
+  useCompleteRoutineTaskMutation,
+  useRescheduleChoreMutation,
+  useSkipChoreMutation,
+  useSkipRoutineTaskMutation,
+  useStartRoutineTaskMutation,
+} from "@/features/calendar/useCalendarQueries";
 import { useCalendarPlannedItems } from "@/features/calendar/useCalendarPlannedItems";
 
 function parseMonth(value?: string) {
@@ -46,14 +46,9 @@ export function CalendarPage() {
   const navigate = useNavigate();
   const search = useSearch({ from: "/protected/calendar" });
   const [currentMonth, setCurrentMonth] = useState(() => parseMonth(search.month) ?? dayjs());
-  const [monthItems, setMonthItems] = useState<CalendarMonthDaySummary[]>([]);
   const [selectedDate, setSelectedDate] = useState(() =>
     toIsoDate(parseDate(search.date) ?? dayjs()),
   );
-  const [dayPayload, setDayPayload] = useState<CalendarDayPayload | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [canRetry, setCanRetry] = useState(false);
   const [dayActionStatus, setDayActionStatus] = useState<string | null>(null);
   const [isRunningDayAction, setIsRunningDayAction] = useState(false);
 
@@ -62,6 +57,15 @@ export function CalendarPage() {
     [currentMonth],
   );
   const monthStart = currentMonth.startOf("month");
+  const monthQuery = useCalendarMonthQuery(monthKey.year, monthKey.month);
+  const dayQuery = useCalendarDayQuery(selectedDate);
+  const plannedQuery = useCalendarPlannedItemsQuery(selectedDate);
+  const startRoutineTaskMutation = useStartRoutineTaskMutation();
+  const completeRoutineTaskMutation = useCompleteRoutineTaskMutation();
+  const skipRoutineTaskMutation = useSkipRoutineTaskMutation();
+  const completeChoreMutation = useCompleteChoreMutation();
+  const skipChoreMutation = useSkipChoreMutation();
+  const rescheduleChoreMutation = useRescheduleChoreMutation();
 
   useEffect(() => {
     const searchMonth = parseMonth(search.month);
@@ -90,43 +94,20 @@ export function CalendarPage() {
     });
   };
 
-  const loadCalendar = async (signal?: AbortSignal) => {
-    setLoading(true);
-    setError(null);
-    setCanRetry(false);
-    try {
-      const [month, day, selectedPlanned] = await Promise.all([
-        fetchCalendarMonth(monthKey.year, monthKey.month, signal),
-        fetchCalendarDay(selectedDate, signal),
-        listPlannedItems(selectedDate, selectedDate, signal),
-      ]);
-      setMonthItems(month.days);
-      setDayPayload(day);
-      planned.setPlannedItems(selectedPlanned);
-    } catch (err) {
-      if (!signal?.aborted) {
-        setCanRetry(isRetryableApiError(err));
-        setError(err instanceof Error ? err.message : "Unable to load calendar view.");
-      }
-    } finally {
-      if (!signal?.aborted) {
-        setLoading(false);
-      }
-    }
+  const reloadCalendar = async () => {
+    await Promise.all([monthQuery.refetch(), dayQuery.refetch(), plannedQuery.refetch()]);
   };
 
   const planned = useCalendarPlannedItems({
     selectedDate,
     monthStart,
     monthKey,
-    loadCalendar: () => loadCalendar(),
+    loadCalendar: reloadCalendar,
   });
 
   useEffect(() => {
-    const controller = new AbortController();
-    void loadCalendar(controller.signal);
-    return () => controller.abort();
-  }, [monthKey.month, monthKey.year, selectedDate]);
+    planned.setPlannedItems(plannedQuery.data ?? []);
+  }, [plannedQuery.data]);
 
   const runDayItemAction = async (action: () => Promise<unknown>, successMessage: string) => {
     setDayActionStatus(null);
@@ -134,7 +115,7 @@ export function CalendarPage() {
     setIsRunningDayAction(true);
     try {
       await action();
-      await loadCalendar();
+      await reloadCalendar();
       setDayActionStatus(successMessage);
     } catch (err) {
       planned.setAddError(err instanceof Error ? err.message : "Action failed.");
@@ -143,10 +124,15 @@ export function CalendarPage() {
     }
   };
 
+  const loading = monthQuery.isPending || dayQuery.isPending || plannedQuery.isPending;
+  const queryError = monthQuery.error ?? dayQuery.error ?? plannedQuery.error;
+  const error = queryError instanceof Error ? queryError.message : queryError ? "Unable to load calendar view." : null;
+  const canRetry = queryError ? isRetryableApiError(queryError) : false;
+
   return (
     <section>
       <MonthNavigationControls
-        onRefresh={() => void loadCalendar()}
+        onRefresh={() => void reloadCalendar()}
         onPrevMonth={() => {
           const nextMonth = currentMonth.subtract(1, "month");
           setCurrentMonth(nextMonth);
@@ -172,7 +158,7 @@ export function CalendarPage() {
         <div className="alert alert-danger py-2 d-flex justify-content-between align-items-center gap-2 flex-wrap">
           <span>{error}</span>
           {canRetry ? (
-            <button type="button" className="btn btn-danger btn-sm" onClick={() => void loadCalendar()}>
+            <button type="button" className="btn btn-danger btn-sm" onClick={() => void reloadCalendar()}>
               {m.action_retry()}
             </button>
           ) : null}
@@ -189,7 +175,7 @@ export function CalendarPage() {
         <div className="col-lg-7">
           <CalendarMonthGrid
             monthStart={monthStart}
-            monthItems={monthItems}
+            monthItems={monthQuery.data?.days ?? []}
             selectedDate={selectedDate}
             onSelectDate={(date) => {
               setSelectedDate(date);
@@ -202,18 +188,28 @@ export function CalendarPage() {
         <div className="col-lg-5">
           <DayDetailsPanel
             selectedDate={selectedDate}
-            dayItems={dayPayload?.items ?? []}
+            dayItems={dayQuery.data?.items ?? []}
             isAdding={planned.isAdding || isRunningDayAction}
-            onStartRoutine={(itemId) => runDayItemAction(() => startRoutineTask(itemId), m.action_start())}
-            onCompleteRoutine={(itemId) =>
-              runDayItemAction(() => completeRoutineTask(itemId), m.action_done())
+            onStartRoutine={(itemId) =>
+              runDayItemAction(() => startRoutineTaskMutation.mutateAsync(itemId), m.action_start())
             }
-            onSkipRoutine={(itemId) => runDayItemAction(() => skipRoutineTask(itemId), m.action_skip())}
-            onCompleteChore={(itemId) => runDayItemAction(() => completeChore(itemId), m.action_done())}
-            onSkipChore={(itemId) => runDayItemAction(() => skipChore(itemId), m.action_skip())}
+            onCompleteRoutine={(itemId) =>
+              runDayItemAction(() => completeRoutineTaskMutation.mutateAsync(itemId), m.action_done())
+            }
+            onSkipRoutine={(itemId) =>
+              runDayItemAction(() => skipRoutineTaskMutation.mutateAsync(itemId), m.action_skip())
+            }
+            onCompleteChore={(itemId) =>
+              runDayItemAction(() => completeChoreMutation.mutateAsync(itemId), m.action_done())
+            }
+            onSkipChore={(itemId) => runDayItemAction(() => skipChoreMutation.mutateAsync(itemId), m.action_skip())}
             onRescheduleChore={(itemId, scheduledDate) =>
               runDayItemAction(
-                () => rescheduleChore(itemId, toIsoDate(dayjs(scheduledDate).add(1, "day"))),
+                () =>
+                  rescheduleChoreMutation.mutateAsync({
+                    choreInstanceId: itemId,
+                    scheduledDate: toIsoDate(dayjs(scheduledDate).add(1, "day")),
+                  }),
                 m.action_reschedule_1_day(),
               )
             }

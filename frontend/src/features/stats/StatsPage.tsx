@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import {
   Area,
   AreaChart,
@@ -10,12 +10,11 @@ import {
 } from "recharts";
 import * as m from "@/paraglide/messages";
 import {
-  fetchAnalyticsSummary,
   isRetryableApiError,
   type AnalyticsPeriod,
-  type AnalyticsSummary,
   type DailyCount,
 } from "@/lib/api/today";
+import { useStatsSummaryQuery } from "@/features/stats/useStatsQuery";
 
 function pct(rate: number): string {
   return `${Math.round(rate * 100)}%`;
@@ -34,11 +33,15 @@ interface AdherenceEntry {
 
 export function StatsPage() {
   const [period, setPeriod] = useState<AnalyticsPeriod>("week");
-  const [summary, setSummary] = useState<AnalyticsSummary | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [canRetry, setCanRetry] = useState(false);
-  const controllerRef = useRef<AbortController | null>(null);
+  const summaryQuery = useStatsSummaryQuery(period);
+  const summary = summaryQuery.data ?? null;
+  const loading = summaryQuery.isPending;
+  const error = summaryQuery.error instanceof Error
+    ? summaryQuery.error.message
+    : summaryQuery.error
+      ? "Unable to load analytics."
+      : null;
+  const canRetry = summaryQuery.error ? isRetryableApiError(summaryQuery.error) : false;
 
   const periods: { value: AnalyticsPeriod; label: string }[] = [
     { value: "week", label: m.stats_period_week() },
@@ -48,32 +51,12 @@ export function StatsPage() {
   ];
 
   const load = (p: AnalyticsPeriod) => {
-    controllerRef.current?.abort();
-    const controller = new AbortController();
-    controllerRef.current = controller;
-    const { signal } = controller;
-    setLoading(true);
-    setError(null);
-    setCanRetry(false);
-    fetchAnalyticsSummary(p, signal)
-      .then((data) => {
-        if (!signal.aborted) setSummary(data);
-      })
-      .catch((err) => {
-        if (!signal.aborted) {
-          setCanRetry(isRetryableApiError(err));
-          setError(err instanceof Error ? err.message : "Unable to load analytics.");
-        }
-      })
-      .finally(() => {
-        if (!signal.aborted) setLoading(false);
-      });
+    if (p !== period) {
+      setPeriod(p);
+      return;
+    }
+    void summaryQuery.refetch();
   };
-
-  useEffect(() => {
-    load(period);
-    return () => controllerRef.current?.abort();
-  }, [period]);
 
   return (
     <section>
@@ -86,7 +69,7 @@ export function StatsPage() {
                 key={p.value}
                 type="button"
                 className={`btn ${period === p.value ? "btn-primary" : "btn-outline-secondary"}`}
-                onClick={() => setPeriod(p.value)}
+                onClick={() => load(p.value)}
               >
                 {p.label}
               </button>
