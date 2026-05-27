@@ -4,7 +4,9 @@ This document defines how Daynest uses TanStack packages across server state, ro
 
 ## Adoption stages
 
-Planned implementation order:
+The staged rollout of the TanStack suite is now fully complete.
+
+Completed implementation phases:
 
 1. `#356` Query foundation
 2. `#357` Router migration
@@ -41,7 +43,7 @@ Server-backed feature hooks:
   - Examples:
     - Today actions invalidate `today`, `calendar`, and `plannedItems` families as needed.
     - Template and medication mutations invalidate `today`, `calendar`, `search`, and `analytics` families.
-- Prefer shared invalidation helpers inside domain hook files (for example `useInvalidateCalendarQueries`).
+- Prefer shared invalidation helpers inside domain hook files (for example, a custom hook returning an invalidation callback like `useInvalidateCalendarQueries`, or a plain function accepting `queryClient`) to ensure safe execution inside mutation callbacks without violating the Rules of Hooks.
 
 ## Router architecture
 
