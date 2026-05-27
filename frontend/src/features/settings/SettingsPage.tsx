@@ -72,7 +72,7 @@ export function SettingsPage() {
   });
 
   const [timezone, setTimezone] = useState("");
-  const [timezoneInitialized, setTimezoneInitialized] = useState(false);
+  const [hasInitializedUserSettings, setHasInitializedUserSettings] = useState(false);
   const [timezoneSaving, setTimezoneSaving] = useState(false);
   const [timezoneError, setTimezoneError] = useState<string | null>(null);
   const [timezoneSuccess, setTimezoneSuccess] = useState<string | null>(null);
@@ -105,7 +105,7 @@ export function SettingsPage() {
       ? "Unable to load integration clients."
       : null;
   const canRetry = clientsQuery.error ? isRetryableApiError(clientsQuery.error) : false;
-  const timezoneLoading = userSettingsQuery.isPending && !timezoneInitialized;
+  const timezoneLoading = userSettingsQuery.isPending && !hasInitializedUserSettings;
   const timezones = useMemo<string[]>(() => {
     try {
       return (Intl as { supportedValuesOf?: (key: string) => string[] }).supportedValuesOf?.("timeZone") ?? [];
@@ -257,7 +257,7 @@ export function SettingsPage() {
     setMedicationReminderMinutes(settings.medication_reminder_minutes ?? 30);
     setQuietHoursStart(settings.quiet_hours_start ?? "");
     setQuietHoursEnd(settings.quiet_hours_end ?? "");
-    setTimezoneInitialized(true);
+    setHasInitializedUserSettings(true);
   }, [userSettingsQuery.data, userSettingsQuery.error]);
 
   const onSaveTimezone = async () => {

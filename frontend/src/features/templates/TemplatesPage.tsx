@@ -2,7 +2,6 @@ import { useMemo, useState } from "react";
 import * as m from "@/paraglide/messages";
 import {
   isRetryableApiError,
-  type AnalyticsSummary,
 } from "@/lib/api/today";
 import { formatDate, toIsoDate } from "@/lib/dateUtils";
 import {
@@ -32,7 +31,7 @@ export function TemplatesPage() {
   const deleteChoreMutation = useDeleteChoreTemplateMutation();
   const routines = routinesQuery.data ?? [];
   const chores = choresQuery.data ?? [];
-  const analytics = (analyticsQuery.data as AnalyticsSummary | undefined) ?? null;
+  const analytics = analyticsQuery.data ?? null;
   const loading = routinesQuery.isPending || choresQuery.isPending;
   const queryError = routinesQuery.error ?? choresQuery.error;
   const error = queryError instanceof Error ? queryError.message : queryError ? "Unable to load template data." : null;

@@ -50,14 +50,6 @@ export function StatsPage() {
     { value: "year", label: m.stats_period_year() },
   ];
 
-  const load = (p: AnalyticsPeriod) => {
-    if (p !== period) {
-      setPeriod(p);
-      return;
-    }
-    void summaryQuery.refetch();
-  };
-
   return (
     <section>
       <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2 mb-3">
@@ -69,7 +61,7 @@ export function StatsPage() {
                 key={p.value}
                 type="button"
                 className={`btn ${period === p.value ? "btn-primary" : "btn-outline-secondary"}`}
-                onClick={() => load(p.value)}
+                onClick={() => setPeriod(p.value)}
               >
                 {p.label}
               </button>
@@ -79,7 +71,7 @@ export function StatsPage() {
             type="button"
             className="btn btn-outline-primary btn-sm"
             disabled={loading}
-            onClick={() => load(period)}
+            onClick={() => void summaryQuery.refetch()}
           >
             {m.action_refresh()}
           </button>
@@ -94,7 +86,7 @@ export function StatsPage() {
             <button
               type="button"
               className="btn btn-danger btn-sm"
-              onClick={() => load(period)}
+              onClick={() => void summaryQuery.refetch()}
             >
               {m.action_retry()}
             </button>
