@@ -1,16 +1,12 @@
-import { Navigate, useLocation } from "react-router-dom";
+import { Navigate, useSearch } from "@tanstack/react-router";
 import * as m from "@/paraglide/messages";
 import { useAuth } from "@/app/providers/AuthProvider";
+import { AUTH_ROUTE_PATHS } from "@/config/oidc";
 
 function buildRedirectPath(value: unknown): string {
-  if (
-    value &&
-    typeof value === "object" &&
-    "from" in value &&
-    typeof value.from === "string" &&
-    value.from.startsWith("/")
-  ) {
-    return value.from;
+  if (typeof value === "string" && value.startsWith("/") && !value.startsWith("//")) {
+    const pathname = value.split(/[?#]/)[0] ?? "";
+    return AUTH_ROUTE_PATHS.has(pathname) ? "/today" : value;
   }
 
   return "/today";
@@ -18,8 +14,8 @@ function buildRedirectPath(value: unknown): string {
 
 export function AuthPage() {
   const { isAuthenticated, isLoading, login } = useAuth();
-  const location = useLocation();
-  const redirectTo = buildRedirectPath(location.state);
+  const search = useSearch({ from: "/auth" });
+  const redirectTo = buildRedirectPath(search.from);
 
   if (isAuthenticated) {
     return <Navigate to={redirectTo} replace />;

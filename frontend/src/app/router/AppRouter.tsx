@@ -1,6 +1,14 @@
-import { Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
+import {
+  Navigate,
+  Outlet,
+  createRootRouteWithContext,
+  createRoute,
+  createRouter,
+  redirect,
+} from "@tanstack/react-router";
+import { useAuth } from "react-oidc-context";
+import { z } from "zod";
 import * as m from "@/paraglide/messages";
-import { useAuth } from "@/app/providers/AuthProvider";
 import { AuthPage } from "@/features/auth/AuthPage";
 import { TodayPage } from "@/features/today/TodayPage";
 import { CalendarPage } from "@/features/calendar/CalendarPage";
@@ -9,22 +17,17 @@ import { SettingsPage } from "@/features/settings/SettingsPage";
 import { TemplatesPage } from "@/features/templates/TemplatesPage";
 import { StatsPage } from "@/features/stats/StatsPage";
 
-function RequireAuth() {
-  const location = useLocation();
-  const { isAuthenticated, isLoading } = useAuth();
+type RouterContext = {
+  auth: {
+    isAuthenticated: boolean;
+    isLoading: boolean;
+  };
+};
 
+function ProtectedRouteBoundary() {
+  const { isLoading } = useAuth();
   if (isLoading) {
     return <div className="alert alert-info py-2">{m.router_loading_session()}</div>;
-  }
-
-  if (!isAuthenticated) {
-    return (
-      <Navigate
-        to="/auth"
-        replace
-        state={{ from: location.pathname + location.search + location.hash }}
-      />
-    );
   }
 
   return <Outlet />;
@@ -34,20 +37,123 @@ function AuthCallback() {
   return <div className="alert alert-info py-2">{m.router_completing_sign_in()}</div>;
 }
 
-export function AppRouter() {
-  return (
-    <Routes>
-      <Route path="/auth" element={<AuthPage />} />
-      <Route path="/auth/callback" element={<AuthCallback />} />
-      <Route element={<RequireAuth />}>
-        <Route path="/today" element={<TodayPage />} />
-        <Route path="/calendar" element={<CalendarPage />} />
-        <Route path="/medication" element={<MedicationPage />} />
-        <Route path="/templates" element={<TemplatesPage />} />
-        <Route path="/stats" element={<StatsPage />} />
-        <Route path="/settings" element={<SettingsPage />} />
-      </Route>
-      <Route path="*" element={<Navigate to="/today" replace />} />
-    </Routes>
-  );
+const authSearchSchema = z.object({
+  from: z.string().startsWith("/").optional(),
+});
+
+const calendarSearchSchema = z.object({
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  month: z.string().regex(/^\d{4}-\d{2}$/).optional(),
+});
+
+const rootRoute = createRootRouteWithContext<RouterContext>()({
+  component: Outlet,
+  notFoundComponent: () => <Navigate to="/today" replace />,
+});
+
+const authRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/auth",
+  validateSearch: authSearchSchema,
+  component: AuthPage,
+});
+
+const authCallbackRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/auth/callback",
+  component: AuthCallback,
+});
+
+const protectedRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  id: "protected",
+  beforeLoad: ({ context, location }) => {
+    if (context.auth.isLoading || context.auth.isAuthenticated) {
+      return;
+    }
+
+    throw redirect({
+      to: "/auth",
+      replace: true,
+      search: { from: `${location.pathname}${location.searchStr}${location.hash ? `#${location.hash}` : ""}` },
+    });
+  },
+  component: ProtectedRouteBoundary,
+});
+
+const todayRoute = createRoute({
+  getParentRoute: () => protectedRoute,
+  path: "/today",
+  component: TodayPage,
+});
+
+const calendarRoute = createRoute({
+  getParentRoute: () => protectedRoute,
+  path: "/calendar",
+  validateSearch: calendarSearchSchema,
+  component: CalendarPage,
+});
+
+const medicationRoute = createRoute({
+  getParentRoute: () => protectedRoute,
+  path: "/medication",
+  component: MedicationPage,
+});
+
+const templatesRoute = createRoute({
+  getParentRoute: () => protectedRoute,
+  path: "/templates",
+  component: TemplatesPage,
+});
+
+const statsRoute = createRoute({
+  getParentRoute: () => protectedRoute,
+  path: "/stats",
+  component: StatsPage,
+});
+
+const settingsRoute = createRoute({
+  getParentRoute: () => protectedRoute,
+  path: "/settings",
+  component: SettingsPage,
+});
+
+const indexRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/",
+  component: () => <Navigate to="/today" replace />,
+});
+
+const routeTree = rootRoute.addChildren([
+  indexRoute,
+  authRoute,
+  authCallbackRoute,
+  protectedRoute.addChildren([
+    todayRoute,
+    calendarRoute,
+    medicationRoute,
+    templatesRoute,
+    statsRoute,
+    settingsRoute,
+  ]),
+]);
+
+export function createAppRouter() {
+  return createRouter({
+    routeTree,
+    context: {
+      auth: {
+        isAuthenticated: false,
+        isLoading: true,
+      },
+    },
+  });
+}
+
+export const appRouter = createAppRouter();
+
+declare module "@tanstack/react-router" {
+  interface Register {
+    router: typeof appRouter;
+  }
 }

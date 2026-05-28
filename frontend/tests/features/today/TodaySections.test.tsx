@@ -18,6 +18,7 @@ import {
   type BulkAction,
 } from "@/features/today/TodaySections";
 import type { SectionItem } from "@/lib/api/today";
+import { QueryTestProvider } from "../../utils/queryTestProvider";
 
 describe("Today section components", () => {
   it("renders SummaryCard label and value", () => {
@@ -102,13 +103,15 @@ describe("Today section components", () => {
     ];
 
     render(
-      <SectionCard
-        sectionId="due-today"
-        heading="Due Today"
-        items={items}
-        onRefresh={onRefresh}
-        bulkActions={bulkActions}
-      />,
+      <QueryTestProvider>
+        <SectionCard
+          sectionId="due-today"
+          heading="Due Today"
+          items={items}
+          onRefresh={onRefresh}
+          bulkActions={bulkActions}
+        />
+      </QueryTestProvider>,
     );
 
     expect(screen.getByText("Due Today")).toBeInTheDocument();
@@ -143,13 +146,15 @@ describe("Today section components", () => {
     ];
 
     render(
-      <SectionCard
-        sectionId="due-today"
-        heading="Due Today"
-        items={items}
-        onRefresh={onRefresh}
-        bulkActions={bulkActions}
-      />,
+      <QueryTestProvider>
+        <SectionCard
+          sectionId="due-today"
+          heading="Due Today"
+          items={items}
+          onRefresh={onRefresh}
+          bulkActions={bulkActions}
+        />
+      </QueryTestProvider>,
     );
 
     await user.click(screen.getByLabelText("Select Water plants"));
@@ -184,13 +189,15 @@ describe("Today section components", () => {
     ];
 
     render(
-      <SectionCard
-        sectionId="due-today"
-        heading="Due Today"
-        items={items}
-        onRefresh={onRefresh}
-        bulkActions={bulkActions}
-      />,
+      <QueryTestProvider>
+        <SectionCard
+          sectionId="due-today"
+          heading="Due Today"
+          items={items}
+          onRefresh={onRefresh}
+          bulkActions={bulkActions}
+        />
+      </QueryTestProvider>,
     );
 
     await user.click(screen.getByLabelText("Select Water plants"));
@@ -223,13 +230,15 @@ describe("Today section components", () => {
     ];
 
     render(
-      <SectionCard
-        sectionId="due-today"
-        heading="Due Today"
-        items={items}
-        onRefresh={onRefresh}
-        bulkActions={bulkActions}
-      />,
+      <QueryTestProvider>
+        <SectionCard
+          sectionId="due-today"
+          heading="Due Today"
+          items={items}
+          onRefresh={onRefresh}
+          bulkActions={bulkActions}
+        />
+      </QueryTestProvider>,
     );
 
     const selectAll = screen.getByRole("checkbox", { name: "Select all" });

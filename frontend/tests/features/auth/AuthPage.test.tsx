@@ -1,9 +1,8 @@
 // @vitest-environment jsdom
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { MemoryRouter } from "react-router-dom";
-import { AuthPage } from "@/features/auth/AuthPage";
+import { renderWithRouter } from "../../utils/router";
 
 const authMock = vi.hoisted(() => ({
   loginStub: vi.fn(),
@@ -23,11 +22,10 @@ vi.mock("@/app/providers/AuthProvider", () => ({
 }));
 
 function renderAuthPage() {
-  return render(
-    <MemoryRouter initialEntries={["/auth"]}>
-      <AuthPage />
-    </MemoryRouter>,
-  );
+  return renderWithRouter({
+    path: "/auth",
+    auth: { isAuthenticated: false, isLoading: false },
+  });
 }
 
 describe("AuthPage", () => {
@@ -37,14 +35,14 @@ describe("AuthPage", () => {
     authMock.refreshUserStub.mockReset();
   });
 
-  it("renders the sign-in heading", () => {
+  it("renders the sign-in heading", async () => {
     renderAuthPage();
-    expect(screen.getByRole("heading", { name: /sign in to daynest/i })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: /sign in to daynest/i })).toBeInTheDocument();
   });
 
-  it("renders the sign-in button", () => {
+  it("renders the sign-in button", async () => {
     renderAuthPage();
-    expect(screen.getByRole("button", { name: /sign in/i })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: /sign in/i })).toBeInTheDocument();
   });
 
   it("does not render email or password inputs", () => {
@@ -57,7 +55,7 @@ describe("AuthPage", () => {
     const user = userEvent.setup();
     renderAuthPage();
 
-    await user.click(screen.getByRole("button", { name: /sign in/i }));
+    await user.click(await screen.findByRole("button", { name: /sign in/i }));
 
     expect(authMock.loginStub).toHaveBeenCalledOnce();
   });

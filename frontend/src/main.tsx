@@ -1,6 +1,6 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { BrowserRouter, NavLink } from "react-router-dom";
+import { Link, RouterProvider } from "@tanstack/react-router";
 import { AuthProvider as OidcProvider } from "react-oidc-context";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "./app.css";
@@ -11,7 +11,7 @@ import {
   setDeferredInstallPrompt,
   type BeforeInstallPromptEvent,
 } from "@/app/pwa/installPrompt";
-import { AppRouter } from "@/app/router/AppRouter";
+import { appRouter } from "@/app/router/AppRouter";
 import { AuthProvider, useAuth } from "@/app/providers/AuthProvider";
 import { QueryProvider } from "@/app/providers/QueryProvider";
 import { fetchOidcConfig } from "@/config/oidc";
@@ -133,59 +133,72 @@ function App() {
                 </button>
               </div>
             ) : !isLoading ? (
-              <NavLink
-                className={({ isActive }) =>
-                  `btn btn-sm ${isActive ? "btn-primary" : "btn-outline-primary"}`
-                }
+              <Link
                 to="/auth"
+                activeProps={{ className: "btn btn-sm btn-primary" }}
+                inactiveProps={{ className: "btn btn-sm btn-outline-primary" }}
               >
                 {m.app_login()}
-              </NavLink>
+              </Link>
             ) : null}
           </div>
         </div>
         {isAuthenticated ? (
           <nav className="nav nav-pills gap-2">
-            <NavLink
-              className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}
+            <Link
               to="/today"
+              activeProps={{ className: "nav-link active" }}
+              inactiveProps={{ className: "nav-link" }}
             >
               {m.nav_today()}
-            </NavLink>
-            <NavLink
-              className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}
+            </Link>
+            <Link
               to="/calendar"
+              activeProps={{ className: "nav-link active" }}
+              inactiveProps={{ className: "nav-link" }}
             >
               {m.nav_calendar()}
-            </NavLink>
-            <NavLink
-              className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}
+            </Link>
+            <Link
               to="/medication"
+              activeProps={{ className: "nav-link active" }}
+              inactiveProps={{ className: "nav-link" }}
             >
               {m.nav_medication()}
-            </NavLink>
-            <NavLink
-              className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}
+            </Link>
+            <Link
               to="/templates"
+              activeProps={{ className: "nav-link active" }}
+              inactiveProps={{ className: "nav-link" }}
             >
               {m.nav_templates()}
-            </NavLink>
-            <NavLink
-              className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}
+            </Link>
+            <Link
               to="/stats"
+              activeProps={{ className: "nav-link active" }}
+              inactiveProps={{ className: "nav-link" }}
             >
               {m.nav_stats()}
-            </NavLink>
-            <NavLink
-              className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}
+            </Link>
+            <Link
               to="/settings"
+              activeProps={{ className: "nav-link active" }}
+              inactiveProps={{ className: "nav-link" }}
             >
               {m.nav_settings()}
-            </NavLink>
+            </Link>
           </nav>
         ) : null}
       </header>
-      <AppRouter />
+      <RouterProvider
+        router={appRouter}
+        context={{
+          auth: {
+            isAuthenticated,
+            isLoading,
+          },
+        }}
+      />
     </main>
   );
 }
@@ -206,17 +219,15 @@ async function bootstrap() {
   ReactDOM.createRoot(document.getElementById("root")!).render(
     <React.StrictMode>
       <OidcProvider {...oidcConfig}>
-        <BrowserRouter>
-          <LanguageProvider>
-            <AuthProvider>
-              <QueryProvider>
-                <ThemeProvider>
-                  <App />
-                </ThemeProvider>
-              </QueryProvider>
-            </AuthProvider>
-          </LanguageProvider>
-        </BrowserRouter>
+        <LanguageProvider>
+          <AuthProvider>
+            <QueryProvider>
+              <ThemeProvider>
+                <App />
+              </ThemeProvider>
+            </QueryProvider>
+          </AuthProvider>
+        </LanguageProvider>
       </OidcProvider>
     </React.StrictMode>,
   );

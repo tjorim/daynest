@@ -1,24 +1,29 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import * as m from "@/paraglide/messages";
-import {
-  searchItems,
-  type SearchResponse,
-} from "@/lib/api/today";
+import { useSearchQuery } from "@/features/search/useSearchQuery";
 
 const DEBOUNCE_MS = 300;
 const MIN_QUERY_LEN = 2;
 
 export function SearchOverlay({ onClose }: { onClose: () => void }) {
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<SearchResponse | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [debouncedQuery, setDebouncedQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
-  const abortRef = useRef<AbortController | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const searchQuery = useSearchQuery(
+    debouncedQuery,
+    debouncedQuery.length >= MIN_QUERY_LEN,
+  );
+  const results = searchQuery.data ?? null;
+  const loading = searchQuery.isFetching;
+  const error = searchQuery.error instanceof Error
+    ? searchQuery.error.message
+    : searchQuery.error
+      ? "Search failed."
+      : null;
 
   const flatItems = useMemo(() => {
     if (!results) return [];
@@ -55,57 +60,29 @@ export function SearchOverlay({ onClose }: { onClose: () => void }) {
     return () => document.removeEventListener("keydown", handler);
   }, [onClose]);
 
-  const doSearch = useCallback(async (q: string) => {
-    abortRef.current?.abort();
-    const controller = new AbortController();
-    abortRef.current = controller;
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await searchItems(q, controller.signal);
-      if (!controller.signal.aborted) {
-        setResults(data);
-      }
-    } catch (err) {
-      if (!controller.signal.aborted) {
-        setError(err instanceof Error ? err.message : "Search failed.");
-        setResults(null);
-      }
-    } finally {
-      if (!controller.signal.aborted) {
-        setLoading(false);
-      }
-    }
-  }, []);
-
   const onQueryChange = (value: string) => {
     setQuery(value);
     if (timerRef.current !== null) {
       clearTimeout(timerRef.current);
     }
     if (value.length < MIN_QUERY_LEN) {
-      abortRef.current?.abort();
-      abortRef.current = null;
-      setResults(null);
-      setError(null);
-      setLoading(false);
+      setDebouncedQuery("");
       return;
     }
     timerRef.current = setTimeout(() => {
-      void doSearch(value);
+      setDebouncedQuery(value);
     }, DEBOUNCE_MS);
   };
 
   useEffect(() => {
     return () => {
       if (timerRef.current !== null) clearTimeout(timerRef.current);
-      abortRef.current?.abort();
     };
   }, []);
 
   const navigateTo = (path: string) => {
     onClose();
-    navigate(path);
+    void navigate({ to: path });
   };
 
   const onInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
