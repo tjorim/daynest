@@ -11,11 +11,6 @@ vi.mock("@/app/providers/AuthProvider", () => ({
   useAuth: () => ({ isAuthenticated: true, isLoading: false, user: null, login: vi.fn(), logout: vi.fn(), refreshUser: vi.fn() }),
 }));
 
-vi.mock("@/app/layout/AppLayout", async () => {
-  const { Outlet } = await import("@tanstack/react-router");
-  return { AppLayout: Outlet };
-});
-
 vi.mock("@/paraglide/messages", () => ({
   router_loading_session: () => "Loading session",
   router_completing_sign_in: () => "Completing sign in",
