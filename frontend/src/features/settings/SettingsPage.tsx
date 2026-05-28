@@ -264,6 +264,7 @@ export function SettingsPage() {
       return;
     }
     const settings = userSettingsQuery.data;
+    setTimezoneError(null);
     const overdueEnabled = settings.push_overdue_chores_enabled ?? true;
     const medRemindersEnabled = settings.push_medication_reminders_enabled ?? true;
     const missedMedEnabled = settings.push_missed_medications_enabled ?? true;

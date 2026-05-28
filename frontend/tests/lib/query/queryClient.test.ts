@@ -32,6 +32,7 @@ describe("createDaynestQueryClient", () => {
     expect(queryRetry(2, transientError)).toBe(false);
 
     expect(mutationRetry(0, transientError)).toBe(true);
+    expect(mutationRetry(1, transientError)).toBe(true);
     expect(mutationRetry(2, transientError)).toBe(false);
   });
 });

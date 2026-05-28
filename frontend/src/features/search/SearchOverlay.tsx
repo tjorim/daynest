@@ -65,12 +65,13 @@ export function SearchOverlay({ onClose }: { onClose: () => void }) {
     if (timerRef.current !== null) {
       clearTimeout(timerRef.current);
     }
-    if (value.length < MIN_QUERY_LEN) {
+    const trimmed = value.trim();
+    if (trimmed.length < MIN_QUERY_LEN) {
       setDebouncedQuery("");
       return;
     }
     timerRef.current = setTimeout(() => {
-      setDebouncedQuery(value);
+      setDebouncedQuery(trimmed);
     }, DEBOUNCE_MS);
   };
 

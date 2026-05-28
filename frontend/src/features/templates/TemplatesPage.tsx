@@ -32,8 +32,8 @@ export function TemplatesPage() {
   const routines = routinesQuery.data ?? [];
   const chores = choresQuery.data ?? [];
   const analytics = analyticsQuery.data ?? null;
-  const loading = routinesQuery.isPending || choresQuery.isPending;
-  const queryError = routinesQuery.error ?? choresQuery.error;
+  const loading = routinesQuery.isPending || choresQuery.isPending || analyticsQuery.isPending;
+  const queryError = routinesQuery.error ?? choresQuery.error ?? analyticsQuery.error;
   const error = queryError instanceof Error ? queryError.message : queryError ? "Unable to load template data." : null;
   const canRetry = queryError ? isRetryableApiError(queryError) : false;
 
@@ -64,7 +64,7 @@ export function TemplatesPage() {
   const [editingChoreId, setEditingChoreId] = useState<number | null>(null);
 
   const loadTemplates = async () => {
-    await Promise.all([routinesQuery.refetch(), choresQuery.refetch()]);
+    await Promise.all([routinesQuery.refetch(), choresQuery.refetch(), analyticsQuery.refetch()]);
   };
 
   const resetRoutineForm = () => {
