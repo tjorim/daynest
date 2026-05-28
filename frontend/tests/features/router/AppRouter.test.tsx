@@ -3,6 +3,10 @@ import { screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { renderWithRouter } from "../../utils/router";
 
+vi.mock("react-oidc-context", () => ({
+  useAuth: () => ({ isLoading: false }),
+}));
+
 vi.mock("@/paraglide/messages", () => ({
   router_loading_session: () => "Loading session",
   router_completing_sign_in: () => "Completing sign in",

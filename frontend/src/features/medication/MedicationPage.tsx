@@ -60,7 +60,7 @@ function toMedicationPlanInput(
       start_date: startDate,
       schedule_time: scheduleTime.length === 5 ? `${scheduleTime}:00` : scheduleTime,
       every_n_days: everyNDays,
-      ...(typeof isActive === "boolean" ? { is_active: isActive } : {}),
+      is_active: isActive ?? true,
     },
     error: null,
   };

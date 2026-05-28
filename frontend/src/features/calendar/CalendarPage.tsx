@@ -45,10 +45,8 @@ function parseDate(value?: string) {
 export function CalendarPage() {
   const navigate = useNavigate();
   const search = useSearch({ from: "/protected/calendar" });
-  const [currentMonth, setCurrentMonth] = useState(() => parseMonth(search.month) ?? dayjs());
-  const [selectedDate, setSelectedDate] = useState(() =>
-    toIsoDate(parseDate(search.date) ?? dayjs()),
-  );
+  const currentMonth = useMemo(() => parseMonth(search.month) ?? dayjs(), [search.month]);
+  const selectedDate = useMemo(() => toIsoDate(parseDate(search.date) ?? dayjs()), [search.date]);
   const [dayActionStatus, setDayActionStatus] = useState<string | null>(null);
   const [isRunningDayAction, setIsRunningDayAction] = useState(false);
 
@@ -67,25 +65,9 @@ export function CalendarPage() {
   const skipChoreMutation = useSkipChoreMutation();
   const rescheduleChoreMutation = useRescheduleChoreMutation();
 
-  useEffect(() => {
-    const searchMonth = parseMonth(search.month);
-    if (searchMonth && !searchMonth.isSame(currentMonth, "month")) {
-      setCurrentMonth(searchMonth);
-    }
-  }, [currentMonth, search.month]);
-
-  useEffect(() => {
-    const searchDate = parseDate(search.date);
-    if (searchDate) {
-      const searchDateString = toIsoDate(searchDate);
-      if (searchDateString !== selectedDate) {
-        setSelectedDate(searchDateString);
-      }
-    }
-  }, [search.date, selectedDate]);
-
   const updateSearch = (nextMonth: dayjs.Dayjs, nextDate: string) => {
     void navigate({
+      to: "/calendar",
       search: {
         month: nextMonth.format("YYYY-MM"),
         date: nextDate,
@@ -115,7 +97,6 @@ export function CalendarPage() {
     setIsRunningDayAction(true);
     try {
       await action();
-      await reloadCalendar();
       setDayActionStatus(successMessage);
     } catch (err) {
       planned.setAddError(err instanceof Error ? err.message : "Action failed.");
@@ -135,19 +116,15 @@ export function CalendarPage() {
         onRefresh={() => void reloadCalendar()}
         onPrevMonth={() => {
           const nextMonth = currentMonth.subtract(1, "month");
-          setCurrentMonth(nextMonth);
           updateSearch(nextMonth, selectedDate);
         }}
         onCurrentMonth={() => {
           const nextMonth = dayjs();
           const nextDate = toIsoDate(nextMonth);
-          setCurrentMonth(nextMonth);
-          setSelectedDate(nextDate);
           updateSearch(nextMonth, nextDate);
         }}
         onNextMonth={() => {
           const nextMonth = currentMonth.add(1, "month");
-          setCurrentMonth(nextMonth);
           updateSearch(nextMonth, selectedDate);
         }}
       />
@@ -178,7 +155,6 @@ export function CalendarPage() {
             monthItems={monthQuery.data?.days ?? []}
             selectedDate={selectedDate}
             onSelectDate={(date) => {
-              setSelectedDate(date);
               updateSearch(currentMonth, date);
             }}
             onDropReschedule={planned.dragReschedulePlannedItem}

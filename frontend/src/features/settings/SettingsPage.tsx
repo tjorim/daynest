@@ -5,9 +5,9 @@ import {
   getCoreRowModel,
   getFilteredRowModel,
   getSortedRowModel,
-  type ColumnDef,
   type ColumnFiltersState,
   type SortingState,
+  type VisibilityState,
   useReactTable,
 } from "@tanstack/react-table";
 import * as m from "@/paraglide/messages";
@@ -69,7 +69,7 @@ export function SettingsPage() {
   const [rotateClientError, setRotateClientError] = useState<string | null>(null);
   const [clientSorting, setClientSorting] = useState<SortingState>([]);
   const [clientColumnFilters, setClientColumnFilters] = useState<ColumnFiltersState>([]);
-  const [clientColumnVisibility, setClientColumnVisibility] = useState({
+  const [clientColumnVisibility, setClientColumnVisibility] = useState<VisibilityState>({
     rateLimit: true,
     status: true,
   });
@@ -253,6 +253,7 @@ export function SettingsPage() {
   }, []);
 
   useEffect(() => {
+    if (hasInitializedUserSettings) return;
     if (!userSettingsQuery.data) {
       if (userSettingsQuery.error) {
         const msg = userSettingsQuery.error instanceof Error
@@ -277,7 +278,7 @@ export function SettingsPage() {
     setQuietHoursStart(settings.quiet_hours_start ?? "");
     setQuietHoursEnd(settings.quiet_hours_end ?? "");
     setHasInitializedUserSettings(true);
-  }, [userSettingsQuery.data, userSettingsQuery.error]);
+  }, [userSettingsQuery.data, userSettingsQuery.error, hasInitializedUserSettings]);
 
   const onSaveTimezone = async () => {
     if (!timezone) return;
@@ -412,11 +413,11 @@ export function SettingsPage() {
     }
   };
 
-  const clientColumns = useMemo<ColumnDef<IntegrationClient>[]>(
+  const clientColumns = useMemo(
     () => [
       integrationClientColumnHelper.accessor("name", {
         id: "name",
-        header: "Client",
+        header: m.settings_client_column_name(),
         cell: (info) => <span className="fw-semibold">{info.getValue()}</span>,
       }),
       integrationClientColumnHelper.accessor("rate_limit_per_minute", {
@@ -439,7 +440,7 @@ export function SettingsPage() {
       }),
       integrationClientColumnHelper.display({
         id: "actions",
-        header: "Actions",
+        header: m.settings_client_column_actions(),
         cell: (info) => {
           const client = info.row.original;
           return (
@@ -465,7 +466,7 @@ export function SettingsPage() {
         },
       }),
     ],
-    [revokingClient, rotatingClient],
+    [revokingClient, rotatingClient, language],
   );
 
   const clientsTable = useReactTable({
@@ -879,14 +880,14 @@ export function SettingsPage() {
             <div className="card-header fw-semibold py-2">{m.settings_integration_clients_header()}</div>
             <div className="card-body border-bottom d-grid gap-2">
               <label className="form-label small fw-semibold mb-0" htmlFor="integration-client-filter">
-                Search clients
+                {m.settings_search_clients()}
               </label>
               <input
                 id="integration-client-filter"
                 className="form-control form-control-sm"
                 value={(clientsTable.getColumn("name")?.getFilterValue() as string | undefined) ?? ""}
                 onChange={(event) => clientsTable.getColumn("name")?.setFilterValue(event.target.value)}
-                placeholder="Filter by client name"
+                placeholder={m.settings_filter_by_client_name()}
               />
               <div className="d-flex gap-3 flex-wrap small">
                 <label className="form-check m-0">
