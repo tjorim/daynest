@@ -5,7 +5,6 @@ import {
   getCoreRowModel,
   getFilteredRowModel,
   getSortedRowModel,
-  type ColumnDef,
   type ColumnFiltersState,
   type SortingState,
   type VisibilityState,
@@ -414,7 +413,7 @@ export function SettingsPage() {
     }
   };
 
-  const clientColumns = useMemo<ColumnDef<IntegrationClient, unknown>[]>(
+  const clientColumns = useMemo(
     () => [
       integrationClientColumnHelper.accessor("name", {
         id: "name",

@@ -43,7 +43,7 @@ function parseDate(value?: string) {
 }
 
 export function CalendarPage() {
-  const navigate = useNavigate({ from: "/protected/calendar" });
+  const navigate = useNavigate();
   const search = useSearch({ from: "/protected/calendar" });
   const currentMonth = useMemo(() => parseMonth(search.month) ?? dayjs(), [search.month]);
   const selectedDate = useMemo(() => toIsoDate(parseDate(search.date) ?? dayjs()), [search.date]);
@@ -67,6 +67,7 @@ export function CalendarPage() {
 
   const updateSearch = (nextMonth: dayjs.Dayjs, nextDate: string) => {
     void navigate({
+      to: "/calendar",
       search: {
         month: nextMonth.format("YYYY-MM"),
         date: nextDate,
