@@ -2,6 +2,16 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { CalendarPage } from "@/features/calendar/CalendarPage";
+import { QueryTestProvider } from "../../utils/queryTestProvider";
+
+vi.mock("@tanstack/react-router", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@tanstack/react-router")>();
+  return {
+    ...actual,
+    useNavigate: () => vi.fn(),
+    useSearch: () => ({ month: undefined as string | undefined, date: undefined as string | undefined }),
+  };
+});
 
 const calendarApiMock = vi.hoisted(() => ({
   fetchCalendarMonth: vi.fn(),
@@ -37,7 +47,11 @@ describe("CalendarPage", () => {
   });
 
   it("renders month controls and extracted side panels", async () => {
-    render(<CalendarPage />);
+    render(
+      <QueryTestProvider>
+        <CalendarPage />
+      </QueryTestProvider>,
+    );
 
     expect(await screen.findByRole("heading", { name: "Calendar" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "This month" })).toBeInTheDocument();
@@ -66,7 +80,11 @@ describe("CalendarPage", () => {
       },
     ]);
 
-    render(<CalendarPage />);
+    render(
+      <QueryTestProvider>
+        <CalendarPage />
+      </QueryTestProvider>,
+    );
 
     expect(await screen.findByText(/🔁 Grocery run/)).toBeInTheDocument();
   });

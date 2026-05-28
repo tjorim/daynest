@@ -24,7 +24,7 @@ The name reflects the product goal: a calm place to organize everyday life at ho
 
 ## Tech stack
 
-- Frontend: React, TypeScript, Vite, Bootstrap, dayjs
+- Frontend: React, TypeScript, Vite, TanStack (Query/Router/Form/Table), Bootstrap, dayjs
 - Native Android: Kotlin, Jetpack Compose, AndroidX
 - Backend: FastAPI, SQLAlchemy/SQLModel, PostgreSQL, Alembic, Pydantic
 - Hosting: Docker Compose on a VPS, Caddy reverse proxy
@@ -38,6 +38,9 @@ The name reflects the product goal: a calm place to organize everyday life at ho
 - Recurrence should be powerful but understandable.
 - Integrations should reuse core services instead of duplicating logic.
 - Growth areas should be optional modules layered on top of planning, not required complexity for core daily use.
+
+Frontend TanStack architecture and usage conventions are documented in
+`frontend/docs/tanstack-architecture.md`.
 
 ## Initial architecture layout
 

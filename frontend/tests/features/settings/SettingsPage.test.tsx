@@ -1,14 +1,17 @@
 // @vitest-environment jsdom
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { SettingsPage } from "@/features/settings/SettingsPage";
 import { LanguageProvider } from "@/i18n/LanguageProvider";
 import { setLocale } from "@/paraglide/runtime";
+import { QueryTestProvider } from "../../utils/queryTestProvider";
 
 const apiMock = vi.hoisted(() => ({
   createIntegrationClient: vi.fn(),
   listIntegrationClients: vi.fn(),
+  revokeIntegrationClient: vi.fn(),
+  rotateIntegrationClient: vi.fn(),
   fetchUserSettings: vi.fn(),
   updateUserSettings: vi.fn(),
 }));
@@ -23,6 +26,8 @@ vi.mock("@/lib/api/today", () => ({
   createIntegrationClient: apiMock.createIntegrationClient,
   isRetryableApiError: () => false,
   listIntegrationClients: apiMock.listIntegrationClients,
+  revokeIntegrationClient: apiMock.revokeIntegrationClient,
+  rotateIntegrationClient: apiMock.rotateIntegrationClient,
   fetchUserSettings: apiMock.fetchUserSettings,
   updateUserSettings: apiMock.updateUserSettings,
 }));
@@ -39,6 +44,8 @@ describe("SettingsPage", () => {
     setLocale("en");
     apiMock.createIntegrationClient.mockReset();
     apiMock.listIntegrationClients.mockReset();
+    apiMock.revokeIntegrationClient.mockReset();
+    apiMock.rotateIntegrationClient.mockReset();
     apiMock.fetchUserSettings.mockReset();
     apiMock.updateUserSettings.mockReset();
     pwaMock.getDeferredInstallPrompt.mockReset();
@@ -70,7 +77,11 @@ describe("SettingsPage", () => {
   });
 
   it("shows Home Assistant setup details", async () => {
-    render(<SettingsPage />);
+    render(
+      <QueryTestProvider>
+        <SettingsPage />
+      </QueryTestProvider>,
+    );
 
     expect(await screen.findByText("Home Assistant connection details")).toBeInTheDocument();
     expect(screen.getByText("home-assistant; version=ha.v1")).toBeInTheDocument();
@@ -80,7 +91,11 @@ describe("SettingsPage", () => {
 
   it("creates a client with the given name and rate limit", async () => {
     const user = userEvent.setup();
-    render(<SettingsPage />);
+    render(
+      <QueryTestProvider>
+        <SettingsPage />
+      </QueryTestProvider>,
+    );
 
     await screen.findByText("Create integration client");
     await user.click(screen.getByRole("button", { name: /^create client$/i }));
@@ -104,7 +119,11 @@ describe("SettingsPage", () => {
     });
     pwaMock.promptToInstallApp.mockResolvedValue(true);
 
-    render(<SettingsPage />);
+    render(
+      <QueryTestProvider>
+        <SettingsPage />
+      </QueryTestProvider>,
+    );
 
     const installButton = await screen.findByRole("button", { name: /install app/i });
     await user.click(installButton);
@@ -124,7 +143,11 @@ describe("SettingsPage", () => {
     pwaMock.promptToInstallApp.mockRejectedValue(new Error("prompt failed"));
 
     try {
-      render(<SettingsPage />);
+      render(
+        <QueryTestProvider>
+          <SettingsPage />
+        </QueryTestProvider>,
+      );
 
       const installButton = await screen.findByRole("button", { name: /install app/i });
       await user.click(installButton);
@@ -152,7 +175,11 @@ describe("SettingsPage", () => {
     });
     apiMock.updateUserSettings.mockResolvedValue({ timezone: "America/New_York" });
 
-    render(<SettingsPage />);
+    render(
+      <QueryTestProvider>
+        <SettingsPage />
+      </QueryTestProvider>,
+    );
 
     const select = await screen.findByRole("combobox", { name: /timezone/i });
     expect(select).toHaveValue("Europe/Brussels");
@@ -169,7 +196,11 @@ describe("SettingsPage", () => {
   it("saves push toggle updates with only changed field", async () => {
     const user = userEvent.setup();
     apiMock.updateUserSettings.mockResolvedValue({});
-    render(<SettingsPage />);
+    render(
+      <QueryTestProvider>
+        <SettingsPage />
+      </QueryTestProvider>,
+    );
 
     const overdueToggle = await screen.findByLabelText(/overdue chore reminders/i);
     await user.click(overdueToggle);
@@ -185,7 +216,11 @@ describe("SettingsPage", () => {
     apiMock.updateUserSettings.mockImplementationOnce(
       () => new Promise((r) => { resolveFirst = r; }),
     );
-    render(<SettingsPage />);
+    render(
+      <QueryTestProvider>
+        <SettingsPage />
+      </QueryTestProvider>,
+    );
 
     const overdueToggle = await screen.findByLabelText(/overdue chore reminders/i);
     // Toggle off (API pending, server state still true)
@@ -202,11 +237,18 @@ describe("SettingsPage", () => {
   it("saves notification numeric and quiet hours via apply button", async () => {
     const user = userEvent.setup();
     apiMock.updateUserSettings.mockResolvedValue({});
-    render(<SettingsPage />);
+    render(
+      <QueryTestProvider>
+        <SettingsPage />
+      </QueryTestProvider>,
+    );
 
-    const minutesInput = await screen.findByLabelText(/medication reminder \(minutes before\)/i);
-    await user.clear(minutesInput);
-    await user.type(minutesInput, "45");
+    // Wait for user settings to be fully initialized (timezone transitions from "" to "UTC" after API loads)
+    await waitFor(() => {
+      expect(screen.getByRole("combobox", { name: /timezone/i })).toHaveValue("UTC");
+    });
+    const minutesInput = screen.getByLabelText(/medication reminder \(minutes before\)/i);
+    fireEvent.change(minutesInput, { target: { value: "45" } });
     await user.type(screen.getByLabelText(/^from$/i), "22:00");
     await user.type(screen.getByLabelText(/^to$/i), "07:00");
     await user.click(screen.getByRole("button", { name: /apply notification preferences/i }));
@@ -222,7 +264,11 @@ describe("SettingsPage", () => {
 
   it("switches language to Dutch immediately", async () => {
     const user = userEvent.setup();
-    render(<LanguageProvider><SettingsPage /></LanguageProvider>);
+    render(
+      <QueryTestProvider>
+        <LanguageProvider><SettingsPage /></LanguageProvider>
+      </QueryTestProvider>,
+    );
 
     const languageSelect = await screen.findByRole("combobox", { name: /language/i });
     await user.selectOptions(languageSelect, "nl");

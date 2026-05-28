@@ -25,14 +25,14 @@ import { useTodayQuery } from "@/features/today/useTodayQuery";
 export function TodayPage() {
   const todayQuery = useTodayQuery();
   const today = todayQuery.data ?? null;
-  const isLoading = todayQuery.isLoading || todayQuery.isFetching;
+  const isLoading = todayQuery.isLoading;
   const error = todayQuery.error ? (todayQuery.error instanceof Error ? todayQuery.error.message : "Unable to load today payload.") : null;
   const canRetry = todayQuery.error ? isRetryableApiError(todayQuery.error) : false;
   const loadToday = useCallback(async () => {
     await todayQuery.refetch();
   }, [todayQuery]);
 
-  const actions = useTodayActions(loadToday);
+  const actions = useTodayActions();
   const hasAnyItems = today
     ? Object.values(today).some((section) => Array.isArray(section) && section.length > 0)
     : false;
