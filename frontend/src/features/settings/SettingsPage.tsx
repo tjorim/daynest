@@ -8,6 +8,7 @@ import {
   type ColumnDef,
   type ColumnFiltersState,
   type SortingState,
+  type VisibilityState,
   useReactTable,
 } from "@tanstack/react-table";
 import * as m from "@/paraglide/messages";
@@ -69,7 +70,7 @@ export function SettingsPage() {
   const [rotateClientError, setRotateClientError] = useState<string | null>(null);
   const [clientSorting, setClientSorting] = useState<SortingState>([]);
   const [clientColumnFilters, setClientColumnFilters] = useState<ColumnFiltersState>([]);
-  const [clientColumnVisibility, setClientColumnVisibility] = useState({
+  const [clientColumnVisibility, setClientColumnVisibility] = useState<VisibilityState>({
     rateLimit: true,
     status: true,
   });
@@ -413,7 +414,7 @@ export function SettingsPage() {
     }
   };
 
-  const clientColumns = useMemo<ColumnDef<IntegrationClient>[]>(
+  const clientColumns = useMemo<ColumnDef<IntegrationClient, unknown>[]>(
     () => [
       integrationClientColumnHelper.accessor("name", {
         id: "name",

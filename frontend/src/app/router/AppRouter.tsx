@@ -5,8 +5,8 @@ import {
   createRoute,
   createRouter,
   redirect,
-  useRouterState,
 } from "@tanstack/react-router";
+import { useAuth } from "react-oidc-context";
 import { z } from "zod";
 import * as m from "@/paraglide/messages";
 import { AuthPage } from "@/features/auth/AuthPage";
@@ -25,9 +25,7 @@ type RouterContext = {
 };
 
 function ProtectedRouteBoundary() {
-  const isLoading = useRouterState({
-    select: (state) => state.context.auth.isLoading,
-  });
+  const { isLoading } = useAuth();
   if (isLoading) {
     return <div className="alert alert-info py-2">{m.router_loading_session()}</div>;
   }

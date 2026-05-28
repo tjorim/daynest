@@ -43,7 +43,7 @@ function parseDate(value?: string) {
 }
 
 export function CalendarPage() {
-  const navigate = useNavigate();
+  const navigate = useNavigate({ from: "/protected/calendar" });
   const search = useSearch({ from: "/protected/calendar" });
   const currentMonth = useMemo(() => parseMonth(search.month) ?? dayjs(), [search.month]);
   const selectedDate = useMemo(() => toIsoDate(parseDate(search.date) ?? dayjs()), [search.date]);
