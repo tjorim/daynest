@@ -103,6 +103,7 @@ export type StatusTone = "primary" | "secondary" | "warning" | "success" | "info
 export interface SectionItem {
   id: string;
   title: string;
+  isRecurring?: boolean;
   subtitle?: string;
   instructions?: string;
   statusLabel?: string;

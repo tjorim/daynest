@@ -173,8 +173,9 @@ export function buildPlannedItems(items: PlannedTodayItem[]): SectionItem[] {
     .map((item) => ({
     id: `planned-${item.id}`,
     title: item.time_of_day
-      ? `${item.time_of_day.slice(0, 5)} · ${item.rrule || item.recurrence_series_id ? "🔁 " : ""}${item.title}`
-      : `${item.rrule || item.recurrence_series_id ? "🔁 " : ""}${item.title}`,
+      ? `${item.time_of_day.slice(0, 5)} · ${item.title}`
+      : item.title,
+    isRecurring: Boolean(item.rrule || item.recurrence_series_id),
     subtitle: formatSubtitle(
       item.is_done
         ? m.today_planned_done_for({ date: formatDate(item.planned_for) })
@@ -712,7 +713,12 @@ export function SectionCard({
                   />
                 ) : null}
                 <div>
-                  <div className="fw-medium">{item.title}</div>
+                  <div className="fw-medium d-flex align-items-center gap-1">
+                    {item.isRecurring ? (
+                      <i className="bi bi-arrow-repeat text-muted" aria-label="Recurring" />
+                    ) : null}
+                    {item.title}
+                  </div>
                   {item.instructions ? (
                     <small className="d-block">{m.today_instructions({ text: item.instructions })}</small>
                   ) : null}

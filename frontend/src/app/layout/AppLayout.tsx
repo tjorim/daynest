@@ -97,7 +97,7 @@ export function AppLayout() {
                 title={m.app_search_shortcut()}
                 onClick={() => setSearchOpen(true)}
               >
-                🔍
+                <i className="bi bi-search" aria-hidden="true" />
               </button>
             ) : null}
             <button
@@ -107,7 +107,10 @@ export function AppLayout() {
               title={themeTitle}
               onClick={toggleTheme}
             >
-              {theme === "auto" ? "🌓" : theme === "light" ? "🌙" : "☀️"}
+              <i
+                className={`bi ${theme === "auto" ? "bi-circle-half" : theme === "light" ? "bi-moon-stars-fill" : "bi-sun-fill"}`}
+                aria-hidden="true"
+              />
             </button>
             {isAuthenticated && user ? (
               <div className="d-flex flex-column flex-sm-row align-items-start align-items-sm-center gap-2">
