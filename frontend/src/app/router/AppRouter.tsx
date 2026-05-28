@@ -10,6 +10,7 @@ import {
 import { useAuth } from "@/app/providers/AuthProvider";
 import { z } from "zod";
 import * as m from "@/paraglide/messages";
+import { AppLayout } from "@/app/layout/AppLayout";
 import { AuthPage } from "@/features/auth/AuthPage";
 import { TodayPage } from "@/features/today/TodayPage";
 import { CalendarPage } from "@/features/calendar/CalendarPage";
@@ -57,7 +58,7 @@ const calendarSearchSchema = z.object({
 });
 
 const rootRoute = createRootRouteWithContext<RouterContext>()({
-  component: Outlet,
+  component: AppLayout,
   notFoundComponent: () => <Navigate to="/today" replace />,
 });
 
