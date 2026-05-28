@@ -149,6 +149,69 @@ export function busyTodayPayload(date: string): TodayPayload {
   };
 }
 
+export function medicationRefillTodayPayload(date: string): TodayPayload {
+  return {
+    medication: [
+      {
+        medication_dose_instance_id: 120,
+        medication_plan_id: 10,
+        name: "Morning vitamin",
+        instructions: "With breakfast",
+        scheduled_at: `${date}T08:00:00Z`,
+        status: "scheduled",
+      },
+      {
+        medication_dose_instance_id: 121,
+        medication_plan_id: 11,
+        name: "Blood pressure pill",
+        instructions: "Before bed",
+        scheduled_at: `${date}T22:00:00Z`,
+        status: "taken",
+      },
+      {
+        medication_dose_instance_id: 122,
+        medication_plan_id: 12,
+        name: "Evening magnesium",
+        instructions: "After dinner — last dose, needs refill",
+        scheduled_at: `${date}T20:00:00Z`,
+        status: "skipped",
+      },
+      {
+        medication_dose_instance_id: 123,
+        medication_plan_id: 14,
+        name: "Antihistamine (expired plan)",
+        instructions: "Take with water",
+        scheduled_at: `${date}T12:00:00Z`,
+        status: "missed",
+      },
+    ],
+    medication_history: [
+      {
+        medication_dose_instance_id: 115,
+        medication_plan_id: 12,
+        name: "Evening magnesium",
+        instructions: "After dinner",
+        scheduled_at: "2026-05-28T20:00:00Z",
+        status: "missed",
+      },
+      {
+        medication_dose_instance_id: 116,
+        medication_plan_id: 12,
+        name: "Evening magnesium",
+        instructions: "After dinner",
+        scheduled_at: "2026-05-27T20:00:00Z",
+        status: "missed",
+      },
+    ],
+    routines: [],
+    overdue: [],
+    due_today: [],
+    upcoming: [],
+    planned: [],
+    day_items: [],
+  };
+}
+
 export function overdueTodayPayload(date: string): TodayPayload {
   return {
     medication: [

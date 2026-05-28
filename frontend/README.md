@@ -40,6 +40,7 @@ Append `?mock-scenario=<name>` to the URL to load a specific fixture state. The 
 | `template-crud` | Templates pre-populated | Routine & chore template lists |
 | `signed-out` | Unauthenticated state | Login prompt, 401 responses |
 | `expired-session` | Expired token | Mid-session 401 responses |
+| `forbidden` | 403 on today + auth/me | Forbidden / access-denied UI |
 | `api-error` | Today endpoint returns 500 | Error boundary / retry UI |
 
 ### Recommended screenshot routes
@@ -50,7 +51,9 @@ Append `?mock-scenario=<name>` to the URL to load a specific fixture state. The 
 | `http://localhost:5173/today` | 390×844 (mobile) | Mobile today view |
 | `http://localhost:5173/today?mock-scenario=overdue` | 1280×800 | Overdue chores + missed meds |
 | `http://localhost:5173/today?mock-scenario=empty` | 1280×800 | Empty / first-run state |
+| `http://localhost:5173/today?mock-scenario=medication-refill` | 1280×800 | All four dose statuses (scheduled, taken, skipped, missed) |
 | `http://localhost:5173/today?mock-scenario=api-error` | 1280×800 | Error UI with retry |
+| `http://localhost:5173/templates?mock-scenario=template-crud` | 1280×800 | Template list with active + inactive items |
 
 ---
 

@@ -6,9 +6,14 @@ import type {
   UserSettings,
 } from "@/lib/api/today";
 import { MOCK_TODAY } from "./constants";
-import { busyTodayPayload, emptyTodayPayload, overdueTodayPayload } from "./today";
+import { busyTodayPayload, emptyTodayPayload, medicationRefillTodayPayload, overdueTodayPayload } from "./today";
 import { seedMedications } from "./medication";
-import { seedRoutineTemplates, seedChoreTemplates } from "./templates";
+import {
+  seedRoutineTemplates,
+  seedRoutineTemplatesCrud,
+  seedChoreTemplates,
+  seedChoreTemplatesCrud,
+} from "./templates";
 import { seedPlannedItems } from "./plannedItems";
 import { seedUserSettings } from "./settings";
 
@@ -21,6 +26,7 @@ export type MockScenario =
   | "template-crud"
   | "signed-out"
   | "expired-session"
+  | "forbidden"
   | "api-error";
 
 interface MockState {
@@ -35,10 +41,10 @@ interface MockState {
 function buildInitialState(scenario: MockScenario): MockState {
   return {
     scenario,
-    plannedItems: scenario === "empty" ? [] : seedPlannedItems(MOCK_TODAY),
+    plannedItems: scenario === "empty" || scenario === "template-crud" ? [] : seedPlannedItems(MOCK_TODAY),
     medications: seedMedications(),
-    routineTemplates: seedRoutineTemplates(),
-    choreTemplates: seedChoreTemplates(),
+    routineTemplates: scenario === "template-crud" ? seedRoutineTemplatesCrud() : seedRoutineTemplates(),
+    choreTemplates: scenario === "template-crud" ? seedChoreTemplatesCrud() : seedChoreTemplates(),
     settings: seedUserSettings(),
   };
 }
@@ -62,6 +68,8 @@ export function getTodayPayload() {
   if (scenario === "empty") return emptyTodayPayload(MOCK_TODAY);
   if (scenario === "busy-today") return busyTodayPayload(MOCK_TODAY);
   if (scenario === "overdue") return overdueTodayPayload(MOCK_TODAY);
+  if (scenario === "medication-refill") return medicationRefillTodayPayload(MOCK_TODAY);
+  if (scenario === "template-crud") return emptyTodayPayload(MOCK_TODAY);
   return busyTodayPayload(MOCK_TODAY);
 }
 
@@ -109,6 +117,7 @@ export function initScenarioFromUrl(): void {
       "template-crud",
       "signed-out",
       "expired-session",
+      "forbidden",
       "api-error",
     ];
     if (valid.includes(raw as MockScenario)) {

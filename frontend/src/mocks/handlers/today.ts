@@ -1,12 +1,13 @@
 import { http, HttpResponse } from "msw";
 import { getMockState, getTodayPayload } from "../data/state";
-import { auth401, serverError500 } from "./errors";
+import { auth401, forbidden403, serverError500 } from "./errors";
 import { MOCK_TODAY } from "../data/constants";
 
 export const todayHandlers = [
   http.get("/api/v1/today", () => {
     const { scenario } = getMockState();
     if (scenario === "signed-out" || scenario === "expired-session") return auth401();
+    if (scenario === "forbidden") return forbidden403();
     if (scenario === "api-error") return serverError500();
     return HttpResponse.json(getTodayPayload());
   }),

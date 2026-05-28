@@ -32,7 +32,7 @@ export default defineConfig({
           env: {
             TZ: "UTC",
           },
-          setupFiles: ["./tests/setup.ts"],
+          setupFiles: ["./tests/setup.ts", "./tests/setup.msw.ts"],
         },
       },
       {

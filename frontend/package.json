@@ -6,7 +6,7 @@
   "packageManager": "pnpm@10.32.1",
   "scripts": {
     "dev": "vite",
-    "dev:mock": "VITE_MSW=true vite",
+    "dev:mock": "cross-env VITE_MSW=true vite",
     "paraglide:compile": "paraglide-js compile --project ./project.inlang --outdir ./src/paraglide --emit-ts-declarations",
     "build": "pnpm paraglide:compile && tsc -b && vite build",
     "preview": "vite preview",
@@ -43,6 +43,7 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.2",
     "@vitest/coverage-v8": "^4.1.7",
+    "cross-env": "^10.1.0",
     "jsdom": "^29.1.1",
     "msw": "^2.14.6",
     "oxfmt": "^0.51.0",

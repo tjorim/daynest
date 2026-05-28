@@ -95,6 +95,66 @@ export function seedChoreTemplates(): ChoreTemplate[] {
   ];
 }
 
+/** Extended set used by the template-crud scenario — shows active, inactive, and paginated lists. */
+export function seedRoutineTemplatesCrud(): RoutineTemplate[] {
+  return [
+    ...seedRoutineTemplates(),
+    {
+      id: 24,
+      name: "Journaling",
+      description: "Daily reflection before bed",
+      start_date: "2026-02-01",
+      every_n_days: 1,
+      due_time: "21:00",
+      is_active: true,
+      created_at: "2026-02-01T00:00:00Z",
+    },
+    {
+      id: 25,
+      name: "Old yoga routine",
+      description: "Replaced by morning stretches",
+      start_date: "2025-06-01",
+      every_n_days: 1,
+      due_time: "07:00",
+      is_active: false,
+      created_at: "2025-06-01T00:00:00Z",
+    },
+  ];
+}
+
+export function seedChoreTemplatesCrud(): ChoreTemplate[] {
+  return [
+    ...seedChoreTemplates(),
+    {
+      id: 35,
+      name: "Change bed sheets",
+      description: null,
+      start_date: "2026-01-01",
+      every_n_days: 14,
+      is_active: true,
+      created_at: "2026-01-01T00:00:00Z",
+    },
+    {
+      id: 36,
+      name: "Defrost freezer",
+      description: "Do quarterly",
+      start_date: "2026-01-01",
+      every_n_days: 90,
+      is_active: true,
+      created_at: "2026-01-01T00:00:00Z",
+    },
+    {
+      id: 37,
+      name: "Old window cleaning",
+      description: null,
+      start_date: "2025-01-01",
+      every_n_days: 30,
+      is_active: false,
+      created_at: "2025-01-01T00:00:00Z",
+    },
+  ];
+}
+
 let _nextTemplateId = 200;
 
 export function nextTemplateId(): number {

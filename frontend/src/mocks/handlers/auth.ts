@@ -1,13 +1,13 @@
 import { http, HttpResponse } from "msw";
 import { MOCK_USER } from "../data/constants";
 import { getMockState } from "../data/state";
-import { auth401 } from "./errors";
+import { auth401, forbidden403 } from "./errors";
 
 export const authHandlers = [
   http.get("/api/v1/auth/me", () => {
     const { scenario } = getMockState();
-    if (scenario === "signed-out") return auth401();
-    if (scenario === "expired-session") return auth401();
+    if (scenario === "signed-out" || scenario === "expired-session") return auth401();
+    if (scenario === "forbidden") return forbidden403();
     return HttpResponse.json(MOCK_USER);
   }),
 
