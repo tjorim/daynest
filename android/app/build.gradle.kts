@@ -102,7 +102,8 @@ extensions.configure<ApplicationExtension> {
         applicationId = "com.daynest.android"
         minSdk = 26
         targetSdk = 37
-        versionCode = 1
+        // versionCode = MAJOR * 10000 + MINOR * 100 + PATCH (e.g. v1.2.3 → 10203)
+        versionCode = 100
         versionName = "0.1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
