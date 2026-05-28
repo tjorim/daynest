@@ -5,73 +5,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { SettingsPage } from "@/features/settings/SettingsPage";
 import { QueryTestProvider } from "../../utils/queryTestProvider";
 
-vi.mock("@/paraglide/messages", () => {
-  const keys = [
-    "settings_timezone_load_error",
-    "settings_timezone_saved",
-    "settings_timezone_save_error",
-    "settings_notification_prefs_save_error",
-    "settings_notification_prefs_saved",
-    "settings_rate_limit_label",
-    "status_active",
-    "status_inactive",
-    "settings_rotating",
-    "settings_rotate_secret",
-    "settings_revoking",
-    "settings_revoke",
-    "settings_title",
-    "settings_install_app",
-    "settings_refresh",
-    "settings_subtitle",
-    "settings_loading",
-    "settings_retry",
-    "settings_backend_server_header",
-    "settings_default",
-    "settings_custom_self_hosted",
-    "settings_custom_placeholder",
-    "settings_apply",
-    "settings_user_prefs_header",
-    "settings_language",
-    "settings_language_english",
-    "settings_language_dutch",
-    "settings_timezone",
-    "settings_timezone_loading",
-    "settings_saving",
-    "settings_save",
-    "settings_notifications_header",
-    "settings_overdue_chore_reminders",
-    "settings_medication_reminders",
-    "settings_missed_medication_alerts",
-    "settings_medication_reminder_minutes",
-    "settings_quiet_hours",
-    "settings_quiet_hours_from",
-    "settings_quiet_hours_to",
-    "settings_save_notification_prefs",
-    "settings_enable_browser_notifications",
-    "settings_create_client_header",
-    "settings_client_name_placeholder",
-    "settings_rate_limit_hint",
-    "settings_creating",
-    "settings_create_client",
-    "settings_ha_header",
-    "settings_ha_description",
-    "settings_ha_base_url",
-    "settings_ha_oauth_callback",
-    "settings_ha_contract",
-    "settings_ha_endpoints_summary",
-    "settings_integration_clients_header",
-    "settings_no_clients",
-    "settings_oauth_sessions_header",
-    "settings_loading_sessions",
-    "settings_no_sessions",
-    "settings_ip_address",
-    "settings_last_active",
-    "settings_unknown_client",
-  ] as const;
-
-  return Object.fromEntries(
-    keys.map((key) => [key, () => key]),
-  );
+vi.mock("@/paraglide/messages", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/paraglide/messages")>();
+  return { ...actual };
 });
 
 const apiMock = vi.hoisted(() => ({
@@ -164,7 +100,7 @@ describe("SettingsPage integration clients table", () => {
       expect(screen.queryByText("Home Assistant")).not.toBeInTheDocument();
     });
 
-    await user.click(screen.getByRole("checkbox", { name: "settings_rate_limit_label" }));
+    await user.click(screen.getByRole("checkbox", { name: /rate limit per minute/i }));
     expect(screen.queryByText("80/min")).not.toBeInTheDocument();
   });
 });

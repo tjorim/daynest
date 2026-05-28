@@ -4,6 +4,15 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { CalendarPage } from "@/features/calendar/CalendarPage";
 import { QueryTestProvider } from "../../utils/queryTestProvider";
 
+vi.mock("@tanstack/react-router", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@tanstack/react-router")>();
+  return {
+    ...actual,
+    useNavigate: () => vi.fn(),
+    useSearch: () => ({ month: undefined as string | undefined, date: undefined as string | undefined }),
+  };
+});
+
 const calendarApiMock = vi.hoisted(() => ({
   fetchCalendarMonth: vi.fn(),
   fetchCalendarDay: vi.fn(),
