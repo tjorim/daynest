@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useForm } from "@tanstack/react-form";
+import { z } from "zod";
 import * as m from "@/paraglide/messages";
 import {
   isRetryableApiError,
@@ -14,10 +16,54 @@ import {
   useUpdateMedicationPlanMutation,
 } from "@/features/medication/useMedicationQueries";
 
+const medicationPlanFormSchema = z.object({
+  name: z.string().trim().min(1),
+  instructions: z.string().trim().min(1),
+  startDate: z.string().trim().min(1),
+  scheduleTime: z.string().trim().min(1),
+  everyNDays: z.coerce.number().int().min(1),
+  isActive: z.boolean().optional(),
+});
+
+type MedicationPlanFormValues = {
+  name: string;
+  instructions: string;
+  startDate: string;
+  scheduleTime: string;
+  everyNDays: string;
+  isActive?: boolean;
+};
+
 function todayLocalDate(): string {
   const d = new Date();
   d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
   return d.toISOString().slice(0, 10);
+}
+
+function toMedicationPlanInput(
+  values: MedicationPlanFormValues,
+): { input: MedicationPlanUpdateInput | null; error: string | null } {
+  const parsed = medicationPlanFormSchema.safeParse(values);
+  if (!parsed.success) {
+    const hasEveryNDaysIssue = parsed.error.issues.some((issue) => issue.path.includes("everyNDays"));
+    return {
+      input: null,
+      error: hasEveryNDaysIssue ? m.medication_every_n_error() : m.medication_required_fields(),
+    };
+  }
+
+  const { name, instructions, startDate, scheduleTime, everyNDays, isActive } = parsed.data;
+  return {
+    input: {
+      name: name.trim(),
+      instructions: instructions.trim(),
+      start_date: startDate,
+      schedule_time: scheduleTime.length === 5 ? `${scheduleTime}:00` : scheduleTime,
+      every_n_days: everyNDays,
+      is_active: isActive ?? true,
+    },
+    error: null,
+  };
 }
 
 export function MedicationPage() {
@@ -27,11 +73,6 @@ export function MedicationPage() {
   const [editingPlan, setEditingPlan] = useState<MedicationPlan | null>(null);
   const [deletingPlanId, setDeletingPlanId] = useState<number | null>(null);
 
-  const [name, setName] = useState("");
-  const [instructions, setInstructions] = useState("");
-  const [startDate, setStartDate] = useState(todayLocalDate);
-  const [scheduleTime, setScheduleTime] = useState("09:00:00");
-  const [everyNDays, setEveryNDays] = useState("1");
   const plansQuery = useMedicationPlansQuery();
   const historyQuery = useMedicationHistoryQuery();
   const createPlanMutation = useCreateMedicationPlanMutation();
@@ -45,45 +86,45 @@ export function MedicationPage() {
   const error = queryError instanceof Error ? queryError.message : queryError ? "Unable to load medication data." : null;
   const canRetry = queryError ? isRetryableApiError(queryError) : false;
 
+  const createForm = useForm({
+    defaultValues: {
+      name: "",
+      instructions: "",
+      startDate: todayLocalDate(),
+      scheduleTime: "09:00",
+      everyNDays: "1",
+    },
+    onSubmit: async ({ value, formApi }) => {
+      const parsed = toMedicationPlanInput(value);
+      if (parsed.error || !parsed.input) {
+        setSubmitError(parsed.error ?? m.medication_create_failed());
+        return;
+      }
+
+      setIsSubmitting(true);
+      setSubmitError(null);
+      setSuccessMessage(null);
+
+      try {
+        await createPlanMutation.mutateAsync(parsed.input);
+        formApi.reset({
+          name: "",
+          instructions: "",
+          startDate: todayLocalDate(),
+          scheduleTime: "09:00",
+          everyNDays: "1",
+        });
+        setSuccessMessage(m.medication_plan_created());
+      } catch (err) {
+        setSubmitError(err instanceof Error ? err.message : m.medication_create_failed());
+      } finally {
+        setIsSubmitting(false);
+      }
+    },
+  });
+
   const loadMedication = async () => {
     await Promise.all([plansQuery.refetch(), historyQuery.refetch()]);
-  };
-
-  const onCreatePlan = async () => {
-    if (!name.trim() || !instructions.trim()) {
-      setSubmitError(m.medication_required_fields());
-      return;
-    }
-
-    const parsedEvery = parseInt(everyNDays, 10);
-    if (!Number.isInteger(parsedEvery) || parsedEvery < 1) {
-      setSubmitError(m.medication_every_n_error());
-      return;
-    }
-
-    setIsSubmitting(true);
-    setSubmitError(null);
-    setSuccessMessage(null);
-
-    try {
-      await createPlanMutation.mutateAsync({
-        name: name.trim(),
-        instructions: instructions.trim(),
-        start_date: startDate,
-        schedule_time: scheduleTime.length === 5 ? `${scheduleTime}:00` : scheduleTime,
-        every_n_days: parsedEvery,
-      });
-      setName("");
-      setInstructions("");
-      setStartDate(todayLocalDate());
-      setScheduleTime("09:00:00");
-      setEveryNDays("1");
-      setSuccessMessage(m.medication_plan_created());
-    } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : m.medication_create_failed());
-    } finally {
-      setIsSubmitting(false);
-    }
   };
 
   const onUpdatePlan = async (planId: number, input: MedicationPlanUpdateInput) => {
@@ -155,71 +196,104 @@ export function MedicationPage() {
         <div className="col-lg-5">
           <div className="card mb-3">
             <div className="card-header fw-semibold py-2">{m.medication_create_plan_header()}</div>
-            <div className="card-body d-grid gap-2">
-              <input
-                className="form-control"
-                value={name}
-                onChange={(event) => {
-                  setName(event.target.value);
-                  setSubmitError(null);
-                  setSuccessMessage(null);
-                }}
-                placeholder={m.medication_name_placeholder()}
+            <form
+              className="card-body d-grid gap-2"
+              onSubmit={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                void createForm.handleSubmit();
+              }}
+            >
+              <createForm.Field
+                name="name"
+                children={(field) => (
+                  <input
+                    className="form-control"
+                    value={field.state.value}
+                    onChange={(event) => {
+                      field.handleChange(event.target.value);
+                      setSubmitError(null);
+                      setSuccessMessage(null);
+                    }}
+                    placeholder={m.medication_name_placeholder()}
+                    aria-label={m.medication_name_placeholder()}
+                  />
+                )}
               />
-              <textarea
-                className="form-control"
-                rows={3}
-                value={instructions}
-                onChange={(event) => {
-                  setInstructions(event.target.value);
-                  setSubmitError(null);
-                  setSuccessMessage(null);
-                }}
-                placeholder={m.medication_instructions_placeholder()}
+              <createForm.Field
+                name="instructions"
+                children={(field) => (
+                  <textarea
+                    className="form-control"
+                    rows={3}
+                    value={field.state.value}
+                    onChange={(event) => {
+                      field.handleChange(event.target.value);
+                      setSubmitError(null);
+                      setSuccessMessage(null);
+                    }}
+                    placeholder={m.medication_instructions_placeholder()}
+                    aria-label={m.medication_instructions_placeholder()}
+                  />
+                )}
               />
               <div className="row g-2">
                 <div className="col-sm-6">
                   <label className="form-label small fw-semibold mb-1">{m.medication_start_date_label()}</label>
-                  <input
-                    className="form-control"
-                    type="date"
-                    value={startDate}
-                    onChange={(event) => setStartDate(event.target.value)}
+                  <createForm.Field
+                    name="startDate"
+                    children={(field) => (
+                      <input
+                        className="form-control"
+                        type="date"
+                        value={field.state.value}
+                        onChange={(event) => field.handleChange(event.target.value)}
+                      />
+                    )}
                   />
                 </div>
                 <div className="col-sm-6">
                   <label className="form-label small fw-semibold mb-1">{m.medication_schedule_time_label()}</label>
-                  <input
-                    className="form-control"
-                    type="time"
-                    value={scheduleTime.slice(0, 5)}
-                    onChange={(event) => setScheduleTime(event.target.value)}
+                  <createForm.Field
+                    name="scheduleTime"
+                    children={(field) => (
+                      <input
+                        className="form-control"
+                        type="time"
+                        value={field.state.value}
+                        onChange={(event) => field.handleChange(event.target.value)}
+                      />
+                    )}
                   />
                 </div>
               </div>
               <div>
                 <label className="form-label small fw-semibold mb-1">{m.medication_every_n_days_label()}</label>
-                <input
-                  className="form-control"
-                  type="number"
-                  min={1}
-                  value={everyNDays}
-                  onChange={(event) => {
-                    setEveryNDays(event.target.value);
-                    setSubmitError(null);
-                    setSuccessMessage(null);
-                  }}
+                <createForm.Field
+                  name="everyNDays"
+                  children={(field) => (
+                    <input
+                      className="form-control"
+                      type="number"
+                      min={1}
+                      value={field.state.value}
+                      onChange={(event) => {
+                        field.handleChange(event.target.value);
+                        setSubmitError(null);
+                        setSuccessMessage(null);
+                      }}
+                    />
+                  )}
                 />
               </div>
               <button
-                type="button"
+                type="submit"
                 className="btn btn-primary"
                 disabled={isSubmitting}
-                onClick={() => void onCreatePlan()}
               >
                 {isSubmitting ? m.action_creating() : m.medication_create_button()}
               </button>
-            </div>
+            </form>
             {submitError ? (
               <div className="card-footer text-danger py-2 small">{submitError}</div>
             ) : null}
@@ -327,33 +401,26 @@ function EditMedicationPlanDialog({
   onCancel: () => void;
   onSubmit: (input: MedicationPlanUpdateInput) => void;
 }) {
-  const [name, setName] = useState(plan.name);
-  const [instructions, setInstructions] = useState(plan.instructions);
-  const [startDate, setStartDate] = useState(plan.start_date);
-  const [scheduleTime, setScheduleTime] = useState(plan.schedule_time.slice(0, 5));
-  const [everyNDays, setEveryNDays] = useState(String(plan.every_n_days));
-  const [isActive, setIsActive] = useState(plan.is_active);
   const [error, setError] = useState<string | null>(null);
-
-  const submit = () => {
-    const parsedEvery = parseInt(everyNDays, 10);
-    if (!name.trim() || !instructions.trim()) {
-      setError(m.medication_required_fields());
-      return;
-    }
-    if (!Number.isInteger(parsedEvery) || parsedEvery < 1) {
-      setError(m.medication_every_n_error());
-      return;
-    }
-    onSubmit({
-      name: name.trim(),
-      instructions: instructions.trim(),
-      start_date: startDate,
-      schedule_time: scheduleTime.length === 5 ? `${scheduleTime}:00` : scheduleTime,
-      every_n_days: parsedEvery,
-      is_active: isActive,
-    });
-  };
+  const editForm = useForm({
+    defaultValues: {
+      name: plan.name,
+      instructions: plan.instructions,
+      startDate: plan.start_date,
+      scheduleTime: plan.schedule_time.slice(0, 5),
+      everyNDays: String(plan.every_n_days),
+      isActive: plan.is_active,
+    },
+    onSubmit: ({ value }) => {
+      const parsed = toMedicationPlanInput(value);
+      if (parsed.error || !parsed.input) {
+        setError(parsed.error ?? m.medication_update_failed());
+        return;
+      }
+      setError(null);
+      onSubmit(parsed.input);
+    },
+  });
 
   return (
     <div className="modal d-block" tabIndex={-1} role="dialog" aria-modal="true">
@@ -363,63 +430,106 @@ function EditMedicationPlanDialog({
             <h3 className="modal-title h5">{m.medication_edit_title()}</h3>
             <button type="button" className="btn-close" aria-label="Close" onClick={onCancel} />
           </div>
-          <div className="modal-body d-grid gap-2">
+          <form
+            className="modal-body d-grid gap-2"
+            onSubmit={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              void editForm.handleSubmit();
+            }}
+          >
             {error ? <div className="alert alert-danger py-2">{error}</div> : null}
-            <input className="form-control" value={name} onChange={(event) => setName(event.target.value)} />
-            <textarea
-              className="form-control"
-              rows={3}
-              value={instructions}
-              onChange={(event) => setInstructions(event.target.value)}
+            <editForm.Field
+              name="name"
+              children={(field) => (
+                <input
+                  className="form-control"
+                  value={field.state.value}
+                  onChange={(event) => field.handleChange(event.target.value)}
+                  aria-label={m.medication_name_placeholder()}
+                />
+              )}
+            />
+            <editForm.Field
+              name="instructions"
+              children={(field) => (
+                <textarea
+                  className="form-control"
+                  rows={3}
+                  value={field.state.value}
+                  onChange={(event) => field.handleChange(event.target.value)}
+                  aria-label={m.medication_instructions_placeholder()}
+                />
+              )}
             />
             <div className="row g-2">
               <div className="col-sm-6">
                 <label className="form-label small fw-semibold mb-1">{m.medication_start_date_label()}</label>
-                <input
-                  className="form-control"
-                  type="date"
-                  value={startDate}
-                  onChange={(event) => setStartDate(event.target.value)}
+                <editForm.Field
+                  name="startDate"
+                  children={(field) => (
+                    <input
+                      className="form-control"
+                      type="date"
+                      value={field.state.value}
+                      onChange={(event) => field.handleChange(event.target.value)}
+                    />
+                  )}
                 />
               </div>
               <div className="col-sm-6">
                 <label className="form-label small fw-semibold mb-1">{m.medication_schedule_time_label()}</label>
-                <input
-                  className="form-control"
-                  type="time"
-                  value={scheduleTime}
-                  onChange={(event) => setScheduleTime(event.target.value)}
+                <editForm.Field
+                  name="scheduleTime"
+                  children={(field) => (
+                    <input
+                      className="form-control"
+                      type="time"
+                      value={field.state.value}
+                      onChange={(event) => field.handleChange(event.target.value)}
+                    />
+                  )}
                 />
               </div>
             </div>
             <div>
               <label className="form-label small fw-semibold mb-1">{m.medication_every_n_days_label()}</label>
-              <input
-                className="form-control"
-                type="number"
-                min={1}
-                value={everyNDays}
-                onChange={(event) => setEveryNDays(event.target.value)}
+              <editForm.Field
+                name="everyNDays"
+                children={(field) => (
+                  <input
+                    className="form-control"
+                    type="number"
+                    min={1}
+                    value={field.state.value}
+                    onChange={(event) => field.handleChange(event.target.value)}
+                  />
+                )}
               />
             </div>
             <label className="form-check">
-              <input
-                className="form-check-input"
-                type="checkbox"
-                checked={isActive}
-                onChange={(event) => setIsActive(event.target.checked)}
+              <editForm.Field
+                name="isActive"
+                children={(field) => (
+                  <input
+                    className="form-check-input"
+                    type="checkbox"
+                    checked={field.state.value}
+                    onChange={(event) => field.handleChange(event.target.checked)}
+                  />
+                )}
               />
               <span className="form-check-label">{m.medication_active_label()}</span>
             </label>
-          </div>
-          <div className="modal-footer">
-            <button type="button" className="btn btn-outline-secondary" onClick={onCancel}>
-              {m.action_cancel()}
-            </button>
-            <button type="button" className="btn btn-primary" disabled={isSubmitting} onClick={submit}>
-              {isSubmitting ? m.action_saving() : m.action_save()}
-            </button>
-          </div>
+            <div className="modal-footer">
+              <button type="button" className="btn btn-outline-secondary" onClick={onCancel}>
+                {m.action_cancel()}
+              </button>
+              <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
+                {isSubmitting ? m.action_saving() : m.action_save()}
+              </button>
+            </div>
+          </form>
         </div>
       </div>
       <div className="modal-backdrop show" />

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { SettingsPage } from "@/features/settings/SettingsPage";
@@ -243,9 +243,12 @@ describe("SettingsPage", () => {
       </QueryTestProvider>,
     );
 
-    const minutesInput = await screen.findByLabelText(/medication reminder \(minutes before\)/i);
-    await user.clear(minutesInput);
-    await user.type(minutesInput, "45");
+    // Wait for user settings to be fully initialized (timezone transitions from "" to "UTC" after API loads)
+    await waitFor(() => {
+      expect(screen.getByRole("combobox", { name: /timezone/i })).toHaveValue("UTC");
+    });
+    const minutesInput = screen.getByLabelText(/medication reminder \(minutes before\)/i);
+    fireEvent.change(minutesInput, { target: { value: "45" } });
     await user.type(screen.getByLabelText(/^from$/i), "22:00");
     await user.type(screen.getByLabelText(/^to$/i), "07:00");
     await user.click(screen.getByRole("button", { name: /apply notification preferences/i }));

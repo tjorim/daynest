@@ -1,4 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
+import {
+  createColumnHelper,
+  flexRender,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getSortedRowModel,
+  type ColumnFiltersState,
+  type SortingState,
+  type VisibilityState,
+  useReactTable,
+} from "@tanstack/react-table";
 import * as m from "@/paraglide/messages";
 import { useLanguage } from "@/i18n/LanguageProvider";
 import {
@@ -8,6 +19,7 @@ import {
 } from "@/app/pwa/installPrompt";
 import {
   isRetryableApiError,
+  type IntegrationClient,
   type IntegrationClientCreateResponse,
 } from "@/lib/api/today";
 import {
@@ -36,6 +48,7 @@ const HA_ENDPOINTS = [
 ];
 
 const HOME_ASSISTANT_REDIRECT_URI = "https://my.home-assistant.io/redirect/oauth";
+const integrationClientColumnHelper = createColumnHelper<IntegrationClient>();
 
 export function SettingsPage() {
   const { language, setLanguage } = useLanguage();
@@ -54,6 +67,12 @@ export function SettingsPage() {
   const [revokeClientError, setRevokeClientError] = useState<string | null>(null);
   const [rotatingClient, setRotatingClient] = useState<number | null>(null);
   const [rotateClientError, setRotateClientError] = useState<string | null>(null);
+  const [clientSorting, setClientSorting] = useState<SortingState>([]);
+  const [clientColumnFilters, setClientColumnFilters] = useState<ColumnFiltersState>([]);
+  const [clientColumnVisibility, setClientColumnVisibility] = useState<VisibilityState>({
+    rateLimit: true,
+    status: true,
+  });
 
   const [oauthSessions, setOauthSessions] = useState<OAuthSession[]>([]);
   const [sessionsLoading, setSessionsLoading] = useState(true);
@@ -234,6 +253,7 @@ export function SettingsPage() {
   }, []);
 
   useEffect(() => {
+    if (hasInitializedUserSettings) return;
     if (!userSettingsQuery.data) {
       if (userSettingsQuery.error) {
         const msg = userSettingsQuery.error instanceof Error
@@ -258,7 +278,7 @@ export function SettingsPage() {
     setQuietHoursStart(settings.quiet_hours_start ?? "");
     setQuietHoursEnd(settings.quiet_hours_end ?? "");
     setHasInitializedUserSettings(true);
-  }, [userSettingsQuery.data, userSettingsQuery.error]);
+  }, [userSettingsQuery.data, userSettingsQuery.error, hasInitializedUserSettings]);
 
   const onSaveTimezone = async () => {
     if (!timezone) return;
@@ -392,6 +412,78 @@ export function SettingsPage() {
       setIsInstalling(false);
     }
   };
+
+  const clientColumns = useMemo(
+    () => [
+      integrationClientColumnHelper.accessor("name", {
+        id: "name",
+        header: m.settings_client_column_name(),
+        cell: (info) => <span className="fw-semibold">{info.getValue()}</span>,
+      }),
+      integrationClientColumnHelper.accessor("rate_limit_per_minute", {
+        id: "rateLimit",
+        header: m.settings_rate_limit_label(),
+        cell: (info) => (
+          <small className="text-muted d-block">
+            {info.getValue()}/min
+          </small>
+        ),
+      }),
+      integrationClientColumnHelper.accessor("is_active", {
+        id: "status",
+        header: m.status_active(),
+        cell: (info) => (
+          <span className={`badge ${info.getValue() ? "text-bg-success" : "text-bg-secondary"}`}>
+            {info.getValue() ? m.status_active() : m.status_inactive()}
+          </span>
+        ),
+      }),
+      integrationClientColumnHelper.display({
+        id: "actions",
+        header: m.settings_client_column_actions(),
+        cell: (info) => {
+          const client = info.row.original;
+          return (
+            <div className="d-flex align-items-center gap-2 flex-wrap justify-content-end">
+              <button
+                type="button"
+                className="btn btn-outline-secondary btn-sm"
+                disabled={rotatingClient === client.id || revokingClient === client.id}
+                onClick={() => void onRotateClient(client.id)}
+              >
+                {rotatingClient === client.id ? m.settings_rotating() : m.settings_rotate_secret()}
+              </button>
+              <button
+                type="button"
+                className="btn btn-outline-danger btn-sm"
+                disabled={revokingClient === client.id || rotatingClient === client.id}
+                onClick={() => void onRevokeClient(client.id)}
+              >
+                {revokingClient === client.id ? m.settings_revoking() : m.settings_revoke()}
+              </button>
+            </div>
+          );
+        },
+      }),
+    ],
+    [revokingClient, rotatingClient, language],
+  );
+
+  const clientsTable = useReactTable({
+    data: clients,
+    columns: clientColumns,
+    state: {
+      sorting: clientSorting,
+      columnFilters: clientColumnFilters,
+      columnVisibility: clientColumnVisibility,
+    },
+    onSortingChange: setClientSorting,
+    onColumnFiltersChange: setClientColumnFilters,
+    onColumnVisibilityChange: setClientColumnVisibility,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+  });
 
   return (
     <section>
@@ -786,47 +878,80 @@ export function SettingsPage() {
         <div className="col-lg-7">
           <div className="card">
             <div className="card-header fw-semibold py-2">{m.settings_integration_clients_header()}</div>
-            <ul className="list-group list-group-flush">
-              {clients.length === 0 ? (
-                <li className="list-group-item py-2 text-muted">{m.settings_no_clients()}</li>
-              ) : (
-                clients.map((client) => (
-                  <li key={client.id} className="list-group-item py-2">
-                    <div className="d-flex justify-content-between align-items-start gap-3">
-                      <div>
-                        <div className="fw-semibold">{client.name}</div>
-                        <small className="text-muted d-block">
-                          {client.rate_limit_per_minute}/min
-                        </small>
-                      </div>
-                      <div className="d-flex align-items-center gap-2 flex-wrap justify-content-end">
-                        <span
-                          className={`badge ${client.is_active ? "text-bg-success" : "text-bg-secondary"}`}
-                        >
-                          {client.is_active ? m.status_active() : m.status_inactive()}
-                        </span>
-                        <button
-                          type="button"
-                          className="btn btn-outline-secondary btn-sm"
-                          disabled={rotatingClient === client.id || revokingClient === client.id}
-                          onClick={() => void onRotateClient(client.id)}
-                        >
-                          {rotatingClient === client.id ? m.settings_rotating() : m.settings_rotate_secret()}
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn-outline-danger btn-sm"
-                          disabled={revokingClient === client.id || rotatingClient === client.id}
-                          onClick={() => void onRevokeClient(client.id)}
-                        >
-                          {revokingClient === client.id ? m.settings_revoking() : m.settings_revoke()}
-                        </button>
-                      </div>
-                    </div>
-                  </li>
-                ))
-              )}
-            </ul>
+            <div className="card-body border-bottom d-grid gap-2">
+              <label className="form-label small fw-semibold mb-0" htmlFor="integration-client-filter">
+                {m.settings_search_clients()}
+              </label>
+              <input
+                id="integration-client-filter"
+                className="form-control form-control-sm"
+                value={(clientsTable.getColumn("name")?.getFilterValue() as string | undefined) ?? ""}
+                onChange={(event) => clientsTable.getColumn("name")?.setFilterValue(event.target.value)}
+                placeholder={m.settings_filter_by_client_name()}
+              />
+              <div className="d-flex gap-3 flex-wrap small">
+                <label className="form-check m-0">
+                  <input
+                    className="form-check-input"
+                    type="checkbox"
+                    checked={clientsTable.getColumn("rateLimit")?.getIsVisible() ?? true}
+                    onChange={(event) => clientsTable.getColumn("rateLimit")?.toggleVisibility(event.target.checked)}
+                  />
+                  <span className="form-check-label">{m.settings_rate_limit_label()}</span>
+                </label>
+                <label className="form-check m-0">
+                  <input
+                    className="form-check-input"
+                    type="checkbox"
+                    checked={clientsTable.getColumn("status")?.getIsVisible() ?? true}
+                    onChange={(event) => clientsTable.getColumn("status")?.toggleVisibility(event.target.checked)}
+                  />
+                  <span className="form-check-label">{m.status_active()}</span>
+                </label>
+              </div>
+            </div>
+            <div className="table-responsive">
+              <table className="table table-sm align-middle mb-0">
+                <thead>
+                  {clientsTable.getHeaderGroups().map((headerGroup) => (
+                    <tr key={headerGroup.id}>
+                      {headerGroup.headers.map((header) => (
+                        <th key={header.id} scope="col">
+                          {header.isPlaceholder ? null : header.column.getCanSort() ? (
+                            <button
+                              type="button"
+                              className="btn btn-link btn-sm p-0 text-decoration-none"
+                              onClick={header.column.getToggleSortingHandler()}
+                            >
+                              {flexRender(header.column.columnDef.header, header.getContext())}
+                            </button>
+                          ) : (
+                            flexRender(header.column.columnDef.header, header.getContext())
+                          )}
+                        </th>
+                      ))}
+                    </tr>
+                  ))}
+                </thead>
+                <tbody>
+                  {clientsTable.getRowModel().rows.length === 0 ? (
+                    <tr>
+                      <td className="py-2 text-muted" colSpan={clientsTable.getVisibleLeafColumns().length}>
+                        {m.settings_no_clients()}
+                      </td>
+                    </tr>
+                  ) : (
+                    clientsTable.getRowModel().rows.map((row) => (
+                      <tr key={row.id}>
+                        {row.getVisibleCells().map((cell) => (
+                          <td key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</td>
+                        ))}
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
             {revokeClientError ? (
               <div className="card-footer text-danger py-2 small">{revokeClientError}</div>
             ) : null}

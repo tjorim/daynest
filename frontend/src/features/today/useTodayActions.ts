@@ -41,7 +41,7 @@ function buildPlannedItemPayload(item: PlannedTodayItem, isDone: boolean) {
   };
 }
 
-export function useTodayActions(onRefresh: () => Promise<void>) {
+export function useTodayActions(onRefresh?: () => Promise<void>) {
   const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -122,7 +122,7 @@ export function useTodayActions(onRefresh: () => Promise<void>) {
     setActionError(null);
     try {
       await mutation.mutateAsync(variables);
-      if (options.refresh !== false) {
+      if (options.refresh !== false && onRefresh) {
         await onRefresh();
       }
     } catch (err) {
