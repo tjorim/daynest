@@ -1,3 +1,4 @@
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import {
   completeRoutineTask,
@@ -14,9 +15,11 @@ import {
   type PlannedItemDeleteScope,
   type PlannedItemEditScope,
   type PlannedItemModuleKey,
+  type PlannedItemUpdateInput,
   type PlannedTodayItem,
 } from "@/lib/api/today";
 import { dayjs, toIsoDate } from "@/lib/dateUtils";
+import { queryKeys } from "@/lib/query/queryKeys";
 
 type MutationOptions = {
   refresh?: boolean;
@@ -38,16 +41,88 @@ function buildPlannedItemPayload(item: PlannedTodayItem, isDone: boolean) {
   };
 }
 
-export function useTodayActions(onRefresh: () => Promise<void>) {
+export function useTodayActions(onRefresh?: () => Promise<void>) {
+  const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
-  const runAction = async (action: () => Promise<unknown>, options: MutationOptions = {}) => {
+  const invalidateRelatedQueries = async (options?: { calendar?: boolean; plannedItems?: boolean }) => {
+    const calls = [queryClient.invalidateQueries({ queryKey: queryKeys.today.all })];
+    if (options?.plannedItems) {
+      calls.push(queryClient.invalidateQueries({ queryKey: queryKeys.plannedItems.all }));
+    }
+    if (options?.calendar) {
+      calls.push(queryClient.invalidateQueries({ queryKey: queryKeys.calendar.all }));
+    }
+    await Promise.all(calls);
+  };
+
+  const startRoutineTaskMutation = useMutation({
+    mutationFn: (taskInstanceId: number) => startRoutineTask(taskInstanceId),
+    onSuccess: () => invalidateRelatedQueries({ calendar: true }),
+  });
+  const completeRoutineTaskMutation = useMutation({
+    mutationFn: (taskInstanceId: number) => completeRoutineTask(taskInstanceId),
+    onSuccess: () => invalidateRelatedQueries({ calendar: true }),
+  });
+  const skipRoutineTaskMutation = useMutation({
+    mutationFn: (taskInstanceId: number) => skipRoutineTask(taskInstanceId),
+    onSuccess: () => invalidateRelatedQueries({ calendar: true }),
+  });
+  const completeChoreMutation = useMutation({
+    mutationFn: (choreInstanceId: number) => completeChore(choreInstanceId),
+    onSuccess: () => invalidateRelatedQueries({ calendar: true }),
+  });
+  const skipChoreMutation = useMutation({
+    mutationFn: (choreInstanceId: number) => skipChore(choreInstanceId),
+    onSuccess: () => invalidateRelatedQueries({ calendar: true }),
+  });
+  const rescheduleChoreMutation = useMutation({
+    mutationFn: ({ choreInstanceId, scheduledDate }: { choreInstanceId: number; scheduledDate: string }) =>
+      rescheduleChore(choreInstanceId, scheduledDate),
+    onSuccess: () => invalidateRelatedQueries({ calendar: true }),
+  });
+  const takeMedicationDoseMutation = useMutation({
+    mutationFn: (medicationDoseInstanceId: number) => takeMedicationDose(medicationDoseInstanceId),
+    onSuccess: () => invalidateRelatedQueries({ calendar: true }),
+  });
+  const skipMedicationDoseMutation = useMutation({
+    mutationFn: (medicationDoseInstanceId: number) => skipMedicationDose(medicationDoseInstanceId),
+    onSuccess: () => invalidateRelatedQueries({ calendar: true }),
+  });
+  const updatePlannedItemMutation = useMutation({
+    mutationFn: ({
+      plannedItemId,
+      input,
+      scope,
+    }: {
+      plannedItemId: number;
+      input: PlannedItemUpdateInput;
+      scope: PlannedItemEditScope;
+    }) => updatePlannedItem(plannedItemId, input, scope),
+    onSuccess: () => invalidateRelatedQueries({ calendar: true, plannedItems: true }),
+  });
+  const deletePlannedItemMutation = useMutation({
+    mutationFn: ({ plannedItemId, scope }: { plannedItemId: number; scope: PlannedItemDeleteScope }) =>
+      deletePlannedItem(plannedItemId, scope),
+    onSuccess: () => invalidateRelatedQueries({ calendar: true, plannedItems: true }),
+  });
+  const createPlannedItemMutation = useMutation({
+    mutationFn: ({ title, plannedFor }: { title: string; plannedFor: string }) =>
+      createPlannedItem({ title, planned_for: plannedFor }),
+    onSuccess: () => invalidateRelatedQueries({ calendar: true, plannedItems: true }),
+  });
+
+  const runAction = async <TVariables>(
+    mutation: { mutateAsync: (variables: TVariables) => Promise<unknown> },
+    variables: TVariables,
+    options: MutationOptions = {},
+  ) => {
     setIsSubmitting(true);
     setActionError(null);
     try {
-      await action();
-      if (options.refresh !== false) {
+      await mutation.mutateAsync(variables);
+      if (options.refresh !== false && onRefresh) {
         await onRefresh();
       }
     } catch (err) {
@@ -63,37 +138,45 @@ export function useTodayActions(onRefresh: () => Promise<void>) {
     actionError,
     clearActionError: () => setActionError(null),
     startRoutineTask: (taskInstanceId: number, options?: MutationOptions) =>
-      runAction(() => startRoutineTask(taskInstanceId), options),
+      runAction(startRoutineTaskMutation, taskInstanceId, options),
     completeRoutineTask: (taskInstanceId: number, options?: MutationOptions) =>
-      runAction(() => completeRoutineTask(taskInstanceId), options),
+      runAction(completeRoutineTaskMutation, taskInstanceId, options),
     skipRoutineTask: (taskInstanceId: number, options?: MutationOptions) =>
-      runAction(() => skipRoutineTask(taskInstanceId), options),
+      runAction(skipRoutineTaskMutation, taskInstanceId, options),
     completeChore: (choreInstanceId: number, options?: MutationOptions) =>
-      runAction(() => completeChore(choreInstanceId), options),
+      runAction(completeChoreMutation, choreInstanceId, options),
     skipChore: (choreInstanceId: number, options?: MutationOptions) =>
-      runAction(() => skipChore(choreInstanceId), options),
+      runAction(skipChoreMutation, choreInstanceId, options),
     rescheduleChoreByOneDay: (
       choreInstanceId: number,
       scheduledDate: string,
       options?: MutationOptions,
-    ) =>
-      runAction(
-        () => rescheduleChore(choreInstanceId, toIsoDate(dayjs(scheduledDate).add(1, "day"))),
-        options,
-      ),
+    ) => {
+      const nextDate = toIsoDate(dayjs(scheduledDate).add(1, "day"));
+      return runAction(rescheduleChoreMutation, { choreInstanceId, scheduledDate: nextDate }, options);
+    },
     takeMedicationDose: (medicationDoseInstanceId: number, options?: MutationOptions) =>
-      runAction(() => takeMedicationDose(medicationDoseInstanceId), options),
+      runAction(takeMedicationDoseMutation, medicationDoseInstanceId, options),
     skipMedicationDose: (medicationDoseInstanceId: number, options?: MutationOptions) =>
-      runAction(() => skipMedicationDose(medicationDoseInstanceId), options),
-    togglePlannedItem: (item: PlannedTodayItem, isDone: boolean, options?: MutationOptions) =>
-      runAction(() => updatePlannedItem(item.id, buildPlannedItemPayload(item, isDone)), options),
+      runAction(skipMedicationDoseMutation, medicationDoseInstanceId, options),
+    togglePlannedItem: (
+      item: PlannedTodayItem,
+      isDone: boolean,
+      options?: MutationOptions,
+      scope: PlannedItemEditScope = "this",
+    ) =>
+      runAction(updatePlannedItemMutation, {
+        plannedItemId: item.id,
+        input: buildPlannedItemPayload(item, isDone),
+        scope,
+      }, options),
     deletePlannedItem: (
       plannedItemId: number,
       scope: PlannedItemDeleteScope = "this",
       options?: MutationOptions,
-    ) => runAction(() => deletePlannedItem(plannedItemId, scope), options),
+    ) => runAction(deletePlannedItemMutation, { plannedItemId, scope }, options),
     createPlannedItem: (title: string, plannedFor: string, options?: MutationOptions) =>
-      runAction(() => createPlannedItem({ title, planned_for: plannedFor }), options),
+      runAction(createPlannedItemMutation, { title, plannedFor }, options),
     editPlannedItem: (
       item: PlannedTodayItem,
       updates: {
@@ -111,13 +194,13 @@ export function useTodayActions(onRefresh: () => Promise<void>) {
       scope: PlannedItemEditScope = "this",
       options?: MutationOptions,
     ) =>
-      runAction(
-        () =>
-          updatePlannedItem(item.id, {
-            ...updates,
-            is_done: item.is_done,
-          }, scope),
-        options,
-      ),
+      runAction(updatePlannedItemMutation, {
+        plannedItemId: item.id,
+        input: {
+          ...updates,
+          is_done: item.is_done,
+        },
+        scope,
+      }, options),
   };
 }

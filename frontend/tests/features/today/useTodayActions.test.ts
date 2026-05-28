@@ -1,6 +1,12 @@
 import { act, renderHook } from "@testing-library/react";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { createElement } from "react";
+import type { ReactNode } from "react";
+import { useState } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useTodayActions } from "@/features/today/useTodayActions";
+import { queryKeys } from "@/lib/query/queryKeys";
+import { createQueryTestClient } from "../../utils/queryTestProvider";
 
 const todayApiMock = vi.hoisted(() => ({
   completeRoutineTask: vi.fn(),
@@ -49,6 +55,18 @@ describe("useTodayActions", () => {
     todayApiMock.updatePlannedItem.mockReset().mockResolvedValue({});
   });
 
+  function buildWrapper() {
+    const queryClient = createQueryTestClient();
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
+
+    function Wrapper({ children }: { children: ReactNode }) {
+      const [client] = useState(() => queryClient);
+      return createElement(QueryClientProvider, { client }, children);
+    }
+
+    return { Wrapper, invalidateSpy };
+  }
+
   it.each([
     {
       label: "startRoutineTask",
@@ -92,7 +110,8 @@ describe("useTodayActions", () => {
     },
   ])("runs $label and refreshes by default", async ({ call, verify }) => {
     const onRefresh = vi.fn().mockResolvedValue(undefined);
-    const { result } = renderHook(() => useTodayActions(onRefresh));
+    const { Wrapper, invalidateSpy } = buildWrapper();
+    const { result } = renderHook(() => useTodayActions(onRefresh), { wrapper: Wrapper });
 
     await act(async () => {
       await call(result.current);
@@ -100,11 +119,14 @@ describe("useTodayActions", () => {
 
     verify();
     expect(onRefresh).toHaveBeenCalledTimes(1);
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.today.all });
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.calendar.all });
   });
 
   it("reschedules chores by one day and refreshes by default", async () => {
     const onRefresh = vi.fn().mockResolvedValue(undefined);
-    const { result } = renderHook(() => useTodayActions(onRefresh));
+    const { Wrapper, invalidateSpy } = buildWrapper();
+    const { result } = renderHook(() => useTodayActions(onRefresh), { wrapper: Wrapper });
 
     await act(async () => {
       await result.current.rescheduleChoreByOneDay(13, "2026-05-16");
@@ -112,11 +134,13 @@ describe("useTodayActions", () => {
 
     expect(todayApiMock.rescheduleChore).toHaveBeenCalledWith(13, "2026-05-17");
     expect(onRefresh).toHaveBeenCalledTimes(1);
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.calendar.all });
   });
 
   it("creates planned items via quick add and refreshes by default", async () => {
     const onRefresh = vi.fn().mockResolvedValue(undefined);
-    const { result } = renderHook(() => useTodayActions(onRefresh));
+    const { Wrapper, invalidateSpy } = buildWrapper();
+    const { result } = renderHook(() => useTodayActions(onRefresh), { wrapper: Wrapper });
 
     await act(async () => {
       await result.current.createPlannedItem("Quick add task", "2026-05-17");
@@ -127,11 +151,13 @@ describe("useTodayActions", () => {
       planned_for: "2026-05-17",
     });
     expect(onRefresh).toHaveBeenCalledTimes(1);
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.plannedItems.all });
   });
 
   it("toggles planned items with full update payload and refreshes by default", async () => {
     const onRefresh = vi.fn().mockResolvedValue(undefined);
-    const { result } = renderHook(() => useTodayActions(onRefresh));
+    const { Wrapper, invalidateSpy } = buildWrapper();
+    const { result } = renderHook(() => useTodayActions(onRefresh), { wrapper: Wrapper });
 
     await act(async () => {
       await result.current.togglePlannedItem(
@@ -166,13 +192,15 @@ describe("useTodayActions", () => {
       linked_source: "note",
       linked_ref: "abc",
       is_done: true,
-    });
+    }, "this");
     expect(onRefresh).toHaveBeenCalledTimes(1);
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.today.all });
   });
 
   it("supports skipping refresh and surfaces action errors", async () => {
     const onRefresh = vi.fn().mockResolvedValue(undefined);
-    const { result } = renderHook(() => useTodayActions(onRefresh));
+    const { Wrapper } = buildWrapper();
+    const { result } = renderHook(() => useTodayActions(onRefresh), { wrapper: Wrapper });
 
     await act(async () => {
       await result.current.deletePlannedItem(21, "this", { refresh: false });
@@ -207,7 +235,8 @@ describe("useTodayActions", () => {
 
   it("passes recurring edit scope when editing planned items", async () => {
     const onRefresh = vi.fn().mockResolvedValue(undefined);
-    const { result } = renderHook(() => useTodayActions(onRefresh));
+    const { Wrapper } = buildWrapper();
+    const { result } = renderHook(() => useTodayActions(onRefresh), { wrapper: Wrapper });
 
     await act(async () => {
       await result.current.editPlannedItem(

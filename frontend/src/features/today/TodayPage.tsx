@@ -1,7 +1,7 @@
 import confetti from "canvas-confetti";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import * as m from "@/paraglide/messages";
-import { fetchToday, isRetryableApiError, type TodayPayload } from "@/lib/api/today";
+import { isRetryableApiError } from "@/lib/api/today";
 import { PlannedSection } from "@/features/today/PlannedSection";
 import {
   SectionCard,
@@ -20,43 +20,19 @@ import {
   type TodaySection,
 } from "@/features/today/TodaySections";
 import { useTodayActions } from "@/features/today/useTodayActions";
+import { useTodayQuery } from "@/features/today/useTodayQuery";
 
 export function TodayPage() {
-  const [today, setToday] = useState<TodayPayload | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [canRetry, setCanRetry] = useState(false);
+  const todayQuery = useTodayQuery();
+  const today = todayQuery.data ?? null;
+  const isLoading = todayQuery.isLoading;
+  const error = todayQuery.error ? (todayQuery.error instanceof Error ? todayQuery.error.message : "Unable to load today payload.") : null;
+  const canRetry = todayQuery.error ? isRetryableApiError(todayQuery.error) : false;
+  const loadToday = useCallback(async () => {
+    await todayQuery.refetch();
+  }, [todayQuery]);
 
-  const loadToday = useCallback(async (signal?: AbortSignal) => {
-    setIsLoading(true);
-    setError(null);
-    setCanRetry(false);
-    try {
-      const payload = await fetchToday(signal);
-      setToday(payload);
-    } catch (err) {
-      if (signal?.aborted) {
-        return;
-      }
-      setCanRetry(isRetryableApiError(err));
-      setError(err instanceof Error ? err.message : "Unable to load today payload.");
-      setToday(null);
-    } finally {
-      if (!signal?.aborted) {
-        setIsLoading(false);
-      }
-    }
-  }, []);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    void loadToday(controller.signal);
-    return () => {
-      controller.abort();
-    };
-  }, [loadToday]);
-
-  const actions = useTodayActions(loadToday);
+  const actions = useTodayActions();
   const hasAnyItems = today
     ? Object.values(today).some((section) => Array.isArray(section) && section.length > 0)
     : false;
