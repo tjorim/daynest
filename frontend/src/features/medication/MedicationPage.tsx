@@ -431,13 +431,13 @@ function EditMedicationPlanDialog({
             <button type="button" className="btn-close" aria-label="Close" onClick={onCancel} />
           </div>
           <form
-            className="modal-body d-grid gap-2"
             onSubmit={(event) => {
               event.preventDefault();
               event.stopPropagation();
               void editForm.handleSubmit();
             }}
           >
+            <div className="modal-body d-grid gap-2">
             {error ? <div className="alert alert-danger py-2">{error}</div> : null}
             <editForm.Field
               name="name"
@@ -521,6 +521,7 @@ function EditMedicationPlanDialog({
               />
               <span className="form-check-label">{m.medication_active_label()}</span>
             </label>
+            </div>
             <div className="modal-footer">
               <button type="button" className="btn btn-outline-secondary" onClick={onCancel}>
                 {m.action_cancel()}

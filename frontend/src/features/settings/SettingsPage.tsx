@@ -924,6 +924,7 @@ export function SettingsPage() {
                               onClick={header.column.getToggleSortingHandler()}
                             >
                               {flexRender(header.column.columnDef.header, header.getContext())}
+                              {({ asc: " ↑", desc: " ↓" } as Record<string, string>)[header.column.getIsSorted() as string] ?? null}
                             </button>
                           ) : (
                             flexRender(header.column.columnDef.header, header.getContext())

@@ -5,8 +5,9 @@ import {
   createRoute,
   createRouter,
   redirect,
+  useLocation,
 } from "@tanstack/react-router";
-import { useAuth } from "react-oidc-context";
+import { useAuth } from "@/app/providers/AuthProvider";
 import { z } from "zod";
 import * as m from "@/paraglide/messages";
 import { AuthPage } from "@/features/auth/AuthPage";
@@ -25,11 +26,20 @@ type RouterContext = {
 };
 
 function ProtectedRouteBoundary() {
-  const { isLoading } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
+  const location = useLocation();
   if (isLoading) {
     return <div className="alert alert-info py-2">{m.router_loading_session()}</div>;
   }
-
+  if (!isAuthenticated) {
+    return (
+      <Navigate
+        to="/auth"
+        replace
+        search={{ from: `${location.pathname}${location.searchStr}${location.hash ? `#${location.hash}` : ""}` }}
+      />
+    );
+  }
   return <Outlet />;
 }
 
