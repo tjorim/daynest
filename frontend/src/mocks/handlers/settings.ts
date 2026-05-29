@@ -1,0 +1,60 @@
+import { http, HttpResponse } from "msw";
+import { getMockState, mutateSettings } from "../data/state";
+import type { UserSettingsPatch } from "@/lib/api/today";
+
+export const settingsHandlers = [
+  http.get("/api/v1/users/me/settings", () =>
+    HttpResponse.json(getMockState().settings),
+  ),
+
+  http.patch("/api/v1/users/me/settings", async ({ request }) => {
+    const patch = (await request.json()) as UserSettingsPatch;
+    mutateSettings((s) => ({ ...s, ...patch }));
+    return HttpResponse.json(getMockState().settings);
+  }),
+
+  http.get("/api/v1/integrations/clients", () =>
+    HttpResponse.json([
+      {
+        id: 1,
+        name: "Home Assistant",
+        rate_limit_per_minute: 60,
+        is_active: true,
+      },
+    ]),
+  ),
+
+  http.post("/api/v1/integrations/clients", async ({ request }) => {
+    const body = (await request.json()) as { name: string; rate_limit_per_minute: number };
+    return HttpResponse.json(
+      {
+        id: 99,
+        name: body.name,
+        rate_limit_per_minute: body.rate_limit_per_minute,
+        is_active: true,
+        api_key: "mock-api-key-new",
+        client_id: "mock-client-id-new",
+        client_secret: "mock-client-secret-new",
+        token_url: "http://localhost/mock-issuer/token",
+      },
+      { status: 201 },
+    );
+  }),
+
+  http.post("/api/v1/integrations/clients/:id/rotate", ({ params }) =>
+    HttpResponse.json({
+      id: Number(params.id),
+      name: "Home Assistant",
+      rate_limit_per_minute: 60,
+      is_active: true,
+      api_key: "mock-api-key-rotated",
+      client_id: "mock-client-id-rotated",
+      client_secret: "mock-client-secret-rotated",
+      token_url: "http://localhost/mock-issuer/token",
+    }),
+  ),
+
+  http.delete("/api/v1/integrations/clients/:id", () =>
+    new HttpResponse(null, { status: 204 }),
+  ),
+];

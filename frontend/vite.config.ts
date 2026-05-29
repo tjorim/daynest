@@ -32,7 +32,7 @@ export default defineConfig({
           env: {
             TZ: "UTC",
           },
-          setupFiles: ["./tests/setup.ts"],
+          setupFiles: ["./tests/setup.ts", "./tests/setup.msw.ts"],
         },
       },
       {
@@ -45,6 +45,18 @@ export default defineConfig({
             TZ: "UTC",
           },
           setupFiles: ["./tests/setup.ts"],
+        },
+      },
+      {
+        extends: true,
+        test: {
+          name: "msw",
+          include: ["tests/msw/**/*.test.?(c|m)[jt]s?(x)"],
+          environment: "jsdom",
+          env: {
+            TZ: "UTC",
+          },
+          setupFiles: ["./tests/setup.ts", "./tests/setup.msw.ts"],
         },
       },
     ],

@@ -35,6 +35,27 @@ function App() {
 }
 
 async function bootstrap() {
+  if (import.meta.env.VITE_MSW === "true") {
+    const { worker } = await import("./mocks/browser");
+    await worker.start({ onUnhandledRequest: "warn" });
+    const { MockAuthProvider } = await import("./mocks/MockAuthProvider");
+
+    ReactDOM.createRoot(document.getElementById("root")!).render(
+      <React.StrictMode>
+        <LanguageProvider>
+          <MockAuthProvider>
+            <QueryProvider>
+              <ThemeProvider>
+                <App />
+              </ThemeProvider>
+            </QueryProvider>
+          </MockAuthProvider>
+        </LanguageProvider>
+      </React.StrictMode>,
+    );
+    return;
+  }
+
   let oidcConfig;
   try {
     oidcConfig = await fetchOidcConfig();
