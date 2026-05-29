@@ -18,8 +18,8 @@ Before tagging a release, update **all** of the following to match the new versi
 | `dashboard/package.json` | `version` |
 | `CHANGELOG.md` | new `## [x.y.z]` section |
 
-**Android `versionCode` convention:** `MAJOR × 10000 + MINOR × 100 + PATCH`
-Examples: `v0.1.0` → `100`, `v1.0.0` → `10000`, `v1.2.3` → `10203`
+**Android `versionCode` convention:** `MAJOR × 1000000 + MINOR × 1000 + PATCH`
+Examples: `v0.1.0` → `1000`, `v1.0.0` → `1000000`, `v1.2.3` → `1002003`
 
 The release preflight job enforces all of the above and fails the workflow before any
 artifact is built or published if any check fails.
