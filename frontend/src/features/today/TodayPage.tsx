@@ -20,9 +20,11 @@ import {
   type TodaySection,
 } from "@/features/today/TodaySections";
 import { useTodayActions } from "@/features/today/useTodayActions";
+import { useTodayLiveUpdates } from "@/features/today/useTodayLiveUpdates";
 import { useTodayQuery } from "@/features/today/useTodayQuery";
 
 export function TodayPage() {
+  useTodayLiveUpdates();
   const todayQuery = useTodayQuery();
   const today = todayQuery.data ?? null;
   const isLoading = todayQuery.isLoading;
