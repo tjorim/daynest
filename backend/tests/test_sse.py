@@ -8,7 +8,7 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from app.api.dependencies.auth import get_current_user, get_current_user_from_query_token
+from app.api.dependencies.auth import get_current_user
 from app.api.dependencies.events import get_event_bus
 from app.api.routes.today import stream_today_updates
 from app.main import _publish_today_rollovers, app
