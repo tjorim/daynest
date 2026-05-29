@@ -1,16 +1,27 @@
 import asyncio
 from collections.abc import Coroutine
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from typing import Any
+from unittest.mock import MagicMock
 
 import pytest
+from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
+from app.api.dependencies.auth import get_current_user, get_current_user_from_query_token
 from app.api.dependencies.events import get_event_bus
 from app.api.routes.today import stream_today_updates
-from app.main import _publish_today_rollovers
+from app.main import _publish_today_rollovers, app
 from app.models.user import User
 from app.services.event_bus import EventBus
+
+
+def _create_user(db: Session, email: str) -> User:
+    user = User(email=email, is_active=True, timezone="UTC")
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user
 
 
 class _FakeRequest:
@@ -79,3 +90,55 @@ async def test_today_rollover_publishes_today_updated_for_subscribed_user(db_ses
     )
     event = await asyncio.wait_for(queue.get(), timeout=1)
     assert event == {"type": "today_updated"}
+
+
+def test_today_stream_rejects_unauthenticated_request(client: TestClient) -> None:
+    response = client.get("/api/v1/today/stream")
+    assert response.status_code == 401
+
+
+@pytest.mark.anyio
+async def test_today_stream_per_user_event_isolation() -> None:
+    bus = EventBus()
+    queue_a = bus.subscribe(101)
+    queue_b = bus.subscribe(102)
+
+    bus.publish(101, {"type": "today_updated"})
+    await asyncio.sleep(0)
+
+    assert not queue_a.empty()
+    assert queue_b.empty()
+
+    bus.unsubscribe(101, queue_a)
+    bus.unsubscribe(102, queue_b)
+
+
+@pytest.mark.anyio
+async def test_today_stream_response_headers() -> None:
+    user = User(id=2001, email="sse-headers@example.com", is_active=True, timezone="UTC")
+    request = _FakeRequest()
+    event_bus = get_event_bus()
+    response = await stream_today_updates(request=request, event_bus=event_bus, current_user=user)
+    assert "text/event-stream" in response.headers.get("content-type", "")
+    assert response.headers.get("cache-control") in ("no-cache", "no-store")
+    assert response.headers.get("x-accel-buffering") == "no"
+    await response.body_iterator.aclose()
+
+
+def test_today_mutation_publishes_today_updated(client: TestClient, db_session: Session) -> None:
+    user = _create_user(db_session, "sse-mutation@example.com")
+
+    async def _auth_dep() -> User:
+        return user
+
+    mock_bus = MagicMock(spec=EventBus)
+    app.dependency_overrides[get_current_user] = _auth_dep
+    app.dependency_overrides[get_event_bus] = lambda: mock_bus
+    try:
+        payload = {"title": "Test item", "planned_for": str(date.today()), "priority": "normal"}
+        response = client.post("/api/v1/planned-items", json=payload)
+        assert response.status_code == 200
+        mock_bus.publish.assert_called_once_with(user.id, {"type": "today_updated"})
+    finally:
+        app.dependency_overrides.pop(get_current_user, None)
+        app.dependency_overrides.pop(get_event_bus, None)

@@ -42,6 +42,30 @@ async def stream_today_updates(
     event_bus: EventBus = Depends(get_event_bus),
     current_user: User = Depends(get_current_user_from_query_token),
 ) -> EventSourceResponse:
+    """Today SSE event stream contract.
+
+    **URL**: GET /api/v1/today/stream?token=<access_token>
+
+    Auth uses a query-param token (not a header) because EventSource cannot send
+    custom headers.  Pass the OIDC access token as ``?token=``.
+
+    **Events emitted**:
+    - ``today_updated`` — data: ``{}``  (invalidation hint; refetch /today)
+    - ``ping``          — data: ``{}``  (keepalive every 30 s of inactivity)
+
+    Clients must treat events as invalidation signals and refetch /today; event
+    payloads are intentionally empty and carry no authoritative data.
+
+    **Reconnect**: EventSource reconnects automatically on disconnect.  Missed
+    events are not replayed; clients must refetch after reconnect.
+
+    **Proxy buffering**: Cache-Control: no-cache and X-Accel-Buffering: no are
+    set so that nginx/Caddy do not buffer the stream.
+
+    **Scaling**: EventBus is process-local.  A single-worker deployment (the
+    default) is the only supported mode.  Multi-worker setups require a shared
+    pub/sub layer that is not currently implemented.
+    """
     queue = event_bus.subscribe(current_user.id)
 
     async def _event_generator():

@@ -4,6 +4,21 @@ import { auth401, forbidden403, serverError500 } from "./errors";
 import { MOCK_TODAY } from "../data/constants";
 
 export const todayHandlers = [
+  http.get("/api/v1/today/stream", () => {
+    const stream = new ReadableStream({
+      start() {
+        // Intentionally empty — keeps the stream alive without emitting events.
+        // Override this handler in individual tests to inject specific events.
+      },
+    });
+    return new Response(stream, {
+      headers: {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+      },
+    });
+  }),
+
   http.get("/api/v1/today", () => {
     const { scenario } = getMockState();
     if (scenario === "signed-out" || scenario === "expired-session") return auth401();
