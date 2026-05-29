@@ -79,6 +79,7 @@
   "today_no_items": "No items.",
   "today_overdue_since": "Overdue since {date}",
   "today_scheduled_on": "Scheduled {date}",
+  "today_recurring": "Recurring",
   "today_instructions": "Instructions: {text}",
   "today_planned_done_for": "Done for {date}",
   "today_planned_for": "Planned for {date}",

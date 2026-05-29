@@ -715,7 +715,7 @@ export function SectionCard({
                 <div>
                   <div className="fw-medium d-flex align-items-center gap-1">
                     {item.isRecurring ? (
-                      <i className="bi bi-arrow-repeat text-muted" aria-label="Recurring" />
+                      <i className="bi bi-arrow-repeat text-muted" role="img" aria-label={m.today_recurring()} />
                     ) : null}
                     {item.title}
                   </div>

@@ -79,6 +79,7 @@
   "today_no_items": "Geen items.",
   "today_overdue_since": "Achterstallig sinds {date}",
   "today_scheduled_on": "Ingepland op {date}",
+  "today_recurring": "Terugkerend",
   "today_instructions": "Instructies: {text}",
   "today_planned_done_for": "Klaar voor {date}",
   "today_planned_for": "Gepland voor {date}",
