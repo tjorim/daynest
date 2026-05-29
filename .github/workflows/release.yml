@@ -18,6 +18,7 @@ jobs:
 
       - name: Validate SemVer tag
         run: |
+          set -euo pipefail
           if [[ ! "${GITHUB_REF_NAME}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "::error::Tag '${GITHUB_REF_NAME}' is not a strict SemVer release tag (expected format: v1.2.3)"
             exit 1
@@ -26,12 +27,8 @@ jobs:
 
       - name: Check python-daynest/pyproject.toml
         run: |
-          FILE_VERSION=$(python3 -c "
-          import tomllib
-          with open('python-daynest/pyproject.toml', 'rb') as f:
-              d = tomllib.load(f)
-          print(d['project']['version'])
-          ")
+          set -euo pipefail
+          FILE_VERSION=$(grep -oP '^version\s*=\s*"\K[^"]+' python-daynest/pyproject.toml)
           if [[ "${FILE_VERSION}" != "${VERSION}" ]]; then
             echo "::error::python-daynest/pyproject.toml version '${FILE_VERSION}' does not match tag '${VERSION}'"
             exit 1
@@ -40,6 +37,7 @@ jobs:
 
       - name: Check custom_components/daynest/manifest.json version
         run: |
+          set -euo pipefail
           FILE_VERSION=$(python3 -c "import json; d=json.load(open('custom_components/daynest/manifest.json')); print(d['version'])")
           if [[ "${FILE_VERSION}" != "${VERSION}" ]]; then
             echo "::error::custom_components/daynest/manifest.json version '${FILE_VERSION}' does not match tag '${VERSION}'"
@@ -49,12 +47,16 @@ jobs:
 
       - name: Check manifest.json python-daynest requirements pin
         run: |
+          set -euo pipefail
           FILE_VERSION=$(python3 -c "
-          import json, re
+          import json, re, sys
           d = json.load(open('custom_components/daynest/manifest.json'))
           reqs = d.get('requirements', [])
           m = next((re.match(r'python-daynest==(.+)', r) for r in reqs), None)
-          print(m.group(1) if m else '')
+          if not m:
+              print('::error::manifest.json requirements list has no python-daynest== pin')
+              sys.exit(1)
+          print(m.group(1))
           ")
           if [[ "${FILE_VERSION}" != "${VERSION}" ]]; then
             echo "::error::manifest.json python-daynest requirement pin '${FILE_VERSION}' does not match tag '${VERSION}'"
@@ -64,6 +66,7 @@ jobs:
 
       - name: Check android/app/build.gradle.kts versionName
         run: |
+          set -euo pipefail
           FILE_VERSION=$(grep -oP 'versionName\s*=\s*"\K[^"]+' android/app/build.gradle.kts)
           if [[ "${FILE_VERSION}" != "${VERSION}" ]]; then
             echo "::error::android/app/build.gradle.kts versionName '${FILE_VERSION}' does not match tag '${VERSION}'"
@@ -73,6 +76,7 @@ jobs:
 
       - name: Check android/app/build.gradle.kts versionCode
         run: |
+          set -euo pipefail
           IFS='.' read -r MAJOR MINOR PATCH <<< "${VERSION}"
           EXPECTED_CODE=$(( MAJOR * 10000 + MINOR * 100 + PATCH ))
           ACTUAL_CODE=$(grep -oP 'versionCode\s*=\s*\K[0-9]+' android/app/build.gradle.kts)
@@ -84,6 +88,7 @@ jobs:
 
       - name: Check frontend/package.json
         run: |
+          set -euo pipefail
           FILE_VERSION=$(python3 -c "import json; d=json.load(open('frontend/package.json')); print(d['version'])")
           if [[ "${FILE_VERSION}" != "${VERSION}" ]]; then
             echo "::error::frontend/package.json version '${FILE_VERSION}' does not match tag '${VERSION}'"
@@ -93,6 +98,7 @@ jobs:
 
       - name: Check dashboard/package.json
         run: |
+          set -euo pipefail
           FILE_VERSION=$(python3 -c "import json; d=json.load(open('dashboard/package.json')); print(d['version'])")
           if [[ "${FILE_VERSION}" != "${VERSION}" ]]; then
             echo "::error::dashboard/package.json version '${FILE_VERSION}' does not match tag '${VERSION}'"
@@ -102,8 +108,10 @@ jobs:
 
       - name: Check CHANGELOG.md entry
         run: |
-          if ! grep -qF "## [${VERSION}]" CHANGELOG.md; then
-            echo "::error::CHANGELOG.md has no '## [${VERSION}]' section. Add a changelog entry before tagging."
+          set -euo pipefail
+          ESCAPED_VERSION="$(printf '%s' "${VERSION}" | sed 's/\./\\./g')"
+          if ! grep -qE "^## \[${ESCAPED_VERSION}\] - [0-9]{4}-[0-9]{2}-[0-9]{2}$" CHANGELOG.md; then
+            echo "::error::CHANGELOG.md has no '## [${VERSION}] - YYYY-MM-DD' section. Add a dated changelog entry before tagging."
             exit 1
           fi
           echo "✓ CHANGELOG.md: entry for [${VERSION}] found"
@@ -152,7 +160,7 @@ jobs:
 
   hacs:
     name: Build HACS package
-    needs: [preflight, lib]
+    needs: [lib]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
