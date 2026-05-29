@@ -149,14 +149,15 @@ describe("useTodayLiveUpdates", () => {
 
     const { rerender } = renderHook(() => useTodayLiveUpdates(), { wrapper });
     expect(instances).toHaveLength(1);
-    expect(instances[0].url).toContain("token=token-a");
+    const first = instances[0]!;
+    expect(first.url).toContain("token=token-a");
 
     tokenSpy.mockReturnValue("token-b");
     rerender();
 
-    expect(instances[0].closed).toBe(true);
+    expect(first.closed).toBe(true);
     expect(instances).toHaveLength(2);
-    expect(instances[1].url).toContain("token=token-b");
+    expect(instances[1]!.url).toContain("token=token-b");
   });
 
   it("opens EventSource with the token in the URL", () => {
