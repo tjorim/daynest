@@ -6,7 +6,7 @@ from hmac import digest
 
 import jwt
 from anyio import from_thread
-from fastapi import Depends, Header, HTTPException, status
+from fastapi import Depends, Header, HTTPException, Request, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
@@ -55,6 +55,7 @@ def enforce_integration_rate_limit(client: IntegrationClient) -> None:
 
 def require_integration_auth() -> Callable:
     def dependency(
+        request: Request,
         authorization: str | None = Header(default=None, alias="Authorization"),
         x_integration_key: str | None = Header(default=None, alias="X-Integration-Key"),
         db: Session = Depends(get_db),
@@ -84,6 +85,8 @@ def require_integration_auth() -> Callable:
                     enforce_integration_rate_limit(int_client)
                     if int_client.user is None:
                         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Integration owner not found")
+                    request.state.user_id = int_client.user.id
+                    request.state.auth_type = "integration_jwt"
                     return int_client.user
                 except jwt.ExpiredSignatureError as exc:
                     raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Integration token has expired") from exc
@@ -103,6 +106,8 @@ def require_integration_auth() -> Callable:
                 user = get_or_create_local_user(subject, claims, db)
                 if not user.is_active:
                     raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User account is inactive")
+                request.state.user_id = user.id
+                request.state.auth_type = "oidc"
                 return user
 
         # Integration key path
@@ -125,6 +130,8 @@ def require_integration_auth() -> Callable:
 
         enforce_integration_rate_limit(client)
 
+        request.state.user_id = client.user.id
+        request.state.auth_type = "integration_key"
         return client.user
 
     return dependency
