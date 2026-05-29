@@ -14,8 +14,9 @@ export const todayHandlers = [
 
   http.get("/api/v1/calendar/month", ({ request }) => {
     const url = new URL(request.url);
-    const year = Number(url.searchParams.get("year") ?? new Date().getFullYear());
-    const month = Number(url.searchParams.get("month") ?? new Date().getMonth() + 1);
+    const [defaultYear, defaultMonth] = MOCK_TODAY.split("-").map(Number);
+    const year = Number(url.searchParams.get("year") ?? defaultYear);
+    const month = Number(url.searchParams.get("month") ?? defaultMonth);
 
     const days = Array.from({ length: 28 }, (_, i) => {
       const day = i + 1;

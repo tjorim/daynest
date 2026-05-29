@@ -7,14 +7,15 @@ import type {
 } from "@/lib/api/today";
 import { MOCK_TODAY } from "./constants";
 import { busyTodayPayload, emptyTodayPayload, medicationRefillTodayPayload, overdueTodayPayload } from "./today";
-import { seedMedications } from "./medication";
+import { seedMedications, resetMedicationId } from "./medication";
 import {
   seedRoutineTemplates,
   seedRoutineTemplatesCrud,
   seedChoreTemplates,
   seedChoreTemplatesCrud,
+  resetTemplateId,
 } from "./templates";
-import { seedPlannedItems } from "./plannedItems";
+import { seedPlannedItems, resetPlannedItemId } from "./plannedItems";
 import { seedUserSettings } from "./settings";
 
 export type MockScenario =
@@ -60,6 +61,9 @@ export function setScenario(scenario: MockScenario): void {
 }
 
 export function resetMockState(): void {
+  resetMedicationId();
+  resetPlannedItemId();
+  resetTemplateId();
   _state = buildInitialState("default");
 }
 

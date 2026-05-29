@@ -83,3 +83,7 @@ let _nextMedicationId = 100;
 export function nextMedicationId(): number {
   return _nextMedicationId++;
 }
+
+export function resetMedicationId(): void {
+  _nextMedicationId = 100;
+}

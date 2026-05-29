@@ -106,7 +106,7 @@ All handlers live in `src/mocks/handlers/`. They read from and write to the in-m
 
 ## Project structure
 
-```
+```text
 src/
 ├── app/            App bootstrap, providers, router, PWA, theme
 ├── config/         OIDC config fetch

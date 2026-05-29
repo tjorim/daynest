@@ -160,3 +160,7 @@ let _nextTemplateId = 200;
 export function nextTemplateId(): number {
   return _nextTemplateId++;
 }
+
+export function resetTemplateId(): void {
+  _nextTemplateId = 200;
+}

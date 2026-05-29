@@ -55,3 +55,7 @@ let _nextPlannedItemId = 500;
 export function nextPlannedItemId(): number {
   return _nextPlannedItemId++;
 }
+
+export function resetPlannedItemId(): void {
+  _nextPlannedItemId = 500;
+}

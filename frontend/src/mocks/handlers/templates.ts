@@ -1,6 +1,7 @@
 import { http, HttpResponse } from "msw";
 import { getMockState, mutateRoutineTemplates, mutateChoreTemplates } from "../data/state";
 import { nextTemplateId } from "../data/templates";
+import { MOCK_TODAY } from "../data/constants";
 import type { RoutineTemplateInput, ChoreTemplateInput } from "@/lib/api/today";
 
 export const templateHandlers = [
@@ -19,7 +20,7 @@ export const templateHandlers = [
       every_n_days: input.every_n_days,
       due_time: input.due_time ?? null,
       is_active: input.is_active,
-      created_at: new Date().toISOString(),
+      created_at: `${MOCK_TODAY}T00:00:00.000Z`,
     };
     mutateRoutineTemplates((ts) => [...ts, newTemplate]);
     return HttpResponse.json(newTemplate, { status: 201 });
@@ -60,7 +61,7 @@ export const templateHandlers = [
       start_date: input.start_date,
       every_n_days: input.every_n_days,
       is_active: input.is_active,
-      created_at: new Date().toISOString(),
+      created_at: `${MOCK_TODAY}T00:00:00.000Z`,
     };
     mutateChoreTemplates((ts) => [...ts, newTemplate]);
     return HttpResponse.json(newTemplate, { status: 201 });

@@ -7,7 +7,7 @@ export const choreHandlers = [
       chore_instance_id: Number(params.id),
       status: "completed",
       scheduled_date: MOCK_TODAY,
-      completed_at: new Date().toISOString(),
+      completed_at: `${MOCK_TODAY}T09:00:00.000Z`,
       skipped_at: null,
     }),
   ),
@@ -18,7 +18,7 @@ export const choreHandlers = [
       status: "skipped",
       scheduled_date: MOCK_TODAY,
       completed_at: null,
-      skipped_at: new Date().toISOString(),
+      skipped_at: `${MOCK_TODAY}T09:00:00.000Z`,
     }),
   ),
 

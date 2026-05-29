@@ -1,5 +1,5 @@
 import { http, HttpResponse } from "msw";
-import { MOCK_USER } from "../data/constants";
+import { MOCK_USER, MOCK_TODAY } from "../data/constants";
 import { getMockState } from "../data/state";
 import { auth401, forbidden403 } from "./errors";
 
@@ -14,13 +14,14 @@ export const authHandlers = [
   http.get("/api/v1/auth/sessions", () => {
     const { scenario } = getMockState();
     if (scenario === "signed-out") return auth401();
+    const base = new Date(MOCK_TODAY + "T12:00:00Z").getTime();
     return HttpResponse.json([
       {
         id: "session-001",
         ip_address: "127.0.0.1",
-        started: Date.now() - 3600_000,
-        last_access: Date.now() - 60_000,
-        expires: Date.now() + 86_400_000,
+        started: base - 3_600_000,
+        last_access: base - 60_000,
+        expires: base + 86_400_000,
         clients: [],
       },
     ]);
