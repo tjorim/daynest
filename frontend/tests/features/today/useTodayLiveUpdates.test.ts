@@ -134,6 +134,31 @@ describe("useTodayLiveUpdates", () => {
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.today.read() });
   });
 
+  it("closes the old connection and opens a new one when the token changes", () => {
+    const instances: MockEventSource[] = [];
+    vi.stubGlobal(
+      "EventSource",
+      class extends MockEventSource {
+        constructor(url: string) {
+          super(url);
+          instances.push(this);
+        }
+      },
+    );
+    const tokenSpy = vi.spyOn(session, "getOidcAccessToken").mockReturnValue("token-a");
+
+    const { rerender } = renderHook(() => useTodayLiveUpdates(), { wrapper });
+    expect(instances).toHaveLength(1);
+    expect(instances[0].url).toContain("token=token-a");
+
+    tokenSpy.mockReturnValue("token-b");
+    rerender();
+
+    expect(instances[0].closed).toBe(true);
+    expect(instances).toHaveLength(2);
+    expect(instances[1].url).toContain("token=token-b");
+  });
+
   it("opens EventSource with the token in the URL", () => {
     let capturedEs: MockEventSource | undefined;
     vi.stubGlobal(

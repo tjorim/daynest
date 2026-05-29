@@ -6,10 +6,10 @@ import { queryKeys } from "@/lib/query/queryKeys";
 
 export function useTodayLiveUpdates(): void {
   const queryClient = useQueryClient();
+  const token = getOidcAccessToken();
 
   useEffect(() => {
     if (typeof EventSource === "undefined") return;
-    const token = getOidcAccessToken();
     if (!token) return;
 
     const url = buildApiUrl(`/api/v1/today/stream?token=${encodeURIComponent(token)}`);
@@ -31,5 +31,5 @@ export function useTodayLiveUpdates(): void {
     return () => {
       es.close();
     };
-  }, [queryClient]);
+  }, [queryClient, token]);
 }
