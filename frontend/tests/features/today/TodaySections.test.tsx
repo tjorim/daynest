@@ -396,7 +396,7 @@ describe("build item helpers", () => {
     expect(item).toMatchObject({ statusLabel: "Done", statusTone: "success" });
   });
 
-  it("buildPlannedItems adds repeat indicator prefix for recurring items", () => {
+  it("buildPlannedItems marks recurring items with isRecurring", () => {
     const [item] = buildPlannedItems([
       {
         id: 9,
@@ -407,7 +407,8 @@ describe("build item helpers", () => {
         rrule: "FREQ=DAILY",
       },
     ]);
-    expect(item?.title).toContain("🔁");
+    expect(item?.isRecurring).toBe(true);
+    expect(item?.title).toBe("Read");
   });
 
   it("buildMedicationItems maps medication fields", () => {

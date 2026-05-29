@@ -125,7 +125,9 @@ export function SearchOverlay({ onClose }: { onClose: () => void }) {
       >
         <div className="card-header p-2">
           <div className="input-group">
-            <span className="input-group-text border-0 bg-transparent">🔍</span>
+            <span className="input-group-text border-0 bg-transparent">
+              <i className="bi bi-search" aria-hidden="true" />
+            </span>
             <input
               ref={inputRef}
               type="search"
@@ -142,7 +144,7 @@ export function SearchOverlay({ onClose }: { onClose: () => void }) {
               </span>
             ) : null}
             <button type="button" className="btn btn-link border-0" onClick={onClose} aria-label="Close search">
-              ✕
+              <i className="bi bi-x-lg" aria-hidden="true" />
             </button>
           </div>
           {query.length > 0 && query.length < MIN_QUERY_LEN ? (
