@@ -24,7 +24,7 @@
     "bootstrap": "^5.3.3",
     "bootstrap-icons": "^1.13.1",
     "canvas-confetti": "^1.9.4",
-    "dayjs": "^1.11.13",
+    "dayjs": "^1.11.21",
     "oidc-client-ts": "^3.5.0",
     "react": "^19.2.5",
     "react-bootstrap": "^2.10.5",
