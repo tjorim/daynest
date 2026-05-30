@@ -20,6 +20,9 @@ test = [
     "ruff",
 ]
 
+[tool.uv]
+prerelease = "allow"
+
 [tool.uv.sources]
 python-daynest = { path = "../python-daynest", editable = true }
 
