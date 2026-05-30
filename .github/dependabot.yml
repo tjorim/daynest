@@ -70,6 +70,25 @@ updates:
       - "dependencies"
       - "backend"
       - "python"
+    versioning-strategy: "increase"
+
+  # Monitor uv-managed Python dependencies for the Home Assistant custom component
+  - package-ecosystem: "uv"
+    directory: "/custom_components"
+    schedule:
+      interval: "weekly"
+      day: "friday"
+      time: "18:00"
+      timezone: "Etc/UTC"
+    assignees:
+      - "tjorim"
+    commit-message:
+      prefix: "deps(ha)"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "python"
+    versioning-strategy: "increase"
 
   # Monitor uv-managed Python dependencies for the python-daynest library
   - package-ecosystem: "uv"
@@ -87,6 +106,7 @@ updates:
     labels:
       - "dependencies"
       - "python"
+    versioning-strategy: "increase"
 
   # Monitor GitHub Actions
   - package-ecosystem: "github-actions"

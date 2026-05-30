@@ -526,10 +526,10 @@ requires-dist = [{ name = "aiohttp", specifier = ">=3.9" }]
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "pyright", specifier = ">=1.1" },
-    { name = "pytest", specifier = ">=8.0" },
-    { name = "pytest-asyncio", specifier = ">=0.25" },
-    { name = "ruff", specifier = ">=0.8" },
+    { name = "pyright", specifier = "==1.1.409" },
+    { name = "pytest", specifier = "==9.0.3" },
+    { name = "pytest-asyncio", specifier = "==1.4.0" },
+    { name = "ruff", specifier = "==0.15.15" },
 ]
 
 [[package]]
