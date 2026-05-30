@@ -82,11 +82,11 @@ def require_integration_auth() -> Callable:
                     )
                     if int_client is None or not int_client.is_active:
                         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Integration client not found or inactive")
-                    enforce_integration_rate_limit(int_client)
                     if int_client.user is None:
                         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Integration owner not found")
                     request.state.user_id = int_client.user.id
                     request.state.auth_type = "integration_jwt"
+                    enforce_integration_rate_limit(int_client)
                     return int_client.user
                 except jwt.ExpiredSignatureError as exc:
                     raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Integration token has expired") from exc
@@ -128,10 +128,9 @@ def require_integration_auth() -> Callable:
         if client.user is None:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Integration owner not found")
 
-        enforce_integration_rate_limit(client)
-
         request.state.user_id = client.user.id
         request.state.auth_type = "integration_key"
+        enforce_integration_rate_limit(client)
         return client.user
 
     return dependency
