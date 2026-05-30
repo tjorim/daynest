@@ -96,6 +96,7 @@ def configure_error_tracking() -> None:
         environment=settings.environment,
         traces_sample_rate=settings.sentry_traces_sample_rate,
         integrations=[FastApiIntegration()],
+        send_default_pii=False,
     )
 
 
@@ -121,10 +122,12 @@ async def observability_middleware(request: Request, call_next):
 
     if logger.isEnabledFor(logging.INFO):
         user_id = getattr(request.state, "user_id", None)
+        auth_type = getattr(request.state, "auth_type", None)
         log_payload = {
             "event": "http_request",
             "request_id": request_id,
             "user_id": user_id,
+            "auth_type": auth_type,
             "method": request.method,
             "route": request.url.path,
             "status_code": status_code,

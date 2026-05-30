@@ -183,6 +183,7 @@ if settings.cors_allow_origins:
         allow_credentials=not wildcard,
         allow_methods=["*"],
         allow_headers=["*"],
+        expose_headers=["X-Request-ID"],
     )
 
 app.include_router(system_router, prefix=settings.api_prefix)

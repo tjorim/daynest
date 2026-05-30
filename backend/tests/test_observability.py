@@ -1,3 +1,7 @@
+import json
+import logging
+import uuid
+
 from fastapi.testclient import TestClient
 
 
@@ -52,10 +56,21 @@ def test_readiness_endpoint_returns_not_ready_with_db_down(client: TestClient, m
     assert readiness_response.json()["status"] == "not_ready"
 
 
-def test_request_id_header_present(client: TestClient) -> None:
+def test_request_id_generated_when_absent(client: TestClient) -> None:
     response = client.get("/api/v1/health/liveness")
     assert response.status_code == 200
-    assert response.headers.get("X-Request-ID")
+    request_id = response.headers.get("X-Request-ID")
+    assert request_id is not None
+    # Generated ID must be a valid UUID4
+    parsed = uuid.UUID(request_id, version=4)
+    assert str(parsed) == request_id
+
+
+def test_request_id_propagated_when_supplied(client: TestClient) -> None:
+    supplied_id = "my-trace-id-abc123"
+    response = client.get("/api/v1/health/liveness", headers={"X-Request-ID": supplied_id})
+    assert response.status_code == 200
+    assert response.headers.get("X-Request-ID") == supplied_id
 
 
 def test_metrics_requires_secret(client: TestClient) -> None:
@@ -68,3 +83,53 @@ def test_metrics_requires_secret(client: TestClient) -> None:
         authed = client.get("/api/v1/metrics", headers={"X-Metrics-Secret": settings.metrics_secret})
         assert authed.status_code == 200
         assert "request_total" in authed.json()
+
+
+def test_metrics_forbidden_with_wrong_secret(client: TestClient, monkeypatch) -> None:
+    from app.core.config import settings
+
+    monkeypatch.setattr(settings, "metrics_secret", "correct-secret")
+
+    response = client.get("/api/v1/metrics", headers={"X-Metrics-Secret": "wrong-secret"})
+    assert response.status_code == 403
+
+    response_no_header = client.get("/api/v1/metrics")
+    assert response_no_header.status_code == 403
+
+    authed = client.get("/api/v1/metrics", headers={"X-Metrics-Secret": "correct-secret"})
+    assert authed.status_code == 200
+
+
+def test_structured_log_payload_shape(client: TestClient, caplog) -> None:
+    with caplog.at_level(logging.INFO, logger="app.observability"):
+        response = client.get("/api/v1/health/liveness")
+
+    assert response.status_code == 200
+
+    log_records = [r for r in caplog.records if r.name == "app.observability"]
+    assert log_records, "Expected at least one structured log record from observability middleware"
+
+    payload = json.loads(log_records[-1].message)
+    assert payload["event"] == "http_request"
+    assert "request_id" in payload
+    assert "user_id" in payload
+    assert "auth_type" in payload
+    assert payload["method"] == "GET"
+    assert payload["route"] == "/api/v1/health/liveness"
+    assert payload["status_code"] == 200
+    assert "latency_ms" in payload
+    assert isinstance(payload["latency_ms"], float)
+
+
+def test_structured_log_does_not_leak_query_params(client: TestClient, caplog) -> None:
+    """Route field must be path-only — query params (e.g. SSE tokens) must not appear."""
+    with caplog.at_level(logging.INFO, logger="app.observability"):
+        response = client.get("/api/v1/health/liveness?sensitive=secret-token")
+
+    assert response.status_code == 200
+
+    log_records = [r for r in caplog.records if r.name == "app.observability"]
+    assert log_records
+    payload = json.loads(log_records[-1].message)
+    assert "sensitive" not in payload["route"]
+    assert "secret-token" not in payload["route"]

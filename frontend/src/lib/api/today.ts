@@ -371,12 +371,14 @@ export interface ChoreTemplateInput {
 export class ApiError extends Error {
   readonly status: number;
   readonly retryable: boolean;
+  readonly requestId: string | null;
 
-  constructor(message: string, status: number, retryable = false) {
+  constructor(message: string, status: number, retryable = false, requestId: string | null = null) {
     super(message);
     this.name = "ApiError";
     this.status = status;
     this.retryable = retryable;
+    this.requestId = requestId;
   }
 }
 
@@ -458,6 +460,8 @@ async function parseJsonResponse<T>(
   isIdempotent = true,
   schema?: z.ZodType<T>,
 ): Promise<T> {
+  const requestId = response.headers.get("x-request-id");
+
   if (!response.ok) {
     let message = `${fallbackMessage} (${response.status})`;
     try {
@@ -483,10 +487,12 @@ async function parseJsonResponse<T>(
     } catch {
       // keep fallback message
     }
+    const fullMessage = requestId ? `${message} [request-id: ${requestId}]` : message;
     throw new ApiError(
-      message,
+      fullMessage,
       response.status,
       isIdempotent && isRetryableStatus(response.status),
+      requestId,
     );
   }
   const payload = (await response.json()) as unknown;
@@ -503,7 +509,10 @@ async function parseJsonResponse<T>(
         return `${path}: ${issue.message}`;
       })
       .join(", ");
-    throw new ApiError(`Invalid response format: ${details}`, response.status, false);
+    const fullMessage = requestId
+      ? `Invalid response format: ${details} [request-id: ${requestId}]`
+      : `Invalid response format: ${details}`;
+    throw new ApiError(fullMessage, response.status, false, requestId);
   }
 
   return result.data;
