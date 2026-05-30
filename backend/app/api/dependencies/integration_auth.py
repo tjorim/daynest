@@ -11,7 +11,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
 from app.core.config import settings
-from app.core.oidc import OIDCTokenError, decode_oidc_token, get_or_create_local_user
+from app.core.oidc import OIDCTokenError, _extract_roles, decode_oidc_token, get_or_create_local_user
 from app.db.session import get_db
 from app.models.integration_client import IntegrationClient
 from app.models.user import User
@@ -107,6 +107,7 @@ def require_integration_auth() -> Callable:
                 if not user.is_active:
                     raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User account is inactive")
                 request.state.user_id = user.id
+                request.state.roles = _extract_roles(claims)
                 request.state.auth_type = "oidc"
                 return user
 
