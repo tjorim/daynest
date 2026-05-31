@@ -25,6 +25,7 @@ from app.schemas.today import (
     CalendarDayResponse,
     CalendarMonthDaySummary,
     CalendarMonthResponse,
+    CalendarRangeResponse,
     ChoreInstanceMutationResponse,
     DueTodayItem,
     MedicationHistoryItem,
@@ -57,6 +58,7 @@ _PRIORITY_RANK: dict[str, int] = {
 logger = logging.getLogger(__name__)
 
 MAX_CALENDAR_RANGE_DAYS = 366
+MAX_CALENDAR_QUERY_RANGE_DAYS = 90
 RECURRENCE_EXHAUSTED_SENTINEL = date(9999, 12, 31)
 DEFAULT_PLANNED_ITEMS_LOOKAHEAD_DAYS = 90
 
@@ -400,6 +402,8 @@ class TodayService:
                     title=plan.title,
                     status="done" if plan.is_done else "planned",
                     scheduled_date=plan.planned_for,
+                    time_of_day=plan.time_of_day,
+                    duration_minutes=plan.duration_minutes,
                     detail=plan.notes,
                     module_key=cast(PlannedItemModuleKey | None, plan.module_key),
                     rrule=plan.rrule,
@@ -464,6 +468,28 @@ class TodayService:
             )
 
         return CalendarMonthResponse(year=year, month=month, days=days)
+
+    def get_calendar_range(self, user_id: int, start_date: date, end_date: date) -> CalendarRangeResponse:
+        if end_date < start_date:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="end must not be before start")
+        if (end_date - start_date).days > MAX_CALENDAR_QUERY_RANGE_DAYS:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Calendar range must not exceed 90 days")
+
+        user_tz_str = self.repository.get_user_timezone(user_id)
+        self.repository.ensure_chore_instances_generated(user_id=user_id, through_date=end_date)
+        self.repository.ensure_task_instances_generated(user_id=user_id, through_date=end_date)
+        self.repository.ensure_medication_dose_instances_generated(user_id=user_id, through_date=end_date, user_timezone=user_tz_str)
+        self.repository.mark_due_medications_missed(
+            user_id=user_id,
+            now=self.repository.utcnow(),
+            grace_minutes=self._medication_missed_grace_minutes,
+        )
+        self._materialize_planned_items_through(user_id=user_id, through_date=end_date)
+
+        items: list[UnifiedDayItem] = []
+        for offset in range((end_date - start_date).days + 1):
+            items.extend(self.get_day_items(user_id=user_id, for_date=start_date + timedelta(days=offset)).items)
+        return CalendarRangeResponse(items=items)
 
     def get_calendar_events(
         self,
