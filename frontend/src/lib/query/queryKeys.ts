@@ -8,6 +8,10 @@ export const queryKeys = {
     month: (year: number, month: number) => [...queryKeys.calendar.all, "month", year, month] as const,
     day: (date: string) => [...queryKeys.calendar.all, "day", date] as const,
   },
+  calendarRange: {
+    all: ["calendar", "range"] as const,
+    read: (start: string, end: string) => [...queryKeys.calendarRange.all, start, end] as const,
+  },
   plannedItems: {
     all: ["planned-items"] as const,
     range: (startDate?: string, endDate?: string) =>

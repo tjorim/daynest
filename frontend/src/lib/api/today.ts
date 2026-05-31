@@ -132,6 +132,7 @@ export interface UnifiedDayItem {
   status: string;
   scheduled_at: string | null;
   scheduled_date: string | null;
+  duration_minutes?: number | null;
   detail: string | null;
   module_key: PlannedItemModuleKey | null;
   rrule?: string | null;
@@ -143,6 +144,10 @@ export interface UnifiedDayItem {
 
 export interface CalendarDayPayload {
   date: string;
+  items: UnifiedDayItem[];
+}
+
+export interface CalendarRangePayload {
   items: UnifiedDayItem[];
 }
 
@@ -223,6 +228,7 @@ const unifiedDayItemSchema = z.object({
   status: z.string(),
   scheduled_at: z.string().nullable(),
   scheduled_date: z.string().nullable(),
+  duration_minutes: z.number().int().nullable().optional(),
   detail: z.string().nullable(),
   module_key: plannedItemModuleKeySchema.nullable(),
   rrule: z.string().nullable().optional(),
@@ -230,6 +236,10 @@ const unifiedDayItemSchema = z.object({
   recurrence_hint: z.string().nullable().optional(),
   linked_source: z.string().nullable().optional(),
   linked_ref: z.string().nullable().optional(),
+});
+
+export const CalendarRangeResponseSchema = z.object({
+  items: z.array(unifiedDayItemSchema),
 });
 
 const calendarMonthDaySummarySchema = z.object({
@@ -559,6 +569,23 @@ export async function fetchCalendarDay(
     1,
   );
   return parseJsonResponse<CalendarDayPayload>(response);
+}
+
+export async function fetchCalendarRange(
+  start: string,
+  end: string,
+  signal?: AbortSignal,
+): Promise<CalendarRangePayload> {
+  const params = new URLSearchParams({ start, end });
+  const response = await fetchWithAuth(
+    `/api/calendar/range?${params.toString()}`,
+    {
+      headers: { Accept: "application/json" },
+      signal,
+    },
+    1,
+  );
+  return parseJsonResponse(response, "Request failed", true, CalendarRangeResponseSchema);
 }
 
 export async function createPlannedItem(input: PlannedItemInput): Promise<PlannedTodayItem> {
