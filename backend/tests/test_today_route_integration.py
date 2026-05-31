@@ -43,7 +43,7 @@ def _clear_auth() -> None:
 
 
 def test_get_today_requires_authentication(client: TestClient) -> None:
-    response = client.get("/api/v1/today")
+    response = client.get("/api/today")
     assert response.status_code == 401
 
 
@@ -83,7 +83,7 @@ def test_get_today_includes_generated_chore_sections(client: TestClient, db_sess
     db_session.commit()
 
     try:
-        response = client.get("/api/v1/today")
+        response = client.get("/api/today")
     finally:
         _clear_auth()
 
@@ -244,7 +244,7 @@ def test_get_today_allows_today_service_dependency_override(client: TestClient, 
 
     app.dependency_overrides[get_today_service] = lambda: StubTodayService()
     try:
-        response = client.get("/api/v1/today")
+        response = client.get("/api/today")
     finally:
         app.dependency_overrides.pop(get_today_service, None)
         _clear_auth()
@@ -299,22 +299,22 @@ def test_chore_mutation_endpoints_complete_skip_and_reschedule(client: TestClien
     db_session.refresh(pending_instance)
 
     try:
-        complete_resp = client.post(f"/api/v1/chores/{instance.id}/complete")
+        complete_resp = client.post(f"/api/chores/{instance.id}/complete")
         assert complete_resp.status_code == 200
         assert complete_resp.json()["status"] == "completed"
         assert complete_resp.json()["completed_at"] is not None
         assert complete_resp.json()["skipped_at"] is None
 
-        skip_resp = client.post(f"/api/v1/chores/{instance.id}/skip")
+        skip_resp = client.post(f"/api/chores/{instance.id}/skip")
         assert skip_resp.status_code == 200
         assert skip_resp.json()["status"] == "skipped"
         assert skip_resp.json()["skipped_at"] is not None
         assert skip_resp.json()["completed_at"] is None
 
-        blocked = client.post(f"/api/v1/chores/{instance.id}/reschedule", json={"scheduled_date": "2026-04-25"})
+        blocked = client.post(f"/api/chores/{instance.id}/reschedule", json={"scheduled_date": "2026-04-25"})
         assert blocked.status_code == 409
 
-        reschedule = client.post(f"/api/v1/chores/{pending_instance.id}/reschedule", json={"scheduled_date": "2026-04-25"})
+        reschedule = client.post(f"/api/chores/{pending_instance.id}/reschedule", json={"scheduled_date": "2026-04-25"})
         assert reschedule.status_code == 200
         assert reschedule.json()["status"] == "pending"
         assert reschedule.json()["scheduled_date"] == "2026-04-25"
@@ -328,7 +328,7 @@ def test_medication_endpoints_create_list_history_and_mutate_status(client: Test
 
     try:
         create_resp = client.post(
-            "/api/v1/medications",
+            "/api/medications",
             json={
                 "name": "Magnesium",
                 "instructions": "Take after dinner",
@@ -340,7 +340,7 @@ def test_medication_endpoints_create_list_history_and_mutate_status(client: Test
         assert create_resp.status_code == 200
         assert create_resp.json()["name"] == "Magnesium"
 
-        list_resp = client.get("/api/v1/medications")
+        list_resp = client.get("/api/medications")
         assert list_resp.status_code == 200
         assert len(list_resp.json()) == 1
 
@@ -358,11 +358,11 @@ def test_medication_endpoints_create_list_history_and_mutate_status(client: Test
         db_session.commit()
         db_session.refresh(dose)
 
-        take_resp = client.post(f"/api/v1/medication-doses/{dose.id}/take")
+        take_resp = client.post(f"/api/medication-doses/{dose.id}/take")
         assert take_resp.status_code == 200
         assert take_resp.json()["status"] == "taken"
 
-        history_resp = client.get("/api/v1/medication-doses/history")
+        history_resp = client.get("/api/medication-doses/history")
         assert history_resp.status_code == 200
         assert history_resp.json()["history"][0]["name"] == "Magnesium"
     finally:
@@ -375,7 +375,7 @@ def test_calendar_and_planned_endpoints(client: TestClient, db_session: Session)
 
     try:
         create_planned = client.post(
-            "/api/v1/planned-items",
+            "/api/planned-items",
             json={
                 "title": "Meal prep",
                 "planned_for": "2026-04-24",
@@ -395,12 +395,12 @@ def test_calendar_and_planned_endpoints(client: TestClient, db_session: Session)
         assert create_planned.json()["linked_ref"] == "meal-prep-2026-04-24"
         planned_id = create_planned.json()["id"]
 
-        list_planned = client.get("/api/v1/planned-items?start_date=2026-04-24&end_date=2026-04-24")
+        list_planned = client.get("/api/planned-items?start_date=2026-04-24&end_date=2026-04-24")
         assert list_planned.status_code == 200
         assert len(list_planned.json()) == 1
 
         update_planned = client.put(
-            f"/api/v1/planned-items/{planned_id}",
+            f"/api/planned-items/{planned_id}",
             json={
                 "title": "Meal prep",
                 "planned_for": "2026-04-24",
@@ -422,15 +422,15 @@ def test_calendar_and_planned_endpoints(client: TestClient, db_session: Session)
         assert update_planned.json()["linked_source"] == "google_calendar"
         assert update_planned.json()["linked_ref"] == "meal-prep-2026-04-24"
 
-        day_resp = client.get("/api/v1/calendar/day?date=2026-04-24")
+        day_resp = client.get("/api/calendar/day?date=2026-04-24")
         assert day_resp.status_code == 200
         assert day_resp.json()["items"][0]["item_type"] == "planned"
 
-        month_resp = client.get("/api/v1/calendar/month?year=2026&month=4")
+        month_resp = client.get("/api/calendar/month?year=2026&month=4")
         assert month_resp.status_code == 200
         assert month_resp.json()["days"][0]["planned"] >= 1
 
-        delete_resp = client.delete(f"/api/v1/planned-items/{planned_id}")
+        delete_resp = client.delete(f"/api/planned-items/{planned_id}")
         assert delete_resp.status_code == 204
     finally:
         _clear_auth()
@@ -479,7 +479,7 @@ def test_ical_export_window_uses_user_timezone(
     app.dependency_overrides[get_today_service] = lambda: StubCalendarService()
     monkeypatch.setattr(calendar_routes, "datetime", FixedDatetime)
     try:
-        response = client.get("/api/v1/calendar/export.ics?token=calendar-token")
+        response = client.get("/api/calendar/export.ics?token=calendar-token")
     finally:
         app.dependency_overrides.pop(get_today_service, None)
 
@@ -546,7 +546,7 @@ def test_bulk_mutations_commit_once_for_successful_items(
 
     try:
         response = client.post(
-            "/api/v1/bulk",
+            "/api/bulk",
             json={
                 "mutations": [
                     {"type": "complete_chore", "id": complete_instance.id},
@@ -577,7 +577,7 @@ def test_medication_plan_update_and_delete(client: TestClient, db_session: Sessi
 
     try:
         create_resp = client.post(
-            "/api/v1/medications",
+            "/api/medications",
             json={
                 "name": "Zinc",
                 "instructions": "Take with food",
@@ -590,7 +590,7 @@ def test_medication_plan_update_and_delete(client: TestClient, db_session: Sessi
         plan_id = create_resp.json()["id"]
 
         update_resp = client.put(
-            f"/api/v1/medications/{plan_id}",
+            f"/api/medications/{plan_id}",
             json={
                 "name": "Zinc supplement",
                 "instructions": "Take with dinner",
@@ -607,7 +607,7 @@ def test_medication_plan_update_and_delete(client: TestClient, db_session: Sessi
         assert body["is_active"] is False
 
         not_found_update = client.put(
-            "/api/v1/medications/9999",
+            "/api/medications/9999",
             json={
                 "name": "Ghost",
                 "instructions": "N/A",
@@ -619,14 +619,14 @@ def test_medication_plan_update_and_delete(client: TestClient, db_session: Sessi
         )
         assert not_found_update.status_code == 404
 
-        delete_resp = client.delete(f"/api/v1/medications/{plan_id}")
+        delete_resp = client.delete(f"/api/medications/{plan_id}")
         assert delete_resp.status_code == 204
 
-        list_resp = client.get("/api/v1/medications")
+        list_resp = client.get("/api/medications")
         assert list_resp.status_code == 200
         assert list_resp.json() == []
 
-        not_found_delete = client.delete("/api/v1/medications/9999")
+        not_found_delete = client.delete("/api/medications/9999")
         assert not_found_delete.status_code == 404
     finally:
         _clear_auth()
@@ -638,7 +638,7 @@ def test_template_management_endpoints(client: TestClient, db_session: Session) 
 
     try:
         create_routine = client.post(
-            "/api/v1/templates/routines",
+            "/api/templates/routines",
             json={
                 "name": "Morning reset",
                 "description": "Open windows and tidy the kitchen",
@@ -651,12 +651,12 @@ def test_template_management_endpoints(client: TestClient, db_session: Session) 
         assert create_routine.status_code == 201
         routine_id = create_routine.json()["id"]
 
-        list_routines = client.get("/api/v1/templates/routines")
+        list_routines = client.get("/api/templates/routines")
         assert list_routines.status_code == 200
         assert len(list_routines.json()) == 1
 
         update_routine = client.put(
-            f"/api/v1/templates/routines/{routine_id}",
+            f"/api/templates/routines/{routine_id}",
             json={
                 "name": "Morning reset",
                 "description": "Open windows and clear counters",
@@ -671,7 +671,7 @@ def test_template_management_endpoints(client: TestClient, db_session: Session) 
         assert update_routine.json()["every_n_days"] == 2
 
         create_chore = client.post(
-            "/api/v1/templates/chores",
+            "/api/templates/chores",
             json={
                 "name": "Laundry",
                 "description": "Wash towels",
@@ -684,16 +684,16 @@ def test_template_management_endpoints(client: TestClient, db_session: Session) 
         assert create_chore.status_code == 201
         chore_id = create_chore.json()["id"]
 
-        list_chores = client.get("/api/v1/templates/chores")
+        list_chores = client.get("/api/templates/chores")
         assert list_chores.status_code == 200
         assert len(list_chores.json()) == 1
 
-        list_chores_by_tag = client.get("/api/v1/templates/chores?tags=home,%20,%20")
+        list_chores_by_tag = client.get("/api/templates/chores?tags=home,%20,%20")
         assert list_chores_by_tag.status_code == 200
         assert [item["id"] for item in list_chores_by_tag.json()] == [chore_id]
 
         update_chore = client.put(
-            f"/api/v1/templates/chores/{chore_id}",
+            f"/api/templates/chores/{chore_id}",
             json={
                 "name": "Laundry",
                 "description": "Wash towels and bedding",
@@ -706,10 +706,10 @@ def test_template_management_endpoints(client: TestClient, db_session: Session) 
         assert update_chore.status_code == 200
         assert update_chore.json()["every_n_days"] == 14
 
-        delete_routine = client.delete(f"/api/v1/templates/routines/{routine_id}")
+        delete_routine = client.delete(f"/api/templates/routines/{routine_id}")
         assert delete_routine.status_code == 204
 
-        delete_chore = client.delete(f"/api/v1/templates/chores/{chore_id}")
+        delete_chore = client.delete(f"/api/templates/chores/{chore_id}")
         assert delete_chore.status_code == 204
     finally:
         _clear_auth()
@@ -732,15 +732,15 @@ def test_routine_task_generation_and_mutation_endpoints(client: TestClient, db_s
     db_session.commit()
 
     try:
-        today_resp = client.get("/api/v1/today")
+        today_resp = client.get("/api/today")
         assert today_resp.status_code == 200
         task_id = today_resp.json()["routines"][0]["task_instance_id"]
 
-        start_resp = client.post(f"/api/v1/tasks/{task_id}/start")
+        start_resp = client.post(f"/api/tasks/{task_id}/start")
         assert start_resp.status_code == 200
         assert start_resp.json()["status"] == "in_progress"
 
-        complete_resp = client.post(f"/api/v1/tasks/{task_id}/complete")
+        complete_resp = client.post(f"/api/tasks/{task_id}/complete")
         assert complete_resp.status_code == 200
         assert complete_resp.json()["status"] == "completed"
         assert complete_resp.json()["completed_at"] is not None
@@ -761,7 +761,7 @@ def test_routine_task_generation_and_mutation_endpoints(client: TestClient, db_s
         db_session.commit()
         db_session.refresh(skipped_instance)
 
-        skip_resp = client.post(f"/api/v1/tasks/{skipped_instance.id}/skip")
+        skip_resp = client.post(f"/api/tasks/{skipped_instance.id}/skip")
         assert skip_resp.status_code == 200
         assert skip_resp.json()["status"] == "skipped"
     finally:

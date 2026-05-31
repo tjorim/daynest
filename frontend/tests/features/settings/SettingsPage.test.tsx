@@ -69,7 +69,7 @@ describe("SettingsPage", () => {
       api_key: "daynest_test_key",
       client_id: "1",
       client_secret: "daynest_test_key",
-      token_url: "http://localhost/api/v1/integrations/clients/token",
+      token_url: "http://localhost/api/integrations/clients/token",
     });
     pwaMock.getDeferredInstallPrompt.mockReturnValue(null);
     pwaMock.promptToInstallApp.mockResolvedValue(false);
@@ -107,7 +107,7 @@ describe("SettingsPage", () => {
       });
     });
     expect(await screen.findByText("daynest_test_key")).toBeInTheDocument();
-    expect(screen.getByText("http://localhost/api/v1/integrations/clients/token")).toBeInTheDocument();
+    expect(screen.getByText("http://localhost/api/integrations/clients/token")).toBeInTheDocument();
     expect(screen.getByText(/legacy integration client fallback/i)).toBeInTheDocument();
   });
 

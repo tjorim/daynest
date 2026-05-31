@@ -68,7 +68,7 @@ def test_home_assistant_contract_header_and_summary_shape(client: TestClient, db
     _setup_contract_chore(db_session, user, "Contract Chore")
 
     key = _create_integration_key(db_session, user.id)
-    response = client.get("/api/v1/integrations/home-assistant/summary", headers={"X-Integration-Key": key})
+    response = client.get("/api/integrations/home-assistant/summary", headers={"X-Integration-Key": key})
 
     assert response.status_code == 200
     assert response.headers[INTEGRATION_CONTRACT_HEADER] == integration_contract_header(HOME_ASSISTANT_ADAPTER, HOME_ASSISTANT_CONTRACT_VERSION)
@@ -88,7 +88,7 @@ def test_home_assistant_contract_dashboard_shape(client: TestClient, db_session:
     _setup_contract_chore(db_session, user, "Contract Dashboard Chore")
 
     key = _create_integration_key(db_session, user.id)
-    response = client.get("/api/v1/integrations/home-assistant/dashboard", headers={"X-Integration-Key": key})
+    response = client.get("/api/integrations/home-assistant/dashboard", headers={"X-Integration-Key": key})
 
     assert response.status_code == 200
     assert response.headers[INTEGRATION_CONTRACT_HEADER] == integration_contract_header(HOME_ASSISTANT_ADAPTER, HOME_ASSISTANT_CONTRACT_VERSION)
@@ -116,7 +116,7 @@ def test_home_assistant_contract_entities_shape(client: TestClient, db_session: 
     _setup_contract_chore(db_session, user, "Contract Entities Chore")
 
     key = _create_integration_key(db_session, user.id)
-    response = client.get("/api/v1/integrations/home-assistant/entities", headers={"X-Integration-Key": key})
+    response = client.get("/api/integrations/home-assistant/entities", headers={"X-Integration-Key": key})
 
     assert response.status_code == 200
     assert response.headers[INTEGRATION_CONTRACT_HEADER] == integration_contract_header(HOME_ASSISTANT_ADAPTER, HOME_ASSISTANT_CONTRACT_VERSION)
@@ -143,7 +143,7 @@ def test_home_assistant_contract_calendar_shape(client: TestClient, db_session: 
     key = _create_integration_key(db_session, user.id)
     today = date.today()
     response = client.get(
-        "/api/v1/integrations/home-assistant/calendar",
+        "/api/integrations/home-assistant/calendar",
         params={"start": today.isoformat(), "end": today.isoformat()},
         headers={"X-Integration-Key": key},
     )

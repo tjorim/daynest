@@ -44,7 +44,7 @@ async def stream_today_updates(
 ) -> EventSourceResponse:
     """Today SSE event stream contract.
 
-    **URL**: GET /api/v1/today/stream?token=<access_token>
+    **URL**: GET /api/today/stream?token=<access_token>
 
     Auth uses a query-param token (not a header) because EventSource cannot send
     custom headers.  Pass the OIDC access token as ``?token=``.

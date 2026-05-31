@@ -80,7 +80,7 @@ def _add_medication_dose(
 
 
 def test_analytics_summary_requires_authentication(client: TestClient) -> None:
-    response = client.get("/api/v1/analytics/summary")
+    response = client.get("/api/analytics/summary")
     assert response.status_code == 401
 
 
@@ -88,7 +88,7 @@ def test_analytics_summary_rejects_unknown_period(client: TestClient, db_session
     user = _create_user(db_session, email="analytics-period@example.com")
     _auth_as(user)
     try:
-        response = client.get("/api/v1/analytics/summary?period=quarter")
+        response = client.get("/api/analytics/summary?period=quarter")
     finally:
         _clear_auth()
 
@@ -163,7 +163,7 @@ def test_analytics_summary_aggregates_user_history(client: TestClient, db_sessio
 
     _auth_as(user)
     try:
-        response = client.get("/api/v1/analytics/summary?period=week")
+        response = client.get("/api/analytics/summary?period=week")
     finally:
         _clear_auth()
 
@@ -225,7 +225,7 @@ def test_analytics_streaks_use_bounded_recent_history(client: TestClient, db_ses
 
     _auth_as(user)
     try:
-        response = client.get("/api/v1/analytics/summary?period=week")
+        response = client.get("/api/analytics/summary?period=week")
     finally:
         _clear_auth()
 
@@ -279,7 +279,7 @@ def test_analytics_includes_routine_streaks(client: TestClient, db_session: Sess
 
     _auth_as(user)
     try:
-        response = client.get("/api/v1/analytics/summary?period=week")
+        response = client.get("/api/analytics/summary?period=week")
     finally:
         _clear_auth()
 
@@ -315,7 +315,7 @@ def test_analytics_routine_streaks_do_not_leak_across_users(client: TestClient, 
 
     _auth_as(other)
     try:
-        response = client.get("/api/v1/analytics/summary?period=week")
+        response = client.get("/api/analytics/summary?period=week")
     finally:
         _clear_auth()
 
@@ -328,7 +328,7 @@ def test_analytics_summary_response_includes_routines_key(client: TestClient, db
     user = _create_user(db_session, email="analytics-routines-key@example.com")
     _auth_as(user)
     try:
-        response = client.get("/api/v1/analytics/summary")
+        response = client.get("/api/analytics/summary")
     finally:
         _clear_auth()
 
@@ -387,7 +387,7 @@ def test_analytics_suggestions_include_chore_medication_and_load_balancing(clien
 
     _auth_as(user)
     try:
-        response = client.get("/api/v1/analytics/suggestions")
+        response = client.get("/api/analytics/suggestions")
     finally:
         _clear_auth()
 
@@ -425,7 +425,7 @@ def test_load_balancing_suggestions_ignore_completed_items(client: TestClient, d
 
     _auth_as(user)
     try:
-        response = client.get("/api/v1/analytics/suggestions")
+        response = client.get("/api/analytics/suggestions")
     finally:
         _clear_auth()
 
@@ -448,7 +448,7 @@ def test_load_balancing_suggestions_consider_empty_target_days(client: TestClien
 
     _auth_as(user)
     try:
-        response = client.get("/api/v1/analytics/suggestions")
+        response = client.get("/api/analytics/suggestions")
     finally:
         _clear_auth()
 
@@ -484,7 +484,7 @@ def test_load_balancing_move_count_does_not_overload_target(client: TestClient, 
 
     _auth_as(user)
     try:
-        response = client.get("/api/v1/analytics/suggestions")
+        response = client.get("/api/analytics/suggestions")
     finally:
         _clear_auth()
 
@@ -536,7 +536,7 @@ def test_medication_suggestion_uses_plan_schedule_time(client: TestClient, db_se
 
     _auth_as(user)
     try:
-        response = client.get("/api/v1/analytics/suggestions")
+        response = client.get("/api/analytics/suggestions")
     finally:
         _clear_auth()
 

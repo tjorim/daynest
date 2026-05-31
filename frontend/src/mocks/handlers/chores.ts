@@ -2,7 +2,7 @@ import { http, HttpResponse } from "msw";
 import { MOCK_TODAY } from "../data/constants";
 
 export const choreHandlers = [
-  http.post("/api/v1/chores/:id/complete", ({ params }) =>
+  http.post("/api/chores/:id/complete", ({ params }) =>
     HttpResponse.json({
       chore_instance_id: Number(params.id),
       status: "completed",
@@ -12,7 +12,7 @@ export const choreHandlers = [
     }),
   ),
 
-  http.post("/api/v1/chores/:id/skip", ({ params }) =>
+  http.post("/api/chores/:id/skip", ({ params }) =>
     HttpResponse.json({
       chore_instance_id: Number(params.id),
       status: "skipped",
@@ -22,7 +22,7 @@ export const choreHandlers = [
     }),
   ),
 
-  http.post("/api/v1/chores/:id/reschedule", async ({ params, request }) => {
+  http.post("/api/chores/:id/reschedule", async ({ params, request }) => {
     const body = (await request.json()) as { scheduled_date: string };
     return HttpResponse.json({
       chore_instance_id: Number(params.id),

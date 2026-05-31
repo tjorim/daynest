@@ -6,11 +6,11 @@ from fastapi.testclient import TestClient
 
 
 def test_liveness_and_health_endpoints(client: TestClient) -> None:
-    liveness_response = client.get("/api/v1/health/liveness")
+    liveness_response = client.get("/api/health/liveness")
     assert liveness_response.status_code == 200
     assert liveness_response.json()["status"] == "alive"
 
-    health_response = client.get("/api/v1/health")
+    health_response = client.get("/api/health")
     assert health_response.status_code == 200
     payload = health_response.json()
     assert payload["status"] == "ok"
@@ -37,7 +37,7 @@ def test_readiness_endpoint_returns_ready(client: TestClient, monkeypatch) -> No
 
     monkeypatch.setattr(health, "engine", HealthyEngine())
 
-    readiness_response = client.get("/api/v1/health/readiness")
+    readiness_response = client.get("/api/health/readiness")
     assert readiness_response.status_code == 200
     assert readiness_response.json()["status"] == "ready"
 
@@ -51,13 +51,13 @@ def test_readiness_endpoint_returns_not_ready_with_db_down(client: TestClient, m
 
     monkeypatch.setattr(health, "engine", BrokenEngine())
 
-    readiness_response = client.get("/api/v1/health/readiness")
+    readiness_response = client.get("/api/health/readiness")
     assert readiness_response.status_code == 503
     assert readiness_response.json()["status"] == "not_ready"
 
 
 def test_request_id_generated_when_absent(client: TestClient) -> None:
-    response = client.get("/api/v1/health/liveness")
+    response = client.get("/api/health/liveness")
     assert response.status_code == 200
     request_id = response.headers.get("X-Request-ID")
     assert request_id is not None
@@ -68,7 +68,7 @@ def test_request_id_generated_when_absent(client: TestClient) -> None:
 
 def test_request_id_propagated_when_supplied(client: TestClient) -> None:
     supplied_id = "my-trace-id-abc123"
-    response = client.get("/api/v1/health/liveness", headers={"X-Request-ID": supplied_id})
+    response = client.get("/api/health/liveness", headers={"X-Request-ID": supplied_id})
     assert response.status_code == 200
     assert response.headers.get("X-Request-ID") == supplied_id
 
@@ -77,10 +77,10 @@ def test_metrics_requires_secret(client: TestClient) -> None:
     from app.core.config import settings
 
     # When no secret is configured the endpoint is always forbidden (fail-closed).
-    response = client.get("/api/v1/metrics")
+    response = client.get("/api/metrics")
     assert response.status_code == 403
     if settings.metrics_secret is not None:
-        authed = client.get("/api/v1/metrics", headers={"X-Metrics-Secret": settings.metrics_secret})
+        authed = client.get("/api/metrics", headers={"X-Metrics-Secret": settings.metrics_secret})
         assert authed.status_code == 200
         assert "request_total" in authed.json()
 
@@ -90,19 +90,19 @@ def test_metrics_forbidden_with_wrong_secret(client: TestClient, monkeypatch) ->
 
     monkeypatch.setattr(settings, "metrics_secret", "correct-secret")
 
-    response = client.get("/api/v1/metrics", headers={"X-Metrics-Secret": "wrong-secret"})
+    response = client.get("/api/metrics", headers={"X-Metrics-Secret": "wrong-secret"})
     assert response.status_code == 403
 
-    response_no_header = client.get("/api/v1/metrics")
+    response_no_header = client.get("/api/metrics")
     assert response_no_header.status_code == 403
 
-    authed = client.get("/api/v1/metrics", headers={"X-Metrics-Secret": "correct-secret"})
+    authed = client.get("/api/metrics", headers={"X-Metrics-Secret": "correct-secret"})
     assert authed.status_code == 200
 
 
 def test_structured_log_payload_shape(client: TestClient, caplog) -> None:
     with caplog.at_level(logging.INFO, logger="app.observability"):
-        response = client.get("/api/v1/health/liveness")
+        response = client.get("/api/health/liveness")
 
     assert response.status_code == 200
 
@@ -115,7 +115,7 @@ def test_structured_log_payload_shape(client: TestClient, caplog) -> None:
     assert "user_id" in payload
     assert "auth_type" in payload
     assert payload["method"] == "GET"
-    assert payload["route"] == "/api/v1/health/liveness"
+    assert payload["route"] == "/api/health/liveness"
     assert payload["status_code"] == 200
     assert "latency_ms" in payload
     assert isinstance(payload["latency_ms"], float)
@@ -124,7 +124,7 @@ def test_structured_log_payload_shape(client: TestClient, caplog) -> None:
 def test_structured_log_does_not_leak_query_params(client: TestClient, caplog) -> None:
     """Route field must be path-only — query params (e.g. SSE tokens) must not appear."""
     with caplog.at_level(logging.INFO, logger="app.observability"):
-        response = client.get("/api/v1/health/liveness?sensitive=secret-token")
+        response = client.get("/api/health/liveness?sensitive=secret-token")
 
     assert response.status_code == 200
 

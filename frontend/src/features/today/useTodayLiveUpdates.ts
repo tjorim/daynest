@@ -12,7 +12,7 @@ export function useTodayLiveUpdates(): void {
     if (typeof EventSource === "undefined") return;
     if (!token) return;
 
-    const url = buildApiUrl(`/api/v1/today/stream?token=${encodeURIComponent(token)}`);
+    const url = buildApiUrl(`/api/today/stream?token=${encodeURIComponent(token)}`);
     const es = new EventSource(url);
     let connected = false;
 

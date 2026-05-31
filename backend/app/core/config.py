@@ -29,7 +29,7 @@ class AppSettings(BaseSettings):
 
     app_name: str = "Daynest API"
     version: str = "0.1.0"
-    api_prefix: str = "/api/v1"
+    api_prefix: str = "/api"
     environment: str = "dev"
 
     database_url: str | None = None

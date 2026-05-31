@@ -2,7 +2,7 @@ import { http, HttpResponse } from "msw";
 import { MOCK_TODAY } from "../data/constants";
 
 export const analyticsHandlers = [
-  http.get("/api/v1/analytics/summary", ({ request }) => {
+  http.get("/api/analytics/summary", ({ request }) => {
     const url = new URL(request.url);
     const period = url.searchParams.get("period") ?? "week";
     return HttpResponse.json({
@@ -39,7 +39,7 @@ export const analyticsHandlers = [
     });
   }),
 
-  http.get("/api/v1/search", ({ request }) => {
+  http.get("/api/search", ({ request }) => {
     const url = new URL(request.url);
     const q = url.searchParams.get("q") ?? "";
     return HttpResponse.json({

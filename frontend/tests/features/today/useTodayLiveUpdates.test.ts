@@ -175,7 +175,7 @@ describe("useTodayLiveUpdates", () => {
 
     renderHook(() => useTodayLiveUpdates(), { wrapper });
 
-    expect(capturedEs?.url).toContain("/api/v1/today/stream");
+    expect(capturedEs?.url).toContain("/api/today/stream");
     expect(capturedEs?.url).toContain("token=my-token");
   });
 });

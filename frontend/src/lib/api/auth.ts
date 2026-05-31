@@ -71,7 +71,7 @@ async function parseJsonResponse<T>(response: Response, fallbackMessage: string)
 }
 
 export async function fetchMe(accessToken: string): Promise<AuthUser> {
-  const response = await fetch(buildApiUrl("/api/v1/auth/me"), {
+  const response = await fetch(buildApiUrl("/api/auth/me"), {
     headers: {
       Accept: "application/json",
       Authorization: `Bearer ${accessToken}`,
@@ -86,7 +86,7 @@ export async function listOAuthSessions(): Promise<OAuthSession[]> {
   if (!token) {
     throw new AuthApiError("Not authenticated", 401);
   }
-  const response = await fetch(buildApiUrl("/api/v1/auth/sessions"), {
+  const response = await fetch(buildApiUrl("/api/auth/sessions"), {
     headers: {
       Accept: "application/json",
       Authorization: `Bearer ${token}`,
@@ -100,7 +100,7 @@ export async function revokeOAuthSession(sessionId: string): Promise<void> {
   if (!token) {
     throw new AuthApiError("Not authenticated", 401);
   }
-  const response = await fetch(buildApiUrl(`/api/v1/auth/sessions/${encodeURIComponent(sessionId)}`), {
+  const response = await fetch(buildApiUrl(`/api/auth/sessions/${encodeURIComponent(sessionId)}`), {
     method: "DELETE",
     headers: {
       Authorization: `Bearer ${token}`,

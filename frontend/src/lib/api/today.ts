@@ -520,7 +520,7 @@ async function parseJsonResponse<T>(
 
 export async function fetchToday(signal?: AbortSignal): Promise<TodayPayload> {
   const response = await fetchWithAuth(
-    "/api/v1/today",
+    "/api/today",
     {
       headers: { Accept: "application/json" },
       signal,
@@ -536,7 +536,7 @@ export async function fetchCalendarMonth(
   signal?: AbortSignal,
 ): Promise<CalendarMonthPayload> {
   const response = await fetchWithAuth(
-    `/api/v1/calendar/month?year=${year}&month=${month}`,
+    `/api/calendar/month?year=${year}&month=${month}`,
     {
       headers: { Accept: "application/json" },
       signal,
@@ -551,7 +551,7 @@ export async function fetchCalendarDay(
   signal?: AbortSignal,
 ): Promise<CalendarDayPayload> {
   const response = await fetchWithAuth(
-    `/api/v1/calendar/day?date=${encodeURIComponent(date)}`,
+    `/api/calendar/day?date=${encodeURIComponent(date)}`,
     {
       headers: { Accept: "application/json" },
       signal,
@@ -562,7 +562,7 @@ export async function fetchCalendarDay(
 }
 
 export async function createPlannedItem(input: PlannedItemInput): Promise<PlannedTodayItem> {
-  const response = await fetchWithAuth("/api/v1/planned-items", {
+  const response = await fetchWithAuth("/api/planned-items", {
     method: "POST",
     headers: {
       Accept: "application/json",
@@ -578,7 +578,7 @@ export async function updatePlannedItem(
   input: PlannedItemUpdateInput,
   scope: PlannedItemEditScope = "this",
 ): Promise<PlannedTodayItem> {
-  const response = await fetchWithAuth(`/api/v1/planned-items/${plannedItemId}?scope=${scope}`, {
+  const response = await fetchWithAuth(`/api/planned-items/${plannedItemId}?scope=${scope}`, {
     method: "PUT",
     headers: {
       Accept: "application/json",
@@ -593,7 +593,7 @@ export async function deletePlannedItem(
   plannedItemId: number,
   scope: PlannedItemDeleteScope = "this",
 ): Promise<void> {
-  const response = await fetchWithAuth(`/api/v1/planned-items/${plannedItemId}?scope=${scope}`, {
+  const response = await fetchWithAuth(`/api/planned-items/${plannedItemId}?scope=${scope}`, {
     method: "DELETE",
     headers: { Accept: "application/json" },
   });
@@ -617,7 +617,7 @@ export async function listPlannedItems(
   }
   const qs = params.toString();
 
-  const response = await fetchWithAuth(`/api/v1/planned-items${qs ? `?${qs}` : ""}`, {
+  const response = await fetchWithAuth(`/api/planned-items${qs ? `?${qs}` : ""}`, {
     headers: { Accept: "application/json" },
     signal,
   });
@@ -625,7 +625,7 @@ export async function listPlannedItems(
 }
 
 export async function completeChore(choreInstanceId: number): Promise<ChoreMutationResponse> {
-  const response = await fetchWithAuth(`/api/v1/chores/${choreInstanceId}/complete`, {
+  const response = await fetchWithAuth(`/api/chores/${choreInstanceId}/complete`, {
     method: "POST",
     headers: { Accept: "application/json" },
   });
@@ -633,7 +633,7 @@ export async function completeChore(choreInstanceId: number): Promise<ChoreMutat
 }
 
 export async function skipChore(choreInstanceId: number): Promise<ChoreMutationResponse> {
-  const response = await fetchWithAuth(`/api/v1/chores/${choreInstanceId}/skip`, {
+  const response = await fetchWithAuth(`/api/chores/${choreInstanceId}/skip`, {
     method: "POST",
     headers: { Accept: "application/json" },
   });
@@ -644,7 +644,7 @@ export async function rescheduleChore(
   choreInstanceId: number,
   scheduledDate: string,
 ): Promise<ChoreMutationResponse> {
-  const response = await fetchWithAuth(`/api/v1/chores/${choreInstanceId}/reschedule`, {
+  const response = await fetchWithAuth(`/api/chores/${choreInstanceId}/reschedule`, {
     method: "POST",
     headers: {
       Accept: "application/json",
@@ -658,7 +658,7 @@ export async function rescheduleChore(
 export async function takeMedicationDose(
   medicationDoseId: number,
 ): Promise<MedicationMutationResponse> {
-  const response = await fetchWithAuth(`/api/v1/medication-doses/${medicationDoseId}/take`, {
+  const response = await fetchWithAuth(`/api/medication-doses/${medicationDoseId}/take`, {
     method: "POST",
     headers: { Accept: "application/json" },
   });
@@ -668,7 +668,7 @@ export async function takeMedicationDose(
 export async function skipMedicationDose(
   medicationDoseId: number,
 ): Promise<MedicationMutationResponse> {
-  const response = await fetchWithAuth(`/api/v1/medication-doses/${medicationDoseId}/skip`, {
+  const response = await fetchWithAuth(`/api/medication-doses/${medicationDoseId}/skip`, {
     method: "POST",
     headers: { Accept: "application/json" },
   });
@@ -676,7 +676,7 @@ export async function skipMedicationDose(
 }
 
 export async function startRoutineTask(taskInstanceId: number): Promise<TaskMutationResponse> {
-  const response = await fetchWithAuth(`/api/v1/tasks/${taskInstanceId}/start`, {
+  const response = await fetchWithAuth(`/api/tasks/${taskInstanceId}/start`, {
     method: "POST",
     headers: { Accept: "application/json" },
   });
@@ -684,7 +684,7 @@ export async function startRoutineTask(taskInstanceId: number): Promise<TaskMuta
 }
 
 export async function completeRoutineTask(taskInstanceId: number): Promise<TaskMutationResponse> {
-  const response = await fetchWithAuth(`/api/v1/tasks/${taskInstanceId}/complete`, {
+  const response = await fetchWithAuth(`/api/tasks/${taskInstanceId}/complete`, {
     method: "POST",
     headers: { Accept: "application/json" },
   });
@@ -692,7 +692,7 @@ export async function completeRoutineTask(taskInstanceId: number): Promise<TaskM
 }
 
 export async function skipRoutineTask(taskInstanceId: number): Promise<TaskMutationResponse> {
-  const response = await fetchWithAuth(`/api/v1/tasks/${taskInstanceId}/skip`, {
+  const response = await fetchWithAuth(`/api/tasks/${taskInstanceId}/skip`, {
     method: "POST",
     headers: { Accept: "application/json" },
   });
@@ -700,7 +700,7 @@ export async function skipRoutineTask(taskInstanceId: number): Promise<TaskMutat
 }
 
 export async function listMedicationPlans(signal?: AbortSignal): Promise<MedicationPlan[]> {
-  const response = await fetchWithAuth("/api/v1/medications", {
+  const response = await fetchWithAuth("/api/medications", {
     headers: { Accept: "application/json" },
     signal,
   });
@@ -708,7 +708,7 @@ export async function listMedicationPlans(signal?: AbortSignal): Promise<Medicat
 }
 
 export async function createMedicationPlan(input: MedicationPlanInput): Promise<MedicationPlan> {
-  const response = await fetchWithAuth("/api/v1/medications", {
+  const response = await fetchWithAuth("/api/medications", {
     method: "POST",
     headers: {
       Accept: "application/json",
@@ -723,7 +723,7 @@ export async function updateMedicationPlan(
   medicationPlanId: number,
   input: MedicationPlanUpdateInput,
 ): Promise<MedicationPlan> {
-  const response = await fetchWithAuth(`/api/v1/medications/${medicationPlanId}`, {
+  const response = await fetchWithAuth(`/api/medications/${medicationPlanId}`, {
     method: "PUT",
     headers: {
       Accept: "application/json",
@@ -735,7 +735,7 @@ export async function updateMedicationPlan(
 }
 
 export async function deleteMedicationPlan(medicationPlanId: number): Promise<void> {
-  const response = await fetchWithAuth(`/api/v1/medications/${medicationPlanId}`, {
+  const response = await fetchWithAuth(`/api/medications/${medicationPlanId}`, {
     method: "DELETE",
     headers: { Accept: "application/json" },
   });
@@ -748,7 +748,7 @@ export async function deleteMedicationPlan(medicationPlanId: number): Promise<vo
 export async function fetchMedicationHistory(
   signal?: AbortSignal,
 ): Promise<MedicationHistoryItem[]> {
-  const response = await fetchWithAuth("/api/v1/medication-doses/history", {
+  const response = await fetchWithAuth("/api/medication-doses/history", {
     headers: { Accept: "application/json" },
     signal,
   });
@@ -757,7 +757,7 @@ export async function fetchMedicationHistory(
 }
 
 export async function listIntegrationClients(signal?: AbortSignal): Promise<IntegrationClient[]> {
-  const response = await fetchWithAuth("/api/v1/integrations/clients", {
+  const response = await fetchWithAuth("/api/integrations/clients", {
     headers: { Accept: "application/json" },
     signal,
   });
@@ -767,7 +767,7 @@ export async function listIntegrationClients(signal?: AbortSignal): Promise<Inte
 export async function createIntegrationClient(
   input: IntegrationClientInput,
 ): Promise<IntegrationClientCreateResponse> {
-  const response = await fetchWithAuth("/api/v1/integrations/clients", {
+  const response = await fetchWithAuth("/api/integrations/clients", {
     method: "POST",
     headers: {
       Accept: "application/json",
@@ -779,7 +779,7 @@ export async function createIntegrationClient(
 }
 
 export async function rotateIntegrationClient(clientId: number): Promise<IntegrationClientCreateResponse> {
-  const response = await fetchWithAuth(`/api/v1/integrations/clients/${clientId}/rotate`, {
+  const response = await fetchWithAuth(`/api/integrations/clients/${clientId}/rotate`, {
     method: "POST",
     headers: { Accept: "application/json" },
   });
@@ -787,7 +787,7 @@ export async function rotateIntegrationClient(clientId: number): Promise<Integra
 }
 
 export async function revokeIntegrationClient(clientId: number): Promise<void> {
-  const response = await fetchWithAuth(`/api/v1/integrations/clients/${clientId}`, {
+  const response = await fetchWithAuth(`/api/integrations/clients/${clientId}`, {
     method: "DELETE",
   });
   if (!response.ok) {
@@ -796,7 +796,7 @@ export async function revokeIntegrationClient(clientId: number): Promise<void> {
 }
 
 export async function listRoutineTemplates(signal?: AbortSignal): Promise<RoutineTemplate[]> {
-  const response = await fetchWithAuth("/api/v1/templates/routines", {
+  const response = await fetchWithAuth("/api/templates/routines", {
     headers: { Accept: "application/json" },
     signal,
   });
@@ -804,7 +804,7 @@ export async function listRoutineTemplates(signal?: AbortSignal): Promise<Routin
 }
 
 export async function createRoutineTemplate(input: RoutineTemplateInput): Promise<RoutineTemplate> {
-  const response = await fetchWithAuth("/api/v1/templates/routines", {
+  const response = await fetchWithAuth("/api/templates/routines", {
     method: "POST",
     headers: {
       Accept: "application/json",
@@ -819,7 +819,7 @@ export async function updateRoutineTemplate(
   routineTemplateId: number,
   input: RoutineTemplateInput,
 ): Promise<RoutineTemplate> {
-  const response = await fetchWithAuth(`/api/v1/templates/routines/${routineTemplateId}`, {
+  const response = await fetchWithAuth(`/api/templates/routines/${routineTemplateId}`, {
     method: "PUT",
     headers: {
       Accept: "application/json",
@@ -831,7 +831,7 @@ export async function updateRoutineTemplate(
 }
 
 export async function deleteRoutineTemplate(routineTemplateId: number): Promise<void> {
-  const response = await fetchWithAuth(`/api/v1/templates/routines/${routineTemplateId}`, {
+  const response = await fetchWithAuth(`/api/templates/routines/${routineTemplateId}`, {
     method: "DELETE",
     headers: { Accept: "application/json" },
   });
@@ -842,7 +842,7 @@ export async function deleteRoutineTemplate(routineTemplateId: number): Promise<
 }
 
 export async function listChoreTemplates(signal?: AbortSignal): Promise<ChoreTemplate[]> {
-  const response = await fetchWithAuth("/api/v1/templates/chores", {
+  const response = await fetchWithAuth("/api/templates/chores", {
     headers: { Accept: "application/json" },
     signal,
   });
@@ -850,7 +850,7 @@ export async function listChoreTemplates(signal?: AbortSignal): Promise<ChoreTem
 }
 
 export async function createChoreTemplate(input: ChoreTemplateInput): Promise<ChoreTemplate> {
-  const response = await fetchWithAuth("/api/v1/templates/chores", {
+  const response = await fetchWithAuth("/api/templates/chores", {
     method: "POST",
     headers: {
       Accept: "application/json",
@@ -865,7 +865,7 @@ export async function updateChoreTemplate(
   choreTemplateId: number,
   input: ChoreTemplateInput,
 ): Promise<ChoreTemplate> {
-  const response = await fetchWithAuth(`/api/v1/templates/chores/${choreTemplateId}`, {
+  const response = await fetchWithAuth(`/api/templates/chores/${choreTemplateId}`, {
     method: "PUT",
     headers: {
       Accept: "application/json",
@@ -877,7 +877,7 @@ export async function updateChoreTemplate(
 }
 
 export async function deleteChoreTemplate(choreTemplateId: number): Promise<void> {
-  const response = await fetchWithAuth(`/api/v1/templates/chores/${choreTemplateId}`, {
+  const response = await fetchWithAuth(`/api/templates/chores/${choreTemplateId}`, {
     method: "DELETE",
     headers: { Accept: "application/json" },
   });
@@ -916,7 +916,7 @@ export interface UserSettingsPatch {
 }
 
 export async function fetchUserSettings(signal?: AbortSignal): Promise<UserSettings> {
-  const response = await fetchWithAuth("/api/v1/users/me/settings", {
+  const response = await fetchWithAuth("/api/users/me/settings", {
     headers: { Accept: "application/json" },
     signal,
   });
@@ -924,7 +924,7 @@ export async function fetchUserSettings(signal?: AbortSignal): Promise<UserSetti
 }
 
 export async function updateUserSettings(patch: UserSettingsPatch): Promise<UserSettings> {
-  const response = await fetchWithAuth("/api/v1/users/me/settings", {
+  const response = await fetchWithAuth("/api/users/me/settings", {
     method: "PATCH",
     headers: { Accept: "application/json", "Content-Type": "application/json" },
     body: JSON.stringify(patch),
@@ -1015,7 +1015,7 @@ export async function fetchAnalyticsSummary(
   period: AnalyticsPeriod = "week",
   signal?: AbortSignal,
 ): Promise<AnalyticsSummary> {
-  const response = await fetchWithAuth(`/api/v1/analytics/summary?period=${period}`, {
+  const response = await fetchWithAuth(`/api/analytics/summary?period=${period}`, {
     headers: { Accept: "application/json" },
     signal,
   });
@@ -1074,7 +1074,7 @@ export async function searchItems(
   signal?: AbortSignal,
 ): Promise<SearchResponse> {
   const response = await fetchWithAuth(
-    `/api/v1/search?q=${encodeURIComponent(query)}`,
+    `/api/search?q=${encodeURIComponent(query)}`,
     { headers: { Accept: "application/json" }, signal },
   );
   return parseJsonResponse<SearchResponse>(response, "Search failed");
@@ -1086,7 +1086,7 @@ export async function reschedulePlannedItem(
   plannedItemId: number,
   newDate: string,
 ): Promise<PlannedTodayItem> {
-  const response = await fetchWithAuth(`/api/v1/planned-items/${plannedItemId}`, {
+  const response = await fetchWithAuth(`/api/planned-items/${plannedItemId}`, {
     method: "PUT",
     headers: { Accept: "application/json", "Content-Type": "application/json" },
     body: JSON.stringify({ planned_for: newDate }),

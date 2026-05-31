@@ -31,7 +31,7 @@ describe("listMedicationPlans — MSW-backed", () => {
 
   it("propagates a 422 validation error from MSW override", async () => {
     server.use(
-      http.post("/api/v1/medications", () =>
+      http.post("/api/medications", () =>
         HttpResponse.json(
           { detail: [{ loc: ["body", "name"], msg: "Field required", type: "missing" }] },
           { status: 422 },

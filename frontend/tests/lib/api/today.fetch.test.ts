@@ -83,7 +83,7 @@ describe("today API response validation", () => {
 
     await expect(deletePlannedItem(42, "future")).resolves.toBeUndefined();
     expect(fetchMock).toHaveBeenCalledWith(
-      expect.stringContaining("/api/v1/planned-items/42?scope=future"),
+      expect.stringContaining("/api/planned-items/42?scope=future"),
       expect.objectContaining({ method: "DELETE" }),
     );
   });
@@ -101,7 +101,7 @@ describe("today API response validation", () => {
       ),
     ).resolves.toBeDefined();
     expect(fetchMock).toHaveBeenCalledWith(
-      expect.stringContaining("/api/v1/planned-items/42?scope=all"),
+      expect.stringContaining("/api/planned-items/42?scope=all"),
       expect.objectContaining({ method: "PUT" }),
     );
   });

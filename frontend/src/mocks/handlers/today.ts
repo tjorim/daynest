@@ -4,7 +4,7 @@ import { auth401, forbidden403, serverError500 } from "./errors";
 import { MOCK_TODAY } from "../data/constants";
 
 export const todayHandlers = [
-  http.get("/api/v1/today/stream", () => {
+  http.get("/api/today/stream", () => {
     const stream = new ReadableStream({
       start() {
         // Intentionally empty — keeps the stream alive without emitting events.
@@ -19,7 +19,7 @@ export const todayHandlers = [
     });
   }),
 
-  http.get("/api/v1/today", () => {
+  http.get("/api/today", () => {
     const { scenario } = getMockState();
     if (scenario === "signed-out" || scenario === "expired-session") return auth401();
     if (scenario === "forbidden") return forbidden403();
@@ -27,7 +27,7 @@ export const todayHandlers = [
     return HttpResponse.json(getTodayPayload());
   }),
 
-  http.get("/api/v1/calendar/month", ({ request }) => {
+  http.get("/api/calendar/month", ({ request }) => {
     const url = new URL(request.url);
     const [defaultYear, defaultMonth] = MOCK_TODAY.split("-").map(Number);
     const year = Number(url.searchParams.get("year") ?? defaultYear);
@@ -50,7 +50,7 @@ export const todayHandlers = [
     return HttpResponse.json({ year, month, days });
   }),
 
-  http.get("/api/v1/calendar/day", ({ request }) => {
+  http.get("/api/calendar/day", ({ request }) => {
     const url = new URL(request.url);
     const date = url.searchParams.get("date") ?? MOCK_TODAY;
     const payload = getTodayPayload();

@@ -41,7 +41,7 @@ def clear_auth_override():
 
 
 def test_create_household_requires_auth(client: TestClient) -> None:
-    response = client.post("/api/v1/households", json={"name": "Smith Family"})
+    response = client.post("/api/households", json={"name": "Smith Family"})
     assert response.status_code == 401
 
 
@@ -49,7 +49,7 @@ def test_create_household(client: TestClient, db_session: Session) -> None:
     owner = _create_user(db_session, "owner@example.com")
     _auth_as(owner)
 
-    response = client.post("/api/v1/households", json={"name": "Smith Family"})
+    response = client.post("/api/households", json={"name": "Smith Family"})
     assert response.status_code == 201
     data = response.json()
     assert data["name"] == "Smith Family"
@@ -62,7 +62,7 @@ def test_list_households_empty(client: TestClient, db_session: Session) -> None:
     user = _create_user(db_session, "user@example.com")
     _auth_as(user)
 
-    response = client.get("/api/v1/households")
+    response = client.get("/api/households")
     assert response.status_code == 200
     assert response.json() == []
 
@@ -71,10 +71,10 @@ def test_list_households_returns_users_households(client: TestClient, db_session
     owner = _create_user(db_session, "owner2@example.com")
     _auth_as(owner)
 
-    client.post("/api/v1/households", json={"name": "Family A"})
-    client.post("/api/v1/households", json={"name": "Family B"})
+    client.post("/api/households", json={"name": "Family A"})
+    client.post("/api/households", json={"name": "Family B"})
 
-    response = client.get("/api/v1/households")
+    response = client.get("/api/households")
     assert response.status_code == 200
     names = [h["name"] for h in response.json()]
     assert "Family A" in names
@@ -85,10 +85,10 @@ def test_get_household(client: TestClient, db_session: Session) -> None:
     owner = _create_user(db_session, "owner3@example.com")
     _auth_as(owner)
 
-    created = client.post("/api/v1/households", json={"name": "My Home"}).json()
+    created = client.post("/api/households", json={"name": "My Home"}).json()
     household_id = created["id"]
 
-    response = client.get(f"/api/v1/households/{household_id}")
+    response = client.get(f"/api/households/{household_id}")
     assert response.status_code == 200
     assert response.json()["name"] == "My Home"
 
@@ -98,11 +98,11 @@ def test_get_household_forbidden_for_non_member(client: TestClient, db_session: 
     other = _create_user(db_session, "other@example.com")
 
     _auth_as(owner)
-    created = client.post("/api/v1/households", json={"name": "Private"}).json()
+    created = client.post("/api/households", json={"name": "Private"}).json()
     household_id = created["id"]
 
     _auth_as(other)
-    response = client.get(f"/api/v1/households/{household_id}")
+    response = client.get(f"/api/households/{household_id}")
     assert response.status_code == 403
 
 
@@ -110,10 +110,10 @@ def test_update_household_name(client: TestClient, db_session: Session) -> None:
     owner = _create_user(db_session, "owner5@example.com")
     _auth_as(owner)
 
-    created = client.post("/api/v1/households", json={"name": "Old Name"}).json()
+    created = client.post("/api/households", json={"name": "Old Name"}).json()
     household_id = created["id"]
 
-    response = client.put(f"/api/v1/households/{household_id}", json={"name": "New Name"})
+    response = client.put(f"/api/households/{household_id}", json={"name": "New Name"})
     assert response.status_code == 200
     assert response.json()["name"] == "New Name"
 
@@ -123,12 +123,12 @@ def test_update_household_forbidden_for_member(client: TestClient, db_session: S
     member = _create_user(db_session, "member6@example.com")
 
     _auth_as(owner)
-    created = client.post("/api/v1/households", json={"name": "House"}).json()
+    created = client.post("/api/households", json={"name": "House"}).json()
     household_id = created["id"]
-    client.post(f"/api/v1/households/{household_id}/invite", json={"email": member.email})
+    client.post(f"/api/households/{household_id}/invite", json={"email": member.email})
 
     _auth_as(member)
-    response = client.put(f"/api/v1/households/{household_id}", json={"name": "Changed"})
+    response = client.put(f"/api/households/{household_id}", json={"name": "Changed"})
     assert response.status_code == 403
 
 
@@ -136,13 +136,13 @@ def test_delete_household(client: TestClient, db_session: Session) -> None:
     owner = _create_user(db_session, "owner7@example.com")
     _auth_as(owner)
 
-    created = client.post("/api/v1/households", json={"name": "To Delete"}).json()
+    created = client.post("/api/households", json={"name": "To Delete"}).json()
     household_id = created["id"]
 
-    response = client.delete(f"/api/v1/households/{household_id}")
+    response = client.delete(f"/api/households/{household_id}")
     assert response.status_code == 204
 
-    response = client.get(f"/api/v1/households/{household_id}")
+    response = client.get(f"/api/households/{household_id}")
     assert response.status_code == 404
 
 
@@ -154,10 +154,10 @@ def test_invite_member(client: TestClient, db_session: Session) -> None:
     invitee = _create_user(db_session, "invitee@example.com")
     _auth_as(owner)
 
-    created = client.post("/api/v1/households", json={"name": "Shared Home"}).json()
+    created = client.post("/api/households", json={"name": "Shared Home"}).json()
     household_id = created["id"]
 
-    response = client.post(f"/api/v1/households/{household_id}/invite", json={"email": invitee.email})
+    response = client.post(f"/api/households/{household_id}/invite", json={"email": invitee.email})
     assert response.status_code == 201
     data = response.json()
     assert data["user_id"] == invitee.id
@@ -168,10 +168,10 @@ def test_invite_nonexistent_user_returns_404(client: TestClient, db_session: Ses
     owner = _create_user(db_session, "owner9@example.com")
     _auth_as(owner)
 
-    created = client.post("/api/v1/households", json={"name": "Home"}).json()
+    created = client.post("/api/households", json={"name": "Home"}).json()
     household_id = created["id"]
 
-    response = client.post(f"/api/v1/households/{household_id}/invite", json={"email": "ghost@example.com"})
+    response = client.post(f"/api/households/{household_id}/invite", json={"email": "ghost@example.com"})
     assert response.status_code == 404
 
 
@@ -180,11 +180,11 @@ def test_invite_duplicate_returns_409(client: TestClient, db_session: Session) -
     invitee = _create_user(db_session, "invitee2@example.com")
     _auth_as(owner)
 
-    created = client.post("/api/v1/households", json={"name": "Home"}).json()
+    created = client.post("/api/households", json={"name": "Home"}).json()
     household_id = created["id"]
 
-    client.post(f"/api/v1/households/{household_id}/invite", json={"email": invitee.email})
-    response = client.post(f"/api/v1/households/{household_id}/invite", json={"email": invitee.email})
+    client.post(f"/api/households/{household_id}/invite", json={"email": invitee.email})
+    response = client.post(f"/api/households/{household_id}/invite", json={"email": invitee.email})
     assert response.status_code == 409
 
 
@@ -193,11 +193,11 @@ def test_remove_member(client: TestClient, db_session: Session) -> None:
     member = _create_user(db_session, "member11@example.com")
     _auth_as(owner)
 
-    created = client.post("/api/v1/households", json={"name": "Home"}).json()
+    created = client.post("/api/households", json={"name": "Home"}).json()
     household_id = created["id"]
-    client.post(f"/api/v1/households/{household_id}/invite", json={"email": member.email})
+    client.post(f"/api/households/{household_id}/invite", json={"email": member.email})
 
-    response = client.delete(f"/api/v1/households/{household_id}/members/{member.id}")
+    response = client.delete(f"/api/households/{household_id}/members/{member.id}")
     assert response.status_code == 204
 
 
@@ -205,10 +205,10 @@ def test_remove_last_owner_returns_409(client: TestClient, db_session: Session) 
     owner = _create_user(db_session, "owner12@example.com")
     _auth_as(owner)
 
-    created = client.post("/api/v1/households", json={"name": "Home"}).json()
+    created = client.post("/api/households", json={"name": "Home"}).json()
     household_id = created["id"]
 
-    response = client.delete(f"/api/v1/households/{household_id}/members/{owner.id}")
+    response = client.delete(f"/api/households/{household_id}/members/{owner.id}")
     assert response.status_code == 409
 
 
@@ -218,13 +218,13 @@ def test_member_cannot_remove_other_member(client: TestClient, db_session: Sessi
     member2 = _create_user(db_session, "member13b@example.com")
     _auth_as(owner)
 
-    created = client.post("/api/v1/households", json={"name": "Home"}).json()
+    created = client.post("/api/households", json={"name": "Home"}).json()
     household_id = created["id"]
-    client.post(f"/api/v1/households/{household_id}/invite", json={"email": member1.email})
-    client.post(f"/api/v1/households/{household_id}/invite", json={"email": member2.email})
+    client.post(f"/api/households/{household_id}/invite", json={"email": member1.email})
+    client.post(f"/api/households/{household_id}/invite", json={"email": member2.email})
 
     _auth_as(member1)
-    response = client.delete(f"/api/v1/households/{household_id}/members/{member2.id}")
+    response = client.delete(f"/api/households/{household_id}/members/{member2.id}")
     assert response.status_code == 403
 
 
@@ -235,11 +235,11 @@ def test_create_household_chore_template(client: TestClient, db_session: Session
     owner = _create_user(db_session, "owner14@example.com")
     _auth_as(owner)
 
-    created_household = client.post("/api/v1/households", json={"name": "Home"}).json()
+    created_household = client.post("/api/households", json={"name": "Home"}).json()
     household_id = created_household["id"]
 
     response = client.post(
-        "/api/v1/templates/chores",
+        "/api/templates/chores",
         json={
             "name": "Vacuum Living Room",
             "start_date": str(date.today()),
@@ -257,12 +257,12 @@ def test_create_household_chore_template_non_member_forbidden(client: TestClient
     non_member = _create_user(db_session, "nonmember15@example.com")
 
     _auth_as(owner)
-    created_household = client.post("/api/v1/households", json={"name": "Home"}).json()
+    created_household = client.post("/api/households", json={"name": "Home"}).json()
     household_id = created_household["id"]
 
     _auth_as(non_member)
     response = client.post(
-        "/api/v1/templates/chores",
+        "/api/templates/chores",
         json={
             "name": "Vacuum",
             "start_date": str(date.today()),
@@ -278,13 +278,13 @@ def test_member_can_see_household_chore_templates(client: TestClient, db_session
     member = _create_user(db_session, "member16@example.com")
 
     _auth_as(owner)
-    created_household = client.post("/api/v1/households", json={"name": "Home"}).json()
+    created_household = client.post("/api/households", json={"name": "Home"}).json()
     household_id = created_household["id"]
-    client.post(f"/api/v1/households/{household_id}/invite", json={"email": member.email})
+    client.post(f"/api/households/{household_id}/invite", json={"email": member.email})
 
     # Owner creates a household chore
     client.post(
-        "/api/v1/templates/chores",
+        "/api/templates/chores",
         json={
             "name": "Shared Chore",
             "start_date": str(date.today()),
@@ -295,7 +295,7 @@ def test_member_can_see_household_chore_templates(client: TestClient, db_session
 
     # Member should see it
     _auth_as(member)
-    response = client.get("/api/v1/templates/chores")
+    response = client.get("/api/templates/chores")
     assert response.status_code == 200
     names = [t["name"] for t in response.json()]
     assert "Shared Chore" in names
@@ -306,11 +306,11 @@ def test_member_cannot_update_household_chore_template(client: TestClient, db_se
     member = _create_user(db_session, "member19@example.com")
 
     _auth_as(owner)
-    created_household = client.post("/api/v1/households", json={"name": "Home"}).json()
+    created_household = client.post("/api/households", json={"name": "Home"}).json()
     household_id = created_household["id"]
-    client.post(f"/api/v1/households/{household_id}/invite", json={"email": member.email})
+    client.post(f"/api/households/{household_id}/invite", json={"email": member.email})
     created_template = client.post(
-        "/api/v1/templates/chores",
+        "/api/templates/chores",
         json={
             "name": "Shared Chore",
             "start_date": str(date.today()),
@@ -321,7 +321,7 @@ def test_member_cannot_update_household_chore_template(client: TestClient, db_se
 
     _auth_as(member)
     response = client.put(
-        f"/api/v1/templates/chores/{created_template['id']}",
+        f"/api/templates/chores/{created_template['id']}",
         json={
             "name": "Renamed Chore",
             "start_date": str(date.today()),
@@ -338,11 +338,11 @@ def test_member_cannot_delete_household_chore_template(client: TestClient, db_se
     member = _create_user(db_session, "member20@example.com")
 
     _auth_as(owner)
-    created_household = client.post("/api/v1/households", json={"name": "Home"}).json()
+    created_household = client.post("/api/households", json={"name": "Home"}).json()
     household_id = created_household["id"]
-    client.post(f"/api/v1/households/{household_id}/invite", json={"email": member.email})
+    client.post(f"/api/households/{household_id}/invite", json={"email": member.email})
     created_template = client.post(
-        "/api/v1/templates/chores",
+        "/api/templates/chores",
         json={
             "name": "Shared Chore",
             "start_date": str(date.today()),
@@ -352,7 +352,7 @@ def test_member_cannot_delete_household_chore_template(client: TestClient, db_se
     ).json()
 
     _auth_as(member)
-    response = client.delete(f"/api/v1/templates/chores/{created_template['id']}")
+    response = client.delete(f"/api/templates/chores/{created_template['id']}")
 
     assert response.status_code == 403
 
@@ -365,13 +365,13 @@ def test_assign_chore(client: TestClient, db_session: Session) -> None:
     member = _create_user(db_session, "member17@example.com")
 
     _auth_as(owner)
-    created_household = client.post("/api/v1/households", json={"name": "Home"}).json()
+    created_household = client.post("/api/households", json={"name": "Home"}).json()
     household_id = created_household["id"]
-    client.post(f"/api/v1/households/{household_id}/invite", json={"email": member.email})
+    client.post(f"/api/households/{household_id}/invite", json={"email": member.email})
 
     # Create a household chore template and generate instances via today
     client.post(
-        "/api/v1/templates/chores",
+        "/api/templates/chores",
         json={
             "name": "Wash Dishes",
             "start_date": str(date.today()),
@@ -379,7 +379,7 @@ def test_assign_chore(client: TestClient, db_session: Session) -> None:
             "household_id": household_id,
         },
     )
-    today_response = client.get("/api/v1/today").json()
+    today_response = client.get("/api/today").json()
     due_today = today_response["due_today"]
     assert len(due_today) > 0
 
@@ -387,7 +387,7 @@ def test_assign_chore(client: TestClient, db_session: Session) -> None:
 
     # Assign to member
     response = client.post(
-        f"/api/v1/chores/{chore_instance_id}/assign",
+        f"/api/chores/{chore_instance_id}/assign",
         json={"assigned_to": member.id},
     )
     assert response.status_code == 200
@@ -405,10 +405,10 @@ def test_assign_household_chore_rejects_non_member(client: TestClient, db_sessio
     non_member = _create_user(db_session, "nonmember21@example.com")
 
     _auth_as(owner)
-    created_household = client.post("/api/v1/households", json={"name": "Home"}).json()
+    created_household = client.post("/api/households", json={"name": "Home"}).json()
     household_id = created_household["id"]
     client.post(
-        "/api/v1/templates/chores",
+        "/api/templates/chores",
         json={
             "name": "Wash Dishes",
             "start_date": str(date.today()),
@@ -416,11 +416,11 @@ def test_assign_household_chore_rejects_non_member(client: TestClient, db_sessio
             "household_id": household_id,
         },
     )
-    today_response = client.get("/api/v1/today").json()
+    today_response = client.get("/api/today").json()
     chore_instance_id = today_response["due_today"][0]["chore_instance_id"]
 
     response = client.post(
-        f"/api/v1/chores/{chore_instance_id}/assign",
+        f"/api/chores/{chore_instance_id}/assign",
         json={"assigned_to": non_member.id},
     )
 
@@ -433,18 +433,18 @@ def test_assign_personal_chore_rejects_other_user(client: TestClient, db_session
 
     _auth_as(owner)
     client.post(
-        "/api/v1/templates/chores",
+        "/api/templates/chores",
         json={
             "name": "Personal Chore",
             "start_date": str(date.today()),
             "every_n_days": 1,
         },
     )
-    today_response = client.get("/api/v1/today").json()
+    today_response = client.get("/api/today").json()
     chore_instance_id = today_response["due_today"][0]["chore_instance_id"]
 
     response = client.post(
-        f"/api/v1/chores/{chore_instance_id}/assign",
+        f"/api/chores/{chore_instance_id}/assign",
         json={"assigned_to": other.id},
     )
 
@@ -456,12 +456,12 @@ def test_complete_chore_sets_completed_by(client: TestClient, db_session: Sessio
     member = _create_user(db_session, "member18@example.com")
 
     _auth_as(owner)
-    created_household = client.post("/api/v1/households", json={"name": "Home"}).json()
+    created_household = client.post("/api/households", json={"name": "Home"}).json()
     household_id = created_household["id"]
-    client.post(f"/api/v1/households/{household_id}/invite", json={"email": member.email})
+    client.post(f"/api/households/{household_id}/invite", json={"email": member.email})
 
     client.post(
-        "/api/v1/templates/chores",
+        "/api/templates/chores",
         json={
             "name": "Clean Kitchen",
             "start_date": str(date.today()),
@@ -469,12 +469,12 @@ def test_complete_chore_sets_completed_by(client: TestClient, db_session: Sessio
             "household_id": household_id,
         },
     )
-    today_response = client.get("/api/v1/today").json()
+    today_response = client.get("/api/today").json()
     chore_instance_id = today_response["due_today"][0]["chore_instance_id"]
 
     # Member completes it
     _auth_as(member)
-    response = client.post(f"/api/v1/chores/{chore_instance_id}/complete")
+    response = client.post(f"/api/chores/{chore_instance_id}/complete")
     assert response.status_code == 200
     data = response.json()
     assert data["completed_by"] == member.id

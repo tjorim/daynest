@@ -115,7 +115,7 @@ def test_search_returns_grouped_results(client: TestClient, db_session: Session)
     _seed(db_session, user)
     _auth_as(user)
 
-    response = client.get("/api/v1/search?q=vitamin")
+    response = client.get("/api/search?q=vitamin")
     assert response.status_code == 200
     data = response.json()
     assert data["query"] == "vitamin"
@@ -131,7 +131,7 @@ def test_search_matches_description_field(client: TestClient, db_session: Sessio
     _seed(db_session, user)
     _auth_as(user)
 
-    response = client.get("/api/v1/search?q=yoga")
+    response = client.get("/api/search?q=yoga")
     assert response.status_code == 200
     data = response.json()
     assert len(data["routine_templates"]) == 1
@@ -143,7 +143,7 @@ def test_search_is_case_insensitive(client: TestClient, db_session: Session) -> 
     _seed(db_session, user)
     _auth_as(user)
 
-    response = client.get("/api/v1/search?q=MEAL")
+    response = client.get("/api/search?q=MEAL")
     assert response.status_code == 200
     data = response.json()
     assert len(data["planned_items"]) == 1
@@ -155,7 +155,7 @@ def test_search_matches_planned_item_notes(client: TestClient, db_session: Sessi
     _seed(db_session, user)
     _auth_as(user)
 
-    response = client.get("/api/v1/search?q=batch+cook")
+    response = client.get("/api/search?q=batch+cook")
     assert response.status_code == 200
     data = response.json()
     assert len(data["planned_items"]) == 1
@@ -168,7 +168,7 @@ def test_search_does_not_leak_other_users_data(client: TestClient, db_session: S
     _seed(db_session, owner)
     _auth_as(other)
 
-    response = client.get("/api/v1/search?q=vitamin")
+    response = client.get("/api/search?q=vitamin")
     assert response.status_code == 200
     data = response.json()
     assert data["medication_plans"] == []
@@ -178,12 +178,12 @@ def test_search_rejects_query_shorter_than_two_chars(client: TestClient, db_sess
     user = _create_user(db_session, "search5@example.com")
     _auth_as(user)
 
-    response = client.get("/api/v1/search?q=a")
+    response = client.get("/api/search?q=a")
     assert response.status_code == 422
 
 
 def test_search_requires_authentication(client: TestClient) -> None:
-    response = client.get("/api/v1/search?q=vitamin")
+    response = client.get("/api/search?q=vitamin")
     assert response.status_code == 401
 
 
@@ -204,6 +204,6 @@ def test_search_limit_caps_results(client: TestClient, db_session: Session) -> N
     db_session.commit()
     _auth_as(user)
 
-    response = client.get("/api/v1/search?q=shopping&limit=3")
+    response = client.get("/api/search?q=shopping&limit=3")
     assert response.status_code == 200
     assert len(response.json()["planned_items"]) == 3

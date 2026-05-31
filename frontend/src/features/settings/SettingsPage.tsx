@@ -38,13 +38,13 @@ import {
 } from "@/features/settings/useSettingsQueries";
 
 const HA_ENDPOINTS = [
-  "GET /api/v1/integrations/home-assistant/summary",
-  "GET /api/v1/integrations/home-assistant/dashboard",
-  "POST /api/v1/integrations/home-assistant/actions/complete-task",
-  "POST /api/v1/integrations/home-assistant/actions/snooze-task",
-  "POST /api/v1/integrations/home-assistant/actions/mark-medication-taken",
-  "POST /api/v1/integrations/home-assistant/actions/skip-task",
-  "POST /api/v1/integrations/home-assistant/actions/skip-medication",
+  "GET /api/integrations/home-assistant/summary",
+  "GET /api/integrations/home-assistant/dashboard",
+  "POST /api/integrations/home-assistant/actions/complete-task",
+  "POST /api/integrations/home-assistant/actions/snooze-task",
+  "POST /api/integrations/home-assistant/actions/mark-medication-taken",
+  "POST /api/integrations/home-assistant/actions/skip-task",
+  "POST /api/integrations/home-assistant/actions/skip-medication",
 ];
 
 const HOME_ASSISTANT_REDIRECT_URI = "https://my.home-assistant.io/redirect/oauth";

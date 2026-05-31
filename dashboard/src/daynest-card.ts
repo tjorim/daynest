@@ -366,8 +366,8 @@ class DaynestCard extends LitElement {
     try {
       const configuredBase = (this._config.api_base_url ?? "").trim().replace(/\/$/, "");
       const endpoint = configuredBase
-        ? `${configuredBase}/api/v1/analytics/summary?period=week`
-        : "/api/v1/analytics/summary?period=week";
+        ? `${configuredBase}/api/analytics/summary?period=week`
+        : "/api/analytics/summary?period=week";
       const accessToken = (this.hass as { auth?: { data?: { access_token?: string } } })?.auth?.data?.access_token;
       const sameOrigin = configuredBase
         ? new URL(configuredBase, window.location.origin).origin === window.location.origin

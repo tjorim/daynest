@@ -2,7 +2,7 @@ import { http, HttpResponse } from "msw";
 import { MOCK_TODAY } from "../data/constants";
 
 export const taskHandlers = [
-  http.post("/api/v1/tasks/:id/start", ({ params }) =>
+  http.post("/api/tasks/:id/start", ({ params }) =>
     HttpResponse.json({
       task_instance_id: Number(params.id),
       status: "in_progress",
@@ -12,7 +12,7 @@ export const taskHandlers = [
     }),
   ),
 
-  http.post("/api/v1/tasks/:id/complete", ({ params }) =>
+  http.post("/api/tasks/:id/complete", ({ params }) =>
     HttpResponse.json({
       task_instance_id: Number(params.id),
       status: "completed",
@@ -22,7 +22,7 @@ export const taskHandlers = [
     }),
   ),
 
-  http.post("/api/v1/tasks/:id/skip", ({ params }) =>
+  http.post("/api/tasks/:id/skip", ({ params }) =>
     HttpResponse.json({
       task_instance_id: Number(params.id),
       status: "skipped",

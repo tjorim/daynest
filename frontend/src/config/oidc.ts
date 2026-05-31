@@ -45,7 +45,7 @@ export async function fetchOidcConfig(): Promise<AuthProviderProps> {
   }
 
   if (!discovery) {
-    const response = await fetch(buildApiUrl("/api/v1/auth/oidc-config"));
+    const response = await fetch(buildApiUrl("/api/auth/oidc-config"));
     if (!response.ok) {
       throw new Error(`OIDC discovery failed: ${response.status}`);
     }

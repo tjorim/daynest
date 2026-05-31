@@ -56,7 +56,7 @@ class TestListIntegrationClients:
         _create_client(db_session, user.id, name="Client B")
         _auth_as(user)
 
-        response = client.get("/api/v1/integrations/clients")
+        response = client.get("/api/integrations/clients")
 
         assert response.status_code == 200
         names = [c["name"] for c in response.json()]
@@ -68,7 +68,7 @@ class TestListIntegrationClients:
         _create_client(db_session, other.id, name="Other's Client")
         _auth_as(owner)
 
-        response = client.get("/api/v1/integrations/clients")
+        response = client.get("/api/integrations/clients")
 
         assert response.status_code == 200
         assert response.json() == []
@@ -80,7 +80,7 @@ class TestCreateIntegrationClient:
         _auth_as(user)
 
         response = client.post(
-            "/api/v1/integrations/clients",
+            "/api/integrations/clients",
             json={"name": "New Client", "rate_limit_per_minute": 120},
         )
 
@@ -90,14 +90,14 @@ class TestCreateIntegrationClient:
         assert body["api_key"].startswith("daynest_")
         assert body["client_id"]
         assert body["client_secret"] == body["api_key"]
-        assert body["token_url"].endswith("/api/v1/integrations/clients/token")
+        assert body["token_url"].endswith("/api/integrations/clients/token")
 
     def test_api_key_is_hashed_in_db(self, client: TestClient, db_session: Session) -> None:
         user = _create_user(db_session, "hash@example.com")
         _auth_as(user)
 
         response = client.post(
-            "/api/v1/integrations/clients",
+            "/api/integrations/clients",
             json={"name": "Hashed", "rate_limit_per_minute": 60},
         )
 
@@ -115,7 +115,7 @@ class TestRotateIntegrationClient:
         original_hash = ic.key_hash
         _auth_as(user)
 
-        response = client.post(f"/api/v1/integrations/clients/{ic.id}/rotate")
+        response = client.post(f"/api/integrations/clients/{ic.id}/rotate")
 
         assert response.status_code == 200
         body = response.json()
@@ -123,7 +123,7 @@ class TestRotateIntegrationClient:
         assert body["api_key"].startswith("daynest_")
         assert body["client_id"] == str(ic.id)
         assert body["client_secret"] == body["api_key"]
-        assert body["token_url"].endswith("/api/v1/integrations/clients/token")
+        assert body["token_url"].endswith("/api/integrations/clients/token")
 
         db_session.refresh(ic)
         assert ic.key_hash != original_hash
@@ -135,7 +135,7 @@ class TestRotateIntegrationClient:
         ic = _create_client(db_session, owner.id)
         _auth_as(attacker)
 
-        response = client.post(f"/api/v1/integrations/clients/{ic.id}/rotate")
+        response = client.post(f"/api/integrations/clients/{ic.id}/rotate")
 
         assert response.status_code == 404
 
@@ -143,7 +143,7 @@ class TestRotateIntegrationClient:
         user = _create_user(db_session, "rotate404@example.com")
         _auth_as(user)
 
-        response = client.post("/api/v1/integrations/clients/99999/rotate")
+        response = client.post("/api/integrations/clients/99999/rotate")
 
         assert response.status_code == 404
 
@@ -154,7 +154,7 @@ class TestRevokeIntegrationClient:
         ic = _create_client(db_session, user.id, name="To Delete")
         _auth_as(user)
 
-        response = client.delete(f"/api/v1/integrations/clients/{ic.id}")
+        response = client.delete(f"/api/integrations/clients/{ic.id}")
 
         assert response.status_code == 204
         assert db_session.get(IntegrationClient, ic.id) is None
@@ -165,7 +165,7 @@ class TestRevokeIntegrationClient:
         ic = _create_client(db_session, owner.id)
         _auth_as(attacker)
 
-        response = client.delete(f"/api/v1/integrations/clients/{ic.id}")
+        response = client.delete(f"/api/integrations/clients/{ic.id}")
 
         assert response.status_code == 404
         assert db_session.get(IntegrationClient, ic.id) is not None
@@ -174,7 +174,7 @@ class TestRevokeIntegrationClient:
         user = _create_user(db_session, "revoke404@example.com")
         _auth_as(user)
 
-        response = client.delete("/api/v1/integrations/clients/99999")
+        response = client.delete("/api/integrations/clients/99999")
 
         assert response.status_code == 404
 
@@ -189,14 +189,14 @@ class TestExchangeIntegrationClientToken:
         _auth_as(user)
 
         create_response = client.post(
-            "/api/v1/integrations/clients",
+            "/api/integrations/clients",
             json={"name": "OAuth Client", "rate_limit_per_minute": 120},
         )
         assert create_response.status_code == 200
         created = create_response.json()
 
         token_response = client.post(
-            "/api/v1/integrations/clients/token",
+            "/api/integrations/clients/token",
             data={
                 "grant_type": "client_credentials",
                 "client_id": created["client_id"],
@@ -223,12 +223,12 @@ class TestExchangeIntegrationClientToken:
         user = _create_user(db_session, "oauth-invalid@example.com")
         _auth_as(user)
         created = client.post(
-            "/api/v1/integrations/clients",
+            "/api/integrations/clients",
             json={"name": "OAuth Client", "rate_limit_per_minute": 120},
         ).json()
 
         token_response = client.post(
-            "/api/v1/integrations/clients/token",
+            "/api/integrations/clients/token",
             data={
                 "grant_type": "client_credentials",
                 "client_id": created["client_id"],
@@ -242,12 +242,12 @@ class TestExchangeIntegrationClientToken:
         user = _create_user(db_session, "oauth-mismatch@example.com")
         _auth_as(user)
         created = client.post(
-            "/api/v1/integrations/clients",
+            "/api/integrations/clients",
             json={"name": "OAuth Client", "rate_limit_per_minute": 120},
         ).json()
 
         token_response = client.post(
-            "/api/v1/integrations/clients/token",
+            "/api/integrations/clients/token",
             data={
                 "grant_type": "client_credentials",
                 "client_id": "wrong-client-id",
@@ -261,12 +261,12 @@ class TestExchangeIntegrationClientToken:
         user = _create_user(db_session, "oauth-grant@example.com")
         _auth_as(user)
         created = client.post(
-            "/api/v1/integrations/clients",
+            "/api/integrations/clients",
             json={"name": "OAuth Client", "rate_limit_per_minute": 120},
         ).json()
 
         token_response = client.post(
-            "/api/v1/integrations/clients/token",
+            "/api/integrations/clients/token",
             data={
                 "grant_type": "authorization_code",
                 "client_id": created["client_id"],

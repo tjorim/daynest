@@ -3,17 +3,17 @@ import { getMockState, mutateSettings } from "../data/state";
 import type { UserSettingsPatch } from "@/lib/api/today";
 
 export const settingsHandlers = [
-  http.get("/api/v1/users/me/settings", () =>
+  http.get("/api/users/me/settings", () =>
     HttpResponse.json(getMockState().settings),
   ),
 
-  http.patch("/api/v1/users/me/settings", async ({ request }) => {
+  http.patch("/api/users/me/settings", async ({ request }) => {
     const patch = (await request.json()) as UserSettingsPatch;
     mutateSettings((s) => ({ ...s, ...patch }));
     return HttpResponse.json(getMockState().settings);
   }),
 
-  http.get("/api/v1/integrations/clients", () =>
+  http.get("/api/integrations/clients", () =>
     HttpResponse.json([
       {
         id: 1,
@@ -24,7 +24,7 @@ export const settingsHandlers = [
     ]),
   ),
 
-  http.post("/api/v1/integrations/clients", async ({ request }) => {
+  http.post("/api/integrations/clients", async ({ request }) => {
     const body = (await request.json()) as { name: string; rate_limit_per_minute: number };
     return HttpResponse.json(
       {
@@ -41,7 +41,7 @@ export const settingsHandlers = [
     );
   }),
 
-  http.post("/api/v1/integrations/clients/:id/rotate", ({ params }) =>
+  http.post("/api/integrations/clients/:id/rotate", ({ params }) =>
     HttpResponse.json({
       id: Number(params.id),
       name: "Home Assistant",
@@ -54,7 +54,7 @@ export const settingsHandlers = [
     }),
   ),
 
-  http.delete("/api/v1/integrations/clients/:id", () =>
+  http.delete("/api/integrations/clients/:id", () =>
     new HttpResponse(null, { status: 204 }),
   ),
 ];

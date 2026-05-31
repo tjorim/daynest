@@ -47,7 +47,7 @@ class TestMeEndpoint:
         user = _make_user(db_session, email="me@example.com", full_name="Test User", oidc_subject="sub-me-1")
         _override_auth(user)
         try:
-            resp = client.get("/api/v1/auth/me")
+            resp = client.get("/api/auth/me")
             assert resp.status_code == 200
             data = resp.json()
             assert data["email"] == "me@example.com"
@@ -58,7 +58,7 @@ class TestMeEndpoint:
             _clear_auth()
 
     def test_me_requires_auth(self, client: TestClient) -> None:
-        resp = client.get("/api/v1/auth/me")
+        resp = client.get("/api/auth/me")
         assert resp.status_code == 401
 
     def test_me_inactive_user_can_be_filtered(self, client: TestClient, db_session: Session) -> None:
@@ -69,7 +69,7 @@ class TestMeEndpoint:
 
         _override_auth(user)
         try:
-            resp = client.get("/api/v1/auth/me")
+            resp = client.get("/api/auth/me")
             # The route itself returns the user — the is_active check is in get_current_user.
             # With the override, it bypasses that check, so the endpoint returns 200 with is_active=False.
             assert resp.status_code == 200
@@ -206,7 +206,7 @@ class TestListSessions:
         ))
         monkeypatch.setattr("app.api.routes.auth.settings.oidc_issuer_url", "http://keycloak/realms/daynest")
         try:
-            resp = client.get("/api/v1/auth/sessions", headers={"Authorization": "Bearer dummy-token"})
+            resp = client.get("/api/auth/sessions", headers={"Authorization": "Bearer dummy-token"})
             assert resp.status_code == 200
             data = resp.json()
             assert len(data) == 2
@@ -224,7 +224,7 @@ class TestListSessions:
         _override_auth(user)
         monkeypatch.setattr("app.api.routes.auth.settings.oidc_issuer_url", None)
         try:
-            resp = client.get("/api/v1/auth/sessions", headers={"Authorization": "Bearer dummy-token"})
+            resp = client.get("/api/auth/sessions", headers={"Authorization": "Bearer dummy-token"})
             assert resp.status_code == 501
         finally:
             _clear_auth()
@@ -239,13 +239,13 @@ class TestListSessions:
             get=AsyncMock(side_effect=httpx.ConnectError("connection refused"))
         ))
         try:
-            resp = client.get("/api/v1/auth/sessions", headers={"Authorization": "Bearer dummy-token"})
+            resp = client.get("/api/auth/sessions", headers={"Authorization": "Bearer dummy-token"})
             assert resp.status_code == 502
         finally:
             _clear_auth()
 
     def test_requires_auth(self, client: TestClient) -> None:
-        resp = client.get("/api/v1/auth/sessions")
+        resp = client.get("/api/auth/sessions")
         assert resp.status_code == 401
 
 
@@ -265,7 +265,7 @@ class TestRevokeSession:
         ))
         try:
             resp = client.delete(
-                "/api/v1/auth/sessions/session-abc123",
+                "/api/auth/sessions/session-abc123",
                 headers={"Authorization": "Bearer dummy-token"},
             )
             assert resp.status_code == 204
@@ -280,7 +280,7 @@ class TestRevokeSession:
         monkeypatch.setattr("app.api.routes.auth.settings.oidc_issuer_url", None)
         try:
             resp = client.delete(
-                "/api/v1/auth/sessions/session-abc123",
+                "/api/auth/sessions/session-abc123",
                 headers={"Authorization": "Bearer dummy-token"},
             )
             assert resp.status_code == 501
@@ -298,7 +298,7 @@ class TestRevokeSession:
         ))
         try:
             resp = client.delete(
-                "/api/v1/auth/sessions/session-abc123",
+                "/api/auth/sessions/session-abc123",
                 headers={"Authorization": "Bearer dummy-token"},
             )
             assert resp.status_code == 502
@@ -306,5 +306,5 @@ class TestRevokeSession:
             _clear_auth()
 
     def test_requires_auth(self, client: TestClient) -> None:
-        resp = client.delete("/api/v1/auth/sessions/session-abc123")
+        resp = client.delete("/api/auth/sessions/session-abc123")
         assert resp.status_code == 401

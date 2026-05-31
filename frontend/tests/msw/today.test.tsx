@@ -41,9 +41,9 @@ describe("TodayPage — MSW-backed", () => {
     expect(screen.getByText("Order groceries")).toBeInTheDocument();
   });
 
-  it("shows error UI when MSW returns a 500 for /api/v1/today", async () => {
+  it("shows error UI when MSW returns a 500 for /api/today", async () => {
     server.use(
-      http.get("/api/v1/today", () =>
+      http.get("/api/today", () =>
         HttpResponse.json({ detail: "Internal server error" }, { status: 500 }),
       ),
     );
@@ -57,9 +57,9 @@ describe("TodayPage — MSW-backed", () => {
     expect(await screen.findByText(/Internal server error/i)).toBeInTheDocument();
   });
 
-  it("shows error UI when MSW returns a 401 for /api/v1/today", async () => {
+  it("shows error UI when MSW returns a 401 for /api/today", async () => {
     server.use(
-      http.get("/api/v1/today", () =>
+      http.get("/api/today", () =>
         HttpResponse.json({ detail: "Not authenticated" }, { status: 401 }),
       ),
     );

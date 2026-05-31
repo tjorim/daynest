@@ -93,7 +93,7 @@ async def test_today_rollover_publishes_today_updated_for_subscribed_user(db_ses
 
 
 def test_today_stream_rejects_unauthenticated_request(client: TestClient) -> None:
-    response = client.get("/api/v1/today/stream")
+    response = client.get("/api/today/stream")
     assert response.status_code == 401
 
 
@@ -136,7 +136,7 @@ def test_today_mutation_publishes_today_updated(client: TestClient, db_session: 
     app.dependency_overrides[get_event_bus] = lambda: mock_bus
     try:
         payload = {"title": "Test item", "planned_for": str(date.today()), "priority": "normal"}
-        response = client.post("/api/v1/planned-items", json=payload)
+        response = client.post("/api/planned-items", json=payload)
         assert response.status_code == 200
         mock_bus.publish.assert_called_once_with(user.id, {"type": "today_updated"})
     finally:

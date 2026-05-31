@@ -5,11 +5,11 @@ import { MOCK_TODAY } from "../data/constants";
 import type { MedicationPlanInput, MedicationPlanUpdateInput } from "@/lib/api/today";
 
 export const medicationHandlers = [
-  http.get("/api/v1/medications", () =>
+  http.get("/api/medications", () =>
     HttpResponse.json(getMockState().medications),
   ),
 
-  http.post("/api/v1/medications", async ({ request }) => {
+  http.post("/api/medications", async ({ request }) => {
     const input = (await request.json()) as MedicationPlanInput;
     const newPlan = {
       id: nextMedicationId(),
@@ -24,7 +24,7 @@ export const medicationHandlers = [
     return HttpResponse.json(newPlan, { status: 201 });
   }),
 
-  http.put("/api/v1/medications/:id", async ({ params, request }) => {
+  http.put("/api/medications/:id", async ({ params, request }) => {
     const id = Number(params.id);
     const input = (await request.json()) as MedicationPlanUpdateInput;
     const { medications } = getMockState();
@@ -39,13 +39,13 @@ export const medicationHandlers = [
     return HttpResponse.json(updated);
   }),
 
-  http.delete("/api/v1/medications/:id", ({ params }) => {
+  http.delete("/api/medications/:id", ({ params }) => {
     const id = Number(params.id);
     mutateMedications((plans) => plans.filter((m) => m.id !== id));
     return new HttpResponse(null, { status: 204 });
   }),
 
-  http.post("/api/v1/medication-doses/:id/take", ({ params }) =>
+  http.post("/api/medication-doses/:id/take", ({ params }) =>
     HttpResponse.json({
       medication_dose_instance_id: Number(params.id),
       status: "taken",
@@ -53,7 +53,7 @@ export const medicationHandlers = [
     }),
   ),
 
-  http.post("/api/v1/medication-doses/:id/skip", ({ params }) =>
+  http.post("/api/medication-doses/:id/skip", ({ params }) =>
     HttpResponse.json({
       medication_dose_instance_id: Number(params.id),
       status: "skipped",
@@ -61,7 +61,7 @@ export const medicationHandlers = [
     }),
   ),
 
-  http.get("/api/v1/medication-doses/history", () =>
+  http.get("/api/medication-doses/history", () =>
     HttpResponse.json({ history: seedMedicationHistory() }),
   ),
 ];

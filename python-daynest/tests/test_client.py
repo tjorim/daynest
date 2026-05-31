@@ -564,7 +564,7 @@ class TestDaynestClientWriteMethods:
         }
         assert isinstance(result, PlannedItem)
         assert result.id == 10
-        assert session.post.call_args[0][0].endswith("/api/v1/planned-items")
+        assert session.post.call_args[0][0].endswith("/api/planned-items")
 
     async def test_update_planned_item_uses_expected_payload(self) -> None:
         response = _make_mock_response(200, {**VALID_PLANNED_ITEM_PAYLOAD, "is_done": True})
@@ -585,7 +585,7 @@ class TestDaynestClientWriteMethods:
         assert call_kwargs["json"]["planned_for"] == "2026-01-16"
         assert call_kwargs["json"]["is_done"] is True
         assert isinstance(result, PlannedItem)
-        assert session.put.call_args[0][0].endswith("/api/v1/planned-items/10")
+        assert session.put.call_args[0][0].endswith("/api/planned-items/10")
 
     async def test_delete_planned_item_uses_expected_endpoint(self) -> None:
         response = _make_mock_response(204, {})
@@ -596,7 +596,7 @@ class TestDaynestClientWriteMethods:
         await client.async_delete_planned_item(planned_item_id=10)
 
         call_args = session.delete.call_args[0]
-        assert call_args[0].endswith("/api/v1/planned-items/10")
+        assert call_args[0].endswith("/api/planned-items/10")
 
 
 VALID_CALENDAR_PAYLOAD = [

@@ -7,7 +7,7 @@ import { nextPlannedItemId } from "../data/plannedItems";
 import type { PlannedItemInput, PlannedItemUpdateInput } from "@/lib/api/today";
 
 export const plannedItemHandlers = [
-  http.get("/api/v1/planned-items", ({ request }) => {
+  http.get("/api/planned-items", ({ request }) => {
     const url = new URL(request.url);
     const startDate = url.searchParams.get("start_date");
     const endDate = url.searchParams.get("end_date");
@@ -23,7 +23,7 @@ export const plannedItemHandlers = [
     return HttpResponse.json(plannedItems);
   }),
 
-  http.post("/api/v1/planned-items", async ({ request }) => {
+  http.post("/api/planned-items", async ({ request }) => {
     const input = (await request.json()) as PlannedItemInput;
     const newItem = {
       id: nextPlannedItemId(),
@@ -44,7 +44,7 @@ export const plannedItemHandlers = [
     return HttpResponse.json(newItem, { status: 201 });
   }),
 
-  http.put("/api/v1/planned-items/:id", async ({ params, request }) => {
+  http.put("/api/planned-items/:id", async ({ params, request }) => {
     const id = Number(params.id);
     const input = (await request.json()) as PlannedItemUpdateInput;
     const { plannedItems } = getMockState();
@@ -59,7 +59,7 @@ export const plannedItemHandlers = [
     return HttpResponse.json(updated);
   }),
 
-  http.delete("/api/v1/planned-items/:id", ({ params }) => {
+  http.delete("/api/planned-items/:id", ({ params }) => {
     const id = Number(params.id);
     mutatePlannedItems((items) => items.filter((i) => i.id !== id));
     return new HttpResponse(null, { status: 204 });

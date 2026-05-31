@@ -114,16 +114,16 @@ def test_create_integration_client_and_list(client: TestClient, db_session: Sess
 
     try:
         create_response = client.post(
-            "/api/v1/integrations/clients",
+            "/api/integrations/clients",
             json={"name": "Home Assistant", "rate_limit_per_minute": 80},
         )
         assert create_response.status_code == 200
         payload = create_response.json()
         assert payload["api_key"].startswith("daynest_")
         assert payload["client_secret"] == payload["api_key"]
-        assert payload["token_url"].endswith("/api/v1/integrations/clients/token")
+        assert payload["token_url"].endswith("/api/integrations/clients/token")
 
-        list_response = client.get("/api/v1/integrations/clients")
+        list_response = client.get("/api/integrations/clients")
         assert list_response.status_code == 200
         assert list_response.json()[0]["name"] == "Home Assistant"
     finally:
@@ -140,7 +140,7 @@ def test_home_assistant_routes_reject_invalid_key(
 
     for endpoint in HOME_ASSISTANT_ENDPOINTS:
         denied = client.get(
-            f"/api/v1/integrations/home-assistant/{endpoint}",
+            f"/api/integrations/home-assistant/{endpoint}",
             headers={"X-Integration-Key": "daynest_invalid_key"},
         )
         assert denied.status_code == 401
@@ -156,7 +156,7 @@ def test_home_assistant_summary_contract_is_stable(
     ha_key = _create_integration_key(db_session, user.id)
     expected_contract = integration_contract_header(HOME_ASSISTANT_ADAPTER, HOME_ASSISTANT_CONTRACT_VERSION)
 
-    summary = client.get("/api/v1/integrations/home-assistant/summary", headers={"X-Integration-Key": ha_key})
+    summary = client.get("/api/integrations/home-assistant/summary", headers={"X-Integration-Key": ha_key})
     assert summary.status_code == 200
     assert summary.headers[INTEGRATION_CONTRACT_HEADER] == expected_contract
     summary_payload = summary.json()
@@ -189,7 +189,7 @@ def test_home_assistant_entities_contract_is_stable(
     ha_key = _create_integration_key(db_session, user.id)
     expected_contract = integration_contract_header(HOME_ASSISTANT_ADAPTER, HOME_ASSISTANT_CONTRACT_VERSION)
 
-    entities = client.get("/api/v1/integrations/home-assistant/entities", headers={"X-Integration-Key": ha_key})
+    entities = client.get("/api/integrations/home-assistant/entities", headers={"X-Integration-Key": ha_key})
     assert entities.status_code == 200
     assert entities.headers[INTEGRATION_CONTRACT_HEADER] == expected_contract
     entities_payload = entities.json()
@@ -220,7 +220,7 @@ def test_home_assistant_dashboard_contract_is_stable(
     ha_key = _create_integration_key(db_session, user.id)
     expected_contract = integration_contract_header(HOME_ASSISTANT_ADAPTER, HOME_ASSISTANT_CONTRACT_VERSION)
 
-    dashboard = client.get("/api/v1/integrations/home-assistant/dashboard", headers={"X-Integration-Key": ha_key})
+    dashboard = client.get("/api/integrations/home-assistant/dashboard", headers={"X-Integration-Key": ha_key})
     assert dashboard.status_code == 200
     assert dashboard.headers[INTEGRATION_CONTRACT_HEADER] == expected_contract
     dashboard_payload = dashboard.json()
@@ -265,7 +265,7 @@ def test_home_assistant_complete_task_marks_chore_complete(
     assert chore.status == ChoreStatus.pending
 
     response = client.post(
-        "/api/v1/integrations/home-assistant/actions/complete-task",
+        "/api/integrations/home-assistant/actions/complete-task",
         json={"chore_instance_id": chore.id},
         headers={"X-Integration-Key": write_key},
     )
@@ -291,7 +291,7 @@ def test_home_assistant_snooze_task_reschedules_chore(
     assert chore is not None
 
     response = client.post(
-        "/api/v1/integrations/home-assistant/actions/snooze-task",
+        "/api/integrations/home-assistant/actions/snooze-task",
         json={"chore_instance_id": chore.id, "days": 2},
         headers={"X-Integration-Key": write_key},
     )
@@ -340,7 +340,7 @@ def test_home_assistant_mark_medication_taken(
     db_session.refresh(dose)
 
     response = client.post(
-        "/api/v1/integrations/home-assistant/actions/mark-medication-taken",
+        "/api/integrations/home-assistant/actions/mark-medication-taken",
         json={"medication_dose_id": dose.id},
         headers={"X-Integration-Key": write_key},
     )
@@ -363,7 +363,7 @@ def test_home_assistant_planned_item_crud_actions(
     write_key = _create_integration_key(db_session, user.id)
 
     create_response = client.post(
-        "/api/v1/integrations/home-assistant/actions/create-planned-item",
+        "/api/integrations/home-assistant/actions/create-planned-item",
         json={"title": "Plan dinner", "planned_for": FIXED_TODAY.isoformat(), "notes": "With vegetables"},
         headers={"X-Integration-Key": write_key},
     )
@@ -374,7 +374,7 @@ def test_home_assistant_planned_item_crud_actions(
     planned_id = int(create_payload["detail"].split()[2])
 
     update_response = client.put(
-        f"/api/v1/integrations/home-assistant/actions/update-planned-item/{planned_id}",
+        f"/api/integrations/home-assistant/actions/update-planned-item/{planned_id}",
         json={
             "title": "Plan dinner tonight",
             "planned_for": FIXED_TODAY.isoformat(),
@@ -389,7 +389,7 @@ def test_home_assistant_planned_item_crud_actions(
     assert "updated" in update_payload["detail"]
 
     delete_response = client.delete(
-        f"/api/v1/integrations/home-assistant/actions/delete-planned-item/{planned_id}",
+        f"/api/integrations/home-assistant/actions/delete-planned-item/{planned_id}",
         headers={"X-Integration-Key": write_key},
     )
     assert delete_response.status_code == 200

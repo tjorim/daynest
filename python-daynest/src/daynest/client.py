@@ -203,7 +203,7 @@ class DaynestClient:
         Returns (authorization_url, token_url) or None if the backend is
         unreachable or the response is malformed. Does not require authentication.
         """
-        url = urljoin(f"{base_url.strip().rstrip('/')}/", "api/v1/auth/oidc-config")
+        url = urljoin(f"{base_url.strip().rstrip('/')}/", "api/auth/oidc-config")
         owned = session is None
         if owned:
             session = aiohttp.ClientSession()
@@ -233,7 +233,7 @@ class DaynestClient:
         return await self._cached_call(
             "async_get_summary",
             lambda: self._request_model(
-                path="/api/v1/integrations/home-assistant/summary",
+                path="/api/integrations/home-assistant/summary",
                 parser=DaynestSummary.from_dict,
             ),
         )
@@ -243,58 +243,58 @@ class DaynestClient:
         return await self._cached_call(
             "async_get_dashboard",
             lambda: self._request_model(
-                path="/api/v1/integrations/home-assistant/dashboard",
+                path="/api/integrations/home-assistant/dashboard",
                 parser=DaynestDashboard.from_dict,
             ),
         )
 
     async def async_get_user_settings(self) -> dict[str, Any]:
         """Fetch user settings for the authenticated integration user."""
-        return await self._cached_call("async_get_user_settings", lambda: self._request_dict("/api/v1/users/me/settings"))
+        return await self._cached_call("async_get_user_settings", lambda: self._request_dict("/api/users/me/settings"))
 
     async def async_update_user_settings(self, payload: dict[str, Any]) -> dict[str, Any]:
         """Patch user settings for the authenticated integration user."""
-        return await self._send_action("patch", path="/api/v1/users/me/settings", payload=payload)
+        return await self._send_action("patch", path="/api/users/me/settings", payload=payload)
 
     async def async_complete_task(self, chore_instance_id: int) -> dict[str, Any]:
         """Complete a chore instance by ID."""
         return await self._post_action(
-            path="/api/v1/integrations/home-assistant/actions/complete-task",
+            path="/api/integrations/home-assistant/actions/complete-task",
             payload={"chore_instance_id": chore_instance_id},
         )
 
     async def async_snooze_task(self, chore_instance_id: int, days: int = 1) -> dict[str, Any]:
         """Reschedule a chore instance N days into the future."""
         return await self._post_action(
-            path="/api/v1/integrations/home-assistant/actions/snooze-task",
+            path="/api/integrations/home-assistant/actions/snooze-task",
             payload={"chore_instance_id": chore_instance_id, "days": days},
         )
 
     async def async_mark_medication_taken(self, medication_dose_id: int) -> dict[str, Any]:
         """Mark a medication dose as taken."""
         return await self._post_action(
-            path="/api/v1/integrations/home-assistant/actions/mark-medication-taken",
+            path="/api/integrations/home-assistant/actions/mark-medication-taken",
             payload={"medication_dose_id": medication_dose_id},
         )
 
     async def async_skip_task(self, chore_instance_id: int) -> dict[str, Any]:
         """Skip a chore instance."""
         return await self._post_action(
-            path="/api/v1/integrations/home-assistant/actions/skip-task",
+            path="/api/integrations/home-assistant/actions/skip-task",
             payload={"chore_instance_id": chore_instance_id},
         )
 
     async def async_skip_medication(self, medication_dose_id: int) -> dict[str, Any]:
         """Skip a medication dose."""
         return await self._post_action(
-            path="/api/v1/integrations/home-assistant/actions/skip-medication",
+            path="/api/integrations/home-assistant/actions/skip-medication",
             payload={"medication_dose_id": medication_dose_id},
         )
 
     async def async_mark_planned_done(self, planned_item_id: int) -> dict[str, Any]:
         """Mark a planned item as done."""
         return await self._post_action(
-            path="/api/v1/integrations/home-assistant/actions/mark-planned-done",
+            path="/api/integrations/home-assistant/actions/mark-planned-done",
             payload={"planned_item_id": planned_item_id},
         )
 
@@ -307,7 +307,7 @@ class DaynestClient:
         query = urlencode({"start_date": date_from.isoformat(), "end_date": date_to.isoformat()})
         payload = await self._cached_call(
             "async_list_planned_items",
-            lambda: self._request_list(f"/api/v1/planned-items?{query}"),
+            lambda: self._request_list(f"/api/planned-items?{query}"),
             date_from.isoformat(),
             date_to.isoformat(),
         )
@@ -332,7 +332,7 @@ class DaynestClient:
             "tags": tags or [],
             "rrule": rrule,
         }
-        result = await self._send_action("post", path="/api/v1/planned-items", payload=payload)
+        result = await self._send_action("post", path="/api/planned-items", payload=payload)
         return PlannedItem.from_dict(result)
 
     async def async_update_planned_item(
@@ -358,7 +358,7 @@ class DaynestClient:
             raise ValueError(msg)
         if "planned_for" in payload_fields and isinstance(payload_fields["planned_for"], date):
             payload_fields["planned_for"] = payload_fields["planned_for"].isoformat()
-        path = f"/api/v1/planned-items/{resolved_item_id}"
+        path = f"/api/planned-items/{resolved_item_id}"
         if scope != "this":
             path += f"?scope={scope}"
         result = await self._send_action("put", path=path, payload=payload_fields)
@@ -380,7 +380,7 @@ class DaynestClient:
         if resolved_item_id is None:
             msg = "item_id is required"
             raise ValueError(msg)
-        path = f"/api/v1/planned-items/{resolved_item_id}"
+        path = f"/api/planned-items/{resolved_item_id}"
         if scope != "this":
             path += f"?scope={scope}"
         await self._send_no_content_action("delete", path=path)
@@ -401,7 +401,7 @@ class DaynestClient:
         encoded_params = urlencode(params)
         return await self._cached_call(
             "async_get_calendar",
-            lambda: self._request_list(f"/api/v1/integrations/home-assistant/calendar?{encoded_params}"),
+            lambda: self._request_list(f"/api/integrations/home-assistant/calendar?{encoded_params}"),
             start.isoformat(),
             end.isoformat(),
             event_type or "",
@@ -409,7 +409,7 @@ class DaynestClient:
 
     async def async_list_routine_templates(self) -> list[RoutineTemplate]:
         """List routine templates."""
-        payload = await self._cached_call("async_list_routine_templates", lambda: self._request_list("/api/v1/templates/routines"))
+        payload = await self._cached_call("async_list_routine_templates", lambda: self._request_list("/api/templates/routines"))
         return [RoutineTemplate.from_dict(item) for item in payload]
 
     async def async_create_routine_template(
@@ -426,7 +426,7 @@ class DaynestClient:
         """Create a routine template."""
         result = await self._send_action(
             "post",
-            path="/api/v1/templates/routines",
+            path="/api/templates/routines",
             payload={
                 "name": name,
                 "every_n_days": every_n_days,
@@ -444,19 +444,19 @@ class DaynestClient:
         payload_fields = dict(fields)
         if "start_date" in payload_fields and isinstance(payload_fields["start_date"], date):
             payload_fields["start_date"] = payload_fields["start_date"].isoformat()
-        result = await self._send_action("put", path=f"/api/v1/templates/routines/{template_id}", payload=payload_fields)
+        result = await self._send_action("put", path=f"/api/templates/routines/{template_id}", payload=payload_fields)
         return RoutineTemplate.from_dict(result)
 
     async def async_delete_routine_template(self, template_id: int) -> None:
         """Delete a routine template."""
-        await self._send_no_content_action("delete", path=f"/api/v1/templates/routines/{template_id}")
+        await self._send_no_content_action("delete", path=f"/api/templates/routines/{template_id}")
 
     async def async_list_chore_templates(self, *, tags: list[str] | None = None) -> list[ChoreTemplate]:
         """List chore templates."""
         query = f"?{urlencode({'tags': ','.join(tags)})}" if tags else ""
         payload = await self._cached_call(
             "async_list_chore_templates",
-            lambda: self._request_list(f"/api/v1/templates/chores{query}"),
+            lambda: self._request_list(f"/api/templates/chores{query}"),
             ",".join(tags or []),
         )
         return [ChoreTemplate.from_dict(item) for item in payload]
@@ -476,7 +476,7 @@ class DaynestClient:
         """Create a chore template."""
         result = await self._send_action(
             "post",
-            path="/api/v1/templates/chores",
+            path="/api/templates/chores",
             payload={
                 "name": name,
                 "every_n_days": every_n_days,
@@ -495,18 +495,18 @@ class DaynestClient:
         payload_fields = dict(fields)
         if "start_date" in payload_fields and isinstance(payload_fields["start_date"], date):
             payload_fields["start_date"] = payload_fields["start_date"].isoformat()
-        result = await self._send_action("put", path=f"/api/v1/templates/chores/{template_id}", payload=payload_fields)
+        result = await self._send_action("put", path=f"/api/templates/chores/{template_id}", payload=payload_fields)
         return ChoreTemplate.from_dict(result)
 
     async def async_delete_chore_template(self, template_id: int) -> None:
         """Delete a chore template."""
-        await self._send_no_content_action("delete", path=f"/api/v1/templates/chores/{template_id}")
+        await self._send_no_content_action("delete", path=f"/api/templates/chores/{template_id}")
 
     async def async_get_calendar_month(self, year: int, month: int) -> list[CalendarDay]:
         """Fetch calendar month summaries."""
         payload = await self._cached_call(
             "async_get_calendar_month",
-            lambda: self._request_dict(f"/api/v1/calendar/month?{urlencode({'year': year, 'month': month})}"),
+            lambda: self._request_dict(f"/api/calendar/month?{urlencode({'year': year, 'month': month})}"),
             year,
             month,
         )
@@ -520,7 +520,7 @@ class DaynestClient:
         """Fetch calendar day details."""
         payload = await self._cached_call(
             "async_get_calendar_day",
-            lambda: self._request_dict(f"/api/v1/calendar/day?{urlencode({'date': target_date.isoformat()})}"),
+            lambda: self._request_dict(f"/api/calendar/day?{urlencode({'date': target_date.isoformat()})}"),
             target_date.isoformat(),
         )
         return CalendarDay.from_day_dict(payload)
@@ -537,7 +537,7 @@ class DaynestClient:
 
     async def async_export_calendar_ics(self) -> bytes:
         """Export calendar iCalendar bytes."""
-        return await self._cached_call("async_export_calendar_ics", lambda: self._request_bytes("/api/v1/calendar/export.ics"))
+        return await self._cached_call("async_export_calendar_ics", lambda: self._request_bytes("/api/calendar/export.ics"))
 
     async def async_listen(
         self,
@@ -559,7 +559,7 @@ class DaynestClient:
                     return
                 url = urljoin(
                     f"{self._base_url}/",
-                    f"/api/v1/today/stream?{urlencode({'token': token})}",
+                    f"/api/today/stream?{urlencode({'token': token})}",
                 )
                 try:
                     async with session.get(
@@ -567,7 +567,7 @@ class DaynestClient:
                         headers={"Accept": "text/event-stream"},
                         timeout=None,
                     ) as response:
-                        self._check_response_status(response, "/api/v1/today/stream")
+                        self._check_response_status(response, "/api/today/stream")
                         backoff_seconds = 1.0
                         event_name = "message"
                         data_lines: list[str] = []

@@ -35,7 +35,7 @@ def test_create_planned_item_with_rrule_creates_series_and_first_instance_only(c
     _auth_as(user)
     try:
         response = client.post(
-            "/api/v1/planned-items",
+            "/api/planned-items",
             json={
                 "title": "Water plants",
                 "planned_for": "2026-05-21",
@@ -68,7 +68,7 @@ def test_list_planned_items_materializes_missing_recurrence_instances(client: Te
     _auth_as(user)
     try:
         create = client.post(
-            "/api/v1/planned-items",
+            "/api/planned-items",
             json={
                 "title": "Water plants",
                 "planned_for": "2026-05-21",
@@ -77,7 +77,7 @@ def test_list_planned_items_materializes_missing_recurrence_instances(client: Te
         )
         assert create.status_code == 200
 
-        response = client.get("/api/v1/planned-items?start_date=2026-05-21&end_date=2026-06-30")
+        response = client.get("/api/planned-items?start_date=2026-05-21&end_date=2026-06-30")
     finally:
         _clear_auth()
 
@@ -108,7 +108,7 @@ def test_list_planned_items_materialization_is_idempotent(client: TestClient, db
     _auth_as(user)
     try:
         create = client.post(
-            "/api/v1/planned-items",
+            "/api/planned-items",
             json={
                 "title": "Daily habit",
                 "planned_for": "2026-05-21",
@@ -117,9 +117,9 @@ def test_list_planned_items_materialization_is_idempotent(client: TestClient, db
         )
         assert create.status_code == 200
 
-        first = client.get("/api/v1/planned-items?start_date=2026-05-21&end_date=2026-05-23")
+        first = client.get("/api/planned-items?start_date=2026-05-21&end_date=2026-05-23")
         assert first.status_code == 200
-        second = client.get("/api/v1/planned-items?start_date=2026-05-21&end_date=2026-05-23")
+        second = client.get("/api/planned-items?start_date=2026-05-21&end_date=2026-05-23")
     finally:
         _clear_auth()
 
@@ -172,7 +172,7 @@ def test_sparse_recurrence_is_not_marked_exhausted_before_next_occurrence(
     _auth_as(user)
     try:
         create = client.post(
-            "/api/v1/planned-items",
+            "/api/planned-items",
             json={
                 "title": "Weekly review",
                 "planned_for": "2026-05-21",
@@ -181,9 +181,9 @@ def test_sparse_recurrence_is_not_marked_exhausted_before_next_occurrence(
         )
         assert create.status_code == 200
 
-        before_next = client.get("/api/v1/planned-items?start_date=2026-05-21&end_date=2026-05-27")
+        before_next = client.get("/api/planned-items?start_date=2026-05-21&end_date=2026-05-27")
         assert before_next.status_code == 200
-        after_next = client.get("/api/v1/planned-items?start_date=2026-05-21&end_date=2026-05-28")
+        after_next = client.get("/api/planned-items?start_date=2026-05-21&end_date=2026-05-28")
     finally:
         _clear_auth()
 
@@ -200,7 +200,7 @@ def test_create_planned_item_with_invalid_rrule_returns_422(client: TestClient, 
     _auth_as(user)
     try:
         response = client.post(
-            "/api/v1/planned-items",
+            "/api/planned-items",
             json={
                 "title": "Bad rule",
                 "planned_for": "2026-05-21",
@@ -218,7 +218,7 @@ def test_create_planned_item_with_rrule_not_matching_planned_for_returns_422(cli
     _auth_as(user)
     try:
         response = client.post(
-            "/api/v1/planned-items",
+            "/api/planned-items",
             json={
                 "title": "Weekly review",
                 "planned_for": "2026-05-21",
@@ -238,7 +238,7 @@ def test_delete_planned_item_scope_future_deletes_series_from_today(client: Test
     start = date.today().isoformat()
     try:
         create = client.post(
-            "/api/v1/planned-items",
+            "/api/planned-items",
             json={
                 "title": "Recurring cleanup",
                 "planned_for": start,
@@ -248,7 +248,7 @@ def test_delete_planned_item_scope_future_deletes_series_from_today(client: Test
         assert create.status_code == 200
         planned_id = create.json()["id"]
         keep = client.post(
-            "/api/v1/planned-items",
+            "/api/planned-items",
             json={
                 "title": "One-time cleanup",
                 "planned_for": start,
@@ -257,7 +257,7 @@ def test_delete_planned_item_scope_future_deletes_series_from_today(client: Test
         assert keep.status_code == 200
         keep_id = keep.json()["id"]
 
-        delete = client.delete(f"/api/v1/planned-items/{planned_id}?scope=future")
+        delete = client.delete(f"/api/planned-items/{planned_id}?scope=future")
         assert delete.status_code == 204
     finally:
         _clear_auth()
@@ -274,7 +274,7 @@ def test_delete_planned_item_scope_future_from_middle_truncates_series_rule(clie
     end = start + (date.resolution * 6)
     try:
         create = client.post(
-            "/api/v1/planned-items",
+            "/api/planned-items",
             json={
                 "title": "Recurring cleanup",
                 "planned_for": start.isoformat(),
@@ -283,17 +283,17 @@ def test_delete_planned_item_scope_future_from_middle_truncates_series_rule(clie
         )
         assert create.status_code == 200
         listed = client.get(
-            f"/api/v1/planned-items?start_date={start.isoformat()}&end_date={end.isoformat()}"
+            f"/api/planned-items?start_date={start.isoformat()}&end_date={end.isoformat()}"
         )
         assert listed.status_code == 200
         middle_date = start + (date.resolution * 3)
         middle_id = next(item["id"] for item in listed.json() if item["planned_for"] == middle_date.isoformat())
 
-        delete = client.delete(f"/api/v1/planned-items/{middle_id}?scope=future")
+        delete = client.delete(f"/api/planned-items/{middle_id}?scope=future")
         assert delete.status_code == 204
 
         refreshed = client.get(
-            f"/api/v1/planned-items?start_date={start.isoformat()}&end_date={end.isoformat()}"
+            f"/api/planned-items?start_date={start.isoformat()}&end_date={end.isoformat()}"
         )
     finally:
         _clear_auth()
@@ -319,7 +319,7 @@ def test_update_planned_item_scope_future_updates_template_and_clears_materializ
     end = start + (date.resolution * 3)
     try:
         create = client.post(
-            "/api/v1/planned-items",
+            "/api/planned-items",
             json={
                 "title": "Recurring cleanup",
                 "planned_for": start.isoformat(),
@@ -329,12 +329,12 @@ def test_update_planned_item_scope_future_updates_template_and_clears_materializ
         assert create.status_code == 200
         planned_id = create.json()["id"]
         listed = client.get(
-            f"/api/v1/planned-items?start_date={start.isoformat()}&end_date={end.isoformat()}"
+            f"/api/planned-items?start_date={start.isoformat()}&end_date={end.isoformat()}"
         )
         assert listed.status_code == 200
 
         update = client.put(
-            f"/api/v1/planned-items/{planned_id}?scope=future",
+            f"/api/planned-items/{planned_id}?scope=future",
             json={
                 "title": "Recurring cleanup updated",
                 "planned_for": start.isoformat(),
@@ -370,7 +370,7 @@ def test_update_planned_item_scope_all_updates_template_and_clears_materialized_
     end = start + (date.resolution * 3)
     try:
         create = client.post(
-            "/api/v1/planned-items",
+            "/api/planned-items",
             json={
                 "title": "Recurring cleanup",
                 "planned_for": start.isoformat(),
@@ -380,12 +380,12 @@ def test_update_planned_item_scope_all_updates_template_and_clears_materialized_
         assert create.status_code == 200
         planned_id = create.json()["id"]
         listed = client.get(
-            f"/api/v1/planned-items?start_date={start.isoformat()}&end_date={end.isoformat()}"
+            f"/api/planned-items?start_date={start.isoformat()}&end_date={end.isoformat()}"
         )
         assert listed.status_code == 200
 
         update = client.put(
-            f"/api/v1/planned-items/{planned_id}?scope=all",
+            f"/api/planned-items/{planned_id}?scope=all",
             json={
                 "title": "Recurring cleanup all updated",
                 "planned_for": start.isoformat(),
@@ -422,7 +422,7 @@ def test_update_planned_item_scope_all_from_later_instance_preserves_series_star
     end = start + (date.resolution * 3)
     try:
         create = client.post(
-            "/api/v1/planned-items",
+            "/api/planned-items",
             json={
                 "title": "Recurring cleanup",
                 "planned_for": start.isoformat(),
@@ -431,13 +431,13 @@ def test_update_planned_item_scope_all_from_later_instance_preserves_series_star
         )
         assert create.status_code == 200
         listed = client.get(
-            f"/api/v1/planned-items?start_date={start.isoformat()}&end_date={end.isoformat()}"
+            f"/api/planned-items?start_date={start.isoformat()}&end_date={end.isoformat()}"
         )
         assert listed.status_code == 200
         planned_id = next(item["id"] for item in listed.json() if item["planned_for"] == edit_date.isoformat())
 
         update = client.put(
-            f"/api/v1/planned-items/{planned_id}?scope=all",
+            f"/api/planned-items/{planned_id}?scope=all",
             json={
                 "title": "Recurring cleanup all updated",
                 "planned_for": edit_date.isoformat(),
@@ -446,7 +446,7 @@ def test_update_planned_item_scope_all_from_later_instance_preserves_series_star
             },
         )
         refreshed = client.get(
-            f"/api/v1/planned-items?start_date={start.isoformat()}&end_date={end.isoformat()}"
+            f"/api/planned-items?start_date={start.isoformat()}&end_date={end.isoformat()}"
         )
     finally:
         _clear_auth()
@@ -478,7 +478,7 @@ def test_update_planned_item_scope_all_shifts_series_start_when_date_changes(
     end = start + (date.resolution * 4)
     try:
         create = client.post(
-            "/api/v1/planned-items",
+            "/api/planned-items",
             json={
                 "title": "Recurring cleanup",
                 "planned_for": start.isoformat(),
@@ -487,14 +487,14 @@ def test_update_planned_item_scope_all_shifts_series_start_when_date_changes(
         )
         assert create.status_code == 200
         listed = client.get(
-            f"/api/v1/planned-items?start_date={start.isoformat()}&end_date={end.isoformat()}"
+            f"/api/planned-items?start_date={start.isoformat()}&end_date={end.isoformat()}"
         )
         assert listed.status_code == 200
         second_date = start + date.resolution
         second_id = next(item["id"] for item in listed.json() if item["planned_for"] == second_date.isoformat())
         shifted_date = second_date + date.resolution
         update = client.put(
-            f"/api/v1/planned-items/{second_id}?scope=all",
+            f"/api/planned-items/{second_id}?scope=all",
             json={
                 "title": "Recurring cleanup shifted",
                 "planned_for": shifted_date.isoformat(),
@@ -517,7 +517,7 @@ def test_update_planned_item_scope_future_rejects_invalid_rrule(client: TestClie
     start = date(2026, 5, 21)
     try:
         create = client.post(
-            "/api/v1/planned-items",
+            "/api/planned-items",
             json={
                 "title": "Recurring cleanup",
                 "planned_for": start.isoformat(),
@@ -527,7 +527,7 @@ def test_update_planned_item_scope_future_rejects_invalid_rrule(client: TestClie
         assert create.status_code == 200
         planned_id = create.json()["id"]
         update = client.put(
-            f"/api/v1/planned-items/{planned_id}?scope=future",
+            f"/api/planned-items/{planned_id}?scope=future",
             json={
                 "title": "Recurring cleanup",
                 "planned_for": start.isoformat(),
@@ -548,7 +548,7 @@ def test_update_planned_item_scope_all_rejects_invalid_rrule(client: TestClient,
     start = date(2026, 5, 21)
     try:
         create = client.post(
-            "/api/v1/planned-items",
+            "/api/planned-items",
             json={
                 "title": "Recurring cleanup",
                 "planned_for": start.isoformat(),
@@ -558,7 +558,7 @@ def test_update_planned_item_scope_all_rejects_invalid_rrule(client: TestClient,
         assert create.status_code == 200
         planned_id = create.json()["id"]
         update = client.put(
-            f"/api/v1/planned-items/{planned_id}?scope=all",
+            f"/api/planned-items/{planned_id}?scope=all",
             json={
                 "title": "Recurring cleanup",
                 "planned_for": start.isoformat(),

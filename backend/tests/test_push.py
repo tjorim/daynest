@@ -40,7 +40,7 @@ def test_push_subscribe_and_unsubscribe(client: TestClient, db_session: Session)
     _auth_as(user)
     try:
         subscribe = client.post(
-            "/api/v1/push/subscribe",
+            "/api/push/subscribe",
             json={
                 "platform": "webpush",
                 "endpoint": "https://push.example/subscription-1",
@@ -55,7 +55,7 @@ def test_push_subscribe_and_unsubscribe(client: TestClient, db_session: Session)
 
         unsubscribe = client.request(
             "DELETE",
-            "/api/v1/push/subscribe",
+            "/api/push/subscribe",
             json={"endpoint": "https://push.example/subscription-1"},
         )
         assert unsubscribe.status_code == 204
@@ -105,7 +105,7 @@ def test_user_settings_store_push_notification_preferences(client: TestClient, d
     _auth_as(user)
     try:
         response = client.patch(
-            "/api/v1/users/me/settings",
+            "/api/users/me/settings",
             json={
                 "push_overdue_chores_enabled": False,
                 "push_medication_reminders_enabled": False,

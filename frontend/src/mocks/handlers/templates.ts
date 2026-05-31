@@ -6,11 +6,11 @@ import type { RoutineTemplateInput, ChoreTemplateInput } from "@/lib/api/today";
 
 export const templateHandlers = [
   // Routine templates
-  http.get("/api/v1/templates/routines", () =>
+  http.get("/api/templates/routines", () =>
     HttpResponse.json(getMockState().routineTemplates),
   ),
 
-  http.post("/api/v1/templates/routines", async ({ request }) => {
+  http.post("/api/templates/routines", async ({ request }) => {
     const input = (await request.json()) as RoutineTemplateInput;
     const newTemplate = {
       id: nextTemplateId(),
@@ -26,7 +26,7 @@ export const templateHandlers = [
     return HttpResponse.json(newTemplate, { status: 201 });
   }),
 
-  http.put("/api/v1/templates/routines/:id", async ({ params, request }) => {
+  http.put("/api/templates/routines/:id", async ({ params, request }) => {
     const id = Number(params.id);
     const input = (await request.json()) as RoutineTemplateInput;
     const { routineTemplates } = getMockState();
@@ -41,18 +41,18 @@ export const templateHandlers = [
     return HttpResponse.json(updated);
   }),
 
-  http.delete("/api/v1/templates/routines/:id", ({ params }) => {
+  http.delete("/api/templates/routines/:id", ({ params }) => {
     const id = Number(params.id);
     mutateRoutineTemplates((ts) => ts.filter((t) => t.id !== id));
     return new HttpResponse(null, { status: 204 });
   }),
 
   // Chore templates
-  http.get("/api/v1/templates/chores", () =>
+  http.get("/api/templates/chores", () =>
     HttpResponse.json(getMockState().choreTemplates),
   ),
 
-  http.post("/api/v1/templates/chores", async ({ request }) => {
+  http.post("/api/templates/chores", async ({ request }) => {
     const input = (await request.json()) as ChoreTemplateInput;
     const newTemplate = {
       id: nextTemplateId(),
@@ -67,7 +67,7 @@ export const templateHandlers = [
     return HttpResponse.json(newTemplate, { status: 201 });
   }),
 
-  http.put("/api/v1/templates/chores/:id", async ({ params, request }) => {
+  http.put("/api/templates/chores/:id", async ({ params, request }) => {
     const id = Number(params.id);
     const input = (await request.json()) as ChoreTemplateInput;
     const { choreTemplates } = getMockState();
@@ -82,7 +82,7 @@ export const templateHandlers = [
     return HttpResponse.json(updated);
   }),
 
-  http.delete("/api/v1/templates/chores/:id", ({ params }) => {
+  http.delete("/api/templates/chores/:id", ({ params }) => {
     const id = Number(params.id);
     mutateChoreTemplates((ts) => ts.filter((t) => t.id !== id));
     return new HttpResponse(null, { status: 204 });

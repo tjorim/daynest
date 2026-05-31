@@ -134,7 +134,7 @@ def test_export_user_data_returns_full_json_backup(client: TestClient, db_sessio
     _auth_as(user)
 
     try:
-        response = client.get("/api/v1/users/me/export")
+        response = client.get("/api/users/me/export")
     finally:
         _clear_auth()
 
@@ -160,7 +160,7 @@ def test_export_user_data_can_return_csv(client: TestClient, db_session: Session
     _auth_as(user)
 
     try:
-        response = client.get("/api/v1/users/me/export?format=csv")
+        response = client.get("/api/users/me/export?format=csv")
     finally:
         _clear_auth()
 
@@ -179,13 +179,13 @@ def test_import_user_data_restores_export_for_current_user(client: TestClient, d
 
     _auth_as(source)
     try:
-        payload = client.get("/api/v1/users/me/export").json()
+        payload = client.get("/api/users/me/export").json()
     finally:
         _clear_auth()
 
     _auth_as(target)
     try:
-        response = client.post("/api/v1/users/me/import", json=payload)
+        response = client.post("/api/users/me/import", json=payload)
     finally:
         _clear_auth()
 
@@ -221,5 +221,5 @@ def test_import_user_data_restores_export_for_current_user(client: TestClient, d
 
 
 def test_export_requires_authentication(client: TestClient) -> None:
-    response = client.get("/api/v1/users/me/export")
+    response = client.get("/api/users/me/export")
     assert response.status_code == 401
