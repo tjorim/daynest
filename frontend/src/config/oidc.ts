@@ -1,10 +1,11 @@
 import type { AuthProviderProps } from "react-oidc-context";
+import { WebStorageStateStore } from "oidc-client-ts";
 import { buildApiUrl } from "@/lib/api/serverConfig";
 
 const OIDC_CLIENT_ID = import.meta.env.VITE_OIDC_CLIENT_ID ?? "daynest";
 const OIDC_REDIRECT_URI =
   import.meta.env.VITE_OIDC_REDIRECT_URI ?? `${window.location.origin}/auth/callback`;
-const OIDC_SCOPE = import.meta.env.VITE_OIDC_SCOPE ?? "openid profile email";
+const OIDC_SCOPE = import.meta.env.VITE_OIDC_SCOPE ?? "openid profile email offline_access";
 export const AUTH_ROUTE_PATHS = new Set(["/auth", "/auth/callback"]);
 
 function resolveReturnTo(raw: unknown): string {
@@ -60,6 +61,7 @@ export async function fetchOidcConfig(): Promise<AuthProviderProps> {
     scope: OIDC_SCOPE,
     automaticSilentRenew: true,
     post_logout_redirect_uri: window.location.origin,
+    userStore: new WebStorageStateStore({ store: window.localStorage }),
     onSigninCallback,
   };
 }
