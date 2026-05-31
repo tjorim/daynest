@@ -11,6 +11,7 @@ from app.api.dependencies.today import get_today_service
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.calendar import CalendarTokenResponse
+from app.schemas.today import CalendarRangeResponse
 from app.services.today_service import TodayService
 
 router = APIRouter(tags=["calendar"])
@@ -126,6 +127,18 @@ def revoke_calendar_token(
     current_user.calendar_token = None
     db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+# --- Calendar range ---
+
+@router.get("/calendar/range", response_model=CalendarRangeResponse)
+def get_calendar_range(
+    start_date: date = Query(..., alias="start"),
+    end_date: date = Query(..., alias="end"),
+    service: TodayService = Depends(get_today_service),
+    current_user: User = Depends(get_current_user),
+) -> CalendarRangeResponse:
+    return service.get_calendar_range(user_id=current_user.id, start_date=start_date, end_date=end_date)
 
 
 # --- iCal export ---

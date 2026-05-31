@@ -122,6 +122,8 @@ class UnifiedDayItem(BaseModel):
     status: str
     scheduled_at: datetime | None = None
     scheduled_date: date | None = None
+    time_of_day: time | None = None
+    duration_minutes: int | None = None
     detail: str | None = None
     module_key: PlannedItemModuleKey | None = None
     rrule: str | None = None
@@ -134,6 +136,10 @@ class UnifiedDayItem(BaseModel):
 
 class CalendarDayResponse(BaseModel):
     date: date
+    items: list[UnifiedDayItem]
+
+
+class CalendarRangeResponse(BaseModel):
     items: list[UnifiedDayItem]
 
 
