@@ -693,7 +693,7 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
             realm_url=settings.oidc_issuer_url,
             base_url=resource_server_url,
             audience=settings.oidc_audience,
-            required_scopes=[],
+            required_scopes=["openid", "offline_access"],
         )
         auth: MultiAuth | IntegrationKeyTokenVerifier = MultiAuth(server=keycloak_provider, verifiers=[integration_verifier])
     else:
