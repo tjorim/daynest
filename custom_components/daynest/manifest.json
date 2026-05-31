@@ -10,6 +10,6 @@
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/tjorim/daynest/issues",
   "homeassistant": "2024.4.0",
-  "requirements": ["python-daynest==0.1.0"],
-  "version": "0.1.0"
+  "requirements": ["python-daynest==0.1.9"],
+  "version": "0.1.9"
 }

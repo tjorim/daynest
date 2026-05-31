@@ -103,8 +103,8 @@ extensions.configure<ApplicationExtension> {
         minSdk = 26
         targetSdk = 37
         // versionCode = MAJOR * 1000000 + MINOR * 1000 + PATCH (e.g. v1.2.3 → 1002003)
-        versionCode = 1000
-        versionName = "0.1.0"
+        versionCode = 1009
+        versionName = "0.1.9"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
