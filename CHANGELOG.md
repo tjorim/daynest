@@ -30,15 +30,30 @@ artifact is built or published if any check fails.
 
 ## [0.1.9] - 2026-05-31
 
+### Added
+- **Frontend:** Bootstrap Icons as the standard icon set; notification preferences in Settings;
+  i18n foundation (EN/NL) with Playwright E2E pipeline; recurring planned items UX with RRULE
+  form controls, recurrence indicators, and scoped delete; nullable `time_of_day` and
+  `duration_minutes` on planned items
+- **Backend:** on-demand recurring planned item materialisation via `recurrence_series`;
+  medication improvements and planned-item extensions; observability contract extended to
+  integration surfaces
+- **MCP:** server version stamped from `BUILD_VERSION`; `delete_planned_item_series` tool
+  for bulk series removal; RRULE, history limit, and `medication_plan_id` filter exposed
+- **Wear OS:** initial companion app with tile, complication, and quick-action support in a
+  dedicated `:wear` Gradle module
+- **Android:** Material You theme and template management screens; offline sync queue,
+  notification plumbing, biometric resume gate, and system calendar sync
+- **Household:** shared mode for multi-user chore sharing across a household
+
 ### Changed
-- API prefix simplified from `/api/v1/...` to `/api/...` across the backend, frontend,
-  tests, mocks, and python-daynest client — aligns with the other Daynest apps
+- API prefix simplified from `/api/v1/...` to `/api/...` — update any direct API integrations
 
 ### Fixed
 - MCP: `required_scopes=[]` set on `KeycloakAuthProvider` to fix scope validation errors
-  when connecting via Claude or other MCP clients
 - Today SSE stream contract hardened and fully documented
 - Frontend template API paths corrected after backend route reorganisation
+- Home Assistant: CVEs patched in `zeroconf` and `uv` dependencies
 
 ## [0.1.8] - 2026-05-23
 
