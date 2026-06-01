@@ -29,6 +29,7 @@ export function mapToScheduleXEvents(items: UnifiedDayItem[]): CalendarEvent[] {
       _status: item.status,
       _itemId: item.item_id,
       _moduleKey: item.module_key,
+      _options: item.item_type === "planned" ? undefined : { disableDND: true },
     };
   });
 }
