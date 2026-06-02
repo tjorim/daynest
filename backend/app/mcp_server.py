@@ -32,8 +32,11 @@ from app.db.session import SessionLocal
 from app.models.integration_client import IntegrationClient
 from app.models.user import User
 from app.repositories.analytics_repository import get_scheduling_suggestions as build_scheduling_suggestions
+from app.repositories.shopping_list_repository import ShoppingListRepository
 from app.repositories.today_repository import TodayRepository
+from app.schemas.shopping_list import ShoppingListCreateRequest, ShoppingListStatus
 from app.schemas.today import PlannedItemCreateRequest, PlannedItemModuleKey, PlannedItemUpdateRequest
+from app.services.shopping_list_service import ShoppingListService
 from app.services.today_service import TodayService
 
 logger = logging.getLogger(__name__)
@@ -204,6 +207,13 @@ class DaynestMcpBackend:
             service = TodayService(TodayRepository(db), app_settings=settings)
             return operation(db, user, service)
 
+    def _with_shopping_service(self, operation: Callable[[Session, User, ShoppingListService], T]) -> T:
+        with self._session_scope() as db:
+            user = self.resolve_user(db)
+            today_service = TodayService(TodayRepository(db), app_settings=settings)
+            service = ShoppingListService(ShoppingListRepository(db), today_service)
+            return operation(db, user, service)
+
     def whoami(self) -> dict[str, Any]:
         return self._with_service(
             lambda _db, user, _service: {
@@ -278,6 +288,44 @@ class DaynestMcpBackend:
 
     def get_calendar_month(self, year: int, month: int) -> dict[str, Any]:
         return self._with_service(lambda _db, user, service: _jsonable(service.get_month(user.id, year, month)))
+
+    def list_shopping_lists(self, status: ShoppingListStatus | Literal["all"] = "active") -> list[dict[str, Any]]:
+        status_filter = None if status == "all" else status
+        return self._with_shopping_service(lambda _db, user, service: _jsonable(service.list_shopping_lists(user.id, status_filter)))
+
+    def create_shopping_list(self, name: str, store: str | None = None, notes: str | None = None) -> dict[str, Any]:
+        request = ShoppingListCreateRequest(name=name, store=store, notes=notes)
+        return self._with_shopping_service(lambda _db, user, service: _jsonable(service.create_shopping_list(user.id, request)))
+
+    def add_shopping_item(
+        self,
+        shopping_list_id: int,
+        title: str,
+        planned_for: str = "today",
+        notes: str | None = None,
+        priority: str = "normal",
+        tags: list[str] | None = None,
+    ) -> dict[str, Any]:
+        return self._with_shopping_service(
+            lambda _db, user, service: service.add_shopping_item(
+                user_id=user.id,
+                shopping_list_id=shopping_list_id,
+                title=title,
+                planned_for=_parse_date(planned_for),
+                notes=notes,
+                priority=Priority(priority),
+                tags=tags or [],
+            )
+        )
+
+    def check_off_shopping_item(self, shopping_list_id: int, planned_item_id: int) -> dict[str, Any]:
+        return self._with_shopping_service(
+            lambda _db, user, service: service.check_off_shopping_item(
+                user_id=user.id,
+                shopping_list_id=shopping_list_id,
+                planned_item_id=planned_item_id,
+            )
+        )
 
     def list_planned_items(self, start_date: str | None = None, end_date: str | None = None) -> list[dict[str, Any]]:
         parsed_start = _parse_date(start_date) if start_date else None
@@ -751,6 +799,37 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
         """Return the Daynest calendar month summary for a year and month."""
 
         return await to_thread.run_sync(daynest.get_calendar_month, year, month)
+
+    @mcp.tool()
+    async def list_shopping_lists(status: ShoppingListStatus | Literal["all"] = "active") -> list[dict[str, Any]]:
+        """List shopping lists for the active user. Pass status='all' to include archived lists."""
+
+        return await to_thread.run_sync(daynest.list_shopping_lists, status)
+
+    @mcp.tool()
+    async def create_shopping_list(name: str, store: str | None = None, notes: str | None = None) -> dict[str, Any]:
+        """Create a shopping list for the active user."""
+
+        return await to_thread.run_sync(daynest.create_shopping_list, name, store, notes)
+
+    @mcp.tool()
+    async def add_shopping_item(
+        shopping_list_id: int,
+        title: str,
+        planned_for: str = "today",
+        notes: str | None = None,
+        priority: str = "normal",
+        tags: list[str] | None = None,
+    ) -> dict[str, Any]:
+        """Add an item to a shopping list using Daynest planned-items storage."""
+
+        return await to_thread.run_sync(daynest.add_shopping_item, shopping_list_id, title, planned_for, notes, priority, tags)
+
+    @mcp.tool()
+    async def check_off_shopping_item(shopping_list_id: int, planned_item_id: int) -> dict[str, Any]:
+        """Mark a shopping-list planned item as in cart / purchased."""
+
+        return await to_thread.run_sync(daynest.check_off_shopping_item, shopping_list_id, planned_item_id)
 
     @mcp.tool()
     async def list_planned_items(start_date: str | None = None, end_date: str | None = None) -> list[dict[str, Any]]:

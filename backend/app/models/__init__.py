@@ -12,6 +12,7 @@ from app.models.push_subscription import PushSubscription
 from app.models.recurrence_series import RecurrenceSeries
 from app.models.refresh_token import RefreshToken
 from app.models.routine_template import RoutineTemplate
+from app.models.shopping_list import ShoppingList
 from app.models.task_instance import TaskInstance
 from app.models.user import User
 
@@ -31,6 +32,7 @@ __all__ = [
     "RecurrenceSeries",
     "RefreshToken",
     "RoutineTemplate",
+    "ShoppingList",
     "TaskInstance",
     "TaskStatus",
     "User",
