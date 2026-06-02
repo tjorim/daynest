@@ -9,7 +9,7 @@ export interface CalendarRangeParams {
 
 export function useCalendarRangeQuery({ start, end }: CalendarRangeParams) {
   return useQuery({
-    queryKey: queryKeys.calendarRange.read(start, end),
+    queryKey: queryKeys.calendar.range(start, end),
     queryFn: ({ signal }) => fetchCalendarRange(start, end, signal),
   });
 }

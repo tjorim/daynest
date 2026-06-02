@@ -53,31 +53,36 @@ export const todayHandlers = [
   http.get("/api/calendar/range", ({ request }) => {
     const url = new URL(request.url);
     const start = url.searchParams.get("start") ?? MOCK_TODAY;
+    const end = url.searchParams.get("end") ?? MOCK_TODAY;
     const payload = getTodayPayload();
     return HttpResponse.json({
       items: [
-        ...payload.routines.map((r) => ({
-          item_type: "routine" as const,
-          item_id: r.task_instance_id,
-          title: r.title,
-          status: r.status,
-          scheduled_at: r.due_at,
-          scheduled_date: r.scheduled_date,
-          detail: null,
-          module_key: null,
-        })),
-        ...payload.due_today.map((c) => ({
-          item_type: "chore" as const,
-          item_id: c.chore_instance_id,
-          title: c.title,
-          status: c.status,
-          scheduled_at: null,
-          scheduled_date: c.scheduled_date,
-          detail: null,
-          module_key: null,
-        })),
+        ...payload.routines
+          .filter((r) => r.scheduled_date >= start && r.scheduled_date <= end)
+          .map((r) => ({
+            item_type: "routine" as const,
+            item_id: r.task_instance_id,
+            title: r.title,
+            status: r.status,
+            scheduled_at: r.due_at,
+            scheduled_date: r.scheduled_date,
+            detail: null,
+            module_key: null,
+          })),
+        ...payload.due_today
+          .filter((c) => c.scheduled_date >= start && c.scheduled_date <= end)
+          .map((c) => ({
+            item_type: "chore" as const,
+            item_id: c.chore_instance_id,
+            title: c.title,
+            status: c.status,
+            scheduled_at: null,
+            scheduled_date: c.scheduled_date,
+            detail: null,
+            module_key: null,
+          })),
         ...getMockState()
-          .plannedItems.filter((item) => item.planned_for >= start)
+          .plannedItems.filter((item) => item.planned_for >= start && item.planned_for <= end)
           .map((item) => ({
             item_type: "planned" as const,
             item_id: item.id,

@@ -58,6 +58,12 @@ export function CalendarPage() {
     start: initialMonth.startOf("month").format("YYYY-MM-DD"),
     end: initialMonth.endOf("month").format("YYYY-MM-DD"),
   }));
+  useEffect(() => {
+    setRange({
+      start: initialMonth.startOf("month").format("YYYY-MM-DD"),
+      end: initialMonth.endOf("month").format("YYYY-MM-DD"),
+    });
+  }, [initialMonth]);
   const [selectedItem, setSelectedItem] = useState<UnifiedDayItem | null>(null);
   const [dayActionStatus, setDayActionStatus] = useState<string | null>(null);
   const [isRunningDayAction, setIsRunningDayAction] = useState(false);
@@ -76,10 +82,11 @@ export function CalendarPage() {
   const reloadCalendar = async () => {
     await Promise.all([rangeQuery.refetch(), dayQuery.refetch(), plannedQuery.refetch()]);
   };
+  const monthDayjs = useMemo(() => dayjs(range.start), [range.start]);
   const planned = useCalendarPlannedItems({
     selectedDate,
-    monthStart: dayjs(range.start),
-    monthKey: { year: dayjs(range.start).year(), month: dayjs(range.start).month() + 1 },
+    monthStart: monthDayjs,
+    monthKey: { year: monthDayjs.year(), month: monthDayjs.month() + 1 },
     loadCalendar: reloadCalendar,
   });
 
@@ -120,8 +127,8 @@ export function CalendarPage() {
     }
   };
 
-  const calendar = useCalendarApp(
-    {
+  const calendarConfig = useMemo(
+    (): Parameters<typeof useCalendarApp>[0] => ({
       views: [...views],
       events,
       selectedDate,
@@ -150,9 +157,10 @@ export function CalendarPage() {
           liveRef.current.planned.setTimeOfDay(dateTime.slice(11, 16));
         },
       },
-    },
-    plugins,
+    }),
+    [views, events, selectedDate, calendarDefinitions, setRange, updateSearch],
   );
+  const calendar = useCalendarApp(calendarConfig, plugins);
 
   useEffect(() => {
     calendar?.events.set(events);

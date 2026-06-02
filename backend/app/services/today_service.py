@@ -472,7 +472,7 @@ class TodayService:
     def get_calendar_range(self, user_id: int, start_date: date, end_date: date) -> CalendarRangeResponse:
         if end_date < start_date:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="end must not be before start")
-        if (end_date - start_date).days > MAX_CALENDAR_QUERY_RANGE_DAYS:
+        if (end_date - start_date).days >= MAX_CALENDAR_QUERY_RANGE_DAYS:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Calendar range must not exceed 90 days")
 
         user_tz_str = self.repository.get_user_timezone(user_id)

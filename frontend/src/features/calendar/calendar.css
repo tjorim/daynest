@@ -9,6 +9,7 @@
   --sx-color-surface-container: var(--bs-tertiary-bg);
   --sx-color-on-surface: var(--bs-body-color);
   --sx-color-outline: var(--bs-border-color);
+
   min-height: 44rem;
 }
 
