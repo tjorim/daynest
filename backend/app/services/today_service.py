@@ -486,9 +486,38 @@ class TodayService:
         )
         self._materialize_planned_items_through(user_id=user_id, through_date=end_date)
 
+        routines = self.repository.get_month_routines(user_id=user_id, start_date=start_date, end_date=end_date)
+        chores = self.repository.get_month_chores(user_id=user_id, start_date=start_date, end_date=end_date)
+        medications = self.repository.get_month_medications(user_id=user_id, start_date=start_date, end_date=end_date)
+        planned = self.repository.list_planned_items(user_id=user_id, start_date=start_date, end_date=end_date)
+
+        routines_by_date: defaultdict[date, list] = defaultdict(list)
+        for r in routines:
+            routines_by_date[r.scheduled_date].append(r)
+
+        chores_by_date: defaultdict[date, list] = defaultdict(list)
+        for c in chores:
+            chores_by_date[c.scheduled_date].append(c)
+
+        medications_by_date: defaultdict[date, list] = defaultdict(list)
+        for m in medications:
+            medications_by_date[m.scheduled_date].append(m)
+
+        planned_by_date: defaultdict[date, list] = defaultdict(list)
+        for p in planned:
+            planned_by_date[p.planned_for].append(p)
+
         items: list[UnifiedDayItem] = []
         for offset in range((end_date - start_date).days + 1):
-            items.extend(self.get_day_items(user_id=user_id, for_date=start_date + timedelta(days=offset)).items)
+            current_date = start_date + timedelta(days=offset)
+            items.extend(
+                self._build_day_items(
+                    routines=routines_by_date[current_date],
+                    chores=chores_by_date[current_date],
+                    medications=medications_by_date[current_date],
+                    planned=planned_by_date[current_date],
+                )
+            )
         return CalendarRangeResponse(items=items)
 
     def get_calendar_events(

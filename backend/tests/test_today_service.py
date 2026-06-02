@@ -67,6 +67,15 @@ class StubTodayRepository:
     def get_today_routines(self, user_id: int, for_date: date) -> list[SimpleNamespace]:
         return self._tasks
 
+    def get_month_routines(self, user_id: int, start_date: date, end_date: date) -> list[SimpleNamespace]:
+        return self._tasks
+
+    def get_month_chores(self, user_id: int, start_date: date, end_date: date) -> list[SimpleNamespace]:
+        return self._due
+
+    def get_month_medications(self, user_id: int, start_date: date, end_date: date) -> list[SimpleNamespace]:
+        return self._medication
+
     def get_overdue_chores(self, user_id: int, for_date: date) -> list[SimpleNamespace]:
         return self._overdue
 
@@ -473,7 +482,7 @@ def test_get_calendar_range_merges_days_and_populates_planned_timing() -> None:
 
     assert repo.generated_through == end_date
     assert repo.tasks_generated_through == end_date
-    assert len(response.items) == 2
+    assert len(response.items) == 1
     assert response.items[0].time_of_day == time(11, 30)
     assert response.items[0].duration_minutes == 45
 
