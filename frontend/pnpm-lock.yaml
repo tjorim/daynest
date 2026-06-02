@@ -11,6 +11,21 @@ importers:
       '@inlang/paraglide-js':
         specifier: ^2.18.1
         version: 2.18.1(typescript@6.0.3)
+      '@schedule-x/calendar':
+        specifier: ^2.36.0
+        version: 2.36.0(@preact/signals@2.9.1(preact@10.29.2))(preact@10.29.2)
+      '@schedule-x/drag-and-drop':
+        specifier: ^2.36.0
+        version: 2.36.0
+      '@schedule-x/event-modal':
+        specifier: ^2.36.0
+        version: 2.36.0(@preact/signals@2.9.1(preact@10.29.2))(preact@10.29.2)
+      '@schedule-x/react':
+        specifier: ^2.36.0
+        version: 2.36.0(@schedule-x/calendar@2.36.0(@preact/signals@2.9.1(preact@10.29.2))(preact@10.29.2))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
+      '@schedule-x/theme-default':
+        specifier: ^2.36.0
+        version: 2.36.0
       '@tanstack/react-form':
         specifier: ^1.33.0
         version: 1.33.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
@@ -582,6 +597,14 @@ packages:
   '@popperjs/core@2.11.8':
     resolution: {integrity: sha512-P1st0aksCrn9sGZhp8GMYwBnQsbvAWsZAX44oXNNvLHGqAOcoVxmjZiohstwQ7SqKnbR47akdNi+uleWD8+g6A==}
 
+  '@preact/signals-core@1.14.2':
+    resolution: {integrity: sha512-RZHdBj9ZF4n40Rp4jS052EHHjBWf96P9oNdXPfhQTovCuWY9iQn3Gq+gOTJSgBO9A/JBuPfMOWsSX/lIU9Pc/A==}
+
+  '@preact/signals@2.9.1':
+    resolution: {integrity: sha512-xVqN8mJjbSN5IB/8Ubmd9NN+Ew6zJswoRxrjZbH3YsgkMshFeO6d8zxEFpHRTq9GJZx7cnPs2CnCpFqtGXGNsw==}
+    peerDependencies:
+      preact: '>= 10.25.0 || >=11.0.0-0'
+
   '@react-aria/ssr@3.10.0':
     resolution: {integrity: sha512-mnelvACtfNWWKFCT1YHebxJRmfBmmANGwHQhCFPByMVTx1L8RumcaLxChYkE87g2KPuP5xX2il/oRn1DytW+qQ==}
     engines: {node: '>= 12'}
@@ -718,6 +741,31 @@ packages:
 
   '@rolldown/pluginutils@1.0.1':
     resolution: {integrity: sha512-2j9bGt5Jh8hj+vPtgzPtl72j0yRxHAyumoo6TNfAjsLB04UtpSvPbPcDcBMxz7n+9CYB0c1GxQFxYRg2jimqGw==}
+
+  '@schedule-x/calendar@2.36.0':
+    resolution: {integrity: sha512-UqPMoxjok3SFNvgx1+PY5Whmoig+gU7sjy80z68A9QQ1FjIt1Q3ODPZKdA3G0spDss9lDtKilpO393vWpXJyfg==}
+    peerDependencies:
+      '@preact/signals': ^2.0.2
+      preact: ^10.19.2
+
+  '@schedule-x/drag-and-drop@2.36.0':
+    resolution: {integrity: sha512-6P8snA9h1iJnOwVQl04T6s7ETwUMF0oaprbvGk5C0usjh5tVDxmoUgtQKr5oY0hIS6JLlJ5tup6uHExjuc+uVA==}
+
+  '@schedule-x/event-modal@2.36.0':
+    resolution: {integrity: sha512-dMjgtBhOTy/M/MUy1khGafVqs978zECv2Tb5MM4oBrPOO5ofbuKRpYzIsbnsyz5SsgCX1ThQHTLr7ndN5WocYA==}
+    peerDependencies:
+      '@preact/signals': ^2.0.2
+      preact: ^10.19.2
+
+  '@schedule-x/react@2.36.0':
+    resolution: {integrity: sha512-MZAs67Krn1zmxmmlM1iWUdypmYAiOkIV7Z4wi9PJKWjt4Dtbx8K8Q4kW38aWmfDCImPbfBUGDp3LaP9u53zCzg==}
+    peerDependencies:
+      '@schedule-x/calendar': ^2.25.0
+      react: ^16.7.0 || ^17 || ^18 || ^19
+      react-dom: ^16.7.0 || ^17 || ^18 || ^19
+
+  '@schedule-x/theme-default@2.36.0':
+    resolution: {integrity: sha512-jkN9/srYS54dO2h12iCvNMMrLEiod6BAoUc47KbOgGE66zyUU+kmQwUOYQ3A2LrKyIWjwtCp3Ewdd4h/HHvG9A==}
 
   '@sinclair/typebox@0.31.28':
     resolution: {integrity: sha512-/s55Jujywdw/Jpan+vsy6JZs1z2ZTGxTmbZTPiuSL2wz9mfzA2gN1zzaqmvfi4pq+uOt7Du85fkiwv5ymW84aQ==}
@@ -1520,6 +1568,9 @@ packages:
     resolution: {integrity: sha512-FfR8sjd4em2T6fb3I2MwAJU7HWVMr9zba+enmQeeWFfCbm+UOC/0X4DS8XtpUTMwWMGbjKYP7xjfNekzyGmB3A==}
     engines: {node: ^10 || ^12 || >=14}
 
+  preact@10.29.2:
+    resolution: {integrity: sha512-7tNmwg/7mzzAoB/8kSg6Hl37JraAZw3Z3A0JSY7VXlZwo82Xn0G7wKbNNs2qoF4ZEEsQGTwDAroNdqKs1ofJxQ==}
+
   pretty-format@27.5.1:
     resolution: {integrity: sha512-Qb1gy5OrP5+zDf2Bvnzdl3jsTf1qXVMazbvCoKhtKqVs4/YK4ozX4gKQJJVyNe+cajNPn0KoC0MC3FUmaHWEmQ==}
     engines: {node: ^10.13.0 || ^12.13.0 || ^14.15.0 || >=15.0.0}
@@ -2298,6 +2349,13 @@ snapshots:
 
   '@popperjs/core@2.11.8': {}
 
+  '@preact/signals-core@1.14.2': {}
+
+  '@preact/signals@2.9.1(preact@10.29.2)':
+    dependencies:
+      '@preact/signals-core': 1.14.2
+      preact: 10.29.2
+
   '@react-aria/ssr@3.10.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)':
     dependencies:
       '@swc/helpers': 0.5.21
@@ -2395,6 +2453,26 @@ snapshots:
     optional: true
 
   '@rolldown/pluginutils@1.0.1': {}
+
+  '@schedule-x/calendar@2.36.0(@preact/signals@2.9.1(preact@10.29.2))(preact@10.29.2)':
+    dependencies:
+      '@preact/signals': 2.9.1(preact@10.29.2)
+      preact: 10.29.2
+
+  '@schedule-x/drag-and-drop@2.36.0': {}
+
+  '@schedule-x/event-modal@2.36.0(@preact/signals@2.9.1(preact@10.29.2))(preact@10.29.2)':
+    dependencies:
+      '@preact/signals': 2.9.1(preact@10.29.2)
+      preact: 10.29.2
+
+  '@schedule-x/react@2.36.0(@schedule-x/calendar@2.36.0(@preact/signals@2.9.1(preact@10.29.2))(preact@10.29.2))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)':
+    dependencies:
+      '@schedule-x/calendar': 2.36.0(@preact/signals@2.9.1(preact@10.29.2))(preact@10.29.2)
+      react: 19.2.6
+      react-dom: 19.2.6(react@19.2.6)
+
+  '@schedule-x/theme-default@2.36.0': {}
 
   '@sinclair/typebox@0.31.28': {}
 
@@ -3124,6 +3202,8 @@ snapshots:
       nanoid: 3.3.12
       picocolors: 1.1.1
       source-map-js: 1.2.1
+
+  preact@10.29.2: {}
 
   pretty-format@27.5.1:
     dependencies:

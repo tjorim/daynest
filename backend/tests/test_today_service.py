@@ -1,5 +1,6 @@
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, time, timedelta, timezone
 from types import SimpleNamespace
+from typing import Any, cast
 
 import pytest
 from fastapi import HTTPException
@@ -65,6 +66,15 @@ class StubTodayRepository:
 
     def get_today_routines(self, user_id: int, for_date: date) -> list[SimpleNamespace]:
         return self._tasks
+
+    def get_month_routines(self, user_id: int, start_date: date, end_date: date) -> list[SimpleNamespace]:
+        return self._tasks
+
+    def get_month_chores(self, user_id: int, start_date: date, end_date: date) -> list[SimpleNamespace]:
+        return self._due
+
+    def get_month_medications(self, user_id: int, start_date: date, end_date: date) -> list[SimpleNamespace]:
+        return self._medication
 
     def get_overdue_chores(self, user_id: int, for_date: date) -> list[SimpleNamespace]:
         return self._overdue
@@ -442,3 +452,53 @@ def test_skip_missed_medication_doses_default_cutoff_does_not_touch_today() -> N
     assert count == 1
     assert missed_yesterday.status == MedicationDoseStatus.skipped
     assert missed_today.status == MedicationDoseStatus.missed
+
+
+def test_get_calendar_range_merges_days_and_populates_planned_timing() -> None:
+    start_date = date(2026, 4, 23)
+    end_date = date(2026, 4, 24)
+    planned = [
+        SimpleNamespace(
+            id=77,
+            title="Meal prep",
+            planned_for=start_date,
+            time_of_day=time(11, 30),
+            duration_minutes=45,
+            notes=None,
+            module_key="meal_planning",
+            recurrence_hint=None,
+            rrule=None,
+            recurrence_series_id=None,
+            linked_source=None,
+            linked_ref=None,
+            priority="normal",
+            is_done=False,
+        )
+    ]
+    repo = StubTodayRepository(tasks=[], overdue=[], due=[], upcoming=[], medication=[], medication_history=[], planned=planned)
+    service = TodayService(repository=cast(Any, repo), app_settings=AppSettings())
+
+    response = service.get_calendar_range(user_id=7, start_date=start_date, end_date=end_date)
+
+    assert repo.generated_through == end_date
+    assert repo.tasks_generated_through == end_date
+    assert len(response.items) == 1
+    assert response.items[0].time_of_day == time(11, 30)
+    assert response.items[0].duration_minutes == 45
+
+
+@pytest.mark.parametrize(
+    ("start_date", "end_date"),
+    [
+        (date(2026, 4, 24), date(2026, 4, 23)),
+        (date(2026, 1, 1), date(2026, 4, 2)),
+    ],
+)
+def test_get_calendar_range_rejects_invalid_spans(start_date: date, end_date: date) -> None:
+    repo = StubTodayRepository(tasks=[], overdue=[], due=[], upcoming=[], medication=[], medication_history=[], planned=[])
+    service = TodayService(repository=cast(Any, repo), app_settings=AppSettings())
+
+    with pytest.raises(HTTPException) as exc_info:
+        service.get_calendar_range(user_id=7, start_date=start_date, end_date=end_date)
+
+    assert exc_info.value.status_code == 400

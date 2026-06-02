@@ -425,6 +425,21 @@ def test_calendar_and_planned_endpoints(client: TestClient, db_session: Session)
         day_resp = client.get("/api/calendar/day?date=2026-04-24")
         assert day_resp.status_code == 200
         assert day_resp.json()["items"][0]["item_type"] == "planned"
+        assert day_resp.json()["items"][0]["time_of_day"] == "11:30:00"
+        assert day_resp.json()["items"][0]["duration_minutes"] == 45
+
+        range_resp = client.get("/api/calendar/range?start=2026-04-23&end=2026-04-25")
+        assert range_resp.status_code == 200
+        assert len(range_resp.json()["items"]) == 1
+        assert range_resp.json()["items"][0]["item_type"] == "planned"
+        assert range_resp.json()["items"][0]["time_of_day"] == "11:30:00"
+        assert range_resp.json()["items"][0]["duration_minutes"] == 45
+
+        invalid_range_resp = client.get("/api/calendar/range?start=2026-04-25&end=2026-04-23")
+        assert invalid_range_resp.status_code == 400
+
+        oversized_range_resp = client.get("/api/calendar/range?start=2026-01-01&end=2026-04-02")
+        assert oversized_range_resp.status_code == 400
 
         month_resp = client.get("/api/calendar/month?year=2026&month=4")
         assert month_resp.status_code == 200

@@ -13,7 +13,12 @@
     "custom-card-helpers": "^2.0.0",
     "lit": "^3.0.0",
     "rollup": "^4.0.0",
+    "rollup-plugin-import-css": "^4.2.1",
     "tslib": "^2.0.0",
     "typescript": "^6.0.3"
+  },
+  "dependencies": {
+    "@schedule-x/calendar": "^2.36.0",
+    "@schedule-x/theme-default": "^2.36.0"
   }
 }

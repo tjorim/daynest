@@ -7,6 +7,7 @@ export const queryKeys = {
     all: ["calendar"] as const,
     month: (year: number, month: number) => [...queryKeys.calendar.all, "month", year, month] as const,
     day: (date: string) => [...queryKeys.calendar.all, "day", date] as const,
+    range: (start: string, end: string) => [...queryKeys.calendar.all, "range", start, end] as const,
   },
   plannedItems: {
     all: ["planned-items"] as const,
