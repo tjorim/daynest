@@ -163,6 +163,7 @@ class DaynestCard extends LitElement {
     super.connectedCallback();
     void this._fetchItems();
     void this._fetchWeek();
+    this.requestUpdate();
   }
 
   disconnectedCallback() {
@@ -454,7 +455,7 @@ class DaynestCard extends LitElement {
   }
 
   private async _fetchCalendarRange(start?: string, end?: string) {
-    if (!this._config?.show_calendar || !this._calendar) return;
+    if (!this.hass || !this._config?.show_calendar || !this._calendar) return;
 
     const rangeStart = start ?? this._toIsoDate(new Date());
     const rangeEnd = end ?? this._toIsoDate(this._addDays(new Date(), this._calendarDaysAhead()));
@@ -466,26 +467,28 @@ class DaynestCard extends LitElement {
       const endpoint = `${configuredBase}/api/calendar/range?${params.toString()}`;
       const response = await fetch(endpoint, { headers: this._apiHeaders(configuredBase) });
       if (!response.ok) return;
-      const payload = (await response.json()) as CalendarRangeResponse;
+      const payload = (await response.json()) as CalendarRangeResponse | null;
       if (requestId !== this._calendarRequestId) return;
-      this._calendar.events.set(this._mapCalendarEvents(payload.items));
+      this._calendar.events.set(this._mapCalendarEvents(payload?.items ?? []));
     } catch (error) {
       console.error("Failed to fetch Daynest calendar range", error);
     }
   }
 
   private _mapCalendarEvents(items: UnifiedDayItem[]): CalendarEvent[] {
+    if (!Array.isArray(items)) return [];
     return items.flatMap((item) => {
       const start = item.scheduled_at ? new Date(item.scheduled_at) : null;
+      const isValidStart = start !== null && !isNaN(start.getTime());
       const allDayDate = item.scheduled_date;
-      if (!start && !allDayDate) return [];
+      if (!isValidStart && !allDayDate) return [];
 
       return [{
         id: `${item.item_type}-${item.item_id}`,
         title: item.title,
-        start: start ? this._toScheduleXDateTime(start) : allDayDate!,
-        end: start
-          ? this._toScheduleXDateTime(this._addMinutes(start, item.duration_minutes ?? DEFAULT_EVENT_DURATION_MINUTES))
+        start: isValidStart ? this._toScheduleXDateTime(start!) : allDayDate!,
+        end: isValidStart
+          ? this._toScheduleXDateTime(this._addMinutes(start!, item.duration_minutes ?? DEFAULT_EVENT_DURATION_MINUTES))
           : allDayDate!,
         calendarId: item.item_type,
         _type: item.item_type,
@@ -498,15 +501,23 @@ class DaynestCard extends LitElement {
 
   private _apiHeaders(configuredBase: string): HeadersInit | undefined {
     const accessToken = (this.hass as { auth?: { data?: { access_token?: string } } })?.auth?.data?.access_token;
-    const sameOrigin = configuredBase
-      ? new URL(configuredBase, window.location.origin).origin === window.location.origin
-      : true;
+    let sameOrigin = true;
+    if (configuredBase) {
+      try {
+        sameOrigin = new URL(configuredBase, window.location.origin).origin === window.location.origin;
+      } catch {
+        sameOrigin = false;
+      }
+    }
     return accessToken && sameOrigin ? { Authorization: `Bearer ${accessToken}` } : undefined;
   }
 
   private _calendarDaysAhead() {
     const daysAhead = Number(this._config.calendar_days_ahead);
-    return Number.isFinite(daysAhead) && daysAhead > 0 ? Math.round(daysAhead) : DEFAULT_CALENDAR_DAYS_AHEAD;
+    if (Number.isFinite(daysAhead) && daysAhead > 0) {
+      return Math.min(Math.round(daysAhead), 90);
+    }
+    return DEFAULT_CALENDAR_DAYS_AHEAD;
   }
 
   private _addDays(date: Date, days: number) {
