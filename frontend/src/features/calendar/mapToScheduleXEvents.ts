@@ -12,24 +12,27 @@ export const CALENDAR_COLORS = {
 const DEFAULT_DURATION_MINUTES = 30;
 
 export function mapToScheduleXEvents(items: UnifiedDayItem[]): CalendarEvent[] {
-  return items.map((item) => {
+  return items.flatMap((item) => {
     const start = item.scheduled_at ? dayjs(item.scheduled_at) : null;
+    const dateStr = start ? start.format("YYYY-MM-DD HH:mm") : item.scheduled_date;
 
-    return {
+    if (!dateStr) return [];
+
+    const endStr = start
+      ? start.add(item.duration_minutes ?? DEFAULT_DURATION_MINUTES, "minute").format("YYYY-MM-DD HH:mm")
+      : dateStr;
+
+    return [{
       id: `${item.item_type}-${item.item_id}`,
       title: item.title,
-      start: start ? start.format("YYYY-MM-DD HH:mm") : item.scheduled_date!,
-      end: start
-        ? start
-            .add(item.duration_minutes ?? DEFAULT_DURATION_MINUTES, "minute")
-            .format("YYYY-MM-DD HH:mm")
-        : item.scheduled_date!,
+      start: dateStr,
+      end: endStr,
       calendarId: item.item_type,
       _type: item.item_type,
       _status: item.status,
       _itemId: item.item_id,
       _moduleKey: item.module_key,
       _options: item.item_type === "planned" ? undefined : { disableDND: true },
-    };
+    }];
   });
 }

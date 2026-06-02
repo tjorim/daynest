@@ -59,6 +59,12 @@ describe("mapToScheduleXEvents", () => {
     ).toEqual(itemTypes);
   });
 
+  it("skips items where both scheduled_at and scheduled_date are null", () => {
+    expect(
+      mapToScheduleXEvents([buildItem({ scheduled_at: null, scheduled_date: null })]),
+    ).toEqual([]);
+  });
+
   it("defines colors for every unified item type", () => {
     expect(CALENDAR_COLORS).toEqual({
       routine: "#0d6efd",
