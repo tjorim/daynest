@@ -18,6 +18,7 @@ from app.api.routes.bulk import router as bulk_router
 from app.api.routes.calendar import router as calendar_router
 from app.api.routes.households import router as households_router
 from app.api.routes.search import router as search_router
+from app.api.routes.shopping_lists import router as shopping_lists_router
 from app.api.routes.health import router as system_router
 from app.api.routes.integrations.clients import router as integration_clients_router
 from app.api.routes.integrations.home_assistant import router as home_assistant_router
@@ -191,6 +192,7 @@ app.include_router(auth_router, prefix=settings.api_prefix)
 app.include_router(users_router, prefix=settings.api_prefix)
 app.include_router(analytics_router, prefix=settings.api_prefix)
 app.include_router(households_router, prefix=f"{settings.api_prefix}/households")
+app.include_router(shopping_lists_router, prefix=f"{settings.api_prefix}/shopping-lists")
 app.include_router(integration_clients_router, prefix=settings.api_prefix)
 app.include_router(home_assistant_router, prefix=settings.api_prefix)
 app.include_router(today_router, prefix=settings.api_prefix)

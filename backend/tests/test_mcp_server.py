@@ -903,3 +903,32 @@ def test_mcp_backend_skip_missed_doses_does_not_touch_today(db_session: Session)
     result = backend.skip_missed_medication_doses()  # default: before today
 
     assert result["skipped_count"] == 0
+
+
+def test_mcp_backend_manages_shopping_lists_and_items(db_session: Session) -> None:
+    user = _create_user(db_session, "shopping-mcp@example.com")
+    backend = DaynestMcpBackend(_session_factory(db_session), user_email=user.email)
+
+    shopping_list = backend.create_shopping_list(
+        "Groceries", store="Market", notes="Weekend shop"
+    )
+    assert shopping_list["name"] == "Groceries"
+    assert shopping_list["store"] == "Market"
+
+    listed = backend.list_shopping_lists()
+    assert [item["id"] for item in listed] == [shopping_list["id"]]
+
+    item = backend.add_shopping_item(
+        shopping_list_id=shopping_list["id"],
+        title="Milk",
+        planned_for="2026-06-02",
+        tags=["dairy"],
+    )
+    assert item["module_key"] == "shopping_list"
+    assert item["linked_ref"] == str(shopping_list["id"])
+    assert item["is_done"] is False
+
+    checked = backend.check_off_shopping_item(
+        shopping_list_id=shopping_list["id"], planned_item_id=item["id"]
+    )
+    assert checked["is_done"] is True
