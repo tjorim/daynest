@@ -50,6 +50,49 @@ export const todayHandlers = [
     return HttpResponse.json({ year, month, days });
   }),
 
+  http.get("/api/calendar/range", ({ request }) => {
+    const url = new URL(request.url);
+    const start = url.searchParams.get("start") ?? MOCK_TODAY;
+    const payload = getTodayPayload();
+    return HttpResponse.json({
+      items: [
+        ...payload.routines.map((r) => ({
+          item_type: "routine" as const,
+          item_id: r.task_instance_id,
+          title: r.title,
+          status: r.status,
+          scheduled_at: r.due_at,
+          scheduled_date: r.scheduled_date,
+          detail: null,
+          module_key: null,
+        })),
+        ...payload.due_today.map((c) => ({
+          item_type: "chore" as const,
+          item_id: c.chore_instance_id,
+          title: c.title,
+          status: c.status,
+          scheduled_at: null,
+          scheduled_date: c.scheduled_date,
+          detail: null,
+          module_key: null,
+        })),
+        ...getMockState()
+          .plannedItems.filter((item) => item.planned_for >= start)
+          .map((item) => ({
+            item_type: "planned" as const,
+            item_id: item.id,
+            title: item.title,
+            status: item.is_done ? "done" : "planned",
+            scheduled_at: item.time_of_day ? `${item.planned_for}T${item.time_of_day}` : null,
+            scheduled_date: item.planned_for,
+            duration_minutes: item.duration_minutes,
+            detail: item.notes,
+            module_key: item.module_key,
+          })),
+      ],
+    });
+  }),
+
   http.get("/api/calendar/day", ({ request }) => {
     const url = new URL(request.url);
     const date = url.searchParams.get("date") ?? MOCK_TODAY;

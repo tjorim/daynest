@@ -1,0 +1,22 @@
+@import "@schedule-x/theme-default/dist/index.css";
+
+.daynest-calendar {
+  --sx-color-primary: var(--bs-primary);
+  --sx-color-on-primary: #fff;
+  --sx-color-primary-container: rgba(var(--bs-primary-rgb), 0.14);
+  --sx-color-on-primary-container: var(--bs-body-color);
+  --sx-color-surface: var(--bs-body-bg);
+  --sx-color-surface-container: var(--bs-tertiary-bg);
+  --sx-color-on-surface: var(--bs-body-color);
+  --sx-color-outline: var(--bs-border-color);
+  min-height: 44rem;
+}
+
+.daynest-calendar .sx-react-calendar-wrapper {
+  height: min(74vh, 52rem);
+}
+
+.calendar-event-modal {
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 1080;
+}
