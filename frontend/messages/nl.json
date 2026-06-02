@@ -132,6 +132,7 @@
   "calendar_n_items": "{count} items",
   "calendar_no_items": "Geen items",
   "calendar_module_label": "Module: {key}",
+  "calendar_status_label": "Status",
   "calendar_repeats": "🔁 Herhaalt",
   "calendar_repeat_hint": "🔁 {hint}",
   "calendar_repeat_label": "Herhalen",

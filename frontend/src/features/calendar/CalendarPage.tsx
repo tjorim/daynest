@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import {
   createViewDay,
@@ -13,7 +12,6 @@ import { ScheduleXCalendar, useCalendarApp } from "@schedule-x/react";
 import * as m from "@/paraglide/messages";
 import { isRetryableApiError, type UnifiedDayItem } from "@/lib/api/today";
 import { dayjs, toIsoDate } from "@/lib/dateUtils";
-import { queryKeys } from "@/lib/query/queryKeys";
 import { CalendarEventModal } from "@/features/calendar/CalendarEventModal";
 import { PlannedItemsSidebar } from "@/features/calendar/CalendarPageSections";
 import { CALENDAR_COLORS, mapToScheduleXEvents } from "@/features/calendar/mapToScheduleXEvents";
@@ -51,7 +49,6 @@ const calendarDefinitions = Object.fromEntries(
 export function CalendarPage() {
   const navigate = useNavigate();
   const search = useSearch({ from: "/protected/calendar" });
-  const queryClient = useQueryClient();
   const selectedDate = useMemo(() => toIsoDate(parseDate(search.date) ?? dayjs()), [search.date]);
   const initialMonth = useMemo(
     () => parseDate(search.month ? `${search.month}-01` : undefined) ?? dayjs(),
@@ -132,7 +129,6 @@ export function CalendarPage() {
       callbacks: {
         onRangeUpdate: (nextRange) => {
           setRange(nextRange);
-          void queryClient.invalidateQueries({ queryKey: queryKeys.calendarRange.all });
         },
         onSelectedDateUpdate: updateSearch,
         onEventClick: (event) =>

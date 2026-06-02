@@ -50,7 +50,8 @@ export function CalendarEventModal({
           </div>
           <div className="modal-body d-grid gap-2">
             <div>
-              <strong>Status:</strong> {item.status}
+              <strong>{m.calendar_status_label()}:</strong>{" "}
+              {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
             </div>
             {item.detail ? <div>{item.detail}</div> : null}
             {item.scheduled_date ? (
