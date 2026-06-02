@@ -9,12 +9,15 @@ vi.mock("@tanstack/react-router", async (importOriginal) => {
   return {
     ...actual,
     useNavigate: () => vi.fn(),
-    useSearch: () => ({ month: undefined as string | undefined, date: undefined as string | undefined }),
+    useSearch: () => ({
+      month: undefined as string | undefined,
+      date: undefined as string | undefined,
+    }),
   };
 });
 
 const calendarApiMock = vi.hoisted(() => ({
-  fetchCalendarMonth: vi.fn(),
+  fetchCalendarRange: vi.fn(),
   fetchCalendarDay: vi.fn(),
   listPlannedItems: vi.fn(),
 }));
@@ -23,7 +26,7 @@ vi.mock("@/lib/api/today", async () => {
   const actual = await vi.importActual<typeof import("@/lib/api/today")>("@/lib/api/today");
   return {
     ...actual,
-    fetchCalendarMonth: calendarApiMock.fetchCalendarMonth,
+    fetchCalendarRange: calendarApiMock.fetchCalendarRange,
     fetchCalendarDay: calendarApiMock.fetchCalendarDay,
     listPlannedItems: calendarApiMock.listPlannedItems,
   };
@@ -31,22 +34,42 @@ vi.mock("@/lib/api/today", async () => {
 
 describe("CalendarPage", () => {
   beforeEach(() => {
-    calendarApiMock.fetchCalendarMonth.mockReset();
+    calendarApiMock.fetchCalendarRange.mockReset();
     calendarApiMock.fetchCalendarDay.mockReset();
     calendarApiMock.listPlannedItems.mockReset();
-    calendarApiMock.fetchCalendarMonth.mockResolvedValue({
-      year: 2026,
-      month: 5,
-      days: [{ date: "2026-05-16", total: 2, routines: 1, chores: 1, medications: 0, planned: 0 }],
+    calendarApiMock.fetchCalendarRange.mockResolvedValue({
+      items: [
+        {
+          item_type: "routine",
+          item_id: 1,
+          title: "Morning stretch",
+          status: "pending",
+          scheduled_at: null,
+          scheduled_date: "2026-05-16",
+          detail: null,
+          module_key: null,
+        },
+      ],
     });
     calendarApiMock.fetchCalendarDay.mockResolvedValue({
       date: "2026-05-16",
-      items: [{ item_type: "routine", item_id: 1, title: "Morning stretch", status: "pending", scheduled_at: null, scheduled_date: "2026-05-16", detail: null, module_key: null }],
+      items: [
+        {
+          item_type: "routine",
+          item_id: 1,
+          title: "Morning stretch",
+          status: "pending",
+          scheduled_at: null,
+          scheduled_date: "2026-05-16",
+          detail: null,
+          module_key: null,
+        },
+      ],
     });
     calendarApiMock.listPlannedItems.mockResolvedValue([]);
   });
 
-  it("renders month controls and extracted side panels", async () => {
+  it("renders Schedule-X controls and the retained planned item sidebar", async () => {
     render(
       <QueryTestProvider>
         <CalendarPage />
@@ -54,8 +77,9 @@ describe("CalendarPage", () => {
     );
 
     expect(await screen.findByRole("heading", { name: "Calendar" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "This month" })).toBeInTheDocument();
-    expect(await screen.findByText(/Day details/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Today" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Next period" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Select View" })).toBeInTheDocument();
     expect(screen.getByText("Quick add planned item")).toBeInTheDocument();
     expect(screen.getByLabelText("Repeat")).toBeInTheDocument();
     expect(screen.getByText("Backup export/import")).toBeInTheDocument();

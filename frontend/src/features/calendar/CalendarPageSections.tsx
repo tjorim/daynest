@@ -1,23 +1,11 @@
-import { useMemo, useRef, useState, type ChangeEvent, type RefObject } from "react";
-import type { Dayjs } from "dayjs";
+import type { ChangeEvent, RefObject } from "react";
 import * as m from "@/paraglide/messages";
-import { capitalize, formatDate, toIsoDate } from "@/lib/dateUtils";
-import { type CalendarDayPayload, type CalendarMonthDaySummary, type PlannedItemEditScope, type PlannedItemModuleKey, type PlannedTodayItem } from "@/lib/api/today";
-
-function itemBadgeClass(itemType: string): string {
-  if (itemType === "medication") return "text-bg-info";
-  if (itemType === "routine") return "text-bg-primary";
-  if (itemType === "chore") return "text-bg-warning";
-  return "text-bg-secondary";
-}
-
-function dayItemStatusClass(status: string): string {
-  if (status === "done" || status === "completed" || status === "taken") return "text-bg-success";
-  if (status === "pending") return "text-bg-warning";
-  if (status === "scheduled") return "text-bg-info";
-  if (status === "missed") return "text-bg-danger";
-  return "text-bg-secondary";
-}
+import { formatDate } from "@/lib/dateUtils";
+import {
+  type PlannedItemEditScope,
+  type PlannedItemModuleKey,
+  type PlannedTodayItem,
+} from "@/lib/api/today";
 
 function formatPlannedMeta(item: PlannedTodayItem): string {
   const timeAndDuration = [
@@ -41,16 +29,6 @@ function formatPlannedMeta(item: PlannedTodayItem): string {
   return values.filter(Boolean).join(" • ");
 }
 
-const WEEKDAYS = [
-  m.calendar_weekday_mon,
-  m.calendar_weekday_tue,
-  m.calendar_weekday_wed,
-  m.calendar_weekday_thu,
-  m.calendar_weekday_fri,
-  m.calendar_weekday_sat,
-  m.calendar_weekday_sun,
-];
-
 const WEEKDAY_REPEAT_OPTIONS = [
   { code: "MO", label: m.calendar_weekday_mon },
   { code: "TU", label: m.calendar_weekday_tue },
@@ -60,252 +38,6 @@ const WEEKDAY_REPEAT_OPTIONS = [
   { code: "SA", label: m.calendar_weekday_sat },
   { code: "SU", label: m.calendar_weekday_sun },
 ] as const;
-
-export function MonthNavigationControls({
-  onRefresh,
-  onPrevMonth,
-  onCurrentMonth,
-  onNextMonth,
-}: {
-  onRefresh: () => void;
-  onPrevMonth: () => void;
-  onCurrentMonth: () => void;
-  onNextMonth: () => void;
-}) {
-  return (
-    <div className="d-flex flex-column gap-2 mb-2">
-      <div className="d-flex justify-content-between align-items-center">
-        <h2 className="h4 mb-0">{m.calendar_title()}</h2>
-        <button type="button" className="btn btn-outline-primary btn-sm" onClick={onRefresh}>
-          {m.action_refresh()}
-        </button>
-      </div>
-      <div className="btn-group btn-group-sm w-100" role="group" aria-label="Quick month controls">
-        <button type="button" className="btn btn-outline-secondary" onClick={onPrevMonth}>
-          {m.calendar_prev()}
-        </button>
-        <button type="button" className="btn btn-outline-secondary" onClick={onCurrentMonth}>
-          {m.calendar_this_month()}
-        </button>
-        <button type="button" className="btn btn-outline-secondary" onClick={onNextMonth}>
-          {m.calendar_next()}
-        </button>
-      </div>
-    </div>
-  );
-}
-
-export function CalendarMonthGrid({
-  monthStart,
-  monthItems,
-  selectedDate,
-  onSelectDate,
-  onDropReschedule,
-}: {
-  monthStart: Dayjs;
-  monthItems: CalendarMonthDaySummary[];
-  selectedDate: string;
-  onSelectDate: (date: string) => void;
-  onDropReschedule?: (itemId: number, date: string) => void;
-}) {
-  const daysInMonth = monthStart.daysInMonth();
-  const leadingEmptyDays = (monthStart.day() + 6) % 7;
-  const totalCalendarCells = Math.ceil((leadingEmptyDays + daysInMonth) / 7) * 7;
-  const itemsByDate = useMemo(() => new Map(monthItems.map((item) => [item.date, item])), [monthItems]);
-  const [dragOverDate, setDragOverDate] = useState<string | null>(null);
-
-  return (
-    <div className="card">
-      <div className="card-body p-2 p-md-3">
-        <div className="row row-cols-7 g-1 g-md-2">
-          {WEEKDAYS.map((wd) => (
-            <div key={wd()} className="col text-center small fw-semibold text-muted">
-              {wd()}
-            </div>
-          ))}
-          {Array.from({ length: totalCalendarCells }).map((_, idx) => {
-            const dayNumber = idx - leadingEmptyDays + 1;
-            if (dayNumber < 1 || dayNumber > daysInMonth) {
-              return <div key={`empty-${idx}`} className="col" aria-hidden="true" />;
-            }
-            const dateValue = toIsoDate(monthStart.date(dayNumber));
-            const summary = itemsByDate.get(dateValue);
-            const selected = selectedDate === dateValue;
-            const isDragTarget = !selected && dragOverDate === dateValue;
-            const cellClass = `btn w-100 text-start py-2 ${selected ? "btn-primary" : isDragTarget ? "btn-outline-success" : "btn-outline-secondary"}`;
-            return (
-              <div key={dateValue} className="col">
-                <button
-                  type="button"
-                  className={cellClass}
-                  onClick={() => onSelectDate(dateValue)}
-                  data-date={dateValue}
-                  onDragOver={onDropReschedule ? (e) => { e.preventDefault(); setDragOverDate(dateValue); } : undefined}
-                  onDragLeave={onDropReschedule ? () => setDragOverDate(null) : undefined}
-                  onDrop={onDropReschedule ? (e) => {
-                    e.preventDefault();
-                    setDragOverDate(null);
-                    const rawId = e.dataTransfer.getData("plannedItemId");
-                    const itemId = parseInt(rawId, 10);
-                    if (!isNaN(itemId)) onDropReschedule(itemId, dateValue);
-                  } : undefined}
-                >
-                  <div className="fw-semibold lh-1">{dayNumber}</div>
-                  <small>{summary ? m.calendar_n_items({ count: summary.total }) : m.calendar_no_items()}</small>
-                  {summary ? (
-                    <div className="calendar-cell-meta mt-2">
-                      {summary.routines ? (
-                        <span className="badge text-bg-primary-subtle text-primary-emphasis">
-                          {summary.routines}R
-                        </span>
-                      ) : null}
-                      {summary.chores ? (
-                        <span className="badge text-bg-warning-subtle text-warning-emphasis">
-                          {summary.chores}C
-                        </span>
-                      ) : null}
-                      {summary.medications ? (
-                        <span className="badge text-bg-info-subtle text-info-emphasis">
-                          {summary.medications}M
-                        </span>
-                      ) : null}
-                      {summary.planned ? (
-                        <span className="badge text-bg-secondary">{summary.planned}P</span>
-                      ) : null}
-                    </div>
-                  ) : null}
-                </button>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-export function DayDetailsPanel({
-  selectedDate,
-  dayItems,
-  isAdding,
-  onStartRoutine,
-  onCompleteRoutine,
-  onSkipRoutine,
-  onCompleteChore,
-  onSkipChore,
-  onRescheduleChore,
-}: {
-  selectedDate: string;
-  dayItems: CalendarDayPayload["items"];
-  isAdding: boolean;
-  onStartRoutine: (itemId: number) => Promise<void>;
-  onCompleteRoutine: (itemId: number) => Promise<void>;
-  onSkipRoutine: (itemId: number) => Promise<void>;
-  onCompleteChore: (itemId: number) => Promise<void>;
-  onSkipChore: (itemId: number) => Promise<void>;
-  onRescheduleChore: (itemId: number, scheduledDate: string) => Promise<void>;
-}) {
-  return (
-    <div className="card mb-3">
-      <div className="card-header fw-semibold py-2">{m.calendar_day_details_header({ date: formatDate(selectedDate) })}</div>
-      <ul className="list-group list-group-flush">
-        {dayItems.length === 0 ? (
-          <li className="list-group-item py-2 text-muted">{m.calendar_no_items_for_day()}</li>
-        ) : (
-          dayItems.map((item) => (
-            <li key={`${item.item_type}-${item.item_id}`} className="list-group-item py-2">
-              <div className="d-flex justify-content-between align-items-start gap-3">
-                <div>
-                  <div className="fw-semibold">
-                    {item.rrule || item.recurrence_series_id ? "🔁 " : ""}
-                    {item.title}
-                  </div>
-                  <small className="text-muted">{capitalize(item.status)}</small>
-                  {item.detail ? <small className="d-block">{item.detail}</small> : null}
-                  {item.module_key ? (
-                    <small className="d-block text-muted">{m.calendar_module_label({ key: item.module_key })}</small>
-                  ) : null}
-                  <div className="d-flex gap-2 flex-wrap mt-2">
-                    {item.item_type === "routine" && item.status === "pending" ? (
-                      <button
-                        type="button"
-                        className="btn btn-outline-primary btn-sm"
-                        disabled={isAdding}
-                        onClick={() => void onStartRoutine(item.item_id)}
-                      >
-                        {m.action_start()}
-                      </button>
-                    ) : null}
-                    {item.item_type === "routine" &&
-                    item.status !== "completed" &&
-                    item.status !== "skipped" ? (
-                      <>
-                        <button
-                          type="button"
-                          className="btn btn-success btn-sm"
-                          disabled={isAdding}
-                          onClick={() => void onCompleteRoutine(item.item_id)}
-                        >
-                          {m.action_done()}
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn-outline-secondary btn-sm"
-                          disabled={isAdding}
-                          onClick={() => void onSkipRoutine(item.item_id)}
-                        >
-                          {m.action_skip()}
-                        </button>
-                      </>
-                    ) : null}
-                    {item.item_type === "chore" && item.status === "pending" ? (
-                      <>
-                        <button
-                          type="button"
-                          className="btn btn-success btn-sm"
-                          disabled={isAdding}
-                          onClick={() => void onCompleteChore(item.item_id)}
-                        >
-                          {m.action_done()}
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn-outline-secondary btn-sm"
-                          disabled={isAdding}
-                          onClick={() => void onSkipChore(item.item_id)}
-                        >
-                          {m.action_skip()}
-                        </button>
-                        {item.scheduled_date ? (
-                          <button
-                            type="button"
-                            className="btn btn-outline-primary btn-sm"
-                            disabled={isAdding}
-                            onClick={() =>
-                              void onRescheduleChore(item.item_id, item.scheduled_date as string)
-                            }
-                          >
-                            {m.action_reschedule_1_day()}
-                          </button>
-                        ) : null}
-                      </>
-                    ) : null}
-                  </div>
-                </div>
-                <div className="d-grid gap-1 text-end">
-                  <span className={`badge ${itemBadgeClass(item.item_type)}`}>{item.item_type}</span>
-                  <span className={`badge ${dayItemStatusClass(item.status)}`}>
-                    {capitalize(item.status)}
-                  </span>
-                </div>
-              </div>
-            </li>
-          ))
-        )}
-      </ul>
-    </div>
-  );
-}
 
 export function PlannedItemsSidebar({
   selectedDate,
@@ -352,7 +84,6 @@ export function PlannedItemsSidebar({
   fileInputRef,
   onExportBackup,
   onImportFile,
-  onDropReschedule,
 }: {
   selectedDate: string;
   plannedItems: PlannedTodayItem[];
@@ -398,9 +129,7 @@ export function PlannedItemsSidebar({
   fileInputRef: RefObject<HTMLInputElement | null>;
   onExportBackup: () => Promise<void>;
   onImportFile: (event: ChangeEvent<HTMLInputElement>) => Promise<void>;
-  onDropReschedule?: (itemId: number, date: string) => void;
 }) {
-  const touchCloneRef = useRef<HTMLElement | null>(null);
   return (
     <>
       <div className="card mb-3">
@@ -474,7 +203,9 @@ export function PlannedItemsSidebar({
                   className="form-select"
                   value={repeatPreset}
                   onChange={(event) =>
-                    onSetRepeatPreset(event.target.value as "daily" | "weekly" | "monthly" | "custom")
+                    onSetRepeatPreset(
+                      event.target.value as "daily" | "weekly" | "monthly" | "custom",
+                    )
                   }
                   aria-label={m.calendar_repeat_schedule_aria()}
                 >
@@ -591,48 +322,15 @@ export function PlannedItemsSidebar({
       </div>
 
       <div className="card mb-3">
-        <div className="card-header fw-semibold py-2">{m.calendar_planned_items_header({ date: formatDate(selectedDate) })}</div>
+        <div className="card-header fw-semibold py-2">
+          {m.calendar_planned_items_header({ date: formatDate(selectedDate) })}
+        </div>
         <ul className="list-group list-group-flush">
           {plannedItems.length === 0 ? (
             <li className="list-group-item py-2 text-muted">{m.calendar_no_planned_items()}</li>
           ) : (
             plannedItems.map((item) => (
-              <li
-                key={item.id}
-                className="list-group-item py-2"
-                draggable
-                onDragStart={(e) => {
-                  e.dataTransfer.setData("plannedItemId", String(item.id));
-                  e.dataTransfer.effectAllowed = "move";
-                }}
-                onTouchStart={(e) => {
-                  if (!onDropReschedule) return;
-                  const rect = e.currentTarget.getBoundingClientRect();
-                  const clone = e.currentTarget.cloneNode(true) as HTMLElement;
-                  clone.style.cssText = `position:fixed;top:${rect.top}px;left:${rect.left}px;width:${rect.width}px;opacity:0.75;pointer-events:none;z-index:9999;background:var(--bs-body-bg);border:1px solid var(--bs-border-color);border-radius:4px;`;
-                  document.body.appendChild(clone);
-                  touchCloneRef.current = clone;
-                }}
-                onTouchMove={(e) => {
-                  if (!touchCloneRef.current) return;
-                  e.preventDefault();
-                  const touch = e.touches[0];
-                  if (!touch) return;
-                  touchCloneRef.current.style.top = `${touch.clientY - 20}px`;
-                  touchCloneRef.current.style.left = `${touch.clientX - 20}px`;
-                }}
-                onTouchEnd={(e) => {
-                  touchCloneRef.current?.remove();
-                  touchCloneRef.current = null;
-                  if (!onDropReschedule) return;
-                  const touch = e.changedTouches[0];
-                  if (!touch) return;
-                  const el = document.elementFromPoint(touch.clientX, touch.clientY);
-                  const cell = el?.closest("[data-date]") as HTMLElement | null;
-                  const date = cell?.dataset.date;
-                  if (date) onDropReschedule(item.id, date);
-                }}
-              >
+              <li key={item.id} className="list-group-item py-2">
                 <div className="d-flex justify-content-between align-items-start gap-3">
                   <div>
                     <div className="fw-semibold">
@@ -642,7 +340,9 @@ export function PlannedItemsSidebar({
                     <small className="text-muted d-block">{formatPlannedMeta(item)}</small>
                     {item.notes ? <small className="d-block mt-1">{item.notes}</small> : null}
                     {item.linked_ref ? (
-                      <small className="d-block text-muted">{m.calendar_ref_label({ ref: item.linked_ref })}</small>
+                      <small className="d-block text-muted">
+                        {m.calendar_ref_label({ ref: item.linked_ref })}
+                      </small>
                     ) : null}
                   </div>
                   <div className="d-grid gap-2">

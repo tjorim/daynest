@@ -30,6 +30,7 @@ describe("mapToScheduleXEvents", () => {
         _status: "pending",
         _itemId: 42,
         _moduleKey: "shared_calendar",
+        _options: { disableDND: true },
       },
     ]);
   });

@@ -1,6 +1,8 @@
-import { LitElement, PropertyValues, html } from "lit";
+import { LitElement, PropertyValues, html, unsafeCSS } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { HomeAssistant } from "custom-card-helpers";
+import { CalendarApp, CalendarEvent, createCalendar, createViewMonthAgenda } from "@schedule-x/calendar";
+import scheduleXTheme from "@schedule-x/theme-default/dist/index.css";
 import { DaynestCardConfig, sensorNum, sensorStr } from "./types";
 import { cardStyles } from "./styles";
 
@@ -9,6 +11,21 @@ interface TodoItem {
   summary: string;
   status: "needs_action" | "completed";
   description?: string;
+}
+
+interface UnifiedDayItem {
+  item_type: "routine" | "chore" | "medication" | "planned";
+  item_id: number;
+  title: string;
+  status: string;
+  scheduled_at: string | null;
+  scheduled_date: string | null;
+  duration_minutes?: number | null;
+  module_key: string | null;
+}
+
+interface CalendarRangeResponse {
+  items: UnifiedDayItem[];
 }
 
 interface DailyCount {
@@ -44,6 +61,15 @@ type CardGridOptions = {
 };
 
 const DEFAULT_SENSOR_PREFIX = "sensor.daynest_";
+const DEFAULT_CALENDAR_DAYS_AHEAD = 30;
+const DEFAULT_EVENT_DURATION_MINUTES = 30;
+
+const calendarColors = {
+  routine: "#0d6efd",
+  chore: "#ffc107",
+  medication: "#0dcaf0",
+  planned: "#6f42c1",
+} as const;
 
 const serviceMap = {
   due: {
@@ -120,7 +146,7 @@ type WindowWithCustomCards = Window & {
 
 @customElement("daynest-card")
 class DaynestCard extends LitElement {
-  static styles = cardStyles;
+  static styles = [unsafeCSS(scheduleXTheme), cardStyles];
 
   @property({ attribute: false }) public hass!: HomeAssistant;
   @state() private _config!: DaynestCardConfig;
@@ -130,11 +156,19 @@ class DaynestCard extends LitElement {
   @state() private _quickAddTitle = "";
   @state() private _quickAddPlannedFor = "";
   @state() private _quickAddPending = false;
+  private _calendar?: CalendarApp;
+  private _calendarRequestId = 0;
 
   connectedCallback() {
     super.connectedCallback();
     void this._fetchItems();
     void this._fetchWeek();
+    this.requestUpdate();
+  }
+
+  disconnectedCallback() {
+    this._destroyCalendar();
+    super.disconnectedCallback();
   }
 
   static getConfigForm() {
@@ -179,6 +213,18 @@ class DaynestCard extends LitElement {
           default: true,
         },
         {
+          name: "show_calendar",
+          label: "Show calendar",
+          selector: { boolean: {} },
+          default: false,
+        },
+        {
+          name: "calendar_days_ahead",
+          label: "Calendar days ahead",
+          selector: { number: { min: 1, max: 90, mode: "box" } },
+          default: DEFAULT_CALENDAR_DAYS_AHEAD,
+        },
+        {
           name: "snooze_days",
           label: "Snooze days override",
           selector: { number: { min: 1, max: 14, mode: "box" } },
@@ -199,6 +245,8 @@ class DaynestCard extends LitElement {
       todo_entity: "todo.daynest_today",
       view: "full",
       show_quick_add: true,
+      show_calendar: false,
+      calendar_days_ahead: DEFAULT_CALENDAR_DAYS_AHEAD,
     };
   }
 
@@ -207,6 +255,11 @@ class DaynestCard extends LitElement {
     this._config = config;
     void this._fetchItems();
     void this._fetchWeek();
+    void this._fetchCalendarRange();
+  }
+
+  protected firstUpdated() {
+    this._syncCalendar();
   }
 
   getCardSize(): number {
@@ -218,6 +271,7 @@ class DaynestCard extends LitElement {
   }
 
   protected updated(changedProps: PropertyValues<this>) {
+    this._syncCalendar();
     if (!changedProps.has("hass")) return;
     const todoEntity = this._config?.todo_entity ?? "todo.daynest_today";
     const prevHass = changedProps.get("hass") as HomeAssistant | undefined;
@@ -255,6 +309,7 @@ class DaynestCard extends LitElement {
             .map((metric) => this._metricTile(metricValue(metric.suffix), metric.label))}
         </div>
         ${showMed ? html`<div class="med-chip">💊 Next: ${nextMed}</div>` : ""}
+        ${this._config.show_calendar ? html`<div class="calendar-section"><div id="daynest-calendar"></div></div>` : ""}
         ${view === "week"
           ? this._renderWeekView()
           : html`
@@ -361,6 +416,133 @@ class DaynestCard extends LitElement {
     }
   }
 
+  private _syncCalendar() {
+    if (!this._config?.show_calendar) {
+      this._destroyCalendar();
+      return;
+    }
+    if (this._calendar) return;
+
+    const container = this.renderRoot.querySelector<HTMLElement>("#daynest-calendar");
+    if (!container) return;
+
+    this._calendar = createCalendar({
+      views: [createViewMonthAgenda()],
+      defaultView: "month-agenda",
+      events: [],
+      calendars: Object.fromEntries(
+        Object.entries(calendarColors).map(([name, color]) => [
+          name,
+          {
+            colorName: name,
+            lightColors: { main: color, container: color, onContainer: "#111111" },
+            darkColors: { main: color, container: color, onContainer: "#111111" },
+          },
+        ]),
+      ),
+      callbacks: {
+        onRangeUpdate: ({ start, end }) => void this._fetchCalendarRange(start, end),
+      },
+    });
+    this._calendar.render(container);
+    void this._fetchCalendarRange();
+  }
+
+  private _destroyCalendar() {
+    this._calendarRequestId += 1;
+    this._calendar?.destroy();
+    this._calendar = undefined;
+  }
+
+  private async _fetchCalendarRange(start?: string, end?: string) {
+    if (!this.hass || !this._config?.show_calendar || !this._calendar) return;
+
+    const rangeStart = start ?? this._toIsoDate(new Date());
+    const rangeEnd = end ?? this._toIsoDate(this._addDays(new Date(), this._calendarDaysAhead()));
+    const params = new URLSearchParams({ start: rangeStart, end: rangeEnd });
+    const requestId = ++this._calendarRequestId;
+
+    try {
+      const configuredBase = (this._config.api_base_url ?? "").trim().replace(/\/$/, "");
+      const endpoint = `${configuredBase}/api/calendar/range?${params.toString()}`;
+      const response = await fetch(endpoint, { headers: this._apiHeaders(configuredBase) });
+      if (!response.ok) return;
+      const payload = (await response.json()) as CalendarRangeResponse | null;
+      if (requestId !== this._calendarRequestId) return;
+      this._calendar.events.set(this._mapCalendarEvents(payload?.items ?? []));
+    } catch (error) {
+      console.error("Failed to fetch Daynest calendar range", error);
+    }
+  }
+
+  private _mapCalendarEvents(items: UnifiedDayItem[]): CalendarEvent[] {
+    if (!Array.isArray(items)) return [];
+    return items.flatMap((item) => {
+      const start = item.scheduled_at ? new Date(item.scheduled_at) : null;
+      const isValidStart = start !== null && !isNaN(start.getTime());
+      const allDayDate = item.scheduled_date;
+      if (!isValidStart && !allDayDate) return [];
+
+      return [{
+        id: `${item.item_type}-${item.item_id}`,
+        title: item.title,
+        start: isValidStart ? this._toScheduleXDateTime(start!) : allDayDate!,
+        end: isValidStart
+          ? this._toScheduleXDateTime(this._addMinutes(start!, item.duration_minutes ?? DEFAULT_EVENT_DURATION_MINUTES))
+          : allDayDate!,
+        calendarId: item.item_type,
+        _type: item.item_type,
+        _status: item.status,
+        _itemId: item.item_id,
+        _moduleKey: item.module_key,
+      }];
+    });
+  }
+
+  private _apiHeaders(configuredBase: string): HeadersInit | undefined {
+    const accessToken = (this.hass as { auth?: { data?: { access_token?: string } } })?.auth?.data?.access_token;
+    let sameOrigin = true;
+    if (configuredBase) {
+      try {
+        sameOrigin = new URL(configuredBase, window.location.origin).origin === window.location.origin;
+      } catch {
+        sameOrigin = false;
+      }
+    }
+    return accessToken && sameOrigin ? { Authorization: `Bearer ${accessToken}` } : undefined;
+  }
+
+  private _calendarDaysAhead() {
+    const daysAhead = Number(this._config.calendar_days_ahead);
+    if (Number.isFinite(daysAhead) && daysAhead > 0) {
+      return Math.min(Math.round(daysAhead), 90);
+    }
+    return DEFAULT_CALENDAR_DAYS_AHEAD;
+  }
+
+  private _addDays(date: Date, days: number) {
+    const next = new Date(date);
+    next.setDate(next.getDate() + days);
+    return next;
+  }
+
+  private _addMinutes(date: Date, minutes: number) {
+    return new Date(date.getTime() + minutes * 60_000);
+  }
+
+  private _toIsoDate(date: Date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  }
+
+  private _toScheduleXDateTime(date: Date) {
+    const hours = String(date.getHours()).padStart(2, "0");
+    const minutes = String(date.getMinutes()).padStart(2, "0");
+    return `${this._toIsoDate(date)} ${hours}:${minutes}`;
+  }
+
   private async _fetchWeek() {
     if ((this._config?.view ?? "full") !== "week") return;
     try {
@@ -368,13 +550,7 @@ class DaynestCard extends LitElement {
       const endpoint = configuredBase
         ? `${configuredBase}/api/analytics/summary?period=week`
         : "/api/analytics/summary?period=week";
-      const accessToken = (this.hass as { auth?: { data?: { access_token?: string } } })?.auth?.data?.access_token;
-      const sameOrigin = configuredBase
-        ? new URL(configuredBase, window.location.origin).origin === window.location.origin
-        : true;
-      const response = await fetch(endpoint, {
-        headers: accessToken && sameOrigin ? { Authorization: `Bearer ${accessToken}` } : undefined,
-      });
+      const response = await fetch(endpoint, { headers: this._apiHeaders(configuredBase) });
       if (!response.ok) return;
       const summary = (await response.json()) as WeekSummaryResponse;
       this._week = this._normalizeWeek(summary);
@@ -508,6 +684,7 @@ class DaynestCard extends LitElement {
     }
     await this._fetchItems();
     await this._fetchWeek();
+    await this._fetchCalendarRange();
   }
 
   private _renderQuickAdd() {
@@ -556,6 +733,7 @@ class DaynestCard extends LitElement {
       this._quickAddPlannedFor = "";
       await this._fetchItems();
       await this._fetchWeek();
+      await this._fetchCalendarRange();
     } catch (error) {
       console.error("Failed to create Daynest planned item", error);
     } finally {

@@ -7,6 +7,22 @@ export const cardStyles = css`
     --daynest-color-overdue: var(--error-color, #dc3545);
     --daynest-color-skipped: var(--disabled-color, #6c757d);
     --daynest-color-pending: var(--info-color, #17a2b8);
+    --sx-color-primary: var(--primary-color);
+    --sx-color-on-primary: var(--text-primary-color, #ffffff);
+    --sx-color-primary-container: color-mix(in srgb, var(--primary-color) 20%, var(--card-background-color));
+    --sx-color-on-primary-container: var(--primary-text-color);
+    --sx-color-surface: var(--card-background-color);
+    --sx-color-surface-dim: var(--secondary-background-color, var(--card-background-color));
+    --sx-color-surface-container: var(--secondary-background-color, var(--card-background-color));
+    --sx-color-surface-container-low: var(--secondary-background-color, var(--card-background-color));
+    --sx-color-surface-container-high: var(--divider-color);
+    --sx-color-background: var(--card-background-color);
+    --sx-color-on-background: var(--primary-text-color);
+    --sx-color-on-surface: var(--primary-text-color);
+    --sx-color-neutral: var(--secondary-text-color);
+    --sx-color-neutral-variant: var(--secondary-text-color);
+    --sx-color-outline: var(--divider-color);
+    --sx-color-outline-variant: var(--divider-color);
   }
 
   ha-card {
@@ -73,6 +89,16 @@ export const cardStyles = css`
     background: color-mix(in srgb, var(--primary-color) 18%, transparent);
     color: var(--primary-text-color);
     font-size: 0.85rem;
+  }
+
+  .calendar-section {
+    margin-top: 12px;
+  }
+
+  #daynest-calendar {
+    height: 430px;
+    max-height: 60vh;
+    overflow: auto;
   }
 
   .task-list {

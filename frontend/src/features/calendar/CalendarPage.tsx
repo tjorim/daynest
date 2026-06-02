@@ -1,19 +1,23 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearch } from "@tanstack/react-router";
+import {
+  createViewDay,
+  createViewMonthAgenda,
+  createViewMonthGrid,
+  createViewWeek,
+} from "@schedule-x/calendar";
+import { createDragAndDropPlugin } from "@schedule-x/drag-and-drop";
+import { createEventModalPlugin } from "@schedule-x/event-modal";
+import { ScheduleXCalendar, useCalendarApp } from "@schedule-x/react";
 import * as m from "@/paraglide/messages";
-import {
-  isRetryableApiError,
-} from "@/lib/api/today";
-import { dayjs, formatMonthYear, toIsoDate } from "@/lib/dateUtils";
-import {
-  CalendarMonthGrid,
-  DayDetailsPanel,
-  MonthNavigationControls,
-  PlannedItemsSidebar,
-} from "@/features/calendar/CalendarPageSections";
+import { isRetryableApiError, type UnifiedDayItem } from "@/lib/api/today";
+import { dayjs, toIsoDate } from "@/lib/dateUtils";
+import { CalendarEventModal } from "@/features/calendar/CalendarEventModal";
+import { PlannedItemsSidebar } from "@/features/calendar/CalendarPageSections";
+import { CALENDAR_COLORS, mapToScheduleXEvents } from "@/features/calendar/mapToScheduleXEvents";
+import { useCalendarPlannedItems } from "@/features/calendar/useCalendarPlannedItems";
 import {
   useCalendarDayQuery,
-  useCalendarMonthQuery,
   useCalendarPlannedItemsQuery,
   useCompleteChoreMutation,
   useCompleteRoutineTaskMutation,
@@ -22,40 +26,42 @@ import {
   useSkipRoutineTaskMutation,
   useStartRoutineTaskMutation,
 } from "@/features/calendar/useCalendarQueries";
-import { useCalendarPlannedItems } from "@/features/calendar/useCalendarPlannedItems";
-
-function parseMonth(value?: string) {
-  if (!value) return null;
-  const parsed = dayjs(`${value}-01`);
-  if (!parsed.isValid() || parsed.format("YYYY-MM") !== value) {
-    return null;
-  }
-  return parsed;
-}
+import { useCalendarRangeQuery } from "@/features/calendar/useCalendarRangeQuery";
+import "@/features/calendar/calendar.css";
 
 function parseDate(value?: string) {
   if (!value) return null;
   const parsed = dayjs(value);
-  if (!parsed.isValid() || parsed.format("YYYY-MM-DD") !== value) {
-    return null;
-  }
-  return parsed;
+  return parsed.isValid() && parsed.format("YYYY-MM-DD") === value ? parsed : null;
 }
+
+const calendarDefinitions = Object.fromEntries(
+  Object.entries(CALENDAR_COLORS).map(([id, color]) => [
+    id,
+    {
+      colorName: id,
+      lightColors: { main: color, container: `${color}22`, onContainer: "#212529" },
+      darkColors: { main: color, container: `${color}44`, onContainer: "#f8f9fa" },
+    },
+  ]),
+);
 
 export function CalendarPage() {
   const navigate = useNavigate();
   const search = useSearch({ from: "/protected/calendar" });
-  const currentMonth = useMemo(() => parseMonth(search.month) ?? dayjs(), [search.month]);
   const selectedDate = useMemo(() => toIsoDate(parseDate(search.date) ?? dayjs()), [search.date]);
+  const initialMonth = useMemo(
+    () => parseDate(search.month ? `${search.month}-01` : undefined) ?? dayjs(),
+    [search.month],
+  );
+  const [range, setRange] = useState(() => ({
+    start: initialMonth.startOf("month").format("YYYY-MM-DD"),
+    end: initialMonth.endOf("month").format("YYYY-MM-DD"),
+  }));
+  const [selectedItem, setSelectedItem] = useState<UnifiedDayItem | null>(null);
   const [dayActionStatus, setDayActionStatus] = useState<string | null>(null);
   const [isRunningDayAction, setIsRunningDayAction] = useState(false);
-
-  const monthKey = useMemo(
-    () => ({ year: currentMonth.year(), month: currentMonth.month() + 1 }),
-    [currentMonth],
-  );
-  const monthStart = currentMonth.startOf("month");
-  const monthQuery = useCalendarMonthQuery(monthKey.year, monthKey.month);
+  const rangeQuery = useCalendarRangeQuery(range);
   const dayQuery = useCalendarDayQuery(selectedDate);
   const plannedQuery = useCalendarPlannedItemsQuery(selectedDate);
   const startRoutineTaskMutation = useStartRoutineTaskMutation();
@@ -65,31 +71,39 @@ export function CalendarPage() {
   const skipChoreMutation = useSkipChoreMutation();
   const rescheduleChoreMutation = useRescheduleChoreMutation();
 
-  const updateSearch = (nextMonth: dayjs.Dayjs, nextDate: string) => {
-    void navigate({
-      to: "/calendar",
-      search: {
-        month: nextMonth.format("YYYY-MM"),
-        date: nextDate,
-      },
-      replace: true,
-    });
-  };
-
+  const updateSearch = (date: string) =>
+    void navigate({ to: "/calendar", search: { date, month: date.slice(0, 7) }, replace: true });
   const reloadCalendar = async () => {
-    await Promise.all([monthQuery.refetch(), dayQuery.refetch(), plannedQuery.refetch()]);
+    await Promise.all([rangeQuery.refetch(), dayQuery.refetch(), plannedQuery.refetch()]);
   };
-
   const planned = useCalendarPlannedItems({
     selectedDate,
-    monthStart,
-    monthKey,
+    monthStart: dayjs(range.start),
+    monthKey: { year: dayjs(range.start).year(), month: dayjs(range.start).month() + 1 },
     loadCalendar: reloadCalendar,
   });
 
-  useEffect(() => {
-    planned.setPlannedItems(plannedQuery.data ?? []);
-  }, [plannedQuery.data]);
+  useEffect(() => planned.setPlannedItems(plannedQuery.data ?? []), [plannedQuery.data]);
+
+  const itemsByEventId = useMemo(
+    () =>
+      new Map(
+        (rangeQuery.data?.items ?? []).map((item) => [`${item.item_type}-${item.item_id}`, item]),
+      ),
+    [rangeQuery.data],
+  );
+  const liveRef = useRef({ itemsByEventId, planned });
+  liveRef.current = { itemsByEventId, planned };
+  const events = useMemo(
+    () => mapToScheduleXEvents(rangeQuery.data?.items ?? []),
+    [rangeQuery.data],
+  );
+  const plugins = useMemo(() => [createDragAndDropPlugin(), createEventModalPlugin()], []);
+  const views = useMemo(
+    () =>
+      [createViewMonthGrid(), createViewWeek(), createViewDay(), createViewMonthAgenda()] as const,
+    [],
+  );
 
   const runDayItemAction = async (action: () => Promise<unknown>, successMessage: string) => {
     setDayActionStatus(null);
@@ -98,6 +112,7 @@ export function CalendarPage() {
     try {
       await action();
       setDayActionStatus(successMessage);
+      setSelectedItem(null);
     } catch (err) {
       planned.setAddError(err instanceof Error ? err.message : "Action failed.");
     } finally {
@@ -105,37 +120,75 @@ export function CalendarPage() {
     }
   };
 
-  const loading = monthQuery.isPending || dayQuery.isPending || plannedQuery.isPending;
-  const queryError = monthQuery.error ?? dayQuery.error ?? plannedQuery.error;
-  const error = queryError instanceof Error ? queryError.message : queryError ? "Unable to load calendar view." : null;
-  const canRetry = queryError ? isRetryableApiError(queryError) : false;
+  const calendar = useCalendarApp(
+    {
+      views: [...views],
+      events,
+      selectedDate,
+      calendars: calendarDefinitions,
+      callbacks: {
+        onRangeUpdate: (nextRange) => {
+          setRange(nextRange);
+        },
+        onSelectedDateUpdate: updateSearch,
+        onEventClick: (event) =>
+          setSelectedItem(liveRef.current.itemsByEventId.get(String(event.id)) ?? null),
+        onEventUpdate: (event) => {
+          if (event._type !== "planned") return;
+          void liveRef.current.planned.dragReschedulePlannedItem(
+            Number(event._itemId),
+            event.start.slice(0, 10),
+          );
+        },
+        onClickDate: (date) => {
+          updateSearch(date);
+          liveRef.current.planned.resetPlannedForm();
+        },
+        onClickDateTime: (dateTime) => {
+          updateSearch(dateTime.slice(0, 10));
+          liveRef.current.planned.resetPlannedForm();
+          liveRef.current.planned.setTimeOfDay(dateTime.slice(11, 16));
+        },
+      },
+    },
+    plugins,
+  );
+
+  useEffect(() => {
+    calendar?.events.set(events);
+  }, [calendar, events]);
+
+  const loading = rangeQuery.isPending || dayQuery.isPending || plannedQuery.isPending;
+  const queryError = rangeQuery.error ?? dayQuery.error ?? plannedQuery.error;
+  const error =
+    queryError instanceof Error
+      ? queryError.message
+      : queryError
+        ? "Unable to load calendar view."
+        : null;
 
   return (
     <section>
-      <MonthNavigationControls
-        onRefresh={() => void reloadCalendar()}
-        onPrevMonth={() => {
-          const nextMonth = currentMonth.subtract(1, "month");
-          updateSearch(nextMonth, selectedDate);
-        }}
-        onCurrentMonth={() => {
-          const nextMonth = dayjs();
-          const nextDate = toIsoDate(nextMonth);
-          updateSearch(nextMonth, nextDate);
-        }}
-        onNextMonth={() => {
-          const nextMonth = currentMonth.add(1, "month");
-          updateSearch(nextMonth, selectedDate);
-        }}
-      />
-      <p className="text-muted">{formatMonthYear(monthStart)} {m.calendar_subtitle()}</p>
-
+      <div className="d-flex justify-content-between align-items-center gap-2 mb-2">
+        <h2 className="h4 mb-0">{m.calendar_title()}</h2>
+        <button
+          type="button"
+          className="btn btn-outline-primary btn-sm"
+          onClick={() => void reloadCalendar()}
+        >
+          {m.action_refresh()}
+        </button>
+      </div>
       {loading ? <div className="alert alert-info py-2">{m.calendar_loading()}</div> : null}
       {error ? (
-        <div className="alert alert-danger py-2 d-flex justify-content-between align-items-center gap-2 flex-wrap">
+        <div className="alert alert-danger py-2 d-flex justify-content-between align-items-center gap-2">
           <span>{error}</span>
-          {canRetry ? (
-            <button type="button" className="btn btn-danger btn-sm" onClick={() => void reloadCalendar()}>
+          {isRetryableApiError(queryError) ? (
+            <button
+              type="button"
+              className="btn btn-danger btn-sm"
+              onClick={() => void reloadCalendar()}
+            >
               {m.action_retry()}
             </button>
           ) : null}
@@ -147,50 +200,16 @@ export function CalendarPage() {
       {planned.addError && planned.editingPlannedItemId === null ? (
         <div className="alert alert-danger py-2">{planned.addError}</div>
       ) : null}
-
       <div className="row g-3">
-        <div className="col-lg-7">
-          <CalendarMonthGrid
-            monthStart={monthStart}
-            monthItems={monthQuery.data?.days ?? []}
-            selectedDate={selectedDate}
-            onSelectDate={(date) => {
-              updateSearch(currentMonth, date);
-            }}
-            onDropReschedule={planned.dragReschedulePlannedItem}
-          />
+        <div className="col-xl-8">
+          <div className="daynest-calendar card p-2">
+            <ScheduleXCalendar
+              calendarApp={calendar}
+              customComponents={{ eventModal: () => null }}
+            />
+          </div>
         </div>
-
-        <div className="col-lg-5">
-          <DayDetailsPanel
-            selectedDate={selectedDate}
-            dayItems={dayQuery.data?.items ?? []}
-            isAdding={planned.isAdding || isRunningDayAction}
-            onStartRoutine={(itemId) =>
-              runDayItemAction(() => startRoutineTaskMutation.mutateAsync(itemId), m.action_start())
-            }
-            onCompleteRoutine={(itemId) =>
-              runDayItemAction(() => completeRoutineTaskMutation.mutateAsync(itemId), m.action_done())
-            }
-            onSkipRoutine={(itemId) =>
-              runDayItemAction(() => skipRoutineTaskMutation.mutateAsync(itemId), m.action_skip())
-            }
-            onCompleteChore={(itemId) =>
-              runDayItemAction(() => completeChoreMutation.mutateAsync(itemId), m.action_done())
-            }
-            onSkipChore={(itemId) => runDayItemAction(() => skipChoreMutation.mutateAsync(itemId), m.action_skip())}
-            onRescheduleChore={(itemId, scheduledDate) =>
-              runDayItemAction(
-                () =>
-                  rescheduleChoreMutation.mutateAsync({
-                    choreInstanceId: itemId,
-                    scheduledDate: toIsoDate(dayjs(scheduledDate).add(1, "day")),
-                  }),
-                m.action_reschedule_1_day(),
-              )
-            }
-          />
-
+        <div className="col-xl-4">
           <PlannedItemsSidebar
             selectedDate={selectedDate}
             plannedItems={planned.plannedItems}
@@ -211,54 +230,18 @@ export function CalendarPage() {
             confirmDeleteId={planned.confirmDeleteId}
             isAdding={planned.isAdding || isRunningDayAction}
             addError={planned.addError}
-            onSetTitle={(value) => {
-              planned.setTitle(value);
-              planned.setAddError(null);
-            }}
-            onSetTimeOfDay={(value) => {
-              planned.setTimeOfDay(value);
-              planned.setAddError(null);
-            }}
-            onSetDurationMinutes={(value) => {
-              planned.setDurationMinutes(value);
-              planned.setAddError(null);
-            }}
-            onSetNotes={(value) => {
-              planned.setNotes(value);
-              planned.setAddError(null);
-            }}
-            onSetModuleKey={(value) => {
-              planned.setModuleKey(value);
-              planned.setAddError(null);
-            }}
-            onSetRecurrenceHint={(value) => {
-              planned.setRecurrenceHint(value);
-              planned.setAddError(null);
-            }}
-            onSetIsRepeating={(value) => {
-              planned.setIsRepeating(value);
-              planned.setAddError(null);
-            }}
-            onSetRepeatPreset={(value) => {
-              planned.setRepeatPreset(value);
-              planned.setAddError(null);
-            }}
-            onSetRepeatWeekdays={(value) => {
-              planned.setRepeatWeekdays(value);
-              planned.setAddError(null);
-            }}
-            onSetCustomInterval={(value) => {
-              planned.setCustomInterval(value);
-              planned.setAddError(null);
-            }}
-            onSetLinkedSource={(value) => {
-              planned.setLinkedSource(value);
-              planned.setAddError(null);
-            }}
-            onSetLinkedRef={(value) => {
-              planned.setLinkedRef(value);
-              planned.setAddError(null);
-            }}
+            onSetTitle={planned.setTitle}
+            onSetTimeOfDay={planned.setTimeOfDay}
+            onSetDurationMinutes={planned.setDurationMinutes}
+            onSetNotes={planned.setNotes}
+            onSetModuleKey={planned.setModuleKey}
+            onSetRecurrenceHint={planned.setRecurrenceHint}
+            onSetIsRepeating={planned.setIsRepeating}
+            onSetRepeatPreset={planned.setRepeatPreset}
+            onSetRepeatWeekdays={planned.setRepeatWeekdays}
+            onSetCustomInterval={planned.setCustomInterval}
+            onSetLinkedSource={planned.setLinkedSource}
+            onSetLinkedRef={planned.setLinkedRef}
             onSetEditScope={planned.setEditScope}
             onAddPlanned={planned.onAddPlanned}
             onCancelEdit={planned.resetPlannedForm}
@@ -272,10 +255,44 @@ export function CalendarPage() {
             fileInputRef={planned.fileInputRef}
             onExportBackup={planned.onExportBackup}
             onImportFile={planned.onImportFile}
-            onDropReschedule={planned.dragReschedulePlannedItem}
           />
         </div>
       </div>
+      <CalendarEventModal
+        item={selectedItem}
+        isRunning={isRunningDayAction}
+        onClose={() => setSelectedItem(null)}
+        onStartRoutine={(id) =>
+          void runDayItemAction(() => startRoutineTaskMutation.mutateAsync(id), m.action_start())
+        }
+        onCompleteRoutine={(id) =>
+          void runDayItemAction(() => completeRoutineTaskMutation.mutateAsync(id), m.action_done())
+        }
+        onSkipRoutine={(id) =>
+          void runDayItemAction(() => skipRoutineTaskMutation.mutateAsync(id), m.action_skip())
+        }
+        onCompleteChore={(id) =>
+          void runDayItemAction(() => completeChoreMutation.mutateAsync(id), m.action_done())
+        }
+        onSkipChore={(id) =>
+          void runDayItemAction(() => skipChoreMutation.mutateAsync(id), m.action_skip())
+        }
+        onRescheduleChore={(id, date) =>
+          void runDayItemAction(
+            () =>
+              rescheduleChoreMutation.mutateAsync({
+                choreInstanceId: id,
+                scheduledDate: toIsoDate(dayjs(date).add(1, "day")),
+              }),
+            m.action_reschedule_1_day(),
+          )
+        }
+        onEditPlanned={(id) => {
+          const item = planned.plannedItems.find((candidate) => candidate.id === id);
+          if (item) planned.startEditing(item);
+          setSelectedItem(null);
+        }}
+      />
     </section>
   );
 }

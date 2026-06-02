@@ -7,6 +7,8 @@ export interface DaynestCardConfig {
   todo_entity?: string;
   view?: "full" | "compact" | "week";
   show_quick_add?: boolean;
+  show_calendar?: boolean;
+  calendar_days_ahead?: number;
   snooze_days?: number;
   api_base_url?: string;
 }
