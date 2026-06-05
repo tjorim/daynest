@@ -2007,7 +2007,7 @@ wheels = [
 
 [[package]]
 name = "python-daynest"
-version = "0.1.0"
+version = "0.1.9"
 source = { editable = "../python-daynest" }
 dependencies = [
     { name = "aiohttp" },
@@ -2018,7 +2018,7 @@ requires-dist = [{ name = "aiohttp", specifier = ">=3.9" }]
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "pyright", specifier = "==1.1.409" },
+    { name = "pyright", specifier = "==1.1.410" },
     { name = "pytest", specifier = "==9.0.3" },
     { name = "pytest-asyncio", specifier = "==1.4.0" },
     { name = "ruff", specifier = "==0.15.15" },
