@@ -24,8 +24,8 @@ importers:
         specifier: ^2.36.0
         version: 2.36.0(@schedule-x/calendar@2.36.0(@preact/signals@2.9.1(preact@10.29.2))(preact@10.29.2))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
       '@schedule-x/theme-default':
-        specifier: ^2.36.0
-        version: 2.36.0
+        specifier: ^4.6.0
+        version: 4.6.0
       '@tanstack/react-form':
         specifier: ^1.33.0
         version: 1.33.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
@@ -764,8 +764,8 @@ packages:
       react: ^16.7.0 || ^17 || ^18 || ^19
       react-dom: ^16.7.0 || ^17 || ^18 || ^19
 
-  '@schedule-x/theme-default@2.36.0':
-    resolution: {integrity: sha512-jkN9/srYS54dO2h12iCvNMMrLEiod6BAoUc47KbOgGE66zyUU+kmQwUOYQ3A2LrKyIWjwtCp3Ewdd4h/HHvG9A==}
+  '@schedule-x/theme-default@4.6.0':
+    resolution: {integrity: sha512-SM3bcvROJeG7ScH14lBIHZSTOBTR8h+oTswbpx1gpscddUfQfAnu7cFW4OJJI+ii+Si1IdTd4T3+rrnKd4HDDg==}
 
   '@sinclair/typebox@0.31.28':
     resolution: {integrity: sha512-/s55Jujywdw/Jpan+vsy6JZs1z2ZTGxTmbZTPiuSL2wz9mfzA2gN1zzaqmvfi4pq+uOt7Du85fkiwv5ymW84aQ==}
@@ -2472,7 +2472,7 @@ snapshots:
       react: 19.2.6
       react-dom: 19.2.6(react@19.2.6)
 
-  '@schedule-x/theme-default@2.36.0': {}
+  '@schedule-x/theme-default@4.6.0': {}
 
   '@sinclair/typebox@0.31.28': {}
 
