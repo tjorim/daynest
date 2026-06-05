@@ -12,8 +12,8 @@ importers:
         specifier: ^4.6.0
         version: 4.6.0(@preact/signals@2.9.1(preact@10.29.2))(preact@10.29.2)(temporal-polyfill@0.3.0)
       '@schedule-x/theme-default':
-        specifier: ^2.36.0
-        version: 2.36.0
+        specifier: ^4.6.0
+        version: 4.6.0
     devDependencies:
       '@rollup/plugin-node-resolve':
         specifier: ^16.0.3
@@ -260,8 +260,8 @@ packages:
       preact: ^10.19.2
       temporal-polyfill: 0.3.0
 
-  '@schedule-x/theme-default@2.36.0':
-    resolution: {integrity: sha512-jkN9/srYS54dO2h12iCvNMMrLEiod6BAoUc47KbOgGE66zyUU+kmQwUOYQ3A2LrKyIWjwtCp3Ewdd4h/HHvG9A==}
+  '@schedule-x/theme-default@4.6.0':
+    resolution: {integrity: sha512-SM3bcvROJeG7ScH14lBIHZSTOBTR8h+oTswbpx1gpscddUfQfAnu7cFW4OJJI+ii+Si1IdTd4T3+rrnKd4HDDg==}
 
   '@types/estree@1.0.9':
     resolution: {integrity: sha512-GhdPgy1el4/ImP05X05Uw4cw2/M93BCUmnEvWZNStlCzEKME4Fkk+YpoA5OiHNQmoS7Cafb8Xa3Pya8m1Qrzeg==}
@@ -568,7 +568,7 @@ snapshots:
       preact: 10.29.2
       temporal-polyfill: 0.3.0
 
-  '@schedule-x/theme-default@2.36.0': {}
+  '@schedule-x/theme-default@4.6.0': {}
 
   '@types/estree@1.0.9': {}
 
