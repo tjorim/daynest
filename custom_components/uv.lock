@@ -2007,7 +2007,7 @@ wheels = [
 
 [[package]]
 name = "python-daynest"
-version = "0.1.0"
+version = "0.1.9"
 source = { editable = "../python-daynest" }
 dependencies = [
     { name = "aiohttp" },
