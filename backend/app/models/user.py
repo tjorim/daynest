@@ -16,6 +16,7 @@ if TYPE_CHECKING:
     from app.models.integration_client import IntegrationClient
     from app.models.medication_dose_instance import MedicationDoseInstance
     from app.models.medication_plan import MedicationPlan
+    from app.models.meal_plan import MealPlan
     from app.models.planned_item import PlannedItem
     from app.models.push_subscription import PushSubscription
     from app.models.recurrence_series import RecurrenceSeries
@@ -69,6 +70,7 @@ class User(Base):
         foreign_keys="[ChoreInstance.user_id]",
     )
     medication_plans: Mapped[list["MedicationPlan"]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    meal_plans: Mapped[list["MealPlan"]] = relationship(back_populates="user", cascade="all, delete-orphan")
     medication_dose_instances: Mapped[list["MedicationDoseInstance"]] = relationship(
         back_populates="user",
         cascade="all, delete-orphan",
