@@ -171,6 +171,12 @@ class ShoppingViewModel
         ) {
             val listId = _uiState.value.selectedListId ?: return
             if (title.isBlank() || plannedFor.isBlank()) return
+            val parsedTags =
+                tag.blankToNull()
+                    ?.split(",")
+                    ?.map { it.trim() }
+                    ?.filter { it.isNotBlank() }
+                    .orEmpty()
             viewModelScope.launch {
                 plannedItemRepository
                     .createPlannedItem(
@@ -184,12 +190,7 @@ class ShoppingViewModel
                             linkedSource = SHOPPING_LIST_MODULE,
                             linkedRef = listId.toString(),
                             autoAddToListId = listId,
-                            tags = tag
-                                .blankToNull()
-                                ?.split(",")
-                                ?.map { it.trim() }
-                                ?.filter { it.isNotBlank() }
-                                .orEmpty(),
+                            tags = parsedTags,
                         ),
                     ).onSuccess {
                         _effects.emit(getString(R.string.shopping_recurring_item_added))
