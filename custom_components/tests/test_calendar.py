@@ -274,6 +274,8 @@ class TestDaynestMealPlanCalendarEntity:
                 translation_key="daynest_meal_plan_calendar",
             ),
         )
+        entity.hass = MagicMock()
+        entity.hass.config.time_zone = "UTC"
 
         events = await entity.async_get_events(
             MagicMock(),
@@ -303,6 +305,8 @@ class TestDaynestMealPlanCalendarEntity:
                 translation_key="daynest_meal_plan_calendar",
             ),
         )
+        entity.hass = MagicMock()
+        entity.hass.config.time_zone = "UTC"
 
         events = await entity.async_get_events(
             MagicMock(),
