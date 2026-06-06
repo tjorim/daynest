@@ -4,6 +4,7 @@ package com.daynest.android.app
 
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -33,73 +34,77 @@ fun DaynestApp() {
             navController = navController,
             startDestination = DaynestDestination.SESSION_GATE,
         ) {
-            composable(route = DaynestDestination.SESSION_GATE) {
-                SessionGateRoute(
-                    onGoAuth = {
-                        navController.navigate(DaynestDestination.AUTH) {
-                            popUpTo(DaynestDestination.SESSION_GATE) { inclusive = true }
-                        }
-                    },
-                    onGoHome = {
-                        navController.navigate(DaynestDestination.HOME) {
-                            popUpTo(DaynestDestination.SESSION_GATE) { inclusive = true }
-                        }
-                    },
-                )
-            }
-
-            composable(route = DaynestDestination.AUTH) {
-                AuthRoute(
-                    onSignedIn = {
-                        navController.navigate(DaynestDestination.HOME) {
-                            popUpTo(navController.graph.findStartDestination().id) { inclusive = true }
-                            launchSingleTop = true
-                        }
-                    },
-                )
-            }
-
-            composable(route = DaynestDestination.HOME) {
-                HomeRoute(onNavigate = navController::navigateTopLevel)
-            }
-            composable(route = DaynestDestination.CALENDAR) {
-                CalendarRoute(onNavigate = navController::navigateTopLevel)
-            }
-            composable(route = DaynestDestination.MEDICATION) {
-                MedicationRoute(onNavigate = navController::navigateTopLevel)
-            }
-            composable(route = DaynestDestination.TEMPLATES) {
-                TemplatesRoute(onNavigate = navController::navigateTopLevel)
-            }
-            composable(route = DaynestDestination.SHOPPING) {
-                ShoppingListsRoute(
-                    onNavigate = navController::navigateTopLevel,
-                    onOpenList = { listId -> navController.navigate("shopping/$listId") },
-                )
-            }
-            composable(
-                route = DaynestDestination.SHOPPING_DETAIL,
-                arguments = listOf(navArgument("listId") { type = NavType.IntType }),
-            ) { backStackEntry ->
-                val listId = backStackEntry.arguments?.getInt("listId") ?: return@composable
-                ShoppingListDetailRoute(
-                    listId = listId,
-                    onNavigate = navController::navigateTopLevel,
-                    onBack = { navController.popBackStack() },
-                )
-            }
-            composable(route = DaynestDestination.SETTINGS) {
-                SettingsRoute(
-                    onNavigate = navController::navigateTopLevel,
-                    onSignedOut = {
-                        navController.navigate(DaynestDestination.AUTH) {
-                            popUpTo(DaynestDestination.HOME) { inclusive = true }
-                            launchSingleTop = true
-                        }
-                    },
-                )
-            }
+            daynestDestinations(navController)
         }
+    }
+}
+
+private fun NavGraphBuilder.daynestDestinations(navController: NavHostController) {
+    composable(route = DaynestDestination.SESSION_GATE) {
+        SessionGateRoute(
+            onGoAuth = {
+                navController.navigate(DaynestDestination.AUTH) {
+                    popUpTo(DaynestDestination.SESSION_GATE) { inclusive = true }
+                }
+            },
+            onGoHome = {
+                navController.navigate(DaynestDestination.HOME) {
+                    popUpTo(DaynestDestination.SESSION_GATE) { inclusive = true }
+                }
+            },
+        )
+    }
+
+    composable(route = DaynestDestination.AUTH) {
+        AuthRoute(
+            onSignedIn = {
+                navController.navigate(DaynestDestination.HOME) {
+                    popUpTo(navController.graph.findStartDestination().id) { inclusive = true }
+                    launchSingleTop = true
+                }
+            },
+        )
+    }
+
+    composable(route = DaynestDestination.HOME) {
+        HomeRoute(onNavigate = navController::navigateTopLevel)
+    }
+    composable(route = DaynestDestination.CALENDAR) {
+        CalendarRoute(onNavigate = navController::navigateTopLevel)
+    }
+    composable(route = DaynestDestination.MEDICATION) {
+        MedicationRoute(onNavigate = navController::navigateTopLevel)
+    }
+    composable(route = DaynestDestination.TEMPLATES) {
+        TemplatesRoute(onNavigate = navController::navigateTopLevel)
+    }
+    composable(route = DaynestDestination.SHOPPING) {
+        ShoppingListsRoute(
+            onNavigate = navController::navigateTopLevel,
+            onOpenList = { listId -> navController.navigate("${DaynestDestination.SHOPPING}/$listId") },
+        )
+    }
+    composable(
+        route = DaynestDestination.SHOPPING_DETAIL,
+        arguments = listOf(navArgument("listId") { type = NavType.IntType }),
+    ) { backStackEntry ->
+        val listId = requireNotNull(backStackEntry.arguments).getInt("listId")
+        ShoppingListDetailRoute(
+            listId = listId,
+            onNavigate = navController::navigateTopLevel,
+            onBack = { navController.popBackStack() },
+        )
+    }
+    composable(route = DaynestDestination.SETTINGS) {
+        SettingsRoute(
+            onNavigate = navController::navigateTopLevel,
+            onSignedOut = {
+                navController.navigate(DaynestDestination.AUTH) {
+                    popUpTo(DaynestDestination.HOME) { inclusive = true }
+                    launchSingleTop = true
+                }
+            },
+        )
     }
 }
 

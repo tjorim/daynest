@@ -85,7 +85,14 @@ class ShoppingViewModel
         }
 
         fun clearSelection() {
-            _uiState.update { it.copy(selectedListId = null, selectedList = null, items = emptyList(), isLoadingItems = false) }
+            _uiState.update {
+                it.copy(
+                    selectedListId = null,
+                    selectedList = null,
+                    items = emptyList(),
+                    isLoadingItems = false,
+                )
+            }
         }
 
         fun createList(
@@ -152,24 +159,8 @@ class ShoppingViewModel
             val listId = _uiState.value.selectedListId ?: return
             viewModelScope.launch {
                 plannedItemRepository
-                    .updatePlannedItem(
-                        item.id,
-                        PlannedItemUpdateDto(
-                            title = item.title,
-                            plannedFor = item.plannedFor,
-                            timeOfDay = item.timeOfDay,
-                            durationMinutes = item.durationMinutes,
-                            isDone = true,
-                            notes = item.notes,
-                            moduleKey = item.moduleKey,
-                            rrule = item.rrule,
-                            recurrenceHint = item.recurrenceHint,
-                            linkedSource = item.linkedSource ?: SHOPPING_LIST_MODULE,
-                            linkedRef = item.linkedRef,
-                            priority = item.priority,
-                            tags = item.tags,
-                        ),
-                    ).onSuccess { selectList(listId) }
+                    .updatePlannedItem(item.id, item.toUpdateDto(isDone = true))
+                    .onSuccess { selectList(listId) }
                     .onFailure { _effects.emit(it.message ?: getString(R.string.shopping_error_check_off_item)) }
             }
         }
@@ -186,6 +177,23 @@ data class ShoppingUiState(
     val isLoadingItems: Boolean = false,
     val error: String? = null,
 )
+
+private fun PlannedTodayItemDto.toUpdateDto(isDone: Boolean = this.isDone): PlannedItemUpdateDto =
+    PlannedItemUpdateDto(
+        title = title,
+        plannedFor = plannedFor,
+        timeOfDay = timeOfDay,
+        durationMinutes = durationMinutes,
+        isDone = isDone,
+        notes = notes,
+        moduleKey = moduleKey,
+        rrule = rrule,
+        recurrenceHint = recurrenceHint,
+        linkedSource = linkedSource,
+        linkedRef = linkedRef,
+        priority = priority,
+        tags = tags,
+    )
 
 private fun List<PlannedTodayItemDto>.shoppingItemsFor(listId: Int): List<PlannedTodayItemDto> =
     filter { it.moduleKey == SHOPPING_LIST_MODULE && it.linkedRef == listId.toString() }

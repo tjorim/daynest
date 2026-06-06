@@ -404,7 +404,8 @@ class DaynestClient:
         return [
             item
             for item in payload
-            if item.get("module_key") == "shopping_list" and item.get("linked_ref") == str(shopping_list_id)
+            if item.get("module_key") == "shopping_list"
+            and str(item.get("linked_ref", "")) == str(shopping_list_id)
         ]
 
     async def async_create_shopping_item(

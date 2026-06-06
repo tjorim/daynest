@@ -140,20 +140,7 @@ export async function addShoppingItem(
 }
 
 export async function checkOffShoppingItem(item: PlannedTodayItem): Promise<PlannedTodayItem> {
-  const payload: PlannedItemUpdateInput = {
-    title: item.title,
-    planned_for: item.planned_for,
-    time_of_day: item.time_of_day,
-    duration_minutes: item.duration_minutes,
-    notes: item.notes,
-    module_key: "shopping_list",
-    recurrence_hint: item.recurrence_hint,
-    rrule: item.rrule,
-    linked_source: item.linked_source ?? "shopping_list",
-    linked_ref: item.linked_ref,
-    priority: item.priority ?? "normal",
-    tags: item.tags ?? [],
-    is_done: true,
-  };
-  return updatePlannedItem(item.id, payload);
+  // PUT requires a full payload (title and planned_for are non-optional on the backend).
+  const { id: _id, recurrence_series_id: _sid, ...fields } = item;
+  return updatePlannedItem(item.id, { ...fields, is_done: true });
 }

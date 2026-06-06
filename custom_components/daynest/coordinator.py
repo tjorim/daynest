@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Callable
 from datetime import date, timedelta
 from typing import Any
@@ -223,11 +224,17 @@ class DaynestDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             shopping_lists = await self._client.async_list_shopping_lists(status="active")
             normalized["shopping_lists"] = _safe_dict_list(shopping_lists)
             shopping_items: dict[int, list[dict[str, Any]]] = {}
-            for shopping_list in normalized["shopping_lists"]:
-                list_id = _safe_int(shopping_list.get("id"), default=0)
-                if list_id <= 0:
-                    continue
-                shopping_items[list_id] = _safe_dict_list(await self._client.async_list_shopping_items(list_id))
+            valid_list_ids = [
+                _safe_int(sl.get("id"), default=0)
+                for sl in normalized["shopping_lists"]
+                if _safe_int(sl.get("id"), default=0) > 0
+            ]
+            if valid_list_ids:
+                results = await asyncio.gather(
+                    *(self._client.async_list_shopping_items(list_id) for list_id in valid_list_ids)
+                )
+                for list_id, items in zip(valid_list_ids, results):
+                    shopping_items[list_id] = _safe_dict_list(items)
             normalized["shopping_items"] = shopping_items
         except DaynestCommunicationError as err:
             raise UpdateFailed(f"Temporary communication failure while updating shopping lists: {err}") from err

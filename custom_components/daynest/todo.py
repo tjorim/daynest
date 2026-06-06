@@ -52,26 +52,38 @@ async def async_setup_entry(
         )
     ])
 
-    known_list_ids: set[int] = set()
+    known_entities: dict[int, DaynestShoppingListTodoEntity] = {}
 
     def _create_shopping_entities() -> None:
         if not isinstance(coordinator.data, dict):
             return
-        new_entities: list[TodoListEntity] = []
+
+        current_list_ids: set[int] = set()
         for shopping_list in coordinator.data.get("shopping_lists", []):
             if not isinstance(shopping_list, dict):
                 continue
             list_id = _coerce_positive_int(shopping_list.get("id"))
-            if list_id is None or list_id in known_list_ids:
+            if list_id is not None:
+                current_list_ids.add(list_id)
+
+        for stale_id in set(known_entities.keys()) - current_list_ids:
+            hass.async_create_task(known_entities.pop(stale_id).async_remove())
+
+        new_entities: list[DaynestShoppingListTodoEntity] = []
+        for shopping_list in coordinator.data.get("shopping_lists", []):
+            if not isinstance(shopping_list, dict):
                 continue
-            known_list_ids.add(list_id)
-            new_entities.append(
-                DaynestShoppingListTodoEntity(
-                    coordinator=coordinator,
-                    shopping_list_id=list_id,
-                    shopping_list_name=str(shopping_list.get("name") or "Shopping List"),
-                )
+            list_id = _coerce_positive_int(shopping_list.get("id"))
+            if list_id is None or list_id in known_entities:
+                continue
+            entity = DaynestShoppingListTodoEntity(
+                coordinator=coordinator,
+                shopping_list_id=list_id,
+                shopping_list_name=str(shopping_list.get("name") or "Shopping List"),
             )
+            known_entities[list_id] = entity
+            new_entities.append(entity)
+
         if new_entities:
             async_add_entities(new_entities)
 

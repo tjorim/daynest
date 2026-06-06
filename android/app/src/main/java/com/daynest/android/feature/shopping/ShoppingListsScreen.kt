@@ -102,94 +102,143 @@ private fun ShoppingListsContent(
     onOpenList: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var name by remember { mutableStateOf("") }
-    var store by remember { mutableStateOf("") }
-    var notes by remember { mutableStateOf("") }
-    val activeLists = remember(uiState.lists) { uiState.lists.filter { it.status == ShoppingListStatus.ACTIVE } }
-    val archivedLists = remember(uiState.lists) { uiState.lists.filter { it.status == ShoppingListStatus.ARCHIVED } }
+    val activeLists = remember(uiState.lists) {
+        uiState.lists.filter { it.status == ShoppingListStatus.ACTIVE }
+    }
+    val archivedLists = remember(uiState.lists) {
+        uiState.lists.filter { it.status == ShoppingListStatus.ARCHIVED }
+    }
 
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(text = stringResource(id = R.string.shopping_title), style = MaterialTheme.typography.headlineMedium)
-                    Text(text = stringResource(id = R.string.shopping_subtitle), style = MaterialTheme.typography.bodyMedium)
-                }
-                TextButton(onClick = onRefresh) { Text(text = stringResource(id = R.string.action_refresh)) }
-            }
-        }
+        item { ShoppingListsHeader(onRefresh = onRefresh) }
 
         if (uiState.isLoadingLists) {
-            item {
-                Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-                    CircularProgressIndicator()
-                }
-            }
+            item { LoadingIndicator() }
         }
 
         uiState.error?.let { message ->
-            item { Text(text = message, color = MaterialTheme.colorScheme.error) }
+            item { ErrorText(message = message) }
         }
+
+        item { CreateListForm(onCreate = onCreate) }
 
         item {
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(text = stringResource(id = R.string.shopping_create_list), style = MaterialTheme.typography.titleMedium)
-                    OutlinedTextField(
-                        value = name,
-                        onValueChange = { name = it },
-                        label = { Text(text = stringResource(id = R.string.shopping_list_name)) },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    OutlinedTextField(
-                        value = store,
-                        onValueChange = { store = it },
-                        label = { Text(text = stringResource(id = R.string.shopping_store)) },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    OutlinedTextField(
-                        value = notes,
-                        onValueChange = { notes = it },
-                        label = { Text(text = stringResource(id = R.string.shopping_notes)) },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    Button(
-                        onClick = {
-                            onCreate(name, store, notes)
-                            name = ""
-                            store = ""
-                            notes = ""
-                        },
-                        enabled = name.isNotBlank(),
-                    ) {
-                        Text(text = stringResource(id = R.string.action_add))
-                    }
-                }
-            }
+            Text(
+                text = stringResource(id = R.string.shopping_active_lists),
+                style = MaterialTheme.typography.titleMedium,
+            )
         }
-
-        item { Text(text = stringResource(id = R.string.shopping_active_lists), style = MaterialTheme.typography.titleMedium) }
         if (activeLists.isEmpty() && !uiState.isLoadingLists) {
             item { Text(text = stringResource(id = R.string.shopping_no_lists)) }
         }
         items(activeLists, key = { it.id }) { list ->
-            ShoppingListCard(list = list, onOpenList = onOpenList, onArchive = onArchive, onDelete = onDelete)
+            ShoppingListCard(
+                list = list,
+                onOpenList = onOpenList,
+                onArchive = onArchive,
+                onDelete = onDelete,
+            )
         }
         if (archivedLists.isNotEmpty()) {
             item {
                 Spacer(modifier = Modifier.height(8.dp))
-                Text(text = stringResource(id = R.string.shopping_archived), style = MaterialTheme.typography.titleMedium)
+                Text(
+                    text = stringResource(id = R.string.shopping_archived),
+                    style = MaterialTheme.typography.titleMedium,
+                )
             }
             items(archivedLists, key = { it.id }) { list ->
-                ShoppingListCard(list = list, onOpenList = onOpenList, onArchive = onArchive, onDelete = onDelete)
+                ShoppingListCard(
+                    list = list,
+                    onOpenList = onOpenList,
+                    onArchive = onArchive,
+                    onDelete = onDelete,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ShoppingListsHeader(onRefresh: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = stringResource(id = R.string.shopping_title),
+                style = MaterialTheme.typography.headlineMedium,
+            )
+            Text(
+                text = stringResource(id = R.string.shopping_subtitle),
+                style = MaterialTheme.typography.bodyMedium,
+            )
+        }
+        TextButton(onClick = onRefresh) { Text(text = stringResource(id = R.string.action_refresh)) }
+    }
+}
+
+@Composable
+private fun LoadingIndicator() {
+    Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+        CircularProgressIndicator()
+    }
+}
+
+@Composable
+private fun ErrorText(message: String) {
+    Text(text = message, color = MaterialTheme.colorScheme.error)
+}
+
+@Composable
+private fun CreateListForm(onCreate: (String, String?, String?) -> Unit) {
+    var name by remember { mutableStateOf("") }
+    var store by remember { mutableStateOf("") }
+    var notes by remember { mutableStateOf("") }
+
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                text = stringResource(id = R.string.shopping_create_list),
+                style = MaterialTheme.typography.titleMedium,
+            )
+            OutlinedTextField(
+                value = name,
+                onValueChange = { name = it },
+                label = { Text(text = stringResource(id = R.string.shopping_list_name)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                value = store,
+                onValueChange = { store = it },
+                label = { Text(text = stringResource(id = R.string.shopping_store)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                value = notes,
+                onValueChange = { notes = it },
+                label = { Text(text = stringResource(id = R.string.shopping_notes)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Button(
+                onClick = {
+                    onCreate(name, store, notes)
+                    name = ""
+                    store = ""
+                    notes = ""
+                },
+                enabled = name.isNotBlank(),
+            ) {
+                Text(text = stringResource(id = R.string.action_add))
             }
         }
     }
@@ -203,16 +252,25 @@ private fun ShoppingListCard(
     onDelete: (Int) -> Unit,
 ) {
     Card(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
             Text(text = list.name, style = MaterialTheme.typography.titleMedium)
             list.store?.let { Text(text = it, style = MaterialTheme.typography.bodyMedium) }
             list.notes?.let { Text(text = it, style = MaterialTheme.typography.bodySmall) }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = { onOpenList(list.id) }) { Text(text = stringResource(id = R.string.shopping_open_list)) }
-                if (list.status == ShoppingListStatus.ACTIVE) {
-                    TextButton(onClick = { onArchive(list) }) { Text(text = stringResource(id = R.string.shopping_archive)) }
+                Button(onClick = { onOpenList(list.id) }) {
+                    Text(text = stringResource(id = R.string.shopping_open_list))
                 }
-                TextButton(onClick = { onDelete(list.id) }) { Text(text = stringResource(id = R.string.action_delete)) }
+                if (list.status == ShoppingListStatus.ACTIVE) {
+                    TextButton(onClick = { onArchive(list) }) {
+                        Text(text = stringResource(id = R.string.shopping_archive))
+                    }
+                }
+                TextButton(onClick = { onDelete(list.id) }) {
+                    Text(text = stringResource(id = R.string.action_delete))
+                }
             }
         }
     }

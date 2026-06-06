@@ -942,13 +942,17 @@ class TestDaynestClientShoppingLists:
                 {"id": 1, "title": "Milk", "module_key": "shopping_list", "linked_ref": "7"},
                 {"id": 2, "title": "Other", "module_key": "shopping_list", "linked_ref": "8"},
                 {"id": 3, "title": "Task", "module_key": None, "linked_ref": None},
+                {"id": 4, "title": "Eggs", "module_key": "shopping_list", "linked_ref": 7},
             ],
         )
         client = _make_client(response)
 
         result = await client.async_list_shopping_items(7)
 
-        assert result == [{"id": 1, "title": "Milk", "module_key": "shopping_list", "linked_ref": "7"}]
+        assert result == [
+            {"id": 1, "title": "Milk", "module_key": "shopping_list", "linked_ref": "7"},
+            {"id": 4, "title": "Eggs", "module_key": "shopping_list", "linked_ref": 7},
+        ]
 
     async def test_create_shopping_item_posts_linked_planned_item(self) -> None:
         response = _make_mock_response(200, {"id": 1, "title": "Milk"})
