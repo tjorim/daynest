@@ -108,9 +108,8 @@ class ShoppingViewModel
                             name = name.trim(),
                             store = store.blankToNull(),
                             notes = notes.blankToNull(),
-                        )
-                    )
-                    .onSuccess {
+                        ),
+                    ).onSuccess {
                         _effects.emit(getString(R.string.shopping_list_added))
                         refreshLists()
                     }.onFailure { _effects.emit(it.message ?: getString(R.string.shopping_error_add_list)) }
@@ -171,7 +170,9 @@ class ShoppingViewModel
             }
         }
 
-        private fun getString(@StringRes resId: Int): String = getApplication<Application>().getString(resId)
+        private fun getString(
+            @StringRes resId: Int,
+        ): String = getApplication<Application>().getString(resId)
     }
 
 data class ShoppingUiState(
