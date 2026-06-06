@@ -1,6 +1,7 @@
 package com.daynest.android.data
 
 import kotlinx.coroutines.CancellationException
+import java.io.IOException
 
 @Suppress("TooGenericExceptionCaught")
 suspend fun <T> safeApiCall(call: suspend () -> T): Result<T> =
@@ -11,3 +12,8 @@ suspend fun <T> safeApiCall(call: suspend () -> T): Result<T> =
     } catch (e: Exception) {
         Result.failure(e)
     }
+
+suspend inline fun <T> Result<T>.recoverOffline(crossinline fallback: suspend () -> T): Result<T> {
+    if (isSuccess) return this
+    return if (exceptionOrNull() is IOException) runCatching { fallback() } else this
+}
