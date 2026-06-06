@@ -385,6 +385,84 @@ class DaynestClient:
             path += f"?scope={scope}"
         await self._send_no_content_action("delete", path=path)
 
+
+    async def async_list_shopping_lists(self, status: str = "active") -> list[dict[str, Any]]:
+        """List shopping lists for the authenticated user."""
+        query = urlencode({"status": status})
+        return await self._cached_call(
+            "async_list_shopping_lists",
+            lambda: self._request_list(f"/api/shopping-lists?{query}"),
+            status,
+        )
+
+    async def async_list_shopping_items(self, shopping_list_id: int) -> list[dict[str, Any]]:
+        """List planned items linked to a shopping list."""
+        payload = await self._cached_call(
+            "async_list_shopping_items",
+            lambda: self._request_list("/api/planned-items"),
+        )
+        return [
+            item
+            for item in payload
+            if item.get("module_key") == "shopping_list" and item.get("linked_ref") == str(shopping_list_id)
+        ]
+
+    async def async_create_shopping_item(
+        self,
+        shopping_list_id: int,
+        *,
+        title: str,
+        planned_for: date | str,
+        notes: str | None = None,
+        tags: list[str] | None = None,
+    ) -> dict[str, Any]:
+        """Create an item linked to a shopping list."""
+        payload = {
+            "title": title,
+            "planned_for": planned_for.isoformat() if isinstance(planned_for, date) else planned_for,
+            "notes": notes,
+            "module_key": "shopping_list",
+            "linked_source": "shopping_list",
+            "linked_ref": str(shopping_list_id),
+            "priority": "normal",
+            "tags": tags or [],
+        }
+        return await self._send_action("post", path="/api/planned-items", payload=payload)
+
+    async def async_update_shopping_item(
+        self,
+        shopping_list_id: int,
+        item_id: int,
+        *,
+        title: str,
+        planned_for: date | str,
+        is_done: bool,
+        notes: str | None = None,
+        tags: list[str] | None = None,
+        priority: str = "normal",
+        recurrence_hint: str | None = None,
+        rrule: str | None = None,
+    ) -> dict[str, Any]:
+        """Update an item linked to a shopping list."""
+        payload = {
+            "title": title,
+            "planned_for": planned_for.isoformat() if isinstance(planned_for, date) else planned_for,
+            "notes": notes,
+            "module_key": "shopping_list",
+            "recurrence_hint": recurrence_hint,
+            "rrule": rrule,
+            "linked_source": "shopping_list",
+            "linked_ref": str(shopping_list_id),
+            "priority": priority,
+            "tags": tags or [],
+            "is_done": is_done,
+        }
+        return await self._send_action("put", path=f"/api/planned-items/{item_id}", payload=payload)
+
+    async def async_delete_shopping_item(self, shopping_list_id: int, item_id: int) -> None:
+        """Delete an item linked to a shopping list."""
+        await self._send_no_content_action("delete", path=f"/api/planned-items/{item_id}")
+
     async def async_get_calendar(
         self,
         start: date,

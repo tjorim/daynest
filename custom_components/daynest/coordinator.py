@@ -218,6 +218,24 @@ class DaynestDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             settings = {}
         normalized["default_snooze_days"] = max(1, min(_safe_int(settings.get("default_snooze_days"), 1), 14))
         normalized["medication_reminder_minutes"] = max(0, _safe_int(settings.get("medication_reminder_minutes"), 0))
+
+        try:
+            shopping_lists = await self._client.async_list_shopping_lists(status="active")
+            normalized["shopping_lists"] = _safe_dict_list(shopping_lists)
+            shopping_items: dict[int, list[dict[str, Any]]] = {}
+            for shopping_list in normalized["shopping_lists"]:
+                list_id = _safe_int(shopping_list.get("id"), default=0)
+                if list_id <= 0:
+                    continue
+                shopping_items[list_id] = _safe_dict_list(await self._client.async_list_shopping_items(list_id))
+            normalized["shopping_items"] = shopping_items
+        except DaynestCommunicationError as err:
+            raise UpdateFailed(f"Temporary communication failure while updating shopping lists: {err}") from err
+        except DaynestMalformedResponseError as err:
+            raise UpdateFailed(f"Malformed shopping list response: {err}") from err
+        except DaynestError as err:
+            raise UpdateFailed(f"Unexpected API error while updating shopping lists: {err}") from err
+
         if self._last_dashboard_data is not None:
             self._fire_transition_events(self._last_dashboard_data, normalized)
         self._last_dashboard_data = normalized
