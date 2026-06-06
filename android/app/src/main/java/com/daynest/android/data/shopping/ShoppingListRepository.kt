@@ -145,5 +145,4 @@ class ShoppingListRepository
         private fun scheduleSync() {
             DaynestSyncScheduler.enqueueOneShot(appContext)
         }
-
     }
