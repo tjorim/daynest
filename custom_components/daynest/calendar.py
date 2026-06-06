@@ -12,6 +12,7 @@ from homeassistant.components.calendar import (
     CalendarEntityFeature,
     CalendarEvent,
 )
+from homeassistant.util import dt as dt_util
 
 from .const import LOGGER
 from .entity import DaynestEntity
@@ -231,9 +232,9 @@ class DaynestMealPlanCalendarEntity(CalendarEntity, DaynestEntity):
         return self._meal_slot_events(start_datetime, end_datetime)
 
     def _meal_slot_events(self, start_datetime: datetime, end_datetime: datetime) -> list[CalendarEvent]:
-        timezone = start_datetime.tzinfo or UTC
-        range_start = start_datetime if start_datetime.tzinfo is not None else start_datetime.replace(tzinfo=timezone)
-        range_end = end_datetime if end_datetime.tzinfo is not None else end_datetime.replace(tzinfo=timezone)
+        local_tz = dt_util.get_time_zone(self.hass.config.time_zone) or UTC
+        range_start = start_datetime if start_datetime.tzinfo is not None else start_datetime.replace(tzinfo=local_tz)
+        range_end = end_datetime if end_datetime.tzinfo is not None else end_datetime.replace(tzinfo=local_tz)
         events: list[CalendarEvent] = []
         for slot in self.coordinator.data.get("meal_slots", []):
             if not isinstance(slot, dict):
@@ -248,7 +249,7 @@ class DaynestMealPlanCalendarEntity(CalendarEntity, DaynestEntity):
             start_time = MEAL_SLOT_START_TIMES.get(slot_type)
             if start_time is None:
                 continue
-            event_start = datetime.combine(slot_date, start_time, tzinfo=timezone)
+            event_start = datetime.combine(slot_date, start_time, tzinfo=local_tz)
             event_end = event_start + MEAL_SLOT_DURATION
             if event_end <= range_start or event_start >= range_end:
                 continue

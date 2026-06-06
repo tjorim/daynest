@@ -18,6 +18,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.issue_registry import IssueSeverity, async_create_issue, async_delete_issue
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from homeassistant.util import dt as dt_util
 
 from .const import DOMAIN, LOGGER, SUPPORTED_INTEGRATION_CONTRACT_VERSIONS, parse_integration_contract_version
 from .data import DaynestConfigEntry
@@ -64,7 +65,7 @@ def _safe_date(value: Any) -> date | None:
 
 def _current_and_next_week_window(today: date | None = None) -> tuple[date, date]:
     """Return Monday week starts for the current and next week."""
-    reference_date = today or date.today()
+    reference_date = today if today is not None else dt_util.now().date()
     current_week_start = reference_date - timedelta(days=reference_date.weekday())
     return current_week_start, current_week_start + timedelta(days=7)
 
