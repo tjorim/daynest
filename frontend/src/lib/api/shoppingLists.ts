@@ -2,7 +2,6 @@ import {
   createPlannedItem,
   listPlannedItems,
   updatePlannedItem,
-  type PlannedItemUpdateInput,
   type PlannedTodayItem,
 } from "@/lib/api/today";
 import { fetchWithAuth, parseJsonResponse } from "@/lib/api/today";

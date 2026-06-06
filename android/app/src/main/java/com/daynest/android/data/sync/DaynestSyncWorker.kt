@@ -124,33 +124,25 @@ class DaynestSyncWorker
         }
 
         private suspend fun refreshTemplateCaches() {
-            upsertTemplateCache(SyncCacheKeys.ROUTINE_TEMPLATES, templatesApi.listRoutines())
-            upsertTemplateCache(SyncCacheKeys.CHORE_TEMPLATES, templatesApi.listChores())
-        }
-
-        private suspend fun upsertTemplateCache(
-            key: String,
-            templates: List<*>,
-        ) {
-            val payload =
-                when (key) {
-                    SyncCacheKeys.ROUTINE_TEMPLATES ->
-                        JsonSerializer.config.encodeToString(
-                            kotlinx.serialization.builtins.ListSerializer(RoutineTemplateDto.serializer()),
-                            templates.filterIsInstance<RoutineTemplateDto>(),
-                        )
-                    SyncCacheKeys.CHORE_TEMPLATES ->
-                        JsonSerializer.config.encodeToString(
-                            kotlinx.serialization.builtins.ListSerializer(ChoreTemplateDto.serializer()),
-                            templates.filterIsInstance<ChoreTemplateDto>(),
-                        )
-                    else -> return
-                }
+            val now = System.currentTimeMillis()
             cacheEntryDao.upsert(
                 CacheEntryEntity(
-                    cacheKey = key,
-                    payload = payload,
-                    updatedAtEpochMillis = System.currentTimeMillis(),
+                    cacheKey = SyncCacheKeys.ROUTINE_TEMPLATES,
+                    payload = JsonSerializer.config.encodeToString(
+                        kotlinx.serialization.builtins.ListSerializer(RoutineTemplateDto.serializer()),
+                        templatesApi.listRoutines(),
+                    ),
+                    updatedAtEpochMillis = now,
+                ),
+            )
+            cacheEntryDao.upsert(
+                CacheEntryEntity(
+                    cacheKey = SyncCacheKeys.CHORE_TEMPLATES,
+                    payload = JsonSerializer.config.encodeToString(
+                        kotlinx.serialization.builtins.ListSerializer(ChoreTemplateDto.serializer()),
+                        templatesApi.listChores(),
+                    ),
+                    updatedAtEpochMillis = now,
                 ),
             )
         }
@@ -166,11 +158,9 @@ class DaynestSyncWorker
                 PendingMutationKind.COMPLETE_TASK,
                 PendingMutationKind.START_TASK,
                 PendingMutationKind.SKIP_TASK,
-                -> applyTaskAction(kind, mutation.payload)
-
                 PendingMutationKind.TAKE_DOSE,
                 PendingMutationKind.SKIP_DOSE,
-                -> applyMedicationAction(kind, mutation.payload)
+                -> applyIdAction(kind, mutation.payload)
 
                 PendingMutationKind.CREATE_PLANNED,
                 PendingMutationKind.UPDATE_PLANNED,
@@ -186,7 +176,9 @@ class DaynestSyncWorker
 
         private suspend fun applyChoreAction(kind: PendingMutationKind, payload: String) {
             when (kind) {
-                PendingMutationKind.COMPLETE_CHORE -> todayActionsApi.completeChore(decode<MutationIdPayload>(payload).id)
+                PendingMutationKind.COMPLETE_CHORE -> {
+                    todayActionsApi.completeChore(decode<MutationIdPayload>(payload).id)
+                }
                 PendingMutationKind.SKIP_CHORE -> todayActionsApi.skipChore(decode<MutationIdPayload>(payload).id)
                 PendingMutationKind.RESCHEDULE_CHORE -> {
                     val p = decode<ReschedulePayload>(payload)
@@ -196,19 +188,12 @@ class DaynestSyncWorker
             }
         }
 
-        private suspend fun applyTaskAction(kind: PendingMutationKind, payload: String) {
+        private suspend fun applyIdAction(kind: PendingMutationKind, payload: String) {
             val id = decode<MutationIdPayload>(payload).id
             when (kind) {
                 PendingMutationKind.COMPLETE_TASK -> todayActionsApi.completeTask(id)
                 PendingMutationKind.START_TASK -> todayActionsApi.startTask(id)
                 PendingMutationKind.SKIP_TASK -> todayActionsApi.skipTask(id)
-                else -> Unit
-            }
-        }
-
-        private suspend fun applyMedicationAction(kind: PendingMutationKind, payload: String) {
-            val id = decode<MutationIdPayload>(payload).id
-            when (kind) {
                 PendingMutationKind.TAKE_DOSE -> todayActionsApi.takeDose(id)
                 PendingMutationKind.SKIP_DOSE -> todayActionsApi.skipDose(id)
                 else -> Unit

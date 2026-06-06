@@ -78,6 +78,21 @@ private fun NavGraphBuilder.daynestDestinations(navController: NavHostController
     composable(route = DaynestDestination.TEMPLATES) {
         TemplatesRoute(onNavigate = navController::navigateTopLevel)
     }
+    shoppingDestinations(navController)
+    composable(route = DaynestDestination.SETTINGS) {
+        SettingsRoute(
+            onNavigate = navController::navigateTopLevel,
+            onSignedOut = {
+                navController.navigate(DaynestDestination.AUTH) {
+                    popUpTo(DaynestDestination.HOME) { inclusive = true }
+                    launchSingleTop = true
+                }
+            },
+        )
+    }
+}
+
+private fun NavGraphBuilder.shoppingDestinations(navController: NavHostController) {
     composable(route = DaynestDestination.SHOPPING) {
         ShoppingListsRoute(
             onNavigate = navController::navigateTopLevel,
@@ -93,17 +108,6 @@ private fun NavGraphBuilder.daynestDestinations(navController: NavHostController
             listId = listId,
             onNavigate = navController::navigateTopLevel,
             onBack = { navController.popBackStack() },
-        )
-    }
-    composable(route = DaynestDestination.SETTINGS) {
-        SettingsRoute(
-            onNavigate = navController::navigateTopLevel,
-            onSignedOut = {
-                navController.navigate(DaynestDestination.AUTH) {
-                    popUpTo(DaynestDestination.HOME) { inclusive = true }
-                    launchSingleTop = true
-                }
-            },
         )
     }
 }

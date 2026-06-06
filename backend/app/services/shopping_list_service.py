@@ -59,13 +59,13 @@ class ShoppingListService:
         self, user_id: int, shopping_list_id: int, request: ShoppingListUpdateRequest
     ) -> ShoppingListResponse:
         shopping_list = self._get_user_shopping_list(user_id, shopping_list_id)
-        if "name" in request.model_fields_set:
+        if "name" in request.model_fields_set and request.name is not None:
             shopping_list.name = request.name
         if "store" in request.model_fields_set:
             shopping_list.store = request.store
         if "notes" in request.model_fields_set:
             shopping_list.notes = request.notes
-        if "status" in request.model_fields_set:
+        if "status" in request.model_fields_set and request.status is not None:
             shopping_list.status = request.status
         shopping_list = self.repository.update(shopping_list)
         return self._to_schema(shopping_list)

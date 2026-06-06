@@ -233,7 +233,7 @@ class DaynestDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 results = await asyncio.gather(
                     *(self._client.async_list_shopping_items(list_id) for list_id in valid_list_ids)
                 )
-                for list_id, items in zip(valid_list_ids, results):
+                for list_id, items in zip(valid_list_ids, results, strict=True):
                     shopping_items[list_id] = _safe_dict_list(items)
             normalized["shopping_items"] = shopping_items
         except DaynestCommunicationError as err:

@@ -103,7 +103,13 @@ class ShoppingViewModel
             if (name.isBlank()) return
             viewModelScope.launch {
                 shoppingListRepository
-                    .createShoppingList(ShoppingListCreateDto(name = name.trim(), store = store.blankToNull(), notes = notes.blankToNull()))
+                    .createShoppingList(
+                        ShoppingListCreateDto(
+                            name = name.trim(),
+                            store = store.blankToNull(),
+                            notes = notes.blankToNull(),
+                        )
+                    )
                     .onSuccess {
                         _effects.emit(getString(R.string.shopping_list_added))
                         refreshLists()
