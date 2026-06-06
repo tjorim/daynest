@@ -184,7 +184,7 @@ class ShoppingViewModel
                             linkedSource = SHOPPING_LIST_MODULE,
                             linkedRef = listId.toString(),
                             autoAddToListId = listId,
-                            tags = tag.blankToNull()?.let(::listOf).orEmpty(),
+                            tags = tag.blankToNull()?.split(",")?.map { it.trim() }?.filter { it.isNotBlank() }.orEmpty(),
                         ),
                     ).onSuccess {
                         _effects.emit(getString(R.string.shopping_recurring_item_added))

@@ -718,7 +718,8 @@ class TodayRepository:
             if series is None:
                 continue
 
-            existing_items = existing_by_series.get(series_id, [])
+            planned_dates_set = set(planned_dates)
+            existing_items = [item for item in existing_by_series.get(series_id, []) if item.planned_for in planned_dates_set]
             existing_dates = {item.planned_for for item in existing_items}
             for item in existing_items:
                 item.module_key = "shopping_list"
@@ -750,8 +751,6 @@ class TodayRepository:
                 imported.append(item)
 
         self.db.commit()
-        for item in imported:
-            self.db.refresh(item)
         return sorted(imported, key=lambda item: (item.planned_for, item.id))
 
     def get_planned_item_for_user(self, user_id: int, planned_item_id: int) -> PlannedItem | None:

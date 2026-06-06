@@ -86,10 +86,10 @@ export const shoppingListHandlers = [
       module_key: "shopping_list" as const,
       linked_source: "shopping_list",
       linked_ref: String(listId),
-      recurrence_series_id: null,
-      rrule: null,
-      recurrence_hint: null,
-      auto_add_to_list_id: null,
+      recurrence_series_id: item.recurrence_series_id,
+      rrule: item.rrule,
+      recurrence_hint: item.recurrence_hint,
+      auto_add_to_list_id: item.auto_add_to_list_id,
       is_done: false,
     }));
     mutatePlannedItems((items) => [...items, ...imported]);

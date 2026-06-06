@@ -141,6 +141,7 @@ private fun ShoppingListDetailContent(
             ShoppingListActions(
                 onShowRecurring = { showRecurringSheet = true },
                 onImportRecurring = onImportRecurring,
+                enabled = !uiState.isLoadingItems,
             )
         }
 
@@ -237,16 +238,17 @@ private fun AddItemForm(onAddItem: (String, String?, String?) -> Unit) {
 private fun ShoppingListActions(
     onShowRecurring: () -> Unit,
     onImportRecurring: () -> Unit,
+    enabled: Boolean = true,
 ) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Button(onClick = onShowRecurring, modifier = Modifier.fillMaxWidth()) {
+            Button(onClick = onShowRecurring, modifier = Modifier.fillMaxWidth(), enabled = enabled) {
                 Text(text = stringResource(id = R.string.shopping_add_recurring_item))
             }
-            TextButton(onClick = onImportRecurring, modifier = Modifier.fillMaxWidth()) {
+            TextButton(onClick = onImportRecurring, modifier = Modifier.fillMaxWidth(), enabled = enabled) {
                 Text(text = stringResource(id = R.string.shopping_import_recurring))
             }
         }

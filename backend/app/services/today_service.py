@@ -669,11 +669,16 @@ class TodayService:
     def _apply_planned_item_patch(self, item: PlannedItem, request: PlannedItemUpdateRequest) -> None:
         item.title = request.title
         item.notes = request.notes
-        item.module_key = request.module_key
         item.recurrence_hint = request.recurrence_hint
         item.rrule = request.rrule
-        item.linked_source = request.linked_source
-        item.linked_ref = request.linked_ref
+        if request.module_key == "recurring_grocery" and request.auto_add_to_list_id is not None:
+            item.module_key = "shopping_list"
+            item.linked_source = "shopping_list"
+            item.linked_ref = str(request.auto_add_to_list_id)
+        else:
+            item.module_key = request.module_key
+            item.linked_source = request.linked_source
+            item.linked_ref = request.linked_ref
         item.planned_for = request.planned_for
         item.time_of_day = request.time_of_day
         item.duration_minutes = request.duration_minutes
