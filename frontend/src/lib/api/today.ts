@@ -62,6 +62,8 @@ export interface UpcomingTodayItem {
   scheduled_date: string;
 }
 
+export type PlannedItemPriority = "low" | "normal" | "high";
+
 export interface PlannedTodayItem {
   id: number;
   title: string;
@@ -75,6 +77,8 @@ export interface PlannedTodayItem {
   recurrence_series_id: string | null;
   linked_source: string | null;
   linked_ref: string | null;
+  priority?: PlannedItemPriority;
+  tags?: string[];
   is_done: boolean;
 }
 
@@ -89,6 +93,8 @@ export interface PlannedItemInput {
   rrule?: string | null;
   linked_source?: string | null;
   linked_ref?: string | null;
+  priority?: PlannedItemPriority;
+  tags?: string[];
 }
 
 export interface PlannedItemUpdateInput extends PlannedItemInput {
@@ -151,6 +157,8 @@ export interface CalendarRangePayload {
   items: UnifiedDayItem[];
 }
 
+const plannedItemPrioritySchema = z.enum(["low", "normal", "high"]);
+
 const plannedItemModuleKeySchema = z.enum([
   "shopping_list",
   "meal_planning",
@@ -209,7 +217,10 @@ const plannedTodayItemSchema = z.object({
   id: z.number(),
   title: z.string(),
   planned_for: z.string(),
-  time_of_day: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/).nullable(),
+  time_of_day: z
+    .string()
+    .regex(/^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/)
+    .nullable(),
   duration_minutes: z.number().int().nullable(),
   notes: z.string().nullable(),
   module_key: plannedItemModuleKeySchema.nullable(),
@@ -218,6 +229,8 @@ const plannedTodayItemSchema = z.object({
   recurrence_series_id: z.string().nullable(),
   linked_source: z.string().nullable(),
   linked_ref: z.string().nullable(),
+  priority: plannedItemPrioritySchema.optional(),
+  tags: z.array(z.string()).optional(),
   is_done: z.boolean(),
 });
 
@@ -445,7 +458,7 @@ function withAuthHeader(init: RequestInit, token?: string): RequestInit {
   return { ...init, headers };
 }
 
-async function fetchWithAuth(
+export async function fetchWithAuth(
   input: RequestInfo | URL,
   init: RequestInit = {},
   retries = 2,
@@ -457,14 +470,23 @@ async function fetchWithAuth(
   const url =
     typeof input === "string" && !/^https?:\/\//i.test(input) ? buildApiUrl(input) : input;
   const method = (init.method ?? "GET").toUpperCase();
-  if (typeof navigator !== "undefined" && !navigator.onLine && method !== "GET" && method !== "HEAD") {
+  if (
+    typeof navigator !== "undefined" &&
+    !navigator.onLine &&
+    method !== "GET" &&
+    method !== "HEAD"
+  ) {
     enqueueOffline(url.toString(), init);
-    throw new ApiError("You are offline. This action will be replayed when you reconnect.", 0, false);
+    throw new ApiError(
+      "You are offline. This action will be replayed when you reconnect.",
+      0,
+      false,
+    );
   }
   return fetchWithRetry(url, withAuthHeader(init, token), retries);
 }
 
-async function parseJsonResponse<T>(
+export async function parseJsonResponse<T>(
   response: Response,
   fallbackMessage = "Request failed",
   isIdempotent = true,
@@ -805,12 +827,18 @@ export async function createIntegrationClient(
   return parseJsonResponse<IntegrationClientCreateResponse>(response, "Request failed", false);
 }
 
-export async function rotateIntegrationClient(clientId: number): Promise<IntegrationClientCreateResponse> {
+export async function rotateIntegrationClient(
+  clientId: number,
+): Promise<IntegrationClientCreateResponse> {
   const response = await fetchWithAuth(`/api/integrations/clients/${clientId}/rotate`, {
     method: "POST",
     headers: { Accept: "application/json" },
   });
-  return parseJsonResponse<IntegrationClientCreateResponse>(response, "Failed to rotate integration client", false);
+  return parseJsonResponse<IntegrationClientCreateResponse>(
+    response,
+    "Failed to rotate integration client",
+    false,
+  );
 }
 
 export async function revokeIntegrationClient(clientId: number): Promise<void> {
@@ -1096,14 +1124,11 @@ export interface SearchResponse {
   planned_items: PlannedItemSearchResult[];
 }
 
-export async function searchItems(
-  query: string,
-  signal?: AbortSignal,
-): Promise<SearchResponse> {
-  const response = await fetchWithAuth(
-    `/api/search?q=${encodeURIComponent(query)}`,
-    { headers: { Accept: "application/json" }, signal },
-  );
+export async function searchItems(query: string, signal?: AbortSignal): Promise<SearchResponse> {
+  const response = await fetchWithAuth(`/api/search?q=${encodeURIComponent(query)}`, {
+    headers: { Accept: "application/json" },
+    signal,
+  });
   return parseJsonResponse<SearchResponse>(response, "Search failed");
 }
 

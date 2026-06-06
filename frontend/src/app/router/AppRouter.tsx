@@ -18,6 +18,8 @@ import { MedicationPage } from "@/features/medication/MedicationPage";
 import { SettingsPage } from "@/features/settings/SettingsPage";
 import { TemplatesPage } from "@/features/templates/TemplatesPage";
 import { StatsPage } from "@/features/stats/StatsPage";
+import { ShoppingListDetail } from "@/features/shopping/ShoppingListDetail";
+import { ShoppingListsPage } from "@/features/shopping/ShoppingListsPage";
 
 type RouterContext = {
   auth: {
@@ -37,7 +39,9 @@ function ProtectedRouteBoundary() {
       <Navigate
         to="/auth"
         replace
-        search={{ from: `${location.pathname}${location.searchStr}${location.hash ? `#${location.hash}` : ""}` }}
+        search={{
+          from: `${location.pathname}${location.searchStr}${location.hash ? `#${location.hash}` : ""}`,
+        }}
       />
     );
   }
@@ -53,8 +57,14 @@ const authSearchSchema = z.object({
 });
 
 const calendarSearchSchema = z.object({
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  month: z.string().regex(/^\d{4}-\d{2}$/).optional(),
+  date: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
+  month: z
+    .string()
+    .regex(/^\d{4}-\d{2}$/)
+    .optional(),
 });
 
 const rootRoute = createRootRouteWithContext<RouterContext>()({
@@ -86,7 +96,9 @@ const protectedRoute = createRoute({
     throw redirect({
       to: "/auth",
       replace: true,
-      search: { from: `${location.pathname}${location.searchStr}${location.hash ? `#${location.hash}` : ""}` },
+      search: {
+        from: `${location.pathname}${location.searchStr}${location.hash ? `#${location.hash}` : ""}`,
+      },
     });
   },
   component: ProtectedRouteBoundary,
@@ -109,6 +121,18 @@ const medicationRoute = createRoute({
   getParentRoute: () => protectedRoute,
   path: "/medication",
   component: MedicationPage,
+});
+
+const shoppingRoute = createRoute({
+  getParentRoute: () => protectedRoute,
+  path: "/shopping",
+  component: ShoppingListsPage,
+});
+
+const shoppingListRoute = createRoute({
+  getParentRoute: () => protectedRoute,
+  path: "/shopping/$listId",
+  component: ShoppingListDetail,
 });
 
 const templatesRoute = createRoute({
@@ -143,6 +167,8 @@ const routeTree = rootRoute.addChildren([
     todayRoute,
     calendarRoute,
     medicationRoute,
+    shoppingRoute,
+    shoppingListRoute,
     templatesRoute,
     statsRoute,
     settingsRoute,
