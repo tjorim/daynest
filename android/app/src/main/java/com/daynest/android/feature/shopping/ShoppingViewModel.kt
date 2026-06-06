@@ -161,6 +161,58 @@ class ShoppingViewModel
             }
         }
 
+        fun addRecurringItem(
+            title: String,
+            plannedFor: String,
+            tag: String?,
+            notes: String?,
+            rrule: String?,
+            recurrenceHint: String?,
+        ) {
+            val listId = _uiState.value.selectedListId ?: return
+            if (title.isBlank() || plannedFor.isBlank()) return
+            viewModelScope.launch {
+                plannedItemRepository
+                    .createPlannedItem(
+                        PlannedItemCreateDto(
+                            title = title.trim(),
+                            plannedFor = plannedFor.trim(),
+                            notes = notes.blankToNull(),
+                            moduleKey = RECURRING_GROCERY_MODULE,
+                            rrule = rrule.blankToNull(),
+                            recurrenceHint = recurrenceHint.blankToNull() ?: DEFAULT_RECURRING_GROCERY_HINT,
+                            linkedSource = SHOPPING_LIST_MODULE,
+                            linkedRef = listId.toString(),
+                            autoAddToListId = listId,
+                            tags = tag.blankToNull()?.let(::listOf).orEmpty(),
+                        ),
+                    ).onSuccess {
+                        _effects.emit(getString(R.string.shopping_recurring_item_added))
+                        selectList(listId)
+                    }.onFailure { _effects.emit(it.message ?: getString(R.string.shopping_error_add_recurring_item)) }
+            }
+        }
+
+        fun importRecurringItems() {
+            val listId = _uiState.value.selectedListId ?: return
+            viewModelScope.launch {
+                shoppingListRepository
+                    .importRecurring(listId)
+                    .onSuccess { imported ->
+                        _effects.emit(
+                            getApplication<Application>()
+                                .resources
+                                .getQuantityString(
+                                    R.plurals.shopping_recurring_imported,
+                                    imported.size,
+                                    imported.size,
+                                ),
+                        )
+                        selectList(listId)
+                    }.onFailure { _effects.emit(it.message ?: getString(R.string.shopping_error_import_recurring)) }
+            }
+        }
+
         fun checkOffItem(item: PlannedTodayItemDto) {
             val listId = _uiState.value.selectedListId ?: return
             viewModelScope.launch {
@@ -210,3 +262,5 @@ private fun List<PlannedTodayItemDto>.shoppingItemsFor(listId: Int): List<Planne
 private fun String?.blankToNull(): String? = this?.trim()?.takeIf { it.isNotBlank() }
 
 private const val SHOPPING_LIST_MODULE = "shopping_list"
+private const val RECURRING_GROCERY_MODULE = "recurring_grocery"
+private const val DEFAULT_RECURRING_GROCERY_HINT = "weekly"

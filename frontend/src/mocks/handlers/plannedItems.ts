@@ -35,6 +35,7 @@ export const plannedItemHandlers = [
       recurrence_series_id: null,
       linked_source: input.linked_source ?? null,
       linked_ref: input.linked_ref ?? null,
+      auto_add_to_list_id: input.auto_add_to_list_id ?? null,
       priority: input.priority ?? "normal",
       tags: input.tags ?? [],
       is_done: false,

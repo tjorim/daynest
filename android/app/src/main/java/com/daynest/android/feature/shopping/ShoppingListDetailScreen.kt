@@ -16,11 +16,13 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -68,18 +70,23 @@ fun ShoppingListDetailRoute(
             },
             onRefresh = { viewModel.selectList(listId) },
             onAddItem = viewModel::addItem,
+            onAddRecurringItem = viewModel::addRecurringItem,
+            onImportRecurring = viewModel::importRecurringItems,
             onCheckOff = viewModel::checkOffItem,
             modifier = Modifier.padding(innerPadding),
         )
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ShoppingListDetailContent(
     uiState: ShoppingUiState,
     onBack: () -> Unit,
     onRefresh: () -> Unit,
     onAddItem: (String, String?, String?) -> Unit,
+    onAddRecurringItem: (String, String, String?, String?, String?, String?) -> Unit,
+    onImportRecurring: () -> Unit,
     onCheckOff: (PlannedTodayItemDto) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -90,6 +97,16 @@ private fun ShoppingListDetailContent(
         remember(openItems, uncategorizedLabel) {
             openItems.groupBy { it.tags.firstOrNull()?.takeIf(String::isNotBlank) ?: uncategorizedLabel }
         }
+    var showRecurringSheet by remember { mutableStateOf(false) }
+    val recurringSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    if (showRecurringSheet) {
+        RecurringItemBottomSheet(
+            sheetState = recurringSheetState,
+            onAddRecurringItem = onAddRecurringItem,
+            onDismiss = { showRecurringSheet = false },
+        )
+    }
 
     LazyColumn(
         modifier = modifier.fillMaxSize(),
@@ -118,6 +135,13 @@ private fun ShoppingListDetailContent(
 
         uiState.error?.let { message ->
             item { Text(text = message, color = MaterialTheme.colorScheme.error) }
+        }
+
+        item {
+            ShoppingListActions(
+                onShowRecurring = { showRecurringSheet = true },
+                onImportRecurring = onImportRecurring,
+            )
         }
 
         item { AddItemForm(onAddItem = onAddItem) }
@@ -204,6 +228,26 @@ private fun AddItemForm(onAddItem: (String, String?, String?) -> Unit) {
                 enabled = itemTitle.isNotBlank(),
             ) {
                 Text(text = stringResource(id = R.string.action_add))
+            }
+        }
+    }
+}
+
+@Composable
+private fun ShoppingListActions(
+    onShowRecurring: () -> Unit,
+    onImportRecurring: () -> Unit,
+) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Button(onClick = onShowRecurring, modifier = Modifier.fillMaxWidth()) {
+                Text(text = stringResource(id = R.string.shopping_add_recurring_item))
+            }
+            TextButton(onClick = onImportRecurring, modifier = Modifier.fillMaxWidth()) {
+                Text(text = stringResource(id = R.string.shopping_import_recurring))
             }
         }
     }
