@@ -122,3 +122,51 @@ main.container {
   gap: 0.35rem;
   padding-left: 1rem;
 }
+
+.meal-plan-grid {
+  display: grid;
+  grid-template-columns: minmax(5.5rem, 0.7fr) repeat(7, minmax(8rem, 1fr));
+  gap: 0.5rem;
+  overflow-x: auto;
+}
+
+.meal-plan-row-contents {
+  display: contents;
+}
+
+.meal-plan-grid-corner,
+.meal-plan-day-header,
+.meal-plan-meal-header {
+  padding: 0.75rem;
+  border-radius: 0.75rem;
+  background: var(--bg-muted);
+}
+
+.meal-plan-day-header,
+.meal-plan-meal-header {
+  min-width: 8rem;
+}
+
+.meal-plan-meal-header {
+  display: flex;
+  align-items: center;
+  font-weight: 700;
+}
+
+.meal-slot-card {
+  min-height: 7rem;
+  white-space: normal;
+}
+
+.meal-plan-week-input {
+  width: auto;
+}
+
+.meal-plan-modal {
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.meal-plan-ingredient-preview {
+  max-height: 16rem;
+  overflow: auto;
+}

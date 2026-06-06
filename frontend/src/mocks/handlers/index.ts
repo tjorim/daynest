@@ -8,6 +8,7 @@ import { medicationHandlers } from "./medication";
 import { templateHandlers } from "./templates";
 import { settingsHandlers } from "./settings";
 import { shoppingListHandlers } from "./shoppingLists";
+import { mealPlanHandlers } from "./mealPlans";
 import { analyticsHandlers } from "./analytics";
 
 export const handlers = [
@@ -21,5 +22,6 @@ export const handlers = [
   ...templateHandlers,
   ...settingsHandlers,
   ...shoppingListHandlers,
+  ...mealPlanHandlers,
   ...analyticsHandlers,
 ];

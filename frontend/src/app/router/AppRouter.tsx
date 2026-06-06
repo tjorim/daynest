@@ -21,6 +21,7 @@ import { StatsPage } from "@/features/stats/StatsPage";
 import { ShoppingListDetail } from "@/features/shopping/ShoppingListDetail";
 import { ShoppingListsPage } from "@/features/shopping/ShoppingListsPage";
 import { RecurringGroceriesPage } from "@/features/shopping/RecurringGroceriesPage";
+import { MealPlannerPage } from "@/features/meal-planning/MealPlannerPage";
 
 type RouterContext = {
   auth: {
@@ -124,6 +125,12 @@ const medicationRoute = createRoute({
   component: MedicationPage,
 });
 
+const mealPlanRoute = createRoute({
+  getParentRoute: () => protectedRoute,
+  path: "/meal-plan",
+  component: MealPlannerPage,
+});
+
 const shoppingRoute = createRoute({
   getParentRoute: () => protectedRoute,
   path: "/shopping",
@@ -174,6 +181,7 @@ const routeTree = rootRoute.addChildren([
     todayRoute,
     calendarRoute,
     medicationRoute,
+    mealPlanRoute,
     shoppingRoute,
     recurringGroceriesRoute,
     shoppingListRoute,

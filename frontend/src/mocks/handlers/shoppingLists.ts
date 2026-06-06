@@ -29,6 +29,20 @@ const shoppingLists: ShoppingList[] = [
   },
 ];
 
+export function addMockShoppingList(input: ShoppingListInput): ShoppingList {
+  const list: ShoppingList = {
+    id: nextShoppingListId++,
+    user_id: 1,
+    name: input.name,
+    store: input.store ?? null,
+    notes: input.notes ?? null,
+    status: "active",
+    created_at: new Date().toISOString(),
+  };
+  shoppingLists.unshift(list);
+  return list;
+}
+
 export const shoppingListHandlers = [
   http.get("/api/shopping-lists", ({ request }) => {
     const status = new URL(request.url).searchParams.get("status") ?? "active";
@@ -42,17 +56,7 @@ export const shoppingListHandlers = [
   }),
   http.post("/api/shopping-lists", async ({ request }) => {
     const input = (await request.json()) as ShoppingListInput;
-    const list: ShoppingList = {
-      id: nextShoppingListId++,
-      user_id: 1,
-      name: input.name,
-      store: input.store ?? null,
-      notes: input.notes ?? null,
-      status: "active",
-      created_at: new Date().toISOString(),
-    };
-    shoppingLists.unshift(list);
-    return HttpResponse.json(list, { status: 201 });
+    return HttpResponse.json(addMockShoppingList(input), { status: 201 });
   }),
   http.put("/api/shopping-lists/:listId", async ({ params, request }) => {
     const index = shoppingLists.findIndex((item) => item.id === Number(params.listId));

@@ -17,6 +17,8 @@ from daynest.models import (
     DaynestApiResponse,
     DaynestDashboard,
     DaynestSummary,
+    MealPlan,
+    MealSlot,
     PlannedItem,
     RoutineTemplate,
 )
@@ -33,6 +35,8 @@ __all__ = [
     "DaynestApiResponse",
     "DaynestSummary",
     "DaynestDashboard",
+    "MealPlan",
+    "MealSlot",
     "PlannedItem",
     "RoutineTemplate",
     "ChoreTemplate",

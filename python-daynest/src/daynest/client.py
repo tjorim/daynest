@@ -31,6 +31,8 @@ from daynest.models import (
     DaynestApiResponse,
     DaynestDashboard,
     DaynestSummary,
+    MealPlan,
+    MealSlot,
     PlannedItem,
     RoutineTemplate,
 )
@@ -385,6 +387,43 @@ class DaynestClient:
             path += f"?scope={scope}"
         await self._send_no_content_action("delete", path=path)
 
+    async def async_list_meal_plans(
+        self,
+        *,
+        week_start_from: date | None = None,
+        week_start_to: date | None = None,
+    ) -> list[MealPlan]:
+        """List meal plans, optionally filtered by week_start client-side."""
+        payload = await self._cached_call("async_list_meal_plans", lambda: self._request_list("/api/meal-plans"))
+        plans = [MealPlan.from_dict(item) for item in payload]
+        if week_start_from is not None:
+            plans = [plan for plan in plans if plan.week_start >= week_start_from]
+        if week_start_to is not None:
+            plans = [plan for plan in plans if plan.week_start <= week_start_to]
+        return plans
+
+    async def async_get_meal_plan_slots(self, meal_plan_id: int) -> list[MealSlot]:
+        """Fetch and flatten slots for a meal plan week grid."""
+        payload = await self._cached_call(
+            "async_get_meal_plan_slots",
+            lambda: self._request_dict(f"/api/meal-plans/{meal_plan_id}/slots"),
+            meal_plan_id,
+        )
+        days = payload.get("days")
+        if not isinstance(days, list):
+            msg = "Malformed meal plan slots payload: expected days array"
+            raise DaynestMalformedResponseError(msg)
+        slots: list[MealSlot] = []
+        for day in days:
+            if not isinstance(day, dict):
+                continue
+            raw_slots = day.get("slots")
+            if not isinstance(raw_slots, dict):
+                continue
+            for raw_slot in raw_slots.values():
+                if isinstance(raw_slot, dict):
+                    slots.append(MealSlot.from_dict(raw_slot))
+        return slots
 
     async def async_list_shopping_lists(self, status: str = "active") -> list[dict[str, Any]]:
         """List shopping lists for the authenticated user."""

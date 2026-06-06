@@ -2,12 +2,18 @@
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock
+from datetime import date
+from unittest.mock import DEFAULT, AsyncMock, MagicMock
 
-from daynest.models import DaynestDashboard
+from daynest.models import DaynestDashboard, MealPlan, MealSlot
 import pytest
 
-from custom_components.daynest.coordinator import DaynestDataUpdateCoordinator, _safe_float, _safe_int
+from custom_components.daynest.coordinator import (
+    DaynestDataUpdateCoordinator,
+    _current_and_next_week_window,
+    _safe_float,
+    _safe_int,
+)
 from daynest import DaynestAuthError, DaynestCommunicationError, DaynestError, DaynestMalformedResponseError
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import UpdateFailed
@@ -49,6 +55,16 @@ def _make_coordinator(client: AsyncMock | None = None) -> DaynestDataUpdateCoord
     config_entry.domain = "daynest"
     if client is None:
         client = AsyncMock()
+    for method_name, default_value in {
+        "async_get_user_settings": {},
+        "async_list_shopping_lists": [],
+        "async_list_shopping_items": [],
+        "async_list_meal_plans": [],
+        "async_get_meal_plan_slots": [],
+    }.items():
+        method = getattr(client, method_name, None)
+        if isinstance(method, AsyncMock) and method.side_effect is None and method._mock_return_value is DEFAULT:
+            method.return_value = default_value
     return DaynestDataUpdateCoordinator(hass=hass, config_entry=config_entry, client=client)
 
 
@@ -102,6 +118,17 @@ class TestSafeFloat:
 
     def test_empty_string_returns_default(self) -> None:
         assert _safe_float("") == 0.0
+
+
+@pytest.mark.unit
+class TestMealPlanWindow:
+    """Tests for meal plan week window calculation."""
+
+    def test_current_and_next_week_window_uses_monday_starts(self) -> None:
+        current, next_week = _current_and_next_week_window(date(2026, 6, 6))
+
+        assert current == date(2026, 6, 1)
+        assert next_week == date(2026, 6, 8)
 
 
 @pytest.mark.unit
@@ -219,6 +246,28 @@ class TestAsyncUpdateData:
         client.async_list_shopping_items.return_value = [
             {"id": 20, "title": "Milk", "is_done": False},
         ]
+        client.async_list_meal_plans.return_value = [
+            MealPlan(
+                id=30,
+                user_id=1,
+                name="Current week",
+                week_start=date(2026, 6, 1),
+                notes=None,
+                created_at=date(2026, 6, 1),
+            ),
+        ]
+        client.async_get_meal_plan_slots.return_value = [
+            MealSlot(
+                id=40,
+                meal_plan_id=30,
+                slot_date=date(2026, 6, 1),
+                slot_type="dinner",
+                title="Pasta",
+                recipe_url="https://recipes.example/pasta",
+                ingredients_json=("pasta",),
+                planned_item_id=None,
+            ),
+        ]
         coordinator = _make_coordinator(client)
         result = await coordinator._async_update_data()
         assert result["due_today_count"] == 3
@@ -228,8 +277,31 @@ class TestAsyncUpdateData:
         assert result["medication_reminder_minutes"] == 20
         assert result["shopping_lists"] == [{"id": 10, "name": "Groceries", "status": "active"}]
         assert result["shopping_items"] == {10: [{"id": 20, "title": "Milk", "is_done": False}]}
+        assert result["meal_plans"] == [
+            {
+                "id": 30,
+                "user_id": 1,
+                "name": "Current week",
+                "week_start": "2026-06-01",
+                "notes": None,
+                "created_at": "2026-06-01",
+            }
+        ]
+        assert result["meal_slots"] == [
+            {
+                "id": 40,
+                "meal_plan_id": 30,
+                "slot_date": "2026-06-01",
+                "slot_type": "dinner",
+                "title": "Pasta",
+                "recipe_url": "https://recipes.example/pasta",
+                "ingredients_json": ["pasta"],
+                "planned_item_id": None,
+            }
+        ]
         client.async_list_shopping_lists.assert_awaited_once_with(status="active")
         client.async_list_shopping_items.assert_awaited_once_with(10)
+        client.async_get_meal_plan_slots.assert_awaited_once_with(30)
 
     async def test_authentication_error_raises_config_entry_auth_failed(self) -> None:
         client = AsyncMock()
@@ -326,6 +398,16 @@ class TestAsyncUpdateData:
         client.async_list_shopping_lists.side_effect = DaynestCommunicationError("timeout")
         coordinator = _make_coordinator(client)
         with pytest.raises(UpdateFailed, match="Temporary communication failure while updating shopping lists"):
+            await coordinator._async_update_data()
+
+    async def test_meal_plan_communication_error_raises_update_failed(self) -> None:
+        client = AsyncMock()
+        client.async_get_dashboard.return_value = _make_dashboard_response()
+        client.async_get_user_settings.return_value = {}
+        client.async_list_shopping_lists.return_value = []
+        client.async_list_meal_plans.side_effect = DaynestCommunicationError("timeout")
+        coordinator = _make_coordinator(client)
+        with pytest.raises(UpdateFailed, match="Temporary communication failure while updating meal plans"):
             await coordinator._async_update_data()
 
     async def test_empty_shopping_lists_returns_empty_shopping_items(self) -> None:
