@@ -17,6 +17,10 @@ export const queryKeys = {
     detail: (listId: number) => [...queryKeys.shoppingLists.all, "detail", listId] as const,
     items: (listId: number) => [...queryKeys.shoppingLists.detail(listId), "items"] as const,
   },
+  recurringGroceries: {
+    all: ["recurring-groceries"] as const,
+    list: () => [...queryKeys.recurringGroceries.all, "list"] as const,
+  },
   plannedItems: {
     all: ["planned-items"] as const,
     range: (startDate?: string, endDate?: string) =>

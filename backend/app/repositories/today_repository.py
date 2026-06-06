@@ -1,5 +1,5 @@
 import logging
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from datetime import date, datetime, time, timedelta, timezone
 from uuid import UUID
 from zoneinfo import ZoneInfo
@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session, joinedload
 from app.core.enums import ChoreStatus, MedicationDoseStatus, Priority, TaskStatus
 from app.models.user import User
 from app.models.chore_instance import ChoreInstance
+from app.models.shopping_list import ShoppingList
 from app.models.chore_template import ChoreTemplate
 from app.models.household_member import HouseholdMember
 from app.models.medication_dose_instance import MedicationDoseInstance
@@ -540,7 +541,11 @@ class TodayRepository:
         return self.db.scalar(stmt)
 
     def list_planned_items(self, user_id: int, start_date: date | None = None, end_date: date | None = None, is_done: bool | None = None, tags: list[str] | None = None) -> list[PlannedItem]:
-        stmt = select(PlannedItem).where(PlannedItem.user_id == user_id)
+        stmt = (
+            select(PlannedItem)
+            .options(joinedload(PlannedItem.recurrence_series))
+            .where(PlannedItem.user_id == user_id)
+        )
         if start_date is not None:
             stmt = stmt.where(PlannedItem.planned_for >= start_date)
         if end_date is not None:
@@ -548,7 +553,7 @@ class TodayRepository:
         if is_done is not None:
             stmt = stmt.where(PlannedItem.is_done.is_(is_done))
         stmt = stmt.order_by(PlannedItem.planned_for.asc(), PlannedItem.id.asc())
-        items = list(self.db.scalars(stmt).all())
+        items = list(self.db.scalars(stmt).unique().all())
         if tags:
             items = [item for item in items if any(tag in (item.tags or []) for tag in tags)]
         return items
@@ -569,6 +574,16 @@ class TodayRepository:
                     RecurrenceSeries.materialized_through < through_date,
                 )
             )
+            .order_by(RecurrenceSeries.start_date.asc(), RecurrenceSeries.created_at.asc())
+        )
+        return list(self.db.scalars(stmt).all())
+
+    def list_recurring_grocery_series(self, *, user_id: int, through_date: date) -> list[RecurrenceSeries]:
+        stmt = (
+            select(RecurrenceSeries)
+            .where(RecurrenceSeries.user_id == user_id)
+            .where(RecurrenceSeries.module_key == "recurring_grocery")
+            .where(RecurrenceSeries.start_date <= through_date)
             .order_by(RecurrenceSeries.start_date.asc(), RecurrenceSeries.created_at.asc())
         )
         return list(self.db.scalars(stmt).all())
@@ -605,17 +620,25 @@ class TodayRepository:
         through_date: date,
         materialized_dates: Sequence[date],
     ) -> None:
+        item_module_key = series.module_key
+        item_linked_source = series.linked_source
+        item_linked_ref = series.linked_ref
+        if series.module_key == "recurring_grocery" and series.auto_add_to_list_id is not None:
+            item_module_key = "shopping_list"
+            item_linked_source = "shopping_list"
+            item_linked_ref = str(series.auto_add_to_list_id)
+
         rows = [
             {
                 "user_id": series.user_id,
                 "title": series.title,
                 "notes": series.notes,
-                "module_key": series.module_key,
+                "module_key": item_module_key,
                 "recurrence_hint": series.recurrence_hint,
                 "rrule": series.rrule,
                 "recurrence_series_id": series.id,
-                "linked_source": series.linked_source,
-                "linked_ref": series.linked_ref,
+                "linked_source": item_linked_source,
+                "linked_ref": item_linked_ref,
                 "planned_for": planned_for,
                 "time_of_day": series.time_of_day,
                 "duration_minutes": series.duration_minutes,
@@ -657,13 +680,98 @@ class TodayRepository:
             self.db.refresh(item)
         return list(items)
 
+    def import_recurring_grocery_items_to_list(
+        self,
+        *,
+        user_id: int,
+        shopping_list_id: int,
+        series_dates: Mapping[UUID, Sequence[date]],
+    ) -> list[PlannedItem]:
+        if not series_dates:
+            return []
+
+        series_ids = list(series_dates.keys())
+        all_dates = [d for dates in series_dates.values() for d in dates]
+
+        series_map = {
+            s.id: s
+            for s in self.db.scalars(
+                select(RecurrenceSeries).where(RecurrenceSeries.id.in_(series_ids))
+            ).all()
+        }
+
+        existing_by_series: dict[UUID, list[PlannedItem]] = {}
+        for item in self.db.scalars(
+            select(PlannedItem)
+            .where(PlannedItem.user_id == user_id)
+            .where(PlannedItem.recurrence_series_id.in_(series_ids))
+            .where(PlannedItem.planned_for.in_(all_dates))
+        ).all():
+            if item.recurrence_series_id is not None:
+                existing_by_series.setdefault(item.recurrence_series_id, []).append(item)
+
+        imported: list[PlannedItem] = []
+        for series_id, planned_dates in series_dates.items():
+            if not planned_dates:
+                continue
+            series = series_map.get(series_id)
+            if series is None:
+                continue
+
+            planned_dates_set = set(planned_dates)
+            existing_items = [item for item in existing_by_series.get(series_id, []) if item.planned_for in planned_dates_set]
+            existing_dates = {item.planned_for for item in existing_items}
+            for item in existing_items:
+                item.module_key = "shopping_list"
+                item.linked_source = "shopping_list"
+                item.linked_ref = str(shopping_list_id)
+            imported.extend(existing_items)
+
+            for planned_for in planned_dates:
+                if planned_for in existing_dates:
+                    continue
+                item = PlannedItem(
+                    user_id=user_id,
+                    title=series.title,
+                    notes=series.notes,
+                    module_key="shopping_list",
+                    recurrence_hint=series.recurrence_hint,
+                    rrule=series.rrule,
+                    recurrence_series_id=series.id,
+                    linked_source="shopping_list",
+                    linked_ref=str(shopping_list_id),
+                    planned_for=planned_for,
+                    time_of_day=series.time_of_day,
+                    duration_minutes=series.duration_minutes,
+                    priority=series.priority,
+                    tags=series.tags or [],
+                    is_done=False,
+                )
+                self.db.add(item)
+                imported.append(item)
+
+        self.db.commit()
+        return sorted(imported, key=lambda item: (item.planned_for, item.id))
+
     def get_planned_item_for_user(self, user_id: int, planned_item_id: int) -> PlannedItem | None:
-        stmt = select(PlannedItem).where(PlannedItem.user_id == user_id).where(PlannedItem.id == planned_item_id)
+        stmt = (
+            select(PlannedItem)
+            .options(joinedload(PlannedItem.recurrence_series))
+            .where(PlannedItem.user_id == user_id)
+            .where(PlannedItem.id == planned_item_id)
+        )
         return self.db.scalar(stmt)
 
     def get_recurrence_series_for_user(self, user_id: int, recurrence_series_id: UUID) -> RecurrenceSeries | None:
         stmt = select(RecurrenceSeries).where(RecurrenceSeries.user_id == user_id).where(RecurrenceSeries.id == recurrence_series_id)
         return self.db.scalar(stmt)
+
+    def shopping_list_belongs_to_user(self, user_id: int, shopping_list_id: int) -> bool:
+        return self.db.scalar(
+            select(ShoppingList.id)
+            .where(ShoppingList.id == shopping_list_id)
+            .where(ShoppingList.user_id == user_id)
+        ) is not None
 
     def delete_planned_item(self, item: PlannedItem) -> None:
         self.db.delete(item)

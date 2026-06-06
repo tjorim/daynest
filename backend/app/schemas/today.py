@@ -81,6 +81,7 @@ class PlannedTodayItem(BaseModel):
     recurrence_series_id: UUID | None = None
     linked_source: str | None = None
     linked_ref: str | None = None
+    auto_add_to_list_id: int | None = None
     priority: Priority = Priority.normal
     tags: list[str] = Field(default_factory=list)
     is_done: bool
@@ -97,6 +98,7 @@ class PlannedItemBase(BaseModel):
     rrule: str | None = Field(default=None, max_length=500)
     linked_source: str | None = Field(default=None, max_length=120)
     linked_ref: str | None = Field(default=None, max_length=255)
+    auto_add_to_list_id: int | None = Field(default=None, ge=1)
     priority: Priority = Priority.normal
     tags: list[str] = Field(default_factory=list)
 

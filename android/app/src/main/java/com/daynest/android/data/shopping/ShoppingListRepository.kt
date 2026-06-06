@@ -6,6 +6,7 @@ import com.daynest.android.core.database.sync.CacheEntryEntity
 import com.daynest.android.core.database.sync.PendingMutationDao
 import com.daynest.android.core.database.sync.PendingMutationEntity
 import com.daynest.android.core.network.JsonSerializer
+import com.daynest.android.data.recoverOffline
 import com.daynest.android.data.safeApiCall
 import com.daynest.android.data.sync.CreateShoppingListPayload
 import com.daynest.android.data.sync.DaynestSyncScheduler
@@ -13,10 +14,10 @@ import com.daynest.android.data.sync.DeleteShoppingListPayload
 import com.daynest.android.data.sync.PendingMutationKind
 import com.daynest.android.data.sync.SyncCacheKeys
 import com.daynest.android.data.sync.UpdateShoppingListPayload
+import com.daynest.android.data.today.PlannedTodayItemDto
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.encodeToString
-import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.random.Random
@@ -105,6 +106,9 @@ class ShoppingListRepository
                     Unit
                 }
 
+        suspend fun importRecurring(id: Int): Result<List<PlannedTodayItemDto>> =
+            safeApiCall { shoppingListApi.importRecurring(id).also { scheduleSync() } }
+
         internal suspend fun cacheShoppingLists(lists: List<ShoppingListDto>) {
             cacheEntryDao.upsert(
                 CacheEntryEntity(
@@ -140,15 +144,5 @@ class ShoppingListRepository
 
         private fun scheduleSync() {
             DaynestSyncScheduler.enqueueOneShot(appContext)
-        }
-
-        private suspend inline fun <T> Result<T>.recoverOffline(crossinline fallback: suspend () -> T): Result<T> {
-            if (isSuccess) return this
-            val failure = exceptionOrNull()
-            return if (failure is IOException) {
-                runCatching { fallback() }
-            } else {
-                this
-            }
         }
     }

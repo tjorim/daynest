@@ -31,6 +31,7 @@ data class PlannedItemFormState(
     val plannedFor: String,
     val notes: String? = null,
     val moduleKey: String? = null,
+    val rrule: String? = null,
     val recurrenceHint: String? = null,
     val linkedSource: String? = null,
     val linkedRef: String? = null,
@@ -51,6 +52,7 @@ fun PlannedItemFormDialog(
     var plannedFor by remember(initialState) { mutableStateOf(initialState.plannedFor) }
     var notes by remember(initialState) { mutableStateOf(initialState.notes.orEmpty()) }
     var moduleKey by remember(initialState) { mutableStateOf(initialState.moduleKey.orEmpty()) }
+    var rrule by remember(initialState) { mutableStateOf(initialState.rrule.orEmpty()) }
     var recurrenceHint by remember(initialState) { mutableStateOf(initialState.recurrenceHint.orEmpty()) }
     var linkedSource by remember(initialState) { mutableStateOf(initialState.linkedSource.orEmpty()) }
     var linkedRef by remember(initialState) { mutableStateOf(initialState.linkedRef.orEmpty()) }
@@ -91,6 +93,12 @@ fun PlannedItemFormDialog(
                     value = moduleKey,
                     onValueChange = { moduleKey = it },
                     label = { Text(text = stringResource(id = R.string.calendar_planned_module_label)) },
+                    singleLine = true,
+                )
+                OutlinedTextField(
+                    value = rrule,
+                    onValueChange = { rrule = it },
+                    label = { Text(text = stringResource(id = R.string.calendar_planned_rrule_label)) },
                     singleLine = true,
                 )
                 OutlinedTextField(
@@ -137,6 +145,7 @@ fun PlannedItemFormDialog(
                             plannedFor = trimmedPlannedFor,
                             notes = notes.trim().ifBlank { null },
                             moduleKey = moduleKey.trim().ifBlank { null },
+                            rrule = rrule.trim().ifBlank { null },
                             recurrenceHint = recurrenceHint.trim().ifBlank { null },
                             linkedSource = linkedSource.trim().ifBlank { null },
                             linkedRef = linkedRef.trim().ifBlank { null },

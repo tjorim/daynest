@@ -138,6 +138,14 @@ export async function addShoppingItem(
   });
 }
 
+export async function importRecurringGroceries(listId: number): Promise<PlannedTodayItem[]> {
+  const response = await fetchWithAuth(`/api/shopping-lists/${listId}/import-recurring`, {
+    method: "POST",
+    headers: { Accept: "application/json" },
+  });
+  return parseJsonResponse<PlannedTodayItem[]>(response, "Unable to import recurring groceries", false);
+}
+
 export async function checkOffShoppingItem(item: PlannedTodayItem): Promise<PlannedTodayItem> {
   // PUT requires a full payload (title and planned_for are non-optional on the backend).
   const { id: _id, recurrence_series_id: _sid, ...fields } = item;

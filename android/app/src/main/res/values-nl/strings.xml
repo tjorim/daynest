@@ -72,6 +72,7 @@
     <string name="calendar_planned_date_label">Datum (JJJJ-MM-DD)</string>
     <string name="calendar_planned_notes_label">Notities</string>
     <string name="calendar_planned_module_label">Modulesleutel</string>
+    <string name="calendar_planned_rrule_label">RRULE</string>
     <string name="calendar_planned_recurrence_label">Herhalingsaanwijzing</string>
     <string name="calendar_planned_linked_source_label">Gekoppelde bron</string>
     <string name="calendar_planned_linked_ref_label">Gekoppelde referentie</string>
@@ -219,6 +220,18 @@
     <string name="shopping_error_delete_list">Kan boodschappenlijst niet verwijderen</string>
     <string name="shopping_item_added">Boodschappenitem toegevoegd</string>
     <string name="shopping_error_add_item">Kan boodschappenitem niet toevoegen</string>
+    <string name="shopping_add_recurring_item">Terugkerende boodschap toevoegen</string>
+    <string name="shopping_import_recurring">Terugkerende items importeren</string>
+    <string name="shopping_recurring_start_date">Startdatum (JJJJ-MM-DD)</string>
+    <string name="shopping_recurring_hint">Herhalingsaanwijzing</string>
+    <string name="shopping_recurring_rrule">RRULE</string>
+    <string name="shopping_recurring_item_added">Terugkerende boodschap toegevoegd</string>
+    <string name="shopping_error_add_recurring_item">Kan terugkerende boodschap niet toevoegen</string>
+    <string name="shopping_error_import_recurring">Kan terugkerende items niet importeren</string>
+    <plurals name="shopping_recurring_imported">
+        <item quantity="one">%1$d terugkerend item geïmporteerd</item>
+        <item quantity="other">%1$d terugkerende items geïmporteerd</item>
+    </plurals>
     <string name="shopping_error_check_off_item">Kan boodschappenitem niet afvinken</string>
 
     <string name="parity_more_coming">Native bewerkingsbediening blijft groeien vanuit dezelfde gedeelde API-contracten.</string>

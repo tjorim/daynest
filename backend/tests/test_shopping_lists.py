@@ -178,3 +178,39 @@ def test_delete_shopping_list_route(client: TestClient, db_session: Session) -> 
     response = client.delete(f"/api/shopping-lists/{shopping_list_id}")
     assert response.status_code == 204
     assert client.get(f"/api/shopping-lists/{shopping_list_id}").status_code == 404
+
+
+def test_import_recurring_groceries_route_links_upcoming_items(
+    client: TestClient, db_session: Session
+) -> None:
+    from app.models.recurrence_series import RecurrenceSeries
+
+    user = _create_user(db_session, "import-recurring-shopping@example.com")
+    _auth_as(user)
+    shopping_list_id = client.post(
+        "/api/shopping-lists", json={"name": "Groceries"}
+    ).json()["id"]
+
+    db_session.add(
+        RecurrenceSeries(
+            user_id=user.id,
+            title="Eggs",
+            rrule="FREQ=WEEKLY;COUNT=2",
+            start_date=date(2026, 6, 6),
+            module_key="recurring_grocery",
+            recurrence_hint="weekly",
+        )
+    )
+    db_session.commit()
+
+    response = client.post(f"/api/shopping-lists/{shopping_list_id}/import-recurring")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert [item["planned_for"] for item in payload] == ["2026-06-06", "2026-06-13"]
+    assert {item["module_key"] for item in payload} == {"shopping_list"}
+    assert {item["linked_ref"] for item in payload} == {str(shopping_list_id)}
+
+    repeat = client.post(f"/api/shopping-lists/{shopping_list_id}/import-recurring")
+    assert repeat.status_code == 200
+    assert [item["id"] for item in repeat.json()] == [item["id"] for item in payload]

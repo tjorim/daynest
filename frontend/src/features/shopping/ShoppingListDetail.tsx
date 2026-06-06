@@ -1,4 +1,5 @@
 import { Link, useParams } from "@tanstack/react-router";
+import { useState } from "react";
 import * as m from "@/paraglide/messages";
 import { formatDate } from "@/lib/dateUtils";
 import type { PlannedTodayItem } from "@/lib/api/today";
@@ -29,6 +30,7 @@ export function ShoppingListDetail() {
   const actions = useShoppingActions(async () => {
     await Promise.all([listQuery.refetch(), itemsQuery.refetch()]);
   });
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const items = itemsQuery.data ?? [];
   const openItems = items.filter((item) => !item.is_done);
@@ -38,6 +40,16 @@ export function ShoppingListDetail() {
   const error = queryError instanceof Error ? queryError.message : null;
   const canRetry = queryError ? isRetryableApiError(queryError) : false;
   const loading = listQuery.isPending || itemsQuery.isPending;
+
+  const importRecurring = async () => {
+    setSuccessMessage(null);
+    try {
+      await actions.importRecurring(listId);
+      setSuccessMessage(m.shopping_imported_recurring());
+    } catch {
+      // Error is handled and displayed via actions.actionError.
+    }
+  };
 
   return (
     <section>
@@ -54,14 +66,30 @@ export function ShoppingListDetail() {
             {m.shopping_item_count({ count: openItems.length })}
           </p>
         </div>
-        <button
-          type="button"
-          className="btn btn-outline-primary btn-sm"
-          disabled={loading}
-          onClick={() => void Promise.all([listQuery.refetch(), itemsQuery.refetch()])}
-        >
-          {m.action_refresh()}
-        </button>
+        <div className="d-flex flex-wrap gap-2">
+          <Link to="/shopping/recurring" className="btn btn-outline-primary btn-sm">
+            {m.recurring_groceries_manage()}
+          </Link>
+          <button
+            type="button"
+            className="btn btn-outline-primary btn-sm"
+            disabled={loading || actions.isSubmitting}
+            onClick={() => void importRecurring()}
+          >
+            {m.shopping_import_recurring()}
+          </button>
+          <button
+            type="button"
+            className="btn btn-outline-primary btn-sm"
+            disabled={loading}
+            onClick={() => {
+              setSuccessMessage(null);
+              void Promise.all([listQuery.refetch(), itemsQuery.refetch()]);
+            }}
+          >
+            {m.action_refresh()}
+          </button>
+        </div>
       </div>
       {listQuery.data?.notes ? <p className="mb-3">{listQuery.data.notes}</p> : null}
 
@@ -83,6 +111,7 @@ export function ShoppingListDetail() {
       {actions.actionError ? (
         <div className="alert alert-danger py-2">{actions.actionError}</div>
       ) : null}
+      {successMessage ? <div className="alert alert-success py-2">{successMessage}</div> : null}
 
       <AddItemForm
         isSubmitting={actions.isSubmitting}

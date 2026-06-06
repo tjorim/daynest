@@ -1,5 +1,6 @@
 package com.daynest.android.data.shopping
 
+import com.daynest.android.data.today.PlannedTodayItemDto
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import retrofit2.http.Body
@@ -36,6 +37,11 @@ interface ShoppingListApi {
     suspend fun deleteShoppingList(
         @Path("id") id: Int,
     )
+
+    @POST("api/shopping-lists/{id}/import-recurring")
+    suspend fun importRecurring(
+        @Path("id") id: Int,
+    ): List<PlannedTodayItemDto>
 }
 
 @Serializable
