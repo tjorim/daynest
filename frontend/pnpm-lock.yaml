@@ -22,22 +22,22 @@ importers:
         version: 4.6.0(@preact/signals@2.9.1(preact@10.29.2))(preact@10.29.2)
       '@schedule-x/react':
         specifier: ^2.36.0
-        version: 2.36.0(@schedule-x/calendar@2.36.0(@preact/signals@2.9.1(preact@10.29.2))(preact@10.29.2))(react-dom@19.2.6(react@19.2.7))(react@19.2.7)
+        version: 2.36.0(@schedule-x/calendar@2.36.0(@preact/signals@2.9.1(preact@10.29.2))(preact@10.29.2))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       '@schedule-x/theme-default':
         specifier: ^4.6.0
         version: 4.6.0
       '@tanstack/react-form':
         specifier: ^1.33.0
-        version: 1.33.0(react-dom@19.2.6(react@19.2.7))(react@19.2.7)
+        version: 1.33.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       '@tanstack/react-query':
         specifier: ^5.101.0
         version: 5.101.0(react@19.2.7)
       '@tanstack/react-router':
         specifier: ^1.170.14
-        version: 1.170.14(react-dom@19.2.6(react@19.2.7))(react@19.2.7)
+        version: 1.170.14(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       '@tanstack/react-table':
         specifier: ^8.21.3
-        version: 8.21.3(react-dom@19.2.6(react@19.2.7))(react@19.2.7)
+        version: 8.21.3(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       bootstrap:
         specifier: ^5.3.3
         version: 5.3.8(@popperjs/core@2.11.8)
@@ -58,16 +58,16 @@ importers:
         version: 19.2.7
       react-bootstrap:
         specifier: ^2.10.5
-        version: 2.10.10(@types/react@19.2.17)(react-dom@19.2.6(react@19.2.7))(react@19.2.7)
+        version: 2.10.10(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       react-dom:
-        specifier: ^19.2.6
-        version: 19.2.6(react@19.2.7)
+        specifier: ^19.2.7
+        version: 19.2.7(react@19.2.7)
       react-oidc-context:
         specifier: ^3.3.1
         version: 3.3.1(oidc-client-ts@3.5.0)(react@19.2.7)
       recharts:
         specifier: ^3.8.1
-        version: 3.8.1(@types/react@19.2.17)(react-dom@19.2.6(react@19.2.7))(react-is@17.0.2)(react@19.2.7)(redux@5.0.1)
+        version: 3.8.1(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react-is@17.0.2)(react@19.2.7)(redux@5.0.1)
       zod:
         specifier: ^4.4.3
         version: 4.4.3
@@ -83,7 +83,7 @@ importers:
         version: 6.9.1
       '@testing-library/react':
         specifier: ^16.3.2
-        version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.6(react@19.2.7))(react@19.2.7)
+        version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       '@testing-library/user-event':
         specifier: ^14.6.1
         version: 14.6.1(@testing-library/dom@10.4.1)
@@ -1603,10 +1603,10 @@ packages:
       '@types/react':
         optional: true
 
-  react-dom@19.2.6:
-    resolution: {integrity: sha512-0prMI+hvBbPjsWnxDLxlCGyM8PN6UuWjEUCYmZhO67xIV9Xasa/r/vDnq+Xyq4Lo27g8QSbO5YzARu0D1Sps3g==}
+  react-dom@19.2.7:
+    resolution: {integrity: sha512-t0BRVXvbiE/o20Hfw669rLbMCDWtYZLvmJigy2f0MxsXF+71pxhR3xOkspmsO8h3ZlNzyibAmtCa3l4lYKk6gQ==}
     peerDependencies:
-      react: ^19.2.6
+      react: ^19.2.7
 
   react-is@16.13.1:
     resolution: {integrity: sha512-24e6ynE2H+OKt4kqsOvNd8kBpV65zoxbA4BVsEOB3ARVWQki/DHzaUoC5KuON/BiccDaCCTZBuOcfZs70kR8bQ==}
@@ -2360,12 +2360,12 @@ snapshots:
       '@preact/signals-core': 1.14.2
       preact: 10.29.2
 
-  '@react-aria/ssr@3.10.0(react-dom@19.2.6(react@19.2.7))(react@19.2.7)':
+  '@react-aria/ssr@3.10.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
     dependencies:
       '@swc/helpers': 0.5.21
       react: 19.2.7
-      react-aria: 3.48.0(react-dom@19.2.6(react@19.2.7))(react@19.2.7)
-      react-dom: 19.2.6(react@19.2.7)
+      react-aria: 3.48.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      react-dom: 19.2.7(react@19.2.7)
 
   '@react-types/shared@3.34.0(react@19.2.7)':
     dependencies:
@@ -2393,17 +2393,17 @@ snapshots:
       dequal: 2.0.3
       react: 19.2.7
 
-  '@restart/ui@1.9.4(react-dom@19.2.6(react@19.2.7))(react@19.2.7)':
+  '@restart/ui@1.9.4(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
     dependencies:
       '@babel/runtime': 7.29.2
       '@popperjs/core': 2.11.8
-      '@react-aria/ssr': 3.10.0(react-dom@19.2.6(react@19.2.7))(react@19.2.7)
+      '@react-aria/ssr': 3.10.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       '@restart/hooks': 0.5.1(react@19.2.7)
       '@types/warning': 3.0.4
       dequal: 2.0.3
       dom-helpers: 5.2.1
       react: 19.2.7
-      react-dom: 19.2.6(react@19.2.7)
+      react-dom: 19.2.7(react@19.2.7)
       uncontrollable: 8.0.4(react@19.2.7)
       warning: 4.0.3
 
@@ -2470,11 +2470,11 @@ snapshots:
       '@preact/signals': 2.9.1(preact@10.29.2)
       preact: 10.29.2
 
-  '@schedule-x/react@2.36.0(@schedule-x/calendar@2.36.0(@preact/signals@2.9.1(preact@10.29.2))(preact@10.29.2))(react-dom@19.2.6(react@19.2.7))(react@19.2.7)':
+  '@schedule-x/react@2.36.0(@schedule-x/calendar@2.36.0(@preact/signals@2.9.1(preact@10.29.2))(preact@10.29.2))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
     dependencies:
       '@schedule-x/calendar': 2.36.0(@preact/signals@2.9.1(preact@10.29.2))(preact@10.29.2)
       react: 19.2.7
-      react-dom: 19.2.6(react@19.2.7)
+      react-dom: 19.2.7(react@19.2.7)
 
   '@schedule-x/theme-default@4.6.0': {}
 
@@ -2504,10 +2504,10 @@ snapshots:
 
   '@tanstack/query-core@5.101.0': {}
 
-  '@tanstack/react-form@1.33.0(react-dom@19.2.6(react@19.2.7))(react@19.2.7)':
+  '@tanstack/react-form@1.33.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
     dependencies:
       '@tanstack/form-core': 1.33.0
-      '@tanstack/react-store': 0.11.0(react-dom@19.2.6(react@19.2.7))(react@19.2.7)
+      '@tanstack/react-store': 0.11.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       react: 19.2.7
     transitivePeerDependencies:
       - react-dom
@@ -2517,34 +2517,34 @@ snapshots:
       '@tanstack/query-core': 5.101.0
       react: 19.2.7
 
-  '@tanstack/react-router@1.170.14(react-dom@19.2.6(react@19.2.7))(react@19.2.7)':
+  '@tanstack/react-router@1.170.14(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
     dependencies:
       '@tanstack/history': 1.162.0
-      '@tanstack/react-store': 0.9.3(react-dom@19.2.6(react@19.2.7))(react@19.2.7)
+      '@tanstack/react-store': 0.9.3(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       '@tanstack/router-core': 1.171.12
       isbot: 5.1.41
       react: 19.2.7
-      react-dom: 19.2.6(react@19.2.7)
+      react-dom: 19.2.7(react@19.2.7)
 
-  '@tanstack/react-store@0.11.0(react-dom@19.2.6(react@19.2.7))(react@19.2.7)':
+  '@tanstack/react-store@0.11.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
     dependencies:
       '@tanstack/store': 0.11.0
       react: 19.2.7
-      react-dom: 19.2.6(react@19.2.7)
+      react-dom: 19.2.7(react@19.2.7)
       use-sync-external-store: 1.6.0(react@19.2.7)
 
-  '@tanstack/react-store@0.9.3(react-dom@19.2.6(react@19.2.7))(react@19.2.7)':
+  '@tanstack/react-store@0.9.3(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
     dependencies:
       '@tanstack/store': 0.9.3
       react: 19.2.7
-      react-dom: 19.2.6(react@19.2.7)
+      react-dom: 19.2.7(react@19.2.7)
       use-sync-external-store: 1.6.0(react@19.2.7)
 
-  '@tanstack/react-table@8.21.3(react-dom@19.2.6(react@19.2.7))(react@19.2.7)':
+  '@tanstack/react-table@8.21.3(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
     dependencies:
       '@tanstack/table-core': 8.21.3
       react: 19.2.7
-      react-dom: 19.2.6(react@19.2.7)
+      react-dom: 19.2.7(react@19.2.7)
 
   '@tanstack/router-core@1.171.12':
     dependencies:
@@ -2579,12 +2579,12 @@ snapshots:
       picocolors: 1.1.1
       redent: 3.0.0
 
-  '@testing-library/react@16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.6(react@19.2.7))(react@19.2.7)':
+  '@testing-library/react@16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
     dependencies:
       '@babel/runtime': 7.29.2
       '@testing-library/dom': 10.4.1
       react: 19.2.7
-      react-dom: 19.2.6(react@19.2.7)
+      react-dom: 19.2.7(react@19.2.7)
     optionalDependencies:
       '@types/react': 19.2.17
       '@types/react-dom': 19.2.3(@types/react@19.2.17)
@@ -3229,7 +3229,7 @@ snapshots:
 
   punycode@2.3.1: {}
 
-  react-aria@3.48.0(react-dom@19.2.6(react@19.2.7))(react@19.2.7):
+  react-aria@3.48.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7):
     dependencies:
       '@internationalized/date': 3.12.1
       '@internationalized/number': 3.6.6
@@ -3239,15 +3239,15 @@ snapshots:
       aria-hidden: 1.2.6
       clsx: 2.1.1
       react: 19.2.7
-      react-dom: 19.2.6(react@19.2.7)
+      react-dom: 19.2.7(react@19.2.7)
       react-stately: 3.46.0(react@19.2.7)
       use-sync-external-store: 1.6.0(react@19.2.7)
 
-  react-bootstrap@2.10.10(@types/react@19.2.17)(react-dom@19.2.6(react@19.2.7))(react@19.2.7):
+  react-bootstrap@2.10.10(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7):
     dependencies:
       '@babel/runtime': 7.29.2
       '@restart/hooks': 0.4.16(react@19.2.7)
-      '@restart/ui': 1.9.4(react-dom@19.2.6(react@19.2.7))(react@19.2.7)
+      '@restart/ui': 1.9.4(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       '@types/prop-types': 15.7.15
       '@types/react-transition-group': 4.4.12(@types/react@19.2.17)
       classnames: 2.5.1
@@ -3256,14 +3256,14 @@ snapshots:
       prop-types: 15.8.1
       prop-types-extra: 1.1.1(react@19.2.7)
       react: 19.2.7
-      react-dom: 19.2.6(react@19.2.7)
-      react-transition-group: 4.4.5(react-dom@19.2.6(react@19.2.7))(react@19.2.7)
+      react-dom: 19.2.7(react@19.2.7)
+      react-transition-group: 4.4.5(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       uncontrollable: 7.2.1(react@19.2.7)
       warning: 4.0.3
     optionalDependencies:
       '@types/react': 19.2.17
 
-  react-dom@19.2.6(react@19.2.7):
+  react-dom@19.2.7(react@19.2.7):
     dependencies:
       react: 19.2.7
       scheduler: 0.27.0
@@ -3298,18 +3298,18 @@ snapshots:
       react: 19.2.7
       use-sync-external-store: 1.6.0(react@19.2.7)
 
-  react-transition-group@4.4.5(react-dom@19.2.6(react@19.2.7))(react@19.2.7):
+  react-transition-group@4.4.5(react-dom@19.2.7(react@19.2.7))(react@19.2.7):
     dependencies:
       '@babel/runtime': 7.29.2
       dom-helpers: 5.2.1
       loose-envify: 1.4.0
       prop-types: 15.8.1
       react: 19.2.7
-      react-dom: 19.2.6(react@19.2.7)
+      react-dom: 19.2.7(react@19.2.7)
 
   react@19.2.7: {}
 
-  recharts@3.8.1(@types/react@19.2.17)(react-dom@19.2.6(react@19.2.7))(react-is@17.0.2)(react@19.2.7)(redux@5.0.1):
+  recharts@3.8.1(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react-is@17.0.2)(react@19.2.7)(redux@5.0.1):
     dependencies:
       '@reduxjs/toolkit': 2.12.0(react-redux@9.3.0(@types/react@19.2.17)(react@19.2.7)(redux@5.0.1))(react@19.2.7)
       clsx: 2.1.1
@@ -3318,7 +3318,7 @@ snapshots:
       eventemitter3: 5.0.4
       immer: 10.2.0
       react: 19.2.7
-      react-dom: 19.2.6(react@19.2.7)
+      react-dom: 19.2.7(react@19.2.7)
       react-is: 17.0.2
       react-redux: 9.3.0(@types/react@19.2.17)(react@19.2.7)(redux@5.0.1)
       reselect: 5.1.1
