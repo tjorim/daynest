@@ -21,15 +21,19 @@ export function AddItemForm({ isSubmitting, onAddItem }: AddItemFormProps) {
       return;
     }
     setError(null);
-    await onAddItem({
-      title: title.trim(),
-      planned_for: plannedFor,
-      notes: notes.trim() || null,
-      tag: tag.trim() || null,
-    });
-    setTitle("");
-    setTag("");
-    setNotes("");
+    try {
+      await onAddItem({
+        title: title.trim(),
+        planned_for: plannedFor,
+        notes: notes.trim() || null,
+        tag: tag.trim() || null,
+      });
+      setTitle("");
+      setTag("");
+      setNotes("");
+    } catch {
+      // Error is handled by the parent component
+    }
   };
 
   return (

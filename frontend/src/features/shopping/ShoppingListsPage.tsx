@@ -23,15 +23,19 @@ export function ShoppingListsPage() {
   const createList = async () => {
     if (!name.trim()) return;
     setSuccessMessage(null);
-    await actions.createList({
-      name: name.trim(),
-      store: store.trim() || null,
-      notes: notes.trim() || null,
-    });
-    setName("");
-    setStore("");
-    setNotes("");
-    setSuccessMessage(m.shopping_list_created());
+    try {
+      await actions.createList({
+        name: name.trim(),
+        store: store.trim() || null,
+        notes: notes.trim() || null,
+      });
+      setName("");
+      setStore("");
+      setNotes("");
+      setSuccessMessage(m.shopping_list_created());
+    } catch {
+      // Error is handled and displayed via actions.actionError
+    }
   };
 
   return (

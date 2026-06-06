@@ -11,7 +11,12 @@ function groupItemsByTag(items: PlannedTodayItem[]) {
   const groups = new Map<string, PlannedTodayItem[]>();
   for (const item of items) {
     const tag = item.tags?.[0]?.trim() || m.shopping_uncategorized();
-    groups.set(tag, [...(groups.get(tag) ?? []), item]);
+    let list = groups.get(tag);
+    if (!list) {
+      list = [];
+      groups.set(tag, list);
+    }
+    list.push(item);
   }
   return Array.from(groups.entries()).sort(([a], [b]) => a.localeCompare(b));
 }
