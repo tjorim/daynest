@@ -18,6 +18,13 @@ updates:
       - "dependencies"
       - "npm"
     versioning-strategy: "increase"
+    groups:
+      react:
+        patterns:
+          - "react"
+          - "react-dom"
+          - "@types/react"
+          - "@types/react-dom"
 
   # Monitor npm dependencies for the Lovelace card
   - package-ecosystem: "npm"
