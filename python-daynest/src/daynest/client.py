@@ -400,7 +400,6 @@ class DaynestClient:
         payload = await self._cached_call(
             "async_list_shopping_items",
             lambda: self._request_list("/api/planned-items"),
-            shopping_list_id,
         )
         return [
             item
