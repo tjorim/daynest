@@ -50,6 +50,7 @@ class PlannedItemRepository
                     recurrenceHint = item.recurrenceHint,
                     linkedSource = item.linkedSource,
                     linkedRef = item.linkedRef,
+                    autoAddToListId = null,
                     priority = item.priority,
                     tags = item.tags,
                 ),
