@@ -11,6 +11,14 @@ export const queryKeys = {
     range: (start: string, end: string) =>
       [...queryKeys.calendar.all, "range", start, end] as const,
   },
+
+  mealPlans: {
+    all: ["meal-plans"] as const,
+    list: () => [...queryKeys.mealPlans.all, "list"] as const,
+    detail: (mealPlanId: number) => [...queryKeys.mealPlans.all, "detail", mealPlanId] as const,
+    week: (mealPlanId: number, weekStart: string) =>
+      [...queryKeys.mealPlans.detail(mealPlanId), "week", weekStart] as const,
+  },
   shoppingLists: {
     all: ["shopping-lists"] as const,
     list: (status: string) => [...queryKeys.shoppingLists.all, "list", status] as const,
