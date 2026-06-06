@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import date, datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Date, DateTime, ForeignKey, Index, JSON, String, Text, func
+from sqlalchemy import CheckConstraint, Date, DateTime, ForeignKey, Index, JSON, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -33,7 +33,10 @@ class MealPlan(Base):
 
 class MealSlot(Base):
     __tablename__ = "meal_slots"
-    __table_args__ = (Index("uq_meal_slots_plan_date_type", "meal_plan_id", "slot_date", "slot_type", unique=True),)
+    __table_args__ = (
+        Index("uq_meal_slots_plan_date_type", "meal_plan_id", "slot_date", "slot_type", unique=True),
+        CheckConstraint("slot_type IN ('breakfast', 'lunch', 'dinner', 'snack')", name="ck_meal_slots_slot_type"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
     meal_plan_id: Mapped[int] = mapped_column(ForeignKey("meal_plans.id", ondelete="CASCADE"), nullable=False)

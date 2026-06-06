@@ -31,8 +31,19 @@ const mealPlans: MealPlan[] = [
 const mealSlots: MealSlot[] = [];
 
 function ensureSlots(plan: MealPlan): MealSlot[] {
-  for (let offset = 0; offset < 7; offset += 1) {
-    const slotDate = toIsoDate(dayjs(plan.week_start).add(offset, "day"));
+  const validDates = new Set(
+    Array.from({ length: 7 }, (_, offset) =>
+      toIsoDate(dayjs(plan.week_start).add(offset, "day")),
+    ),
+  );
+  // Remove stale slots that belong to a prior week_start
+  for (let i = mealSlots.length - 1; i >= 0; i -= 1) {
+    const slot = mealSlots[i]!;
+    if (slot.meal_plan_id === plan.id && !validDates.has(slot.slot_date)) {
+      mealSlots.splice(i, 1);
+    }
+  }
+  for (const slotDate of validDates) {
     for (const slotType of MEAL_SLOT_TYPES) {
       const existing = mealSlots.find(
         (slot) =>

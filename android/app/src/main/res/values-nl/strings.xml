@@ -259,6 +259,8 @@
     <string name="meal_slot_lunch">Lunch</string>
     <string name="meal_slot_dinner">Diner</string>
     <string name="meal_slot_snack">Tussendoortje</string>
+    <string name="meal_plan_previous_week">Vorige week</string>
+    <string name="meal_plan_next_week">Volgende week</string>
 
     <!-- Startscherm-widgets -->
     <string name="widget_small_label">Daynest (klein)</string>
