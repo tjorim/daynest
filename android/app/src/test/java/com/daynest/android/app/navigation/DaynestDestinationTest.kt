@@ -15,6 +15,7 @@ class DaynestDestinationTest {
                 DaynestDestination.CALENDAR,
                 DaynestDestination.MEDICATION,
                 DaynestDestination.TEMPLATES,
+                DaynestDestination.SHOPPING,
                 DaynestDestination.SETTINGS,
             ),
             routes,

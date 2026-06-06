@@ -16,7 +16,6 @@ import com.daynest.android.core.database.today.TodaySummaryEntity
 import com.daynest.android.core.network.JsonSerializer
 import com.daynest.android.core.storage.preferences.UserPreferencesRepository
 import com.daynest.android.data.shopping.ShoppingListApi
-import com.daynest.android.data.shopping.ShoppingListDto
 import com.daynest.android.data.shopping.ShoppingListRepository
 import com.daynest.android.data.shopping.ShoppingListStatus
 import com.daynest.android.data.templates.ChoreTemplateDto
@@ -128,20 +127,22 @@ class DaynestSyncWorker
             cacheEntryDao.upsert(
                 CacheEntryEntity(
                     cacheKey = SyncCacheKeys.ROUTINE_TEMPLATES,
-                    payload = JsonSerializer.config.encodeToString(
-                        kotlinx.serialization.builtins.ListSerializer(RoutineTemplateDto.serializer()),
-                        templatesApi.listRoutines(),
-                    ),
+                    payload =
+                        JsonSerializer.config.encodeToString(
+                            kotlinx.serialization.builtins.ListSerializer(RoutineTemplateDto.serializer()),
+                            templatesApi.listRoutines(),
+                        ),
                     updatedAtEpochMillis = now,
                 ),
             )
             cacheEntryDao.upsert(
                 CacheEntryEntity(
                     cacheKey = SyncCacheKeys.CHORE_TEMPLATES,
-                    payload = JsonSerializer.config.encodeToString(
-                        kotlinx.serialization.builtins.ListSerializer(ChoreTemplateDto.serializer()),
-                        templatesApi.listChores(),
-                    ),
+                    payload =
+                        JsonSerializer.config.encodeToString(
+                            kotlinx.serialization.builtins.ListSerializer(ChoreTemplateDto.serializer()),
+                            templatesApi.listChores(),
+                        ),
                     updatedAtEpochMillis = now,
                 ),
             )
@@ -174,7 +175,10 @@ class DaynestSyncWorker
             }
         }
 
-        private suspend fun applyChoreAction(kind: PendingMutationKind, payload: String) {
+        private suspend fun applyChoreAction(
+            kind: PendingMutationKind,
+            payload: String,
+        ) {
             when (kind) {
                 PendingMutationKind.COMPLETE_CHORE -> {
                     todayActionsApi.completeChore(decode<MutationIdPayload>(payload).id)
@@ -188,7 +192,10 @@ class DaynestSyncWorker
             }
         }
 
-        private suspend fun applyIdAction(kind: PendingMutationKind, payload: String) {
+        private suspend fun applyIdAction(
+            kind: PendingMutationKind,
+            payload: String,
+        ) {
             val id = decode<MutationIdPayload>(payload).id
             when (kind) {
                 PendingMutationKind.COMPLETE_TASK -> todayActionsApi.completeTask(id)
@@ -200,7 +207,10 @@ class DaynestSyncWorker
             }
         }
 
-        private suspend fun applyPlannedItemAction(kind: PendingMutationKind, payload: String) {
+        private suspend fun applyPlannedItemAction(
+            kind: PendingMutationKind,
+            payload: String,
+        ) {
             when (kind) {
                 PendingMutationKind.CREATE_PLANNED -> {
                     val p = decode<CreatePlannedPayload>(payload)
@@ -218,7 +228,10 @@ class DaynestSyncWorker
             }
         }
 
-        private suspend fun applyShoppingListAction(kind: PendingMutationKind, payload: String) {
+        private suspend fun applyShoppingListAction(
+            kind: PendingMutationKind,
+            payload: String,
+        ) {
             when (kind) {
                 PendingMutationKind.CREATE_SHOPPING_LIST -> {
                     val p = decode<CreateShoppingListPayload>(payload)

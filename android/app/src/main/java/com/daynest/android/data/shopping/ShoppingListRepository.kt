@@ -41,14 +41,16 @@ class ShoppingListRepository
                         val merged = filtered + lists
                         cacheShoppingLists(merged)
                     }
-                }
-                .recoverOffline {
-                    cacheEntryDao.get(SyncCacheKeys.SHOPPING_LISTS)?.payload?.let { payload ->
-                        JsonSerializer.config.decodeFromString(
-                            ListSerializer(ShoppingListDto.serializer()),
-                            payload,
-                        )
-                    }?.filter { status == ShoppingListStatus.ALL || it.status == status } ?: emptyList()
+                }.recoverOffline {
+                    cacheEntryDao
+                        .get(SyncCacheKeys.SHOPPING_LISTS)
+                        ?.payload
+                        ?.let { payload ->
+                            JsonSerializer.config.decodeFromString(
+                                ListSerializer(ShoppingListDto.serializer()),
+                                payload,
+                            )
+                        }?.filter { status == ShoppingListStatus.ALL || it.status == status } ?: emptyList()
                 }
 
         suspend fun getShoppingList(id: Int): Result<ShoppingListDto> =
@@ -82,14 +84,16 @@ class ShoppingListRepository
                 .recoverOffline {
                     enqueue(PendingMutationKind.UPDATE_SHOPPING_LIST, UpdateShoppingListPayload(id, request))
                     scheduleSync()
-                    val current = cachedShoppingLists().firstOrNull { it.id == id }
-                        ?: error("Shopping list $id not found in cache")
-                    current.copy(
-                        name = request.name ?: current.name,
-                        store = request.store ?: current.store,
-                        notes = request.notes ?: current.notes,
-                        status = request.status ?: current.status,
-                    ).also { upsertCachedShoppingList(it) }
+                    val current =
+                        cachedShoppingLists().firstOrNull { it.id == id }
+                            ?: error("Shopping list $id not found in cache")
+                    current
+                        .copy(
+                            name = request.name ?: current.name,
+                            store = request.store ?: current.store,
+                            notes = request.notes ?: current.notes,
+                            status = request.status ?: current.status,
+                        ).also { upsertCachedShoppingList(it) }
                 }
 
         suspend fun deleteShoppingList(id: Int): Result<Unit> =

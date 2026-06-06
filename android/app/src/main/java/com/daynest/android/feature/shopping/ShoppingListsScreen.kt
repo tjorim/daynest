@@ -102,12 +102,14 @@ private fun ShoppingListsContent(
     onOpenList: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val activeLists = remember(uiState.lists) {
-        uiState.lists.filter { it.status == ShoppingListStatus.ACTIVE }
-    }
-    val archivedLists = remember(uiState.lists) {
-        uiState.lists.filter { it.status == ShoppingListStatus.ARCHIVED }
-    }
+    val activeLists =
+        remember(uiState.lists) {
+            uiState.lists.filter { it.status == ShoppingListStatus.ACTIVE }
+        }
+    val archivedLists =
+        remember(uiState.lists) {
+            uiState.lists.filter { it.status == ShoppingListStatus.ARCHIVED }
+        }
 
     LazyColumn(
         modifier = modifier.fillMaxSize(),

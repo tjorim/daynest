@@ -86,9 +86,10 @@ private fun ShoppingListDetailContent(
     val openItems = remember(uiState.items) { uiState.items.filterNot { it.isDone } }
     val completedItems = remember(uiState.items) { uiState.items.filter { it.isDone } }
     val uncategorizedLabel = stringResource(id = R.string.shopping_uncategorized)
-    val groupedOpenItems = remember(openItems, uncategorizedLabel) {
-        openItems.groupBy { it.tags.firstOrNull()?.takeIf(String::isNotBlank) ?: uncategorizedLabel }
-    }
+    val groupedOpenItems =
+        remember(openItems, uncategorizedLabel) {
+            openItems.groupBy { it.tags.firstOrNull()?.takeIf(String::isNotBlank) ?: uncategorizedLabel }
+        }
 
     LazyColumn(
         modifier = modifier.fillMaxSize(),

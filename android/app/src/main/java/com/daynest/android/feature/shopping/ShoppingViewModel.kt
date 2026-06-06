@@ -64,24 +64,25 @@ class ShoppingViewModel
 
         fun selectList(id: Int) {
             selectListJob?.cancel()
-            selectListJob = viewModelScope.launch {
-                _uiState.update { it.copy(selectedListId = id, isLoadingItems = true, error = null) }
-                val listDeferred = async { shoppingListRepository.getShoppingList(id) }
-                val itemDeferred = async { plannedItemRepository.listPlannedItems(null, null) }
-                val listResult = listDeferred.await()
-                val itemResult = itemDeferred.await()
-                val list = listResult.getOrNull()
-                val items = itemResult.getOrNull()?.shoppingItemsFor(id).orEmpty()
-                _uiState.update { state ->
-                    state.copy(
-                        selectedListId = id,
-                        selectedList = list ?: state.lists.firstOrNull { it.id == id },
-                        items = items,
-                        isLoadingItems = false,
-                        error = listResult.exceptionOrNull()?.message ?: itemResult.exceptionOrNull()?.message,
-                    )
+            selectListJob =
+                viewModelScope.launch {
+                    _uiState.update { it.copy(selectedListId = id, isLoadingItems = true, error = null) }
+                    val listDeferred = async { shoppingListRepository.getShoppingList(id) }
+                    val itemDeferred = async { plannedItemRepository.listPlannedItems(null, null) }
+                    val listResult = listDeferred.await()
+                    val itemResult = itemDeferred.await()
+                    val list = listResult.getOrNull()
+                    val items = itemResult.getOrNull()?.shoppingItemsFor(id).orEmpty()
+                    _uiState.update { state ->
+                        state.copy(
+                            selectedListId = id,
+                            selectedList = list ?: state.lists.firstOrNull { it.id == id },
+                            items = items,
+                            isLoadingItems = false,
+                            error = listResult.exceptionOrNull()?.message ?: itemResult.exceptionOrNull()?.message,
+                        )
+                    }
                 }
-            }
         }
 
         fun clearSelection() {
