@@ -229,8 +229,8 @@ const plannedTodayItemSchema = z.object({
   recurrence_series_id: z.string().nullable(),
   linked_source: z.string().nullable(),
   linked_ref: z.string().nullable(),
-  priority: plannedItemPrioritySchema.nullish().transform((v) => v ?? undefined),
-  tags: z.array(z.string()).nullish().transform((v) => v ?? undefined),
+  priority: plannedItemPrioritySchema.nullable().transform((v) => v ?? undefined).optional(),
+  tags: z.array(z.string()).nullable().transform((v) => v ?? undefined).optional(),
   is_done: z.boolean(),
 });
 

@@ -37,8 +37,8 @@ class ShoppingListRepository
                         cacheShoppingLists(lists)
                     } else {
                         val cached = cachedShoppingLists()
-                    val filtered = cached.filterNot { cachedItem -> lists.any { it.id == cachedItem.id } }
-                    val merged = filtered + lists
+                        val filtered = cached.filterNot { cachedItem -> lists.any { it.id == cachedItem.id } }
+                        val merged = filtered + lists
                         cacheShoppingLists(merged)
                     }
                 }
