@@ -146,8 +146,9 @@ private fun MealPlannerContent(
             }
         }
         uiState.weekGrid?.let { week ->
+            val slots = remember(week.days) { mealGridSlots(week.days) }
             MealWeekGrid(
-                days = mealGridSlots(week.days),
+                days = slots,
                 onEditSlot = onEditSlot,
             )
         }
@@ -167,11 +168,12 @@ private fun WeekNavigation(
     ) {
         TextButton(onClick = onPreviousWeek) { Text(text = "‹") }
         Text(
-            text = stringResource(
-                id = R.string.meal_plan_week_range,
-                weekStart.format(DateTimeFormatter.ISO_DATE),
-                weekStart.plusDays(6).format(DateTimeFormatter.ISO_DATE),
-            ),
+            text =
+                stringResource(
+                    id = R.string.meal_plan_week_range,
+                    weekStart.format(DateTimeFormatter.ISO_DATE),
+                    weekStart.plusDays(WEEK_END_DAY_OFFSET).format(DateTimeFormatter.ISO_DATE),
+                ),
             fontWeight = FontWeight.Bold,
         )
         TextButton(onClick = onNextWeek) { Text(text = "›") }
@@ -184,7 +186,7 @@ private fun MealWeekGrid(
     onEditSlot: (MealSlotDto) -> Unit,
 ) {
     LazyVerticalGrid(
-        columns = GridCells.Fixed(7),
+        columns = GridCells.Fixed(DAYS_PER_WEEK),
         contentPadding = PaddingValues(bottom = 88.dp),
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
@@ -200,7 +202,15 @@ private fun MealSlotCard(
     slot: MealSlotDto,
     onEditSlot: (MealSlotDto) -> Unit,
 ) {
-    val date = LocalDate.parse(slot.slotDate)
+    val date = remember(slot.slotDate) { LocalDate.parse(slot.slotDate) }
+    val slotTypeLabel =
+        when (slot.slotType.lowercase()) {
+            "breakfast" -> stringResource(id = R.string.meal_slot_breakfast)
+            "lunch" -> stringResource(id = R.string.meal_slot_lunch)
+            "dinner" -> stringResource(id = R.string.meal_slot_dinner)
+            "snack" -> stringResource(id = R.string.meal_slot_snack)
+            else -> slot.slotType.replaceFirstChar { it.uppercase() }
+        }
     Card(
         modifier =
             Modifier
@@ -217,7 +227,7 @@ private fun MealSlotCard(
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.Bold,
             )
-            Text(text = slot.slotType.replaceFirstChar { it.uppercase() }, style = MaterialTheme.typography.labelSmall)
+            Text(text = slotTypeLabel, style = MaterialTheme.typography.labelSmall)
             Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = slot.title.ifBlank { stringResource(id = R.string.meal_plan_empty_slot) },
@@ -234,6 +244,9 @@ private fun MealSlotCard(
         }
     }
 }
+
+private const val DAYS_PER_WEEK = 7
+private const val WEEK_END_DAY_OFFSET = 6L
 
 private fun mealGridSlots(days: List<WeekDayDto>): List<MealSlotDto> =
     listOf("breakfast", "lunch", "dinner", "snack").flatMap { slotType ->

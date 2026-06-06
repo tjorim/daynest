@@ -283,5 +283,9 @@
         <item quantity="one">Boodschappenlijst gemaakt met %1$d item.</item>
         <item quantity="other">Boodschappenlijst gemaakt met %1$d items.</item>
     </plurals>
+    <string name="meal_slot_breakfast">Ontbijt</string>
+    <string name="meal_slot_lunch">Lunch</string>
+    <string name="meal_slot_dinner">Diner</string>
+    <string name="meal_slot_snack">Tussendoortje</string>
 
 </resources>

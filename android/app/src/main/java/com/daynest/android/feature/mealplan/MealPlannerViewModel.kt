@@ -12,6 +12,7 @@ import com.daynest.android.data.mealplan.MealSlotDto
 import com.daynest.android.data.mealplan.MealSlotUpdateDto
 import com.daynest.android.data.mealplan.WeekGridDto
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -39,30 +40,34 @@ class MealPlannerViewModel
         private val _effects = MutableSharedFlow<String>()
         val effects: SharedFlow<String> = _effects.asSharedFlow()
 
+        private var loadJob: Job? = null
+
         init {
             loadWeek()
         }
 
         fun loadWeek() {
             val weekStart = _uiState.value.weekStart
-            viewModelScope.launch {
-                _uiState.update { it.copy(isLoading = true, error = null) }
-                mealPlanRepository
-                    .listMealPlans()
-                    .fold(
-                        onSuccess = { plans ->
-                            val plan = plans.firstOrNull { it.weekStart == weekStart.toString() }
-                            if (plan == null) {
-                                createWeekPlan(weekStart)
-                            } else {
-                                loadGrid(plan)
-                            }
-                        },
-                        onFailure = { failure ->
-                            _uiState.update { it.copy(isLoading = false, error = failure.message) }
-                        },
-                    )
-            }
+            loadJob?.cancel()
+            loadJob =
+                viewModelScope.launch {
+                    _uiState.update { it.copy(isLoading = true, error = null) }
+                    mealPlanRepository
+                        .listMealPlans()
+                        .fold(
+                            onSuccess = { plans ->
+                                val plan = plans.firstOrNull { it.weekStart == weekStart.toString() }
+                                if (plan == null) {
+                                    createWeekPlan(weekStart)
+                                } else {
+                                    loadGrid(plan)
+                                }
+                            },
+                            onFailure = { failure ->
+                                _uiState.update { it.copy(isLoading = false, error = failure.message) }
+                            },
+                        )
+                }
         }
 
         fun previousWeek() {
@@ -101,7 +106,11 @@ class MealPlannerViewModel
                             MealSlotUpdateDto(
                                 title = draft.title.trim().ifBlank { null },
                                 recipeUrl = draft.recipeUrl.trim().ifBlank { null },
-                                ingredients = draft.ingredients.lines().map { it.trim() }.filter { it.isNotBlank() },
+                                ingredients =
+                                    draft.ingredients
+                                        .lines()
+                                        .map { it.trim() }
+                                        .filter { it.isNotBlank() },
                                 plannedItemId = slot.plannedItemId,
                             ),
                     ).onSuccess { updatedSlot ->
@@ -118,7 +127,10 @@ class MealPlannerViewModel
         }
 
         fun generateShoppingList() {
-            val planId = _uiState.value.weekGrid?.mealPlan?.id ?: return
+            val planId =
+                _uiState.value.weekGrid
+                    ?.mealPlan
+                    ?.id ?: return
             viewModelScope.launch {
                 mealPlanRepository
                     .generateShoppingList(planId)
@@ -132,7 +144,9 @@ class MealPlannerViewModel
                                     response.items.size,
                                 ),
                         )
-                    }.onFailure { _effects.emit(it.message ?: getString(R.string.meal_plan_error_generate_shopping_list)) }
+                    }.onFailure { error ->
+                        _effects.emit(error.message ?: getString(R.string.meal_plan_error_generate_shopping_list))
+                    }
             }
         }
 
@@ -140,10 +154,11 @@ class MealPlannerViewModel
             mealPlanRepository
                 .createMealPlan(
                     MealPlanCreateDto(
-                        name = getApplication<Application>().getString(
-                            R.string.meal_plan_default_name,
-                            weekStart.format(DateTimeFormatter.ISO_DATE),
-                        ),
+                        name =
+                            getApplication<Application>().getString(
+                                R.string.meal_plan_default_name,
+                                weekStart.format(DateTimeFormatter.ISO_DATE),
+                            ),
                         weekStart = weekStart.toString(),
                     ),
                 ).fold(
@@ -156,7 +171,9 @@ class MealPlannerViewModel
             mealPlanRepository
                 .getWeekPlan(plan.id)
                 .fold(
-                    onSuccess = { week -> _uiState.update { it.copy(weekGrid = week, isLoading = false, error = null) } },
+                    onSuccess = { week ->
+                        _uiState.update { it.copy(weekGrid = week, isLoading = false, error = null) }
+                    },
                     onFailure = { failure -> _uiState.update { it.copy(isLoading = false, error = failure.message) } },
                 )
         }
@@ -190,8 +207,7 @@ data class MealSlotDraft(
     }
 }
 
-private fun currentWeekStart(): LocalDate =
-    LocalDate.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+private fun currentWeekStart(): LocalDate = LocalDate.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
 
 private fun WeekGridDto.replaceSlot(slot: MealSlotDto): WeekGridDto =
     copy(

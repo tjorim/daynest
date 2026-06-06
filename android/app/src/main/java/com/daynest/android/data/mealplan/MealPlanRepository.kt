@@ -73,7 +73,10 @@ class MealPlanRepository
             } ?: emptyList()
 
         private suspend fun upsertCachedMealPlan(plan: MealPlanDto) {
-            cacheMealPlans((cachedMealPlans().filterNot { it.id == plan.id } + plan).sortedByDescending { it.weekStart })
+            val updated =
+                (cachedMealPlans().filterNot { it.id == plan.id } + plan)
+                    .sortedByDescending { it.weekStart }
+            cacheMealPlans(updated)
         }
 
         private suspend fun upsertCachedSlot(
