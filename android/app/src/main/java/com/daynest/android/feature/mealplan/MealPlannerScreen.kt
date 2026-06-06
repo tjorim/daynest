@@ -29,6 +29,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -43,7 +44,6 @@ import com.daynest.android.data.mealplan.WeekDayDto
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
-import java.util.Locale
 
 @Composable
 fun MealPlannerRoute(
@@ -203,6 +203,7 @@ private fun MealSlotCard(
     onEditSlot: (MealSlotDto) -> Unit,
 ) {
     val date = remember(slot.slotDate) { LocalDate.parse(slot.slotDate) }
+    val locale = LocalConfiguration.current.locales[0]
     val slotTypeLabel =
         when (slot.slotType.lowercase()) {
             "breakfast" -> stringResource(id = R.string.meal_slot_breakfast)
@@ -223,7 +224,7 @@ private fun MealSlotCard(
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Text(
-                text = date.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault()),
+                text = date.dayOfWeek.getDisplayName(TextStyle.SHORT, locale),
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.Bold,
             )
