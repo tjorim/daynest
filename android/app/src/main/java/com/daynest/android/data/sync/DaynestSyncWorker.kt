@@ -17,6 +17,7 @@ import com.daynest.android.core.network.JsonSerializer
 import com.daynest.android.core.storage.preferences.UserPreferencesRepository
 import com.daynest.android.data.shopping.ShoppingListApi
 import com.daynest.android.data.shopping.ShoppingListDto
+import com.daynest.android.data.shopping.ShoppingListRepository
 import com.daynest.android.data.shopping.ShoppingListStatus
 import com.daynest.android.data.templates.ChoreTemplateDto
 import com.daynest.android.data.templates.RoutineTemplateDto
@@ -45,6 +46,7 @@ class DaynestSyncWorker
         private val todayActionsApi: TodayActionsApi,
         private val plannedItemApi: PlannedItemApi,
         private val shoppingListApi: ShoppingListApi,
+        private val shoppingListRepository: ShoppingListRepository,
         private val templatesApi: TemplatesApi,
         private val userPreferencesRepository: UserPreferencesRepository,
         private val systemCalendarSyncer: SystemCalendarSyncer,
@@ -117,17 +119,8 @@ class DaynestSyncWorker
         }
 
         private suspend fun refreshShoppingListCache() {
-            val shoppingLists = shoppingListApi.listShoppingLists(ShoppingListStatus.ALL)
-            cacheEntryDao.upsert(
-                CacheEntryEntity(
-                    cacheKey = SyncCacheKeys.SHOPPING_LISTS,
-                    payload = JsonSerializer.config.encodeToString(
-                        kotlinx.serialization.builtins.ListSerializer(ShoppingListDto.serializer()),
-                        shoppingLists,
-                    ),
-                    updatedAtEpochMillis = System.currentTimeMillis(),
-                ),
-            )
+            val lists = shoppingListApi.listShoppingLists(ShoppingListStatus.ALL)
+            shoppingListRepository.cacheShoppingLists(lists)
         }
 
         private suspend fun refreshTemplateCaches() {

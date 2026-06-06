@@ -105,6 +105,8 @@ private fun ShoppingListsContent(
     var name by remember { mutableStateOf("") }
     var store by remember { mutableStateOf("") }
     var notes by remember { mutableStateOf("") }
+    val activeLists = remember(uiState.lists) { uiState.lists.filter { it.status == ShoppingListStatus.ACTIVE } }
+    val archivedLists = remember(uiState.lists) { uiState.lists.filter { it.status == ShoppingListStatus.ARCHIVED } }
 
     LazyColumn(
         modifier = modifier.fillMaxSize(),
@@ -174,8 +176,6 @@ private fun ShoppingListsContent(
             }
         }
 
-        val activeLists = uiState.lists.filter { it.status == ShoppingListStatus.ACTIVE }
-        val archivedLists = uiState.lists.filter { it.status == ShoppingListStatus.ARCHIVED }
         item { Text(text = stringResource(id = R.string.shopping_active_lists), style = MaterialTheme.typography.titleMedium) }
         if (activeLists.isEmpty() && !uiState.isLoadingLists) {
             item { Text(text = stringResource(id = R.string.shopping_no_lists)) }

@@ -28,11 +28,18 @@ class ShoppingListRepository
         private val shoppingListApi: ShoppingListApi,
         private val cacheEntryDao: CacheEntryDao,
         private val pendingMutationDao: PendingMutationDao,
-        @ApplicationContext private val appContext: Context? = null,
+        @ApplicationContext private val appContext: Context,
     ) {
         suspend fun listShoppingLists(status: String = ShoppingListStatus.ALL): Result<List<ShoppingListDto>> =
             safeApiCall { shoppingListApi.listShoppingLists(status) }
-                .onSuccess { lists -> cacheShoppingLists(lists) }
+                .onSuccess { lists ->
+                    if (status == ShoppingListStatus.ALL) {
+                        cacheShoppingLists(lists)
+                    } else {
+                        val merged = cachedShoppingLists().filterNot { cached -> lists.any { it.id == cached.id } } + lists
+                        cacheShoppingLists(merged)
+                    }
+                }
                 .recoverOffline {
                     cacheEntryDao.get(SyncCacheKeys.SHOPPING_LISTS)?.payload?.let { payload ->
                         JsonSerializer.config.decodeFromString(
@@ -46,7 +53,8 @@ class ShoppingListRepository
             safeApiCall { shoppingListApi.getShoppingList(id) }
                 .onSuccess { list -> upsertCachedShoppingList(list) }
                 .recoverOffline {
-                    cachedShoppingLists().first { it.id == id }
+                    cachedShoppingLists().firstOrNull { it.id == id }
+                        ?: error("Shopping list $id not found in cache")
                 }
 
         suspend fun createShoppingList(request: ShoppingListCreateDto): Result<ShoppingListDto> =
@@ -72,7 +80,8 @@ class ShoppingListRepository
                 .recoverOffline {
                     enqueue(PendingMutationKind.UPDATE_SHOPPING_LIST, UpdateShoppingListPayload(id, request))
                     scheduleSync()
-                    val current = cachedShoppingLists().first { it.id == id }
+                    val current = cachedShoppingLists().firstOrNull { it.id == id }
+                        ?: error("Shopping list $id not found in cache")
                     current.copy(
                         name = request.name ?: current.name,
                         store = request.store ?: current.store,
@@ -90,7 +99,7 @@ class ShoppingListRepository
                     Unit
                 }
 
-        private suspend fun cacheShoppingLists(lists: List<ShoppingListDto>) {
+        internal suspend fun cacheShoppingLists(lists: List<ShoppingListDto>) {
             cacheEntryDao.upsert(
                 CacheEntryEntity(
                     cacheKey = SyncCacheKeys.SHOPPING_LISTS,
@@ -124,7 +133,7 @@ class ShoppingListRepository
         }
 
         private fun scheduleSync() {
-            appContext?.let { DaynestSyncScheduler.enqueueOneShot(it) }
+            DaynestSyncScheduler.enqueueOneShot(appContext)
         }
 
         private suspend inline fun <T> Result<T>.recoverOffline(crossinline fallback: suspend () -> T): Result<T> {

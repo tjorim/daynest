@@ -990,6 +990,6 @@ class TestDaynestClientShoppingLists:
         session.delete = MagicMock(return_value=response)
         client = DaynestClient(base_url="https://api.daynest.example", integration_key="key", session=session)
 
-        await client.async_delete_shopping_item(7, 1)
+        await client.async_delete_shopping_item(1)
 
         assert session.delete.call_args.args[0] == "https://api.daynest.example/api/planned-items/1"

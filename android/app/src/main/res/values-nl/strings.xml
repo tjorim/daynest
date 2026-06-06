@@ -213,8 +213,13 @@
     <string name="shopping_uncategorized">Zonder categorie</string>
     <string name="shopping_no_items">Geen open boodschappenitems.</string>
     <string name="shopping_completed_items">%1$d voltooide items</string>
-    <string name="shopping_planned_for_date">Gepland voor %1$s</string>
-    <string name="shopping_check_off">Afvinken</string>
+    <string name="shopping_list_added">Boodschappenlijst toegevoegd</string>
+    <string name="shopping_error_add_list">Kan boodschappenlijst niet toevoegen</string>
+    <string name="shopping_error_archive_list">Kan boodschappenlijst niet archiveren</string>
+    <string name="shopping_error_delete_list">Kan boodschappenlijst niet verwijderen</string>
+    <string name="shopping_item_added">Boodschappenitem toegevoegd</string>
+    <string name="shopping_error_add_item">Kan boodschappenitem niet toevoegen</string>
+    <string name="shopping_error_check_off_item">Kan boodschappenitem niet afvinken</string>
 
     <string name="parity_more_coming">Native bewerkingsbediening blijft groeien vanuit dezelfde gedeelde API-contracten.</string>
 

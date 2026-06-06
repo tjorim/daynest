@@ -1,7 +1,10 @@
 package com.daynest.android.feature.shopping
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.annotation.StringRes
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.daynest.android.R
 import com.daynest.android.data.shopping.ShoppingListCreateDto
 import com.daynest.android.data.shopping.ShoppingListDto
 import com.daynest.android.data.shopping.ShoppingListRepository
@@ -12,6 +15,8 @@ import com.daynest.android.data.today.PlannedItemRepository
 import com.daynest.android.data.today.PlannedItemUpdateDto
 import com.daynest.android.data.today.PlannedTodayItemDto
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -27,14 +32,17 @@ import javax.inject.Inject
 class ShoppingViewModel
     @Inject
     constructor(
+        application: Application,
         private val shoppingListRepository: ShoppingListRepository,
         private val plannedItemRepository: PlannedItemRepository,
-    ) : ViewModel() {
+    ) : AndroidViewModel(application) {
         private val _uiState = MutableStateFlow(ShoppingUiState())
         val uiState: StateFlow<ShoppingUiState> = _uiState.asStateFlow()
 
         private val _effects = MutableSharedFlow<String>()
         val effects: SharedFlow<String> = _effects.asSharedFlow()
+
+        private var selectListJob: Job? = null
 
         init {
             refreshLists()
@@ -55,10 +63,13 @@ class ShoppingViewModel
         }
 
         fun selectList(id: Int) {
-            viewModelScope.launch {
+            selectListJob?.cancel()
+            selectListJob = viewModelScope.launch {
                 _uiState.update { it.copy(selectedListId = id, isLoadingItems = true, error = null) }
-                val listResult = shoppingListRepository.getShoppingList(id)
-                val itemResult = plannedItemRepository.listPlannedItems(null, null)
+                val listDeferred = async { shoppingListRepository.getShoppingList(id) }
+                val itemDeferred = async { plannedItemRepository.listPlannedItems(null, null) }
+                val listResult = listDeferred.await()
+                val itemResult = itemDeferred.await()
                 val list = listResult.getOrNull()
                 val items = itemResult.getOrNull()?.shoppingItemsFor(id).orEmpty()
                 _uiState.update { state ->
@@ -87,9 +98,9 @@ class ShoppingViewModel
                 shoppingListRepository
                     .createShoppingList(ShoppingListCreateDto(name = name.trim(), store = store.blankToNull(), notes = notes.blankToNull()))
                     .onSuccess {
-                        _effects.emit("Shopping list added")
+                        _effects.emit(getString(R.string.shopping_list_added))
                         refreshLists()
-                    }.onFailure { _effects.emit(it.message ?: "Unable to add shopping list") }
+                    }.onFailure { _effects.emit(it.message ?: getString(R.string.shopping_error_add_list)) }
             }
         }
 
@@ -98,7 +109,7 @@ class ShoppingViewModel
                 shoppingListRepository
                     .updateShoppingList(list.id, ShoppingListUpdateDto(status = ShoppingListStatus.ARCHIVED))
                     .onSuccess { refreshLists() }
-                    .onFailure { _effects.emit(it.message ?: "Unable to archive shopping list") }
+                    .onFailure { _effects.emit(it.message ?: getString(R.string.shopping_error_archive_list)) }
             }
         }
 
@@ -107,7 +118,7 @@ class ShoppingViewModel
                 shoppingListRepository
                     .deleteShoppingList(id)
                     .onSuccess { refreshLists() }
-                    .onFailure { _effects.emit(it.message ?: "Unable to delete shopping list") }
+                    .onFailure { _effects.emit(it.message ?: getString(R.string.shopping_error_delete_list)) }
             }
         }
 
@@ -131,9 +142,9 @@ class ShoppingViewModel
                             tags = tag.blankToNull()?.let(::listOf).orEmpty(),
                         ),
                     ).onSuccess {
-                        _effects.emit("Shopping item added")
+                        _effects.emit(getString(R.string.shopping_item_added))
                         selectList(listId)
-                    }.onFailure { _effects.emit(it.message ?: "Unable to add shopping item") }
+                    }.onFailure { _effects.emit(it.message ?: getString(R.string.shopping_error_add_item)) }
             }
         }
 
@@ -159,9 +170,11 @@ class ShoppingViewModel
                             tags = item.tags,
                         ),
                     ).onSuccess { selectList(listId) }
-                    .onFailure { _effects.emit(it.message ?: "Unable to check off shopping item") }
+                    .onFailure { _effects.emit(it.message ?: getString(R.string.shopping_error_check_off_item)) }
             }
         }
+
+        private fun getString(@StringRes resId: Int): String = getApplication<Application>().getString(resId)
     }
 
 data class ShoppingUiState(

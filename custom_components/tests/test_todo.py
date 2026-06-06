@@ -355,5 +355,5 @@ class TestDaynestShoppingListTodoEntity:
 
         await entity.async_delete_todo_items(["shopping:401"])
 
-        coordinator.config_entry.runtime_data.client.async_delete_shopping_item.assert_awaited_once_with(301, 401)
+        coordinator.config_entry.runtime_data.client.async_delete_shopping_item.assert_awaited_once_with(401)
         coordinator.async_request_refresh.assert_awaited_once()

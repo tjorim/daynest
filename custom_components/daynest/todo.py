@@ -44,29 +44,39 @@ async def async_setup_entry(
 ) -> None:
     """Set up Daynest to-do entities for a config entry."""
     coordinator = entry.runtime_data.coordinator
-    entities: list[TodoListEntity] = [
+
+    async_add_entities([
         DaynestTodoListEntity(
             coordinator=coordinator,
             entity_description=ENTITY_DESCRIPTION,
         )
-    ]
+    ])
 
-    if isinstance(coordinator.data, dict):
+    known_list_ids: set[int] = set()
+
+    def _create_shopping_entities() -> None:
+        if not isinstance(coordinator.data, dict):
+            return
+        new_entities: list[TodoListEntity] = []
         for shopping_list in coordinator.data.get("shopping_lists", []):
             if not isinstance(shopping_list, dict):
                 continue
             list_id = _coerce_positive_int(shopping_list.get("id"))
-            if list_id is None:
+            if list_id is None or list_id in known_list_ids:
                 continue
-            entities.append(
+            known_list_ids.add(list_id)
+            new_entities.append(
                 DaynestShoppingListTodoEntity(
                     coordinator=coordinator,
                     shopping_list_id=list_id,
                     shopping_list_name=str(shopping_list.get("name") or "Shopping List"),
                 )
             )
+        if new_entities:
+            async_add_entities(new_entities)
 
-    async_add_entities(entities)
+    _create_shopping_entities()
+    entry.async_on_unload(coordinator.async_add_listener(_create_shopping_entities))
 
 
 def _coerce_positive_int(value: Any) -> int | None:
@@ -389,8 +399,6 @@ class DaynestShoppingListTodoEntity(DaynestTodoBaseEntity):
             notes=changes.get("description", shopping_item.get("notes")),
             tags=shopping_item.get("tags") if isinstance(shopping_item.get("tags"), list) else [],
             priority=str(shopping_item.get("priority") or "normal"),
-            recurrence_hint=shopping_item.get("recurrence_hint") if isinstance(shopping_item.get("recurrence_hint"), str) else None,
-            rrule=shopping_item.get("rrule") if isinstance(shopping_item.get("rrule"), str) else None,
         )
         await self.coordinator.async_request_refresh()
 
@@ -399,7 +407,7 @@ class DaynestShoppingListTodoEntity(DaynestTodoBaseEntity):
         client = self.coordinator.config_entry.runtime_data.client
         for item_id in item_ids:
             _, raw_id = self._parse_item_id(item_id, {"shopping"})
-            await client.async_delete_shopping_item(self.shopping_list_id, raw_id)
+            await client.async_delete_shopping_item(raw_id)
 
         await self.coordinator.async_request_refresh()
 

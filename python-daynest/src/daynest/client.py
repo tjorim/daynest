@@ -440,8 +440,6 @@ class DaynestClient:
         notes: str | None = None,
         tags: list[str] | None = None,
         priority: str = "normal",
-        recurrence_hint: str | None = None,
-        rrule: str | None = None,
     ) -> dict[str, Any]:
         """Update an item linked to a shopping list."""
         payload = {
@@ -449,8 +447,6 @@ class DaynestClient:
             "planned_for": planned_for.isoformat() if isinstance(planned_for, date) else planned_for,
             "notes": notes,
             "module_key": "shopping_list",
-            "recurrence_hint": recurrence_hint,
-            "rrule": rrule,
             "linked_source": "shopping_list",
             "linked_ref": str(shopping_list_id),
             "priority": priority,
@@ -459,7 +455,7 @@ class DaynestClient:
         }
         return await self._send_action("put", path=f"/api/planned-items/{item_id}", payload=payload)
 
-    async def async_delete_shopping_item(self, shopping_list_id: int, item_id: int) -> None:
+    async def async_delete_shopping_item(self, item_id: int) -> None:
         """Delete an item linked to a shopping list."""
         await self._send_no_content_action("delete", path=f"/api/planned-items/{item_id}")
 

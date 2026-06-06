@@ -85,10 +85,12 @@ private fun ShoppingListDetailContent(
     var itemTitle by remember { mutableStateOf("") }
     var itemTag by remember { mutableStateOf("") }
     var itemNotes by remember { mutableStateOf("") }
-    val openItems = uiState.items.filterNot { it.isDone }
-    val completedItems = uiState.items.filter { it.isDone }
+    val openItems = remember(uiState.items) { uiState.items.filterNot { it.isDone } }
+    val completedItems = remember(uiState.items) { uiState.items.filter { it.isDone } }
     val uncategorizedLabel = stringResource(id = R.string.shopping_uncategorized)
-    val groupedOpenItems = openItems.groupBy { it.tags.firstOrNull()?.takeIf(String::isNotBlank) ?: uncategorizedLabel }
+    val groupedOpenItems = remember(openItems, uncategorizedLabel) {
+        openItems.groupBy { it.tags.firstOrNull()?.takeIf(String::isNotBlank) ?: uncategorizedLabel }
+    }
 
     LazyColumn(
         modifier = modifier.fillMaxSize(),
@@ -195,10 +197,8 @@ private fun ShoppingItemRow(
             Checkbox(checked = item.isDone, onCheckedChange = { checked -> if (checked) onCheckOff(item) })
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = item.title, style = MaterialTheme.typography.titleMedium)
-                Text(text = stringResource(id = R.string.shopping_planned_for_date, item.plannedFor), style = MaterialTheme.typography.bodySmall)
                 item.notes?.let { Text(text = it, style = MaterialTheme.typography.bodySmall) }
             }
-            Button(onClick = { onCheckOff(item) }) { Text(text = stringResource(id = R.string.shopping_check_off)) }
         }
     }
 }

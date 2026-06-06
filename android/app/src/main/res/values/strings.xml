@@ -213,8 +213,13 @@
     <string name="shopping_uncategorized">Uncategorized</string>
     <string name="shopping_no_items">No open shopping items.</string>
     <string name="shopping_completed_items">%1$d completed items</string>
-    <string name="shopping_planned_for_date">Planned for %1$s</string>
-    <string name="shopping_check_off">Check off</string>
+    <string name="shopping_list_added">Shopping list added</string>
+    <string name="shopping_error_add_list">Unable to add shopping list</string>
+    <string name="shopping_error_archive_list">Unable to archive shopping list</string>
+    <string name="shopping_error_delete_list">Unable to delete shopping list</string>
+    <string name="shopping_item_added">Shopping item added</string>
+    <string name="shopping_error_add_item">Unable to add shopping item</string>
+    <string name="shopping_error_check_off_item">Unable to check off shopping item</string>
 
     <string name="parity_more_coming">Native editing controls will continue to grow from the same shared API contracts.</string>
 
