@@ -3,14 +3,20 @@ from hashlib import sha256
 from datetime import datetime, time, timedelta, timezone
 
 import pytest
+from fastapi.testclient import TestClient
 from fastmcp.server.auth import AccessToken
 
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.api.dependencies.integration_auth import hash_integration_key
 from app.core.config import settings
-from app.core.enums import ChoreStatus
-from app.mcp_server import DaynestMcpBackend, IntegrationKeyTokenVerifier, create_mcp_server
+from app.core.enums import ChoreStatus, MedicationDoseStatus
+from app.mcp_server import (
+    MCP_TOOL_NAMES,
+    DaynestMcpBackend,
+    IntegrationKeyTokenVerifier,
+    create_mcp_server,
+)
 from app.models.chore_instance import ChoreInstance
 from app.models.chore_template import ChoreTemplate
 from app.models.integration_client import IntegrationClient
@@ -18,7 +24,6 @@ from app.models.medication_dose_instance import MedicationDoseInstance
 from app.models.medication_plan import MedicationPlan
 from app.models.routine_template import RoutineTemplate
 from app.models.user import User
-from app.core.enums import MedicationDoseStatus
 
 
 def _session_factory(db_session: Session) -> sessionmaker[Session]:
@@ -51,6 +56,47 @@ def _create_integration_client(
     db_session.commit()
     db_session.refresh(client)
     return client
+
+
+def test_mcp_capabilities_endpoint_lists_growth_tools(client: TestClient, monkeypatch) -> None:
+    mock_mcp = create_mcp_server()
+    monkeypatch.setattr("app.main._mcp", mock_mcp)
+    monkeypatch.setattr("app.main._mcp_app", mock_mcp.http_app(path="/"))
+
+    response = client.get("/api/mcp/capabilities")
+
+    assert response.status_code == 200
+    payload = response.json()
+    tool_names = {tool["name"] for tool in payload["tools"]}
+
+    assert payload["enabled"] is True
+    assert payload["mount_path"] == "/mcp"
+    assert tool_names == set(MCP_TOOL_NAMES)
+    assert {resource["uri"] for resource in payload["resources"]} == {
+        "daynest://today/{for_date}",
+        "daynest://calendar/day/{for_date}",
+    }
+    assert {prompt["name"] for prompt in payload["prompts"]} == {"daily_briefing"}
+    assert {
+        "list_shopping_lists",
+        "create_shopping_list",
+        "add_shopping_item",
+        "check_off_shopping_item",
+        "list_meal_plans",
+        "get_week_plan",
+        "set_meal_slot",
+        "generate_shopping_list_from_plan",
+    }.issubset(tool_names)
+
+
+@pytest.mark.anyio
+async def test_mcp_capability_tool_names_match_registered_tools(db_session: Session) -> None:
+    backend = DaynestMcpBackend(_session_factory(db_session))
+    mcp = create_mcp_server(backend)
+
+    registered_tools = await mcp.list_tools()
+
+    assert {tool.name for tool in registered_tools} == set(MCP_TOOL_NAMES)
 
 
 def test_mcp_backend_resolves_single_active_user_and_returns_today(db_session: Session) -> None:

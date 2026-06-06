@@ -50,6 +50,60 @@ if not logger.handlers:
 DAYNEST_USER_EMAIL_ENV = "DAYNEST_USER_EMAIL"
 DAYNEST_MCP_RESOURCE_SERVER_URL_ENV = "DAYNEST_MCP_RESOURCE_SERVER_URL"
 
+MCP_TOOL_NAMES = (
+    "whoami",
+    "list_users",
+    "list_integration_clients",
+    "create_integration_client",
+    "get_today",
+    "get_calendar_day",
+    "get_calendar_month",
+    "list_meal_plans",
+    "get_week_plan",
+    "set_meal_slot",
+    "generate_shopping_list_from_plan",
+    "list_shopping_lists",
+    "create_shopping_list",
+    "add_shopping_item",
+    "check_off_shopping_item",
+    "list_planned_items",
+    "create_planned_item",
+    "update_planned_item",
+    "defer_planned_item",
+    "delete_planned_item",
+    "delete_planned_item_series",
+    "complete_chore",
+    "skip_chore",
+    "reschedule_chore",
+    "start_routine_task",
+    "complete_routine_task",
+    "skip_routine_task",
+    "list_routines",
+    "create_routine",
+    "update_routine",
+    "delete_routine",
+    "list_chore_templates",
+    "create_chore_template",
+    "update_chore_template",
+    "delete_chore_template",
+    "take_medication_dose",
+    "skip_medication_dose",
+    "skip_missed_medication_doses",
+    "list_medications",
+    "create_medication",
+    "update_medication",
+    "delete_medication",
+    "get_medication_history",
+    "get_scheduling_suggestions",
+)
+
+MCP_RESOURCE_URIS = (
+    "daynest://today/{for_date}",
+    "daynest://calendar/day/{for_date}",
+)
+
+MCP_PROMPT_NAMES = ("daily_briefing",)
+
 T = TypeVar("T")
 
 

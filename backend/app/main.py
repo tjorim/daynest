@@ -32,7 +32,12 @@ from app.api.dependencies.events import get_event_bus
 from app.core.config import settings
 from app.core.observability import configure_error_tracking, configure_logging, observability_middleware
 from app.db.session import SessionLocal
-from app.mcp_server import create_mcp_server
+from app.mcp_server import (
+    MCP_PROMPT_NAMES,
+    MCP_RESOURCE_URIS,
+    MCP_TOOL_NAMES,
+    create_mcp_server,
+)
 from app.models.user import User
 from app.services.event_bus import EventBus
 from app.services.push_service import (
@@ -208,6 +213,19 @@ if _mcp_app is not None:
     app.mount("/mcp", _mcp_app)
 
 
+@app.get(f"{settings.api_prefix}/mcp/capabilities")
+def mcp_capabilities() -> dict[str, object]:
+    enabled = _mcp_app is not None
+    return {
+        "enabled": enabled,
+        "mount_path": "/mcp",
+        "version": _mcp.version if _mcp is not None else None,
+        "tools": [{"name": name} for name in MCP_TOOL_NAMES] if enabled else [],
+        "resources": [{"uri": uri} for uri in MCP_RESOURCE_URIS] if enabled else [],
+        "prompts": [{"name": name} for name in MCP_PROMPT_NAMES] if enabled else [],
+    }
+
+
 @app.get("/")
 def root() -> dict[str, str]:
     return {
@@ -218,4 +236,5 @@ def root() -> dict[str, str]:
         "metrics": f"{settings.api_prefix}/metrics",
         "ha_summary": f"{settings.api_prefix}/integrations/home-assistant/summary",
         "mcp": "/mcp",
+        "mcp_capabilities": f"{settings.api_prefix}/mcp/capabilities",
     }
