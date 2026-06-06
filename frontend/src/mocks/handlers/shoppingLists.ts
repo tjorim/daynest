@@ -71,20 +71,27 @@ export const shoppingListHandlers = [
   http.post("/api/shopping-lists/:listId/import-recurring", ({ params }) => {
     const listId = Number(params.listId);
     const { plannedItems } = getMockState();
-    const imported = plannedItems
-      .filter((item) => item.module_key === "recurring_grocery" && item.auto_add_to_list_id === listId)
-      .map((item) => ({
-        ...item,
-        id: nextPlannedItemId(),
-        module_key: "shopping_list" as const,
-        linked_source: "shopping_list",
-        linked_ref: String(listId),
-        recurrence_series_id: null,
-        rrule: null,
-        recurrence_hint: null,
-        auto_add_to_list_id: null,
-        is_done: false,
-      }));
+    const uniqueSeries = new Map<string, (typeof plannedItems)[number]>();
+    for (const item of plannedItems) {
+      if (item.module_key === "recurring_grocery" && item.auto_add_to_list_id === listId) {
+        const key = item.recurrence_series_id != null ? String(item.recurrence_series_id) : `item-${item.id}`;
+        if (!uniqueSeries.has(key)) {
+          uniqueSeries.set(key, item);
+        }
+      }
+    }
+    const imported = Array.from(uniqueSeries.values()).map((item) => ({
+      ...item,
+      id: nextPlannedItemId(),
+      module_key: "shopping_list" as const,
+      linked_source: "shopping_list",
+      linked_ref: String(listId),
+      recurrence_series_id: null,
+      rrule: null,
+      recurrence_hint: null,
+      auto_add_to_list_id: null,
+      is_done: false,
+    }));
     mutatePlannedItems((items) => [...items, ...imported]);
     return HttpResponse.json(imported);
   }),

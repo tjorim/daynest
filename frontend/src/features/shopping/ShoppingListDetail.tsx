@@ -82,7 +82,10 @@ export function ShoppingListDetail() {
             type="button"
             className="btn btn-outline-primary btn-sm"
             disabled={loading}
-            onClick={() => void Promise.all([listQuery.refetch(), itemsQuery.refetch()])}
+            onClick={() => {
+              setSuccessMessage(null);
+              void Promise.all([listQuery.refetch(), itemsQuery.refetch()]);
+            }}
           >
             {m.action_refresh()}
           </button>

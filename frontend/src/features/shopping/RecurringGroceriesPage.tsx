@@ -33,7 +33,11 @@ function formatRRule(rrule: string): string {
   if (parsed.preset === "custom") {
     return `${m.calendar_repeat_every()} ${parsed.customInterval} ${m.calendar_repeat_days()}`;
   }
-  return `${m.calendar_repeat_weekly()} (${parsed.weekdays.join(", ")})`;
+  const weekdayLabels = parsed.weekdays.map((code) => {
+    const option = WEEKDAY_REPEAT_OPTIONS.find((opt) => opt.code === code);
+    return option ? option.label() : code;
+  });
+  return `${m.calendar_repeat_weekly()} (${weekdayLabels.join(", ")})`;
 }
 
 function splitTags(tags: string): string[] {
@@ -105,15 +109,18 @@ export function RecurringGroceriesPage() {
     actions.clearActionError();
   };
 
-  const buildPayload = (): RecurringGroceryInput => ({
-    title: title.trim(),
-    planned_for: startDate,
-    notes: notes.trim() || null,
-    rrule: buildRRule(repeatPreset, repeatWeekdays, customInterval, startDate),
-    recurrence_hint: formatRRule(buildRRule(repeatPreset, repeatWeekdays, customInterval, startDate)),
-    auto_add_to_list_id: autoAddToListId ? Number(autoAddToListId) : null,
-    tags: splitTags(tags),
-  });
+  const buildPayload = (): RecurringGroceryInput => {
+    const rrule = buildRRule(repeatPreset, repeatWeekdays, customInterval, startDate);
+    return {
+      title: title.trim(),
+      planned_for: startDate,
+      notes: notes.trim() || null,
+      rrule,
+      recurrence_hint: formatRRule(rrule),
+      auto_add_to_list_id: autoAddToListId ? Number(autoAddToListId) : null,
+      tags: splitTags(tags),
+    };
+  };
 
   const submit = async () => {
     if (!title.trim()) return;
@@ -288,7 +295,10 @@ export function RecurringGroceriesPage() {
                       className="form-control"
                       min={2}
                       value={customInterval}
-                      onChange={(event) => setCustomInterval(Math.max(2, Number(event.target.value || 2)))}
+                      onChange={(event) => {
+                        const val = parseInt(event.target.value, 10);
+                        setCustomInterval(isNaN(val) ? 2 : Math.max(2, val));
+                      }}
                     />
                     <span className="input-group-text">{m.calendar_repeat_days()}</span>
                   </div>
