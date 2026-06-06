@@ -571,3 +571,47 @@ def test_update_planned_item_scope_all_rejects_invalid_rrule(client: TestClient,
 
     assert update.status_code == 422
     assert update.json()["detail"] == "Invalid rrule"
+
+
+def test_recurring_grocery_auto_add_materializes_as_shopping_list_item(
+    client: TestClient, db_session: Session
+) -> None:
+    from app.models.shopping_list import ShoppingList
+
+    user = _create_user(db_session, "planned-auto-grocery@example.com")
+    shopping_list = ShoppingList(user_id=user.id, name="Weekly groceries")
+    db_session.add(shopping_list)
+    db_session.commit()
+    db_session.refresh(shopping_list)
+
+    _auth_as(user)
+    try:
+        create = client.post(
+            "/api/planned-items",
+            json={
+                "title": "Milk",
+                "planned_for": "2026-06-06",
+                "module_key": "recurring_grocery",
+                "rrule": "FREQ=WEEKLY;COUNT=2",
+                "auto_add_to_list_id": shopping_list.id,
+            },
+        )
+        assert create.status_code == 200
+        assert create.json()["auto_add_to_list_id"] == shopping_list.id
+
+        response = client.get(
+            "/api/planned-items?start_date=2026-06-06&end_date=2026-06-13"
+        )
+    finally:
+        _clear_auth()
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert [item["planned_for"] for item in payload] == ["2026-06-06", "2026-06-13"]
+    assert {item["module_key"] for item in payload} == {"shopping_list"}
+    assert {item["linked_source"] for item in payload} == {"shopping_list"}
+    assert {item["linked_ref"] for item in payload} == {str(shopping_list.id)}
+
+    series = db_session.query(RecurrenceSeries).filter(RecurrenceSeries.user_id == user.id).one()
+    assert series.module_key == "recurring_grocery"
+    assert series.auto_add_to_list_id == shopping_list.id

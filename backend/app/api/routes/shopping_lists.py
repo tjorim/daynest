@@ -9,6 +9,7 @@ from app.db.session import get_db
 from app.models.user import User
 from app.repositories.shopping_list_repository import ShoppingListRepository
 from app.repositories.today_repository import TodayRepository
+from app.schemas.today import PlannedTodayItem
 from app.schemas.shopping_list import (
     ShoppingListCreateRequest,
     ShoppingListResponse,
@@ -73,6 +74,17 @@ def update_shopping_list(
 ) -> ShoppingListResponse:
     return _service(db).update_shopping_list(
         user_id=current_user.id, shopping_list_id=shopping_list_id, request=request
+    )
+
+
+@router.post("/{shopping_list_id}/import-recurring", response_model=list[PlannedTodayItem])
+def import_recurring_groceries(
+    shopping_list_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> list[PlannedTodayItem]:
+    return _service(db).import_recurring_groceries(
+        user_id=current_user.id, shopping_list_id=shopping_list_id
     )
 
 

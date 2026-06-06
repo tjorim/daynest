@@ -13,6 +13,7 @@ from app.db.base import Base
 
 if TYPE_CHECKING:
     from app.models.planned_item import PlannedItem
+    from app.models.shopping_list import ShoppingList
     from app.models.user import User
 
 
@@ -31,6 +32,11 @@ class RecurrenceSeries(Base):
     recurrence_hint: Mapped[str | None] = mapped_column(String(255), nullable=True)
     linked_source: Mapped[str | None] = mapped_column(String(120), nullable=True)
     linked_ref: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    auto_add_to_list_id: Mapped[int | None] = mapped_column(
+        ForeignKey("shopping_lists.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
     priority: Mapped[Priority] = mapped_column(
         String(20),
         nullable=False,
@@ -43,3 +49,4 @@ class RecurrenceSeries(Base):
 
     user: Mapped["User"] = relationship(back_populates="recurrence_series")
     planned_items: Mapped[list["PlannedItem"]] = relationship(back_populates="recurrence_series")
+    auto_add_to_list: Mapped["ShoppingList | None"] = relationship()

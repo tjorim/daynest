@@ -598,6 +598,14 @@ class TodayService:
         if request.rrule:
             self._validate_rrule_start_or_422(start_date=request.planned_for, rrule=request.rrule)
 
+            item_module_key = request.module_key
+            item_linked_source = request.linked_source
+            item_linked_ref = request.linked_ref
+            if request.module_key == "recurring_grocery" and request.auto_add_to_list_id is not None:
+                item_module_key = "shopping_list"
+                item_linked_source = "shopping_list"
+                item_linked_ref = str(request.auto_add_to_list_id)
+
             _, item = self.repository.add_recurrence_series_with_first_planned_item(
                 series=RecurrenceSeries(
                     user_id=user_id,
@@ -611,6 +619,7 @@ class TodayService:
                     recurrence_hint=request.recurrence_hint,
                     linked_source=request.linked_source,
                     linked_ref=request.linked_ref,
+                    auto_add_to_list_id=request.auto_add_to_list_id,
                     priority=request.priority,
                     tags=request.tags,
                     materialized_through=request.planned_for,
@@ -619,11 +628,11 @@ class TodayService:
                     user_id=user_id,
                     title=request.title,
                     notes=request.notes,
-                    module_key=request.module_key,
+                    module_key=item_module_key,
                     recurrence_hint=request.recurrence_hint,
                     rrule=request.rrule,
-                    linked_source=request.linked_source,
-                    linked_ref=request.linked_ref,
+                    linked_source=item_linked_source,
+                    linked_ref=item_linked_ref,
                     planned_for=request.planned_for,
                     time_of_day=request.time_of_day,
                     duration_minutes=request.duration_minutes,
@@ -694,6 +703,7 @@ class TodayService:
         recurrence_series.rrule = patch.rrule or recurrence_series.rrule
         recurrence_series.linked_source = patch.linked_source
         recurrence_series.linked_ref = patch.linked_ref
+        recurrence_series.auto_add_to_list_id = patch.auto_add_to_list_id
         recurrence_series.start_date = patch.planned_for
         recurrence_series.time_of_day = patch.time_of_day
         recurrence_series.duration_minutes = patch.duration_minutes
@@ -734,6 +744,7 @@ class TodayService:
         recurrence_series.rrule = patch.rrule or recurrence_series.rrule
         recurrence_series.linked_source = patch.linked_source
         recurrence_series.linked_ref = patch.linked_ref
+        recurrence_series.auto_add_to_list_id = patch.auto_add_to_list_id
         recurrence_series.start_date = new_start_date
         recurrence_series.time_of_day = patch.time_of_day
         recurrence_series.duration_minutes = patch.duration_minutes
@@ -788,6 +799,37 @@ class TodayService:
         return [
             self._planned_item_to_schema(item)
             for item in self.repository.list_planned_items(user_id=user_id, start_date=start_date, end_date=end_date, tags=tags)
+        ]
+
+    def import_recurring_groceries_to_shopping_list(
+        self,
+        *,
+        user_id: int,
+        shopping_list_id: int,
+        start_date: date | None = None,
+        through_date: date | None = None,
+    ) -> list[PlannedTodayItem]:
+        import_start = start_date or self.repository.utcnow().date()
+        import_through = through_date or (import_start + timedelta(days=DEFAULT_PLANNED_ITEMS_LOOKAHEAD_DAYS))
+        series_dates: dict[UUID, list[date]] = {}
+        for series in self.repository.list_recurring_grocery_series(user_id=user_id, through_date=import_through):
+            recurrence_start = max(import_start, series.start_date)
+            generation = generate_recurrence(
+                recurrence_start,
+                series.rrule,
+                dtstart=series.start_date,
+                through_date=import_through,
+            )
+            if generation.dates:
+                series_dates[series.id] = generation.dates
+
+        return [
+            self._planned_item_to_schema(item)
+            for item in self.repository.import_recurring_grocery_items_to_list(
+                user_id=user_id,
+                shopping_list_id=shopping_list_id,
+                series_dates=series_dates,
+            )
         ]
 
     def save(self) -> None:
@@ -1011,6 +1053,11 @@ class TodayService:
             recurrence_series_id=item.recurrence_series_id,
             linked_source=item.linked_source,
             linked_ref=item.linked_ref,
+            auto_add_to_list_id=(
+                recurrence_series.auto_add_to_list_id
+                if (recurrence_series := getattr(item, "recurrence_series", None)) is not None
+                else None
+            ),
             priority=item.priority,
             tags=item.tags or [],
             is_done=item.is_done,

@@ -16,6 +16,7 @@ from app.schemas.today import (
     PlannedItemCreateRequest,
     PlannedItemModuleKey,
     PlannedItemUpdateRequest,
+    PlannedTodayItem,
 )
 from app.services.today_service import TodayService
 
@@ -76,6 +77,14 @@ class ShoppingListService:
             user_id=user_id, shopping_list_id=shopping_list.id
         )
         self.repository.delete(shopping_list)
+
+    def import_recurring_groceries(
+        self, user_id: int, shopping_list_id: int
+    ) -> list[PlannedTodayItem]:
+        shopping_list = self._get_user_shopping_list(user_id, shopping_list_id)
+        return self.today_service.import_recurring_groceries_to_shopping_list(
+            user_id=user_id, shopping_list_id=shopping_list.id
+        )
 
     def add_shopping_item(
         self,

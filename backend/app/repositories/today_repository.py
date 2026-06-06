@@ -573,6 +573,16 @@ class TodayRepository:
         )
         return list(self.db.scalars(stmt).all())
 
+    def list_recurring_grocery_series(self, *, user_id: int, through_date: date) -> list[RecurrenceSeries]:
+        stmt = (
+            select(RecurrenceSeries)
+            .where(RecurrenceSeries.user_id == user_id)
+            .where(RecurrenceSeries.module_key == "recurring_grocery")
+            .where(RecurrenceSeries.start_date <= through_date)
+            .order_by(RecurrenceSeries.start_date.asc(), RecurrenceSeries.created_at.asc())
+        )
+        return list(self.db.scalars(stmt).all())
+
     def add_recurrence_series(self, series: RecurrenceSeries) -> RecurrenceSeries:
         self.db.add(series)
         self.db.commit()
@@ -605,17 +615,25 @@ class TodayRepository:
         through_date: date,
         materialized_dates: Sequence[date],
     ) -> None:
+        item_module_key = series.module_key
+        item_linked_source = series.linked_source
+        item_linked_ref = series.linked_ref
+        if series.module_key == "recurring_grocery" and series.auto_add_to_list_id is not None:
+            item_module_key = "shopping_list"
+            item_linked_source = "shopping_list"
+            item_linked_ref = str(series.auto_add_to_list_id)
+
         rows = [
             {
                 "user_id": series.user_id,
                 "title": series.title,
                 "notes": series.notes,
-                "module_key": series.module_key,
+                "module_key": item_module_key,
                 "recurrence_hint": series.recurrence_hint,
                 "rrule": series.rrule,
                 "recurrence_series_id": series.id,
-                "linked_source": series.linked_source,
-                "linked_ref": series.linked_ref,
+                "linked_source": item_linked_source,
+                "linked_ref": item_linked_ref,
                 "planned_for": planned_for,
                 "time_of_day": series.time_of_day,
                 "duration_minutes": series.duration_minutes,
@@ -656,6 +674,66 @@ class TodayRepository:
         for item in items:
             self.db.refresh(item)
         return list(items)
+
+    def import_recurring_grocery_items_to_list(
+        self,
+        *,
+        user_id: int,
+        shopping_list_id: int,
+        series_dates: dict[UUID, Sequence[date]],
+    ) -> list[PlannedItem]:
+        if not series_dates:
+            return []
+
+        imported: list[PlannedItem] = []
+        for series_id, planned_dates in series_dates.items():
+            if not planned_dates:
+                continue
+            existing_items = list(
+                self.db.scalars(
+                    select(PlannedItem)
+                    .where(PlannedItem.user_id == user_id)
+                    .where(PlannedItem.recurrence_series_id == series_id)
+                    .where(PlannedItem.planned_for.in_(planned_dates))
+                ).all()
+            )
+            existing_dates = {item.planned_for for item in existing_items}
+            for item in existing_items:
+                item.module_key = "shopping_list"
+                item.linked_source = "shopping_list"
+                item.linked_ref = str(shopping_list_id)
+            imported.extend(existing_items)
+
+            series = self.db.get(RecurrenceSeries, series_id)
+            if series is None:
+                continue
+            for planned_for in planned_dates:
+                if planned_for in existing_dates:
+                    continue
+                item = PlannedItem(
+                    user_id=user_id,
+                    title=series.title,
+                    notes=series.notes,
+                    module_key="shopping_list",
+                    recurrence_hint=series.recurrence_hint,
+                    rrule=series.rrule,
+                    recurrence_series_id=series.id,
+                    linked_source="shopping_list",
+                    linked_ref=str(shopping_list_id),
+                    planned_for=planned_for,
+                    time_of_day=series.time_of_day,
+                    duration_minutes=series.duration_minutes,
+                    priority=series.priority,
+                    tags=series.tags or [],
+                    is_done=False,
+                )
+                self.db.add(item)
+                imported.append(item)
+
+        self.db.commit()
+        for item in imported:
+            self.db.refresh(item)
+        return sorted(imported, key=lambda item: (item.planned_for, item.id))
 
     def get_planned_item_for_user(self, user_id: int, planned_item_id: int) -> PlannedItem | None:
         stmt = select(PlannedItem).where(PlannedItem.user_id == user_id).where(PlannedItem.id == planned_item_id)
