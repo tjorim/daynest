@@ -1,5 +1,5 @@
 import logging
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from datetime import date, datetime, time, timedelta, timezone
 from uuid import UUID
 from zoneinfo import ZoneInfo
@@ -680,7 +680,7 @@ class TodayRepository:
         *,
         user_id: int,
         shopping_list_id: int,
-        series_dates: dict[UUID, Sequence[date]],
+        series_dates: Mapping[UUID, Sequence[date]],
     ) -> list[PlannedItem]:
         if not series_dates:
             return []
