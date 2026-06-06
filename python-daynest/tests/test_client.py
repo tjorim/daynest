@@ -918,3 +918,78 @@ class TestDaynestClientCacheAndSSE:
 
         session.get.assert_not_called()
         callback.assert_not_awaited()
+
+
+@pytest.mark.unit
+class TestDaynestClientShoppingLists:
+    """Tests for shopping-list helpers."""
+
+    async def test_list_shopping_lists_requests_active_lists(self) -> None:
+        response = _make_mock_response(200, [{"id": 1, "name": "Groceries", "status": "active"}])
+        client = _make_client(response)
+
+        result = await client.async_list_shopping_lists(status="active")
+
+        assert result == [{"id": 1, "name": "Groceries", "status": "active"}]
+        client._session.get.assert_called_once()
+        url = client._session.get.call_args.args[0]
+        assert url == "https://api.daynest.example/api/shopping-lists?status=active"
+
+    async def test_list_shopping_items_filters_linked_planned_items(self) -> None:
+        response = _make_mock_response(
+            200,
+            [
+                {"id": 1, "title": "Milk", "module_key": "shopping_list", "linked_ref": "7"},
+                {"id": 2, "title": "Other", "module_key": "shopping_list", "linked_ref": "8"},
+                {"id": 3, "title": "Task", "module_key": None, "linked_ref": None},
+            ],
+        )
+        client = _make_client(response)
+
+        result = await client.async_list_shopping_items(7)
+
+        assert result == [{"id": 1, "title": "Milk", "module_key": "shopping_list", "linked_ref": "7"}]
+
+    async def test_create_shopping_item_posts_linked_planned_item(self) -> None:
+        response = _make_mock_response(200, {"id": 1, "title": "Milk"})
+        session = MagicMock(spec=aiohttp.ClientSession)
+        session.post = MagicMock(return_value=response)
+        client = DaynestClient(base_url="https://api.daynest.example", integration_key="key", session=session)
+
+        result = await client.async_create_shopping_item(7, title="Milk", planned_for="2026-01-15", notes="2L")
+
+        assert result == {"id": 1, "title": "Milk"}
+        payload = session.post.call_args.kwargs["json"]
+        assert payload["module_key"] == "shopping_list"
+        assert payload["linked_ref"] == "7"
+        assert payload["title"] == "Milk"
+
+    async def test_update_shopping_item_puts_linked_planned_item(self) -> None:
+        response = _make_mock_response(200, {"id": 1, "title": "Milk"})
+        session = MagicMock(spec=aiohttp.ClientSession)
+        session.put = MagicMock(return_value=response)
+        client = DaynestClient(base_url="https://api.daynest.example", integration_key="key", session=session)
+
+        result = await client.async_update_shopping_item(
+            7,
+            1,
+            title="Milk",
+            planned_for="2026-01-15",
+            is_done=True,
+        )
+
+        assert result == {"id": 1, "title": "Milk"}
+        assert session.put.call_args.args[0] == "https://api.daynest.example/api/planned-items/1"
+        payload = session.put.call_args.kwargs["json"]
+        assert payload["linked_ref"] == "7"
+        assert payload["is_done"] is True
+
+    async def test_delete_shopping_item_deletes_planned_item(self) -> None:
+        response = _make_mock_response(204, None)
+        session = MagicMock(spec=aiohttp.ClientSession)
+        session.delete = MagicMock(return_value=response)
+        client = DaynestClient(base_url="https://api.daynest.example", integration_key="key", session=session)
+
+        await client.async_delete_shopping_item(7, 1)
+
+        assert session.delete.call_args.args[0] == "https://api.daynest.example/api/planned-items/1"
