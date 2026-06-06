@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session, joinedload
 from app.core.enums import ChoreStatus, MedicationDoseStatus, Priority, TaskStatus
 from app.models.user import User
 from app.models.chore_instance import ChoreInstance
+from app.models.shopping_list import ShoppingList
 from app.models.chore_template import ChoreTemplate
 from app.models.household_member import HouseholdMember
 from app.models.medication_dose_instance import MedicationDoseInstance
@@ -540,7 +541,11 @@ class TodayRepository:
         return self.db.scalar(stmt)
 
     def list_planned_items(self, user_id: int, start_date: date | None = None, end_date: date | None = None, is_done: bool | None = None, tags: list[str] | None = None) -> list[PlannedItem]:
-        stmt = select(PlannedItem).where(PlannedItem.user_id == user_id)
+        stmt = (
+            select(PlannedItem)
+            .options(joinedload(PlannedItem.recurrence_series))
+            .where(PlannedItem.user_id == user_id)
+        )
         if start_date is not None:
             stmt = stmt.where(PlannedItem.planned_for >= start_date)
         if end_date is not None:
@@ -548,7 +553,7 @@ class TodayRepository:
         if is_done is not None:
             stmt = stmt.where(PlannedItem.is_done.is_(is_done))
         stmt = stmt.order_by(PlannedItem.planned_for.asc(), PlannedItem.id.asc())
-        items = list(self.db.scalars(stmt).all())
+        items = list(self.db.scalars(stmt).unique().all())
         if tags:
             items = [item for item in items if any(tag in (item.tags or []) for tag in tags)]
         return items
@@ -685,18 +690,35 @@ class TodayRepository:
         if not series_dates:
             return []
 
+        series_ids = list(series_dates.keys())
+        all_dates = [d for dates in series_dates.values() for d in dates]
+
+        series_map = {
+            s.id: s
+            for s in self.db.scalars(
+                select(RecurrenceSeries).where(RecurrenceSeries.id.in_(series_ids))
+            ).all()
+        }
+
+        existing_by_series: dict[UUID, list[PlannedItem]] = {}
+        for item in self.db.scalars(
+            select(PlannedItem)
+            .where(PlannedItem.user_id == user_id)
+            .where(PlannedItem.recurrence_series_id.in_(series_ids))
+            .where(PlannedItem.planned_for.in_(all_dates))
+        ).all():
+            if item.recurrence_series_id is not None:
+                existing_by_series.setdefault(item.recurrence_series_id, []).append(item)
+
         imported: list[PlannedItem] = []
         for series_id, planned_dates in series_dates.items():
             if not planned_dates:
                 continue
-            existing_items = list(
-                self.db.scalars(
-                    select(PlannedItem)
-                    .where(PlannedItem.user_id == user_id)
-                    .where(PlannedItem.recurrence_series_id == series_id)
-                    .where(PlannedItem.planned_for.in_(planned_dates))
-                ).all()
-            )
+            series = series_map.get(series_id)
+            if series is None:
+                continue
+
+            existing_items = existing_by_series.get(series_id, [])
             existing_dates = {item.planned_for for item in existing_items}
             for item in existing_items:
                 item.module_key = "shopping_list"
@@ -704,9 +726,6 @@ class TodayRepository:
                 item.linked_ref = str(shopping_list_id)
             imported.extend(existing_items)
 
-            series = self.db.get(RecurrenceSeries, series_id)
-            if series is None:
-                continue
             for planned_for in planned_dates:
                 if planned_for in existing_dates:
                     continue
@@ -736,12 +755,24 @@ class TodayRepository:
         return sorted(imported, key=lambda item: (item.planned_for, item.id))
 
     def get_planned_item_for_user(self, user_id: int, planned_item_id: int) -> PlannedItem | None:
-        stmt = select(PlannedItem).where(PlannedItem.user_id == user_id).where(PlannedItem.id == planned_item_id)
+        stmt = (
+            select(PlannedItem)
+            .options(joinedload(PlannedItem.recurrence_series))
+            .where(PlannedItem.user_id == user_id)
+            .where(PlannedItem.id == planned_item_id)
+        )
         return self.db.scalar(stmt)
 
     def get_recurrence_series_for_user(self, user_id: int, recurrence_series_id: UUID) -> RecurrenceSeries | None:
         stmt = select(RecurrenceSeries).where(RecurrenceSeries.user_id == user_id).where(RecurrenceSeries.id == recurrence_series_id)
         return self.db.scalar(stmt)
+
+    def shopping_list_belongs_to_user(self, user_id: int, shopping_list_id: int) -> bool:
+        return self.db.scalar(
+            select(ShoppingList.id)
+            .where(ShoppingList.id == shopping_list_id)
+            .where(ShoppingList.user_id == user_id)
+        ) is not None
 
     def delete_planned_item(self, item: PlannedItem) -> None:
         self.db.delete(item)

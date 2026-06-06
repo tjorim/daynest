@@ -598,6 +598,9 @@ class TodayService:
         if request.rrule:
             self._validate_rrule_start_or_422(start_date=request.planned_for, rrule=request.rrule)
 
+            if request.auto_add_to_list_id is not None:
+                self._validate_shopping_list_or_404(user_id=user_id, shopping_list_id=request.auto_add_to_list_id)
+
             item_module_key = request.module_key
             item_linked_source = request.linked_source
             item_linked_ref = request.linked_ref
@@ -696,6 +699,8 @@ class TodayService:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Recurrence series not found")
         if patch.rrule:
             self._validate_rrule_start_or_422(start_date=patch.planned_for, rrule=patch.rrule)
+        if patch.auto_add_to_list_id is not None:
+            self._validate_shopping_list_or_404(user_id=user_id, shopping_list_id=patch.auto_add_to_list_id)
         recurrence_series.title = patch.title
         recurrence_series.notes = patch.notes
         recurrence_series.module_key = patch.module_key
@@ -737,6 +742,8 @@ class TodayService:
             new_start_date = recurrence_series.start_date + (patch.planned_for - original_planned_for)
         if patch.rrule:
             self._validate_rrule_start_or_422(start_date=new_start_date, rrule=patch.rrule)
+        if patch.auto_add_to_list_id is not None:
+            self._validate_shopping_list_or_404(user_id=user_id, shopping_list_id=patch.auto_add_to_list_id)
         recurrence_series.title = patch.title
         recurrence_series.notes = patch.notes
         recurrence_series.module_key = patch.module_key
@@ -1037,6 +1044,10 @@ class TodayService:
         if item is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Planned item not found")
         return item
+
+    def _validate_shopping_list_or_404(self, user_id: int, shopping_list_id: int) -> None:
+        if not self.repository.shopping_list_belongs_to_user(user_id=user_id, shopping_list_id=shopping_list_id):
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Shopping list not found")
 
     @staticmethod
     def _planned_item_to_schema(item: PlannedItem) -> PlannedTodayItem:
