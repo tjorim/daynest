@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, time, timedelta
 from typing import TYPE_CHECKING
 
 from daynest import DaynestError
@@ -12,6 +12,7 @@ from homeassistant.components.calendar import (
     CalendarEntityFeature,
     CalendarEvent,
 )
+from homeassistant.util import dt as dt_util
 
 from .const import LOGGER
 from .entity import DaynestEntity
@@ -37,6 +38,18 @@ PLANNED_ENTITY_DESCRIPTION = CalendarEntityDescription(
     key="daynest_planned_calendar",
     translation_key="daynest_planned_calendar",
 )
+MEAL_PLAN_ENTITY_DESCRIPTION = CalendarEntityDescription(
+    key="daynest_meal_plan_calendar",
+    translation_key="daynest_meal_plan_calendar",
+)
+
+MEAL_SLOT_START_TIMES = {
+    "breakfast": time(8, 0),
+    "lunch": time(12, 0),
+    "dinner": time(18, 0),
+    "snack": time(15, 0),
+}
+MEAL_SLOT_DURATION = timedelta(hours=1)
 
 
 async def async_setup_entry(
@@ -58,7 +71,11 @@ async def async_setup_entry(
             DaynestPlannedCalendar(
                 coordinator=entry.runtime_data.coordinator,
                 entity_description=PLANNED_ENTITY_DESCRIPTION,
-            )
+            ),
+            DaynestMealPlanCalendarEntity(
+                coordinator=entry.runtime_data.coordinator,
+                entity_description=MEAL_PLAN_ENTITY_DESCRIPTION,
+            ),
         ]
     )
 
@@ -171,3 +188,79 @@ class DaynestPlannedCalendar(DaynestCalendarEntity):
     """Calendar view for planned items."""
 
     _event_type = "planned_items"
+
+
+def _parse_iso_date(value: object) -> date | None:
+    """Parse an ISO date object for meal slot mapping."""
+    if isinstance(value, date) and not isinstance(value, datetime):
+        return value
+    if isinstance(value, str):
+        try:
+            return date.fromisoformat(value)
+        except ValueError:
+            return None
+    return None
+
+
+class DaynestMealPlanCalendarEntity(CalendarEntity, DaynestEntity):
+    """Calendar view for meal plan slots."""
+
+    _attr_supported_features = CalendarEntityFeature(0)
+
+    def __init__(
+        self,
+        coordinator: DaynestDataUpdateCoordinator,
+        entity_description: CalendarEntityDescription,
+    ) -> None:
+        """Initialize the meal plan calendar entity."""
+        super().__init__(coordinator, entity_description)
+
+    @property
+    def event(self) -> CalendarEvent | None:
+        """Return the next upcoming meal event if available."""
+        now = datetime.now(UTC)
+        future_events = [event for event in self._meal_slot_events(now, now + timedelta(days=14)) if event.start >= now]
+        return min(future_events, key=lambda event: event.start) if future_events else None
+
+    async def async_get_events(
+        self,
+        hass: HomeAssistant,
+        start_datetime: datetime,
+        end_datetime: datetime,
+    ) -> list[CalendarEvent]:
+        """Return meal slot events from coordinator data in the requested range."""
+        return self._meal_slot_events(start_datetime, end_datetime)
+
+    def _meal_slot_events(self, start_datetime: datetime, end_datetime: datetime) -> list[CalendarEvent]:
+        local_tz = dt_util.get_time_zone(self.hass.config.time_zone) or UTC
+        range_start = start_datetime if start_datetime.tzinfo is not None else start_datetime.replace(tzinfo=local_tz)
+        range_end = end_datetime if end_datetime.tzinfo is not None else end_datetime.replace(tzinfo=local_tz)
+        events: list[CalendarEvent] = []
+        for slot in self.coordinator.data.get("meal_slots", []):
+            if not isinstance(slot, dict):
+                continue
+            title = str(slot.get("title") or "").strip()
+            if not title:
+                continue
+            slot_date = _parse_iso_date(slot.get("slot_date"))
+            if slot_date is None:
+                continue
+            slot_type = str(slot.get("slot_type") or "").lower()
+            start_time = MEAL_SLOT_START_TIMES.get(slot_type)
+            if start_time is None:
+                continue
+            event_start = datetime.combine(slot_date, start_time, tzinfo=local_tz)
+            event_end = event_start + MEAL_SLOT_DURATION
+            if event_end <= range_start or event_start >= range_end:
+                continue
+            slot_id = slot.get("id")
+            events.append(
+                CalendarEvent(
+                    summary=title,
+                    start=event_start,
+                    end=event_end,
+                    uid=f"meal-slot-{slot_id}" if slot_id is not None else None,
+                    description=slot.get("recipe_url") if isinstance(slot.get("recipe_url"), str) else None,
+                )
+            )
+        return events
