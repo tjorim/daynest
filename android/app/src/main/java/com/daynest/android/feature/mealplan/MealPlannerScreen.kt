@@ -31,6 +31,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -166,7 +168,12 @@ private fun WeekNavigation(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        TextButton(onClick = onPreviousWeek) { Text(text = "‹") }
+        val prevLabel = stringResource(R.string.meal_plan_previous_week)
+        val nextLabel = stringResource(R.string.meal_plan_next_week)
+        TextButton(
+            onClick = onPreviousWeek,
+            modifier = Modifier.semantics { contentDescription = prevLabel },
+        ) { Text(text = "‹") }
         Text(
             text =
                 stringResource(
@@ -176,7 +183,10 @@ private fun WeekNavigation(
                 ),
             fontWeight = FontWeight.Bold,
         )
-        TextButton(onClick = onNextWeek) { Text(text = "›") }
+        TextButton(
+            onClick = onNextWeek,
+            modifier = Modifier.semantics { contentDescription = nextLabel },
+        ) { Text(text = "›") }
     }
 }
 

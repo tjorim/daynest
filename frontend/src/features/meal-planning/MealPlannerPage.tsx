@@ -71,14 +71,18 @@ export function MealPlannerPage() {
 
   const createPlan = async () => {
     setStatusMessage(null);
-    const plan = await actions.createPlan({
-      name: newPlanName.trim() || m.meal_plan_default_name(),
-      week_start: weekStart,
-      notes: null,
-    });
-    setSelectedPlanId(plan.id);
-    setWeekStart(plan.week_start);
-    setStatusMessage(m.meal_plan_created());
+    try {
+      const plan = await actions.createPlan({
+        name: newPlanName.trim() || m.meal_plan_default_name(),
+        week_start: weekStart,
+        notes: null,
+      });
+      setSelectedPlanId(plan.id);
+      setWeekStart(plan.week_start);
+      setStatusMessage(m.meal_plan_created());
+    } catch {
+      // error is tracked in actions.error
+    }
   };
 
   const changeWeek = (nextWeekStart: string) => {
@@ -90,17 +94,25 @@ export function MealPlannerPage() {
 
   const generateShoppingList = async () => {
     if (!selectedPlanId) return;
-    const response = await actions.generateShoppingList(selectedPlanId);
-    setShowGenerateModal(false);
-    setStatusMessage(m.meal_plan_shopping_list_created({ name: response.shopping_list.name }));
-    await navigate({
-      to: "/shopping/$listId",
-      params: { listId: String(response.shopping_list.id) },
-    });
+    try {
+      const response = await actions.generateShoppingList(selectedPlanId);
+      setShowGenerateModal(false);
+      setStatusMessage(m.meal_plan_shopping_list_created({ name: response.shopping_list.name }));
+      await navigate({
+        to: "/shopping/$listId",
+        params: { listId: String(response.shopping_list.id) },
+      });
+    } catch {
+      // error is tracked in actions.error
+    }
   };
 
   const reload = async () => {
-    await Promise.all([plansQuery.refetch(), weekQuery.refetch()]);
+    const refetches: Promise<unknown>[] = [plansQuery.refetch()];
+    if (selectedPlanId !== null) {
+      refetches.push(weekQuery.refetch());
+    }
+    await Promise.all(refetches);
   };
 
   return (

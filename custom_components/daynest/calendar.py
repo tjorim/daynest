@@ -236,7 +236,8 @@ class DaynestMealPlanCalendarEntity(CalendarEntity, DaynestEntity):
         range_start = start_datetime if start_datetime.tzinfo is not None else start_datetime.replace(tzinfo=local_tz)
         range_end = end_datetime if end_datetime.tzinfo is not None else end_datetime.replace(tzinfo=local_tz)
         events: list[CalendarEvent] = []
-        for slot in self.coordinator.data.get("meal_slots", []):
+        data = self.coordinator.data or {}
+        for slot in data.get("meal_slots", []):
             if not isinstance(slot, dict):
                 continue
             title = str(slot.get("title") or "").strip()

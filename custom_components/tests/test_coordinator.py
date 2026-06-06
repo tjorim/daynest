@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 from unittest.mock import DEFAULT, AsyncMock, MagicMock
 
 from daynest.models import DaynestDashboard, MealPlan, MealSlot
@@ -253,7 +253,7 @@ class TestAsyncUpdateData:
                 name="Current week",
                 week_start=date(2026, 6, 1),
                 notes=None,
-                created_at=date(2026, 6, 1),
+                created_at=datetime(2026, 6, 1),
             ),
         ]
         client.async_get_meal_plan_slots.return_value = [
@@ -284,7 +284,7 @@ class TestAsyncUpdateData:
                 "name": "Current week",
                 "week_start": "2026-06-01",
                 "notes": None,
-                "created_at": "2026-06-01",
+                "created_at": "2026-06-01T00:00:00",
             }
         ]
         assert result["meal_slots"] == [

@@ -224,7 +224,15 @@ class MealSlot:
             raise DaynestMalformedResponseError(msg)
         ingredients = payload.get("ingredients_json")
         ingredient_values = tuple(str(item) for item in ingredients) if isinstance(ingredients, list) else ()
-        planned_item_id = payload.get("planned_item_id")
+        planned_item_id_raw = payload.get("planned_item_id")
+        if planned_item_id_raw is not None:
+            try:
+                planned_item_id: int | None = int(planned_item_id_raw)
+            except (ValueError, TypeError) as err:
+                msg = "Malformed meal slot: planned_item_id is not a valid integer"
+                raise DaynestMalformedResponseError(msg) from err
+        else:
+            planned_item_id = None
         return cls(
             id=int(_require(payload, "id", context="meal slot")),
             meal_plan_id=int(_require(payload, "meal_plan_id", context="meal slot")),
@@ -233,7 +241,7 @@ class MealSlot:
             title=str(payload.get("title", "")),
             recipe_url=payload.get("recipe_url") if isinstance(payload.get("recipe_url"), str) else None,
             ingredients_json=ingredient_values,
-            planned_item_id=int(planned_item_id) if planned_item_id is not None else None,
+            planned_item_id=planned_item_id,
         )
 
 

@@ -3,6 +3,7 @@
 from datetime import date
 
 import pytest
+from fastapi import HTTPException
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
@@ -87,9 +88,11 @@ def test_meal_plans_are_user_scoped(client: TestClient, db_session: Session) -> 
     owner = _create_user(db_session, "meal-owner@example.com")
     other = _create_user(db_session, "meal-other@example.com")
     _auth_as(owner)
-    meal_plan_id = client.post(
+    resp = client.post(
         "/api/meal-plans", json={"name": "Private", "week_start": "2026-06-08"}
-    ).json()["id"]
+    )
+    assert resp.status_code == 201
+    meal_plan_id = resp.json()["id"]
 
     _auth_as(other)
     assert client.get(f"/api/meal-plans/{meal_plan_id}").status_code == 404
@@ -101,9 +104,11 @@ def test_generate_shopping_list_from_meal_plan(client: TestClient, db_session: S
     user = _create_user(db_session, "meal-shopping@example.com")
     _auth_as(user)
 
-    meal_plan_id = client.post(
+    resp = client.post(
         "/api/meal-plans", json={"name": "Dinner plan", "week_start": "2026-06-08"}
-    ).json()["id"]
+    )
+    assert resp.status_code == 201
+    meal_plan_id = resp.json()["id"]
     grid = client.get(f"/api/meal-plans/{meal_plan_id}/slots").json()
     dinner_id = grid["days"][0]["slots"]["dinner"]["id"]
     client.put(
@@ -131,7 +136,7 @@ def test_generate_shopping_list_rejects_empty_ingredients(db_session: Session) -
     service = MealPlanService(MealPlanRepository(db_session))
     plan = service.create_meal_plan(user.id, MealPlanCreate(name="Empty", week_start=date(2026, 6, 8)))
 
-    with pytest.raises(Exception) as exc_info:
+    with pytest.raises(HTTPException) as exc_info:
         service.generate_shopping_list(plan.id, user.id)
 
     assert getattr(exc_info.value, "status_code", None) == 422
