@@ -42,14 +42,19 @@ export function ShoppingListsPage() {
     <section>
       <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2 mb-2">
         <h2 className="h4 mb-0">{m.shopping_title()}</h2>
-        <button
-          type="button"
-          className="btn btn-outline-primary btn-sm"
-          disabled={listsQuery.isPending}
-          onClick={() => void listsQuery.refetch()}
-        >
-          {m.action_refresh()}
-        </button>
+        <div className="d-flex flex-wrap gap-2">
+          <Link to="/shopping/recurring" className="btn btn-outline-primary btn-sm">
+            {m.recurring_groceries_manage()}
+          </Link>
+          <button
+            type="button"
+            className="btn btn-outline-primary btn-sm"
+            disabled={listsQuery.isPending}
+            onClick={() => void listsQuery.refetch()}
+          >
+            {m.action_refresh()}
+          </button>
+        </div>
       </div>
       <p className="text-muted mb-3">{m.shopping_subtitle()}</p>
 

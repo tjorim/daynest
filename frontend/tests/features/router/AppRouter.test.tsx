@@ -14,6 +14,13 @@ vi.mock("@/app/providers/AuthProvider", () => ({
 vi.mock("@/paraglide/messages", () => ({
   router_loading_session: () => "Loading session",
   router_completing_sign_in: () => "Completing sign in",
+  calendar_weekday_mon: () => "Mon",
+  calendar_weekday_tue: () => "Tue",
+  calendar_weekday_wed: () => "Wed",
+  calendar_weekday_thu: () => "Thu",
+  calendar_weekday_fri: () => "Fri",
+  calendar_weekday_sat: () => "Sat",
+  calendar_weekday_sun: () => "Sun",
 }));
 
 vi.mock("@/features/auth/AuthPage", () => ({
@@ -34,6 +41,10 @@ vi.mock("@/features/medication/MedicationPage", () => ({
 
 vi.mock("@/features/templates/TemplatesPage", () => ({
   TemplatesPage: () => <div>Templates Page</div>,
+}));
+
+vi.mock("@/features/shopping/RecurringGroceriesPage", () => ({
+  RecurringGroceriesPage: () => <div>Recurring Groceries Page</div>,
 }));
 
 vi.mock("@/features/stats/StatsPage", () => ({

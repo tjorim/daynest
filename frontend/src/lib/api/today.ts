@@ -77,6 +77,7 @@ export interface PlannedTodayItem {
   recurrence_series_id: string | null;
   linked_source: string | null;
   linked_ref: string | null;
+  auto_add_to_list_id?: number | null;
   priority?: PlannedItemPriority;
   tags?: string[];
   is_done: boolean;
@@ -93,6 +94,7 @@ export interface PlannedItemInput {
   rrule?: string | null;
   linked_source?: string | null;
   linked_ref?: string | null;
+  auto_add_to_list_id?: number | null;
   priority?: PlannedItemPriority;
   tags?: string[];
 }
@@ -229,6 +231,7 @@ const plannedTodayItemSchema = z.object({
   recurrence_series_id: z.string().nullable(),
   linked_source: z.string().nullable(),
   linked_ref: z.string().nullable(),
+  auto_add_to_list_id: z.number().int().nullable().optional(),
   priority: plannedItemPrioritySchema.nullable().transform((v) => v ?? undefined).optional(),
   tags: z.array(z.string()).nullable().transform((v) => v ?? undefined).optional(),
   is_done: z.boolean(),

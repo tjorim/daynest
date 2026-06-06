@@ -166,6 +166,13 @@ export function AppLayout() {
               {m.nav_shopping()}
             </Link>
             <Link
+              to="/shopping/recurring"
+              activeProps={{ className: "nav-link active" }}
+              inactiveProps={{ className: "nav-link" }}
+            >
+              {m.nav_recurring_groceries()}
+            </Link>
+            <Link
               to="/templates"
               activeProps={{ className: "nav-link active" }}
               inactiveProps={{ className: "nav-link" }}

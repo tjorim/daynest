@@ -1,4 +1,6 @@
 import { http, HttpResponse } from "msw";
+import { getMockState, mutatePlannedItems } from "../data/state";
+import { nextPlannedItemId } from "../data/plannedItems";
 import type {
   ShoppingList,
   ShoppingListInput,
@@ -65,6 +67,26 @@ export const shoppingListHandlers = [
       status: input.status ?? existing.status,
     };
     return HttpResponse.json(shoppingLists[index]);
+  }),
+  http.post("/api/shopping-lists/:listId/import-recurring", ({ params }) => {
+    const listId = Number(params.listId);
+    const { plannedItems } = getMockState();
+    const imported = plannedItems
+      .filter((item) => item.module_key === "recurring_grocery" && item.auto_add_to_list_id === listId)
+      .map((item) => ({
+        ...item,
+        id: nextPlannedItemId(),
+        module_key: "shopping_list" as const,
+        linked_source: "shopping_list",
+        linked_ref: String(listId),
+        recurrence_series_id: null,
+        rrule: null,
+        recurrence_hint: null,
+        auto_add_to_list_id: null,
+        is_done: false,
+      }));
+    mutatePlannedItems((items) => [...items, ...imported]);
+    return HttpResponse.json(imported);
   }),
   http.delete("/api/shopping-lists/:listId", ({ params }) => {
     const index = shoppingLists.findIndex((item) => item.id === Number(params.listId));

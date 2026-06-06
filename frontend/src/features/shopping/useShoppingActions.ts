@@ -5,6 +5,7 @@ import {
   checkOffShoppingItem,
   createShoppingList,
   deleteShoppingList,
+  importRecurringGroceries,
   updateShoppingList,
   type ShoppingItemInput,
   type ShoppingListInput,
@@ -55,6 +56,10 @@ export function useShoppingActions(onRefresh?: () => Promise<unknown>) {
     mutationFn: (item: PlannedTodayItem) => checkOffShoppingItem(item),
     onSuccess: invalidateShopping,
   });
+  const importRecurringMutation = useMutation({
+    mutationFn: (listId: number) => importRecurringGroceries(listId),
+    onSuccess: invalidateShopping,
+  });
 
   const runAction = async <TVariables>(
     mutation: { mutateAsync: (variables: TVariables) => Promise<unknown> },
@@ -92,5 +97,7 @@ export function useShoppingActions(onRefresh?: () => Promise<unknown>) {
       runAction(addItemMutation, { listId, input }, options),
     checkOffItem: (item: PlannedTodayItem, options?: MutationOptions) =>
       runAction(checkOffItemMutation, item, options),
+    importRecurring: (listId: number, options?: MutationOptions) =>
+      runAction(importRecurringMutation, listId, options),
   };
 }
