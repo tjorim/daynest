@@ -57,6 +57,8 @@ data class PlannedItemUpdateDto(
     val linkedSource: String? = null,
     @SerialName("linked_ref")
     val linkedRef: String? = null,
+    @SerialName("auto_add_to_list_id")
+    val autoAddToListId: Int? = null,
     val priority: String = "normal",
     val tags: List<String> = emptyList(),
 )
@@ -80,6 +82,8 @@ data class PlannedItemCreateDto(
     val linkedSource: String? = null,
     @SerialName("linked_ref")
     val linkedRef: String? = null,
+    @SerialName("auto_add_to_list_id")
+    val autoAddToListId: Int? = null,
     val priority: String = "normal",
     val tags: List<String> = emptyList(),
 )

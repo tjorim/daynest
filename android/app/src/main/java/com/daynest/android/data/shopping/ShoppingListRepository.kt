@@ -13,6 +13,7 @@ import com.daynest.android.data.sync.DeleteShoppingListPayload
 import com.daynest.android.data.sync.PendingMutationKind
 import com.daynest.android.data.sync.SyncCacheKeys
 import com.daynest.android.data.sync.UpdateShoppingListPayload
+import com.daynest.android.data.today.PlannedTodayItemDto
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.encodeToString
@@ -104,6 +105,9 @@ class ShoppingListRepository
                     cacheShoppingLists(cachedShoppingLists().filterNot { it.id == id })
                     Unit
                 }
+
+        suspend fun importRecurring(id: Int): Result<List<PlannedTodayItemDto>> =
+            safeApiCall { shoppingListApi.importRecurring(id).also { scheduleSync() } }
 
         internal suspend fun cacheShoppingLists(lists: List<ShoppingListDto>) {
             cacheEntryDao.upsert(
