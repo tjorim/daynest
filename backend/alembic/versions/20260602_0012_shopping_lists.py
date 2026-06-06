@@ -29,11 +29,9 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_index("ix_shopping_lists_user_id", "shopping_lists", ["user_id"], unique=False)
     op.create_index("ix_shopping_lists_user_status", "shopping_lists", ["user_id", "status"], unique=False)
 
 
 def downgrade() -> None:
     op.drop_index("ix_shopping_lists_user_status", table_name="shopping_lists")
-    op.drop_index("ix_shopping_lists_user_id", table_name="shopping_lists")
     op.drop_table("shopping_lists")
