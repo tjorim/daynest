@@ -6,4 +6,6 @@ object SyncCacheKeys {
     const val ROUTINE_TEMPLATES = "routine_templates"
     const val CHORE_TEMPLATES = "chore_templates"
     const val SHOPPING_LISTS = "shopping_lists"
+    const val MEAL_PLANS = "meal_plans"
+    const val MEAL_SLOTS = "meal_slots"
 }
