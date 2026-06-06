@@ -6,7 +6,7 @@ import {
   createViewMonthGrid,
   createViewWeek,
 } from "@schedule-x/calendar";
-import { createDragAndDropPlugin } from "@schedule-x/drag-and-drop";
+import { createDragAndDropPlugin } from "@/features/calendar/dragAndDropAdapter";
 import { createEventModalPlugin } from "@schedule-x/event-modal";
 import { ScheduleXCalendar, useCalendarApp } from "@schedule-x/react";
 import * as m from "@/paraglide/messages";
