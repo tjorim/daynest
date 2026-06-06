@@ -112,6 +112,7 @@ dependencies {
     implementation(libs.androidx.hilt.lifecycle.viewmodel.compose)
     implementation(libs.hilt.android)
     ksp(libs.hilt.android.compiler)
+    ksp(libs.kotlin.metadata.jvm)
 
     implementation(libs.bundles.compose)
     implementation(libs.kotlinx.serialization.json)
