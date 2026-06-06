@@ -215,13 +215,14 @@ if _mcp_app is not None:
 
 @app.get(f"{settings.api_prefix}/mcp/capabilities")
 def mcp_capabilities() -> dict[str, object]:
+    enabled = _mcp_app is not None
     return {
-        "enabled": _mcp_app is not None,
+        "enabled": enabled,
         "mount_path": "/mcp",
         "version": _mcp.version if _mcp is not None else None,
-        "tools": [{"name": name} for name in MCP_TOOL_NAMES],
-        "resources": [{"uri": uri} for uri in MCP_RESOURCE_URIS],
-        "prompts": [{"name": name} for name in MCP_PROMPT_NAMES],
+        "tools": [{"name": name} for name in MCP_TOOL_NAMES] if enabled else [],
+        "resources": [{"uri": uri} for uri in MCP_RESOURCE_URIS] if enabled else [],
+        "prompts": [{"name": name} for name in MCP_PROMPT_NAMES] if enabled else [],
     }
 
 

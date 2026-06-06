@@ -58,7 +58,11 @@ def _create_integration_client(
     return client
 
 
-def test_mcp_capabilities_endpoint_lists_growth_tools(client: TestClient) -> None:
+def test_mcp_capabilities_endpoint_lists_growth_tools(client: TestClient, monkeypatch) -> None:
+    mock_mcp = create_mcp_server()
+    monkeypatch.setattr("app.main._mcp", mock_mcp)
+    monkeypatch.setattr("app.main._mcp_app", mock_mcp.http_app(path="/"))
+
     response = client.get("/api/mcp/capabilities")
 
     assert response.status_code == 200
