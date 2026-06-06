@@ -59,7 +59,13 @@ export function MealSlotModal({
   return (
     <div className="modal d-block meal-plan-modal" tabIndex={-1} role="dialog" aria-modal="true">
       <div className="modal-dialog modal-dialog-centered">
-        <div className="modal-content">
+        <form
+          className="modal-content"
+          onSubmit={(e) => {
+            e.preventDefault();
+            void save();
+          }}
+        >
           <div className="modal-header">
             <div>
               <h3 className="modal-title h5">{m.meal_plan_edit_slot()}</h3>
@@ -120,16 +126,11 @@ export function MealSlotModal({
             <button type="button" className="btn btn-outline-secondary" onClick={onClose}>
               {m.action_cancel()}
             </button>
-            <button
-              type="button"
-              className="btn btn-primary"
-              disabled={isSaving}
-              onClick={() => void save()}
-            >
+            <button type="submit" className="btn btn-primary" disabled={isSaving}>
               {isSaving ? m.action_saving() : m.action_save()}
             </button>
           </div>
-        </div>
+        </form>
       </div>
     </div>
   );

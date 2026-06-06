@@ -95,7 +95,7 @@ const weekGridSchema = z.object({
   days: z.array(
     z.object({
       date: z.string(),
-      slots: z.partialRecord(mealSlotTypeSchema, mealSlotSchema),
+      slots: z.record(mealSlotTypeSchema, mealSlotSchema.optional()),
     }),
   ),
 });

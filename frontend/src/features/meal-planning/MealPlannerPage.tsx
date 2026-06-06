@@ -38,6 +38,7 @@ export function MealPlannerPage() {
   const actions = useMealPlanActions();
   const [selectedPlanId, setSelectedPlanId] = useState<number | null>(null);
   const [weekStart, setWeekStart] = useState(() => startOfWeek(dayjs()));
+  const [isInitialized, setIsInitialized] = useState(false);
   const [newPlanName, setNewPlanName] = useState<string>(() => m.meal_plan_default_name());
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [editingSlot, setEditingSlot] = useState<{
@@ -50,12 +51,14 @@ export function MealPlannerPage() {
   const plans = plansQuery.data ?? [];
 
   useEffect(() => {
-    if (selectedPlanId !== null || plans.length === 0) return;
+    if (isInitialized || plans.length === 0) return;
     const currentWeekPlan = plans.find((plan) => plan.week_start === weekStart) ?? plans[0];
-    if (!currentWeekPlan) return;
-    setSelectedPlanId(currentWeekPlan.id);
-    setWeekStart(currentWeekPlan.week_start);
-  }, [plans, selectedPlanId, weekStart]);
+    if (currentWeekPlan) {
+      setSelectedPlanId(currentWeekPlan.id);
+      setWeekStart(currentWeekPlan.week_start);
+    }
+    setIsInitialized(true);
+  }, [plans, isInitialized, weekStart]);
 
   const selectedPlan = plans.find((plan) => plan.id === selectedPlanId) ?? null;
   const weekQuery = useMealPlanWeekQuery(selectedPlanId, weekStart);
@@ -78,12 +81,11 @@ export function MealPlannerPage() {
     setStatusMessage(m.meal_plan_created());
   };
 
-  const changeWeek = async (nextWeekStart: string) => {
+  const changeWeek = (nextWeekStart: string) => {
     setStatusMessage(null);
     setWeekStart(nextWeekStart);
-    if (selectedPlan) {
-      await actions.updatePlan(selectedPlan.id, { week_start: nextWeekStart });
-    }
+    const matchingPlan = plans.find((plan) => plan.week_start === nextWeekStart);
+    setSelectedPlanId(matchingPlan?.id ?? null);
   };
 
   const generateShoppingList = async () => {
