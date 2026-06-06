@@ -317,11 +317,11 @@ class DaynestMcpBackend:
         if title is not None:
             payload["title"] = title
         if recipe_url is not None:
-            payload["recipe_url"] = recipe_url
+            payload["recipe_url"] = None if recipe_url == "" else recipe_url
         if ingredients_json is not None:
             payload["ingredients_json"] = ingredients_json
         if planned_item_id is not None:
-            payload["planned_item_id"] = planned_item_id
+            payload["planned_item_id"] = None if planned_item_id == 0 else planned_item_id
         request = MealSlotUpdate(**payload)
         return self._with_meal_plan_service(
             lambda _db, user, service: _jsonable(service.update_slot(user.id, meal_plan_id, slot_id, request))

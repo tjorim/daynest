@@ -51,13 +51,13 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["planned_item_id"], ["planned_items.id"], ondelete="SET NULL"),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_index("ix_meal_slots_plan_date", "meal_slots", ["meal_plan_id", "slot_date"], unique=False)
+    op.create_index("uq_meal_slots_plan_date_type", "meal_slots", ["meal_plan_id", "slot_date", "slot_type"], unique=True)
     op.create_index(op.f("ix_meal_slots_planned_item_id"), "meal_slots", ["planned_item_id"], unique=False)
 
 
 def downgrade() -> None:
     op.drop_index(op.f("ix_meal_slots_planned_item_id"), table_name="meal_slots")
-    op.drop_index("ix_meal_slots_plan_date", table_name="meal_slots")
+    op.drop_index("uq_meal_slots_plan_date_type", table_name="meal_slots")
     op.drop_table("meal_slots")
     op.drop_index(op.f("ix_meal_plans_week_start"), table_name="meal_plans")
     op.drop_index(op.f("ix_meal_plans_user_id"), table_name="meal_plans")

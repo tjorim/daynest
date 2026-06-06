@@ -33,7 +33,7 @@ class MealPlan(Base):
 
 class MealSlot(Base):
     __tablename__ = "meal_slots"
-    __table_args__ = (Index("ix_meal_slots_plan_date", "meal_plan_id", "slot_date"),)
+    __table_args__ = (Index("uq_meal_slots_plan_date_type", "meal_plan_id", "slot_date", "slot_type", unique=True),)
 
     id: Mapped[int] = mapped_column(primary_key=True)
     meal_plan_id: Mapped[int] = mapped_column(ForeignKey("meal_plans.id", ondelete="CASCADE"), nullable=False)

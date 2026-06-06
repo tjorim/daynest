@@ -70,6 +70,16 @@ class MealPlanService:
         if "ingredients_json" in request.model_fields_set and request.ingredients_json is not None:
             slot.ingredients_json = request.ingredients_json
         if "planned_item_id" in request.model_fields_set:
+            if request.planned_item_id is not None:
+                from sqlalchemy import select as sa_select
+
+                from app.models.planned_item import PlannedItem
+
+                stmt = sa_select(PlannedItem).where(
+                    PlannedItem.id == request.planned_item_id, PlannedItem.user_id == user_id
+                )
+                if not self.repository.db.scalar(stmt):
+                    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Planned item not found")
             slot.planned_item_id = request.planned_item_id
         return self._slot_to_schema(self.repository.save_slot(slot))
 
