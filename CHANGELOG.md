@@ -28,6 +28,10 @@ artifact is built or published if any check fails.
 
 ## [Unreleased]
 
+### Added
+- **Backend:** growth-module migration CI now validates shopping lists, recurring groceries, meal planning, and calendar subscription schema after upgrading to Alembic head.
+- **MCP:** `GET /api/mcp/capabilities` advertises the mounted MCP server, tools, resources, and prompts, including growth-module shopping and meal planning tools.
+
 ## [0.1.9] - 2026-05-31
 
 ### Added

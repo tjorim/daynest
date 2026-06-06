@@ -98,5 +98,8 @@ jobs:
       - name: Apply migrations to head
         run: uv run alembic upgrade head
 
+      - name: Verify growth module migration schema
+        run: PYTHONPATH=. uv run python scripts/check_growth_migrations.py
+
       - name: Verify migrations are in sync with models
         run: uv run alembic check
