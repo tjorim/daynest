@@ -42,12 +42,16 @@ class PlannedItemRepository
                     title = item.title,
                     plannedFor = item.plannedFor,
                     isDone = isDone,
+                    timeOfDay = item.timeOfDay,
+                    durationMinutes = item.durationMinutes,
                     notes = item.notes,
                     moduleKey = item.moduleKey,
                     rrule = item.rrule,
                     recurrenceHint = item.recurrenceHint,
                     linkedSource = item.linkedSource,
                     linkedRef = item.linkedRef,
+                    priority = item.priority,
+                    tags = item.tags,
                 ),
                 scope,
             )
@@ -70,12 +74,16 @@ class PlannedItemRepository
                     title = input.title,
                     plannedFor = input.plannedFor,
                     isDone = input.isDone,
+                    timeOfDay = input.timeOfDay,
+                    durationMinutes = input.durationMinutes,
                     notes = input.notes,
                     moduleKey = input.moduleKey,
                     rrule = input.rrule,
                     recurrenceHint = input.recurrenceHint,
                     linkedSource = input.linkedSource,
                     linkedRef = input.linkedRef,
+                    priority = input.priority,
+                    tags = input.tags,
                 )
             }
 
@@ -108,12 +116,16 @@ class PlannedItemRepository
                     title = request.title,
                     isDone = false,
                     plannedFor = request.plannedFor,
+                    timeOfDay = request.timeOfDay,
+                    durationMinutes = request.durationMinutes,
                     notes = request.notes,
                     moduleKey = request.moduleKey,
                     rrule = request.rrule,
                     recurrenceHint = request.recurrenceHint,
                     linkedSource = request.linkedSource,
                     linkedRef = request.linkedRef,
+                    priority = request.priority,
+                    tags = request.tags,
                 )
             }
 

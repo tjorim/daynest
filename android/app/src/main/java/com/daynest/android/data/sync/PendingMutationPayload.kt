@@ -1,5 +1,7 @@
 package com.daynest.android.data.sync
 
+import com.daynest.android.data.shopping.ShoppingListCreateDto
+import com.daynest.android.data.shopping.ShoppingListUpdateDto
 import com.daynest.android.data.today.DeleteScope
 import com.daynest.android.data.today.EditScope
 import com.daynest.android.data.today.PlannedItemCreateDto
@@ -33,4 +35,20 @@ data class DeletePlannedPayload(
 @Serializable
 data class CreatePlannedPayload(
     val request: PlannedItemCreateDto,
+)
+
+@Serializable
+data class CreateShoppingListPayload(
+    val request: ShoppingListCreateDto,
+)
+
+@Serializable
+data class UpdateShoppingListPayload(
+    val id: Int,
+    val request: ShoppingListUpdateDto,
+)
+
+@Serializable
+data class DeleteShoppingListPayload(
+    val id: Int,
 )
