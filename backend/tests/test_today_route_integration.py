@@ -1,4 +1,4 @@
-from datetime import date, datetime, time, timezone
+from datetime import date, datetime, time, timedelta, timezone
 from unittest.mock import MagicMock
 
 from fastapi.testclient import TestClient
@@ -781,3 +781,78 @@ def test_routine_task_generation_and_mutation_endpoints(client: TestClient, db_s
         assert skip_resp.json()["status"] == "skipped"
     finally:
         _clear_auth()
+
+
+def test_calendar_feed_get_generates_subscription_url(client: TestClient, db_session: Session) -> None:
+    user = _create_user(db_session, email="calendar-feed-generate@example.com")
+    _auth_as(user)
+
+    try:
+        response = client.get("/api/calendar/feed")
+    finally:
+        _clear_auth()
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert len(payload["token"]) >= 32
+    assert payload["feed_url"] == f"http://localhost/api/calendar/feed/{payload['token']}.ics"
+    db_session.refresh(user)
+    assert user.calendar_feed_token == payload["token"]
+
+
+def test_calendar_feed_regenerate_rotates_token(client: TestClient, db_session: Session) -> None:
+    user = _create_user(db_session, email="calendar-feed-rotate@example.com")
+    user.calendar_feed_token = "old-feed-token"
+    db_session.commit()
+    _auth_as(user)
+
+    try:
+        response = client.post("/api/calendar/feed/regenerate")
+    finally:
+        _clear_auth()
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["token"] != "old-feed-token"
+    assert payload["feed_url"] == f"http://localhost/api/calendar/feed/{payload['token']}.ics"
+    db_session.refresh(user)
+    assert user.calendar_feed_token == payload["token"]
+
+
+def test_calendar_feed_ics_serializes_planned_items(client: TestClient, db_session: Session) -> None:
+    user = _create_user(db_session, email="calendar-feed-ics@example.com")
+    user.calendar_feed_token = "feed-token"
+    user.timezone = "UTC"
+    today = date.today()
+    included = PlannedItem(
+        user_id=user.id,
+        title="Plan menu, shop",
+        notes="Prep recipes\nBuy produce",
+        planned_for=today,
+        time_of_day=time(9, 30),
+        duration_minutes=45,
+    )
+    all_day = PlannedItem(user_id=user.id, title="All-day plan", planned_for=today + timedelta(days=1))
+    too_old = PlannedItem(user_id=user.id, title="Too old", planned_for=today - timedelta(days=8))
+    too_far = PlannedItem(user_id=user.id, title="Too far", planned_for=today + timedelta(days=91))
+    db_session.add_all([included, all_day, too_old, too_far])
+    db_session.commit()
+
+    response = client.get("/api/calendar/feed/feed-token.ics")
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("text/calendar")
+    body = response.text
+    assert "BEGIN:VCALENDAR" in body
+    assert f"UID:daynest-{included.id}@daynest" in body
+    assert "SUMMARY:Plan menu\\, shop" in body
+    assert "DESCRIPTION:Prep recipes\\nBuy produce" in body
+    assert f"UID:daynest-{all_day.id}@daynest" in body
+    assert "SUMMARY:Too old" not in body
+    assert "SUMMARY:Too far" not in body
+
+
+def test_calendar_feed_unknown_token_returns_404(client: TestClient) -> None:
+    response = client.get("/api/calendar/feed/missing.ics")
+
+    assert response.status_code == 404

@@ -48,6 +48,7 @@ export const queryKeys = {
     all: ["settings"] as const,
     user: () => [...queryKeys.settings.all, "user"] as const,
     integrationClients: () => [...queryKeys.settings.all, "integration-clients"] as const,
+    calendarFeed: () => [...queryKeys.settings.all, "calendar-feed"] as const,
   },
   search: {
     all: ["search"] as const,

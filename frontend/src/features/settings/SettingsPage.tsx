@@ -29,8 +29,10 @@ import {
 } from "@/lib/api/auth";
 import { getCustomServerUrl, setCustomServerUrl } from "@/lib/api/serverConfig";
 import {
+  useCalendarFeedQuery,
   useCreateIntegrationClientMutation,
   useIntegrationClientsQuery,
+  useRegenerateCalendarFeedMutation,
   useRevokeIntegrationClientMutation,
   useRotateIntegrationClientMutation,
   useUpdateUserSettingsMutation,
@@ -110,11 +112,15 @@ export function SettingsPage() {
   const [notificationPermission, setNotificationPermission] = useState(() =>
     typeof Notification === "undefined" ? "denied" : Notification.permission,
   );
+  const [calendarFeedCopyStatus, setCalendarFeedCopyStatus] = useState<string | null>(null);
+  const [calendarFeedError, setCalendarFeedError] = useState<string | null>(null);
   const clientsQuery = useIntegrationClientsQuery();
+  const calendarFeedQuery = useCalendarFeedQuery();
   const userSettingsQuery = useUserSettingsQuery();
   const createClientMutation = useCreateIntegrationClientMutation();
   const rotateClientMutation = useRotateIntegrationClientMutation();
   const revokeClientMutation = useRevokeIntegrationClientMutation();
+  const regenerateCalendarFeedMutation = useRegenerateCalendarFeedMutation();
   const updateUserSettingsMutation = useUpdateUserSettingsMutation();
   const clients = clientsQuery.data ?? [];
   const loading = clientsQuery.isPending;
@@ -400,6 +406,32 @@ export function SettingsPage() {
       setCopyStatus("Client secret copied.");
     } catch {
       setCopyStatus("Clipboard copy failed.");
+    }
+  };
+
+  const copyCalendarFeedUrl = async () => {
+    const feedUrl = calendarFeedQuery.data?.feed_url;
+    if (!feedUrl) return;
+    try {
+      await navigator.clipboard.writeText(feedUrl);
+      setCalendarFeedCopyStatus("Calendar feed URL copied.");
+    } catch {
+      setCalendarFeedCopyStatus("Clipboard copy failed.");
+    }
+  };
+
+  const onRegenerateCalendarFeed = async () => {
+    const confirmed = window.confirm(
+      "Regenerating your calendar feed URL will immediately break existing calendar subscriptions. Continue?",
+    );
+    if (!confirmed) return;
+    setCalendarFeedError(null);
+    setCalendarFeedCopyStatus(null);
+    try {
+      await regenerateCalendarFeedMutation.mutateAsync();
+      setCalendarFeedCopyStatus("Calendar feed URL regenerated. Copy the new URL into your calendar app.");
+    } catch (err) {
+      setCalendarFeedError(err instanceof Error ? err.message : "Failed to regenerate calendar feed URL.");
     }
   };
 
@@ -751,6 +783,55 @@ export function SettingsPage() {
                   {m.settings_enable_browser_notifications()}
                 </button>
               ) : null}
+            </div>
+          </div>
+
+          <div className="card mb-3">
+            <div className="card-header fw-semibold py-2">Calendar subscription</div>
+            <div className="card-body d-grid gap-2">
+              <p className="text-muted small mb-1">
+                Add this URL to Google Calendar, Apple Calendar, or Outlook to see your Daynest items there.
+              </p>
+              <label className="form-label small fw-semibold mb-0" htmlFor="calendarFeedUrl">
+                iCal feed URL
+              </label>
+              <div className="input-group input-group-sm">
+                <input
+                  id="calendarFeedUrl"
+                  className="form-control"
+                  readOnly
+                  value={calendarFeedQuery.data?.feed_url ?? ""}
+                  placeholder={calendarFeedQuery.isPending ? "Loading calendar feed URL…" : "Calendar feed unavailable"}
+                />
+                <button
+                  type="button"
+                  className="btn btn-outline-primary"
+                  disabled={!calendarFeedQuery.data?.feed_url}
+                  onClick={() => void copyCalendarFeedUrl()}
+                >
+                  Copy
+                </button>
+              </div>
+              <div className="d-flex gap-2 align-items-center flex-wrap">
+                <button
+                  type="button"
+                  className="btn btn-outline-danger btn-sm"
+                  disabled={regenerateCalendarFeedMutation.isPending}
+                  onClick={() => void onRegenerateCalendarFeed()}
+                >
+                  {regenerateCalendarFeedMutation.isPending ? "Regenerating…" : "Regenerate"}
+                </button>
+                <small className="text-muted">Rotating the URL invalidates existing subscriptions.</small>
+              </div>
+              {calendarFeedQuery.error ? (
+                <div className="text-danger small">
+                  {calendarFeedQuery.error instanceof Error
+                    ? calendarFeedQuery.error.message
+                    : "Failed to load calendar feed URL."}
+                </div>
+              ) : null}
+              {calendarFeedError ? <div className="text-danger small">{calendarFeedError}</div> : null}
+              {calendarFeedCopyStatus ? <div className="text-success small">{calendarFeedCopyStatus}</div> : null}
             </div>
           </div>
 
