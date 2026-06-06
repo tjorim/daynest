@@ -172,7 +172,8 @@ class ShoppingViewModel
             val listId = _uiState.value.selectedListId ?: return
             if (title.isBlank() || plannedFor.isBlank()) return
             val parsedTags =
-                tag.blankToNull()
+                tag
+                    .blankToNull()
                     ?.split(",")
                     ?.map { it.trim() }
                     ?.filter { it.isNotBlank() }
