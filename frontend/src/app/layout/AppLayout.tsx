@@ -16,9 +16,11 @@ export function AppLayout() {
 
   React.useEffect(() => {
     if (isOnline && getQueuedCount() > 0) {
-      drainOfflineQueue().then((replayed) => {
-        if (replayed > 0) setQueuedCount(getQueuedCount());
-      }).catch(() => undefined);
+      drainOfflineQueue()
+        .then((replayed) => {
+          if (replayed > 0) setQueuedCount(getQueuedCount());
+        })
+        .catch(() => undefined);
     }
     setQueuedCount(getQueuedCount());
   }, [isOnline]);
@@ -26,7 +28,9 @@ export function AppLayout() {
   React.useEffect(() => {
     const handler = (event: MessageEvent) => {
       if ((event.data as { type?: string })?.type === "DRAIN_QUEUE") {
-        drainOfflineQueue().then(() => setQueuedCount(getQueuedCount())).catch(() => undefined);
+        drainOfflineQueue()
+          .then(() => setQueuedCount(getQueuedCount()))
+          .catch(() => undefined);
       }
     };
     navigator.serviceWorker?.addEventListener("message", handler);
@@ -69,9 +73,7 @@ export function AppLayout() {
         <div className="alert alert-warning py-2 mb-3 d-flex align-items-center gap-2">
           <span>⚠️ {m.app_offline_banner()}</span>
           {queuedCount > 0 ? (
-            <span className="text-muted small">
-              {m.app_offline_queued({ count: queuedCount })}
-            </span>
+            <span className="text-muted small">{m.app_offline_queued({ count: queuedCount })}</span>
           ) : null}
         </div>
       ) : queuedCount > 0 ? (
@@ -79,14 +81,14 @@ export function AppLayout() {
           {m.app_syncing_queued({ count: queuedCount })}
         </div>
       ) : null}
-      {searchOpen && isAuthenticated ? <SearchOverlay onClose={() => setSearchOpen(false)} /> : null}
+      {searchOpen && isAuthenticated ? (
+        <SearchOverlay onClose={() => setSearchOpen(false)} />
+      ) : null}
       <header className="mb-3 mb-md-4 d-flex flex-column gap-3">
         <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2">
           <div>
             <h1 className="mb-1">Daynest</h1>
-            <p className="text-muted mb-0">
-              {m.app_subtitle()}
-            </p>
+            <p className="text-muted mb-0">{m.app_subtitle()}</p>
           </div>
           <div className="d-flex flex-wrap align-items-center gap-2">
             {isAuthenticated ? (
@@ -155,6 +157,13 @@ export function AppLayout() {
               inactiveProps={{ className: "nav-link" }}
             >
               {m.nav_medication()}
+            </Link>
+            <Link
+              to="/shopping"
+              activeProps={{ className: "nav-link active" }}
+              inactiveProps={{ className: "nav-link" }}
+            >
+              {m.nav_shopping()}
             </Link>
             <Link
               to="/templates"

@@ -7,6 +7,7 @@ import { taskHandlers } from "./tasks";
 import { medicationHandlers } from "./medication";
 import { templateHandlers } from "./templates";
 import { settingsHandlers } from "./settings";
+import { shoppingListHandlers } from "./shoppingLists";
 import { analyticsHandlers } from "./analytics";
 
 export const handlers = [
@@ -19,5 +20,6 @@ export const handlers = [
   ...medicationHandlers,
   ...templateHandlers,
   ...settingsHandlers,
+  ...shoppingListHandlers,
   ...analyticsHandlers,
 ];

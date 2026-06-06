@@ -72,6 +72,9 @@
     },
     "todo_invalid_item_id": {
       "message": "Unsupported Daynest to-do item id: {item_id}."
+    },
+    "todo_shopping_item_not_found": {
+      "message": "Unable to locate shopping list item {item_id}."
     }
   },
   "entity": {
@@ -137,6 +140,9 @@
     "todo": {
       "tasks_due_today": {
         "name": "Today"
+      },
+      "shopping_list": {
+        "name": "Shopping List: {name}"
       }
     }
   },
@@ -165,7 +171,7 @@
         },
         "days": {
           "name": "Days",
-          "description": "Number of days to snooze the task (1–30). Defaults to 1."
+          "description": "Number of days to snooze the task (1\u201330). Defaults to 1."
         }
       }
     },

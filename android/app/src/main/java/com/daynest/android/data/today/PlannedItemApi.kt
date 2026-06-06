@@ -43,6 +43,10 @@ data class PlannedItemUpdateDto(
     val plannedFor: String,
     @SerialName("is_done")
     val isDone: Boolean,
+    @SerialName("time_of_day")
+    val timeOfDay: String? = null,
+    @SerialName("duration_minutes")
+    val durationMinutes: Int? = null,
     val notes: String? = null,
     @SerialName("module_key")
     val moduleKey: String? = null,
@@ -53,6 +57,8 @@ data class PlannedItemUpdateDto(
     val linkedSource: String? = null,
     @SerialName("linked_ref")
     val linkedRef: String? = null,
+    val priority: String = "normal",
+    val tags: List<String> = emptyList(),
 )
 
 @Serializable
@@ -60,6 +66,10 @@ data class PlannedItemCreateDto(
     val title: String,
     @SerialName("planned_for")
     val plannedFor: String,
+    @SerialName("time_of_day")
+    val timeOfDay: String? = null,
+    @SerialName("duration_minutes")
+    val durationMinutes: Int? = null,
     val notes: String? = null,
     @SerialName("module_key")
     val moduleKey: String? = null,
@@ -70,4 +80,6 @@ data class PlannedItemCreateDto(
     val linkedSource: String? = null,
     @SerialName("linked_ref")
     val linkedRef: String? = null,
+    val priority: String = "normal",
+    val tags: List<String> = emptyList(),
 )
