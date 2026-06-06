@@ -9,7 +9,6 @@ from typing import Sequence
 
 import sqlalchemy as sa
 from alembic import op
-from sqlalchemy.dialects import postgresql
 
 revision: str = "20260606_0014"
 down_revision: str | None = "20260606_0013"
@@ -40,12 +39,7 @@ def upgrade() -> None:
         sa.Column("slot_type", sa.String(length=20), nullable=False),
         sa.Column("title", sa.String(length=255), server_default="", nullable=False),
         sa.Column("recipe_url", sa.Text(), nullable=True),
-        sa.Column(
-            "ingredients_json",
-            postgresql.JSONB(astext_type=sa.Text()).with_variant(sa.JSON(), "sqlite"),
-            server_default="[]",
-            nullable=False,
-        ),
+        sa.Column("ingredients_json", sa.JSON(), server_default="[]", nullable=False),
         sa.Column("planned_item_id", sa.Integer(), nullable=True),
         sa.ForeignKeyConstraint(["meal_plan_id"], ["meal_plans.id"], ondelete="CASCADE"),
         sa.ForeignKeyConstraint(["planned_item_id"], ["planned_items.id"], ondelete="SET NULL"),

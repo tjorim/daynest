@@ -1,4 +1,5 @@
 from datetime import timedelta
+from typing import cast
 
 from fastapi import HTTPException, status
 
@@ -15,6 +16,7 @@ from app.schemas.meal_plan import (
     MealPlanResponse,
     MealPlanUpdate,
     MealSlotResponse,
+    MealSlotType,
     MealSlotUpdate,
     WeekDayResponse,
     WeekGridResponse,
@@ -145,7 +147,7 @@ class MealPlanService:
             id=slot.id,
             meal_plan_id=slot.meal_plan_id,
             slot_date=slot.slot_date,
-            slot_type=slot.slot_type,  # type: ignore[arg-type]
+            slot_type=cast(MealSlotType, slot.slot_type),
             title=slot.title,
             recipe_url=slot.recipe_url,
             ingredients_json=slot.ingredients_json or [],
