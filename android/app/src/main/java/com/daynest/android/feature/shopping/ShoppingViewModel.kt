@@ -184,7 +184,8 @@ class ShoppingViewModel
                             linkedSource = SHOPPING_LIST_MODULE,
                             linkedRef = listId.toString(),
                             autoAddToListId = listId,
-                            tags = tag.blankToNull()
+                            tags = tag
+                                .blankToNull()
                                 ?.split(",")
                                 ?.map { it.trim() }
                                 ?.filter { it.isNotBlank() }
