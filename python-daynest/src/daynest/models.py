@@ -179,6 +179,73 @@ class PlannedItem:
 
 
 @dataclass(slots=True, frozen=True)
+class MealPlan:
+    """Typed model for a meal plan."""
+
+    id: int
+    user_id: int
+    name: str
+    week_start: date
+    notes: str | None
+    created_at: datetime
+
+    @classmethod
+    def from_dict(cls, payload: dict[str, Any]) -> MealPlan:
+        if not isinstance(payload, dict):
+            msg = "Malformed meal plan payload: expected JSON object"
+            raise DaynestMalformedResponseError(msg)
+        return cls(
+            id=int(_require(payload, "id", context="meal plan")),
+            user_id=int(_require(payload, "user_id", context="meal plan")),
+            name=str(_require(payload, "name", context="meal plan")),
+            week_start=_parse_date(_require(payload, "week_start", context="meal plan"), field="week_start"),
+            notes=payload.get("notes") if isinstance(payload.get("notes"), str) else None,
+            created_at=_parse_datetime(_require(payload, "created_at", context="meal plan"), field="created_at"),
+        )
+
+
+@dataclass(slots=True, frozen=True)
+class MealSlot:
+    """Typed model for a meal plan slot."""
+
+    id: int
+    meal_plan_id: int
+    slot_date: date
+    slot_type: str
+    title: str
+    recipe_url: str | None
+    ingredients_json: tuple[str, ...]
+    planned_item_id: int | None
+
+    @classmethod
+    def from_dict(cls, payload: dict[str, Any]) -> MealSlot:
+        if not isinstance(payload, dict):
+            msg = "Malformed meal slot payload: expected JSON object"
+            raise DaynestMalformedResponseError(msg)
+        ingredients = payload.get("ingredients_json")
+        ingredient_values = tuple(str(item) for item in ingredients) if isinstance(ingredients, list) else ()
+        planned_item_id_raw = payload.get("planned_item_id")
+        if planned_item_id_raw is not None:
+            try:
+                planned_item_id: int | None = int(planned_item_id_raw)
+            except (ValueError, TypeError) as err:
+                msg = "Malformed meal slot: planned_item_id is not a valid integer"
+                raise DaynestMalformedResponseError(msg) from err
+        else:
+            planned_item_id = None
+        return cls(
+            id=int(_require(payload, "id", context="meal slot")),
+            meal_plan_id=int(_require(payload, "meal_plan_id", context="meal slot")),
+            slot_date=_parse_date(_require(payload, "slot_date", context="meal slot"), field="slot_date"),
+            slot_type=str(_require(payload, "slot_type", context="meal slot")),
+            title=str(payload.get("title", "")),
+            recipe_url=payload.get("recipe_url") if isinstance(payload.get("recipe_url"), str) else None,
+            ingredients_json=ingredient_values,
+            planned_item_id=planned_item_id,
+        )
+
+
+@dataclass(slots=True, frozen=True)
 class RoutineTemplate:
     """Typed model for a routine template."""
 

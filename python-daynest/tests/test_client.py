@@ -16,7 +16,7 @@ from daynest.exceptions import (
     DaynestServerUnavailableError,
     DaynestTimeoutError,
 )
-from daynest.models import CalendarDay, CalendarEvent, ChoreTemplate, DaynestDashboard, DaynestSummary, PlannedItem, RoutineTemplate
+from daynest.models import CalendarDay, CalendarEvent, ChoreTemplate, DaynestDashboard, DaynestSummary, MealPlan, MealSlot, PlannedItem, RoutineTemplate
 
 VALID_SUMMARY_PAYLOAD = {
     "sensor_daynest_chores_due": 2,
@@ -918,6 +918,111 @@ class TestDaynestClientCacheAndSSE:
 
         session.get.assert_not_called()
         callback.assert_not_awaited()
+
+
+@pytest.mark.unit
+class TestDaynestClientMealPlanMethods:
+    """Tests for meal plan client helpers."""
+
+    async def test_list_meal_plans_filters_by_week_start(self) -> None:
+        response = _make_mock_response(
+            200,
+            [
+                {
+                    "id": 1,
+                    "user_id": 2,
+                    "name": "Past",
+                    "week_start": "2026-05-25",
+                    "notes": None,
+                    "created_at": "2026-05-01T00:00:00",
+                },
+                {
+                    "id": 2,
+                    "user_id": 2,
+                    "name": "Current",
+                    "week_start": "2026-06-01",
+                    "notes": "Notes",
+                    "created_at": "2026-05-01T00:00:00",
+                },
+                {
+                    "id": 3,
+                    "user_id": 2,
+                    "name": "Next",
+                    "week_start": "2026-06-08",
+                    "notes": None,
+                    "created_at": "2026-05-01T00:00:00",
+                },
+            ],
+        )
+        client = _make_list_client(response)
+
+        plans = await client.async_list_meal_plans(
+            week_start_from=date(2026, 6, 1),
+            week_start_to=date(2026, 6, 8),
+        )
+
+        assert [plan.id for plan in plans] == [2, 3]
+        assert all(isinstance(plan, MealPlan) for plan in plans)
+        client._session.get.assert_called_once()
+        assert client._session.get.call_args.args[0] == "https://api.daynest.example/api/meal-plans"
+
+    async def test_get_meal_plan_slots_flattens_week_grid(self) -> None:
+        response = _make_mock_response(
+            200,
+            {
+                "meal_plan": {
+                    "id": 2,
+                    "user_id": 2,
+                    "name": "Current",
+                    "week_start": "2026-06-01",
+                    "notes": None,
+                    "created_at": "2026-05-01T00:00:00",
+                },
+                "days": [
+                    {
+                        "date": "2026-06-01",
+                        "slots": {
+                            "breakfast": {
+                                "id": 10,
+                                "meal_plan_id": 2,
+                                "slot_date": "2026-06-01",
+                                "slot_type": "breakfast",
+                                "title": "Oats",
+                                "recipe_url": "https://recipes.example/oats",
+                                "ingredients_json": ["oats"],
+                                "planned_item_id": None,
+                            },
+                            "dinner": {
+                                "id": 11,
+                                "meal_plan_id": 2,
+                                "slot_date": "2026-06-01",
+                                "slot_type": "dinner",
+                                "title": "Pasta",
+                                "recipe_url": None,
+                                "ingredients_json": [],
+                                "planned_item_id": 50,
+                            },
+                        },
+                    },
+                ],
+            },
+        )
+        client = _make_list_client(response)
+
+        slots = await client.async_get_meal_plan_slots(2)
+
+        assert [slot.title for slot in slots] == ["Oats", "Pasta"]
+        assert all(isinstance(slot, MealSlot) for slot in slots)
+        assert slots[0].ingredients_json == ("oats",)
+        assert slots[1].planned_item_id == 50
+        assert client._session.get.call_args.args[0] == "https://api.daynest.example/api/meal-plans/2/slots"
+
+    async def test_get_meal_plan_slots_rejects_missing_days_array(self) -> None:
+        response = _make_mock_response(200, {"meal_plan": {}, "days": "bad"})
+        client = _make_list_client(response)
+
+        with pytest.raises(DaynestMalformedResponseError, match="expected days array"):
+            await client.async_get_meal_plan_slots(2)
 
 
 @pytest.mark.unit

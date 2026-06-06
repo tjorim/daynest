@@ -264,4 +264,30 @@
         <item quantity="one">%1$d item failed</item>
         <item quantity="other">%1$d items failed</item>
     </plurals>
+    <!-- Meal planning -->
+    <string name="meal_plan_title">Meals</string>
+    <string name="meal_plan_subtitle">Plan meals per week and automatically generate a shopping list.</string>
+    <string name="meal_plan_default_name">Week of %1$s</string>
+    <string name="meal_plan_week_range">%1$s – %2$s</string>
+    <string name="meal_plan_empty_slot">No meal yet</string>
+    <string name="meal_plan_ingredient_count">%1$d ingredients</string>
+    <string name="meal_plan_edit_slot_title">Edit meal slot</string>
+    <string name="meal_plan_slot_title_label">Title</string>
+    <string name="meal_plan_recipe_url_label">Recipe URL</string>
+    <string name="meal_plan_ingredients_label">Ingredients (one per line)</string>
+    <string name="meal_plan_generate_shopping_list_short">List</string>
+    <string name="meal_plan_slot_saved">Meal slot saved</string>
+    <string name="meal_plan_error_save_slot">Could not save meal slot</string>
+    <string name="meal_plan_error_generate_shopping_list">Could not generate shopping list</string>
+    <plurals name="meal_plan_shopping_list_generated">
+        <item quantity="one">Shopping list created with %1$d item.</item>
+        <item quantity="other">Shopping list created with %1$d items.</item>
+    </plurals>
+    <string name="meal_slot_breakfast">Breakfast</string>
+    <string name="meal_slot_lunch">Lunch</string>
+    <string name="meal_slot_dinner">Dinner</string>
+    <string name="meal_slot_snack">Snack</string>
+    <string name="meal_plan_previous_week">Previous week</string>
+    <string name="meal_plan_next_week">Next week</string>
+
 </resources>

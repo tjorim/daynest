@@ -159,6 +159,13 @@ export function AppLayout() {
               {m.nav_medication()}
             </Link>
             <Link
+              to="/meal-plan"
+              activeProps={{ className: "nav-link active" }}
+              inactiveProps={{ className: "nav-link" }}
+            >
+              {m.nav_meal_plan()}
+            </Link>
+            <Link
               to="/shopping"
               activeProps={{ className: "nav-link active" }}
               inactiveProps={{ className: "nav-link" }}

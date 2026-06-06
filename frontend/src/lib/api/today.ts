@@ -215,7 +215,7 @@ const upcomingTodayItemSchema = z.object({
   scheduled_date: z.string(),
 });
 
-const plannedTodayItemSchema = z.object({
+export const plannedTodayItemSchema = z.object({
   id: z.number(),
   title: z.string(),
   planned_for: z.string(),

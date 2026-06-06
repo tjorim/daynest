@@ -87,6 +87,9 @@
       },
       "daynest_planned_calendar": {
         "name": "Daynest Planned"
+      },
+      "daynest_meal_plan_calendar": {
+        "name": "Daynest Meal Plan"
       }
     },
     "binary_sensor": {

@@ -32,10 +32,13 @@ from app.db.session import SessionLocal
 from app.models.integration_client import IntegrationClient
 from app.models.user import User
 from app.repositories.analytics_repository import get_scheduling_suggestions as build_scheduling_suggestions
+from app.repositories.meal_plan_repository import MealPlanRepository
 from app.repositories.shopping_list_repository import ShoppingListRepository
 from app.repositories.today_repository import TodayRepository
+from app.schemas.meal_plan import MealSlotUpdate
 from app.schemas.shopping_list import ShoppingListCreateRequest, ShoppingListStatus
 from app.schemas.today import PlannedItemCreateRequest, PlannedItemModuleKey, PlannedItemUpdateRequest
+from app.services.meal_plan_service import MealPlanService
 from app.services.shopping_list_service import ShoppingListService
 from app.services.today_service import TodayService
 
@@ -207,6 +210,12 @@ class DaynestMcpBackend:
             service = TodayService(TodayRepository(db), app_settings=settings)
             return operation(db, user, service)
 
+    def _with_meal_plan_service(self, operation: Callable[[Session, User, MealPlanService], T]) -> T:
+        with self._session_scope() as db:
+            user = self.resolve_user(db)
+            service = MealPlanService(MealPlanRepository(db))
+            return operation(db, user, service)
+
     def _with_shopping_service(self, operation: Callable[[Session, User, ShoppingListService], T]) -> T:
         with self._session_scope() as db:
             user = self.resolve_user(db)
@@ -288,6 +297,40 @@ class DaynestMcpBackend:
 
     def get_calendar_month(self, year: int, month: int) -> dict[str, Any]:
         return self._with_service(lambda _db, user, service: _jsonable(service.get_month(user.id, year, month)))
+
+    def list_meal_plans(self) -> list[dict[str, Any]]:
+        return self._with_meal_plan_service(lambda _db, user, service: _jsonable(service.list_meal_plans(user.id)))
+
+    def get_week_plan(self, meal_plan_id: int) -> dict[str, Any]:
+        return self._with_meal_plan_service(lambda _db, user, service: _jsonable(service.get_week_plan(user.id, meal_plan_id)))
+
+    def set_meal_slot(
+        self,
+        meal_plan_id: int,
+        slot_id: int,
+        title: str | None = None,
+        recipe_url: str | None = None,
+        ingredients_json: list[str] | None = None,
+        planned_item_id: int | None = None,
+    ) -> dict[str, Any]:
+        payload: dict[str, Any] = {}
+        if title is not None:
+            payload["title"] = title
+        if recipe_url is not None:
+            payload["recipe_url"] = None if recipe_url == "" else recipe_url
+        if ingredients_json is not None:
+            payload["ingredients_json"] = ingredients_json
+        if planned_item_id is not None:
+            payload["planned_item_id"] = None if planned_item_id == 0 else planned_item_id
+        request = MealSlotUpdate(**payload)
+        return self._with_meal_plan_service(
+            lambda _db, user, service: _jsonable(service.update_slot(user.id, meal_plan_id, slot_id, request))
+        )
+
+    def generate_shopping_list_from_plan(self, meal_plan_id: int) -> dict[str, Any]:
+        return self._with_meal_plan_service(
+            lambda _db, user, service: _jsonable(service.generate_shopping_list(plan_id=meal_plan_id, user_id=user.id))
+        )
 
     def list_shopping_lists(self, status: ShoppingListStatus | Literal["all"] = "active") -> list[dict[str, Any]]:
         status_filter = None if status == "all" else status
@@ -799,6 +842,45 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
         """Return the Daynest calendar month summary for a year and month."""
 
         return await to_thread.run_sync(daynest.get_calendar_month, year, month)
+
+    @mcp.tool()
+    async def list_meal_plans() -> list[dict[str, Any]]:
+        """List meal plans for the active user."""
+
+        return await to_thread.run_sync(daynest.list_meal_plans)
+
+    @mcp.tool()
+    async def get_week_plan(meal_plan_id: int) -> dict[str, Any]:
+        """Return a meal plan as a 7-day by 4-slot week grid."""
+
+        return await to_thread.run_sync(daynest.get_week_plan, meal_plan_id)
+
+    @mcp.tool()
+    async def set_meal_slot(
+        meal_plan_id: int,
+        slot_id: int,
+        title: str | None = None,
+        recipe_url: str | None = None,
+        ingredients_json: list[str] | None = None,
+        planned_item_id: int | None = None,
+    ) -> dict[str, Any]:
+        """Update a breakfast, lunch, dinner, or snack slot in a meal plan."""
+
+        return await to_thread.run_sync(
+            daynest.set_meal_slot,
+            meal_plan_id,
+            slot_id,
+            title,
+            recipe_url,
+            ingredients_json,
+            planned_item_id,
+        )
+
+    @mcp.tool()
+    async def generate_shopping_list_from_plan(meal_plan_id: int) -> dict[str, Any]:
+        """Generate a shopping list from all ingredients in a meal plan."""
+
+        return await to_thread.run_sync(daynest.generate_shopping_list_from_plan, meal_plan_id)
 
     @mcp.tool()
     async def list_shopping_lists(status: ShoppingListStatus | Literal["all"] = "active") -> list[dict[str, Any]]:

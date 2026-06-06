@@ -236,6 +236,32 @@
 
     <string name="parity_more_coming">Native bewerkingsbediening blijft groeien vanuit dezelfde gedeelde API-contracten.</string>
 
+    <!-- Maaltijdplanner -->
+    <string name="meal_plan_title">Maaltijden</string>
+    <string name="meal_plan_subtitle">Plan maaltijden per week en maak automatisch een boodschappenlijst.</string>
+    <string name="meal_plan_default_name">Week van %1$s</string>
+    <string name="meal_plan_week_range">%1$s – %2$s</string>
+    <string name="meal_plan_empty_slot">Nog geen maaltijd</string>
+    <string name="meal_plan_ingredient_count">%1$d ingrediënten</string>
+    <string name="meal_plan_edit_slot_title">Maaltijdslot bewerken</string>
+    <string name="meal_plan_slot_title_label">Titel</string>
+    <string name="meal_plan_recipe_url_label">Recept-URL</string>
+    <string name="meal_plan_ingredients_label">Ingrediënten (één per regel)</string>
+    <string name="meal_plan_generate_shopping_list_short">Lijst</string>
+    <string name="meal_plan_slot_saved">Maaltijdslot opgeslagen</string>
+    <string name="meal_plan_error_save_slot">Kan maaltijdslot niet opslaan</string>
+    <string name="meal_plan_error_generate_shopping_list">Kan boodschappenlijst niet maken</string>
+    <plurals name="meal_plan_shopping_list_generated">
+        <item quantity="one">Boodschappenlijst gemaakt met %1$d item.</item>
+        <item quantity="other">Boodschappenlijst gemaakt met %1$d items.</item>
+    </plurals>
+    <string name="meal_slot_breakfast">Ontbijt</string>
+    <string name="meal_slot_lunch">Lunch</string>
+    <string name="meal_slot_dinner">Diner</string>
+    <string name="meal_slot_snack">Tussendoortje</string>
+    <string name="meal_plan_previous_week">Vorige week</string>
+    <string name="meal_plan_next_week">Volgende week</string>
+
     <!-- Startscherm-widgets -->
     <string name="widget_small_label">Daynest (klein)</string>
     <string name="widget_medium_label">Daynest (middel)</string>

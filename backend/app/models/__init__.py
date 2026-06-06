@@ -6,6 +6,7 @@ from app.models.household_member import HouseholdMember
 from app.models.integration_client import IntegrationClient
 from app.models.medication_dose_instance import MedicationDoseInstance
 from app.models.medication_plan import MedicationPlan
+from app.models.meal_plan import MealPlan, MealSlot
 from app.models.notification_sent import NotificationSent
 from app.models.planned_item import PlannedItem
 from app.models.push_subscription import PushSubscription
@@ -26,6 +27,8 @@ __all__ = [
     "MedicationDoseInstance",
     "MedicationDoseStatus",
     "MedicationPlan",
+    "MealPlan",
+    "MealSlot",
     "NotificationSent",
     "PlannedItem",
     "PushSubscription",
