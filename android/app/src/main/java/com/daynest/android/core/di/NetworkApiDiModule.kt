@@ -4,6 +4,7 @@ import com.daynest.android.data.calendar.CalendarApi
 import com.daynest.android.data.medication.MedicationApi
 import com.daynest.android.data.push.PushApi
 import com.daynest.android.data.settings.SettingsApi
+import com.daynest.android.data.shopping.ShoppingListApi
 import com.daynest.android.data.templates.TemplatesApi
 import com.daynest.android.data.today.PlannedItemApi
 import com.daynest.android.data.today.TodayActionsApi
@@ -49,4 +50,8 @@ object NetworkApiDiModule {
     @Provides
     @Singleton
     fun providePushApi(retrofit: Retrofit): PushApi = retrofit.create(PushApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideShoppingListApi(retrofit: Retrofit): ShoppingListApi = retrofit.create(ShoppingListApi::class.java)
 }

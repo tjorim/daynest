@@ -213,6 +213,12 @@ class TestAsyncUpdateData:
             "default_snooze_days": 4,
             "medication_reminder_minutes": 20,
         }
+        client.async_list_shopping_lists.return_value = [
+            {"id": 10, "name": "Groceries", "status": "active"},
+        ]
+        client.async_list_shopping_items.return_value = [
+            {"id": 20, "title": "Milk", "is_done": False},
+        ]
         coordinator = _make_coordinator(client)
         result = await coordinator._async_update_data()
         assert result["due_today_count"] == 3
@@ -220,6 +226,10 @@ class TestAsyncUpdateData:
         assert result["integration_contract"] == CONTRACT_VALID
         assert result["default_snooze_days"] == 4
         assert result["medication_reminder_minutes"] == 20
+        assert result["shopping_lists"] == [{"id": 10, "name": "Groceries", "status": "active"}]
+        assert result["shopping_items"] == {10: [{"id": 20, "title": "Milk", "is_done": False}]}
+        client.async_list_shopping_lists.assert_awaited_once_with(status="active")
+        client.async_list_shopping_items.assert_awaited_once_with(10)
 
     async def test_authentication_error_raises_config_entry_auth_failed(self) -> None:
         client = AsyncMock()
@@ -308,6 +318,40 @@ class TestAsyncUpdateData:
         coordinator = _make_coordinator(client)
         with pytest.raises(UpdateFailed, match="Unsupported or missing integration contract"):
             await coordinator._async_update_data()
+
+    async def test_shopping_list_communication_error_raises_update_failed(self) -> None:
+        client = AsyncMock()
+        client.async_get_dashboard.return_value = _make_dashboard_response()
+        client.async_get_user_settings.return_value = {}
+        client.async_list_shopping_lists.side_effect = DaynestCommunicationError("timeout")
+        coordinator = _make_coordinator(client)
+        with pytest.raises(UpdateFailed, match="Temporary communication failure while updating shopping lists"):
+            await coordinator._async_update_data()
+
+    async def test_empty_shopping_lists_returns_empty_shopping_items(self) -> None:
+        client = AsyncMock()
+        client.async_get_dashboard.return_value = _make_dashboard_response()
+        client.async_get_user_settings.return_value = {}
+        client.async_list_shopping_lists.return_value = []
+        coordinator = _make_coordinator(client)
+        result = await coordinator._async_update_data()
+        assert result["shopping_lists"] == []
+        assert result["shopping_items"] == {}
+        client.async_list_shopping_items.assert_not_awaited()
+
+    async def test_invalid_list_id_skipped_in_shopping_items(self) -> None:
+        client = AsyncMock()
+        client.async_get_dashboard.return_value = _make_dashboard_response()
+        client.async_get_user_settings.return_value = {}
+        client.async_list_shopping_lists.return_value = [
+            {"id": 0, "name": "Invalid", "status": "active"},
+            {"id": -1, "name": "NegativeId", "status": "active"},
+            {"id": "bad", "name": "NonNumeric", "status": "active"},
+        ]
+        coordinator = _make_coordinator(client)
+        result = await coordinator._async_update_data()
+        assert result["shopping_items"] == {}
+        client.async_list_shopping_items.assert_not_awaited()
 
 
 @pytest.mark.unit

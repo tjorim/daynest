@@ -13,8 +13,10 @@ export function seedPlannedItems(date: string): PlannedTodayItem[] {
       recurrence_hint: null,
       rrule: null,
       recurrence_series_id: null,
-      linked_source: null,
-      linked_ref: null,
+      linked_source: "shopping_list",
+      linked_ref: "1",
+      priority: "normal",
+      tags: ["Pantry"],
       is_done: false,
     },
     {

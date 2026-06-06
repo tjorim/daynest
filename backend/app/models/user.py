@@ -21,6 +21,7 @@ if TYPE_CHECKING:
     from app.models.recurrence_series import RecurrenceSeries
     from app.models.refresh_token import RefreshToken
     from app.models.routine_template import RoutineTemplate
+    from app.models.shopping_list import ShoppingList
     from app.models.task_instance import TaskInstance
 
 
@@ -73,6 +74,7 @@ class User(Base):
         cascade="all, delete-orphan",
     )
     planned_items: Mapped[list["PlannedItem"]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    shopping_lists: Mapped[list["ShoppingList"]] = relationship(back_populates="user", cascade="all, delete-orphan")
     recurrence_series: Mapped[list["RecurrenceSeries"]] = relationship(back_populates="user", cascade="all, delete-orphan")
     integration_clients: Mapped[list["IntegrationClient"]] = relationship(
         back_populates="user",

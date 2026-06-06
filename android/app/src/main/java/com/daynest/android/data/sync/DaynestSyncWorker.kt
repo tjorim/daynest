@@ -15,6 +15,9 @@ import com.daynest.android.core.database.today.TodaySummaryDao
 import com.daynest.android.core.database.today.TodaySummaryEntity
 import com.daynest.android.core.network.JsonSerializer
 import com.daynest.android.core.storage.preferences.UserPreferencesRepository
+import com.daynest.android.data.shopping.ShoppingListApi
+import com.daynest.android.data.shopping.ShoppingListRepository
+import com.daynest.android.data.shopping.ShoppingListStatus
 import com.daynest.android.data.templates.ChoreTemplateDto
 import com.daynest.android.data.templates.RoutineTemplateDto
 import com.daynest.android.data.templates.TemplatesApi
@@ -41,6 +44,8 @@ class DaynestSyncWorker
         private val todayApi: TodayApi,
         private val todayActionsApi: TodayActionsApi,
         private val plannedItemApi: PlannedItemApi,
+        private val shoppingListApi: ShoppingListApi,
+        private val shoppingListRepository: ShoppingListRepository,
         private val templatesApi: TemplatesApi,
         private val userPreferencesRepository: UserPreferencesRepository,
         private val systemCalendarSyncer: SystemCalendarSyncer,
@@ -72,6 +77,7 @@ class DaynestSyncWorker
             return runCatching {
                 refreshTodayCache()
                 refreshTemplateCaches()
+                refreshShoppingListCache()
                 val prefs = userPreferencesRepository.preferences.first()
                 if (prefs.calendarSyncEnabled) {
                     syncCalendarFromCache()
@@ -111,34 +117,33 @@ class DaynestSyncWorker
             systemCalendarSyncer.sync(today)
         }
 
-        private suspend fun refreshTemplateCaches() {
-            upsertTemplateCache(SyncCacheKeys.ROUTINE_TEMPLATES, templatesApi.listRoutines())
-            upsertTemplateCache(SyncCacheKeys.CHORE_TEMPLATES, templatesApi.listChores())
+        private suspend fun refreshShoppingListCache() {
+            val lists = shoppingListApi.listShoppingLists(ShoppingListStatus.ALL)
+            shoppingListRepository.cacheShoppingLists(lists)
         }
 
-        private suspend fun upsertTemplateCache(
-            key: String,
-            templates: List<*>,
-        ) {
-            val payload =
-                when (key) {
-                    SyncCacheKeys.ROUTINE_TEMPLATES ->
-                        JsonSerializer.config.encodeToString(
-                            kotlinx.serialization.builtins.ListSerializer(RoutineTemplateDto.serializer()),
-                            templates.filterIsInstance<RoutineTemplateDto>(),
-                        )
-                    SyncCacheKeys.CHORE_TEMPLATES ->
-                        JsonSerializer.config.encodeToString(
-                            kotlinx.serialization.builtins.ListSerializer(ChoreTemplateDto.serializer()),
-                            templates.filterIsInstance<ChoreTemplateDto>(),
-                        )
-                    else -> return
-                }
+        private suspend fun refreshTemplateCaches() {
+            val now = System.currentTimeMillis()
             cacheEntryDao.upsert(
                 CacheEntryEntity(
-                    cacheKey = key,
-                    payload = payload,
-                    updatedAtEpochMillis = System.currentTimeMillis(),
+                    cacheKey = SyncCacheKeys.ROUTINE_TEMPLATES,
+                    payload =
+                        JsonSerializer.config.encodeToString(
+                            kotlinx.serialization.builtins.ListSerializer(RoutineTemplateDto.serializer()),
+                            templatesApi.listRoutines(),
+                        ),
+                    updatedAtEpochMillis = now,
+                ),
+            )
+            cacheEntryDao.upsert(
+                CacheEntryEntity(
+                    cacheKey = SyncCacheKeys.CHORE_TEMPLATES,
+                    payload =
+                        JsonSerializer.config.encodeToString(
+                            kotlinx.serialization.builtins.ListSerializer(ChoreTemplateDto.serializer()),
+                            templatesApi.listChores(),
+                        ),
+                    updatedAtEpochMillis = now,
                 ),
             )
         }
@@ -146,50 +151,101 @@ class DaynestSyncWorker
         private suspend fun applyPendingMutation(mutation: PendingMutationEntity) {
             val kind = PendingMutationKind.entries.find { it.name == mutation.kind } ?: return
             when (kind) {
+                PendingMutationKind.COMPLETE_CHORE,
+                PendingMutationKind.SKIP_CHORE,
+                PendingMutationKind.RESCHEDULE_CHORE,
+                -> applyChoreAction(kind, mutation.payload)
+
+                PendingMutationKind.COMPLETE_TASK,
+                PendingMutationKind.START_TASK,
+                PendingMutationKind.SKIP_TASK,
+                PendingMutationKind.TAKE_DOSE,
+                PendingMutationKind.SKIP_DOSE,
+                -> applyIdAction(kind, mutation.payload)
+
+                PendingMutationKind.CREATE_PLANNED,
+                PendingMutationKind.UPDATE_PLANNED,
+                PendingMutationKind.DELETE_PLANNED,
+                -> applyPlannedItemAction(kind, mutation.payload)
+
+                PendingMutationKind.CREATE_SHOPPING_LIST,
+                PendingMutationKind.UPDATE_SHOPPING_LIST,
+                PendingMutationKind.DELETE_SHOPPING_LIST,
+                -> applyShoppingListAction(kind, mutation.payload)
+            }
+        }
+
+        private suspend fun applyChoreAction(
+            kind: PendingMutationKind,
+            payload: String,
+        ) {
+            when (kind) {
                 PendingMutationKind.COMPLETE_CHORE -> {
-                    val payload = decode<MutationIdPayload>(mutation.payload)
-                    todayActionsApi.completeChore(payload.id)
+                    todayActionsApi.completeChore(decode<MutationIdPayload>(payload).id)
                 }
-                PendingMutationKind.SKIP_CHORE -> {
-                    val payload = decode<MutationIdPayload>(mutation.payload)
-                    todayActionsApi.skipChore(payload.id)
-                }
+                PendingMutationKind.SKIP_CHORE -> todayActionsApi.skipChore(decode<MutationIdPayload>(payload).id)
                 PendingMutationKind.RESCHEDULE_CHORE -> {
-                    val payload = decode<ReschedulePayload>(mutation.payload)
-                    todayActionsApi.rescheduleChore(payload.id, RescheduleChoreDto(payload.scheduledDate))
+                    val p = decode<ReschedulePayload>(payload)
+                    todayActionsApi.rescheduleChore(p.id, RescheduleChoreDto(p.scheduledDate))
                 }
-                PendingMutationKind.COMPLETE_TASK -> {
-                    val payload = decode<MutationIdPayload>(mutation.payload)
-                    todayActionsApi.completeTask(payload.id)
-                }
-                PendingMutationKind.START_TASK -> {
-                    val payload = decode<MutationIdPayload>(mutation.payload)
-                    todayActionsApi.startTask(payload.id)
-                }
-                PendingMutationKind.SKIP_TASK -> {
-                    val payload = decode<MutationIdPayload>(mutation.payload)
-                    todayActionsApi.skipTask(payload.id)
-                }
-                PendingMutationKind.TAKE_DOSE -> {
-                    val payload = decode<MutationIdPayload>(mutation.payload)
-                    todayActionsApi.takeDose(payload.id)
-                }
-                PendingMutationKind.SKIP_DOSE -> {
-                    val payload = decode<MutationIdPayload>(mutation.payload)
-                    todayActionsApi.skipDose(payload.id)
+                else -> Unit
+            }
+        }
+
+        private suspend fun applyIdAction(
+            kind: PendingMutationKind,
+            payload: String,
+        ) {
+            val id = decode<MutationIdPayload>(payload).id
+            when (kind) {
+                PendingMutationKind.COMPLETE_TASK -> todayActionsApi.completeTask(id)
+                PendingMutationKind.START_TASK -> todayActionsApi.startTask(id)
+                PendingMutationKind.SKIP_TASK -> todayActionsApi.skipTask(id)
+                PendingMutationKind.TAKE_DOSE -> todayActionsApi.takeDose(id)
+                PendingMutationKind.SKIP_DOSE -> todayActionsApi.skipDose(id)
+                else -> Unit
+            }
+        }
+
+        private suspend fun applyPlannedItemAction(
+            kind: PendingMutationKind,
+            payload: String,
+        ) {
+            when (kind) {
+                PendingMutationKind.CREATE_PLANNED -> {
+                    val p = decode<CreatePlannedPayload>(payload)
+                    plannedItemApi.createPlannedItem(p.request)
                 }
                 PendingMutationKind.UPDATE_PLANNED -> {
-                    val payload = decode<UpdatePlannedPayload>(mutation.payload)
-                    plannedItemApi.updatePlannedItem(payload.id, payload.request, payload.scope)
+                    val p = decode<UpdatePlannedPayload>(payload)
+                    plannedItemApi.updatePlannedItem(p.id, p.request, p.scope)
                 }
                 PendingMutationKind.DELETE_PLANNED -> {
-                    val payload = decode<DeletePlannedPayload>(mutation.payload)
-                    plannedItemApi.deletePlannedItem(payload.id, payload.scope)
+                    val p = decode<DeletePlannedPayload>(payload)
+                    plannedItemApi.deletePlannedItem(p.id, p.scope)
                 }
-                PendingMutationKind.CREATE_PLANNED -> {
-                    val payload = decode<CreatePlannedPayload>(mutation.payload)
-                    plannedItemApi.createPlannedItem(payload.request)
+                else -> Unit
+            }
+        }
+
+        private suspend fun applyShoppingListAction(
+            kind: PendingMutationKind,
+            payload: String,
+        ) {
+            when (kind) {
+                PendingMutationKind.CREATE_SHOPPING_LIST -> {
+                    val p = decode<CreateShoppingListPayload>(payload)
+                    shoppingListApi.createShoppingList(p.request)
                 }
+                PendingMutationKind.UPDATE_SHOPPING_LIST -> {
+                    val p = decode<UpdateShoppingListPayload>(payload)
+                    shoppingListApi.updateShoppingList(p.id, p.request)
+                }
+                PendingMutationKind.DELETE_SHOPPING_LIST -> {
+                    val p = decode<DeleteShoppingListPayload>(payload)
+                    shoppingListApi.deleteShoppingList(p.id)
+                }
+                else -> Unit
             }
         }
 

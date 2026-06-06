@@ -1,8 +1,5 @@
 import { http, HttpResponse } from "msw";
-import {
-  getMockState,
-  mutatePlannedItems,
-} from "../data/state";
+import { getMockState, mutatePlannedItems } from "../data/state";
 import { nextPlannedItemId } from "../data/plannedItems";
 import type { PlannedItemInput, PlannedItemUpdateInput } from "@/lib/api/today";
 
@@ -38,6 +35,8 @@ export const plannedItemHandlers = [
       recurrence_series_id: null,
       linked_source: input.linked_source ?? null,
       linked_ref: input.linked_ref ?? null,
+      priority: input.priority ?? "normal",
+      tags: input.tags ?? [],
       is_done: false,
     };
     mutatePlannedItems((items) => [...items, newItem]);

@@ -5,9 +5,17 @@ export const queryKeys = {
   },
   calendar: {
     all: ["calendar"] as const,
-    month: (year: number, month: number) => [...queryKeys.calendar.all, "month", year, month] as const,
+    month: (year: number, month: number) =>
+      [...queryKeys.calendar.all, "month", year, month] as const,
     day: (date: string) => [...queryKeys.calendar.all, "day", date] as const,
-    range: (start: string, end: string) => [...queryKeys.calendar.all, "range", start, end] as const,
+    range: (start: string, end: string) =>
+      [...queryKeys.calendar.all, "range", start, end] as const,
+  },
+  shoppingLists: {
+    all: ["shopping-lists"] as const,
+    list: (status: string) => [...queryKeys.shoppingLists.all, "list", status] as const,
+    detail: (listId: number) => [...queryKeys.shoppingLists.all, "detail", listId] as const,
+    items: (listId: number) => [...queryKeys.shoppingLists.detail(listId), "items"] as const,
   },
   plannedItems: {
     all: ["planned-items"] as const,
