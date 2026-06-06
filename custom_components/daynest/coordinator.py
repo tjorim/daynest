@@ -62,6 +62,29 @@ def _safe_date(value: Any) -> date | None:
         return None
 
 
+def _current_and_next_week_window(today: date | None = None) -> tuple[date, date]:
+    """Return Monday week starts for the current and next week."""
+    reference_date = today or date.today()
+    current_week_start = reference_date - timedelta(days=reference_date.weekday())
+    return current_week_start, current_week_start + timedelta(days=7)
+
+
+def _model_to_dict(value: Any) -> dict[str, Any]:
+    """Convert simple typed client models to dictionaries for coordinator data."""
+    if isinstance(value, dict):
+        return value
+    result: dict[str, Any] = {}
+    for key in getattr(value, "__dataclass_fields__", {}):
+        item = getattr(value, key)
+        if isinstance(item, date):
+            result[key] = item.isoformat()
+        elif isinstance(item, tuple):
+            result[key] = list(item)
+        else:
+            result[key] = item
+    return result
+
+
 class DaynestDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     """Coordinator that fetches and normalizes Daynest dashboard data."""
 
@@ -242,6 +265,33 @@ class DaynestDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             raise UpdateFailed(f"Malformed shopping list response: {err}") from err
         except DaynestError as err:
             raise UpdateFailed(f"Unexpected API error while updating shopping lists: {err}") from err
+
+        try:
+            current_week_start, next_week_start = _current_and_next_week_window()
+            meal_plans = await self._client.async_list_meal_plans(
+                week_start_from=current_week_start,
+                week_start_to=next_week_start,
+            )
+            normalized["meal_plans"] = [_model_to_dict(plan) for plan in meal_plans]
+            valid_meal_plan_ids = [
+                _safe_int(plan.get("id"), default=0)
+                for plan in normalized["meal_plans"]
+                if _safe_int(plan.get("id"), default=0) > 0
+            ]
+            meal_slots: list[dict[str, Any]] = []
+            if valid_meal_plan_ids:
+                slot_results = await asyncio.gather(
+                    *(self._client.async_get_meal_plan_slots(plan_id) for plan_id in valid_meal_plan_ids)
+                )
+                for slots in slot_results:
+                    meal_slots.extend(_model_to_dict(slot) for slot in slots)
+            normalized["meal_slots"] = meal_slots
+        except DaynestCommunicationError as err:
+            raise UpdateFailed(f"Temporary communication failure while updating meal plans: {err}") from err
+        except DaynestMalformedResponseError as err:
+            raise UpdateFailed(f"Malformed meal plan response: {err}") from err
+        except DaynestError as err:
+            raise UpdateFailed(f"Unexpected API error while updating meal plans: {err}") from err
 
         if self._last_dashboard_data is not None:
             self._fire_transition_events(self._last_dashboard_data, normalized)

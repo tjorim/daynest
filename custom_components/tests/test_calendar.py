@@ -9,9 +9,11 @@ import pytest
 
 from custom_components.daynest.calendar import (
     DaynestChoresCalendar,
+    DaynestMealPlanCalendarEntity,
     DaynestMedicationsCalendar,
     DaynestPlannedCalendar,
     _parse_event,
+    async_setup_entry,
 )
 from daynest import DaynestError
 from homeassistant.components.calendar import CalendarEvent
@@ -20,7 +22,7 @@ from homeassistant.helpers.entity import EntityDescription
 
 def _make_coordinator(client: MagicMock | None = None) -> MagicMock:
     coordinator = MagicMock()
-    coordinator.data = {"model": "Unknown"}
+    coordinator.data = {"model": "Unknown", "meal_slots": []}
     coordinator.config_entry.entry_id = "test_entry_id"
     coordinator.config_entry.domain = "daynest"
     coordinator.config_entry.title = "Daynest Test"
@@ -37,6 +39,7 @@ def _make_entity(
         DaynestChoresCalendar: "daynest_chores_calendar",
         DaynestMedicationsCalendar: "daynest_medications_calendar",
         DaynestPlannedCalendar: "daynest_planned_calendar",
+        DaynestMealPlanCalendarEntity: "daynest_meal_plan_calendar",
     }[entity_cls]
     description = EntityDescription(key=key, translation_key=key)
     return entity_cls(coordinator=coordinator, entity_description=description)
@@ -223,6 +226,91 @@ class TestDaynestCalendarEntityGetEvents:
         hass = MagicMock()
         await entity.async_get_events(hass, datetime(2026, 5, 1, 0, 0), datetime(2026, 5, 31, 23, 59))
         client.async_get_calendar.assert_called_once_with(date(2026, 5, 1), date(2026, 5, 31), event_type="planned_items")
+
+
+@pytest.mark.unit
+class TestAsyncSetupEntry:
+    """Tests for calendar platform setup."""
+
+    async def test_registers_meal_plan_calendar(self) -> None:
+        entry = MagicMock()
+        entry.runtime_data.coordinator = _make_coordinator()
+        async_add_entities = MagicMock()
+
+        await async_setup_entry(MagicMock(), entry, async_add_entities)
+
+        entities = async_add_entities.call_args.args[0]
+        assert any(isinstance(entity, DaynestMealPlanCalendarEntity) for entity in entities)
+
+
+@pytest.mark.unit
+class TestDaynestMealPlanCalendarEntity:
+    """Tests for meal plan calendar events."""
+
+    async def test_returns_meal_slot_events_from_coordinator_data(self) -> None:
+        coordinator = _make_coordinator()
+        coordinator.data["meal_slots"] = [
+            {
+                "id": 5,
+                "meal_plan_id": 1,
+                "slot_date": "2026-06-08",
+                "slot_type": "breakfast",
+                "title": "Overnight oats",
+                "recipe_url": "https://recipes.example/oats",
+            },
+            {
+                "id": 6,
+                "meal_plan_id": 1,
+                "slot_date": "2026-06-08",
+                "slot_type": "dinner",
+                "title": "Pasta",
+                "recipe_url": None,
+            },
+        ]
+        entity = DaynestMealPlanCalendarEntity(
+            coordinator=coordinator,
+            entity_description=EntityDescription(
+                key="daynest_meal_plan_calendar",
+                translation_key="daynest_meal_plan_calendar",
+            ),
+        )
+
+        events = await entity.async_get_events(
+            MagicMock(),
+            datetime(2026, 6, 8, 0, 0, tzinfo=UTC),
+            datetime(2026, 6, 9, 0, 0, tzinfo=UTC),
+        )
+
+        assert [event.summary for event in events] == ["Overnight oats", "Pasta"]
+        assert events[0].start == datetime(2026, 6, 8, 8, 0, tzinfo=UTC)
+        assert events[0].end == datetime(2026, 6, 8, 9, 0, tzinfo=UTC)
+        assert events[0].uid == "meal-slot-5"
+        assert events[0].description == "https://recipes.example/oats"
+        assert events[1].start == datetime(2026, 6, 8, 18, 0, tzinfo=UTC)
+
+    async def test_skips_empty_or_out_of_range_slots(self) -> None:
+        coordinator = _make_coordinator()
+        coordinator.data["meal_slots"] = [
+            {"id": 1, "slot_date": "2026-06-08", "slot_type": "lunch", "title": ""},
+            {"id": 2, "slot_date": "bad", "slot_type": "lunch", "title": "Bad date"},
+            {"id": 3, "slot_date": "2026-06-09", "slot_type": "unknown", "title": "Unknown"},
+            {"id": 4, "slot_date": "2026-06-10", "slot_type": "snack", "title": "Fruit"},
+        ]
+        entity = DaynestMealPlanCalendarEntity(
+            coordinator=coordinator,
+            entity_description=EntityDescription(
+                key="daynest_meal_plan_calendar",
+                translation_key="daynest_meal_plan_calendar",
+            ),
+        )
+
+        events = await entity.async_get_events(
+            MagicMock(),
+            datetime(2026, 6, 8, 0, 0, tzinfo=UTC),
+            datetime(2026, 6, 9, 0, 0, tzinfo=UTC),
+        )
+
+        assert events == []
 
 
 @pytest.mark.unit
