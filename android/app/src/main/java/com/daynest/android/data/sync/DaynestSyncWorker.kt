@@ -15,6 +15,9 @@ import com.daynest.android.core.database.today.TodaySummaryDao
 import com.daynest.android.core.database.today.TodaySummaryEntity
 import com.daynest.android.core.network.JsonSerializer
 import com.daynest.android.core.storage.preferences.UserPreferencesRepository
+import com.daynest.android.data.shopping.ShoppingListApi
+import com.daynest.android.data.shopping.ShoppingListDto
+import com.daynest.android.data.shopping.ShoppingListStatus
 import com.daynest.android.data.templates.ChoreTemplateDto
 import com.daynest.android.data.templates.RoutineTemplateDto
 import com.daynest.android.data.templates.TemplatesApi
@@ -41,6 +44,7 @@ class DaynestSyncWorker
         private val todayApi: TodayApi,
         private val todayActionsApi: TodayActionsApi,
         private val plannedItemApi: PlannedItemApi,
+        private val shoppingListApi: ShoppingListApi,
         private val templatesApi: TemplatesApi,
         private val userPreferencesRepository: UserPreferencesRepository,
         private val systemCalendarSyncer: SystemCalendarSyncer,
@@ -72,6 +76,7 @@ class DaynestSyncWorker
             return runCatching {
                 refreshTodayCache()
                 refreshTemplateCaches()
+                refreshShoppingListCache()
                 val prefs = userPreferencesRepository.preferences.first()
                 if (prefs.calendarSyncEnabled) {
                     syncCalendarFromCache()
@@ -109,6 +114,20 @@ class DaynestSyncWorker
             val cached = cacheEntryDao.get(SyncCacheKeys.TODAY)?.payload ?: return
             val today = JsonSerializer.config.decodeFromString(TodayResponseDto.serializer(), cached)
             systemCalendarSyncer.sync(today)
+        }
+
+        private suspend fun refreshShoppingListCache() {
+            val shoppingLists = shoppingListApi.listShoppingLists(ShoppingListStatus.ALL)
+            cacheEntryDao.upsert(
+                CacheEntryEntity(
+                    cacheKey = SyncCacheKeys.SHOPPING_LISTS,
+                    payload = JsonSerializer.config.encodeToString(
+                        kotlinx.serialization.builtins.ListSerializer(ShoppingListDto.serializer()),
+                        shoppingLists,
+                    ),
+                    updatedAtEpochMillis = System.currentTimeMillis(),
+                ),
+            )
         }
 
         private suspend fun refreshTemplateCaches() {
@@ -189,6 +208,18 @@ class DaynestSyncWorker
                 PendingMutationKind.CREATE_PLANNED -> {
                     val payload = decode<CreatePlannedPayload>(mutation.payload)
                     plannedItemApi.createPlannedItem(payload.request)
+                }
+                PendingMutationKind.CREATE_SHOPPING_LIST -> {
+                    val payload = decode<CreateShoppingListPayload>(mutation.payload)
+                    shoppingListApi.createShoppingList(payload.request)
+                }
+                PendingMutationKind.UPDATE_SHOPPING_LIST -> {
+                    val payload = decode<UpdateShoppingListPayload>(mutation.payload)
+                    shoppingListApi.updateShoppingList(payload.id, payload.request)
+                }
+                PendingMutationKind.DELETE_SHOPPING_LIST -> {
+                    val payload = decode<DeleteShoppingListPayload>(mutation.payload)
+                    shoppingListApi.deleteShoppingList(payload.id)
                 }
             }
         }

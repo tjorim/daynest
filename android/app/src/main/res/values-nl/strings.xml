@@ -193,6 +193,29 @@
     <string name="settings_session_last_active">Laatst actief: %1$s</string>
     <string name="settings_revoke_session">Intrekken</string>
 
+    <!-- Shopping lists -->
+    <string name="shopping_title">Boodschappen</string>
+    <string name="shopping_subtitle">Maak boodschappenlijsten en vink artikelen af.</string>
+    <string name="shopping_create_list">Boodschappenlijst maken</string>
+    <string name="shopping_list_name">Lijstnaam</string>
+    <string name="shopping_store">Winkel</string>
+    <string name="shopping_notes">Notities</string>
+    <string name="shopping_active_lists">Actieve lijsten</string>
+    <string name="shopping_archived">Gearchiveerd</string>
+    <string name="shopping_no_lists">Nog geen boodschappenlijsten.</string>
+    <string name="shopping_open_list">Openen</string>
+    <string name="shopping_archive">Archiveren</string>
+    <string name="shopping_back_to_lists">Terug naar lijsten</string>
+    <string name="shopping_item_count">%1$d open items</string>
+    <string name="shopping_add_item">Item toevoegen</string>
+    <string name="shopping_item_name">Itemnaam</string>
+    <string name="shopping_category_tag">Categorie</string>
+    <string name="shopping_uncategorized">Zonder categorie</string>
+    <string name="shopping_no_items">Geen open boodschappenitems.</string>
+    <string name="shopping_completed_items">%1$d voltooide items</string>
+    <string name="shopping_planned_for_date">Gepland voor %1$s</string>
+    <string name="shopping_check_off">Afvinken</string>
+
     <string name="parity_more_coming">Native bewerkingsbediening blijft groeien vanuit dezelfde gedeelde API-contracten.</string>
 
     <!-- Startscherm-widgets -->

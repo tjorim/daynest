@@ -5,9 +5,11 @@ package com.daynest.android.app
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.daynest.android.app.navigation.DaynestDestination
 import com.daynest.android.app.session.BiometricGate
 import com.daynest.android.app.session.SessionGateRoute
@@ -16,6 +18,8 @@ import com.daynest.android.feature.calendar.CalendarRoute
 import com.daynest.android.feature.home.HomeRoute
 import com.daynest.android.feature.medication.MedicationRoute
 import com.daynest.android.feature.settings.SettingsRoute
+import com.daynest.android.feature.shopping.ShoppingListDetailRoute
+import com.daynest.android.feature.shopping.ShoppingListsRoute
 import com.daynest.android.feature.templates.TemplatesRoute
 import com.daynest.android.ui.theme.DaynestTheme
 
@@ -66,6 +70,23 @@ fun DaynestApp() {
             }
             composable(route = DaynestDestination.TEMPLATES) {
                 TemplatesRoute(onNavigate = navController::navigateTopLevel)
+            }
+            composable(route = DaynestDestination.SHOPPING) {
+                ShoppingListsRoute(
+                    onNavigate = navController::navigateTopLevel,
+                    onOpenList = { listId -> navController.navigate("shopping/$listId") },
+                )
+            }
+            composable(
+                route = DaynestDestination.SHOPPING_DETAIL,
+                arguments = listOf(navArgument("listId") { type = NavType.IntType }),
+            ) { backStackEntry ->
+                val listId = backStackEntry.arguments?.getInt("listId") ?: return@composable
+                ShoppingListDetailRoute(
+                    listId = listId,
+                    onNavigate = navController::navigateTopLevel,
+                    onBack = { navController.popBackStack() },
+                )
             }
             composable(route = DaynestDestination.SETTINGS) {
                 SettingsRoute(

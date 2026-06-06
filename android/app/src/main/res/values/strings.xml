@@ -193,6 +193,29 @@
     <string name="settings_session_last_active">Last active: %1$s</string>
     <string name="settings_revoke_session">Revoke</string>
 
+    <!-- Shopping lists -->
+    <string name="shopping_title">Shopping</string>
+    <string name="shopping_subtitle">Create shopping lists and check off grocery items.</string>
+    <string name="shopping_create_list">Create shopping list</string>
+    <string name="shopping_list_name">List name</string>
+    <string name="shopping_store">Store</string>
+    <string name="shopping_notes">Notes</string>
+    <string name="shopping_active_lists">Active lists</string>
+    <string name="shopping_archived">Archived</string>
+    <string name="shopping_no_lists">No shopping lists yet.</string>
+    <string name="shopping_open_list">Open</string>
+    <string name="shopping_archive">Archive</string>
+    <string name="shopping_back_to_lists">Back to lists</string>
+    <string name="shopping_item_count">%1$d open items</string>
+    <string name="shopping_add_item">Add item</string>
+    <string name="shopping_item_name">Item name</string>
+    <string name="shopping_category_tag">Category</string>
+    <string name="shopping_uncategorized">Uncategorized</string>
+    <string name="shopping_no_items">No open shopping items.</string>
+    <string name="shopping_completed_items">%1$d completed items</string>
+    <string name="shopping_planned_for_date">Planned for %1$s</string>
+    <string name="shopping_check_off">Check off</string>
+
     <string name="parity_more_coming">Native editing controls will continue to grow from the same shared API contracts.</string>
 
     <!-- Home-screen widgets -->
