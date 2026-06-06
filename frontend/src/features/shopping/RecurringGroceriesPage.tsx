@@ -123,7 +123,7 @@ export function RecurringGroceriesPage() {
   };
 
   const submit = async () => {
-    if (!title.trim()) return;
+    if (!title.trim() || !startDate) return;
     setSuccessMessage(null);
     try {
       const payload = buildPayload();
@@ -309,7 +309,7 @@ export function RecurringGroceriesPage() {
               <button
                 type="button"
                 className="btn btn-primary"
-                disabled={actions.isSubmitting || !title.trim()}
+                disabled={actions.isSubmitting || !title.trim() || !startDate}
                 onClick={() => void submit()}
               >
                 {actions.isSubmitting ? m.action_saving() : editingSeries ? m.action_save() : m.action_add()}

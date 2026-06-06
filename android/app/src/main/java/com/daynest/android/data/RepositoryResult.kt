@@ -15,5 +15,15 @@ suspend fun <T> safeApiCall(call: suspend () -> T): Result<T> =
 
 suspend inline fun <T> Result<T>.recoverOffline(crossinline fallback: suspend () -> T): Result<T> {
     if (isSuccess) return this
-    return if (exceptionOrNull() is IOException) runCatching { fallback() } else this
+    return if (exceptionOrNull() is IOException) {
+        try {
+            Result.success(fallback())
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    } else {
+        this
+    }
 }

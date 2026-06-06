@@ -50,5 +50,6 @@ export function buildRRule(
     return `FREQ=WEEKLY;BYDAY=${selectedWeekdays.join(",")}`;
   }
   if (preset === "monthly") return "FREQ=MONTHLY";
-  return `FREQ=DAILY;INTERVAL=${Math.max(2, customInterval)}`;
+  const interval = isNaN(customInterval) ? 2 : Math.max(2, customInterval);
+  return `FREQ=DAILY;INTERVAL=${interval}`;
 }
