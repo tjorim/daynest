@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
@@ -27,6 +28,8 @@ class UserPreferencesRepository
                     biometricIdleTimeoutMinutes = prefs[BIOMETRIC_IDLE_TIMEOUT_MINUTES] ?: 5,
                     pushNotificationsEnabled = prefs[PUSH_NOTIFICATIONS_ENABLED] ?: true,
                     calendarSyncEnabled = prefs[CALENDAR_SYNC_ENABLED] ?: false,
+                    showDeviceCalendars = prefs[SHOW_DEVICE_CALENDARS] ?: false,
+                    enabledDeviceCalendarIds = prefs[ENABLED_DEVICE_CALENDAR_IDS] ?: emptySet(),
                     lastBackgroundEpochMillis = prefs[LAST_BACKGROUND_EPOCH_MILLIS] ?: 0L,
                     lastFcmEndpoint = prefs[LAST_FCM_ENDPOINT],
                     lastUnifiedPushEndpoint = prefs[LAST_UNIFIED_PUSH_ENDPOINT],
@@ -74,6 +77,18 @@ class UserPreferencesRepository
             }
         }
 
+        suspend fun updateShowDeviceCalendars(enabled: Boolean) {
+            dataStore.edit { prefs ->
+                prefs[SHOW_DEVICE_CALENDARS] = enabled
+            }
+        }
+
+        suspend fun updateEnabledDeviceCalendarIds(ids: Set<String>) {
+            dataStore.edit { prefs ->
+                prefs[ENABLED_DEVICE_CALENDAR_IDS] = ids
+            }
+        }
+
         suspend fun updateLastBackgroundEpochMillis(epochMillis: Long) {
             dataStore.edit { prefs ->
                 prefs[LAST_BACKGROUND_EPOCH_MILLIS] = epochMillis
@@ -110,6 +125,8 @@ class UserPreferencesRepository
             val BIOMETRIC_IDLE_TIMEOUT_MINUTES = intPreferencesKey("biometric_idle_timeout_minutes")
             val PUSH_NOTIFICATIONS_ENABLED = booleanPreferencesKey("push_notifications_enabled")
             val CALENDAR_SYNC_ENABLED = booleanPreferencesKey("calendar_sync_enabled")
+            val SHOW_DEVICE_CALENDARS = booleanPreferencesKey("show_device_calendars")
+            val ENABLED_DEVICE_CALENDAR_IDS = stringSetPreferencesKey("enabled_device_calendar_ids")
             val LAST_BACKGROUND_EPOCH_MILLIS = longPreferencesKey("last_background_epoch_millis")
             val LAST_FCM_ENDPOINT = stringPreferencesKey("last_fcm_endpoint")
             val LAST_UNIFIED_PUSH_ENDPOINT = stringPreferencesKey("last_unified_push_endpoint")
