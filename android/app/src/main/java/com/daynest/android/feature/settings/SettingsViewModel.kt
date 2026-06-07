@@ -14,7 +14,6 @@ import com.daynest.android.data.settings.IntegrationClientDto
 import com.daynest.android.data.settings.IntegrationClientInputDto
 import com.daynest.android.data.settings.OAuthSessionDto
 import com.daynest.android.data.settings.SettingsRepository
-import com.daynest.android.data.sync.DaynestSyncScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.async
@@ -40,6 +39,15 @@ class SettingsViewModel
         private val _uiState = MutableStateFlow<SettingsUiState>(SettingsUiState.Loading)
         val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
 
+        private val deviceCalendarHandler =
+            SettingsDeviceCalendarHandler(
+                scope = viewModelScope,
+                appContext = appContext,
+                deviceCalendarRepository = deviceCalendarRepository,
+                userPreferencesRepository = userPreferencesRepository,
+                uiState = _uiState,
+            )
+
         init {
             load()
         }
@@ -58,13 +66,16 @@ class SettingsViewModel
                 is SettingsUiEvent.CreateClient -> createClient(event.input)
                 is SettingsUiEvent.UpdateServerUrl -> updateServerUrl(event.url)
                 is SettingsUiEvent.RevokeSessionClicked -> revokeSession(event.sessionId)
+                else -> onPreferencesEvent(event)
+            }
+        }
+
+        private fun onPreferencesEvent(event: SettingsUiEvent) {
+            when (event) {
                 is SettingsUiEvent.UpdatePushNotificationsEnabled -> updatePushNotificationsEnabled(event.enabled)
                 is SettingsUiEvent.UpdateBiometricLockEnabled -> updateBiometricLockEnabled(event.enabled)
                 is SettingsUiEvent.UpdateBiometricIdleTimeoutMinutes -> updateBiometricIdleTimeoutMinutes(event.minutes)
-                is SettingsUiEvent.UpdateCalendarSyncEnabled -> updateCalendarSyncEnabled(event.enabled)
-                is SettingsUiEvent.UpdateShowDeviceCalendars -> updateShowDeviceCalendars(event.enabled)
-                is SettingsUiEvent.UpdateDeviceCalendarEnabled ->
-                    updateDeviceCalendarEnabled(event.calendarId, event.enabled)
+                else -> deviceCalendarHandler.onPreferencesEvent(event)
             }
         }
 
@@ -170,78 +181,6 @@ class SettingsViewModel
                             current.copy(biometricIdleTimeoutMinutes = clamped)
                         } else {
                             current
-                        }
-                    }
-                }
-            }
-        }
-
-        private fun updateCalendarSyncEnabled(enabled: Boolean) {
-            viewModelScope.launch {
-                runCatching { userPreferencesRepository.updateCalendarSyncEnabled(enabled) }.onSuccess {
-                    _uiState.update { current ->
-                        if (current is SettingsUiState.Content) current.copy(calendarSyncEnabled = enabled) else current
-                    }
-                    if (enabled) {
-                        DaynestSyncScheduler.enqueueOneShot(appContext)
-                    }
-                }
-            }
-        }
-
-        private fun updateShowDeviceCalendars(enabled: Boolean) {
-            viewModelScope.launch {
-                runCatching { userPreferencesRepository.updateShowDeviceCalendars(enabled) }.onSuccess {
-                    val calendars =
-                        if (enabled) {
-                            deviceCalendarRepository.listCalendars().getOrElse { emptyList() }
-                        } else {
-                            emptyList()
-                        }
-                    _uiState.update { current ->
-                        if (current is SettingsUiState.Content) {
-                            val enabledIds =
-                                if (enabled && current.enabledDeviceCalendarIds.isEmpty()) {
-                                    calendars.filter { it.visible }.map { it.id }.toSet()
-                                } else {
-                                    current.enabledDeviceCalendarIds
-                                }
-                            if (enabledIds != current.enabledDeviceCalendarIds) {
-                                viewModelScope.launch {
-                                    userPreferencesRepository.updateEnabledDeviceCalendarIds(enabledIds)
-                                }
-                            }
-                            current.copy(
-                                showDeviceCalendars = enabled,
-                                deviceCalendars = calendars,
-                                enabledDeviceCalendarIds = enabledIds,
-                            )
-                        } else {
-                            current
-                        }
-                    }
-                }
-            }
-        }
-
-        private fun updateDeviceCalendarEnabled(
-            calendarId: String,
-            enabled: Boolean,
-        ) {
-            viewModelScope.launch {
-                val current = (_uiState.value as? SettingsUiState.Content) ?: return@launch
-                val updatedIds =
-                    if (enabled) {
-                        current.enabledDeviceCalendarIds + calendarId
-                    } else {
-                        current.enabledDeviceCalendarIds - calendarId
-                    }
-                runCatching { userPreferencesRepository.updateEnabledDeviceCalendarIds(updatedIds) }.onSuccess {
-                    _uiState.update { state ->
-                        if (state is SettingsUiState.Content) {
-                            state.copy(enabledDeviceCalendarIds = updatedIds)
-                        } else {
-                            state
                         }
                     }
                 }
