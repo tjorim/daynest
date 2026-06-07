@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.ManagedActivityResultLauncher
+import androidx.activity.result.ActivityResultLauncher
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Card
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -25,6 +27,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.daynest.android.R
+import com.daynest.android.data.calendar.DeviceCalendar
 
 internal fun LazyListScope.settingsServerSection(
     state: SettingsUiState.Content,
@@ -51,6 +54,7 @@ internal fun LazyListScope.settingsPrivacySection(
     context: Context,
     notificationsPermissionLauncher: ManagedActivityResultLauncher<String, Boolean>,
     calendarPermissionLauncher: ManagedActivityResultLauncher<Array<String>, Map<String, Boolean>>,
+    deviceCalendarPermissionLauncher: ActivityResultLauncher<String>,
     onEvent: (SettingsUiEvent) -> Unit,
 ) {
     item {
@@ -100,6 +104,63 @@ internal fun LazyListScope.settingsPrivacySection(
                 )
             },
         )
+    }
+    item {
+        SettingToggleCard(
+            title = stringResource(id = R.string.settings_device_calendars_label),
+            subtitle = stringResource(id = R.string.settings_device_calendars_hint),
+            checked = state.showDeviceCalendars,
+            onCheckedChange = { enabled ->
+                handleDeviceCalendarsChanged(
+                    enabled = enabled,
+                    context = context,
+                    permissionLauncher = deviceCalendarPermissionLauncher,
+                    onEvent = onEvent,
+                )
+            },
+        )
+    }
+    if (state.showDeviceCalendars) {
+        if (state.deviceCalendars.isEmpty()) {
+            item { emptyStateText(R.string.settings_device_calendars_empty) }
+        } else {
+            items(state.deviceCalendars, key = { it.id }) { calendar ->
+                DeviceCalendarToggleRow(
+                    calendar = calendar,
+                    checked = calendar.id in state.enabledDeviceCalendarIds,
+                    onCheckedChange = { onEvent(SettingsUiEvent.UpdateDeviceCalendarEnabled(calendar.id, it)) },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun DeviceCalendarToggleRow(
+    calendar: DeviceCalendar,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = calendar.name, style = MaterialTheme.typography.bodyMedium)
+                if (!calendar.accountName.isNullOrBlank()) {
+                    Text(
+                        text = calendar.accountName,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.outline,
+                    )
+                }
+            }
+            Checkbox(checked = checked, onCheckedChange = onCheckedChange)
+        }
     }
 }
 
@@ -280,6 +341,28 @@ private fun handleNotificationsChanged(
         notificationsPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
     } else {
         onEvent(SettingsUiEvent.UpdatePushNotificationsEnabled(true))
+    }
+}
+
+private fun handleDeviceCalendarsChanged(
+    enabled: Boolean,
+    context: Context,
+    permissionLauncher: ActivityResultLauncher<String>,
+    onEvent: (SettingsUiEvent) -> Unit,
+) {
+    if (!enabled) {
+        onEvent(SettingsUiEvent.UpdateShowDeviceCalendars(false))
+        return
+    }
+    if (
+        ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.READ_CALENDAR,
+        ) == PackageManager.PERMISSION_GRANTED
+    ) {
+        onEvent(SettingsUiEvent.UpdateShowDeviceCalendars(true))
+    } else {
+        permissionLauncher.launch(Manifest.permission.READ_CALENDAR)
     }
 }
 
