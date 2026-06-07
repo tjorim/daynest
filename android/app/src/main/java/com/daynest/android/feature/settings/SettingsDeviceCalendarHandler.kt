@@ -20,7 +20,8 @@ internal class SettingsDeviceCalendarHandler(
         when (event) {
             is SettingsUiEvent.UpdateCalendarSyncEnabled -> updateCalendarSyncEnabled(event.enabled)
             is SettingsUiEvent.UpdateShowDeviceCalendars -> updateShowDeviceCalendars(event.enabled)
-            is SettingsUiEvent.UpdateDeviceCalendarEnabled -> updateDeviceCalendarEnabled(event.calendarId, event.enabled)
+            is SettingsUiEvent.UpdateDeviceCalendarEnabled ->
+                updateDeviceCalendarEnabled(event.calendarId, event.enabled)
             else -> Unit
         }
     }
