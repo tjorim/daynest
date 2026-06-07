@@ -1,6 +1,6 @@
 """Tests for shopping-list backend APIs and service behavior."""
 
-from datetime import date
+from datetime import date, timedelta
 
 import pytest
 from fastapi.testclient import TestClient
@@ -191,12 +191,14 @@ def test_import_recurring_groceries_route_links_upcoming_items(
         "/api/shopping-lists", json={"name": "Groceries"}
     ).json()["id"]
 
+    today = date.today()
+    next_week = today + timedelta(weeks=1)
     db_session.add(
         RecurrenceSeries(
             user_id=user.id,
             title="Eggs",
             rrule="FREQ=WEEKLY;COUNT=2",
-            start_date=date(2026, 6, 6),
+            start_date=today,
             module_key="recurring_grocery",
             recurrence_hint="weekly",
         )
@@ -207,7 +209,7 @@ def test_import_recurring_groceries_route_links_upcoming_items(
 
     assert response.status_code == 200
     payload = response.json()
-    assert [item["planned_for"] for item in payload] == ["2026-06-06", "2026-06-13"]
+    assert [item["planned_for"] for item in payload] == [today.isoformat(), next_week.isoformat()]
     assert {item["module_key"] for item in payload} == {"shopping_list"}
     assert {item["linked_ref"] for item in payload} == {str(shopping_list_id)}
 
