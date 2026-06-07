@@ -74,9 +74,10 @@ internal fun DeviceCalendarSectionHeader(
 internal fun DeviceCalendarEventCard(item: DeviceCalendarEvent) {
     val color = remember(item.color) { Color(item.color or 0xFF000000.toInt()) }
     val allDayText = stringResource(id = R.string.calendar_device_event_all_day)
-    val timeText = remember(item.startsAt, item.endsAt, item.allDay, allDayText) {
-        item.deviceEventTimeText(allDayText)
-    }
+    val timeText =
+        remember(item.startsAt, item.endsAt, item.allDay, allDayText) {
+            item.deviceEventTimeText(allDayText)
+        }
     Card(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier =

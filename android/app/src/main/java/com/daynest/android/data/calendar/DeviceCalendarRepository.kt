@@ -88,7 +88,11 @@ private fun ContentResolver.queryDeviceEvents(
 ): List<DeviceCalendarEvent> {
     val zone = ZoneId.systemDefault()
     val startMillis = date.atStartOfDay(zone).toInstant().toEpochMilli()
-    val endMillis = date.plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli()
+    val endMillis = date
+        .plusDays(1)
+        .atStartOfDay(zone)
+        .toInstant()
+        .toEpochMilli()
     val projection =
         arrayOf(
             CalendarContract.Instances.EVENT_ID,
@@ -102,10 +106,11 @@ private fun ContentResolver.queryDeviceEvents(
             CalendarContract.Instances.DISPLAY_COLOR,
         )
     val uri =
-        CalendarContract.Instances.CONTENT_URI.buildUpon()
-        .appendPath(startMillis.toString())
-        .appendPath((endMillis - 1).toString())
-        .build()
+        CalendarContract.Instances.CONTENT_URI
+            .buildUpon()
+            .appendPath(startMillis.toString())
+            .appendPath((endMillis - 1).toString())
+            .build()
     val calendarPlaceholders = enabledCalendarIds.joinToString(",") { "?" }
     val selection = "${CalendarContract.Instances.CALENDAR_ID} IN ($calendarPlaceholders)"
     return query(
