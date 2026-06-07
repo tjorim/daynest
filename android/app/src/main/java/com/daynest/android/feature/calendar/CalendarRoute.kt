@@ -3,14 +3,9 @@
 package com.daynest.android.feature.calendar
 
 import android.Manifest
-import android.content.Context
-import android.content.Intent
 import android.content.pm.PackageManager
-import android.net.Uri
-import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -26,7 +21,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -39,7 +33,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -52,7 +45,6 @@ import com.daynest.android.R
 import com.daynest.android.app.navigation.DaynestDestination
 import com.daynest.android.app.navigation.DaynestNavigationScaffold
 import com.daynest.android.data.calendar.CalendarDaySummaryDto
-import com.daynest.android.data.calendar.DeviceCalendarEvent
 import com.daynest.android.data.calendar.UnifiedDayItemDto
 import com.daynest.android.data.today.DeleteScope
 import com.daynest.android.data.today.EditScope
@@ -64,8 +56,6 @@ import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.time.LocalDate
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.time.temporal.WeekFields
 import java.util.Locale
@@ -380,105 +370,6 @@ private fun CalendarContent(
             onDismiss = { editingItem = null },
         )
     }
-}
-
-@Composable
-private fun DeviceCalendarSectionHeader(
-    status: DeviceCalendarStatus,
-    context: Context,
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(
-            text = stringResource(id = R.string.calendar_device_events_header),
-            style = MaterialTheme.typography.titleSmall,
-        )
-        when (status) {
-            DeviceCalendarStatus.Loading -> CircularProgressIndicator(modifier = Modifier.size(20.dp))
-            DeviceCalendarStatus.Empty ->
-                Text(
-                    text = stringResource(id = R.string.calendar_device_events_empty),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.outline,
-                )
-            DeviceCalendarStatus.NoEnabledCalendars ->
-                Text(
-                    text = stringResource(id = R.string.calendar_device_events_no_calendars),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.outline,
-                )
-            DeviceCalendarStatus.PermissionRequired -> {
-                Text(
-                    text = stringResource(id = R.string.calendar_device_events_permission_required),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.outline,
-                )
-                TextButton(onClick = { context.openAppSettings() }) {
-                    Text(text = stringResource(id = R.string.action_open_settings))
-                }
-            }
-            else -> Unit
-        }
-    }
-}
-
-@Composable
-private fun DeviceCalendarEventCard(item: DeviceCalendarEvent) {
-    val color = remember(item.color) { Color(item.color or 0xFF000000.toInt()) }
-    val allDayText = stringResource(id = R.string.calendar_device_event_all_day)
-    val timeText = remember(item.startsAt, item.endsAt, item.allDay, allDayText) {
-        item.deviceEventTimeText(allDayText)
-    }
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Spacer(
-                modifier =
-                    Modifier
-                        .size(width = 4.dp, height = 48.dp)
-                        .background(color),
-            )
-            Column(
-                modifier =
-                    Modifier
-                        .weight(1f)
-                        .padding(start = 12.dp),
-            ) {
-                Text(text = item.title, style = MaterialTheme.typography.bodyMedium)
-                Text(
-                    text = stringResource(id = R.string.calendar_device_event_meta, item.calendarName, timeText),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-                if (!item.description.isNullOrBlank()) {
-                    Text(
-                        text = item.description,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline,
-                    )
-                }
-            }
-        }
-    }
-}
-
-private fun DeviceCalendarEvent.deviceEventTimeText(allDayText: String): String {
-    if (allDay) return allDayText
-    val formatter = DateTimeFormatter.ofPattern("HH:mm").withZone(ZoneId.systemDefault())
-    return "${formatter.format(startsAt)}–${formatter.format(endsAt)}"
-}
-
-private fun Context.openAppSettings() {
-    startActivity(
-        Intent(
-            Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
-            Uri.fromParts("package", packageName, null),
-        ),
-    )
 }
 
 @Composable

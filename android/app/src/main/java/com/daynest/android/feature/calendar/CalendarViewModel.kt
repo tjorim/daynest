@@ -49,6 +49,15 @@ class CalendarViewModel
                 onRefresh = ::retryCurrentMonth,
             )
 
+        private val deviceEventsHandler =
+            CalendarDeviceEventsHandler(
+                scope = viewModelScope,
+                deviceCalendarRepository = deviceCalendarRepository,
+                userPreferencesRepository = userPreferencesRepository,
+                uiState = _uiState,
+                preferences = { preferences },
+            )
+
         init {
             observePreferences()
             loadMonth(today.year, today.monthValue)
@@ -68,7 +77,7 @@ class CalendarViewModel
                 is CalendarUiEvent.ExportMonthBackup -> backupHandler.exportMonthBackup(event.onReady)
                 is CalendarUiEvent.ImportBackup -> backupHandler.importBackup(event.items)
                 is CalendarUiEvent.BackupMessageChanged -> backupHandler.updateBackupMessage(event.message)
-                is CalendarUiEvent.CalendarPermissionResult -> handleCalendarPermissionResult(event.granted)
+                is CalendarUiEvent.CalendarPermissionResult -> deviceEventsHandler.handlePermissionResult(event.granted)
             }
         }
 
@@ -91,7 +100,7 @@ class CalendarViewModel
                             hadDeviceCalendars != prefs.showDeviceCalendars ||
                                 previousCalendarIds != prefs.enabledDeviceCalendarIds
                         if (current.selectedDate != null && deviceCalendarPreferencesChanged) {
-                            loadDeviceEvents(LocalDate.parse(current.selectedDate))
+                            deviceEventsHandler.load(LocalDate.parse(current.selectedDate))
                         }
                     }
                 }
@@ -216,95 +225,6 @@ class CalendarViewModel
                 } else {
                     current
                 }
-            }
-        }
-
-        private fun loadDeviceEvents(date: LocalDate) {
-            viewModelScope.launch {
-                if (!preferences.showDeviceCalendars) {
-                    _uiState.update { current ->
-                        if (current is CalendarUiState.Content) {
-                            current.copy(
-                                deviceCalendarEvents = emptyList(),
-                                deviceCalendarStatus = DeviceCalendarStatus.Idle,
-                            )
-                        } else {
-                            current
-                        }
-                    }
-                    return@launch
-                }
-                if (preferences.enabledDeviceCalendarIds.isEmpty()) {
-                    _uiState.update { current ->
-                        if (current is CalendarUiState.Content) {
-                            current.copy(
-                                deviceCalendarEvents = emptyList(),
-                                deviceCalendarStatus = DeviceCalendarStatus.NoEnabledCalendars,
-                            )
-                        } else {
-                            current
-                        }
-                    }
-                    return@launch
-                }
-                _uiState.update { current ->
-                    if (current is CalendarUiState.Content) {
-                        current.copy(deviceCalendarStatus = DeviceCalendarStatus.Loading)
-                    } else {
-                        current
-                    }
-                }
-                deviceCalendarRepository.listEventsForDay(date, preferences.enabledDeviceCalendarIds)
-                    .onSuccess { events ->
-                        _uiState.update { current ->
-                            if (current is CalendarUiState.Content && current.selectedDate == date.toString()) {
-                                current.copy(
-                                    deviceCalendarEvents = events,
-                                    deviceCalendarStatus =
-                                        if (events.isEmpty()) {
-                                            DeviceCalendarStatus.Empty
-                                        } else {
-                                            DeviceCalendarStatus.Ready
-                                        },
-                                )
-                            } else {
-                                current
-                            }
-                        }
-                    }.onFailure {
-                        _uiState.update { current ->
-                            if (current is CalendarUiState.Content && current.selectedDate == date.toString()) {
-                                current.copy(
-                                    deviceCalendarEvents = emptyList(),
-                                    deviceCalendarStatus = DeviceCalendarStatus.PermissionRequired,
-                                )
-                            } else {
-                                current
-                            }
-                        }
-                    }
-            }
-        }
-
-        private fun handleCalendarPermissionResult(granted: Boolean) {
-            viewModelScope.launch {
-                if (!granted) {
-                    userPreferencesRepository.updateShowDeviceCalendars(false)
-                    _uiState.update { current ->
-                        if (current is CalendarUiState.Content) {
-                            current.copy(
-                                showDeviceCalendars = false,
-                                deviceCalendarEvents = emptyList(),
-                                deviceCalendarStatus = DeviceCalendarStatus.PermissionRequired,
-                            )
-                        } else {
-                            current
-                        }
-                    }
-                    return@launch
-                }
-                val selectedDate = (_uiState.value as? CalendarUiState.Content)?.selectedDate ?: return@launch
-                loadDeviceEvents(LocalDate.parse(selectedDate))
             }
         }
 
