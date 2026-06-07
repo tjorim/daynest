@@ -2,15 +2,17 @@ from datetime import date, datetime, timedelta, timezone
 from secrets import token_urlsafe
 from zoneinfo import ZoneInfo
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
+from icalendar import Calendar, Event
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.dependencies.auth import get_current_user, get_current_user_optional
 from app.api.dependencies.today import get_today_service
 from app.db.session import get_db
+from app.models.planned_item import PlannedItem
 from app.models.user import User
-from app.schemas.calendar import CalendarTokenResponse
+from app.schemas.calendar import CalendarFeedResponse, CalendarTokenResponse
 from app.schemas.today import CalendarRangeResponse
 from app.services.today_service import TodayService
 
@@ -128,6 +130,131 @@ def revoke_calendar_token(
     db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
+
+_FEED_PAST_DAYS = 7
+_FEED_FUTURE_DAYS = 90
+_DEFAULT_FEED_DURATION_MINUTES = 60
+
+
+def _new_calendar_feed_token(db: Session) -> str:
+    for _ in range(10):
+        token = token_urlsafe(32)
+        exists = db.scalar(select(User.id).where(User.calendar_feed_token == token))
+        if exists is None:
+            return token
+    raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Could not generate calendar feed token")
+
+
+def _calendar_feed_response(request: Request, user: User) -> CalendarFeedResponse:
+    token = user.calendar_feed_token
+    if token is None:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Calendar feed token missing")
+    return CalendarFeedResponse(
+        token=token,
+        feed_url=str(request.url_for("get_calendar_feed_ics", token=token)),
+    )
+
+
+@router.get("/calendar/feed", response_model=CalendarFeedResponse)
+def get_calendar_feed(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> CalendarFeedResponse:
+    if current_user.calendar_feed_token is None:
+        current_user.calendar_feed_token = _new_calendar_feed_token(db)
+        db.commit()
+        db.refresh(current_user)
+    return _calendar_feed_response(request, current_user)
+
+
+@router.post("/calendar/feed/regenerate", response_model=CalendarFeedResponse)
+def regenerate_calendar_feed(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> CalendarFeedResponse:
+    current_user.calendar_feed_token = _new_calendar_feed_token(db)
+    db.commit()
+    db.refresh(current_user)
+    return _calendar_feed_response(request, current_user)
+
+
+def _planned_item_start(item: PlannedItem, tz: ZoneInfo) -> date | datetime:
+    if item.time_of_day is None:
+        return item.planned_for
+    return datetime.combine(item.planned_for, item.time_of_day, tzinfo=tz)
+
+
+def _planned_item_end(item: PlannedItem, start: date | datetime) -> date | datetime:
+    if isinstance(start, datetime):
+        minutes = item.duration_minutes or _DEFAULT_FEED_DURATION_MINUTES
+        return start + timedelta(minutes=minutes)
+    return start + timedelta(days=1)
+
+
+def _build_planned_items_calendar(user: User, planned_items: list[PlannedItem]) -> bytes:
+    calendar = Calendar()
+    calendar.add("prodid", "-//Daynest//Planned Items//EN")
+    calendar.add("version", "2.0")
+    calendar.add("calscale", "GREGORIAN")
+    calendar.add("method", "PUBLISH")
+    calendar.add("x-wr-calname", "Daynest")
+
+    try:
+        tz = ZoneInfo(user.timezone)
+    except Exception:
+        tz = ZoneInfo("UTC")
+
+    dtstamp = datetime.now(timezone.utc)
+    for item in planned_items:
+        event = Event()
+        start = _planned_item_start(item, tz)
+        event.add("uid", f"daynest-{item.id}@daynest")
+        event.add("dtstamp", dtstamp)
+        event.add("dtstart", start)
+        event.add("dtend", _planned_item_end(item, start))
+        event.add("summary", item.title)
+        if item.notes:
+            event.add("description", item.notes)
+        calendar.add_component(event)
+
+    return calendar.to_ical()
+
+
+@router.get("/calendar/feed/{token}.ics", name="get_calendar_feed_ics")
+def get_calendar_feed_ics(token: str, db: Session = Depends(get_db)) -> Response:
+    user = db.scalar(select(User).where(User.calendar_feed_token == token).where(User.is_active.is_(True)))
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Calendar feed not found")
+
+    try:
+        feed_tz = ZoneInfo(user.timezone)
+    except Exception:
+        feed_tz = ZoneInfo("UTC")
+    today = datetime.now(feed_tz).date()
+    start_date = today - timedelta(days=_FEED_PAST_DAYS)
+    end_date = today + timedelta(days=_FEED_FUTURE_DAYS)
+    planned_items = list(
+        db.scalars(
+            select(PlannedItem)
+            .where(PlannedItem.user_id == user.id)
+            .where(PlannedItem.planned_for >= start_date)
+            .where(PlannedItem.planned_for <= end_date)
+            .order_by(PlannedItem.planned_for, PlannedItem.time_of_day, PlannedItem.id)
+        )
+    )
+
+    return Response(
+        content=_build_planned_items_calendar(user, planned_items),
+        media_type="text/calendar; charset=utf-8",
+        headers={
+            "Content-Disposition": 'attachment; filename="daynest-planned-items.ics"',
+            "Cache-Control": "private, no-store",
+            "Pragma": "no-cache",
+            "Expires": "0",
+        },
+    )
 
 # --- Calendar range ---
 

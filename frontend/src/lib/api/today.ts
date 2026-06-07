@@ -808,6 +808,27 @@ export async function fetchMedicationHistory(
   return payload.history;
 }
 
+export interface CalendarFeedResponse {
+  token: string;
+  feed_url: string;
+}
+
+export async function fetchCalendarFeed(signal?: AbortSignal): Promise<CalendarFeedResponse> {
+  const response = await fetchWithAuth("/api/calendar/feed", {
+    headers: { Accept: "application/json" },
+    signal,
+  });
+  return parseJsonResponse<CalendarFeedResponse>(response, "Failed to load calendar feed");
+}
+
+export async function regenerateCalendarFeed(): Promise<CalendarFeedResponse> {
+  const response = await fetchWithAuth("/api/calendar/feed/regenerate", {
+    method: "POST",
+    headers: { Accept: "application/json" },
+  });
+  return parseJsonResponse<CalendarFeedResponse>(response, "Failed to regenerate calendar feed", false);
+}
+
 export async function listIntegrationClients(signal?: AbortSignal): Promise<IntegrationClient[]> {
   const response = await fetchWithAuth("/api/integrations/clients", {
     headers: { Accept: "application/json" },

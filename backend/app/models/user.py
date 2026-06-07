@@ -59,6 +59,7 @@ class User(Base):
         server_default=sa.text("true"),
     )
     calendar_token: Mapped[str | None] = mapped_column(String(64), nullable=True, unique=True, index=True)
+    calendar_feed_token: Mapped[str | None] = mapped_column(String(64), nullable=True, unique=True, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
     routine_templates: Mapped[list["RoutineTemplate"]] = relationship(back_populates="user", cascade="all, delete-orphan")

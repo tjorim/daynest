@@ -398,5 +398,21 @@
   "meal_plan_generate_preview": "Controleer de unieke ingrediënten die aan een nieuwe boodschappenlijst worden toegevoegd.",
   "meal_plan_generate_error": "Kan boodschappenlijst niet maken.",
   "meal_plan_no_ingredients": "Voeg ingrediënten toe aan minstens één maaltijd voordat je een lijst maakt.",
-  "meal_plan_shopping_list_created": "Boodschappenlijst “{name}” aangemaakt."
+  "meal_plan_shopping_list_created": "Boodschappenlijst “{name}” aangemaakt.",
+  "settings_calendar_subscription_header": "Kalenderabonnement",
+  "settings_calendar_subscription_description": "Voeg deze URL toe aan Google Agenda, Apple Agenda of Outlook om je Daynest-items daar te zien.",
+  "settings_calendar_feed_label": "iCal-feed-URL",
+  "settings_calendar_feed_loading": "Kalender-feed-URL laden…",
+  "settings_calendar_feed_unavailable": "Kalenderfeed niet beschikbaar",
+  "settings_calendar_feed_copy": "Kopiëren",
+  "settings_calendar_feed_copied": "Kalender-feed-URL gekopieerd.",
+  "settings_calendar_clipboard_error": "Klembord kopiëren mislukt.",
+  "settings_calendar_clipboard_unsupported": "Klembord-API niet ondersteund of geblokkeerd.",
+  "settings_calendar_regenerate": "Opnieuw genereren",
+  "settings_calendar_regenerating": "Opnieuw genereren…",
+  "settings_calendar_rotate_warning": "Het roteren van de URL maakt bestaande abonnementen ongeldig.",
+  "settings_calendar_regenerate_confirm": "Als je de kalender-feed-URL opnieuw genereert, worden bestaande kalenderabonnementen onmiddellijk verbroken. Doorgaan?",
+  "settings_calendar_regenerated": "Kalender-feed-URL opnieuw gegenereerd. Kopieer de nieuwe URL naar je kalenderapp.",
+  "settings_calendar_regenerate_error": "Kan de kalender-feed-URL niet opnieuw genereren.",
+  "settings_calendar_load_error": "Kan de kalender-feed-URL niet laden."
 }

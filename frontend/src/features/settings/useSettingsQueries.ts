@@ -1,8 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   createIntegrationClient,
+  fetchCalendarFeed,
   fetchUserSettings,
   listIntegrationClients,
+  regenerateCalendarFeed,
   revokeIntegrationClient,
   rotateIntegrationClient,
   updateUserSettings,
@@ -24,6 +26,13 @@ export function useIntegrationClientsQuery() {
   return useQuery({
     queryKey: queryKeys.settings.integrationClients(),
     queryFn: ({ signal }) => listIntegrationClients(signal),
+  });
+}
+
+export function useCalendarFeedQuery() {
+  return useQuery({
+    queryKey: queryKeys.settings.calendarFeed(),
+    queryFn: ({ signal }) => fetchCalendarFeed(signal),
   });
 }
 
@@ -55,6 +64,16 @@ export function useRevokeIntegrationClientMutation() {
   return useMutation({
     mutationFn: (clientId: number) => revokeIntegrationClient(clientId),
     onSuccess: invalidate,
+  });
+}
+
+export function useRegenerateCalendarFeedMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => regenerateCalendarFeed(),
+    onSuccess: (updated) => {
+      queryClient.setQueryData(queryKeys.settings.calendarFeed(), updated);
+    },
   });
 }
 

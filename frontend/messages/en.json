@@ -398,5 +398,21 @@
   "meal_plan_generate_preview": "Review the unique ingredients that will be added to a new shopping list.",
   "meal_plan_generate_error": "Unable to generate shopping list.",
   "meal_plan_no_ingredients": "Add ingredients to at least one meal before generating a list.",
-  "meal_plan_shopping_list_created": "Created shopping list “{name}”."
+  "meal_plan_shopping_list_created": "Created shopping list “{name}”.",
+  "settings_calendar_subscription_header": "Calendar subscription",
+  "settings_calendar_subscription_description": "Add this URL to Google Calendar, Apple Calendar, or Outlook to see your Daynest items there.",
+  "settings_calendar_feed_label": "iCal feed URL",
+  "settings_calendar_feed_loading": "Loading calendar feed URL…",
+  "settings_calendar_feed_unavailable": "Calendar feed unavailable",
+  "settings_calendar_feed_copy": "Copy",
+  "settings_calendar_feed_copied": "Calendar feed URL copied.",
+  "settings_calendar_clipboard_error": "Clipboard copy failed.",
+  "settings_calendar_clipboard_unsupported": "Clipboard API not supported or blocked.",
+  "settings_calendar_regenerate": "Regenerate",
+  "settings_calendar_regenerating": "Regenerating…",
+  "settings_calendar_rotate_warning": "Rotating the URL invalidates existing subscriptions.",
+  "settings_calendar_regenerate_confirm": "Regenerating your calendar feed URL will immediately break existing calendar subscriptions. Continue?",
+  "settings_calendar_regenerated": "Calendar feed URL regenerated. Copy the new URL into your calendar app.",
+  "settings_calendar_regenerate_error": "Failed to regenerate calendar feed URL.",
+  "settings_calendar_load_error": "Failed to load calendar feed URL."
 }

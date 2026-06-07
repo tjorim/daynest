@@ -2,6 +2,8 @@ import { http, HttpResponse } from "msw";
 import { getMockState, mutateSettings } from "../data/state";
 import type { UserSettingsPatch } from "@/lib/api/today";
 
+let mockCalendarFeedToken = "mock-calendar-feed-token";
+
 export const settingsHandlers = [
   http.get("/api/users/me/settings", () =>
     HttpResponse.json(getMockState().settings),
@@ -11,6 +13,21 @@ export const settingsHandlers = [
     const patch = (await request.json()) as UserSettingsPatch;
     mutateSettings((s) => ({ ...s, ...patch }));
     return HttpResponse.json(getMockState().settings);
+  }),
+
+  http.get("/api/calendar/feed", () =>
+    HttpResponse.json({
+      token: mockCalendarFeedToken,
+      feed_url: `http://localhost/api/calendar/feed/${mockCalendarFeedToken}.ics`,
+    }),
+  ),
+
+  http.post("/api/calendar/feed/regenerate", () => {
+    mockCalendarFeedToken = `mock-calendar-feed-token-${Date.now()}`;
+    return HttpResponse.json({
+      token: mockCalendarFeedToken,
+      feed_url: `http://localhost/api/calendar/feed/${mockCalendarFeedToken}.ics`,
+    });
   }),
 
   http.get("/api/integrations/clients", () =>

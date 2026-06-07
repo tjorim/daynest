@@ -29,8 +29,10 @@ import {
 } from "@/lib/api/auth";
 import { getCustomServerUrl, setCustomServerUrl } from "@/lib/api/serverConfig";
 import {
+  useCalendarFeedQuery,
   useCreateIntegrationClientMutation,
   useIntegrationClientsQuery,
+  useRegenerateCalendarFeedMutation,
   useRevokeIntegrationClientMutation,
   useRotateIntegrationClientMutation,
   useUpdateUserSettingsMutation,
@@ -110,11 +112,15 @@ export function SettingsPage() {
   const [notificationPermission, setNotificationPermission] = useState(() =>
     typeof Notification === "undefined" ? "denied" : Notification.permission,
   );
+  const [calendarFeedCopyStatus, setCalendarFeedCopyStatus] = useState<string | null>(null);
+  const [calendarFeedError, setCalendarFeedError] = useState<string | null>(null);
   const clientsQuery = useIntegrationClientsQuery();
+  const calendarFeedQuery = useCalendarFeedQuery();
   const userSettingsQuery = useUserSettingsQuery();
   const createClientMutation = useCreateIntegrationClientMutation();
   const rotateClientMutation = useRotateIntegrationClientMutation();
   const revokeClientMutation = useRevokeIntegrationClientMutation();
+  const regenerateCalendarFeedMutation = useRegenerateCalendarFeedMutation();
   const updateUserSettingsMutation = useUpdateUserSettingsMutation();
   const clients = clientsQuery.data ?? [];
   const loading = clientsQuery.isPending;
@@ -400,6 +406,35 @@ export function SettingsPage() {
       setCopyStatus("Client secret copied.");
     } catch {
       setCopyStatus("Clipboard copy failed.");
+    }
+  };
+
+  const copyCalendarFeedUrl = async () => {
+    const feedUrl = calendarFeedQuery.data?.feed_url;
+    if (!feedUrl) return;
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(feedUrl);
+        setCalendarFeedCopyStatus(m.settings_calendar_feed_copied());
+      } else {
+        setCalendarFeedCopyStatus(m.settings_calendar_clipboard_unsupported());
+      }
+    } catch {
+      setCalendarFeedCopyStatus(m.settings_calendar_clipboard_error());
+    }
+    setTimeout(() => setCalendarFeedCopyStatus(null), 3000);
+  };
+
+  const onRegenerateCalendarFeed = async () => {
+    const confirmed = window.confirm(m.settings_calendar_regenerate_confirm());
+    if (!confirmed) return;
+    setCalendarFeedError(null);
+    setCalendarFeedCopyStatus(null);
+    try {
+      await regenerateCalendarFeedMutation.mutateAsync();
+      setCalendarFeedCopyStatus(m.settings_calendar_regenerated());
+    } catch (err) {
+      setCalendarFeedError(err instanceof Error ? err.message : m.settings_calendar_regenerate_error());
     }
   };
 
@@ -751,6 +786,59 @@ export function SettingsPage() {
                   {m.settings_enable_browser_notifications()}
                 </button>
               ) : null}
+            </div>
+          </div>
+
+          <div className="card mb-3">
+            <div className="card-header fw-semibold py-2">{m.settings_calendar_subscription_header()}</div>
+            <div className="card-body d-grid gap-2">
+              <p className="text-muted small mb-1">{m.settings_calendar_subscription_description()}</p>
+              <label className="form-label small fw-semibold mb-0" htmlFor="calendarFeedUrl">
+                {m.settings_calendar_feed_label()}
+              </label>
+              <div className="input-group input-group-sm">
+                <input
+                  id="calendarFeedUrl"
+                  className="form-control"
+                  readOnly
+                  value={calendarFeedQuery.data?.feed_url ?? ""}
+                  placeholder={
+                    calendarFeedQuery.isPending
+                      ? m.settings_calendar_feed_loading()
+                      : m.settings_calendar_feed_unavailable()
+                  }
+                />
+                <button
+                  type="button"
+                  className="btn btn-outline-primary"
+                  disabled={!calendarFeedQuery.data?.feed_url}
+                  onClick={() => void copyCalendarFeedUrl()}
+                >
+                  {m.settings_calendar_feed_copy()}
+                </button>
+              </div>
+              <div className="d-flex gap-2 align-items-center flex-wrap">
+                <button
+                  type="button"
+                  className="btn btn-outline-danger btn-sm"
+                  disabled={regenerateCalendarFeedMutation.isPending}
+                  onClick={() => void onRegenerateCalendarFeed()}
+                >
+                  {regenerateCalendarFeedMutation.isPending
+                    ? m.settings_calendar_regenerating()
+                    : m.settings_calendar_regenerate()}
+                </button>
+                <small className="text-muted">{m.settings_calendar_rotate_warning()}</small>
+              </div>
+              {calendarFeedQuery.error ? (
+                <div className="text-danger small">
+                  {calendarFeedQuery.error instanceof Error
+                    ? calendarFeedQuery.error.message
+                    : m.settings_calendar_load_error()}
+                </div>
+              ) : null}
+              {calendarFeedError ? <div className="text-danger small">{calendarFeedError}</div> : null}
+              {calendarFeedCopyStatus ? <div className="text-success small">{calendarFeedCopyStatus}</div> : null}
             </div>
           </div>
 
