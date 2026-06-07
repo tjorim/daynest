@@ -2,6 +2,8 @@
 
 package com.daynest.android.feature.calendar
 
+import android.Manifest
+import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -24,6 +26,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -35,6 +38,7 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.daynest.android.R
@@ -178,6 +182,23 @@ private fun CalendarContent(
             onEvent(CalendarUiEvent.ImportBackup(items))
         }
 
+    val calendarPermissionLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            onEvent(CalendarUiEvent.CalendarPermissionResult(granted))
+        }
+    LaunchedEffect(state.selectedDate, state.showDeviceCalendars) {
+        if (
+            state.selectedDate != null &&
+            state.showDeviceCalendars &&
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.READ_CALENDAR,
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            calendarPermissionLauncher.launch(Manifest.permission.READ_CALENDAR)
+        }
+    }
+
     val backupMessageText = state.backupMessage?.asText()
     LazyColumn(
         modifier = modifier.fillMaxSize(),
@@ -308,6 +329,20 @@ private fun CalendarContent(
                     )
                 }
             }
+
+            if (state.showDeviceCalendars) {
+                item {
+                    DeviceCalendarSectionHeader(state.deviceCalendarStatus, context)
+                }
+                itemsIndexed(
+                    state.deviceCalendarEvents,
+                    key = { index, item ->
+                        "device_${item.calendarId}_${item.id}_${item.startsAt.toEpochMilli()}_$index"
+                    },
+                ) { _, item ->
+                    DeviceCalendarEventCard(item = item)
+                }
+            }
         }
     }
 
@@ -327,7 +362,9 @@ private fun CalendarContent(
         EditPlannedItemDialog(
             item = currentEditingItem,
             onConfirm = { input, scope ->
-                onEvent(CalendarUiEvent.UpdatePlannedItem(currentEditingItem.itemId, state.selectedDate, input, scope))
+                onEvent(
+                    CalendarUiEvent.UpdatePlannedItem(currentEditingItem.itemId, state.selectedDate, input, scope),
+                )
                 editingItem = null
             },
             onDismiss = { editingItem = null },

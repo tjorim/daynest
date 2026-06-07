@@ -103,6 +103,10 @@ private fun SettingsContent(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
+    val deviceCalendarPermissionLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            onEvent(SettingsUiEvent.UpdateShowDeviceCalendars(granted))
+        }
     val calendarPermissionLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
             val granted =
@@ -133,6 +137,7 @@ private fun SettingsContent(
             context = context,
             notificationsPermissionLauncher = notificationsPermissionLauncher,
             calendarPermissionLauncher = calendarPermissionLauncher,
+            deviceCalendarPermissionLauncher = deviceCalendarPermissionLauncher,
             onEvent = onEvent,
         )
         settingsAccountSection(onEvent)
