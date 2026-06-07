@@ -19,65 +19,49 @@ internal class CalendarDeviceEventsHandler(
     fun load(date: LocalDate) {
         scope.launch {
             if (!preferences().showDeviceCalendars) {
-                uiState.update { current ->
-                    if (current is CalendarUiState.Content) {
-                        current.copy(
-                            deviceCalendarEvents = emptyList(),
-                            deviceCalendarStatus = DeviceCalendarStatus.Idle,
-                        )
-                    } else {
-                        current
-                    }
+                updateContent {
+                    it.copy(
+                        deviceCalendarEvents = emptyList(),
+                        deviceCalendarStatus = DeviceCalendarStatus.Idle,
+                    )
                 }
                 return@launch
             }
             if (preferences().enabledDeviceCalendarIds.isEmpty()) {
-                uiState.update { current ->
-                    if (current is CalendarUiState.Content) {
-                        current.copy(
-                            deviceCalendarEvents = emptyList(),
-                            deviceCalendarStatus = DeviceCalendarStatus.NoEnabledCalendars,
-                        )
-                    } else {
-                        current
-                    }
+                updateContent {
+                    it.copy(
+                        deviceCalendarEvents = emptyList(),
+                        deviceCalendarStatus = DeviceCalendarStatus.NoEnabledCalendars,
+                    )
                 }
                 return@launch
             }
-            uiState.update { current ->
-                if (current is CalendarUiState.Content) {
-                    current.copy(deviceCalendarStatus = DeviceCalendarStatus.Loading)
-                } else {
-                    current
-                }
-            }
+            updateContent { it.copy(deviceCalendarStatus = DeviceCalendarStatus.Loading) }
             deviceCalendarRepository
                 .listEventsForDay(date, preferences().enabledDeviceCalendarIds)
                 .onSuccess { events ->
-                    uiState.update { current ->
-                        if (current is CalendarUiState.Content && current.selectedDate == date.toString()) {
-                            current.copy(
-                                deviceCalendarEvents = events,
-                                deviceCalendarStatus =
-                                    if (events.isEmpty()) DeviceCalendarStatus.Empty else DeviceCalendarStatus.Ready,
-                            )
-                        } else {
-                            current
-                        }
+                    updateContent { current ->
+                        if (current.selectedDate != date.toString()) return@updateContent current
+                        current.copy(
+                            deviceCalendarEvents = events,
+                            deviceCalendarStatus =
+                                if (events.isEmpty()) DeviceCalendarStatus.Empty else DeviceCalendarStatus.Ready,
+                        )
                     }
                 }.onFailure {
-                    uiState.update { current ->
-                        if (current is CalendarUiState.Content && current.selectedDate == date.toString()) {
-                            current.copy(
-                                deviceCalendarEvents = emptyList(),
-                                deviceCalendarStatus = DeviceCalendarStatus.PermissionRequired,
-                            )
-                        } else {
-                            current
-                        }
+                    updateContent { current ->
+                        if (current.selectedDate != date.toString()) return@updateContent current
+                        current.copy(
+                            deviceCalendarEvents = emptyList(),
+                            deviceCalendarStatus = DeviceCalendarStatus.PermissionRequired,
+                        )
                     }
                 }
         }
+    }
+
+    private fun updateContent(transform: (CalendarUiState.Content) -> CalendarUiState.Content) {
+        uiState.update { current -> if (current is CalendarUiState.Content) transform(current) else current }
     }
 
     fun handlePermissionResult(granted: Boolean) {
