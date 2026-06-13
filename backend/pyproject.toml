@@ -7,7 +7,7 @@ dependencies = [
     "anyio==4.13.0",
     "email-validator==2.3.0",
     "fastapi==0.136.3",
-    "google-auth==2.53.0",
+    "google-auth==2.54.0",
     "httpx==0.28.1",
     "icalendar==7.1.2",
     "fastmcp==3.4.2",
