@@ -8,7 +8,7 @@ ktlint = "14.2.0"
 foojay = "1.0.0"
 appauth = "0.11.1"
 
-compose-bom = "2026.05.01"
+compose-bom = "2026.06.00"
 androidx-core = "1.19.0"
 androidx-lifecycle = "2.10.0"
 androidx-activity = "1.13.0"
