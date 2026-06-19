@@ -17,7 +17,7 @@
   },
   "dependencies": {
     "@inlang/paraglide-js": "^2.20.0",
-    "@inlang/plugin-m-function-matcher": "^2.2.7",
+    "@inlang/plugin-m-function-matcher": "^2.2.9",
     "@inlang/plugin-message-format": "^4.4.0",
     "@schedule-x/calendar": "^2.36.0",
     "@schedule-x/drag-and-drop": "^3.7.3",
