@@ -32,7 +32,7 @@ become catch-alls:
   component with 30+ `useState` declarations covering integration clients,
   OAuth sessions, server URL, timezone, notification prefs, calendar feed, and
   PWA install — six unrelated concerns in one render function.
-- **Backend `mcp_server.py` (1462)**, `today_service.py` (1337), and
+- **Backend `mcp_server.py` (1462), `today_service.py` (1337), and
   `today_repository.py` (908)** are large but more defensibly so (one cohesive
   responsibility each); still worth watching for sub-module extraction.
 
