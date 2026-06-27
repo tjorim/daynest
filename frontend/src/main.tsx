@@ -21,7 +21,7 @@ import { ThemeProvider } from "@/app/theme/ThemeContext";
 function App() {
   const { isAuthenticated, isLoading } = useAuth();
   return (
-    <main className="container py-3 py-md-4">
+    <main id="main-content" className="container py-3 py-md-4" tabIndex={-1}>
       <RouterProvider
         router={appRouter}
         context={{

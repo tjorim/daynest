@@ -141,6 +141,7 @@ export function PlannedItemsSidebar({
               value={title}
               onChange={(event) => onSetTitle(event.target.value)}
               placeholder={m.calendar_plan_title_placeholder()}
+              aria-label={m.calendar_plan_title_placeholder()}
             />
             <label htmlFor="planned-time-of-day" className="form-label mt-2 mb-1">
               {m.calendar_time_of_day_label()}
@@ -172,6 +173,7 @@ export function PlannedItemsSidebar({
               value={notes}
               onChange={(event) => onSetNotes(event.target.value)}
               placeholder={m.calendar_notes_placeholder()}
+              aria-label={m.calendar_notes_placeholder()}
             />
             <select
               className="form-select"
@@ -258,6 +260,7 @@ export function PlannedItemsSidebar({
                 value={recurrenceHint}
                 onChange={(event) => onSetRecurrenceHint(event.target.value)}
                 placeholder={m.calendar_recurrence_placeholder()}
+                aria-label={m.calendar_recurrence_placeholder()}
               />
             )}
             <input
@@ -265,12 +268,14 @@ export function PlannedItemsSidebar({
               value={linkedSource}
               onChange={(event) => onSetLinkedSource(event.target.value)}
               placeholder={m.calendar_linked_source_placeholder()}
+              aria-label={m.calendar_linked_source_placeholder()}
             />
             <input
               className="form-control"
               value={linkedRef}
               onChange={(event) => onSetLinkedRef(event.target.value)}
               placeholder={m.calendar_linked_ref_placeholder()}
+              aria-label={m.calendar_linked_ref_placeholder()}
             />
             {editingPlannedItemId !== null &&
             (() => {
@@ -325,7 +330,7 @@ export function PlannedItemsSidebar({
         <div className="card-header fw-semibold py-2">
           {m.calendar_planned_items_header({ date: formatDate(selectedDate) })}
         </div>
-        <ul className="list-group list-group-flush">
+        <ul className="list-group list-group-flush" aria-label={m.calendar_planned_items_header({ date: formatDate(selectedDate) })}>
           {plannedItems.length === 0 ? (
             <li className="list-group-item py-2 text-muted">{m.calendar_no_planned_items()}</li>
           ) : (

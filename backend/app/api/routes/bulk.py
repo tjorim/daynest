@@ -40,6 +40,8 @@ def bulk_mutate(
         except HTTPException as exc:
             results.append(BulkMutationResult(type=mutation.type, id=mutation.id, success=False, error=exc.detail))
         except Exception:
+            # Bulk operations are best-effort: one unexpected item failure must not hide
+            # successful sibling mutations, but it is logged with mutation context.
             logger.exception("Unexpected error applying mutation type=%s id=%s", mutation.type, mutation.id)
             results.append(BulkMutationResult(type=mutation.type, id=mutation.id, success=False, error="failed to apply mutation"))
     if has_success:
@@ -47,6 +49,7 @@ def bulk_mutate(
             service.save()
             event_bus.publish(current_user.id, {"type": "today_updated"})
         except Exception:
+            # Persistence/event publication is the transaction boundary for the batch.
             logger.exception("Failed to persist bulk mutations")
             for r in results:
                 if r.success:

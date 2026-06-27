@@ -11,6 +11,7 @@ export function SearchOverlay({ onClose }: { onClose: () => void }) {
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
   const navigate = useNavigate();
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const searchQuery = useSearchQuery(
@@ -47,7 +48,11 @@ export function SearchOverlay({ onClose }: { onClose: () => void }) {
   }, [activeIndex, flatItems]);
 
   useEffect(() => {
+    previousFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     inputRef.current?.focus();
+    return () => {
+      previousFocusRef.current?.focus();
+    };
   }, []);
 
   useEffect(() => {
@@ -121,6 +126,9 @@ export function SearchOverlay({ onClose }: { onClose: () => void }) {
     >
       <div
         className="card shadow-lg"
+        role="dialog"
+        aria-modal="true"
+        aria-label={m.app_search()}
         style={{ width: "min(640px, 96vw)", maxHeight: "70vh", display: "flex", flexDirection: "column" }}
       >
         <div className="card-header p-2">

@@ -13,11 +13,6 @@ import {
 import * as m from "@/paraglide/messages";
 import { useLanguage } from "@/i18n/LanguageProvider";
 import {
-  getDeferredInstallPrompt,
-  promptToInstallApp,
-  subscribeInstallPrompt,
-} from "@/app/pwa/installPrompt";
-import {
   type IntegrationClient,
   type IntegrationClientCreateResponse,
 } from "@/lib/api/integrationClients";
@@ -27,7 +22,9 @@ import {
   revokeOAuthSession,
   type OAuthSession,
 } from "@/lib/api/auth";
-import { getCustomServerUrl, setCustomServerUrl } from "@/lib/api/serverConfig";
+import { getCustomServerUrl } from "@/lib/api/serverConfig";
+import { PwaInstallButton } from "@/features/settings/sections/PwaInstallButton";
+import { ServerConfigSection } from "@/features/settings/sections/ServerConfigSection";
 import {
   useCalendarFeedQuery,
   useCreateIntegrationClientMutation,
@@ -59,8 +56,6 @@ export function SettingsPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [copyStatus, setCopyStatus] = useState<string | null>(null);
-  const [isInstalling, setIsInstalling] = useState(false);
-  const [canInstallApp, setCanInstallApp] = useState(() => Boolean(getDeferredInstallPrompt()));
 
   const [name, setName] = useState("Home Assistant");
   const [rateLimit, setRateLimit] = useState("120");
@@ -82,11 +77,6 @@ export function SettingsPage() {
   const [revokingSession, setRevokingSession] = useState<string | null>(null);
   const [revokeError, setRevokeError] = useState<string | null>(null);
 
-  const [serverMode, setServerMode] = useState<"default" | "custom">(() =>
-    getCustomServerUrl() ? "custom" : "default",
-  );
-  const [customServerInput, setCustomServerInput] = useState(() => getCustomServerUrl() ?? "");
-  const [serverUrlError, setServerUrlError] = useState<string | null>(null);
   const [backendBaseUrl, setBackendBaseUrl] = useState(() => {
     const custom = getCustomServerUrl();
     return custom ?? window.location.origin;
@@ -158,30 +148,6 @@ export function SettingsPage() {
     [timezones],
   );
 
-  const applyServerUrl = () => {
-    if (serverMode === "default") {
-      setCustomServerUrl(null);
-      setBackendBaseUrl(window.location.origin);
-      setServerUrlError(null);
-      return;
-    }
-    const trimmed = customServerInput.trim();
-    let parsed: URL;
-    try {
-      parsed = new URL(trimmed);
-    } catch {
-      setServerUrlError("Enter a valid absolute URL.");
-      return;
-    }
-    if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
-      setServerUrlError("URL must use https:// or http://.");
-      return;
-    }
-    setCustomServerUrl(parsed.origin);
-    setBackendBaseUrl(parsed.origin);
-    setServerUrlError(null);
-  };
-
   const loadClients = async () => {
     await clientsQuery.refetch();
   };
@@ -249,13 +215,6 @@ export function SettingsPage() {
     const controller = new AbortController();
     void loadSessions(controller.signal);
     return () => controller.abort();
-  }, []);
-
-  useEffect(() => {
-    const unsubscribe = subscribeInstallPrompt(() =>
-      setCanInstallApp(Boolean(getDeferredInstallPrompt())),
-    );
-    return unsubscribe;
   }, []);
 
   useEffect(() => {
@@ -438,17 +397,6 @@ export function SettingsPage() {
     }
   };
 
-  const onInstallApp = async () => {
-    setIsInstalling(true);
-    try {
-      await promptToInstallApp();
-    } catch (error) {
-      console.error("PWA install prompt failed:", error);
-    } finally {
-      setIsInstalling(false);
-    }
-  };
-
   const clientColumns = useMemo(
     () => [
       integrationClientColumnHelper.accessor("name", {
@@ -526,16 +474,7 @@ export function SettingsPage() {
       <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2 mb-2">
         <h2 className="h4 mb-0">{m.settings_title()}</h2>
         <div className="d-flex gap-2 align-items-center flex-wrap">
-          {canInstallApp ? (
-            <button
-              type="button"
-              className="btn btn-primary btn-sm"
-              disabled={isInstalling}
-              onClick={() => void onInstallApp()}
-            >
-              {m.settings_install_app()}
-            </button>
-          ) : null}
+          <PwaInstallButton />
           <button
             type="button"
             className="btn btn-outline-primary btn-sm"
@@ -569,59 +508,7 @@ export function SettingsPage() {
 
       <div className="row g-3">
         <div className="col-lg-5">
-          <div className="card mb-3">
-            <div className="card-header fw-semibold py-2">{m.settings_backend_server_header()}</div>
-            <div className="card-body d-grid gap-2">
-              <div className="d-flex gap-3">
-                <label className="form-check">
-                  <input
-                    className="form-check-input"
-                    type="radio"
-                    name="server-mode"
-                    checked={serverMode === "default"}
-                    onChange={() => {
-                      setServerMode("default");
-                      setServerUrlError(null);
-                    }}
-                  />
-                  <span className="form-check-label">{m.settings_default()}</span>
-                </label>
-                <label className="form-check">
-                  <input
-                    className="form-check-input"
-                    type="radio"
-                    name="server-mode"
-                    checked={serverMode === "custom"}
-                    onChange={() => setServerMode("custom")}
-                  />
-                  <span className="form-check-label">{m.settings_custom_self_hosted()}</span>
-                </label>
-              </div>
-              {serverMode === "custom" ? (
-                <div>
-                  <input
-                    className={`form-control${serverUrlError ? " is-invalid" : ""}`}
-                    value={customServerInput}
-                    onChange={(event) => {
-                      setCustomServerInput(event.target.value);
-                      setServerUrlError(null);
-                    }}
-                    placeholder={m.settings_custom_placeholder()}
-                  />
-                  {serverUrlError ? (
-                    <div className="invalid-feedback">{serverUrlError}</div>
-                  ) : null}
-                </div>
-              ) : null}
-              <button
-                type="button"
-                className="btn btn-outline-primary btn-sm"
-                onClick={applyServerUrl}
-              >
-                {m.settings_apply()}
-              </button>
-            </div>
-          </div>
+          <ServerConfigSection onBaseUrlChange={setBackendBaseUrl} />
 
           <div className="card mb-3">
             <div className="card-header fw-semibold py-2">{m.settings_user_prefs_header()}</div>
