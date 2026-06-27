@@ -2,7 +2,7 @@ import { http, HttpResponse } from "msw";
 import { getMockState, mutateRoutineTemplates, mutateChoreTemplates } from "../data/state";
 import { nextTemplateId } from "../data/templates";
 import { MOCK_TODAY } from "../data/constants";
-import type { RoutineTemplateInput, ChoreTemplateInput } from "@/lib/api/today";
+import type { RoutineTemplateInput, ChoreTemplateInput } from "@/lib/api/templates";
 
 export const templateHandlers = [
   // Routine templates

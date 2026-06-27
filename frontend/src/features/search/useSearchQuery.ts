@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { searchItems } from "@/lib/api/today";
+import { searchItems } from "@/lib/api/search";
 import { queryKeys } from "@/lib/query/queryKeys";
 
 export function useSearchQuery(query: string, enabled: boolean) {

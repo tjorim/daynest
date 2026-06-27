@@ -7,7 +7,7 @@ import {
   updateMedicationPlan,
   type MedicationPlanInput,
   type MedicationPlanUpdateInput,
-} from "@/lib/api/today";
+} from "@/lib/api/medications";
 import { queryKeys } from "@/lib/query/queryKeys";
 
 function useInvalidateMedicationQueries() {

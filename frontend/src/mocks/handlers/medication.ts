@@ -2,7 +2,7 @@ import { http, HttpResponse } from "msw";
 import { getMockState, mutateMedications } from "../data/state";
 import { nextMedicationId, seedMedicationHistory } from "../data/medication";
 import { MOCK_TODAY } from "../data/constants";
-import type { MedicationPlanInput, MedicationPlanUpdateInput } from "@/lib/api/today";
+import type { MedicationPlanInput, MedicationPlanUpdateInput } from "@/lib/api/medications";
 
 export const medicationHandlers = [
   http.get("/api/medications", () =>

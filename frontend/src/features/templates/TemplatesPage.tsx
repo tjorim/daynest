@@ -1,8 +1,6 @@
 import { useMemo, useState } from "react";
 import * as m from "@/paraglide/messages";
-import {
-  isRetryableApiError,
-} from "@/lib/api/today";
+import { isRetryableApiError } from "@/lib/api/http";
 import { formatDate, toIsoDate } from "@/lib/dateUtils";
 import {
   useChoreTemplatesQuery,

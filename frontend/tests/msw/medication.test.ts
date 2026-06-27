@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "@/mocks/server";
-import { listMedicationPlans, createMedicationPlan } from "@/lib/api/today";
+import { listMedicationPlans, createMedicationPlan } from "@/lib/api/medications";
 import { seedMedications } from "@/mocks/data/medication";
 
 describe("listMedicationPlans — MSW-backed", () => {

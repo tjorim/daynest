@@ -18,10 +18,10 @@ import {
   subscribeInstallPrompt,
 } from "@/app/pwa/installPrompt";
 import {
-  isRetryableApiError,
   type IntegrationClient,
   type IntegrationClientCreateResponse,
-} from "@/lib/api/today";
+} from "@/lib/api/integrationClients";
+import { isRetryableApiError } from "@/lib/api/http";
 import {
   listOAuthSessions,
   revokeOAuthSession,

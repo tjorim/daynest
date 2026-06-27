@@ -1,6 +1,16 @@
-import { getOidcAccessToken } from "@/lib/auth/session";
-import { enqueue as enqueueOffline } from "@/lib/offlineQueue";
-import { buildApiUrl } from "@/lib/api/serverConfig";
+import { fetchWithAuth, getJson, parseJsonResponse, sendJson } from "@/lib/api/http";
+export {
+  ApiError,
+  fetchWithAuth,
+  fetchWithRetry,
+  getJson,
+  isRetryableApiError,
+  isRetryableStatus,
+  parseJsonResponse,
+  sendJson,
+  sleep,
+  withAuthHeader,
+} from "@/lib/api/http";
 import { z } from "zod";
 
 export type TaskStatus = "pending" | "in_progress" | "completed" | "skipped";
@@ -21,14 +31,7 @@ export interface MedicationTodayItem {
   status: MedicationDoseStatus;
 }
 
-export interface MedicationHistoryItem {
-  medication_dose_instance_id: number;
-  medication_plan_id: number;
-  name: string;
-  instructions: string;
-  scheduled_at: string;
-  status: MedicationDoseStatus;
-}
+export type MedicationHistoryItem = MedicationTodayItem;
 
 export interface RoutineTodayItem {
   task_instance_id: number;
@@ -258,6 +261,11 @@ export const CalendarRangeResponseSchema = z.object({
   items: z.array(unifiedDayItemSchema),
 });
 
+export const CalendarDayResponseSchema = z.object({
+  date: z.string(),
+  items: z.array(unifiedDayItemSchema),
+});
+
 const calendarMonthDaySummarySchema = z.object({
   date: z.string(),
   total: z.number(),
@@ -288,6 +296,44 @@ export const TodayResponseSchema = z.object({
 });
 
 export type TodayPayload = z.infer<typeof TodayResponseSchema>;
+
+const plannedTodayItemsSchema = z.array(plannedTodayItemSchema);
+
+const choreMutationResponseSchema = z.object({
+  chore_instance_id: z.number(),
+  status: choreStatusSchema,
+  scheduled_date: z.string(),
+  completed_at: z.string().nullable(),
+  skipped_at: z.string().nullable(),
+});
+
+const taskMutationResponseSchema = z.object({
+  task_instance_id: z.number(),
+  status: taskStatusSchema,
+  scheduled_date: z.string(),
+  due_at: z.string().nullable(),
+  completed_at: z.string().nullable(),
+});
+
+const medicationMutationResponseSchema = z.object({
+  medication_dose_instance_id: z.number(),
+  status: medicationDoseStatusSchema,
+  scheduled_date: z.string(),
+});
+
+const medicationPlanSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  instructions: z.string(),
+  start_date: z.string(),
+  schedule_time: z.string(),
+  every_n_days: z.number(),
+  is_active: z.boolean(),
+});
+
+const medicationHistoryResponseSchema = z.object({
+  history: z.array(medicationHistoryItemSchema),
+});
 
 export interface ChoreMutationResponse {
   chore_instance_id: number;
@@ -394,175 +440,43 @@ export interface ChoreTemplateInput {
   is_active: boolean;
 }
 
-export class ApiError extends Error {
-  readonly status: number;
-  readonly retryable: boolean;
-  readonly requestId: string | null;
+const integrationClientSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  rate_limit_per_minute: z.number(),
+  is_active: z.boolean(),
+});
 
-  constructor(message: string, status: number, retryable = false, requestId: string | null = null) {
-    super(message);
-    this.name = "ApiError";
-    this.status = status;
-    this.retryable = retryable;
-    this.requestId = requestId;
-  }
-}
+const integrationClientCreateResponseSchema = integrationClientSchema.extend({
+  api_key: z.string(),
+  client_id: z.string(),
+  client_secret: z.string(),
+  token_url: z.string(),
+});
 
-function isRetryableStatus(status: number): boolean {
-  return status === 408 || status === 425 || status === 429 || status >= 500;
-}
+const routineTemplateSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  description: z.string().nullable(),
+  start_date: z.string(),
+  every_n_days: z.number(),
+  due_time: z.string().nullable(),
+  is_active: z.boolean(),
+  created_at: z.string(),
+});
 
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => {
-    setTimeout(resolve, ms);
-  });
-}
-
-async function fetchWithRetry(
-  input: RequestInfo | URL,
-  init: RequestInit = {},
-  retries = 2,
-): Promise<Response> {
-  let attempt = 0;
-  let lastError: unknown;
-  const isIdempotent =
-    !init.method || ["GET", "HEAD", "PUT", "DELETE", "OPTIONS"].includes(init.method.toUpperCase());
-
-  while (attempt <= retries) {
-    try {
-      const response = await fetch(input, init);
-      if (!response.ok && isRetryableStatus(response.status) && attempt < retries && isIdempotent) {
-        await sleep(250 * 2 ** attempt);
-        attempt += 1;
-        continue;
-      }
-      return response;
-    } catch (error) {
-      if (error instanceof Error && error.name === "AbortError") throw error;
-      lastError = error;
-      if (attempt >= retries || !isIdempotent) break;
-      await sleep(250 * 2 ** attempt);
-      attempt += 1;
-    }
-  }
-
-  if (lastError instanceof Error) {
-    throw new ApiError(`Network request failed: ${lastError.message}`, 0, isIdempotent);
-  }
-  throw new ApiError("Network request failed.", 0, isIdempotent);
-}
-
-function withAuthHeader(init: RequestInit, token?: string): RequestInit {
-  if (!token) {
-    return init;
-  }
-  const headers = new Headers(init.headers);
-  headers.set("Authorization", `Bearer ${token}`);
-  return { ...init, headers };
-}
-
-export async function fetchWithAuth(
-  input: RequestInfo | URL,
-  init: RequestInit = {},
-  retries = 2,
-): Promise<Response> {
-  const token = getOidcAccessToken();
-  if (!token) {
-    throw new ApiError("Not authenticated", 401);
-  }
-  const url =
-    typeof input === "string" && !/^https?:\/\//i.test(input) ? buildApiUrl(input) : input;
-  const method = (init.method ?? "GET").toUpperCase();
-  if (
-    typeof navigator !== "undefined" &&
-    !navigator.onLine &&
-    method !== "GET" &&
-    method !== "HEAD"
-  ) {
-    enqueueOffline(url.toString(), init);
-    throw new ApiError(
-      "You are offline. This action will be replayed when you reconnect.",
-      0,
-      false,
-    );
-  }
-  return fetchWithRetry(url, withAuthHeader(init, token), retries);
-}
-
-export async function parseJsonResponse<T>(
-  response: Response,
-  fallbackMessage = "Request failed",
-  isIdempotent = true,
-  schema?: z.ZodType<T>,
-): Promise<T> {
-  const requestId = response.headers.get("x-request-id");
-
-  if (!response.ok) {
-    let message = `${fallbackMessage} (${response.status})`;
-    try {
-      const body = (await response.json()) as { detail?: string | unknown[] };
-      if (typeof body.detail === "string") {
-        message = body.detail;
-      } else if (Array.isArray(body.detail) && body.detail.length > 0) {
-        message = body.detail
-          .map((entry) => {
-            if (
-              entry &&
-              typeof entry === "object" &&
-              "msg" in entry &&
-              typeof entry.msg === "string"
-            ) {
-              return entry.msg;
-            }
-            return JSON.stringify(entry);
-          })
-          .filter((entry): entry is string => Boolean(entry))
-          .join(", ");
-      }
-    } catch {
-      // keep fallback message
-    }
-    const fullMessage = requestId ? `${message} [request-id: ${requestId}]` : message;
-    throw new ApiError(
-      fullMessage,
-      response.status,
-      isIdempotent && isRetryableStatus(response.status),
-      requestId,
-    );
-  }
-  const payload = (await response.json()) as unknown;
-
-  if (!schema) {
-    return payload as T;
-  }
-
-  const result = schema.safeParse(payload);
-  if (!result.success) {
-    const details = result.error.issues
-      .map((issue) => {
-        const path = issue.path.length > 0 ? issue.path.join(".") : "response";
-        return `${path}: ${issue.message}`;
-      })
-      .join(", ");
-    const fullMessage = requestId
-      ? `Invalid response format: ${details} [request-id: ${requestId}]`
-      : `Invalid response format: ${details}`;
-    throw new ApiError(fullMessage, response.status, false, requestId);
-  }
-
-  return result.data;
-}
+const choreTemplateSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  description: z.string().nullable(),
+  start_date: z.string(),
+  every_n_days: z.number(),
+  is_active: z.boolean(),
+  created_at: z.string(),
+});
 
 export async function fetchToday(signal?: AbortSignal): Promise<TodayPayload> {
-  const response = await fetchWithAuth(
-    "/api/today",
-    {
-      headers: { Accept: "application/json" },
-      signal,
-    },
-    1,
-  );
-  return parseJsonResponse(response, "Unable to load today's data", true, TodayResponseSchema);
+  return getJson("/api/today", TodayResponseSchema, signal, 1, "Unable to load today's data");
 }
 
 export async function fetchCalendarMonth(
@@ -570,30 +484,22 @@ export async function fetchCalendarMonth(
   month: number,
   signal?: AbortSignal,
 ): Promise<CalendarMonthPayload> {
-  const response = await fetchWithAuth(
+  return getJson(
     `/api/calendar/month?year=${year}&month=${month}`,
-    {
-      headers: { Accept: "application/json" },
-      signal,
-    },
-    1,
+    CalendarMonthResponseSchema,
+    signal,
   );
-  return parseJsonResponse(response, "Request failed", true, CalendarMonthResponseSchema);
 }
 
 export async function fetchCalendarDay(
   date: string,
   signal?: AbortSignal,
 ): Promise<CalendarDayPayload> {
-  const response = await fetchWithAuth(
+  return getJson(
     `/api/calendar/day?date=${encodeURIComponent(date)}`,
-    {
-      headers: { Accept: "application/json" },
-      signal,
-    },
-    1,
+    CalendarDayResponseSchema,
+    signal,
   );
-  return parseJsonResponse<CalendarDayPayload>(response);
 }
 
 export async function fetchCalendarRange(
@@ -602,27 +508,11 @@ export async function fetchCalendarRange(
   signal?: AbortSignal,
 ): Promise<CalendarRangePayload> {
   const params = new URLSearchParams({ start, end });
-  const response = await fetchWithAuth(
-    `/api/calendar/range?${params.toString()}`,
-    {
-      headers: { Accept: "application/json" },
-      signal,
-    },
-    1,
-  );
-  return parseJsonResponse(response, "Request failed", true, CalendarRangeResponseSchema);
+  return getJson(`/api/calendar/range?${params.toString()}`, CalendarRangeResponseSchema, signal);
 }
 
 export async function createPlannedItem(input: PlannedItemInput): Promise<PlannedTodayItem> {
-  const response = await fetchWithAuth("/api/planned-items", {
-    method: "POST",
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(input),
-  });
-  return parseJsonResponse<PlannedTodayItem>(response, "Request failed", false);
+  return sendJson("POST", "/api/planned-items", input, plannedTodayItemSchema);
 }
 
 export async function updatePlannedItem(
@@ -630,15 +520,7 @@ export async function updatePlannedItem(
   input: PlannedItemUpdateInput,
   scope: PlannedItemEditScope = "this",
 ): Promise<PlannedTodayItem> {
-  const response = await fetchWithAuth(`/api/planned-items/${plannedItemId}?scope=${scope}`, {
-    method: "PUT",
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(input),
-  });
-  return parseJsonResponse<PlannedTodayItem>(response, "Request failed", false);
+  return sendJson("PUT", `/api/planned-items/${plannedItemId}?scope=${scope}`, input, plannedTodayItemSchema);
 }
 
 export async function deletePlannedItem(
@@ -651,6 +533,7 @@ export async function deletePlannedItem(
   });
 
   if (!response.ok) {
+    // Error-only parse; successful deletes return 204 with no JSON body.
     await parseJsonResponse<never>(response, "Request failed", false);
   }
 }
@@ -669,11 +552,7 @@ export async function listPlannedItems(
   }
   const qs = params.toString();
 
-  const response = await fetchWithAuth(`/api/planned-items${qs ? `?${qs}` : ""}`, {
-    headers: { Accept: "application/json" },
-    signal,
-  });
-  return parseJsonResponse<PlannedTodayItem[]>(response);
+  return getJson(`/api/planned-items${qs ? `?${qs}` : ""}`, plannedTodayItemsSchema, signal);
 }
 
 export async function completeChore(choreInstanceId: number): Promise<ChoreMutationResponse> {
@@ -681,7 +560,7 @@ export async function completeChore(choreInstanceId: number): Promise<ChoreMutat
     method: "POST",
     headers: { Accept: "application/json" },
   });
-  return parseJsonResponse<ChoreMutationResponse>(response, "Request failed", false);
+  return parseJsonResponse(response, "Request failed", false, choreMutationResponseSchema);
 }
 
 export async function skipChore(choreInstanceId: number): Promise<ChoreMutationResponse> {
@@ -689,7 +568,7 @@ export async function skipChore(choreInstanceId: number): Promise<ChoreMutationR
     method: "POST",
     headers: { Accept: "application/json" },
   });
-  return parseJsonResponse<ChoreMutationResponse>(response, "Request failed", false);
+  return parseJsonResponse(response, "Request failed", false, choreMutationResponseSchema);
 }
 
 export async function rescheduleChore(
@@ -704,27 +583,19 @@ export async function rescheduleChore(
     },
     body: JSON.stringify({ scheduled_date: scheduledDate }),
   });
-  return parseJsonResponse<ChoreMutationResponse>(response, "Request failed", false);
+  return parseJsonResponse(response, "Request failed", false, choreMutationResponseSchema);
 }
 
 export async function takeMedicationDose(
   medicationDoseId: number,
 ): Promise<MedicationMutationResponse> {
-  const response = await fetchWithAuth(`/api/medication-doses/${medicationDoseId}/take`, {
-    method: "POST",
-    headers: { Accept: "application/json" },
-  });
-  return parseJsonResponse<MedicationMutationResponse>(response, "Request failed", false);
+  return sendJson("POST", `/api/medication-doses/${medicationDoseId}/take`, undefined, medicationMutationResponseSchema);
 }
 
 export async function skipMedicationDose(
   medicationDoseId: number,
 ): Promise<MedicationMutationResponse> {
-  const response = await fetchWithAuth(`/api/medication-doses/${medicationDoseId}/skip`, {
-    method: "POST",
-    headers: { Accept: "application/json" },
-  });
-  return parseJsonResponse<MedicationMutationResponse>(response, "Request failed", false);
+  return sendJson("POST", `/api/medication-doses/${medicationDoseId}/skip`, undefined, medicationMutationResponseSchema);
 }
 
 export async function startRoutineTask(taskInstanceId: number): Promise<TaskMutationResponse> {
@@ -732,7 +603,7 @@ export async function startRoutineTask(taskInstanceId: number): Promise<TaskMuta
     method: "POST",
     headers: { Accept: "application/json" },
   });
-  return parseJsonResponse<TaskMutationResponse>(response, "Request failed", false);
+  return parseJsonResponse(response, "Request failed", false, taskMutationResponseSchema);
 }
 
 export async function completeRoutineTask(taskInstanceId: number): Promise<TaskMutationResponse> {
@@ -740,7 +611,7 @@ export async function completeRoutineTask(taskInstanceId: number): Promise<TaskM
     method: "POST",
     headers: { Accept: "application/json" },
   });
-  return parseJsonResponse<TaskMutationResponse>(response, "Request failed", false);
+  return parseJsonResponse(response, "Request failed", false, taskMutationResponseSchema);
 }
 
 export async function skipRoutineTask(taskInstanceId: number): Promise<TaskMutationResponse> {
@@ -748,42 +619,22 @@ export async function skipRoutineTask(taskInstanceId: number): Promise<TaskMutat
     method: "POST",
     headers: { Accept: "application/json" },
   });
-  return parseJsonResponse<TaskMutationResponse>(response, "Request failed", false);
+  return parseJsonResponse(response, "Request failed", false, taskMutationResponseSchema);
 }
 
 export async function listMedicationPlans(signal?: AbortSignal): Promise<MedicationPlan[]> {
-  const response = await fetchWithAuth("/api/medications", {
-    headers: { Accept: "application/json" },
-    signal,
-  });
-  return parseJsonResponse<MedicationPlan[]>(response);
+  return getJson("/api/medications", z.array(medicationPlanSchema), signal);
 }
 
 export async function createMedicationPlan(input: MedicationPlanInput): Promise<MedicationPlan> {
-  const response = await fetchWithAuth("/api/medications", {
-    method: "POST",
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(input),
-  });
-  return parseJsonResponse<MedicationPlan>(response, "Request failed", false);
+  return sendJson("POST", "/api/medications", input, medicationPlanSchema);
 }
 
 export async function updateMedicationPlan(
   medicationPlanId: number,
   input: MedicationPlanUpdateInput,
 ): Promise<MedicationPlan> {
-  const response = await fetchWithAuth(`/api/medications/${medicationPlanId}`, {
-    method: "PUT",
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(input),
-  });
-  return parseJsonResponse<MedicationPlan>(response, "Request failed", false);
+  return sendJson("PUT", `/api/medications/${medicationPlanId}`, input, medicationPlanSchema);
 }
 
 export async function deleteMedicationPlan(medicationPlanId: number): Promise<void> {
@@ -793,6 +644,7 @@ export async function deleteMedicationPlan(medicationPlanId: number): Promise<vo
   });
 
   if (!response.ok) {
+    // Error-only parse; successful deletes return 204 with no JSON body.
     await parseJsonResponse<never>(response, "Request failed", false);
   }
 }
@@ -800,11 +652,7 @@ export async function deleteMedicationPlan(medicationPlanId: number): Promise<vo
 export async function fetchMedicationHistory(
   signal?: AbortSignal,
 ): Promise<MedicationHistoryItem[]> {
-  const response = await fetchWithAuth("/api/medication-doses/history", {
-    headers: { Accept: "application/json" },
-    signal,
-  });
-  const payload = await parseJsonResponse<MedicationHistoryResponse>(response);
+  const payload = await getJson("/api/medication-doses/history", medicationHistoryResponseSchema, signal);
   return payload.history;
 }
 
@@ -813,12 +661,17 @@ export interface CalendarFeedResponse {
   feed_url: string;
 }
 
+const calendarFeedResponseSchema = z.object({
+  token: z.string(),
+  feed_url: z.string(),
+});
+
 export async function fetchCalendarFeed(signal?: AbortSignal): Promise<CalendarFeedResponse> {
   const response = await fetchWithAuth("/api/calendar/feed", {
     headers: { Accept: "application/json" },
     signal,
   });
-  return parseJsonResponse<CalendarFeedResponse>(response, "Failed to load calendar feed");
+  return parseJsonResponse(response, "Failed to load calendar feed", true, calendarFeedResponseSchema);
 }
 
 export async function regenerateCalendarFeed(): Promise<CalendarFeedResponse> {
@@ -826,7 +679,7 @@ export async function regenerateCalendarFeed(): Promise<CalendarFeedResponse> {
     method: "POST",
     headers: { Accept: "application/json" },
   });
-  return parseJsonResponse<CalendarFeedResponse>(response, "Failed to regenerate calendar feed", false);
+  return parseJsonResponse(response, "Failed to regenerate calendar feed", false, calendarFeedResponseSchema);
 }
 
 export async function listIntegrationClients(signal?: AbortSignal): Promise<IntegrationClient[]> {
@@ -834,7 +687,7 @@ export async function listIntegrationClients(signal?: AbortSignal): Promise<Inte
     headers: { Accept: "application/json" },
     signal,
   });
-  return parseJsonResponse<IntegrationClient[]>(response);
+  return parseJsonResponse(response, "Request failed", true, z.array(integrationClientSchema));
 }
 
 export async function createIntegrationClient(
@@ -848,7 +701,7 @@ export async function createIntegrationClient(
     },
     body: JSON.stringify(input),
   });
-  return parseJsonResponse<IntegrationClientCreateResponse>(response, "Request failed", false);
+  return parseJsonResponse(response, "Request failed", false, integrationClientCreateResponseSchema);
 }
 
 export async function rotateIntegrationClient(
@@ -858,10 +711,11 @@ export async function rotateIntegrationClient(
     method: "POST",
     headers: { Accept: "application/json" },
   });
-  return parseJsonResponse<IntegrationClientCreateResponse>(
+  return parseJsonResponse(
     response,
     "Failed to rotate integration client",
     false,
+    integrationClientCreateResponseSchema,
   );
 }
 
@@ -870,6 +724,7 @@ export async function revokeIntegrationClient(clientId: number): Promise<void> {
     method: "DELETE",
   });
   if (!response.ok) {
+    // Error-only parse; successful revocations return 204 with no JSON body.
     await parseJsonResponse<never>(response, "Failed to revoke integration client");
   }
 }
@@ -879,7 +734,7 @@ export async function listRoutineTemplates(signal?: AbortSignal): Promise<Routin
     headers: { Accept: "application/json" },
     signal,
   });
-  return parseJsonResponse<RoutineTemplate[]>(response);
+  return parseJsonResponse(response, "Request failed", true, z.array(routineTemplateSchema));
 }
 
 export async function createRoutineTemplate(input: RoutineTemplateInput): Promise<RoutineTemplate> {
@@ -891,7 +746,7 @@ export async function createRoutineTemplate(input: RoutineTemplateInput): Promis
     },
     body: JSON.stringify(input),
   });
-  return parseJsonResponse<RoutineTemplate>(response, "Request failed", false);
+  return parseJsonResponse(response, "Request failed", false, routineTemplateSchema);
 }
 
 export async function updateRoutineTemplate(
@@ -906,7 +761,7 @@ export async function updateRoutineTemplate(
     },
     body: JSON.stringify(input),
   });
-  return parseJsonResponse<RoutineTemplate>(response, "Request failed", false);
+  return parseJsonResponse(response, "Request failed", false, routineTemplateSchema);
 }
 
 export async function deleteRoutineTemplate(routineTemplateId: number): Promise<void> {
@@ -916,6 +771,7 @@ export async function deleteRoutineTemplate(routineTemplateId: number): Promise<
   });
 
   if (!response.ok) {
+    // Error-only parse; successful deletes return 204 with no JSON body.
     await parseJsonResponse<never>(response, "Request failed", false);
   }
 }
@@ -925,7 +781,7 @@ export async function listChoreTemplates(signal?: AbortSignal): Promise<ChoreTem
     headers: { Accept: "application/json" },
     signal,
   });
-  return parseJsonResponse<ChoreTemplate[]>(response);
+  return parseJsonResponse(response, "Request failed", true, z.array(choreTemplateSchema));
 }
 
 export async function createChoreTemplate(input: ChoreTemplateInput): Promise<ChoreTemplate> {
@@ -937,7 +793,7 @@ export async function createChoreTemplate(input: ChoreTemplateInput): Promise<Ch
     },
     body: JSON.stringify(input),
   });
-  return parseJsonResponse<ChoreTemplate>(response, "Request failed", false);
+  return parseJsonResponse(response, "Request failed", false, choreTemplateSchema);
 }
 
 export async function updateChoreTemplate(
@@ -952,7 +808,7 @@ export async function updateChoreTemplate(
     },
     body: JSON.stringify(input),
   });
-  return parseJsonResponse<ChoreTemplate>(response, "Request failed", false);
+  return parseJsonResponse(response, "Request failed", false, choreTemplateSchema);
 }
 
 export async function deleteChoreTemplate(choreTemplateId: number): Promise<void> {
@@ -962,12 +818,9 @@ export async function deleteChoreTemplate(choreTemplateId: number): Promise<void
   });
 
   if (!response.ok) {
+    // Error-only parse; successful deletes return 204 with no JSON body.
     await parseJsonResponse<never>(response, "Request failed", false);
   }
-}
-
-export function isRetryableApiError(error: unknown): boolean {
-  return error instanceof ApiError ? error.retryable : false;
 }
 
 // --- User Settings ---
@@ -994,12 +847,23 @@ export interface UserSettingsPatch {
   push_missed_medications_enabled?: boolean;
 }
 
+const userSettingsSchema = z.object({
+  timezone: z.string(),
+  default_snooze_days: z.number(),
+  medication_reminder_minutes: z.number(),
+  quiet_hours_start: z.string().nullable(),
+  quiet_hours_end: z.string().nullable(),
+  push_overdue_chores_enabled: z.boolean(),
+  push_medication_reminders_enabled: z.boolean(),
+  push_missed_medications_enabled: z.boolean(),
+});
+
 export async function fetchUserSettings(signal?: AbortSignal): Promise<UserSettings> {
   const response = await fetchWithAuth("/api/users/me/settings", {
     headers: { Accept: "application/json" },
     signal,
   });
-  return parseJsonResponse<UserSettings>(response);
+  return parseJsonResponse(response, "Request failed", true, userSettingsSchema);
 }
 
 export async function updateUserSettings(patch: UserSettingsPatch): Promise<UserSettings> {
@@ -1008,7 +872,7 @@ export async function updateUserSettings(patch: UserSettingsPatch): Promise<User
     headers: { Accept: "application/json", "Content-Type": "application/json" },
     body: JSON.stringify(patch),
   });
-  return parseJsonResponse<UserSettings>(response, "Failed to update settings", false);
+  return parseJsonResponse(response, "Failed to update settings", false, userSettingsSchema);
 }
 
 // --- Analytics ---
@@ -1090,6 +954,65 @@ export interface AnalyticsSummary {
   routines: RoutineAnalyticsStats;
 }
 
+const dailyCountSchema = z.object({
+  date: z.string(),
+  completed: z.number(),
+  total: z.number(),
+  completion_rate: z.number(),
+});
+
+const analyticsSummarySchema = z.object({
+  period: z.enum(["week", "month", "quarter", "year"]),
+  start_date: z.string(),
+  end_date: z.string(),
+  chores: z.object({
+    completion_rate: z.number(),
+    total_completed: z.number(),
+    total_scheduled: z.number(),
+    daily_completions: z.array(dailyCountSchema),
+    streaks: z.array(z.object({
+      chore_id: z.number(),
+      name: z.string(),
+      current_streak: z.number(),
+      longest_streak: z.number(),
+    })),
+    most_skipped: z.array(z.object({
+      chore_id: z.number(),
+      name: z.string(),
+      skip_count: z.number(),
+    })),
+  }),
+  medications: z.object({
+    adherence_rate: z.number(),
+    total_taken: z.number(),
+    total_scheduled: z.number(),
+    daily_adherence: z.array(z.object({
+      date: z.string(),
+      taken: z.number(),
+      total: z.number(),
+      adherence_rate: z.number(),
+    })),
+  }),
+  planned_items: z.object({
+    completion_rate: z.number(),
+    total_completed: z.number(),
+    total_scheduled: z.number(),
+    daily_completions: z.array(dailyCountSchema),
+  }),
+  routines: z.object({
+    completion_rate: z.number(),
+    total_completed: z.number(),
+    total_scheduled: z.number(),
+    daily_completions: z.array(dailyCountSchema),
+    streaks: z.array(z.object({
+      routine_id: z.number(),
+      name: z.string(),
+      current_streak: z.number(),
+      longest_streak: z.number(),
+    })),
+  }),
+});
+
 export async function fetchAnalyticsSummary(
   period: AnalyticsPeriod = "week",
   signal?: AbortSignal,
@@ -1098,7 +1021,7 @@ export async function fetchAnalyticsSummary(
     headers: { Accept: "application/json" },
     signal,
   });
-  return parseJsonResponse<AnalyticsSummary>(response, "Failed to load analytics");
+  return parseJsonResponse(response, "Failed to load analytics", true, analyticsSummarySchema);
 }
 
 // --- Search ---
@@ -1148,12 +1071,49 @@ export interface SearchResponse {
   planned_items: PlannedItemSearchResult[];
 }
 
+const searchResponseSchema = z.object({
+  query: z.string(),
+  routine_templates: z.array(z.object({
+    id: z.number(),
+    name: z.string(),
+    description: z.string().nullable(),
+    is_active: z.boolean(),
+    created_at: z.string(),
+  })),
+  chore_templates: z.array(z.object({
+    id: z.number(),
+    name: z.string(),
+    description: z.string().nullable(),
+    priority: z.string(),
+    tags: z.array(z.string()),
+    is_active: z.boolean(),
+    created_at: z.string(),
+  })),
+  medication_plans: z.array(z.object({
+    id: z.number(),
+    name: z.string(),
+    instructions: z.string(),
+    is_active: z.boolean(),
+    created_at: z.string(),
+  })),
+  planned_items: z.array(z.object({
+    id: z.number(),
+    title: z.string(),
+    notes: z.string().nullable(),
+    planned_for: z.string(),
+    priority: z.string(),
+    tags: z.array(z.string()),
+    is_done: z.boolean(),
+    created_at: z.string(),
+  })),
+});
+
 export async function searchItems(query: string, signal?: AbortSignal): Promise<SearchResponse> {
   const response = await fetchWithAuth(`/api/search?q=${encodeURIComponent(query)}`, {
     headers: { Accept: "application/json" },
     signal,
   });
-  return parseJsonResponse<SearchResponse>(response, "Search failed");
+  return parseJsonResponse(response, "Search failed", true, searchResponseSchema);
 }
 
 // --- Planned item reschedule ---
@@ -1167,5 +1127,5 @@ export async function reschedulePlannedItem(
     headers: { Accept: "application/json", "Content-Type": "application/json" },
     body: JSON.stringify({ planned_for: newDate }),
   });
-  return parseJsonResponse<PlannedTodayItem>(response, "Failed to reschedule item", false);
+  return parseJsonResponse(response, "Failed to reschedule item", false, plannedTodayItemSchema);
 }
