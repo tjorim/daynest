@@ -262,10 +262,14 @@ export function IntegrationClientsSection({ backendBaseUrl }: IntegrationClients
               setSubmitError(null);
             }}
             placeholder={m.settings_client_name_placeholder()}
+            aria-label={m.settings_client_name_placeholder()}
           />
           <div>
-            <label className="form-label small fw-semibold mb-1">{m.settings_rate_limit_label()}</label>
+            <label className="form-label small fw-semibold mb-1" htmlFor="client-rate-limit">
+              {m.settings_rate_limit_label()}
+            </label>
             <input
+              id="client-rate-limit"
               className="form-control"
               type="number"
               min={10}
