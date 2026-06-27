@@ -64,7 +64,7 @@ async def _resolve_jwks_uri() -> str:
             resp.raise_for_status()
             _jwks_uri_cache = resp.json()["jwks_uri"]
             logger.info("Discovered JWKS URI: %s", _jwks_uri_cache)
-        except Exception as exc:
+        except (httpx.HTTPError, KeyError, ValueError) as exc:
             raise OIDCTokenError(f"OIDC discovery failed for {base}: {exc}") from exc
         return _jwks_uri_cache
 
@@ -77,7 +77,7 @@ async def _fetch_jwks() -> PyJWKSet:
         return PyJWKSet.from_dict(response.json())
     except OIDCTokenError:
         raise
-    except Exception as exc:
+    except (httpx.HTTPError, ValueError, KeyError, PyJWTError) as exc:
         logger.error("Failed to fetch JWKS from %s: %s", uri, exc)
         raise OIDCTokenError(f"Failed to fetch JWKS from {uri}: {exc}") from exc
 

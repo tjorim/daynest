@@ -1,4 +1,4 @@
-import type { RoutineTemplate, ChoreTemplate } from "@/lib/api/today";
+import type { RoutineTemplate, ChoreTemplate } from "@/lib/api/templates";
 
 export function seedRoutineTemplates(): RoutineTemplate[] {
   return [

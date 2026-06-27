@@ -69,6 +69,9 @@ export function AppLayout() {
 
   return (
     <>
+      <a className="skip-link" href="#main-content">
+        Skip to main content
+      </a>
       {!isOnline ? (
         <div className="alert alert-warning py-2 mb-3 d-flex align-items-center gap-2">
           <span>⚠️ {m.app_offline_banner()}</span>

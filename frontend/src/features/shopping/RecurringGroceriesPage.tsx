@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import * as m from "@/paraglide/messages";
-import { isRetryableApiError } from "@/lib/api/today";
+import { isRetryableApiError } from "@/lib/api/http";
 import { dayjs, formatDate, toIsoDate } from "@/lib/dateUtils";
 import type { RecurringGroceryInput, RecurringGrocerySeries } from "@/lib/api/recurringGroceries";
 import { useShoppingListsQuery } from "@/features/shopping/useShoppingLists";

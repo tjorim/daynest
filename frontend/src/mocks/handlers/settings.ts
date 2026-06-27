@@ -1,6 +1,6 @@
 import { http, HttpResponse } from "msw";
 import { getMockState, mutateSettings } from "../data/state";
-import type { UserSettingsPatch } from "@/lib/api/today";
+import type { UserSettingsPatch } from "@/lib/api/settings";
 
 let mockCalendarFeedToken = "mock-calendar-feed-token";
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ApiError } from "@/lib/api/today";
+import { ApiError } from "@/lib/api/http";
 import { createDaynestQueryClient } from "@/lib/query/queryClient";
 
 describe("createDaynestQueryClient", () => {

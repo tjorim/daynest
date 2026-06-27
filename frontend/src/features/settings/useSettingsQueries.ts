@@ -1,16 +1,18 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   createIntegrationClient,
-  fetchCalendarFeed,
-  fetchUserSettings,
   listIntegrationClients,
-  regenerateCalendarFeed,
   revokeIntegrationClient,
   rotateIntegrationClient,
-  updateUserSettings,
   type IntegrationClientInput,
+} from "@/lib/api/integrationClients";
+import {
+  fetchCalendarFeed,
+  fetchUserSettings,
+  regenerateCalendarFeed,
+  updateUserSettings,
   type UserSettingsPatch,
-} from "@/lib/api/today";
+} from "@/lib/api/settings";
 import { queryKeys } from "@/lib/query/queryKeys";
 
 function useInvalidateSettingsQueries() {

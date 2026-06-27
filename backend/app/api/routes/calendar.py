@@ -1,6 +1,6 @@
 from datetime import date, datetime, timedelta, timezone
 from secrets import token_urlsafe
-from zoneinfo import ZoneInfo
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from icalendar import Calendar, Event
@@ -203,7 +203,7 @@ def _build_planned_items_calendar(user: User, planned_items: list[PlannedItem]) 
 
     try:
         tz = ZoneInfo(user.timezone)
-    except Exception:
+    except (ZoneInfoNotFoundError, TypeError):
         tz = ZoneInfo("UTC")
 
     dtstamp = datetime.now(timezone.utc)
@@ -230,7 +230,7 @@ def get_calendar_feed_ics(token: str, db: Session = Depends(get_db)) -> Response
 
     try:
         feed_tz = ZoneInfo(user.timezone)
-    except Exception:
+    except (ZoneInfoNotFoundError, TypeError):
         feed_tz = ZoneInfo("UTC")
     today = datetime.now(feed_tz).date()
     start_date = today - timedelta(days=_FEED_PAST_DAYS)

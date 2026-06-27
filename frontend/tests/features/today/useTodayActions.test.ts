@@ -174,6 +174,9 @@ describe("useTodayActions", () => {
           recurrence_series_id: "bc0fbf8b-e4ae-40ba-a5b6-1424be5ca5dc",
           linked_source: "note",
           linked_ref: "abc",
+          auto_add_to_list_id: 7,
+          priority: "high",
+          tags: ["errand", "weekly"],
           is_done: false,
         },
         true,
@@ -191,6 +194,9 @@ describe("useTodayActions", () => {
       rrule: "FREQ=WEEKLY;BYDAY=SU",
       linked_source: "note",
       linked_ref: "abc",
+      auto_add_to_list_id: 7,
+      priority: "high",
+      tags: ["errand", "weekly"],
       is_done: true,
     }, "this");
     expect(onRefresh).toHaveBeenCalledTimes(1);
@@ -253,6 +259,9 @@ describe("useTodayActions", () => {
           recurrence_series_id: "series",
           linked_source: null,
           linked_ref: null,
+          auto_add_to_list_id: 12,
+          priority: "low",
+          tags: ["recurring"],
           is_done: false,
         },
         {
@@ -268,6 +277,9 @@ describe("useTodayActions", () => {
       expect.objectContaining({
         title: "Recurring updated",
         planned_for: "2026-05-17",
+        auto_add_to_list_id: 12,
+        priority: "low",
+        tags: ["recurring"],
         is_done: false,
       }),
       "future",

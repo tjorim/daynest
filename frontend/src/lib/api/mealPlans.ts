@@ -1,4 +1,5 @@
-import { fetchWithAuth, parseJsonResponse, plannedTodayItemSchema } from "@/lib/api/today";
+import { fetchWithAuth, parseJsonResponse } from "@/lib/api/http";
+import { plannedTodayItemSchema } from "@/lib/api/today";
 import type { PlannedTodayItem } from "@/lib/api/today";
 import { z } from "zod";
 

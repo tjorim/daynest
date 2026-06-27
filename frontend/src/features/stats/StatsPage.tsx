@@ -10,10 +10,10 @@ import {
 } from "recharts";
 import * as m from "@/paraglide/messages";
 import {
-  isRetryableApiError,
   type AnalyticsPeriod,
   type DailyCount,
-} from "@/lib/api/today";
+} from "@/lib/api/analytics";
+import { isRetryableApiError } from "@/lib/api/http";
 import { useStatsSummaryQuery } from "@/features/stats/useStatsQuery";
 
 function pct(rate: number): string {

@@ -4,7 +4,7 @@ import {
   updatePlannedItem,
   type PlannedTodayItem,
 } from "@/lib/api/today";
-import { fetchWithAuth, parseJsonResponse } from "@/lib/api/today";
+import { fetchWithAuth, parseJsonResponse } from "@/lib/api/http";
 import { z } from "zod";
 
 export type ShoppingListStatus = "active" | "archived";

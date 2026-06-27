@@ -1,5 +1,5 @@
 import { QueryClient } from "@tanstack/react-query";
-import { ApiError } from "@/lib/api/today";
+import { ApiError } from "@/lib/api/http";
 
 function shouldRetry(failureCount: number, error: unknown) {
   if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {

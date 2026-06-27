@@ -10,7 +10,8 @@ import { createDragAndDropPlugin } from "@/features/calendar/dragAndDropAdapter"
 import { createEventModalPlugin } from "@schedule-x/event-modal";
 import { ScheduleXCalendar, useCalendarApp } from "@schedule-x/react";
 import * as m from "@/paraglide/messages";
-import { isRetryableApiError, type UnifiedDayItem } from "@/lib/api/today";
+import { isRetryableApiError } from "@/lib/api/http";
+import type { UnifiedDayItem } from "@/lib/api/today";
 import { dayjs, toIsoDate } from "@/lib/dateUtils";
 import { CalendarEventModal } from "@/features/calendar/CalendarEventModal";
 import { PlannedItemsSidebar } from "@/features/calendar/CalendarPageSections";
@@ -210,7 +211,7 @@ export function CalendarPage() {
       ) : null}
       <div className="row g-3">
         <div className="col-xl-8">
-          <div className="daynest-calendar card p-2">
+          <div className="daynest-calendar card p-2" role="region" aria-label={m.calendar_title()}>
             <ScheduleXCalendar
               calendarApp={calendar}
               customComponents={{ eventModal: () => null }}

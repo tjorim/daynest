@@ -15,6 +15,7 @@ import {
   type PlannedItemDeleteScope,
   type PlannedItemEditScope,
   type PlannedItemModuleKey,
+  type PlannedItemPriority,
   type PlannedItemUpdateInput,
   type PlannedTodayItem,
 } from "@/lib/api/today";
@@ -37,6 +38,9 @@ function buildPlannedItemPayload(item: PlannedTodayItem, isDone: boolean) {
     rrule: item.rrule,
     linked_source: item.linked_source,
     linked_ref: item.linked_ref,
+    auto_add_to_list_id: item.auto_add_to_list_id,
+    priority: item.priority,
+    tags: item.tags,
     is_done: isDone,
   };
 }
@@ -190,6 +194,9 @@ export function useTodayActions(onRefresh?: () => Promise<void>) {
         rrule?: string | null;
         linked_source?: string | null;
         linked_ref?: string | null;
+        auto_add_to_list_id?: number | null;
+        priority?: PlannedItemPriority;
+        tags?: string[];
       },
       scope: PlannedItemEditScope = "this",
       options?: MutationOptions,
@@ -197,6 +204,9 @@ export function useTodayActions(onRefresh?: () => Promise<void>) {
       runAction(updatePlannedItemMutation, {
         plannedItemId: item.id,
         input: {
+          auto_add_to_list_id: item.auto_add_to_list_id,
+          priority: item.priority,
+          tags: item.tags,
           ...updates,
           is_done: item.is_done,
         },

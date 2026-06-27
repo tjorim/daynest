@@ -1,9 +1,10 @@
 import { Link, useParams } from "@tanstack/react-router";
 import { useState } from "react";
 import * as m from "@/paraglide/messages";
+import { FeedbackBanner } from "@/components/common/FeedbackBanner";
 import { formatDate } from "@/lib/dateUtils";
 import type { PlannedTodayItem } from "@/lib/api/today";
-import { isRetryableApiError } from "@/lib/api/today";
+import { isRetryableApiError } from "@/lib/api/http";
 import { AddItemForm } from "@/features/shopping/AddItemForm";
 import { useShoppingActions } from "@/features/shopping/useShoppingActions";
 import { useShoppingItemsQuery, useShoppingListQuery } from "@/features/shopping/useShoppingLists";
@@ -93,7 +94,7 @@ export function ShoppingListDetail() {
       </div>
       {listQuery.data?.notes ? <p className="mb-3">{listQuery.data.notes}</p> : null}
 
-      {loading ? <div className="alert alert-info py-2">{m.shopping_loading()}</div> : null}
+      <FeedbackBanner message={loading ? m.shopping_loading() : null} tone="info" />
       {error ? (
         <div className="alert alert-danger py-2 d-flex justify-content-between align-items-center gap-2 flex-wrap">
           <span>{error}</span>
@@ -108,10 +109,8 @@ export function ShoppingListDetail() {
           ) : null}
         </div>
       ) : null}
-      {actions.actionError ? (
-        <div className="alert alert-danger py-2">{actions.actionError}</div>
-      ) : null}
-      {successMessage ? <div className="alert alert-success py-2">{successMessage}</div> : null}
+      <FeedbackBanner message={actions.actionError} tone="danger" />
+      <FeedbackBanner message={successMessage} tone="success" onDismiss={() => setSuccessMessage(null)} />
 
       <AddItemForm
         isSubmitting={actions.isSubmitting}
@@ -119,7 +118,7 @@ export function ShoppingListDetail() {
       />
 
       {groups.length === 0 ? (
-        <div className="alert alert-secondary py-2">{m.shopping_no_items()}</div>
+        <FeedbackBanner message={m.shopping_no_items()} tone="secondary" />
       ) : null}
       <div className="d-flex flex-column gap-3">
         {groups.map(([tag, group]) => (
@@ -128,11 +127,12 @@ export function ShoppingListDetail() {
               <h3 className="h6 mb-0">{tag}</h3>
               <span className="badge text-bg-primary">{group.length}</span>
             </div>
-            <div className="list-group list-group-flush">
+            <div className="list-group list-group-flush" role="list" aria-label={tag}>
               {group.map((item) => (
                 <div
                   className="list-group-item d-flex align-items-start justify-content-between gap-3"
                   key={item.id}
+                  role="listitem"
                 >
                   <div>
                     <div className="fw-semibold">{item.title}</div>

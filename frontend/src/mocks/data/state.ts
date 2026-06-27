@@ -1,10 +1,7 @@
-import type {
-  PlannedTodayItem,
-  MedicationPlan,
-  RoutineTemplate,
-  ChoreTemplate,
-  UserSettings,
-} from "@/lib/api/today";
+import type { PlannedTodayItem } from "@/lib/api/today";
+import type { MedicationPlan } from "@/lib/api/medications";
+import type { UserSettings } from "@/lib/api/settings";
+import type { ChoreTemplate, RoutineTemplate } from "@/lib/api/templates";
 import { MOCK_TODAY } from "./constants";
 import { busyTodayPayload, emptyTodayPayload, medicationRefillTodayPayload, overdueTodayPayload } from "./today";
 import { seedMedications, resetMedicationId } from "./medication";

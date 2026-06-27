@@ -1,7 +1,8 @@
 import confetti from "canvas-confetti";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import * as m from "@/paraglide/messages";
-import { isRetryableApiError } from "@/lib/api/today";
+import { FeedbackBanner } from "@/components/common/FeedbackBanner";
+import { isRetryableApiError } from "@/lib/api/http";
 import { PlannedSection } from "@/features/today/PlannedSection";
 import {
   SectionCard,
@@ -186,7 +187,7 @@ export function TodayPage() {
         {m.today_subtitle()}
       </p>
 
-      {isLoading ? <div className="alert alert-info py-2">{m.today_loading()}</div> : null}
+      <FeedbackBanner message={isLoading ? m.today_loading() : null} tone="info" />
       {!isLoading && error ? (
         <div className="alert alert-danger py-2 d-flex justify-content-between align-items-center gap-2 flex-wrap">
           <span>{error}</span>
@@ -201,9 +202,10 @@ export function TodayPage() {
           ) : null}
         </div>
       ) : null}
-      {!isLoading && !error && today && !hasAnyItems ? (
-        <div className="alert alert-secondary py-2">{m.today_nothing_scheduled()}</div>
-      ) : null}
+      <FeedbackBanner
+        message={!isLoading && !error && today && !hasAnyItems ? m.today_nothing_scheduled() : null}
+        tone="secondary"
+      />
 
       {!isLoading && !error && today ? (
         <>

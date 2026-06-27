@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import * as m from "@/paraglide/messages";
 import type { MealSlot, MealSlotUpdateInput } from "@/lib/api/mealPlans";
+import { useFocusTrap } from "@/lib/useFocusTrap";
 
 interface MealSlotModalProps {
   slot: MealSlot | null;
@@ -23,6 +24,8 @@ export function MealSlotModal({
   const [recipeUrl, setRecipeUrl] = useState("");
   const [ingredientsText, setIngredientsText] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const modalRef = useRef<HTMLFormElement>(null);
+  useFocusTrap(modalRef, Boolean(slot));
 
   useEffect(() => {
     setTitle(slot?.title ?? "");
@@ -60,6 +63,7 @@ export function MealSlotModal({
     <div className="modal d-block meal-plan-modal" tabIndex={-1} role="dialog" aria-modal="true">
       <div className="modal-dialog modal-dialog-centered">
         <form
+          ref={modalRef}
           className="modal-content"
           onSubmit={(e) => {
             e.preventDefault();

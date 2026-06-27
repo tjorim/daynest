@@ -30,12 +30,14 @@ const installPromptMock = vi.hoisted(() => ({
   subscribeInstallPrompt: vi.fn(),
 }));
 
-vi.mock("@/lib/api/today", () => ({
+vi.mock("@/lib/api/integrationClients", () => ({
   createIntegrationClient: apiMock.createIntegrationClient,
-  isRetryableApiError: () => false,
   listIntegrationClients: apiMock.listIntegrationClients,
   revokeIntegrationClient: apiMock.revokeIntegrationClient,
   rotateIntegrationClient: apiMock.rotateIntegrationClient,
+}));
+
+vi.mock("@/lib/api/settings", () => ({
   fetchUserSettings: apiMock.fetchUserSettings,
   updateUserSettings: apiMock.updateUserSettings,
 }));

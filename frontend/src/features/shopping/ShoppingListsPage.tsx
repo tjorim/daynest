@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import * as m from "@/paraglide/messages";
-import { isRetryableApiError } from "@/lib/api/today";
+import { isRetryableApiError } from "@/lib/api/http";
 import { useShoppingActions } from "@/features/shopping/useShoppingActions";
 import { useShoppingListsQuery } from "@/features/shopping/useShoppingLists";
 

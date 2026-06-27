@@ -1,8 +1,7 @@
 import { useMemo, useState } from "react";
 import * as m from "@/paraglide/messages";
-import {
-  isRetryableApiError,
-} from "@/lib/api/today";
+import { FeedbackBanner } from "@/components/common/FeedbackBanner";
+import { isRetryableApiError } from "@/lib/api/http";
 import { formatDate, toIsoDate } from "@/lib/dateUtils";
 import {
   useChoreTemplatesQuery,
@@ -210,7 +209,7 @@ export function TemplatesPage() {
         {m.templates_subtitle()}
       </p>
 
-      {loading ? <div className="alert alert-info py-2">{m.templates_loading()}</div> : null}
+      <FeedbackBanner message={loading ? m.templates_loading() : null} tone="info" />
       {error ? (
         <div className="alert alert-danger py-2 d-flex justify-content-between align-items-center gap-2 flex-wrap">
           <span>{error}</span>
@@ -225,8 +224,8 @@ export function TemplatesPage() {
           ) : null}
         </div>
       ) : null}
-      {submitError ? <div className="alert alert-danger py-2">{submitError}</div> : null}
-      {successMessage ? <div className="alert alert-success py-2">{successMessage}</div> : null}
+      <FeedbackBanner message={submitError} tone="danger" onDismiss={() => setSubmitError(null)} />
+      <FeedbackBanner message={successMessage} tone="success" onDismiss={() => setSuccessMessage(null)} />
 
       <div className="row g-3">
         <div className="col-xl-6">

@@ -6,6 +6,7 @@ from zoneinfo import ZoneInfo
 
 from sqlalchemy import and_, delete, func, insert, or_, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, joinedload
 
 from app.core.enums import ChoreStatus, MedicationDoseStatus, Priority, TaskStatus
@@ -92,6 +93,9 @@ class TodayRepository:
                     rule = _rrulestr(template.rrule, dtstart=dtstart, ignoretz=True)
                     start_search = datetime.combine(last, time.max) if last else dtstart - timedelta(seconds=1)
                     occurrences = rule.between(start_search, datetime.combine(through_date, time.max), inc=False)
+                # Broad catch is intentional: rrulestr/.between() can raise a
+                # variety of exceptions on malformed input, and a single bad
+                # template must not abort generation for the whole batch.
                 except Exception:
                     logger.warning("Failed to parse rrule for chore template %s: %r", template.id, template.rrule, exc_info=True)
                     rrule_failed = True
@@ -273,6 +277,9 @@ class TodayRepository:
                     rule = _rrulestr(template.rrule, dtstart=dtstart, ignoretz=True)
                     start_search = datetime.combine(last, time.max) if last else dtstart - timedelta(seconds=1)
                     occurrences = rule.between(start_search, datetime.combine(through_date, time.max), inc=False)
+                # Broad catch is intentional: rrulestr/.between() can raise a
+                # variety of exceptions on malformed input, and a single bad
+                # template must not abort generation for the whole batch.
                 except Exception:
                     logger.warning("Failed to parse rrule for routine template %s: %r", template.id, template.rrule, exc_info=True)
                     rrule_failed = True
@@ -606,7 +613,7 @@ class TodayRepository:
         self.db.add(item)
         try:
             self.db.commit()
-        except Exception:
+        except SQLAlchemyError:
             self.db.rollback()
             raise
         self.db.refresh(series)

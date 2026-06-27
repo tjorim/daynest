@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { fetchAnalyticsSummary, type AnalyticsPeriod } from "@/lib/api/today";
+import { fetchAnalyticsSummary, type AnalyticsPeriod } from "@/lib/api/analytics";
 import { queryKeys } from "@/lib/query/queryKeys";
 
 export function useStatsSummaryQuery(period: AnalyticsPeriod) {

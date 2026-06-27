@@ -1,5 +1,7 @@
+import { useEffect, useRef } from "react";
 import type { UnifiedDayItem } from "@/lib/api/today";
 import * as m from "@/paraglide/messages";
+import { useFocusTrap } from "@/lib/useFocusTrap";
 
 export function CalendarEventModal({
   item,
@@ -24,6 +26,20 @@ export function CalendarEventModal({
   onRescheduleChore: (itemId: number, scheduledDate: string) => void;
   onEditPlanned: (itemId: number) => void;
 }) {
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
+  useFocusTrap(modalRef, Boolean(item));
+
+  useEffect(() => {
+    if (!item) return;
+    previousFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    closeButtonRef.current?.focus();
+    return () => {
+      previousFocusRef.current?.focus();
+    };
+  }, [item]);
+
   if (!item) return null;
 
   return (
@@ -34,7 +50,7 @@ export function CalendarEventModal({
       aria-labelledby="calendar-event-modal-title"
     >
       <div className="modal-dialog modal-dialog-centered">
-        <div className="modal-content shadow">
+        <div ref={modalRef} className="modal-content shadow">
           <div className="modal-header">
             <div>
               <span
@@ -46,7 +62,7 @@ export function CalendarEventModal({
                 {item.title}
               </h2>
             </div>
-            <button type="button" className="btn-close" aria-label="Close" onClick={onClose} />
+            <button ref={closeButtonRef} type="button" className="btn-close" aria-label="Close" onClick={onClose} />
           </div>
           <div className="modal-body d-grid gap-2">
             <div>
