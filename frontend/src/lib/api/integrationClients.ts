@@ -1,4 +1,4 @@
-import { fetchWithAuth, parseJsonResponse } from "@/lib/api/http";
+import { fetchWithAuth, getJson, parseJsonResponse, sendJson } from "@/lib/api/http";
 import { z } from "zod";
 
 export interface IntegrationClient {
@@ -35,25 +35,13 @@ const integrationClientCreateResponseSchema = integrationClientSchema.extend({
 });
 
 export async function listIntegrationClients(signal?: AbortSignal): Promise<IntegrationClient[]> {
-  const response = await fetchWithAuth("/api/integrations/clients", {
-    headers: { Accept: "application/json" },
-    signal,
-  });
-  return parseJsonResponse(response, "Request failed", true, z.array(integrationClientSchema));
+  return getJson("/api/integrations/clients", z.array(integrationClientSchema), signal, 2);
 }
 
 export async function createIntegrationClient(
   input: IntegrationClientInput,
 ): Promise<IntegrationClientCreateResponse> {
-  const response = await fetchWithAuth("/api/integrations/clients", {
-    method: "POST",
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(input),
-  });
-  return parseJsonResponse(response, "Request failed", false, integrationClientCreateResponseSchema);
+  return sendJson("POST", "/api/integrations/clients", input, integrationClientCreateResponseSchema);
 }
 
 export async function rotateIntegrationClient(

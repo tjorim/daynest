@@ -1,4 +1,4 @@
-import { fetchWithAuth, parseJsonResponse } from "@/lib/api/http";
+import { fetchWithAuth, getJson, parseJsonResponse, sendJson } from "@/lib/api/http";
 import { z } from "zod";
 
 export interface RoutineTemplate {
@@ -61,38 +61,18 @@ const choreTemplateSchema = z.object({
 });
 
 export async function listRoutineTemplates(signal?: AbortSignal): Promise<RoutineTemplate[]> {
-  const response = await fetchWithAuth("/api/templates/routines", {
-    headers: { Accept: "application/json" },
-    signal,
-  });
-  return parseJsonResponse(response, "Request failed", true, z.array(routineTemplateSchema));
+  return getJson("/api/templates/routines", z.array(routineTemplateSchema), signal, 2);
 }
 
 export async function createRoutineTemplate(input: RoutineTemplateInput): Promise<RoutineTemplate> {
-  const response = await fetchWithAuth("/api/templates/routines", {
-    method: "POST",
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(input),
-  });
-  return parseJsonResponse(response, "Request failed", false, routineTemplateSchema);
+  return sendJson("POST", "/api/templates/routines", input, routineTemplateSchema);
 }
 
 export async function updateRoutineTemplate(
   routineTemplateId: number,
   input: RoutineTemplateInput,
 ): Promise<RoutineTemplate> {
-  const response = await fetchWithAuth(`/api/templates/routines/${routineTemplateId}`, {
-    method: "PUT",
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(input),
-  });
-  return parseJsonResponse(response, "Request failed", false, routineTemplateSchema);
+  return sendJson("PUT", `/api/templates/routines/${routineTemplateId}`, input, routineTemplateSchema);
 }
 
 export async function deleteRoutineTemplate(routineTemplateId: number): Promise<void> {
@@ -108,38 +88,18 @@ export async function deleteRoutineTemplate(routineTemplateId: number): Promise<
 }
 
 export async function listChoreTemplates(signal?: AbortSignal): Promise<ChoreTemplate[]> {
-  const response = await fetchWithAuth("/api/templates/chores", {
-    headers: { Accept: "application/json" },
-    signal,
-  });
-  return parseJsonResponse(response, "Request failed", true, z.array(choreTemplateSchema));
+  return getJson("/api/templates/chores", z.array(choreTemplateSchema), signal, 2);
 }
 
 export async function createChoreTemplate(input: ChoreTemplateInput): Promise<ChoreTemplate> {
-  const response = await fetchWithAuth("/api/templates/chores", {
-    method: "POST",
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(input),
-  });
-  return parseJsonResponse(response, "Request failed", false, choreTemplateSchema);
+  return sendJson("POST", "/api/templates/chores", input, choreTemplateSchema);
 }
 
 export async function updateChoreTemplate(
   choreTemplateId: number,
   input: ChoreTemplateInput,
 ): Promise<ChoreTemplate> {
-  const response = await fetchWithAuth(`/api/templates/chores/${choreTemplateId}`, {
-    method: "PUT",
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(input),
-  });
-  return parseJsonResponse(response, "Request failed", false, choreTemplateSchema);
+  return sendJson("PUT", `/api/templates/chores/${choreTemplateId}`, input, choreTemplateSchema);
 }
 
 export async function deleteChoreTemplate(choreTemplateId: number): Promise<void> {

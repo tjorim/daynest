@@ -1,4 +1,4 @@
-import { fetchWithAuth, parseJsonResponse } from "@/lib/api/http";
+import { getJson } from "@/lib/api/http";
 import { z } from "zod";
 
 export type AnalyticsPeriod = "week" | "month" | "quarter" | "year";
@@ -141,9 +141,11 @@ export async function fetchAnalyticsSummary(
   period: AnalyticsPeriod = "week",
   signal?: AbortSignal,
 ): Promise<AnalyticsSummary> {
-  const response = await fetchWithAuth(`/api/analytics/summary?period=${period}`, {
-    headers: { Accept: "application/json" },
+  return getJson(
+    `/api/analytics/summary?period=${period}`,
+    analyticsSummarySchema,
     signal,
-  });
-  return parseJsonResponse(response, "Failed to load analytics", true, analyticsSummarySchema);
+    2,
+    "Failed to load analytics",
+  );
 }
