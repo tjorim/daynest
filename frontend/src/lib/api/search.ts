@@ -1,4 +1,4 @@
-import { fetchWithAuth, parseJsonResponse } from "@/lib/api/http";
+import { getJson } from "@/lib/api/http";
 import { z } from "zod";
 
 export interface RoutineSearchResult {
@@ -84,9 +84,11 @@ const searchResponseSchema = z.object({
 });
 
 export async function searchItems(query: string, signal?: AbortSignal): Promise<SearchResponse> {
-  const response = await fetchWithAuth(`/api/search?q=${encodeURIComponent(query)}`, {
-    headers: { Accept: "application/json" },
+  return getJson(
+    `/api/search?q=${encodeURIComponent(query)}`,
+    searchResponseSchema,
     signal,
-  });
-  return parseJsonResponse(response, "Search failed", true, searchResponseSchema);
+    2,
+    "Search failed",
+  );
 }

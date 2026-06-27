@@ -1,4 +1,4 @@
-import { fetchWithAuth, parseJsonResponse } from "@/lib/api/http";
+import { getJson, sendJson } from "@/lib/api/http";
 import { z } from "zod";
 
 export interface CalendarFeedResponse {
@@ -45,34 +45,23 @@ const userSettingsSchema = z.object({
 });
 
 export async function fetchCalendarFeed(signal?: AbortSignal): Promise<CalendarFeedResponse> {
-  const response = await fetchWithAuth("/api/calendar/feed", {
-    headers: { Accept: "application/json" },
-    signal,
-  });
-  return parseJsonResponse(response, "Failed to load calendar feed", true, calendarFeedResponseSchema);
+  return getJson("/api/calendar/feed", calendarFeedResponseSchema, signal, 2, "Failed to load calendar feed");
 }
 
 export async function regenerateCalendarFeed(): Promise<CalendarFeedResponse> {
-  const response = await fetchWithAuth("/api/calendar/feed/regenerate", {
-    method: "POST",
-    headers: { Accept: "application/json" },
-  });
-  return parseJsonResponse(response, "Failed to regenerate calendar feed", false, calendarFeedResponseSchema);
+  return sendJson(
+    "POST",
+    "/api/calendar/feed/regenerate",
+    undefined,
+    calendarFeedResponseSchema,
+    "Failed to regenerate calendar feed",
+  );
 }
 
 export async function fetchUserSettings(signal?: AbortSignal): Promise<UserSettings> {
-  const response = await fetchWithAuth("/api/users/me/settings", {
-    headers: { Accept: "application/json" },
-    signal,
-  });
-  return parseJsonResponse(response, "Request failed", true, userSettingsSchema);
+  return getJson("/api/users/me/settings", userSettingsSchema, signal, 2, "Request failed");
 }
 
 export async function updateUserSettings(patch: UserSettingsPatch): Promise<UserSettings> {
-  const response = await fetchWithAuth("/api/users/me/settings", {
-    method: "PATCH",
-    headers: { Accept: "application/json", "Content-Type": "application/json" },
-    body: JSON.stringify(patch),
-  });
-  return parseJsonResponse(response, "Failed to update settings", false, userSettingsSchema);
+  return sendJson("PATCH", "/api/users/me/settings", patch, userSettingsSchema, "Failed to update settings");
 }
