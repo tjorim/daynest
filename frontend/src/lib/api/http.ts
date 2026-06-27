@@ -28,7 +28,7 @@ export function sleep(ms: number): Promise<void> {
 }
 
 export async function fetchWithRetry(
-  input: RequestInfo | URL,
+  input: string | URL,
   init: RequestInit = {},
   retries = 2,
 ): Promise<Response> {
@@ -71,7 +71,7 @@ export function withAuthHeader(init: RequestInit, token?: string): RequestInit {
 }
 
 export async function fetchWithAuth(
-  input: RequestInfo | URL,
+  input: string | URL,
   init: RequestInit = {},
   retries = 2,
 ): Promise<Response> {
@@ -195,7 +195,8 @@ export async function sendJson<T>(
     },
     body: JSON.stringify(body),
   });
-  return parseJsonResponse(response, fallbackMessage, false, schema);
+  const isIdempotent = method === "PUT" || method === "DELETE";
+  return parseJsonResponse(response, fallbackMessage, isIdempotent, schema);
 }
 
 export function isRetryableApiError(error: unknown): boolean {

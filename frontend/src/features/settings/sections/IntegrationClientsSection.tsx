@@ -139,8 +139,12 @@ export function IntegrationClientsSection({ backendBaseUrl }: IntegrationClients
   const copyApiKey = async () => {
     if (!createdClient?.client_secret) return;
     try {
-      await navigator.clipboard.writeText(createdClient.client_secret);
-      setCopyStatus("Client secret copied.");
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(createdClient.client_secret);
+        setCopyStatus("Client secret copied.");
+      } else {
+        setCopyStatus("Clipboard copy failed.");
+      }
     } catch {
       setCopyStatus("Clipboard copy failed.");
     }

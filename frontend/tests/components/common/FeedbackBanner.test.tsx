@@ -29,4 +29,19 @@ describe("FeedbackBanner", () => {
     expect(screen.queryByText("Saved")).not.toBeInTheDocument();
     expect(onDismiss).toHaveBeenCalledTimes(1);
   });
+
+  it("re-shows the same message after it is cleared and set again", async () => {
+    const onDismiss = vi.fn();
+    const { rerender } = render(
+      <FeedbackBanner message="Saved" tone="success" onDismiss={onDismiss} />,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Dismiss" }));
+    expect(screen.queryByText("Saved")).not.toBeInTheDocument();
+
+    rerender(<FeedbackBanner message={null} tone="success" onDismiss={onDismiss} />);
+    rerender(<FeedbackBanner message="Saved" tone="success" onDismiss={onDismiss} />);
+
+    expect(screen.getByText("Saved")).toBeInTheDocument();
+  });
 });

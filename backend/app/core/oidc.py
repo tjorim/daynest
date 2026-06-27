@@ -77,7 +77,7 @@ async def _fetch_jwks() -> PyJWKSet:
         return PyJWKSet.from_dict(response.json())
     except OIDCTokenError:
         raise
-    except (httpx.HTTPError, ValueError, PyJWTError) as exc:
+    except (httpx.HTTPError, ValueError, KeyError, PyJWTError) as exc:
         logger.error("Failed to fetch JWKS from %s: %s", uri, exc)
         raise OIDCTokenError(f"Failed to fetch JWKS from {uri}: {exc}") from exc
 

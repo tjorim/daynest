@@ -203,7 +203,7 @@ def _build_planned_items_calendar(user: User, planned_items: list[PlannedItem]) 
 
     try:
         tz = ZoneInfo(user.timezone)
-    except ZoneInfoNotFoundError:
+    except (ZoneInfoNotFoundError, TypeError):
         tz = ZoneInfo("UTC")
 
     dtstamp = datetime.now(timezone.utc)
@@ -230,7 +230,7 @@ def get_calendar_feed_ics(token: str, db: Session = Depends(get_db)) -> Response
 
     try:
         feed_tz = ZoneInfo(user.timezone)
-    except ZoneInfoNotFoundError:
+    except (ZoneInfoNotFoundError, TypeError):
         feed_tz = ZoneInfo("UTC")
     today = datetime.now(feed_tz).date()
     start_date = today - timedelta(days=_FEED_PAST_DAYS)

@@ -15,14 +15,21 @@ export function FeedbackBanner({
   dismissLabel = "Dismiss",
   onDismiss,
 }: FeedbackBannerProps) {
-  const [dismissedMessage, setDismissedMessage] = useState<string | null>(null);
+  const [lastMessage, setLastMessage] = useState<string | null>(null);
+  const [isDismissed, setIsDismissed] = useState(false);
 
-  if (!message || dismissedMessage === message) {
+  // Reset dismissal when the message changes so the same message can re-trigger.
+  if (message !== lastMessage) {
+    setLastMessage(message);
+    setIsDismissed(false);
+  }
+
+  if (!message || isDismissed) {
     return null;
   }
 
   const dismiss = () => {
-    setDismissedMessage(message);
+    setIsDismissed(true);
     onDismiss?.();
   };
 
