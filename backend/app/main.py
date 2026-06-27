@@ -85,8 +85,12 @@ def _dispatch_push_notifications() -> None:
                 dispatch_medication_reminders(db, user_id)
                 dispatch_missed_medications(db, user_id)
             except Exception:
+                # Defensive background boundary: one user's push failure must not
+                # stop notification dispatch for other users.
                 logger.exception("Push dispatch failed for user_id=%s", user_id)
     except Exception:
+        # Defensive background boundary: keep the periodic push loop alive and
+        # surface the failed iteration in logs.
         logger.exception("Push dispatch loop iteration failed")
     finally:
         if db is not None:
@@ -145,6 +149,8 @@ def _run_today_rollover_iteration(event_bus: EventBus, known_local_dates: dict[i
         db = SessionLocal()
         _publish_today_rollovers(db, event_bus, known_local_dates)
     except Exception:
+        # Defensive background boundary: rollover checks are periodic and should
+        # recover on the next tick after an unexpected iteration failure.
         logger.exception("Today rollover event loop iteration failed")
     finally:
         if db is not None:

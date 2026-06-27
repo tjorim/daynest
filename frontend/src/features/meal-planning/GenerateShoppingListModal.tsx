@@ -1,6 +1,7 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import * as m from "@/paraglide/messages";
 import type { WeekGridResponse } from "@/lib/api/mealPlans";
+import { useFocusTrap } from "@/lib/useFocusTrap";
 
 interface GenerateShoppingListModalProps {
   week: WeekGridResponse;
@@ -16,6 +17,8 @@ export function GenerateShoppingListModal({
   onClose,
 }: GenerateShoppingListModalProps) {
   const [error, setError] = useState<string | null>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(modalRef);
   const ingredients = useMemo(() => {
     const seen = new Set<string>();
     const list: string[] = [];
@@ -46,7 +49,7 @@ export function GenerateShoppingListModal({
   return (
     <div className="modal d-block meal-plan-modal" tabIndex={-1} role="dialog" aria-modal="true">
       <div className="modal-dialog modal-dialog-centered">
-        <div className="modal-content">
+        <div ref={modalRef} className="modal-content">
           <div className="modal-header">
             <h3 className="modal-title h5">{m.meal_plan_generate_shopping_list()}</h3>
             <button

@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import type { UnifiedDayItem } from "@/lib/api/today";
 import * as m from "@/paraglide/messages";
+import { useFocusTrap } from "@/lib/useFocusTrap";
 
 export function CalendarEventModal({
   item,
@@ -26,7 +27,9 @@ export function CalendarEventModal({
   onEditPlanned: (itemId: number) => void;
 }) {
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
+  useFocusTrap(modalRef, Boolean(item));
 
   useEffect(() => {
     if (!item) return;
@@ -47,7 +50,7 @@ export function CalendarEventModal({
       aria-labelledby="calendar-event-modal-title"
     >
       <div className="modal-dialog modal-dialog-centered">
-        <div className="modal-content shadow">
+        <div ref={modalRef} className="modal-content shadow">
           <div className="modal-header">
             <div>
               <span

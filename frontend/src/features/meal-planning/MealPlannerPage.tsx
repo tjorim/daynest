@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import * as m from "@/paraglide/messages";
 import { dayjs, formatDate, toIsoDate } from "@/lib/dateUtils";
-import { isRetryableApiError } from "@/lib/api/today";
+import { isRetryableApiError } from "@/lib/api/http";
 import { MEAL_SLOT_TYPES, type MealSlot, type MealSlotType } from "@/lib/api/mealPlans";
 import { GenerateShoppingListModal } from "@/features/meal-planning/GenerateShoppingListModal";
 import { MealSlotCard } from "@/features/meal-planning/MealSlotCard";

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useForm } from "@tanstack/react-form";
 import { z } from "zod";
 import * as m from "@/paraglide/messages";
@@ -8,6 +8,7 @@ import {
   type MedicationPlanUpdateInput,
 } from "@/lib/api/medications";
 import { formatDate, formatDateTime } from "@/lib/dateUtils";
+import { useFocusTrap } from "@/lib/useFocusTrap";
 import {
   useCreateMedicationPlanMutation,
   useDeleteMedicationPlanMutation,
@@ -402,6 +403,8 @@ function EditMedicationPlanDialog({
   onSubmit: (input: MedicationPlanUpdateInput) => void;
 }) {
   const [error, setError] = useState<string | null>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(modalRef);
   const editForm = useForm({
     defaultValues: {
       name: plan.name,
@@ -425,7 +428,7 @@ function EditMedicationPlanDialog({
   return (
     <div className="modal d-block" tabIndex={-1} role="dialog" aria-modal="true">
       <div className="modal-dialog">
-        <div className="modal-content">
+        <div ref={modalRef} className="modal-content">
           <div className="modal-header">
             <h3 className="modal-title h5">{m.medication_edit_title()}</h3>
             <button type="button" className="btn-close" aria-label="Close" onClick={onCancel} />

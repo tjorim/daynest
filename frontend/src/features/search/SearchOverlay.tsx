@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import * as m from "@/paraglide/messages";
 import { useSearchQuery } from "@/features/search/useSearchQuery";
+import { useFocusTrap } from "@/lib/useFocusTrap";
 
 const DEBOUNCE_MS = 300;
 const MIN_QUERY_LEN = 2;
@@ -11,6 +12,7 @@ export function SearchOverlay({ onClose }: { onClose: () => void }) {
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
   const navigate = useNavigate();
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -25,6 +27,7 @@ export function SearchOverlay({ onClose }: { onClose: () => void }) {
     : searchQuery.error
       ? "Search failed."
       : null;
+  useFocusTrap(dialogRef);
 
   const flatItems = useMemo(() => {
     if (!results) return [];
@@ -125,6 +128,7 @@ export function SearchOverlay({ onClose }: { onClose: () => void }) {
       }}
     >
       <div
+        ref={dialogRef}
         className="card shadow-lg"
         role="dialog"
         aria-modal="true"
