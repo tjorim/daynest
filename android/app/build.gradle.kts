@@ -1,6 +1,6 @@
 import com.android.build.api.dsl.ApplicationExtension
+import com.daynest.buildlogic.CertPinning
 import dev.detekt.gradle.Detekt
-import java.net.URI
 import java.util.Properties
 
 plugins {
@@ -51,25 +51,19 @@ fun isReleaseArtifactRequested(): Boolean {
     }
 }
 
+// Cert-pin helpers (resolvePins, pin-format and host-derivation validation,
+// pinsArrayLiteral) live in buildSrc's CertPinning so they have unit tests.
 fun resolvePins(
     key: String,
     envKey: String,
-): List<String> {
-    val value =
-        localProperties.getProperty(key)
-            ?: providers.gradleProperty(key).orNull
-            ?: System.getenv(envKey)
-    return value?.split(",")?.map { it.trim() }?.filter { it.isNotBlank() } ?: emptyList()
-}
-
-fun pinsArrayLiteral(pins: List<String>): String =
-    if (pins.isEmpty()) {
-        "new String[]{}"
-    } else {
-        "new String[]{${pins.joinToString(",") { "\"$it\"" }}}"
-    }
-
-fun extractHost(url: String): String? = runCatching { URI(url).host }.getOrNull()
+): List<String> =
+    CertPinning.resolvePins(
+        key = key,
+        envKey = envKey,
+        localProperty = localProperties::getProperty,
+        gradleProperty = { providers.gradleProperty(it).orNull },
+        env = System::getenv,
+    )
 
 fun resolveApiUrl(
     key: String,
@@ -186,21 +180,9 @@ extensions.configure<ApplicationExtension> {
                 )
             buildConfigField("String", "API_BASE_URL", "\"$url\"")
             val pins = resolvePins("apiProdPins", "API_PROD_PINS")
-            val invalidPins = pins.filter { !it.startsWith("sha256/") && !it.startsWith("sha1/") }
-            if (invalidPins.isNotEmpty()) {
-                error(
-                    "Invalid pin format(s): $invalidPins. " +
-                        "Pins must start with 'sha256/' or 'sha1/'.",
-                )
-            }
-            val prodHost = extractHost(url)
-            if (pins.isNotEmpty() && prodHost.isNullOrBlank()) {
-                error(
-                    "Could not extract host from release URL '$url'. " +
-                        "Certificate pinning would be ineffective — fix API_BASE_URL_RELEASE.",
-                )
-            }
-            buildConfigField("String[]", "PROD_PINS", pinsArrayLiteral(pins))
+            CertPinning.requireValidPinFormats(pins)
+            val prodHost = CertPinning.requireHostForPins(pins, url)
+            buildConfigField("String[]", "PROD_PINS", CertPinning.pinsArrayLiteral(pins))
             buildConfigField("String", "PROD_HOST", "\"${prodHost.orEmpty()}\"")
             buildConfigField("String", "OIDC_CLIENT_ID", "\"daynest\"")
             buildConfigField("String", "OIDC_REDIRECT_URI", "\"com.daynest.android:/oauth2redirect\"")
