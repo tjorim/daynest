@@ -76,7 +76,7 @@ jobs:
 
       - name: Run Android checks
         working-directory: android
-        run: ./gradlew :app:detekt :app:ktlintCheck :app:lintDebug :app:testDebugUnitTest :wear:detekt :wear:ktlintCheck :wear:lintDebug :wear:testDebugUnitTest
+        run: ./gradlew :app:detekt :app:ktlintCheck :app:lintDebug :app:testDebugUnitTest :app:lintRelease :wear:detekt :wear:ktlintCheck :wear:lintDebug :wear:testDebugUnitTest
 
       # ── Steps below only run on manual workflow_dispatch triggers ────────────
 

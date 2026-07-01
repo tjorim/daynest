@@ -35,6 +35,22 @@ fun isBuildTypeRequested(buildType: String): Boolean {
     }
 }
 
+// Signing credentials only matter for tasks that produce a signed release
+// artifact (assemble/bundle/install/package). Lint and unit tests compile and
+// analyze the release variant but never sign anything, so lintRelease and
+// testReleaseUnitTest must not require a keystore.
+fun isReleaseArtifactRequested(): Boolean {
+    if (requestedTaskNames.isEmpty()) {
+        return false
+    }
+
+    val artifactVerbs = listOf("assemble", "bundle", "install", "package")
+    return requestedTaskNames.any { taskName ->
+        (taskName.contains("release") && artifactVerbs.any { verb -> taskName.contains(verb) }) ||
+            taskName in listOf("assemble", "build", "bundle")
+    }
+}
+
 fun resolvePins(
     key: String,
     envKey: String,
@@ -150,7 +166,7 @@ extensions.configure<ApplicationExtension> {
             val releaseSigningConfig = signingConfigs.findByName("release")
             if (releaseSigningConfig != null) {
                 signingConfig = releaseSigningConfig
-            } else if (isBuildTypeRequested("release")) {
+            } else if (isReleaseArtifactRequested()) {
                 error(
                     "Release build requested but signing credentials are not set " +
                         "(KEYSTORE_PATH, KEY_ALIAS, KEY_PASSWORD, STORE_PASSWORD).",
