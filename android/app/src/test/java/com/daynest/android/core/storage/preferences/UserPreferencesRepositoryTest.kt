@@ -25,6 +25,8 @@ class UserPreferencesRepositoryTest {
                 assertEquals(5, prefs.biometricIdleTimeoutMinutes)
                 assertEquals(true, prefs.pushNotificationsEnabled)
                 assertEquals(false, prefs.calendarSyncEnabled)
+                assertEquals(false, prefs.showDeviceCalendars)
+                assertEquals(emptySet<String>(), prefs.enabledDeviceCalendarIds)
                 cancelAndIgnoreRemainingEvents()
             }
         }
@@ -84,12 +86,18 @@ class UserPreferencesRepositoryTest {
                 repository.updatePushNotificationsEnabled(false)
                 awaitItem()
                 repository.updateCalendarSyncEnabled(true)
+                awaitItem()
+                repository.updateShowDeviceCalendars(true)
+                awaitItem()
+                repository.updateEnabledDeviceCalendarIds(setOf("1", "2"))
 
                 val updated = awaitItem()
                 assertEquals(true, updated.biometricLockEnabled)
                 assertEquals(30, updated.biometricIdleTimeoutMinutes)
                 assertEquals(false, updated.pushNotificationsEnabled)
                 assertEquals(true, updated.calendarSyncEnabled)
+                assertEquals(true, updated.showDeviceCalendars)
+                assertEquals(setOf("1", "2"), updated.enabledDeviceCalendarIds)
                 cancelAndIgnoreRemainingEvents()
             }
         }

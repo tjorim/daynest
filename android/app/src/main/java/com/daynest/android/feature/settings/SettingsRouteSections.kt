@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.ManagedActivityResultLauncher
+import androidx.activity.result.ActivityResultLauncher
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -52,6 +53,7 @@ internal fun LazyListScope.settingsPrivacySection(
     context: Context,
     notificationsPermissionLauncher: ManagedActivityResultLauncher<String, Boolean>,
     calendarPermissionLauncher: ManagedActivityResultLauncher<Array<String>, Map<String, Boolean>>,
+    deviceCalendarPermissionLauncher: ActivityResultLauncher<String>,
     onEvent: (SettingsUiEvent) -> Unit,
 ) {
     item {
@@ -76,17 +78,7 @@ internal fun LazyListScope.settingsPrivacySection(
             },
         )
     }
-    item {
-        SettingToggleCard(
-            title = stringResource(id = R.string.settings_biometric_label),
-            subtitle = stringResource(id = R.string.settings_biometric_hint),
-            checked = state.biometricLockEnabled,
-            onCheckedChange = { onEvent(SettingsUiEvent.UpdateBiometricLockEnabled(it)) },
-        )
-    }
-    item {
-        biometricTimeoutCard(state, onEvent)
-    }
+    settingsBiometricItems(state, onEvent)
     item {
         SettingToggleCard(
             title = stringResource(id = R.string.settings_calendar_sync_label),
@@ -101,6 +93,29 @@ internal fun LazyListScope.settingsPrivacySection(
                 )
             },
         )
+    }
+    settingsDeviceCalendarsToggleAndList(
+        state = state,
+        context = context,
+        deviceCalendarPermissionLauncher = deviceCalendarPermissionLauncher,
+        onEvent = onEvent,
+    )
+}
+
+private fun LazyListScope.settingsBiometricItems(
+    state: SettingsUiState.Content,
+    onEvent: (SettingsUiEvent) -> Unit,
+) {
+    item {
+        SettingToggleCard(
+            title = stringResource(id = R.string.settings_biometric_label),
+            subtitle = stringResource(id = R.string.settings_biometric_hint),
+            checked = state.biometricLockEnabled,
+            onCheckedChange = { onEvent(SettingsUiEvent.UpdateBiometricLockEnabled(it)) },
+        )
+    }
+    item {
+        biometricTimeoutCard(state, onEvent)
     }
 }
 
@@ -255,7 +270,7 @@ private fun loadErrorText(
 }
 
 @Composable
-private fun emptyStateText(messageRes: Int) {
+internal fun emptyStateText(messageRes: Int) {
     Text(
         text = stringResource(id = messageRes),
         style = MaterialTheme.typography.bodyMedium,

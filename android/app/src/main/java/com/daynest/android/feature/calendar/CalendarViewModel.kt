@@ -2,8 +2,12 @@ package com.daynest.android.feature.calendar
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.daynest.android.core.storage.preferences.UserPreferences
+import com.daynest.android.core.storage.preferences.UserPreferencesRepository
 import com.daynest.android.data.calendar.CalendarDaySummaryDto
 import com.daynest.android.data.calendar.CalendarRepository
+import com.daynest.android.data.calendar.DeviceCalendarEvent
+import com.daynest.android.data.calendar.DeviceCalendarRepository
 import com.daynest.android.data.calendar.UnifiedDayItemDto
 import com.daynest.android.data.today.DeleteScope
 import com.daynest.android.data.today.EditScope
@@ -28,11 +32,14 @@ class CalendarViewModel
     constructor(
         private val calendarRepository: CalendarRepository,
         private val plannedItemRepository: PlannedItemRepository,
+        private val deviceCalendarRepository: DeviceCalendarRepository,
+        private val userPreferencesRepository: UserPreferencesRepository,
     ) : ViewModel() {
         private val _uiState = MutableStateFlow<CalendarUiState>(CalendarUiState.Loading)
         val uiState: StateFlow<CalendarUiState> = _uiState.asStateFlow()
 
         private val today = LocalDate.now()
+        private var preferences = UserPreferences()
 
         private val backupHandler =
             CalendarBackupHandler(
@@ -42,7 +49,17 @@ class CalendarViewModel
                 onRefresh = ::retryCurrentMonth,
             )
 
+        private val deviceEventsHandler =
+            CalendarDeviceEventsHandler(
+                scope = viewModelScope,
+                deviceCalendarRepository = deviceCalendarRepository,
+                userPreferencesRepository = userPreferencesRepository,
+                uiState = _uiState,
+                preferences = { preferences },
+            )
+
         init {
+            observePreferences()
             loadMonth(today.year, today.monthValue)
         }
 
@@ -60,6 +77,33 @@ class CalendarViewModel
                 is CalendarUiEvent.ExportMonthBackup -> backupHandler.exportMonthBackup(event.onReady)
                 is CalendarUiEvent.ImportBackup -> backupHandler.importBackup(event.items)
                 is CalendarUiEvent.BackupMessageChanged -> backupHandler.updateBackupMessage(event.message)
+                is CalendarUiEvent.CalendarPermissionResult -> deviceEventsHandler.handlePermissionResult(event.granted)
+            }
+        }
+
+        private fun observePreferences() {
+            viewModelScope.launch {
+                userPreferencesRepository.preferences.collect { prefs ->
+                    val hadDeviceCalendars = preferences.showDeviceCalendars
+                    val previousCalendarIds = preferences.enabledDeviceCalendarIds
+                    preferences = prefs
+                    val current = _uiState.value
+                    if (current is CalendarUiState.Content) {
+                        _uiState.update {
+                            if (it is CalendarUiState.Content) {
+                                it.copy(showDeviceCalendars = prefs.showDeviceCalendars)
+                            } else {
+                                it
+                            }
+                        }
+                        val deviceCalendarPreferencesChanged =
+                            hadDeviceCalendars != prefs.showDeviceCalendars ||
+                                previousCalendarIds != prefs.enabledDeviceCalendarIds
+                        if (current.selectedDate != null && deviceCalendarPreferencesChanged) {
+                            deviceEventsHandler.load(LocalDate.parse(current.selectedDate))
+                        }
+                    }
+                }
             }
         }
 
@@ -113,6 +157,7 @@ class CalendarViewModel
                                     dayItems = emptyList(),
                                     isLoadingMonth = false,
                                     isLoadingDay = false,
+                                    showDeviceCalendars = preferences.showDeviceCalendars,
                                 )
                             } else {
                                 current
@@ -140,7 +185,13 @@ class CalendarViewModel
             viewModelScope.launch {
                 _uiState.update { current ->
                     if (current is CalendarUiState.Content) {
-                        current.copy(selectedDate = date, isLoadingDay = true, dayItems = emptyList())
+                        current.copy(
+                            selectedDate = date,
+                            isLoadingDay = true,
+                            dayItems = emptyList(),
+                            deviceCalendarEvents = emptyList(),
+                            deviceCalendarStatus = DeviceCalendarStatus.Idle,
+                        )
                     } else {
                         current
                     }
@@ -170,7 +221,7 @@ class CalendarViewModel
         private fun clearDay() {
             _uiState.update { current ->
                 if (current is CalendarUiState.Content) {
-                    current.copy(selectedDate = null, dayItems = emptyList())
+                    current.copy(selectedDate = null, dayItems = emptyList(), deviceCalendarEvents = emptyList())
                 } else {
                     current
                 }
@@ -382,6 +433,9 @@ sealed interface CalendarUiState {
         val isLoadingMonth: Boolean,
         val isLoadingDay: Boolean,
         val backupMessage: CalendarBackupMessage? = null,
+        val showDeviceCalendars: Boolean = false,
+        val deviceCalendarEvents: List<DeviceCalendarEvent> = emptyList(),
+        val deviceCalendarStatus: DeviceCalendarStatus = DeviceCalendarStatus.Idle,
     ) : CalendarUiState
 
     data class Error(
@@ -430,6 +484,19 @@ sealed interface CalendarUiEvent {
     data class BackupMessageChanged(
         val message: CalendarBackupMessage,
     ) : CalendarUiEvent
+
+    data class CalendarPermissionResult(
+        val granted: Boolean,
+    ) : CalendarUiEvent
+}
+
+enum class DeviceCalendarStatus {
+    Idle,
+    Loading,
+    Ready,
+    Empty,
+    NoEnabledCalendars,
+    PermissionRequired,
 }
 
 sealed interface CalendarBackupMessage {
