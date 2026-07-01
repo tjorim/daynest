@@ -117,9 +117,14 @@ class CertPinningTest {
 
     // ── requireValidPinFormats ───────────────────────────────────────────────
 
+    // 44-char base64 (32 zero bytes) and 28-char base64 (20 zero bytes) — the
+    // exact lengths OkHttp's CertificatePinner expects for sha256/sha1 hashes.
+    private val validSha256Pin = "sha256/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+    private val validSha1Pin = "sha1/AAAAAAAAAAAAAAAAAAAAAAAAAAA="
+
     @Test
     fun `requireValidPinFormats accepts sha256 and sha1 pins`() {
-        CertPinning.requireValidPinFormats(listOf("sha256/abc", "sha1/def"))
+        CertPinning.requireValidPinFormats(listOf(validSha256Pin, validSha1Pin))
     }
 
     @Test
@@ -131,15 +136,38 @@ class CertPinningTest {
     fun `requireValidPinFormats rejects pins without a sha256 or sha1 prefix`() {
         val exception =
             assertThrows(IllegalStateException::class.java) {
-                CertPinning.requireValidPinFormats(listOf("sha256/abc", "md5/bad"))
+                CertPinning.requireValidPinFormats(listOf(validSha256Pin, "md5/AAAAAAAAAAAAAAAAAAAAAAAAAAA="))
             }
-        assertTrue(exception.message.orEmpty().contains("md5/bad"))
+        assertTrue(exception.message.orEmpty().contains("md5/AAAAAAAAAAAAAAAAAAAAAAAAAAA="))
     }
 
     @Test
     fun `requireValidPinFormats rejects a bare digest without a prefix`() {
         assertThrows(IllegalStateException::class.java) {
             CertPinning.requireValidPinFormats(listOf("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="))
+        }
+    }
+
+    @Test
+    fun `requireValidPinFormats rejects a pin with the wrong decoded length`() {
+        val exception =
+            assertThrows(IllegalStateException::class.java) {
+                CertPinning.requireValidPinFormats(listOf("sha256/too-short"))
+            }
+        assertTrue(exception.message.orEmpty().contains("sha256/too-short"))
+    }
+
+    @Test
+    fun `requireValidPinFormats rejects a pin with non-base64 characters`() {
+        assertThrows(IllegalStateException::class.java) {
+            CertPinning.requireValidPinFormats(listOf("sha256/not valid base64!!"))
+        }
+    }
+
+    @Test
+    fun `requireValidPinFormats rejects an empty hash after the prefix`() {
+        assertThrows(IllegalStateException::class.java) {
+            CertPinning.requireValidPinFormats(listOf("sha256/"))
         }
     }
 
