@@ -11,21 +11,6 @@ on:
       - 'android/**'
       - '.github/workflows/android.yml'
   workflow_dispatch:
-    inputs:
-      environment:
-        description: 'Build environment'
-        required: true
-        default: 'staging'
-        type: choice
-        options:
-          - staging
-          - release
-          - both
-      release_tag:
-        description: 'Git tag to attach to the GitHub Release (e.g. v1.0.0). Leave empty to skip release creation.'
-        required: false
-        default: ''
-        type: string
 
 permissions:
   contents: read
@@ -33,8 +18,6 @@ permissions:
 jobs:
   android:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write  # required for Create GitHub Release step on workflow_dispatch
 
     steps:
       - name: Checkout
@@ -49,108 +32,30 @@ jobs:
       - name: Set up Gradle cache
         uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
 
-      - name: Write local.properties from secrets
-        id: local-properties
-        working-directory: android
-        env:
-          API_BASE_URL_STAGING: ${{ secrets.API_BASE_URL_STAGING }}
-          API_BASE_URL_RELEASE: ${{ secrets.API_BASE_URL_RELEASE }}
-        run: |
-          if [[ -n "${API_BASE_URL_STAGING}" ]]; then
-            echo "staging_available=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "::warning::API_BASE_URL_STAGING secret is not set. Staging assemble step will be skipped."
-            echo "staging_available=false" >> "$GITHUB_OUTPUT"
-          fi
-          if [[ -n "${API_BASE_URL_RELEASE}" ]]; then
-            echo "release_available=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "::warning::API_BASE_URL_RELEASE secret is not set. Release assemble step will be skipped."
-            echo "release_available=false" >> "$GITHUB_OUTPUT"
-          fi
-          {
-            # .invalid TLD is an RFC 2606 reserved domain intentionally unusable in production
-            echo "apiBaseUrlStaging=${API_BASE_URL_STAGING:-https://staging.placeholder.invalid/}"
-            echo "apiBaseUrlRelease=${API_BASE_URL_RELEASE:-https://release.placeholder.invalid/}"
-          } >> local.properties
-
       - name: Run Android checks
         working-directory: android
         run: ./gradlew :buildSrc:test :app:detekt :app:ktlintCheck :app:lintDebug :app:testDebugUnitTest :app:lintRelease :wear:detekt :wear:ktlintCheck :wear:lintDebug :wear:testDebugUnitTest
 
-      # ── Steps below only run on manual workflow_dispatch triggers ────────────
+      - name: Assemble debug APK
+        working-directory: android
+        run: ./gradlew :app:assembleDebug
 
-      - name: Decode keystore
-        if: github.event_name == 'workflow_dispatch'
-        id: keystore
-        env:
-          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
-        run: |
-          if [[ -n "${KEYSTORE_BASE64}" ]]; then
-            KEYSTORE_PATH="${RUNNER_TEMP}/release.keystore"
-            echo "${KEYSTORE_BASE64}" | base64 --decode > "${KEYSTORE_PATH}"
-            echo "keystore_path=${KEYSTORE_PATH}" >> "$GITHUB_OUTPUT"
-            echo "signing_available=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "::warning::KEYSTORE_BASE64 secret is not set. Release APK build will be skipped."
-            echo "signing_available=false" >> "$GITHUB_OUTPUT"
-          fi
+      - name: Upload debug APK
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: debug-apk
+          path: android/app/build/outputs/apk/debug/*.apk
+          retention-days: 7
 
       - name: Assemble staging APK
-        if: >
-          github.event_name == 'workflow_dispatch' &&
-          steps.local-properties.outputs.staging_available == 'true' &&
-          (inputs.environment == 'staging' || inputs.environment == 'both')
         working-directory: android
+        env:
+          API_BASE_URL_STAGING: ${{ secrets.API_BASE_URL_STAGING }}
         run: ./gradlew :app:assembleStaging
 
       - name: Upload staging APK
-        if: >
-          github.event_name == 'workflow_dispatch' &&
-          steps.local-properties.outputs.staging_available == 'true' &&
-          (inputs.environment == 'staging' || inputs.environment == 'both')
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: daynest-staging-debug
+          name: staging-apk
           path: android/app/build/outputs/apk/staging/*.apk
-          if-no-files-found: error
-
-      - name: Assemble release APK
-        if: >
-          github.event_name == 'workflow_dispatch' &&
-          steps.local-properties.outputs.release_available == 'true' &&
-          steps.keystore.outputs.signing_available == 'true' &&
-          (inputs.environment == 'release' || inputs.environment == 'both')
-        working-directory: android
-        env:
-          KEYSTORE_PATH: ${{ steps.keystore.outputs.keystore_path }}
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
-        run: ./gradlew :app:assembleRelease
-
-      - name: Upload release APK
-        if: >
-          github.event_name == 'workflow_dispatch' &&
-          steps.local-properties.outputs.release_available == 'true' &&
-          steps.keystore.outputs.signing_available == 'true' &&
-          (inputs.environment == 'release' || inputs.environment == 'both')
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: daynest-release
-          path: android/app/build/outputs/apk/release/*.apk
-          if-no-files-found: error
-
-      - name: Create GitHub Release
-        if: >
-          github.event_name == 'workflow_dispatch' &&
-          inputs.release_tag != '' &&
-          steps.local-properties.outputs.release_available == 'true' &&
-          steps.keystore.outputs.signing_available == 'true' &&
-          (inputs.environment == 'release' || inputs.environment == 'both')
-        uses: softprops/action-gh-release@718ea10b132b3b2eba29c1007bb80653f286566b # v3.0.1
-        with:
-          tag_name: ${{ inputs.release_tag }}
-          name: ${{ inputs.release_tag }}
-          draft: true
-          files: android/app/build/outputs/apk/release/*.apk
+          retention-days: 7

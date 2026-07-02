@@ -140,13 +140,15 @@ extensions.configure<ApplicationExtension> {
         create("staging") {
             initWith(getByName("debug"))
             matchingFallbacks += listOf("debug")
-            val isRequested = isBuildTypeRequested("staging")
+            // No staging backend is deployed yet. Unlike release, staging builds are
+            // ad-hoc test artifacts, not something shipped to real users, so a missing
+            // value falls back to the placeholder instead of failing the build.
             val url =
                 resolveApiUrl(
                     "apiBaseUrlStaging",
                     "API_BASE_URL_STAGING",
-                    required = isRequested,
-                    default = if (isRequested) "" else "https://staging.placeholder.invalid/",
+                    required = false,
+                    default = "https://staging.placeholder.invalid/",
                 )
             buildConfigField("String", "API_BASE_URL", "\"$url\"")
             buildConfigField("String[]", "PROD_PINS", "new String[]{}")
