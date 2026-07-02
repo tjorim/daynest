@@ -27,7 +27,6 @@ import javax.inject.Inject
 import javax.inject.Named
 import javax.inject.Singleton
 import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
 
 @Singleton
 class OidcAuthService
@@ -44,8 +43,6 @@ class OidcAuthService
         @Volatile private var authState: AuthState = loadPersistedState()
 
         @Volatile private var serviceConfiguration: AuthorizationServiceConfiguration? = null
-
-        @Volatile private var cachedIssuerUri: Uri? = null
 
         val isAuthorized: Boolean get() = authState.isAuthorized
         val currentAccessToken: String? get() = authState.accessToken
@@ -104,10 +101,10 @@ class OidcAuthService
 
         fun signOut() = clearState()
 
-        private suspend fun resolveIssuerUri(): Uri {
-            cachedIssuerUri?.let { return it }
+        private suspend fun discoverServiceConfiguration(): AuthorizationServiceConfiguration {
+            serviceConfiguration?.let { return it }
             val url = "${serverUrlHolder.currentUrl.trimEnd('/')}/$OIDC_CONFIG_PATH"
-            val issuer =
+            val config =
                 withContext(Dispatchers.IO) {
                     val request = Request.Builder().url(url).build()
                     discoveryClient.newCall(request).execute().use { response ->
@@ -120,25 +117,15 @@ class OidcAuthService
                         if (body.isBlank()) {
                             throw IOException("Empty response from OIDC config endpoint")
                         }
-                        JSONObject(body).getString("issuer")
+                        val json = JSONObject(body)
+                        AuthorizationServiceConfiguration(
+                            Uri.parse(json.getString("authorization_url")),
+                            Uri.parse(json.getString("token_url")),
+                        )
                     }
                 }
-            return Uri.parse(issuer).also { cachedIssuerUri = it }
-        }
-
-        private suspend fun discoverServiceConfiguration(): AuthorizationServiceConfiguration {
-            serviceConfiguration?.let { return it }
-            val issuerUri = resolveIssuerUri()
-            return suspendCancellableCoroutine { cont ->
-                AuthorizationServiceConfiguration.fetchFromIssuer(issuerUri) { config, ex ->
-                    if (config != null) {
-                        serviceConfiguration = config
-                        cont.resume(config)
-                    } else {
-                        cont.resumeWithException(ex ?: IllegalStateException("OIDC discovery failed"))
-                    }
-                }
-            }
+            serviceConfiguration = config
+            return config
         }
 
         private fun loadPersistedState(): AuthState {
