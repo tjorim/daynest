@@ -21,6 +21,7 @@ import net.openid.appauth.AuthorizationServiceConfiguration
 import net.openid.appauth.ResponseTypeValues
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import org.json.JSONException
 import org.json.JSONObject
 import java.io.IOException
 import javax.inject.Inject
@@ -117,11 +118,15 @@ class OidcAuthService
                         if (body.isBlank()) {
                             throw IOException("Empty response from OIDC config endpoint")
                         }
-                        val json = JSONObject(body)
-                        AuthorizationServiceConfiguration(
-                            Uri.parse(json.getString("authorization_url")),
-                            Uri.parse(json.getString("token_url")),
-                        )
+                        try {
+                            val json = JSONObject(body)
+                            AuthorizationServiceConfiguration(
+                                Uri.parse(json.getString("authorization_url")),
+                                Uri.parse(json.getString("token_url")),
+                            )
+                        } catch (e: JSONException) {
+                            throw IOException("Failed to parse OIDC config response", e)
+                        }
                     }
                 }
             serviceConfiguration = config
