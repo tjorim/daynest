@@ -23,18 +23,6 @@ val localProperties =
 
 val requestedTaskNames = gradle.startParameter.taskNames.map { it.substringAfterLast(":").lowercase() }
 
-fun isBuildTypeRequested(buildType: String): Boolean {
-    if (requestedTaskNames.isEmpty()) {
-        return false
-    }
-
-    val buildTypeName = buildType.lowercase()
-    return requestedTaskNames.any { taskName ->
-        taskName.contains(buildTypeName) ||
-            taskName in listOf("assemble", "build", "bundle", "check", "lint", "test")
-    }
-}
-
 // Signing credentials only matter for tasks that produce a signed release
 // artifact (assemble/bundle/install/package). Lint and unit tests compile and
 // analyze the release variant but never sign anything, so lintRelease and
@@ -172,7 +160,10 @@ extensions.configure<ApplicationExtension> {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
-            val isRequested = isBuildTypeRequested("release")
+            // Same exclusion as the signing config above: lintRelease/testReleaseUnitTest
+            // compile and analyze this variant but never ship it, so they must not
+            // require the real production URL either.
+            val isRequested = isReleaseArtifactRequested()
             val url =
                 resolveApiUrl(
                     "apiBaseUrlRelease",
