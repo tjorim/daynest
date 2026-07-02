@@ -38,17 +38,17 @@ jobs:
         id: local-properties
         working-directory: android
         env:
-          API_BASE_URL_RELEASE: ${{ secrets.API_BASE_URL_RELEASE }}
+          DAYNEST_ANDROID_RELEASE_API_BASE_URL: ${{ secrets.DAYNEST_ANDROID_RELEASE_API_BASE_URL }}
         run: |
-          if [[ -n "${API_BASE_URL_RELEASE}" ]]; then
+          if [[ -n "${DAYNEST_ANDROID_RELEASE_API_BASE_URL}" ]]; then
             echo "release_available=true" >> "$GITHUB_OUTPUT"
           else
-            echo "::warning::API_BASE_URL_RELEASE secret is not set. Release APK will be skipped."
+            echo "::warning::DAYNEST_ANDROID_RELEASE_API_BASE_URL secret is not set. Release APK will be skipped."
             echo "release_available=false" >> "$GITHUB_OUTPUT"
           fi
           {
             # .invalid TLD is an RFC 2606 reserved domain intentionally unusable in production
-            echo "apiBaseUrlRelease=${API_BASE_URL_RELEASE:-https://release.placeholder.invalid/}"
+            echo "apiBaseUrlRelease=${DAYNEST_ANDROID_RELEASE_API_BASE_URL:-https://release.placeholder.invalid/}"
           } >> local.properties
 
       - name: Decode keystore
@@ -76,6 +76,9 @@ jobs:
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
           STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+          DAYNEST_ANDROID_RELEASE_API_BASE_URL: ${{ secrets.DAYNEST_ANDROID_RELEASE_API_BASE_URL }}
+          DAYNEST_ANDROID_PROD_CERTIFICATE_PIN_HOST: ${{ secrets.DAYNEST_ANDROID_PROD_CERTIFICATE_PIN_HOST }}
+          DAYNEST_ANDROID_PROD_CERTIFICATE_PINS: ${{ secrets.DAYNEST_ANDROID_PROD_CERTIFICATE_PINS }}
         run: ./gradlew :app:assembleRelease
 
       - name: Upload release APK

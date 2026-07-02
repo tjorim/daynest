@@ -60,13 +60,12 @@ object CertPinning {
 
     fun requireHostForPins(
         pins: List<String>,
-        url: String,
-    ): String? {
-        val host = extractHost(url)
-        check(pins.isEmpty() || !host.isNullOrBlank()) {
-            "Could not extract host from release URL '$url'. " +
-                "Certificate pinning would be ineffective — fix API_BASE_URL_RELEASE."
+        host: String,
+    ) {
+        check(pins.isEmpty() || host.isNotBlank()) {
+            "Certificate pins are configured but no pin host is set. " +
+                "Certificate pinning would be ineffective — fix " +
+                "DAYNEST_ANDROID_PROD_CERTIFICATE_PIN_HOST."
         }
-        return host
     }
 }
