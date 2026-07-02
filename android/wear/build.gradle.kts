@@ -47,12 +47,6 @@ extensions.configure<ApplicationExtension> {
             val url = resolveApiUrl("apiBaseUrlDebug", "API_BASE_URL_DEBUG", "http://10.0.2.2:8000/")
             buildConfigField("String", "API_BASE_URL", "\"$url\"")
         }
-        create("staging") {
-            initWith(getByName("debug"))
-            matchingFallbacks += listOf("debug")
-            val url = resolveApiUrl("apiBaseUrlStaging", "API_BASE_URL_STAGING", "https://staging.placeholder.invalid/")
-            buildConfigField("String", "API_BASE_URL", "\"$url\"")
-        }
         release {
             isMinifyEnabled = true
             isShrinkResources = true
@@ -60,7 +54,12 @@ extensions.configure<ApplicationExtension> {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
-            val url = resolveApiUrl("apiBaseUrlRelease", "API_BASE_URL_RELEASE", "https://release.placeholder.invalid/")
+            val url =
+                resolveApiUrl(
+                    "apiBaseUrlRelease",
+                    "ANDROID_API_BASE_URL",
+                    "https://release.placeholder.invalid/",
+                )
             buildConfigField("String", "API_BASE_URL", "\"$url\"")
         }
     }

@@ -39,9 +39,9 @@ class CertPinningTest {
     fun `resolvePins prefers local properties over Gradle property and env var`() {
         val pins =
             CertPinning.resolvePins(
-                key = "apiProdPins",
-                envKey = "API_PROD_PINS",
-                localProperty = { key -> "sha256/local".takeIf { key == "apiProdPins" } },
+                key = "releaseCertificatePins",
+                envKey = "ANDROID_CERTIFICATE_PINS",
+                localProperty = { key -> "sha256/local".takeIf { key == "releaseCertificatePins" } },
                 gradleProperty = { "sha256/gradle" },
                 env = { "sha256/env" },
             )
@@ -52,10 +52,10 @@ class CertPinningTest {
     fun `resolvePins falls back to Gradle property when local properties has no value`() {
         val pins =
             CertPinning.resolvePins(
-                key = "apiProdPins",
-                envKey = "API_PROD_PINS",
+                key = "releaseCertificatePins",
+                envKey = "ANDROID_CERTIFICATE_PINS",
                 localProperty = noLocal,
-                gradleProperty = { key -> "sha256/gradle".takeIf { key == "apiProdPins" } },
+                gradleProperty = { key -> "sha256/gradle".takeIf { key == "releaseCertificatePins" } },
                 env = { "sha256/env" },
             )
         assertEquals(listOf("sha256/gradle"), pins)
@@ -65,11 +65,11 @@ class CertPinningTest {
     fun `resolvePins falls back to env var when local properties and Gradle property have no value`() {
         val pins =
             CertPinning.resolvePins(
-                key = "apiProdPins",
-                envKey = "API_PROD_PINS",
+                key = "releaseCertificatePins",
+                envKey = "ANDROID_CERTIFICATE_PINS",
                 localProperty = noLocal,
                 gradleProperty = noGradle,
-                env = { key -> "sha256/env".takeIf { key == "API_PROD_PINS" } },
+                env = { key -> "sha256/env".takeIf { key == "ANDROID_CERTIFICATE_PINS" } },
             )
         assertEquals(listOf("sha256/env"), pins)
     }
@@ -78,8 +78,8 @@ class CertPinningTest {
     fun `resolvePins returns empty list when no source has a value`() {
         val pins =
             CertPinning.resolvePins(
-                key = "apiProdPins",
-                envKey = "API_PROD_PINS",
+                key = "releaseCertificatePins",
+                envKey = "ANDROID_CERTIFICATE_PINS",
                 localProperty = noLocal,
                 gradleProperty = noGradle,
                 env = noEnv,
@@ -91,8 +91,8 @@ class CertPinningTest {
     fun `resolvePins splits on commas, trims whitespace, and drops blank entries`() {
         val pins =
             CertPinning.resolvePins(
-                key = "apiProdPins",
-                envKey = "API_PROD_PINS",
+                key = "releaseCertificatePins",
+                envKey = "ANDROID_CERTIFICATE_PINS",
                 localProperty = { " sha256/abc , sha1/def ,, " },
                 gradleProperty = noGradle,
                 env = noEnv,
@@ -174,31 +174,28 @@ class CertPinningTest {
     // ── requireHostForPins ───────────────────────────────────────────────────
 
     @Test
-    fun `requireHostForPins returns the host when pins are configured and the URL is valid`() {
-        assertEquals(
-            "api.example.com",
-            CertPinning.requireHostForPins(listOf("sha256/abc"), "https://api.example.com/"),
-        )
+    fun `requireHostForPins passes when pins are configured and the host is set`() {
+        CertPinning.requireHostForPins(listOf("sha256/abc"), "api.example.com")
     }
 
     @Test
-    fun `requireHostForPins fails when pins are configured but the host is not extractable`() {
+    fun `requireHostForPins fails when pins are configured but the host is blank`() {
         val exception =
             assertThrows(IllegalStateException::class.java) {
-                CertPinning.requireHostForPins(listOf("sha256/abc"), "not a valid url")
+                CertPinning.requireHostForPins(listOf("sha256/abc"), "")
             }
-        assertTrue(exception.message.orEmpty().contains("not a valid url"))
+        assertTrue(exception.message.orEmpty().contains("ANDROID_CERTIFICATE_PIN_HOST"))
     }
 
     @Test
-    fun `requireHostForPins fails when pins are configured but the URL is empty`() {
+    fun `requireHostForPins fails when pins are configured but the host is whitespace only`() {
         assertThrows(IllegalStateException::class.java) {
-            CertPinning.requireHostForPins(listOf("sha256/abc"), "")
+            CertPinning.requireHostForPins(listOf("sha256/abc"), "   ")
         }
     }
 
     @Test
-    fun `requireHostForPins allows an unextractable host when no pins are configured`() {
-        assertNull(CertPinning.requireHostForPins(emptyList(), "not a valid url"))
+    fun `requireHostForPins allows a blank host when no pins are configured`() {
+        CertPinning.requireHostForPins(emptyList(), "")
     }
 }

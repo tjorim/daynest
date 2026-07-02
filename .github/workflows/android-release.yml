@@ -38,17 +38,17 @@ jobs:
         id: local-properties
         working-directory: android
         env:
-          API_BASE_URL_RELEASE: ${{ secrets.API_BASE_URL_RELEASE }}
+          ANDROID_API_BASE_URL: ${{ secrets.ANDROID_API_BASE_URL }}
         run: |
-          if [[ -n "${API_BASE_URL_RELEASE}" ]]; then
+          if [[ -n "${ANDROID_API_BASE_URL}" ]]; then
             echo "release_available=true" >> "$GITHUB_OUTPUT"
           else
-            echo "::warning::API_BASE_URL_RELEASE secret is not set. Release APK will be skipped."
+            echo "::warning::ANDROID_API_BASE_URL secret is not set. Release APK will be skipped."
             echo "release_available=false" >> "$GITHUB_OUTPUT"
           fi
           {
             # .invalid TLD is an RFC 2606 reserved domain intentionally unusable in production
-            echo "apiBaseUrlRelease=${API_BASE_URL_RELEASE:-https://release.placeholder.invalid/}"
+            echo "apiBaseUrlRelease=${ANDROID_API_BASE_URL:-https://release.placeholder.invalid/}"
           } >> local.properties
 
       - name: Decode keystore
@@ -76,6 +76,9 @@ jobs:
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
           STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+          ANDROID_API_BASE_URL: ${{ secrets.ANDROID_API_BASE_URL }}
+          ANDROID_CERTIFICATE_PIN_HOST: ${{ secrets.ANDROID_CERTIFICATE_PIN_HOST }}
+          ANDROID_CERTIFICATE_PINS: ${{ secrets.ANDROID_CERTIFICATE_PINS }}
         run: ./gradlew :app:assembleRelease
 
       - name: Upload release APK

@@ -32,8 +32,8 @@ object NetworkDiModule {
     @Singleton
     fun provideCertificatePinner(): CertificatePinner =
         CertificatePinnerProvider(
-            host = BuildConfig.PROD_HOST,
-            pins = BuildConfig.PROD_PINS.toList(),
+            host = BuildConfig.CERTIFICATE_PIN_HOST,
+            pins = BuildConfig.CERTIFICATE_PINS.toList(),
         ).get()
 
     @Provides
