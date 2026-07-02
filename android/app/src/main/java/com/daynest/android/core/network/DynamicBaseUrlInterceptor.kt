@@ -37,4 +37,8 @@ class DynamicBaseUrlInterceptor
                     .build()
             return chain.proceed(request.newBuilder().url(newUrl).build())
         }
+
+        companion object {
+            fun isValidOverride(url: String): Boolean = url.toHttpUrlOrNull() != null
+        }
     }

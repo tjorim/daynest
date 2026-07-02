@@ -6,6 +6,8 @@ import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
@@ -59,5 +61,30 @@ class DynamicBaseUrlInterceptorTest {
         client.newCall(request).execute().close()
 
         assertEquals("/api/v1/today", mockWebServer.takeRequest().path)
+    }
+
+    @Test
+    fun `valid http url is accepted`() {
+        assertTrue(DynamicBaseUrlInterceptor.isValidOverride("http://10.0.2.2:8000/"))
+    }
+
+    @Test
+    fun `valid https url is accepted`() {
+        assertTrue(DynamicBaseUrlInterceptor.isValidOverride("https://api.example.com/"))
+    }
+
+    @Test
+    fun `blank url is rejected`() {
+        assertFalse(DynamicBaseUrlInterceptor.isValidOverride(""))
+    }
+
+    @Test
+    fun `malformed url is rejected`() {
+        assertFalse(DynamicBaseUrlInterceptor.isValidOverride("not-a-url"))
+    }
+
+    @Test
+    fun `url without scheme is rejected`() {
+        assertFalse(DynamicBaseUrlInterceptor.isValidOverride("example.com"))
     }
 }

@@ -1,6 +1,6 @@
 @file:Suppress("ktlint:standard:function-naming", "FunctionNaming")
 
-package com.daynest.android.ui
+package com.daynest.android.feature.settings
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -24,12 +24,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.daynest.android.R
-import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
-
-fun isValidServerUrl(url: String): Boolean = url.toHttpUrlOrNull() != null
+import com.daynest.android.core.network.DynamicBaseUrlInterceptor
 
 @Composable
-fun ServerUrlPicker(
+fun ApiBaseUrlOverrideCard(
     defaultServerUrl: String,
     customServerUrl: String?,
     onServerUrlChanged: (String?) -> Unit,
@@ -59,7 +57,7 @@ fun ServerUrlPicker(
                 },
                 onApply = {
                     val trimmed = customInput.trim()
-                    if (isValidServerUrl(trimmed)) {
+                    if (DynamicBaseUrlInterceptor.isValidOverride(trimmed)) {
                         onServerUrlChanged(trimmed)
                     } else {
                         urlError = true

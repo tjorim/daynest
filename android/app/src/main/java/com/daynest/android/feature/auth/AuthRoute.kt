@@ -24,7 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.daynest.android.R
-import com.daynest.android.ui.ServerUrlPicker
+import com.daynest.android.feature.settings.ApiBaseUrlOverrideCard
 
 @Composable
 fun AuthRoute(
@@ -77,7 +77,7 @@ internal fun AuthScreen(
                 text = stringResource(R.string.auth_title),
                 style = MaterialTheme.typography.headlineMedium,
             )
-            ServerUrlPicker(
+            ApiBaseUrlOverrideCard(
                 defaultServerUrl = uiState.defaultServerUrl,
                 customServerUrl = uiState.customServerUrl,
                 onServerUrlChanged = onServerUrlChanged,
