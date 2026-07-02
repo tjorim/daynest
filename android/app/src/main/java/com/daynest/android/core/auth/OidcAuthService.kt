@@ -118,20 +118,23 @@ class OidcAuthService
                         if (body.isBlank()) {
                             throw IOException("Empty response from OIDC config endpoint")
                         }
-                        try {
-                            val json = JSONObject(body)
-                            AuthorizationServiceConfiguration(
-                                Uri.parse(json.getString("authorization_url")),
-                                Uri.parse(json.getString("token_url")),
-                            )
-                        } catch (e: JSONException) {
-                            throw IOException("Failed to parse OIDC config response", e)
-                        }
+                        parseServiceConfiguration(body)
                     }
                 }
             serviceConfiguration = config
             return config
         }
+
+        private fun parseServiceConfiguration(body: String): AuthorizationServiceConfiguration =
+            try {
+                val json = JSONObject(body)
+                AuthorizationServiceConfiguration(
+                    Uri.parse(json.getString("authorization_url")),
+                    Uri.parse(json.getString("token_url")),
+                )
+            } catch (e: JSONException) {
+                throw IOException("Failed to parse OIDC config response", e)
+            }
 
         private fun loadPersistedState(): AuthState {
             val json = securePreferences.getString(KEY_AUTH_STATE, null) ?: return AuthState()
