@@ -53,6 +53,26 @@ fun resolvePins(
         env = System::getenv,
     )
 
+fun resolveConfigValue(
+    key: String,
+    envKey: String,
+    required: Boolean,
+    default: String = "",
+): String {
+    val value =
+        localProperties.getProperty(key)
+            ?: providers.gradleProperty(key).orNull
+            ?: System.getenv(envKey)
+            ?: default.takeIf { it.isNotBlank() }
+    if (required && value.isNullOrBlank()) {
+        error(
+            "Missing required build property '$key'. " +
+                "Set it in local.properties, as a Gradle property, or as the env var '$envKey'.",
+        )
+    }
+    return value.orEmpty()
+}
+
 fun resolveApiUrl(
     key: String,
     envKey: String,
@@ -125,25 +145,6 @@ extensions.configure<ApplicationExtension> {
             buildConfigField("String", "OIDC_CLIENT_ID", "\"daynest\"")
             buildConfigField("String", "OIDC_REDIRECT_URI", "\"com.daynest.android:/oauth2redirect\"")
         }
-        create("staging") {
-            initWith(getByName("debug"))
-            matchingFallbacks += listOf("debug")
-            // No staging backend is deployed yet. Unlike release, staging builds are
-            // ad-hoc test artifacts, not something shipped to real users, so a missing
-            // value falls back to the placeholder instead of failing the build.
-            val url =
-                resolveApiUrl(
-                    "apiBaseUrlStaging",
-                    "API_BASE_URL_STAGING",
-                    required = false,
-                    default = "https://staging.placeholder.invalid/",
-                )
-            buildConfigField("String", "API_BASE_URL", "\"$url\"")
-            buildConfigField("String[]", "PROD_PINS", "new String[]{}")
-            buildConfigField("String", "PROD_HOST", "\"\"")
-            buildConfigField("String", "OIDC_CLIENT_ID", "\"daynest\"")
-            buildConfigField("String", "OIDC_REDIRECT_URI", "\"com.daynest.android:/oauth2redirect\"")
-        }
         release {
             isMinifyEnabled = true
             isShrinkResources = true
@@ -167,16 +168,33 @@ extensions.configure<ApplicationExtension> {
             val url =
                 resolveApiUrl(
                     "apiBaseUrlRelease",
-                    "API_BASE_URL_RELEASE",
+                    "DAYNEST_ANDROID_RELEASE_API_BASE_URL",
                     required = isRequested,
                     default = if (isRequested) "" else "https://release.placeholder.invalid/",
                 )
             buildConfigField("String", "API_BASE_URL", "\"$url\"")
-            val pins = resolvePins("apiProdPins", "API_PROD_PINS")
+            val prodCertificatePinHost =
+                resolveConfigValue(
+                    "prodCertificatePinHost",
+                    "DAYNEST_ANDROID_PROD_CERTIFICATE_PIN_HOST",
+                    required = isRequested,
+                )
+            val pins =
+                resolvePins(
+                    "prodCertificatePins",
+                    "DAYNEST_ANDROID_PROD_CERTIFICATE_PINS",
+                )
+            if (isRequested && pins.isEmpty()) {
+                error(
+                    "Missing required build property 'prodCertificatePins'. " +
+                        "Set it in local.properties, as a Gradle property, or as the env var " +
+                        "'DAYNEST_ANDROID_PROD_CERTIFICATE_PINS'.",
+                )
+            }
             CertPinning.requireValidPinFormats(pins)
-            val prodHost = CertPinning.requireHostForPins(pins, url)
+            CertPinning.requireHostForPins(pins, prodCertificatePinHost)
             buildConfigField("String[]", "PROD_PINS", CertPinning.pinsArrayLiteral(pins))
-            buildConfigField("String", "PROD_HOST", "\"${prodHost.orEmpty()}\"")
+            buildConfigField("String", "PROD_HOST", "\"$prodCertificatePinHost\"")
             buildConfigField("String", "OIDC_CLIENT_ID", "\"daynest\"")
             buildConfigField("String", "OIDC_REDIRECT_URI", "\"com.daynest.android:/oauth2redirect\"")
         }
