@@ -1,14 +1,14 @@
 package com.daynest.android.core.auth
 
 import android.net.Uri
-import java.io.IOException
-import javax.inject.Inject
-import javax.inject.Named
 import net.openid.appauth.AuthorizationServiceConfiguration
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONException
 import org.json.JSONObject
+import java.io.IOException
+import javax.inject.Inject
+import javax.inject.Named
 
 class OidcServiceConfigurationDiscovery
     @Inject
@@ -31,8 +31,7 @@ class OidcServiceConfigurationDiscovery
             }
         }
 
-        private fun configUrl(serverUrl: String): String =
-            "${serverUrl.trimEnd('/')}/api/v1/auth/oidc-config"
+        private fun configUrl(serverUrl: String): String = "${serverUrl.trimEnd('/')}/api/v1/auth/oidc-config"
 
         private fun parse(body: String): AuthorizationServiceConfiguration =
             try {
