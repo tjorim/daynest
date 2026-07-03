@@ -43,7 +43,7 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="com.daynest.android" />
+                <data android:scheme="im.tjor.daynest" />
             </intent-filter>
         </activity>
         <service
