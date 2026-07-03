@@ -1,12 +1,15 @@
+import asyncio
 import hmac
 import logging
 
+import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.core.config import settings
 from app.core.observability import metrics
+from app.core.oidc import OIDCTokenError, _resolve_jwks_uri
 from app.db.session import engine
 
 logger = logging.getLogger("app.health")
@@ -28,16 +31,35 @@ def liveness_check() -> dict[str, str]:
     return {"status": "alive"}
 
 
+def _check_db() -> None:
+    with engine.connect() as connection:
+        connection.execute(text("SET LOCAL statement_timeout = '2000'"))
+        connection.execute(text("SELECT 1"))
+
+
 @router.get("/health/readiness")
-def readiness_check(response: Response) -> dict[str, str]:
+async def readiness_check(response: Response) -> dict[str, str]:
     try:
-        with engine.connect() as connection:
-            connection.execute(text("SET LOCAL statement_timeout = '2000'"))
-            connection.execute(text("SELECT 1"))
+        await asyncio.to_thread(_check_db)
     except (SQLAlchemyError, OSError, RuntimeError):
         logger.exception("Readiness check failed: database connectivity error")
         response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
         return {"status": "not_ready"}
+
+    if settings.oidc_issuer_url:
+        try:
+            jwks_uri = await _resolve_jwks_uri()
+            async with httpx.AsyncClient(timeout=5) as client:
+                oidc_response = await client.get(jwks_uri)
+            oidc_response.raise_for_status()
+        except OIDCTokenError:
+            logger.exception("Readiness check failed: OIDC discovery failed")
+            response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+            return {"status": "not_ready"}
+        except Exception:
+            logger.exception("Readiness check failed: OIDC JWKS endpoint unreachable")
+            response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+            return {"status": "not_ready"}
 
     return {"status": "ready"}
 
