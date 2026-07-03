@@ -50,7 +50,7 @@ fun resolvePins(
         envKey = envKey,
         localProperty = localProperties::getProperty,
         gradleProperty = { providers.gradleProperty(it).orNull },
-        env = System::getenv,
+        env = { providers.environmentVariable(it).orNull },
     )
 
 fun resolveConfigValue(
@@ -179,7 +179,7 @@ extensions.configure<ApplicationExtension> {
                     )
                 }
                 CertPinning.requireValidPinFormats(pins)
-                CertPinning.requireHostForPins(pins, releaseCertificatePinHost)
+                CertPinning.requireHostConfiguredForPins(releaseCertificatePinHost, pins)
             }
             buildConfigField("String[]", "CERTIFICATE_PINS", CertPinning.pinsArrayLiteral(pins))
             buildConfigField("String", "CERTIFICATE_PIN_HOST", "\"$releaseCertificatePinHost\"")

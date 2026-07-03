@@ -171,31 +171,40 @@ class CertPinningTest {
         }
     }
 
-    // ── requireHostForPins ───────────────────────────────────────────────────
+    // ── requireHostConfiguredForPins ─────────────────────────────────────────
 
     @Test
-    fun `requireHostForPins passes when pins are configured and the host is set`() {
-        CertPinning.requireHostForPins(listOf("sha256/abc"), "api.example.com")
+    fun `requireHostConfiguredForPins accepts matching host and pins`() {
+        CertPinning.requireHostConfiguredForPins(host = "api.example.com", pins = listOf("sha256/abc"))
     }
 
     @Test
-    fun `requireHostForPins fails when pins are configured but the host is blank`() {
+    fun `requireHostConfiguredForPins accepts both empty`() {
+        CertPinning.requireHostConfiguredForPins(host = "", pins = emptyList())
+    }
+
+    @Test
+    fun `requireHostConfiguredForPins fails when pins are configured but host is empty`() {
         val exception =
             assertThrows(IllegalStateException::class.java) {
-                CertPinning.requireHostForPins(listOf("sha256/abc"), "")
+                CertPinning.requireHostConfiguredForPins(host = "", pins = listOf("sha256/abc"))
             }
         assertTrue(exception.message.orEmpty().contains("ANDROID_CERTIFICATE_PIN_HOST"))
     }
 
     @Test
-    fun `requireHostForPins fails when pins are configured but the host is whitespace only`() {
+    fun `requireHostConfiguredForPins fails when pins are configured but host is whitespace only`() {
         assertThrows(IllegalStateException::class.java) {
-            CertPinning.requireHostForPins(listOf("sha256/abc"), "   ")
+            CertPinning.requireHostConfiguredForPins(host = "   ", pins = listOf("sha256/abc"))
         }
     }
 
     @Test
-    fun `requireHostForPins allows a blank host when no pins are configured`() {
-        CertPinning.requireHostForPins(emptyList(), "")
+    fun `requireHostConfiguredForPins fails when host is configured but pins are empty`() {
+        val exception =
+            assertThrows(IllegalStateException::class.java) {
+                CertPinning.requireHostConfiguredForPins(host = "api.example.com", pins = emptyList())
+            }
+        assertTrue(exception.message.orEmpty().contains("ANDROID_CERTIFICATE_PINS"))
     }
 }
