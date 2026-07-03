@@ -65,6 +65,16 @@
     <string name="calendar_month_year">%1$s %2$s</string>
     <string name="calendar_day_detail_header">%1$s</string>
     <string name="calendar_day_empty">No items for this day.</string>
+    <string name="calendar_device_events_header">Device calendar events</string>
+    <string name="calendar_device_events_empty">No device calendar events for this day.</string>
+    <string name="calendar_device_events_no_calendars">Choose calendars in Settings to show device events here.</string>
+    <string name="calendar_device_events_permission_required">Calendar permission is needed to show device events.</string>
+    <string name="calendar_device_event_meta">%1$s • %2$s</string>
+    <string name="calendar_device_event_all_day">All day</string>
+    <string name="action_open_settings">Open settings</string>
+    <string name="settings_device_calendars_label">Show device calendars</string>
+    <string name="settings_device_calendars_hint">Read synced device calendars locally and display their events in the Daynest calendar.</string>
+    <string name="settings_device_calendars_empty">No readable device calendars found.</string>
     <string name="calendar_add_planned">+ Add planned</string>
     <string name="calendar_add_planned_title">Add planned item</string>
     <string name="calendar_edit_planned_title">Edit planned item</string>

@@ -65,6 +65,16 @@
     <string name="calendar_month_year">%1$s %2$s</string>
     <string name="calendar_day_detail_header">%1$s</string>
     <string name="calendar_day_empty">Geen items voor deze dag.</string>
+    <string name="calendar_device_events_header">Apparaatkalendergebeurtenissen</string>
+    <string name="calendar_device_events_empty">Geen apparaatkalendergebeurtenissen voor deze dag.</string>
+    <string name="calendar_device_events_no_calendars">Kies kalenders in Instellingen om apparaatgebeurtenissen hier te tonen.</string>
+    <string name="calendar_device_events_permission_required">Kalenderpermissie is nodig om apparaatgebeurtenissen te tonen.</string>
+    <string name="calendar_device_event_meta">%1$s • %2$s</string>
+    <string name="calendar_device_event_all_day">Hele dag</string>
+    <string name="action_open_settings">Instellingen openen</string>
+    <string name="settings_device_calendars_label">Apparaatkalenders tonen</string>
+    <string name="settings_device_calendars_hint">Lees gesynchroniseerde apparaatkalenders lokaal en toon hun gebeurtenissen in de Daynest-kalender.</string>
+    <string name="settings_device_calendars_empty">Geen leesbare apparaatkalenders gevonden.</string>
     <string name="calendar_add_planned">+ Gepland toevoegen</string>
     <string name="calendar_add_planned_title">Gepland item toevoegen</string>
     <string name="calendar_edit_planned_title">Gepland item bewerken</string>
