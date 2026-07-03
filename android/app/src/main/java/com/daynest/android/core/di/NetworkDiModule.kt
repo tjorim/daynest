@@ -32,10 +32,13 @@ object NetworkDiModule {
     @Singleton
     fun provideCertificatePinner(): CertificatePinner =
         CertificatePinnerProvider(
-            host = BuildConfig.PROD_HOST,
-            pins = BuildConfig.PROD_PINS.toList(),
+            host = BuildConfig.CERTIFICATE_PIN_HOST,
+            pins = BuildConfig.CERTIFICATE_PINS.toList(),
         ).get()
 
+    // Discovery returns the endpoints the whole auth flow trusts, so it must be
+    // pinned exactly like the API client; a plain OkHttpClient would let a
+    // MITM with a rogue CA swap in attacker-controlled authorization/token URLs.
     @Provides
     @Singleton
     @Named("discovery")

@@ -4,7 +4,6 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
-import android.net.Uri
 import com.daynest.android.core.network.ServerUrlHolder
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -19,13 +18,7 @@ import net.openid.appauth.AuthorizationResponse
 import net.openid.appauth.AuthorizationService
 import net.openid.appauth.AuthorizationServiceConfiguration
 import net.openid.appauth.ResponseTypeValues
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import org.json.JSONException
-import org.json.JSONObject
-import java.io.IOException
 import javax.inject.Inject
-import javax.inject.Named
 import javax.inject.Singleton
 import kotlin.coroutines.resume
 
@@ -36,14 +29,15 @@ class OidcAuthService
         @param:ApplicationContext private val context: Context,
         private val securePreferences: SharedPreferences,
         private val serverUrlHolder: ServerUrlHolder,
-        @Named("discovery") private val discoveryClient: OkHttpClient,
+        private val oidcDiscovery: OidcServiceConfigurationDiscovery,
     ) {
         private val authorizationService = AuthorizationService(context)
         private val mutex = Mutex()
+        private val configMutex = Mutex()
 
         @Volatile private var authState: AuthState = loadPersistedState()
 
-        @Volatile private var serviceConfiguration: AuthorizationServiceConfiguration? = null
+        @Volatile private var serviceConfiguration: Pair<String, AuthorizationServiceConfiguration>? = null
 
         val isAuthorized: Boolean get() = authState.isAuthorized
         val currentAccessToken: String? get() = authState.accessToken
@@ -103,38 +97,15 @@ class OidcAuthService
         fun signOut() = clearState()
 
         private suspend fun discoverServiceConfiguration(): AuthorizationServiceConfiguration {
-            serviceConfiguration?.let { return it }
-            val url = "${serverUrlHolder.currentUrl.trimEnd('/')}/$OIDC_CONFIG_PATH"
-            val config =
-                withContext(Dispatchers.IO) {
-                    val request = Request.Builder().url(url).build()
-                    discoveryClient.newCall(request).execute().use { response ->
-                        val body = response.body.string()
-                        if (!response.isSuccessful) {
-                            throw IOException(
-                                "OIDC config endpoint returned HTTP ${response.code} ${response.message}: $body",
-                            )
-                        }
-                        if (body.isBlank()) {
-                            throw IOException("Empty response from OIDC config endpoint")
-                        }
-                        parseServiceConfiguration(body)
-                    }
-                }
-            serviceConfiguration = config
-            return config
-        }
-
-        private fun parseServiceConfiguration(body: String): AuthorizationServiceConfiguration =
-            try {
-                val json = JSONObject(body)
-                AuthorizationServiceConfiguration(
-                    Uri.parse(json.getString("authorization_url")),
-                    Uri.parse(json.getString("token_url")),
-                )
-            } catch (e: JSONException) {
-                throw IOException("Failed to parse OIDC config response", e)
+            val serverUrl = serverUrlHolder.currentUrl
+            serviceConfiguration?.takeIf { it.first == serverUrl }?.let { return it.second }
+            return configMutex.withLock {
+                serviceConfiguration?.takeIf { it.first == serverUrl }?.second
+                    ?: withContext(Dispatchers.IO) {
+                        oidcDiscovery.fetch(serverUrl)
+                    }.also { serviceConfiguration = serverUrl to it }
             }
+        }
 
         private fun loadPersistedState(): AuthState {
             val json = securePreferences.getString(KEY_AUTH_STATE, null) ?: return AuthState()
@@ -153,6 +124,5 @@ class OidcAuthService
 
         companion object {
             private const val KEY_AUTH_STATE = "oidc_auth_state"
-            private const val OIDC_CONFIG_PATH = "api/v1/auth/oidc-config"
         }
     }

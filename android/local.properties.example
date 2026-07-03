@@ -9,11 +9,12 @@
 # Override here if you run the backend on a different host or port.
 # apiBaseUrlDebug=http://10.0.2.2:8000/
 
-# Staging API base URL (required for :app:assembleStaging builds).
-# Must end with a trailing slash.
-# apiBaseUrlStaging=https://staging-api.daynest.com/
-
-# Release API base URL (required for :app:assembleRelease builds).
+# Release API base URL (required when building a release artifact, e.g.
+# :app:assembleRelease -- not just that one task).
 # Must end with a trailing slash.
 # apiBaseUrlRelease=https://api.daynest.com/
 
+# Certificate pin host and pins (required when building a release artifact;
+# debug never pins, regardless of these values).
+# certificatePinHost=api.daynest.com
+# certificatePins=sha256/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=,sha256/BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=

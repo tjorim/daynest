@@ -32,9 +32,9 @@ fun isReleaseArtifactRequested(): Boolean {
         return false
     }
 
-    val artifactVerbs = listOf("assemble", "bundle", "install", "package")
+    val nonArtifactKeywords = listOf("test", "lint", "detekt", "ktlint")
     return requestedTaskNames.any { taskName ->
-        (taskName.contains("release") && artifactVerbs.any { verb -> taskName.contains(verb) }) ||
+        (taskName.contains("release") && nonArtifactKeywords.none { taskName.contains(it) }) ||
             taskName in listOf("assemble", "build", "bundle")
     }
 }
@@ -50,37 +50,45 @@ fun resolvePins(
         envKey = envKey,
         localProperty = localProperties::getProperty,
         gradleProperty = { providers.gradleProperty(it).orNull },
-        env = System::getenv,
+        env = { providers.environmentVariable(it).orNull },
     )
 
-fun resolveApiUrl(
+fun resolveConfigValue(
     key: String,
     envKey: String,
     required: Boolean,
     default: String = "",
 ): String {
-    val value =
-        localProperties.getProperty(key)
-            ?: providers.gradleProperty(key).orNull
-            ?: System.getenv(envKey)
-            ?: default.takeIf { it.isNotBlank() }
-    if (required && value.isNullOrBlank()) {
+    // A blank value counts as missing so a placeholder line in local.properties
+    // still falls through to the next source or the default.
+    val explicitValue =
+        sequenceOf(
+            localProperties.getProperty(key),
+            providers.gradleProperty(key).orNull,
+            providers.environmentVariable(envKey).orNull,
+        ).firstOrNull { !it.isNullOrBlank() }
+    if (required && explicitValue.isNullOrBlank()) {
         error(
             "Missing required build property '$key'. " +
                 "Set it in local.properties, as a Gradle property, or as the env var '$envKey'.",
         )
     }
-    return value.orEmpty()
+    return explicitValue ?: default
 }
 
 extensions.configure<ApplicationExtension> {
     namespace = "com.daynest.android"
     compileSdk = 37
 
-    val keystorePath = localProperties.getProperty("keystorePath") ?: System.getenv("KEYSTORE_PATH")
-    val keystorePassword = localProperties.getProperty("keystorePassword") ?: System.getenv("STORE_PASSWORD")
-    val keystoreKeyAlias = localProperties.getProperty("keyAlias") ?: System.getenv("KEY_ALIAS")
-    val keystoreKeyPassword = localProperties.getProperty("keyPassword") ?: System.getenv("KEY_PASSWORD")
+    val keystorePath =
+        localProperties.getProperty("keystorePath") ?: providers.environmentVariable("KEYSTORE_PATH").orNull
+    val keystorePassword =
+        localProperties.getProperty("keystorePassword")
+            ?: providers.environmentVariable("STORE_PASSWORD").orNull
+    val keystoreKeyAlias =
+        localProperties.getProperty("keyAlias") ?: providers.environmentVariable("KEY_ALIAS").orNull
+    val keystoreKeyPassword =
+        localProperties.getProperty("keyPassword") ?: providers.environmentVariable("KEY_PASSWORD").orNull
     signingConfigs {
         if (!keystorePath.isNullOrBlank() &&
             !keystorePassword.isNullOrBlank() &&
@@ -113,34 +121,15 @@ extensions.configure<ApplicationExtension> {
     buildTypes {
         debug {
             val url =
-                resolveApiUrl(
+                resolveConfigValue(
                     "apiBaseUrlDebug",
                     "API_BASE_URL_DEBUG",
                     required = false,
                     default = "http://10.0.2.2:8000/",
                 )
             buildConfigField("String", "API_BASE_URL", "\"$url\"")
-            buildConfigField("String[]", "PROD_PINS", "new String[]{}")
-            buildConfigField("String", "PROD_HOST", "\"\"")
-            buildConfigField("String", "OIDC_CLIENT_ID", "\"daynest\"")
-            buildConfigField("String", "OIDC_REDIRECT_URI", "\"com.daynest.android:/oauth2redirect\"")
-        }
-        create("staging") {
-            initWith(getByName("debug"))
-            matchingFallbacks += listOf("debug")
-            // No staging backend is deployed yet. Unlike release, staging builds are
-            // ad-hoc test artifacts, not something shipped to real users, so a missing
-            // value falls back to the placeholder instead of failing the build.
-            val url =
-                resolveApiUrl(
-                    "apiBaseUrlStaging",
-                    "API_BASE_URL_STAGING",
-                    required = false,
-                    default = "https://staging.placeholder.invalid/",
-                )
-            buildConfigField("String", "API_BASE_URL", "\"$url\"")
-            buildConfigField("String[]", "PROD_PINS", "new String[]{}")
-            buildConfigField("String", "PROD_HOST", "\"\"")
+            buildConfigField("String[]", "CERTIFICATE_PINS", "new String[]{}")
+            buildConfigField("String", "CERTIFICATE_PIN_HOST", "\"\"")
             buildConfigField("String", "OIDC_CLIENT_ID", "\"daynest\"")
             buildConfigField("String", "OIDC_REDIRECT_URI", "\"com.daynest.android:/oauth2redirect\"")
         }
@@ -165,18 +154,38 @@ extensions.configure<ApplicationExtension> {
             // require the real production URL either.
             val isRequested = isReleaseArtifactRequested()
             val url =
-                resolveApiUrl(
+                resolveConfigValue(
                     "apiBaseUrlRelease",
-                    "API_BASE_URL_RELEASE",
+                    "ANDROID_API_BASE_URL",
                     required = isRequested,
                     default = if (isRequested) "" else "https://release.placeholder.invalid/",
                 )
             buildConfigField("String", "API_BASE_URL", "\"$url\"")
-            val pins = resolvePins("apiProdPins", "API_PROD_PINS")
-            CertPinning.requireValidPinFormats(pins)
-            val prodHost = CertPinning.requireHostForPins(pins, url)
-            buildConfigField("String[]", "PROD_PINS", CertPinning.pinsArrayLiteral(pins))
-            buildConfigField("String", "PROD_HOST", "\"${prodHost.orEmpty()}\"")
+            val releaseCertificatePinHost =
+                resolveConfigValue(
+                    "certificatePinHost",
+                    "ANDROID_CERTIFICATE_PIN_HOST",
+                    required = isRequested,
+                    default = if (isRequested) "" else "release.placeholder.invalid",
+                )
+            val pins =
+                resolvePins(
+                    "certificatePins",
+                    "ANDROID_CERTIFICATE_PINS",
+                )
+            if (isRequested) {
+                if (pins.isEmpty()) {
+                    error(
+                        "Missing required build property 'certificatePins'. " +
+                            "Set it in local.properties, as a Gradle property, or as the env var " +
+                            "'ANDROID_CERTIFICATE_PINS'.",
+                    )
+                }
+                CertPinning.requireValidPinFormats(pins)
+                CertPinning.requireHostConfiguredForPins(releaseCertificatePinHost, pins)
+            }
+            buildConfigField("String[]", "CERTIFICATE_PINS", CertPinning.pinsArrayLiteral(pins))
+            buildConfigField("String", "CERTIFICATE_PIN_HOST", "\"$releaseCertificatePinHost\"")
             buildConfigField("String", "OIDC_CLIENT_ID", "\"daynest\"")
             buildConfigField("String", "OIDC_REDIRECT_URI", "\"com.daynest.android:/oauth2redirect\"")
         }
@@ -260,6 +269,8 @@ dependencies {
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.okhttp.mockwebserver)
     testImplementation(libs.turbine)
+    testImplementation(libs.mockk)
+    testImplementation(libs.json)
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.androidx.test.espresso.core)
     androidTestImplementation(libs.compose.ui.test.junit4)
