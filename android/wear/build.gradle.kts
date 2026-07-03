@@ -27,7 +27,7 @@ fun resolveApiUrl(
 ): String =
     localProperties.getProperty(key)
         ?: providers.gradleProperty(key).orNull
-        ?: System.getenv(envKey)
+        ?: providers.environmentVariable(envKey).orNull
         ?: default
 
 extensions.configure<ApplicationExtension> {

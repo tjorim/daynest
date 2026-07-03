@@ -32,9 +32,9 @@ fun isReleaseArtifactRequested(): Boolean {
         return false
     }
 
-    val artifactVerbs = listOf("assemble", "bundle", "install", "package")
+    val nonArtifactKeywords = listOf("test", "lint", "detekt", "ktlint")
     return requestedTaskNames.any { taskName ->
-        (taskName.contains("release") && artifactVerbs.any { verb -> taskName.contains(verb) }) ||
+        (taskName.contains("release") && nonArtifactKeywords.none { taskName.contains(it) }) ||
             taskName in listOf("assemble", "build", "bundle")
     }
 }
@@ -62,7 +62,7 @@ fun resolveConfigValue(
     val value =
         localProperties.getProperty(key)
             ?: providers.gradleProperty(key).orNull
-            ?: System.getenv(envKey)
+            ?: providers.environmentVariable(envKey).orNull
             ?: default.takeIf { it.isNotBlank() }
     if (required && value.isNullOrBlank()) {
         error(
@@ -77,10 +77,15 @@ extensions.configure<ApplicationExtension> {
     namespace = "com.daynest.android"
     compileSdk = 37
 
-    val keystorePath = localProperties.getProperty("keystorePath") ?: System.getenv("KEYSTORE_PATH")
-    val keystorePassword = localProperties.getProperty("keystorePassword") ?: System.getenv("STORE_PASSWORD")
-    val keystoreKeyAlias = localProperties.getProperty("keyAlias") ?: System.getenv("KEY_ALIAS")
-    val keystoreKeyPassword = localProperties.getProperty("keyPassword") ?: System.getenv("KEY_PASSWORD")
+    val keystorePath =
+        localProperties.getProperty("keystorePath") ?: providers.environmentVariable("KEYSTORE_PATH").orNull
+    val keystorePassword =
+        localProperties.getProperty("keystorePassword")
+            ?: providers.environmentVariable("STORE_PASSWORD").orNull
+    val keystoreKeyAlias =
+        localProperties.getProperty("keyAlias") ?: providers.environmentVariable("KEY_ALIAS").orNull
+    val keystoreKeyPassword =
+        localProperties.getProperty("keyPassword") ?: providers.environmentVariable("KEY_PASSWORD").orNull
     signingConfigs {
         if (!keystorePath.isNullOrBlank() &&
             !keystorePassword.isNullOrBlank() &&
@@ -165,15 +170,17 @@ extensions.configure<ApplicationExtension> {
                     "releaseCertificatePins",
                     "ANDROID_CERTIFICATE_PINS",
                 )
-            if (isRequested && pins.isEmpty()) {
-                error(
-                    "Missing required build property 'releaseCertificatePins'. " +
-                        "Set it in local.properties, as a Gradle property, or as the env var " +
-                        "'ANDROID_CERTIFICATE_PINS'.",
-                )
+            if (isRequested) {
+                if (pins.isEmpty()) {
+                    error(
+                        "Missing required build property 'releaseCertificatePins'. " +
+                            "Set it in local.properties, as a Gradle property, or as the env var " +
+                            "'ANDROID_CERTIFICATE_PINS'.",
+                    )
+                }
+                CertPinning.requireValidPinFormats(pins)
+                CertPinning.requireHostForPins(pins, releaseCertificatePinHost)
             }
-            CertPinning.requireValidPinFormats(pins)
-            CertPinning.requireHostForPins(pins, releaseCertificatePinHost)
             buildConfigField("String[]", "CERTIFICATE_PINS", CertPinning.pinsArrayLiteral(pins))
             buildConfigField("String", "CERTIFICATE_PIN_HOST", "\"$releaseCertificatePinHost\"")
             buildConfigField("String", "OIDC_CLIENT_ID", "\"daynest\"")
