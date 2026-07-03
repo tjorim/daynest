@@ -95,7 +95,7 @@ private fun ContentResolver.queryDeviceEvents(
         .toEpochMilli()
     val projection =
         arrayOf(
-            CalendarContract.Instances.EVENT_ID,
+            CalendarContract.Instances._ID,
             CalendarContract.Instances.CALENDAR_ID,
             CalendarContract.Instances.CALENDAR_DISPLAY_NAME,
             CalendarContract.Instances.TITLE,
@@ -121,7 +121,7 @@ private fun ContentResolver.queryDeviceEvents(
         "${CalendarContract.Instances.BEGIN} ASC",
     )?.use { cursor ->
         buildList {
-            val eventIdIndex = cursor.getColumnIndexOrThrow(CalendarContract.Instances.EVENT_ID)
+            val eventIdIndex = cursor.getColumnIndexOrThrow(CalendarContract.Instances._ID)
             val calendarIdIndex = cursor.getColumnIndexOrThrow(CalendarContract.Instances.CALENDAR_ID)
             val calendarNameIndex = cursor.getColumnIndexOrThrow(CalendarContract.Instances.CALENDAR_DISPLAY_NAME)
             val titleIndex = cursor.getColumnIndexOrThrow(CalendarContract.Instances.TITLE)

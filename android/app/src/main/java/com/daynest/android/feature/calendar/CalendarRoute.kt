@@ -336,8 +336,8 @@ private fun CalendarContent(
                 }
                 itemsIndexed(
                     state.deviceCalendarEvents,
-                    key = { index, item ->
-                        "device_${item.calendarId}_${item.id}_${item.startsAt.toEpochMilli()}_$index"
+                    key = { _, item ->
+                        "device_${item.id}"
                     },
                 ) { _, item ->
                     DeviceCalendarEventCard(item = item)

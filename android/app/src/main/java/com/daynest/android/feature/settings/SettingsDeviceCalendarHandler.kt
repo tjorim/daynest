@@ -48,27 +48,27 @@ internal class SettingsDeviceCalendarHandler(
                     } else {
                         emptyList()
                     }
+                var enabledIds: Set<String>? = null
                 uiState.update { current ->
                     if (current is SettingsUiState.Content) {
-                        val enabledIds =
+                        val updatedIds =
                             if (enabled && current.enabledDeviceCalendarIds.isEmpty()) {
                                 calendars.filter { it.visible }.map { it.id }.toSet()
                             } else {
                                 current.enabledDeviceCalendarIds
                             }
-                        if (enabledIds != current.enabledDeviceCalendarIds) {
-                            scope.launch {
-                                userPreferencesRepository.updateEnabledDeviceCalendarIds(enabledIds)
-                            }
-                        }
+                        enabledIds = updatedIds.takeIf { it != current.enabledDeviceCalendarIds }
                         current.copy(
                             showDeviceCalendars = enabled,
                             deviceCalendars = calendars,
-                            enabledDeviceCalendarIds = enabledIds,
+                            enabledDeviceCalendarIds = updatedIds,
                         )
                     } else {
                         current
                     }
+                }
+                enabledIds?.let { ids ->
+                    runCatching { userPreferencesRepository.updateEnabledDeviceCalendarIds(ids) }
                 }
             }
         }
@@ -79,21 +79,23 @@ internal class SettingsDeviceCalendarHandler(
         enabled: Boolean,
     ) {
         scope.launch {
-            val current = (uiState.value as? SettingsUiState.Content) ?: return@launch
-            val updatedIds =
-                if (enabled) {
-                    current.enabledDeviceCalendarIds + calendarId
+            var updatedIds: Set<String>? = null
+            uiState.update { state ->
+                if (state is SettingsUiState.Content) {
+                    val ids =
+                        if (enabled) {
+                            state.enabledDeviceCalendarIds + calendarId
+                        } else {
+                            state.enabledDeviceCalendarIds - calendarId
+                        }
+                    updatedIds = ids
+                    state.copy(enabledDeviceCalendarIds = ids)
                 } else {
-                    current.enabledDeviceCalendarIds - calendarId
+                    state
                 }
-            runCatching { userPreferencesRepository.updateEnabledDeviceCalendarIds(updatedIds) }.onSuccess {
-                uiState.update { state ->
-                    if (state is SettingsUiState.Content) {
-                        state.copy(enabledDeviceCalendarIds = updatedIds)
-                    } else {
-                        state
-                    }
-                }
+            }
+            updatedIds?.let { ids ->
+                runCatching { userPreferencesRepository.updateEnabledDeviceCalendarIds(ids) }
             }
         }
     }

@@ -30,6 +30,7 @@ import com.daynest.android.R
 import com.daynest.android.data.calendar.DeviceCalendarEvent
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 
 @Composable
 internal fun DeviceCalendarSectionHeader(
@@ -118,7 +119,7 @@ internal fun DeviceCalendarEventCard(item: DeviceCalendarEvent) {
 
 private fun DeviceCalendarEvent.deviceEventTimeText(allDayText: String): String {
     if (allDay) return allDayText
-    val formatter = DateTimeFormatter.ofPattern("HH:mm").withZone(ZoneId.systemDefault())
+    val formatter = DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withZone(ZoneId.systemDefault())
     return "${formatter.format(startsAt)}–${formatter.format(endsAt)}"
 }
 
