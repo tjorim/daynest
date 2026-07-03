@@ -34,6 +34,9 @@ signed release APK:
 
 Release builds fail fast when these values are missing instead of silently shipping
 an APK pointed at a placeholder host or stale certificate pins.
+OIDC authorization and token endpoints are discovered from
+`${ANDROID_API_BASE_URL}/api/v1/auth/oidc-config`, so the Android workflow does
+not need an OIDC issuer secret.
 
 Prefer pinning the current issuing intermediate CA plus a backup such as the root
 or documented rollover intermediate. Avoid leaf-only pinning: client-facing TLS is

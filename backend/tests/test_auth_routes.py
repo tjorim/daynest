@@ -6,10 +6,13 @@ from unittest.mock import AsyncMock, MagicMock
 
 import httpx
 import pytest
+from fastapi import HTTPException
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from app.api.dependencies.auth import get_current_user, get_current_user_from_query_token
+from app.api.routes import auth as auth_routes
+from app.core.config import settings
 from app.core.oidc import get_or_create_local_user
 from app.main import app
 from app.models.user import User
@@ -36,6 +39,36 @@ def _override_auth(user: User):
 
 def _clear_auth():
     app.dependency_overrides.pop(get_current_user, None)
+
+
+# ---------------------------------------------------------------------------
+# GET /oidc-config
+# ---------------------------------------------------------------------------
+
+class TestOidcConfigEndpoint:
+    def test_oidc_config_returns_public_provider_urls(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setattr(settings, "oidc_issuer_url", "https://auth.example.test/realms/daynest/")
+
+        config = auth_routes.oidc_config()
+
+        assert str(config.issuer) == "https://auth.example.test/realms/daynest"
+        assert (
+            str(config.authorization_url)
+            == "https://auth.example.test/realms/daynest/protocol/openid-connect/auth"
+        )
+        assert str(config.token_url) == (
+            "https://auth.example.test/realms/daynest/protocol/openid-connect/token"
+        )
+
+    def test_oidc_config_returns_503_when_issuer_unset(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        monkeypatch.setattr(settings, "oidc_issuer_url", None)
+
+        with pytest.raises(HTTPException) as exc_info:
+            auth_routes.oidc_config()
+        assert exc_info.value.status_code == 503
 
 
 # ---------------------------------------------------------------------------
