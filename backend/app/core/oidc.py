@@ -69,6 +69,25 @@ async def _resolve_jwks_uri() -> str:
         return _jwks_uri_cache
 
 
+async def check_jwks_reachable() -> bool:
+    """Return True if the OIDC provider's JWKS endpoint is reachable.
+
+    Kept short-timeout and quiet (no full traceback) since this backs a
+    readiness probe that may be polled frequently.
+    """
+    try:
+        jwks_uri = await _resolve_jwks_uri()
+        response = await _http_client.get(jwks_uri, timeout=3.0)
+        response.raise_for_status()
+    except OIDCTokenError as exc:
+        logger.error("JWKS reachability check failed: OIDC discovery failed: %s", exc)
+        return False
+    except Exception as exc:  # noqa: BLE001
+        logger.error("JWKS reachability check failed: %s", exc)
+        return False
+    return True
+
+
 async def _fetch_jwks() -> PyJWKSet:
     uri = await _resolve_jwks_uri()
     try:

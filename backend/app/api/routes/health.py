@@ -9,7 +9,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from app.core.config import settings
 from app.core.observability import metrics
-from app.core.oidc import OIDCTokenError, _http_client, _resolve_jwks_uri
+from app.core.oidc import check_jwks_reachable
 from app.db.session import engine
 
 logger = logging.getLogger("app.health")
@@ -37,9 +37,10 @@ def _check_db() -> None:
         connection.execute(text("SELECT 1"))
 
 
-# Readiness probes are typically polled every few seconds; caching the JWKS
-# reachability result avoids hammering the OIDC provider on every probe and
-# risking rate-limiting or cascading failures if it's briefly slow.
+# Readiness probes are typically polled every few seconds; caching a successful
+# reachability result avoids hammering the OIDC provider on every probe. Failures
+# are not cached, so recovery is picked up on the very next probe instead of
+# staying "not_ready" for the rest of the cache window.
 _JWKS_READINESS_CACHE_SECONDS = 30.0
 _jwks_readiness_cache: tuple[float, bool] | None = None
 
@@ -50,19 +51,8 @@ async def _jwks_reachable() -> bool:
     if _jwks_readiness_cache is not None and now - _jwks_readiness_cache[0] < _JWKS_READINESS_CACHE_SECONDS:
         return _jwks_readiness_cache[1]
 
-    reachable = True
-    try:
-        jwks_uri = await _resolve_jwks_uri()
-        response = await _http_client.get(jwks_uri)
-        response.raise_for_status()
-    except OIDCTokenError:
-        logger.exception("Readiness check failed: OIDC discovery failed")
-        reachable = False
-    except Exception:
-        logger.exception("Readiness check failed: OIDC JWKS endpoint unreachable")
-        reachable = False
-
-    _jwks_readiness_cache = (now, reachable)
+    reachable = await check_jwks_reachable()
+    _jwks_readiness_cache = (now, True) if reachable else None
     return reachable
 
 

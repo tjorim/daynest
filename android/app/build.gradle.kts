@@ -78,11 +78,16 @@ fun resolveConfigValue(
 
 // Single source of truth for the app version: frontend/package.json, kept in
 // lockstep with the web release version instead of a hand-maintained literal here.
+// Read via providers.fileContents (not File.readText()) so the file is tracked
+// as a build configuration input and this stays Configuration Cache-compatible.
 val appVersion =
-    File(rootDir.parentFile, "frontend/package.json").readText().let { json ->
-        Regex(""""version":\s*"([^"]+)"""").find(json)?.groupValues?.get(1)
-            ?: error("Could not find a \"version\" field in frontend/package.json")
-    }
+    providers
+        .fileContents(layout.projectDirectory.file("../../frontend/package.json"))
+        .asText
+        .map { json ->
+            Regex(""""version":\s*"([^"]+)"""").find(json)?.groupValues?.get(1)
+                ?: error("Could not find a \"version\" field in frontend/package.json")
+        }.get()
 
 fun versionCodeFor(version: String): Int {
     val parts = version.substringBefore("-").substringBefore("+").split(".")
