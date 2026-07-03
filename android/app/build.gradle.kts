@@ -92,7 +92,12 @@ fun versionCodeFor(version: String): Int {
 }
 
 val gitCommit =
-    providers.exec { commandLine("git", "rev-parse", "--short", "HEAD") }.standardOutput.asText.get().trim()
+    providers
+        .exec { commandLine("git", "rev-parse", "--short", "HEAD") }
+        .standardOutput
+        .asText
+        .get()
+        .trim()
 
 extensions.configure<ApplicationExtension> {
     namespace = "com.daynest.android"
@@ -123,7 +128,7 @@ extensions.configure<ApplicationExtension> {
     }
 
     defaultConfig {
-        applicationId = "com.daynest.android"
+        applicationId = "im.tjor.daynest"
         minSdk = 26
         targetSdk = 37
         // versionCode = MAJOR * 1000000 + MINOR * 1000 + PATCH (e.g. v1.2.3 → 1002003)
@@ -150,7 +155,7 @@ extensions.configure<ApplicationExtension> {
             buildConfigField("String[]", "CERTIFICATE_PINS", "new String[]{}")
             buildConfigField("String", "CERTIFICATE_PIN_HOST", "\"\"")
             buildConfigField("String", "OIDC_CLIENT_ID", "\"daynest\"")
-            buildConfigField("String", "OIDC_REDIRECT_URI", "\"com.daynest.android:/oauth2redirect\"")
+            buildConfigField("String", "OIDC_REDIRECT_URI", "\"im.tjor.daynest:/oauth2redirect\"")
         }
         release {
             isMinifyEnabled = true
@@ -206,7 +211,7 @@ extensions.configure<ApplicationExtension> {
             buildConfigField("String[]", "CERTIFICATE_PINS", CertPinning.pinsArrayLiteral(pins))
             buildConfigField("String", "CERTIFICATE_PIN_HOST", "\"$releaseCertificatePinHost\"")
             buildConfigField("String", "OIDC_CLIENT_ID", "\"daynest\"")
-            buildConfigField("String", "OIDC_REDIRECT_URI", "\"com.daynest.android:/oauth2redirect\"")
+            buildConfigField("String", "OIDC_REDIRECT_URI", "\"im.tjor.daynest:/oauth2redirect\"")
         }
     }
 

@@ -35,7 +35,7 @@ extensions.configure<ApplicationExtension> {
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "com.daynest.android.wear"
+        applicationId = "im.tjor.daynest.wear"
         minSdk = 26
         targetSdk = 37
         versionCode = 1
