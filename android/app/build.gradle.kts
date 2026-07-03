@@ -178,6 +178,7 @@ extensions.configure<ApplicationExtension> {
                     "releaseCertificatePinHost",
                     "ANDROID_CERTIFICATE_PIN_HOST",
                     required = isRequested,
+                    default = if (isRequested) "" else "release.placeholder.invalid",
                 )
             val pins =
                 resolvePins(
@@ -279,6 +280,7 @@ dependencies {
     testImplementation(libs.okhttp.mockwebserver)
     testImplementation(libs.turbine)
     testImplementation(libs.mockk)
+    testImplementation(libs.json)
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.androidx.test.espresso.core)
     androidTestImplementation(libs.compose.ui.test.junit4)
