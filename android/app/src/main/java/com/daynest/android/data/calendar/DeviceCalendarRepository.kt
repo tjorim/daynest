@@ -32,7 +32,10 @@ class DeviceCalendarRepository
             enabledCalendarIds: Set<String>,
         ): Result<List<DeviceCalendarEvent>> =
             withContext(Dispatchers.IO) {
-                if (!hasReadPermission() || enabledCalendarIds.isEmpty()) {
+                if (!hasReadPermission()) {
+                    return@withContext Result.failure(SecurityException("READ_CALENDAR permission not granted"))
+                }
+                if (enabledCalendarIds.isEmpty()) {
                     return@withContext Result.success(emptyList())
                 }
                 runCatching { context.contentResolver.queryDeviceEvents(date, enabledCalendarIds) }

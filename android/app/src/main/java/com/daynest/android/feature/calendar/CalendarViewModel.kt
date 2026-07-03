@@ -53,7 +53,6 @@ class CalendarViewModel
             CalendarDeviceEventsHandler(
                 scope = viewModelScope,
                 deviceCalendarRepository = deviceCalendarRepository,
-                userPreferencesRepository = userPreferencesRepository,
                 uiState = _uiState,
                 preferences = { preferences },
             )
@@ -196,6 +195,7 @@ class CalendarViewModel
                         current
                     }
                 }
+                deviceEventsHandler.load(LocalDate.parse(date))
                 val result = calendarRepository.getDay(date)
                 result
                     .onSuccess { dayDto ->

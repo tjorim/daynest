@@ -1,7 +1,6 @@
 package com.daynest.android.feature.calendar
 
 import com.daynest.android.core.storage.preferences.UserPreferences
-import com.daynest.android.core.storage.preferences.UserPreferencesRepository
 import com.daynest.android.data.calendar.DeviceCalendarRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -12,7 +11,6 @@ import java.time.LocalDate
 internal class CalendarDeviceEventsHandler(
     private val scope: CoroutineScope,
     private val deviceCalendarRepository: DeviceCalendarRepository,
-    private val userPreferencesRepository: UserPreferencesRepository,
     private val uiState: MutableStateFlow<CalendarUiState>,
     private val preferences: () -> UserPreferences,
 ) {
@@ -67,11 +65,9 @@ internal class CalendarDeviceEventsHandler(
     fun handlePermissionResult(granted: Boolean) {
         scope.launch {
             if (!granted) {
-                userPreferencesRepository.updateShowDeviceCalendars(false)
                 uiState.update { current ->
                     if (current is CalendarUiState.Content) {
                         current.copy(
-                            showDeviceCalendars = false,
                             deviceCalendarEvents = emptyList(),
                             deviceCalendarStatus = DeviceCalendarStatus.PermissionRequired,
                         )
