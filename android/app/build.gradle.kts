@@ -99,8 +99,7 @@ val gitCommit =
             .exec {
                 commandLine("git", "rev-parse", "--short", "HEAD")
                 isIgnoreExitValue = true
-            }
-            .standardOutput
+            }.standardOutput
             .asText
             .get()
             .trim()
