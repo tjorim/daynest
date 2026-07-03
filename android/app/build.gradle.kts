@@ -91,13 +91,23 @@ fun versionCodeFor(version: String): Int {
     return major * 1_000_000 + minor * 1_000 + patch
 }
 
+// Falls back to "unknown" rather than failing the build when git is unavailable
+// (e.g. building from a downloaded source archive with no .git directory).
 val gitCommit =
-    providers
-        .exec { commandLine("git", "rev-parse", "--short", "HEAD") }
-        .standardOutput
-        .asText
-        .get()
-        .trim()
+    try {
+        providers
+            .exec {
+                commandLine("git", "rev-parse", "--short", "HEAD")
+                isIgnoreExitValue = true
+            }
+            .standardOutput
+            .asText
+            .get()
+            .trim()
+            .ifEmpty { "unknown" }
+    } catch (e: Exception) {
+        "unknown"
+    }
 
 extensions.configure<ApplicationExtension> {
     namespace = "com.daynest.android"
