@@ -34,19 +34,63 @@ def _user_to_response(user: User, roles: list[str]) -> UserMeResponse:
     )
 
 
-@router.get("/oidc-config", response_model=OidcDiscoveryConfig)
-def oidc_config() -> OidcDiscoveryConfig:
-    """Return OIDC discovery config (unauthenticated). All clients use this to discover Keycloak endpoints."""
+# Discovery results are stable for the lifetime of the process; keyed by issuer
+# so a config change is picked up.
+_oidc_config_cache: dict[str, OidcDiscoveryConfig] = {}
+
+
+async def discover_oidc_endpoints() -> OidcDiscoveryConfig:
+    """Resolve public OIDC endpoints from the provider's discovery document.
+
+    Endpoints come from the provider's standard discovery document so any OIDC
+    provider (Keycloak, authentik, ...) works without provider-specific URL
+    paths. Raises HTTPException 503 when OIDC is unconfigured or discovery fails.
+    """
     if not settings.oidc_issuer_url:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="OIDC not configured on this server")
     issuer = settings.oidc_issuer_url.rstrip("/")
-    return OidcDiscoveryConfig.model_validate(
-        {
-            "issuer": issuer,
-            "authorization_url": f"{issuer}/protocol/openid-connect/auth",
-            "token_url": f"{issuer}/protocol/openid-connect/token",
-        }
-    )
+    cached = _oidc_config_cache.get(issuer)
+    if cached is not None:
+        return cached
+
+    discovery_url = f"{issuer}/.well-known/openid-configuration"
+    try:
+        resp = await _http_client.get(discovery_url)
+    except httpx.RequestError as exc:
+        logger.error("Failed to reach OIDC discovery endpoint %s: %s", discovery_url, exc)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="OIDC discovery failed",
+        ) from exc
+    if not resp.is_success:
+        logger.error("OIDC discovery endpoint %s returned HTTP %s", discovery_url, resp.status_code)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="OIDC discovery failed",
+        )
+    try:
+        data = resp.json()
+        config = OidcDiscoveryConfig.model_validate(
+            {
+                "issuer": data.get("issuer", issuer),
+                "authorization_url": data["authorization_endpoint"],
+                "token_url": data["token_endpoint"],
+            }
+        )
+    except (KeyError, ValueError) as exc:
+        logger.error("Invalid OIDC discovery document from %s: %s", discovery_url, exc)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="OIDC discovery failed",
+        ) from exc
+    _oidc_config_cache[issuer] = config
+    return config
+
+
+@router.get("/oidc-config", response_model=OidcDiscoveryConfig)
+async def oidc_config() -> OidcDiscoveryConfig:
+    """Return OIDC discovery config (unauthenticated). All clients use this to discover provider endpoints."""
+    return await discover_oidc_endpoints()
 
 
 @router.get("/me", response_model=UserMeResponse)

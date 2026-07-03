@@ -1,6 +1,7 @@
 """Tests for OIDC-based auth – /me endpoint, user provisioning, and OAuth sessions."""
 from __future__ import annotations
 
+import asyncio
 import json
 from unittest.mock import AsyncMock, MagicMock
 
@@ -46,19 +47,68 @@ def _clear_auth():
 # ---------------------------------------------------------------------------
 
 class TestOidcConfigEndpoint:
-    def test_oidc_config_returns_public_provider_urls(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        monkeypatch.setattr(settings, "oidc_issuer_url", "https://auth.example.test/realms/daynest/")
+    def _mock_discovery(self, monkeypatch: pytest.MonkeyPatch, response: httpx.Response) -> MagicMock:
+        client = MagicMock(get=AsyncMock(return_value=response))
+        monkeypatch.setattr(auth_routes, "_http_client", client)
+        monkeypatch.setattr(auth_routes, "_oidc_config_cache", {})
+        return client
 
-        config = auth_routes.oidc_config()
+    def test_oidc_config_returns_discovered_provider_urls(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        issuer = "https://auth.example.test/realms/daynest"
+        monkeypatch.setattr(settings, "oidc_issuer_url", issuer + "/")
+        client = self._mock_discovery(
+            monkeypatch,
+            _make_httpx_response(200, {
+                "issuer": issuer,
+                "authorization_endpoint": f"{issuer}/protocol/openid-connect/auth",
+                "token_endpoint": f"{issuer}/protocol/openid-connect/token",
+            }),
+        )
 
-        assert str(config.issuer) == "https://auth.example.test/realms/daynest"
-        assert (
-            str(config.authorization_url)
-            == "https://auth.example.test/realms/daynest/protocol/openid-connect/auth"
+        config = asyncio.run(auth_routes.oidc_config())
+
+        client.get.assert_awaited_once_with(f"{issuer}/.well-known/openid-configuration")
+        assert str(config.issuer) == issuer
+        assert str(config.authorization_url) == f"{issuer}/protocol/openid-connect/auth"
+        assert str(config.token_url) == f"{issuer}/protocol/openid-connect/token"
+
+    def test_oidc_config_caches_discovery(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        issuer = "https://auth.example.test/application/o/daynest"
+        monkeypatch.setattr(settings, "oidc_issuer_url", issuer)
+        client = self._mock_discovery(
+            monkeypatch,
+            _make_httpx_response(200, {
+                "issuer": issuer,
+                "authorization_endpoint": f"{issuer}/authorize/",
+                "token_endpoint": f"{issuer}/token/",
+            }),
         )
-        assert str(config.token_url) == (
-            "https://auth.example.test/realms/daynest/protocol/openid-connect/token"
-        )
+
+        first = asyncio.run(auth_routes.oidc_config())
+        second = asyncio.run(auth_routes.oidc_config())
+
+        assert second is first
+        assert str(first.authorization_url) == f"{issuer}/authorize/"
+        assert client.get.await_count == 1
+
+    def test_oidc_config_returns_503_when_discovery_unreachable(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setattr(settings, "oidc_issuer_url", "https://auth.example.test/realms/daynest")
+        client = MagicMock(get=AsyncMock(side_effect=httpx.ConnectError("connection refused")))
+        monkeypatch.setattr(auth_routes, "_http_client", client)
+        monkeypatch.setattr(auth_routes, "_oidc_config_cache", {})
+
+        with pytest.raises(HTTPException) as exc_info:
+            asyncio.run(auth_routes.oidc_config())
+        assert exc_info.value.status_code == 503
+
+    def test_oidc_config_returns_503_when_document_incomplete(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        issuer = "https://auth.example.test/realms/daynest"
+        monkeypatch.setattr(settings, "oidc_issuer_url", issuer)
+        self._mock_discovery(monkeypatch, _make_httpx_response(200, {"issuer": issuer}))
+
+        with pytest.raises(HTTPException) as exc_info:
+            asyncio.run(auth_routes.oidc_config())
+        assert exc_info.value.status_code == 503
 
     def test_oidc_config_returns_503_when_issuer_unset(
         self,
@@ -67,8 +117,28 @@ class TestOidcConfigEndpoint:
         monkeypatch.setattr(settings, "oidc_issuer_url", None)
 
         with pytest.raises(HTTPException) as exc_info:
-            auth_routes.oidc_config()
+            asyncio.run(auth_routes.oidc_config())
         assert exc_info.value.status_code == 503
+
+    def test_home_assistant_oidc_config_uses_discovery(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        from app.api.routes.integrations import home_assistant
+
+        issuer = "https://auth.example.test/realms/daynest"
+        monkeypatch.setattr(settings, "oidc_issuer_url", issuer)
+        self._mock_discovery(
+            monkeypatch,
+            _make_httpx_response(200, {
+                "issuer": issuer,
+                "authorization_endpoint": f"{issuer}/authorize/",
+                "token_endpoint": f"{issuer}/token/",
+            }),
+        )
+
+        config = asyncio.run(home_assistant.home_assistant_oidc_config())
+
+        assert config.authorization_url == f"{issuer}/authorize/"
+        assert config.token_url == f"{issuer}/token/"
+        assert config.client_id == "home-assistant"
 
 
 # ---------------------------------------------------------------------------

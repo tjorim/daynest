@@ -1,11 +1,11 @@
 from datetime import date, timedelta
 from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from fastapi import APIRouter, Depends, Query, Response
 
 from app.api.dependencies.integration_auth import require_integration_auth
 from app.api.dependencies.today import get_today_service
-from app.core.config import settings
+from app.api.routes.auth import discover_oidc_endpoints
 from app.models.user import User
 from app.schemas.integration_contracts import (
     HOME_ASSISTANT_ADAPTER,
@@ -42,14 +42,12 @@ def _set_ha_contract_header(response: Response) -> None:
 
 
 @router.get("/oidc-config", response_model=HomeAssistantOIDCConfig)
-def home_assistant_oidc_config() -> HomeAssistantOIDCConfig:
+async def home_assistant_oidc_config() -> HomeAssistantOIDCConfig:
     """Return OIDC endpoint URLs for the Home Assistant integration config flow (unauthenticated)."""
-    if not settings.oidc_issuer_url:
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="OIDC not configured on this server")
-    issuer = settings.oidc_issuer_url.rstrip("/")
+    config = await discover_oidc_endpoints()
     return HomeAssistantOIDCConfig(
-        authorization_url=f"{issuer}/protocol/openid-connect/auth",
-        token_url=f"{issuer}/protocol/openid-connect/token",
+        authorization_url=str(config.authorization_url),
+        token_url=str(config.token_url),
         client_id=_HA_OIDC_CLIENT_ID,
     )
 

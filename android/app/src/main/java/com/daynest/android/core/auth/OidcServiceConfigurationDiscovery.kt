@@ -18,12 +18,15 @@ class OidcServiceConfigurationDiscovery
         fun fetch(serverUrl: String): AuthorizationServiceConfiguration {
             val request = Request.Builder().url(configUrl(serverUrl)).build()
             discoveryClient.newCall(request).execute().use { response ->
-                val body = response.body.string()
                 if (!response.isSuccessful) {
+                    // Peek a bounded snippet: an arbitrary server behind a user-set URL can
+                    // return an error page of any size, which must not be fully buffered.
+                    val errorBody = runCatching { response.peekBody(1024).string() }.getOrElse { "" }
                     throw IOException(
-                        "OIDC config endpoint returned HTTP ${response.code} ${response.message}: $body",
+                        "OIDC config endpoint returned HTTP ${response.code} ${response.message}: $errorBody",
                     )
                 }
+                val body = response.body.string()
                 if (body.isBlank()) {
                     throw IOException("Empty response from OIDC config endpoint")
                 }
