@@ -39,9 +39,9 @@ class CertPinningTest {
     fun `resolvePins prefers local properties over Gradle property and env var`() {
         val pins =
             CertPinning.resolvePins(
-                key = "releaseCertificatePins",
+                key = "certificatePins",
                 envKey = "ANDROID_CERTIFICATE_PINS",
-                localProperty = { key -> "sha256/local".takeIf { key == "releaseCertificatePins" } },
+                localProperty = { key -> "sha256/local".takeIf { key == "certificatePins" } },
                 gradleProperty = { "sha256/gradle" },
                 env = { "sha256/env" },
             )
@@ -52,10 +52,10 @@ class CertPinningTest {
     fun `resolvePins falls back to Gradle property when local properties has no value`() {
         val pins =
             CertPinning.resolvePins(
-                key = "releaseCertificatePins",
+                key = "certificatePins",
                 envKey = "ANDROID_CERTIFICATE_PINS",
                 localProperty = noLocal,
-                gradleProperty = { key -> "sha256/gradle".takeIf { key == "releaseCertificatePins" } },
+                gradleProperty = { key -> "sha256/gradle".takeIf { key == "certificatePins" } },
                 env = { "sha256/env" },
             )
         assertEquals(listOf("sha256/gradle"), pins)
@@ -65,7 +65,7 @@ class CertPinningTest {
     fun `resolvePins falls back to env var when local properties and Gradle property have no value`() {
         val pins =
             CertPinning.resolvePins(
-                key = "releaseCertificatePins",
+                key = "certificatePins",
                 envKey = "ANDROID_CERTIFICATE_PINS",
                 localProperty = noLocal,
                 gradleProperty = noGradle,
@@ -78,7 +78,7 @@ class CertPinningTest {
     fun `resolvePins returns empty list when no source has a value`() {
         val pins =
             CertPinning.resolvePins(
-                key = "releaseCertificatePins",
+                key = "certificatePins",
                 envKey = "ANDROID_CERTIFICATE_PINS",
                 localProperty = noLocal,
                 gradleProperty = noGradle,
@@ -91,7 +91,7 @@ class CertPinningTest {
     fun `resolvePins splits on commas, trims whitespace, and drops blank entries`() {
         val pins =
             CertPinning.resolvePins(
-                key = "releaseCertificatePins",
+                key = "certificatePins",
                 envKey = "ANDROID_CERTIFICATE_PINS",
                 localProperty = { " sha256/abc , sha1/def ,, " },
                 gradleProperty = noGradle,

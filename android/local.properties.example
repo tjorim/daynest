@@ -12,3 +12,8 @@
 # Release API base URL (required for :app:assembleRelease builds).
 # Must end with a trailing slash.
 # apiBaseUrlRelease=https://api.daynest.com/
+
+# Certificate pin host and pins (required for :app:assembleRelease builds;
+# debug never pins, regardless of these values).
+# certificatePinHost=api.daynest.com
+# certificatePins=sha256/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=,sha256/BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=

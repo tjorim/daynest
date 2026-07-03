@@ -160,20 +160,20 @@ extensions.configure<ApplicationExtension> {
             buildConfigField("String", "API_BASE_URL", "\"$url\"")
             val releaseCertificatePinHost =
                 resolveConfigValue(
-                    "releaseCertificatePinHost",
+                    "certificatePinHost",
                     "ANDROID_CERTIFICATE_PIN_HOST",
                     required = isRequested,
                     default = if (isRequested) "" else "release.placeholder.invalid",
                 )
             val pins =
                 resolvePins(
-                    "releaseCertificatePins",
+                    "certificatePins",
                     "ANDROID_CERTIFICATE_PINS",
                 )
             if (isRequested) {
                 if (pins.isEmpty()) {
                     error(
-                        "Missing required build property 'releaseCertificatePins'. " +
+                        "Missing required build property 'certificatePins'. " +
                             "Set it in local.properties, as a Gradle property, or as the env var " +
                             "'ANDROID_CERTIFICATE_PINS'.",
                     )
