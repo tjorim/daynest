@@ -26,8 +26,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.daynest.android.R
-import com.daynest.android.data.calendar.DeviceCalendar
-import com.daynest.android.ui.ServerUrlPicker
 
 internal fun LazyListScope.settingsServerSection(
     state: SettingsUiState.Content,

@@ -92,11 +92,12 @@ private fun ContentResolver.queryDeviceEvents(
 ): List<DeviceCalendarEvent> {
     val zone = ZoneId.systemDefault()
     val startMillis = date.atStartOfDay(zone).toInstant().toEpochMilli()
-    val endMillis = date
-        .plusDays(1)
-        .atStartOfDay(zone)
-        .toInstant()
-        .toEpochMilli()
+    val endMillis =
+        date
+            .plusDays(1)
+            .atStartOfDay(zone)
+            .toInstant()
+            .toEpochMilli()
     val projection =
         arrayOf(
             CalendarContract.Instances._ID,
