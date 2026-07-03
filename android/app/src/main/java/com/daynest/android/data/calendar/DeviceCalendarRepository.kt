@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.ContentResolver
 import android.content.Context
 import android.content.pm.PackageManager
+import android.database.Cursor
 import android.provider.CalendarContract
 import androidx.core.content.ContextCompat
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -122,35 +123,36 @@ private fun ContentResolver.queryDeviceEvents(
         selection,
         enabledCalendarIds.toTypedArray(),
         "${CalendarContract.Instances.BEGIN} ASC",
-    )?.use { cursor ->
-        buildList {
-            val eventIdIndex = cursor.getColumnIndexOrThrow(CalendarContract.Instances._ID)
-            val calendarIdIndex = cursor.getColumnIndexOrThrow(CalendarContract.Instances.CALENDAR_ID)
-            val calendarNameIndex = cursor.getColumnIndexOrThrow(CalendarContract.Instances.CALENDAR_DISPLAY_NAME)
-            val titleIndex = cursor.getColumnIndexOrThrow(CalendarContract.Instances.TITLE)
-            val descriptionIndex = cursor.getColumnIndexOrThrow(CalendarContract.Instances.DESCRIPTION)
-            val beginIndex = cursor.getColumnIndexOrThrow(CalendarContract.Instances.BEGIN)
-            val endIndex = cursor.getColumnIndexOrThrow(CalendarContract.Instances.END)
-            val allDayIndex = cursor.getColumnIndexOrThrow(CalendarContract.Instances.ALL_DAY)
-            val colorIndex = cursor.getColumnIndexOrThrow(CalendarContract.Instances.DISPLAY_COLOR)
-            while (cursor.moveToNext()) {
-                add(
-                    DeviceCalendarEvent(
-                        id = cursor.getLong(eventIdIndex).toString(),
-                        calendarId = cursor.getLong(calendarIdIndex).toString(),
-                        calendarName = cursor.getString(calendarNameIndex).orEmpty(),
-                        title = cursor.getString(titleIndex).orEmpty().ifBlank { "(No title)" },
-                        description = cursor.getString(descriptionIndex),
-                        startsAt = Instant.ofEpochMilli(cursor.getLong(beginIndex)),
-                        endsAt = Instant.ofEpochMilli(cursor.getLong(endIndex)),
-                        allDay = cursor.getInt(allDayIndex) == 1,
-                        color = cursor.getInt(colorIndex),
-                    ),
-                )
-            }
-        }
-    } ?: emptyList()
+    )?.use { cursor -> cursor.toDeviceCalendarEvents() } ?: emptyList()
 }
+
+private fun Cursor.toDeviceCalendarEvents(): List<DeviceCalendarEvent> =
+    buildList {
+        val eventIdIndex = getColumnIndexOrThrow(CalendarContract.Instances._ID)
+        val calendarIdIndex = getColumnIndexOrThrow(CalendarContract.Instances.CALENDAR_ID)
+        val calendarNameIndex = getColumnIndexOrThrow(CalendarContract.Instances.CALENDAR_DISPLAY_NAME)
+        val titleIndex = getColumnIndexOrThrow(CalendarContract.Instances.TITLE)
+        val descriptionIndex = getColumnIndexOrThrow(CalendarContract.Instances.DESCRIPTION)
+        val beginIndex = getColumnIndexOrThrow(CalendarContract.Instances.BEGIN)
+        val endIndex = getColumnIndexOrThrow(CalendarContract.Instances.END)
+        val allDayIndex = getColumnIndexOrThrow(CalendarContract.Instances.ALL_DAY)
+        val colorIndex = getColumnIndexOrThrow(CalendarContract.Instances.DISPLAY_COLOR)
+        while (moveToNext()) {
+            add(
+                DeviceCalendarEvent(
+                    id = getLong(eventIdIndex).toString(),
+                    calendarId = getLong(calendarIdIndex).toString(),
+                    calendarName = getString(calendarNameIndex).orEmpty(),
+                    title = getString(titleIndex).orEmpty().ifBlank { "(No title)" },
+                    description = getString(descriptionIndex),
+                    startsAt = Instant.ofEpochMilli(getLong(beginIndex)),
+                    endsAt = Instant.ofEpochMilli(getLong(endIndex)),
+                    allDay = getInt(allDayIndex) == 1,
+                    color = getInt(colorIndex),
+                ),
+            )
+        }
+    }
 
 data class DeviceCalendar(
     val id: String,
