@@ -19,6 +19,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "NativeAndroidApp"
+rootProject.name = "daynest-android"
 include(":app")
 include(":wear")
