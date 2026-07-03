@@ -92,7 +92,8 @@ fun versionCodeFor(version: String): Int {
 }
 
 val gitCommit =
-    providers.exec { commandLine("git", "rev-parse", "--short", "HEAD") }
+    providers
+        .exec { commandLine("git", "rev-parse", "--short", "HEAD") }
         .standardOutput
         .asText
         .get()
