@@ -25,6 +25,30 @@ updates:
           - "react-dom"
           - "@types/react"
           - "@types/react-dom"
+      bootstrap:
+        patterns:
+          - "bootstrap"
+          - "bootstrap-icons"
+          - "react-bootstrap"
+      vite:
+        patterns:
+          - "vite"
+          - "@vitejs/plugin-react"
+      testing:
+        patterns:
+          - "@testing-library/*"
+          - "@vitest/*"
+          - "vitest"
+      oxc:
+        patterns:
+          - "oxlint"
+          - "oxfmt"
+      i18n:
+        patterns:
+          - "@inlang/*"
+      schedule-x:
+        patterns:
+          - "@schedule-x/*"
 
   # Monitor npm dependencies for the Lovelace card
   - package-ecosystem: "npm"
@@ -44,6 +68,15 @@ updates:
       - "dependencies"
       - "npm"
     versioning-strategy: "increase"
+    groups:
+      schedule-x:
+        patterns:
+          - "@schedule-x/*"
+      rollup:
+        patterns:
+          - "rollup"
+          - "@rollup/*"
+          - "rollup-plugin-*"
 
   # Monitor Android Gradle dependencies and wrapper versions
   - package-ecosystem: "gradle"
@@ -82,6 +115,11 @@ updates:
       - "backend"
       - "python"
     versioning-strategy: "increase"
+    groups:
+      python-quality:
+        patterns:
+          - "ruff"
+          - "ty"
 
   # Monitor uv-managed Python dependencies for the Home Assistant custom component
   - package-ecosystem: "uv"
@@ -138,6 +176,10 @@ updates:
     labels:
       - "dependencies"
       - "github-actions"
+    groups:
+      codeql:
+        patterns:
+          - "github/codeql-action/*"
 
   # Monitor Docker images
   - package-ecosystem: "docker"
