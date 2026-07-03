@@ -73,26 +73,6 @@ fun resolveConfigValue(
     return value.orEmpty()
 }
 
-fun resolveApiUrl(
-    key: String,
-    envKey: String,
-    required: Boolean,
-    default: String = "",
-): String {
-    val value =
-        localProperties.getProperty(key)
-            ?: providers.gradleProperty(key).orNull
-            ?: System.getenv(envKey)
-            ?: default.takeIf { it.isNotBlank() }
-    if (required && value.isNullOrBlank()) {
-        error(
-            "Missing required build property '$key'. " +
-                "Set it in local.properties, as a Gradle property, or as the env var '$envKey'.",
-        )
-    }
-    return value.orEmpty()
-}
-
 extensions.configure<ApplicationExtension> {
     namespace = "com.daynest.android"
     compileSdk = 37
@@ -133,7 +113,7 @@ extensions.configure<ApplicationExtension> {
     buildTypes {
         debug {
             val url =
-                resolveApiUrl(
+                resolveConfigValue(
                     "apiBaseUrlDebug",
                     "API_BASE_URL_DEBUG",
                     required = false,
@@ -166,7 +146,7 @@ extensions.configure<ApplicationExtension> {
             // require the real production URL either.
             val isRequested = isReleaseArtifactRequested()
             val url =
-                resolveApiUrl(
+                resolveConfigValue(
                     "apiBaseUrlRelease",
                     "ANDROID_API_BASE_URL",
                     required = isRequested,
