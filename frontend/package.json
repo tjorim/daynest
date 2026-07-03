@@ -19,10 +19,10 @@
     "@inlang/paraglide-js": "^2.20.2",
     "@inlang/plugin-m-function-matcher": "^2.2.9",
     "@inlang/plugin-message-format": "^4.4.0",
-    "@schedule-x/calendar": "^2.36.0",
+    "@schedule-x/calendar": "^4.6.0",
     "@schedule-x/drag-and-drop": "^3.7.3",
     "@schedule-x/event-modal": "^4.6.0",
-    "@schedule-x/react": "^2.36.0",
+    "@schedule-x/react": "^4.1.0",
     "@schedule-x/theme-default": "^4.6.0",
     "@tanstack/react-form": "^1.33.0",
     "@tanstack/react-query": "^5.101.2",
@@ -38,6 +38,7 @@
     "react-dom": "^19.2.7",
     "react-oidc-context": "^3.3.1",
     "recharts": "^3.9.1",
+    "temporal-polyfill": "^1.0.1",
     "zod": "^4.4.3"
   },
   "devDependencies": {

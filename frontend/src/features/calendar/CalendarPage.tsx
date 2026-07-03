@@ -1,3 +1,5 @@
+import "temporal-polyfill/global";
+import { Temporal } from "temporal-polyfill";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import {
@@ -29,6 +31,10 @@ import {
 } from "@/features/calendar/useCalendarQueries";
 import { useCalendarRangeQuery } from "@/features/calendar/useCalendarRangeQuery";
 import "@/features/calendar/calendar.css";
+
+function calendarDateString(value: Temporal.ZonedDateTime | Temporal.PlainDate): string {
+  return value instanceof Temporal.PlainDate ? value.toString() : value.toPlainDate().toString();
+}
 
 function parseDate(value?: string) {
   if (!value) return null;
@@ -132,30 +138,35 @@ export function CalendarPage() {
     (): Parameters<typeof useCalendarApp>[0] => ({
       views: [...views],
       events,
-      selectedDate,
+      selectedDate: Temporal.PlainDate.from(selectedDate),
       calendars: calendarDefinitions,
       callbacks: {
         onRangeUpdate: (nextRange) => {
-          setRange(nextRange);
+          setRange({
+            start: calendarDateString(nextRange.start),
+            end: calendarDateString(nextRange.end),
+          });
         },
-        onSelectedDateUpdate: updateSearch,
+        onSelectedDateUpdate: (date) => updateSearch(date.toString()),
         onEventClick: (event) =>
           setSelectedItem(liveRef.current.itemsByEventId.get(String(event.id)) ?? null),
         onEventUpdate: (event) => {
           if (event._type !== "planned") return;
           void liveRef.current.planned.dragReschedulePlannedItem(
             Number(event._itemId),
-            event.start.slice(0, 10),
+            calendarDateString(event.start as Temporal.ZonedDateTime | Temporal.PlainDate),
           );
         },
         onClickDate: (date) => {
-          updateSearch(date);
+          updateSearch(date.toString());
           liveRef.current.planned.resetPlannedForm();
         },
         onClickDateTime: (dateTime) => {
-          updateSearch(dateTime.slice(0, 10));
+          updateSearch(dateTime.toPlainDate().toString());
           liveRef.current.planned.resetPlannedForm();
-          liveRef.current.planned.setTimeOfDay(dateTime.slice(11, 16));
+          liveRef.current.planned.setTimeOfDay(
+            dateTime.toPlainTime().toString({ smallestUnit: "minute" }),
+          );
         },
       },
     }),
