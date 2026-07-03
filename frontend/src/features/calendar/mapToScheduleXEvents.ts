@@ -1,5 +1,6 @@
 import type { CalendarEvent } from "@schedule-x/calendar";
 import dayjs from "dayjs";
+import { Temporal } from "temporal-polyfill";
 import type { UnifiedDayItem } from "@/lib/api/today";
 
 export const CALENDAR_COLORS = {
@@ -11,22 +12,30 @@ export const CALENDAR_COLORS = {
 
 const DEFAULT_DURATION_MINUTES = 30;
 
+function toZonedDateTime(value: dayjs.Dayjs): Temporal.ZonedDateTime {
+  return Temporal.PlainDateTime.from(value.format("YYYY-MM-DDTHH:mm")).toZonedDateTime(
+    Temporal.Now.timeZoneId(),
+  );
+}
+
 export function mapToScheduleXEvents(items: UnifiedDayItem[]): CalendarEvent[] {
   return items.flatMap((item) => {
     const start = item.scheduled_at ? dayjs(item.scheduled_at) : null;
-    const dateStr = start ? start.format("YYYY-MM-DD HH:mm") : item.scheduled_date;
 
-    if (!dateStr) return [];
+    if (!start && !item.scheduled_date) return [];
 
-    const endStr = start
-      ? start.add(item.duration_minutes ?? DEFAULT_DURATION_MINUTES, "minute").format("YYYY-MM-DD HH:mm")
-      : dateStr;
+    const eventStart = start
+      ? toZonedDateTime(start)
+      : Temporal.PlainDate.from(item.scheduled_date as string);
+    const eventEnd = start
+      ? toZonedDateTime(start.add(item.duration_minutes ?? DEFAULT_DURATION_MINUTES, "minute"))
+      : Temporal.PlainDate.from(item.scheduled_date as string);
 
     return [{
       id: `${item.item_type}-${item.item_id}`,
       title: item.title,
-      start: dateStr,
-      end: endStr,
+      start: eventStart,
+      end: eventEnd,
       calendarId: item.item_type,
       _type: item.item_type,
       _status: item.status,
