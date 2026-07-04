@@ -7,6 +7,7 @@ import { ServerConfigSection } from "@/features/settings/sections/ServerConfigSe
 import { UserPreferencesSection } from "@/features/settings/sections/UserPreferencesSection";
 import { IntegrationClientsSection } from "@/features/settings/sections/IntegrationClientsSection";
 import { OAuthSessionsSection } from "@/features/settings/sections/OAuthSessionsSection";
+import { AccountDeletionSection } from "@/features/settings/sections/AccountDeletionSection";
 
 export function SettingsPage() {
   useLanguage();
@@ -31,6 +32,7 @@ export function SettingsPage() {
         <div className="col-lg-7">
           <IntegrationClientsSection backendBaseUrl={backendBaseUrl} />
           <OAuthSessionsSection />
+          <AccountDeletionSection />
         </div>
       </div>
     </section>

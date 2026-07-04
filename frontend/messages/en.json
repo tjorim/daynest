@@ -454,5 +454,11 @@
   "privacy_page_contact_title": "Contact",
   "privacy_page_contact_body": "Questions, data access, or deletion requests can be sent to",
   "privacy_page_contact_or": ", or filed as an issue on the",
-  "privacy_page_contact_github_link": "Daynest GitHub repository"
+  "privacy_page_contact_github_link": "Daynest GitHub repository",
+  "settings_delete_account_header": "Delete account",
+  "settings_delete_account_description": "Permanently delete your Daynest account and personal data, including medication, planning, calendar, push notification, session, and integration data. Household-shared chores must be deleted, transferred, or left before account deletion.",
+  "settings_delete_account_button": "Delete my account",
+  "settings_delete_account_deleting": "Deleting…",
+  "settings_delete_account_confirm": "This permanently deletes your Daynest account and personal data. This cannot be undone. Continue?",
+  "settings_delete_account_error": "Failed to delete account."
 }

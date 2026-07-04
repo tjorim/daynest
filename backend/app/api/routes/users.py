@@ -2,15 +2,36 @@ from typing import Any
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query, Response, status
+from sqlalchemy import exists, select
 from sqlalchemy.orm import Session
 
 from app.api.dependencies.auth import get_current_user
 from app.db.session import get_db
+from app.models.chore_template import ChoreTemplate
+from app.models.household_member import HouseholdMember
 from app.models.user import User
 from app.schemas.users import UserSettingsPatchRequest, UserSettingsResponse
 from app.services.export_import_service import build_user_export, import_user_export, user_export_to_csv
 
 router = APIRouter(prefix="/users", tags=["users"])
+
+
+def _has_household_shared_chores(db: Session, user_id: int) -> bool:
+    other_household_member = (
+        select(HouseholdMember.id)
+        .where(HouseholdMember.household_id == ChoreTemplate.household_id)
+        .where(HouseholdMember.user_id != user_id)
+        .exists()
+    )
+    return db.scalar(
+        select(
+            exists().where(
+                ChoreTemplate.user_id == user_id,
+                ChoreTemplate.household_id.is_not(None),
+                other_household_member,
+            )
+        )
+    ) or False
 
 
 def _to_response(user: User) -> UserSettingsResponse:
@@ -87,3 +108,22 @@ def import_user_data(
 ) -> dict[str, Any]:
     counts = import_user_export(db, current_user, payload, replace=replace)
     return {"imported": counts}
+
+
+@router.delete("/me", status_code=status.HTTP_204_NO_CONTENT)
+def delete_current_user(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> Response:
+    if _has_household_shared_chores(db, current_user.id):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                "Account deletion is blocked while you own household-shared chores. "
+                "Delete or transfer those chores, or leave shared households before deleting your account."
+            ),
+        )
+
+    db.delete(current_user)
+    db.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

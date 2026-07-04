@@ -1,4 +1,4 @@
-import { getJson, sendJson } from "@/lib/api/http";
+import { fetchWithAuth, getJson, sendJson } from "@/lib/api/http";
 import { z } from "zod";
 
 export interface CalendarFeedResponse {
@@ -64,4 +64,18 @@ export async function fetchUserSettings(signal?: AbortSignal): Promise<UserSetti
 
 export async function updateUserSettings(patch: UserSettingsPatch): Promise<UserSettings> {
   return sendJson("PATCH", "/api/users/me/settings", patch, userSettingsSchema, "Failed to update settings");
+}
+
+export async function deleteAccount(): Promise<void> {
+  const response = await fetchWithAuth("/api/users/me", { method: "DELETE" });
+  if (response.ok) return;
+
+  let message = "Failed to delete account";
+  try {
+    const body = (await response.json()) as { detail?: unknown };
+    if (typeof body.detail === "string") message = body.detail;
+  } catch {
+    // keep fallback message
+  }
+  throw new Error(message);
 }
