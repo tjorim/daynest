@@ -20,22 +20,17 @@ val localProperties =
         }
     }
 
-fun resolveApiUrl(
-    key: String,
-    envKey: String,
-    default: String,
-): String =
-    localProperties.getProperty(key)
-        ?: providers.gradleProperty(key).orNull
-        ?: providers.environmentVariable(envKey).orNull
-        ?: default
+fun resolveApiUrl(key: String, envKey: String, default: String): String = localProperties.getProperty(key)
+    ?: providers.gradleProperty(key).orNull
+    ?: providers.environmentVariable(envKey).orNull
+    ?: default
 
 extensions.configure<ApplicationExtension> {
     namespace = "com.daynest.android"
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "com.daynest.android.wear"
+        applicationId = "im.tjor.daynest.wear"
         minSdk = 26
         targetSdk = 37
         versionCode = 1
@@ -52,13 +47,13 @@ extensions.configure<ApplicationExtension> {
             isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro",
+                "proguard-rules.pro"
             )
             val url =
                 resolveApiUrl(
                     "apiBaseUrlRelease",
                     "ANDROID_API_BASE_URL",
-                    "https://release.placeholder.invalid/",
+                    "https://release.placeholder.invalid/"
                 )
             buildConfigField("String", "API_BASE_URL", "\"$url\"")
         }

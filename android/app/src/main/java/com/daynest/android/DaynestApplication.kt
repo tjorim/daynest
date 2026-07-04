@@ -7,16 +7,14 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import androidx.work.Configuration
-import com.daynest.android.core.network.ServerUrlHolder
 import com.daynest.android.core.notifications.DaynestNotificationChannels
 import com.daynest.android.core.storage.preferences.UserPreferencesRepository
 import com.daynest.android.data.sync.DaynestSyncScheduler
 import com.daynest.android.widget.TodayWidgetRefreshWorker
 import dagger.hilt.android.HiltAndroidApp
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.launch
 import javax.inject.Inject
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 @HiltAndroidApp
 class DaynestApplication :
@@ -24,9 +22,6 @@ class DaynestApplication :
     Configuration.Provider {
     @Inject
     lateinit var userPreferencesRepository: UserPreferencesRepository
-
-    @Inject
-    lateinit var serverUrlHolder: ServerUrlHolder
 
     @Inject
     lateinit var workerFactory: HiltWorkerFactory
@@ -47,13 +42,8 @@ class DaynestApplication :
                         userPreferencesRepository.updateLastBackgroundEpochMillis(System.currentTimeMillis())
                     }
                 }
-            },
+            }
         )
-        ProcessLifecycleOwner.get().lifecycleScope.launch(Dispatchers.IO) {
-            userPreferencesRepository.preferences
-                .map { it.customServerUrl }
-                .collect { url -> serverUrlHolder.updateUrl(url) }
-        }
     }
 
     override val workManagerConfiguration: Configuration

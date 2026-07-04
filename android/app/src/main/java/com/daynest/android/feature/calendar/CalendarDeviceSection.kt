@@ -33,14 +33,11 @@ import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 
 @Composable
-internal fun DeviceCalendarSectionHeader(
-    status: DeviceCalendarStatus,
-    context: Context,
-) {
+internal fun DeviceCalendarSectionHeader(status: DeviceCalendarStatus, context: Context) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(
             text = stringResource(id = R.string.calendar_device_events_header),
-            style = MaterialTheme.typography.titleSmall,
+            style = MaterialTheme.typography.titleSmall
         )
         when (status) {
             DeviceCalendarStatus.Loading -> CircularProgressIndicator(modifier = Modifier.size(20.dp))
@@ -48,19 +45,19 @@ internal fun DeviceCalendarSectionHeader(
                 Text(
                     text = stringResource(id = R.string.calendar_device_events_empty),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.outline,
+                    color = MaterialTheme.colorScheme.outline
                 )
             DeviceCalendarStatus.NoEnabledCalendars ->
                 Text(
                     text = stringResource(id = R.string.calendar_device_events_no_calendars),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.outline,
+                    color = MaterialTheme.colorScheme.outline
                 )
             DeviceCalendarStatus.PermissionRequired -> {
                 Text(
                     text = stringResource(id = R.string.calendar_device_events_permission_required),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.outline,
+                    color = MaterialTheme.colorScheme.outline
                 )
                 TextButton(onClick = { context.openAppSettings() }) {
                     Text(text = stringResource(id = R.string.action_open_settings))
@@ -82,34 +79,34 @@ internal fun DeviceCalendarEventCard(item: DeviceCalendarEvent) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
+            Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Spacer(
                 modifier =
-                    Modifier
-                        .size(width = 4.dp, height = 48.dp)
-                        .background(color),
+                Modifier
+                    .size(width = 4.dp, height = 48.dp)
+                    .background(color)
             )
             Column(
                 modifier =
-                    Modifier
-                        .weight(1f)
-                        .padding(start = 12.dp),
+                Modifier
+                    .weight(1f)
+                    .padding(start = 12.dp)
             ) {
                 Text(text = item.title, style = MaterialTheme.typography.bodyMedium)
                 Text(
                     text = stringResource(id = R.string.calendar_device_event_meta, item.calendarName, timeText),
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary,
+                    color = MaterialTheme.colorScheme.primary
                 )
                 if (!item.description.isNullOrBlank()) {
                     Text(
                         text = item.description,
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline,
+                        color = MaterialTheme.colorScheme.outline
                     )
                 }
             }
@@ -127,7 +124,7 @@ private fun Context.openAppSettings() {
     startActivity(
         Intent(
             Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
-            Uri.fromParts("package", packageName, null),
-        ),
+            Uri.fromParts("package", packageName, null)
+        )
     )
 }

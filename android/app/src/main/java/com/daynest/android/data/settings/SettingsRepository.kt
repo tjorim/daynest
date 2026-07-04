@@ -6,16 +6,14 @@ import javax.inject.Singleton
 
 @Singleton
 class SettingsRepository
-    @Inject
-    constructor(
-        private val settingsApi: SettingsApi,
-    ) {
-        suspend fun listClients(): Result<List<IntegrationClientDto>> = safeApiCall { settingsApi.listClients() }
+@Inject
+constructor(private val settingsApi: SettingsApi) {
+    suspend fun listClients(): Result<List<IntegrationClientDto>> = safeApiCall { settingsApi.listClients() }
 
-        suspend fun createClient(request: IntegrationClientInputDto): Result<IntegrationClientCreateResponseDto> =
-            safeApiCall { settingsApi.createClient(request) }
+    suspend fun createClient(request: IntegrationClientInputDto): Result<IntegrationClientCreateResponseDto> =
+        safeApiCall { settingsApi.createClient(request) }
 
-        suspend fun listSessions(): Result<List<OAuthSessionDto>> = safeApiCall { settingsApi.listSessions() }
+    suspend fun listSessions(): Result<List<OAuthSessionDto>> = safeApiCall { settingsApi.listSessions() }
 
-        suspend fun revokeSession(id: String): Result<Unit> = safeApiCall { settingsApi.revokeSession(id) }
-    }
+    suspend fun revokeSession(id: String): Result<Unit> = safeApiCall { settingsApi.revokeSession(id) }
+}

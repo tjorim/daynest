@@ -1,6 +1,7 @@
 import com.android.build.api.dsl.ApplicationExtension
 import com.daynest.buildlogic.CertPinning
 import dev.detekt.gradle.Detekt
+import groovy.json.JsonSlurper
 import java.util.Properties
 
 plugins {
@@ -41,40 +42,81 @@ fun isReleaseArtifactRequested(): Boolean {
 
 // Cert-pin helpers (resolvePins, pin-format and host-derivation validation,
 // pinsArrayLiteral) live in buildSrc's CertPinning so they have unit tests.
-fun resolvePins(
-    key: String,
-    envKey: String,
-): List<String> =
-    CertPinning.resolvePins(
-        key = key,
-        envKey = envKey,
-        localProperty = localProperties::getProperty,
-        gradleProperty = { providers.gradleProperty(it).orNull },
-        env = { providers.environmentVariable(it).orNull },
-    )
+fun resolvePins(key: String, envKey: String): List<String> = CertPinning.resolvePins(
+    key = key,
+    envKey = envKey,
+    localProperty = localProperties::getProperty,
+    gradleProperty = { providers.gradleProperty(it).orNull },
+    env = { providers.environmentVariable(it).orNull }
+)
 
-fun resolveConfigValue(
-    key: String,
-    envKey: String,
-    required: Boolean,
-    default: String = "",
-): String {
+fun resolveConfigValue(key: String, envKey: String, required: Boolean, default: String = ""): String {
     // A blank value counts as missing so a placeholder line in local.properties
     // still falls through to the next source or the default.
     val explicitValue =
         sequenceOf(
             localProperties.getProperty(key),
             providers.gradleProperty(key).orNull,
-            providers.environmentVariable(envKey).orNull,
+            providers.environmentVariable(envKey).orNull
         ).firstOrNull { !it.isNullOrBlank() }
     if (required && explicitValue.isNullOrBlank()) {
         error(
             "Missing required build property '$key'. " +
-                "Set it in local.properties, as a Gradle property, or as the env var '$envKey'.",
+                "Set it in local.properties, as a Gradle property, or as the env var '$envKey'."
         )
     }
     return explicitValue ?: default
 }
+
+// Single source of truth for the app version: frontend/package.json, kept in
+// lockstep with the web release version instead of a hand-maintained literal here.
+// Read via providers.fileContents (not File.readText()) so the file is tracked
+// as a build configuration input and this stays Configuration Cache-compatible.
+val appVersion =
+    providers
+        .fileContents(layout.projectDirectory.file("../../frontend/package.json"))
+        .asText
+        .map { jsonText ->
+            val json = JsonSlurper().parseText(jsonText) as Map<*, *>
+            json["version"] as? String
+                ?: error("Could not find a \"version\" field in frontend/package.json")
+        }.get()
+
+fun versionCodeFor(version: String): Int {
+    val parts = version.substringBefore("-").substringBefore("+").split(".")
+    check(parts.size == 3) { "Expected a MAJOR.MINOR.PATCH version, got \"$version\"" }
+    val (major, minor, patch) =
+        parts.map {
+            it.toIntOrNull() ?: error("Invalid integer component \"$it\" in version \"$version\"")
+        }
+    // minor/patch must each fit in 3 digits or they'd overflow into the next digit
+    // group and collide with a different version's computed code.
+    check(major >= 0) { "Major version must be non-negative, got $major" }
+    check(minor in 0..999) { "Minor version must be between 0 and 999 to avoid versionCode collision, got $minor" }
+    check(patch in 0..999) { "Patch version must be between 0 and 999 to avoid versionCode collision, got $patch" }
+    val versionCode = major * 1_000_000 + minor * 1_000 + patch
+    check(versionCode <= 2_100_000_000) {
+        "versionCode $versionCode exceeds Google Play maximum of 2100000000"
+    }
+    return versionCode
+}
+
+// Falls back to "unknown" rather than failing the build when git is unavailable
+// (e.g. building from a downloaded source archive with no .git directory).
+val gitCommit =
+    try {
+        providers
+            .exec {
+                commandLine("git", "rev-parse", "--short", "HEAD")
+                isIgnoreExitValue = true
+            }.standardOutput
+            .asText
+            .get()
+            .trim()
+            .ifEmpty { "unknown" }
+    } catch (e: Exception) {
+        "unknown"
+    }
 
 extensions.configure<ApplicationExtension> {
     namespace = "com.daynest.android"
@@ -105,12 +147,13 @@ extensions.configure<ApplicationExtension> {
     }
 
     defaultConfig {
-        applicationId = "com.daynest.android"
+        applicationId = "im.tjor.daynest"
         minSdk = 26
         targetSdk = 37
         // versionCode = MAJOR * 1000000 + MINOR * 1000 + PATCH (e.g. v1.2.3 → 1002003)
-        versionCode = 1009
-        versionName = "0.1.9"
+        versionCode = versionCodeFor(appVersion)
+        versionName = appVersion
+        buildConfigField("String", "BUILD_COMMIT", "\"$gitCommit\"")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -125,13 +168,12 @@ extensions.configure<ApplicationExtension> {
                     "apiBaseUrlDebug",
                     "API_BASE_URL_DEBUG",
                     required = false,
-                    default = "http://10.0.2.2:8000/",
+                    default = "http://10.0.2.2:8000/"
                 )
             buildConfigField("String", "API_BASE_URL", "\"$url\"")
             buildConfigField("String[]", "CERTIFICATE_PINS", "new String[]{}")
             buildConfigField("String", "CERTIFICATE_PIN_HOST", "\"\"")
             buildConfigField("String", "OIDC_CLIENT_ID", "\"daynest\"")
-            buildConfigField("String", "OIDC_REDIRECT_URI", "\"com.daynest.android:/oauth2redirect\"")
         }
         release {
             isMinifyEnabled = true
@@ -142,12 +184,12 @@ extensions.configure<ApplicationExtension> {
             } else if (isReleaseArtifactRequested()) {
                 error(
                     "Release build requested but signing credentials are not set " +
-                        "(KEYSTORE_PATH, KEY_ALIAS, KEY_PASSWORD, STORE_PASSWORD).",
+                        "(KEYSTORE_PATH, KEY_ALIAS, KEY_PASSWORD, STORE_PASSWORD)."
                 )
             }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro",
+                "proguard-rules.pro"
             )
             // Same exclusion as the signing config above: lintRelease/testReleaseUnitTest
             // compile and analyze this variant but never ship it, so they must not
@@ -158,7 +200,7 @@ extensions.configure<ApplicationExtension> {
                     "apiBaseUrlRelease",
                     "ANDROID_API_BASE_URL",
                     required = isRequested,
-                    default = if (isRequested) "" else "https://release.placeholder.invalid/",
+                    default = if (isRequested) "" else "https://release.placeholder.invalid/"
                 )
             buildConfigField("String", "API_BASE_URL", "\"$url\"")
             val releaseCertificatePinHost =
@@ -166,19 +208,19 @@ extensions.configure<ApplicationExtension> {
                     "certificatePinHost",
                     "ANDROID_CERTIFICATE_PIN_HOST",
                     required = isRequested,
-                    default = if (isRequested) "" else "release.placeholder.invalid",
+                    default = if (isRequested) "" else "release.placeholder.invalid"
                 )
             val pins =
                 resolvePins(
                     "certificatePins",
-                    "ANDROID_CERTIFICATE_PINS",
+                    "ANDROID_CERTIFICATE_PINS"
                 )
             if (isRequested) {
                 if (pins.isEmpty()) {
                     error(
                         "Missing required build property 'certificatePins'. " +
                             "Set it in local.properties, as a Gradle property, or as the env var " +
-                            "'ANDROID_CERTIFICATE_PINS'.",
+                            "'ANDROID_CERTIFICATE_PINS'."
                     )
                 }
                 CertPinning.requireValidPinFormats(pins)
@@ -187,7 +229,6 @@ extensions.configure<ApplicationExtension> {
             buildConfigField("String[]", "CERTIFICATE_PINS", CertPinning.pinsArrayLiteral(pins))
             buildConfigField("String", "CERTIFICATE_PIN_HOST", "\"$releaseCertificatePinHost\"")
             buildConfigField("String", "OIDC_CLIENT_ID", "\"daynest\"")
-            buildConfigField("String", "OIDC_REDIRECT_URI", "\"com.daynest.android:/oauth2redirect\"")
         }
     }
 

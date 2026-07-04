@@ -18,13 +18,13 @@ object DaynestNotificationChannels {
                 NotificationChannel(
                     CHORE_CHANNEL_ID,
                     context.getString(R.string.notification_channel_chore_reminders),
-                    NotificationManager.IMPORTANCE_DEFAULT,
+                    NotificationManager.IMPORTANCE_DEFAULT
                 ),
                 NotificationChannel(
                     MEDICATION_CHANNEL_ID,
                     context.getString(R.string.notification_channel_medication_reminders),
-                    NotificationManager.IMPORTANCE_HIGH,
-                ),
+                    NotificationManager.IMPORTANCE_HIGH
+                )
             )
         manager.createNotificationChannels(channels)
     }

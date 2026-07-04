@@ -14,20 +14,13 @@ interface MedicationApi {
     suspend fun listPlans(): List<MedicationPlanDto>
 
     @POST("api/v1/medications")
-    suspend fun createPlan(
-        @Body request: MedicationPlanInputDto,
-    ): MedicationPlanDto
+    suspend fun createPlan(@Body request: MedicationPlanInputDto): MedicationPlanDto
 
     @PUT("api/v1/medications/{id}")
-    suspend fun updatePlan(
-        @Path("id") id: Int,
-        @Body request: MedicationPlanUpdateDto,
-    ): MedicationPlanDto
+    suspend fun updatePlan(@Path("id") id: Int, @Body request: MedicationPlanUpdateDto): MedicationPlanDto
 
     @DELETE("api/v1/medications/{id}")
-    suspend fun deletePlan(
-        @Path("id") id: Int,
-    )
+    suspend fun deletePlan(@Path("id") id: Int)
 
     @GET("api/v1/medication-doses/history")
     suspend fun getHistory(): MedicationHistoryResponseDto
@@ -45,7 +38,7 @@ data class MedicationPlanDto(
     @SerialName("every_n_days")
     val everyNDays: Int,
     @SerialName("is_active")
-    val isActive: Boolean,
+    val isActive: Boolean
 )
 
 @Serializable
@@ -57,7 +50,7 @@ data class MedicationPlanInputDto(
     @SerialName("schedule_time")
     val scheduleTime: String,
     @SerialName("every_n_days")
-    val everyNDays: Int,
+    val everyNDays: Int
 )
 
 @Serializable
@@ -71,13 +64,11 @@ data class MedicationPlanUpdateDto(
     @SerialName("every_n_days")
     val everyNDays: Int,
     @SerialName("is_active")
-    val isActive: Boolean,
+    val isActive: Boolean
 )
 
 @Serializable
-data class MedicationHistoryResponseDto(
-    val history: List<MedicationHistoryItemDto>,
-)
+data class MedicationHistoryResponseDto(val history: List<MedicationHistoryItemDto>)
 
 @Serializable
 data class MedicationHistoryItemDto(
@@ -87,5 +78,5 @@ data class MedicationHistoryItemDto(
     val instructions: String = "",
     @SerialName("scheduled_at")
     val scheduledAt: String = "",
-    val status: String = "",
+    val status: String = ""
 )

@@ -15,20 +15,17 @@ import androidx.compose.ui.platform.LocalContext
 private val DarkColorScheme =
     darkColorScheme(
         primary = BrandPrimary,
-        secondary = BrandSecondary,
+        secondary = BrandSecondary
     )
 
 private val LightColorScheme =
     lightColorScheme(
         primary = BrandPrimary,
-        secondary = BrandSecondary,
+        secondary = BrandSecondary
     )
 
 @Composable
-fun DaynestTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    content: @Composable () -> Unit,
-) {
+fun DaynestTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {
     val context = LocalContext.current
     val colorScheme =
         when {
@@ -47,6 +44,6 @@ fun DaynestTheme(
     MaterialTheme(
         colorScheme = colorScheme,
         typography = Typography,
-        content = content,
+        content = content
     )
 }

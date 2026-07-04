@@ -1,11 +1,10 @@
 package com.daynest.android.data
 
-import kotlinx.coroutines.CancellationException
 import java.io.IOException
+import kotlinx.coroutines.CancellationException
 
-suspend fun <T> safeApiCall(call: suspend () -> T): Result<T> =
-    runCatching { call() }
-        .onFailure { if (it is CancellationException) throw it }
+suspend fun <T> safeApiCall(call: suspend () -> T): Result<T> = runCatching { call() }
+    .onFailure { if (it is CancellationException) throw it }
 
 suspend inline fun <T> Result<T>.recoverOffline(crossinline fallback: suspend () -> T): Result<T> {
     if (isSuccess) return this

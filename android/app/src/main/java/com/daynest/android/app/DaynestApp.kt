@@ -33,7 +33,7 @@ fun DaynestApp() {
 
         NavHost(
             navController = navController,
-            startDestination = DaynestDestination.SESSION_GATE,
+            startDestination = DaynestDestination.SESSION_GATE
         ) {
             daynestDestinations(navController)
         }
@@ -52,7 +52,7 @@ private fun NavGraphBuilder.daynestDestinations(navController: NavHostController
                 navController.navigate(DaynestDestination.HOME) {
                     popUpTo(DaynestDestination.SESSION_GATE) { inclusive = true }
                 }
-            },
+            }
         )
     }
 
@@ -63,7 +63,7 @@ private fun NavGraphBuilder.daynestDestinations(navController: NavHostController
                     popUpTo(navController.graph.findStartDestination().id) { inclusive = true }
                     launchSingleTop = true
                 }
-            },
+            }
         )
     }
 
@@ -91,7 +91,7 @@ private fun NavGraphBuilder.daynestDestinations(navController: NavHostController
                     popUpTo(DaynestDestination.HOME) { inclusive = true }
                     launchSingleTop = true
                 }
-            },
+            }
         )
     }
 }
@@ -100,18 +100,18 @@ private fun NavGraphBuilder.shoppingDestinations(navController: NavHostControlle
     composable(route = DaynestDestination.SHOPPING) {
         ShoppingListsRoute(
             onNavigate = navController::navigateTopLevel,
-            onOpenList = { listId -> navController.navigate("${DaynestDestination.SHOPPING}/$listId") },
+            onOpenList = { listId -> navController.navigate("${DaynestDestination.SHOPPING}/$listId") }
         )
     }
     composable(
         route = DaynestDestination.SHOPPING_DETAIL,
-        arguments = listOf(navArgument("listId") { type = NavType.IntType }),
+        arguments = listOf(navArgument("listId") { type = NavType.IntType })
     ) { backStackEntry ->
         val listId = requireNotNull(backStackEntry.arguments).getInt("listId")
         ShoppingListDetailRoute(
             listId = listId,
             onNavigate = navController::navigateTopLevel,
-            onBack = { navController.popBackStack() },
+            onBack = { navController.popBackStack() }
         )
     }
 }

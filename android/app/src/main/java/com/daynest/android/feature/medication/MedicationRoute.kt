@@ -44,10 +44,7 @@ import java.time.LocalDate
 private const val SCHEDULE_TIME_DISPLAY_LENGTH = 5
 
 @Composable
-fun MedicationRoute(
-    onNavigate: (String) -> Unit = {},
-    viewModel: MedicationViewModel = hiltViewModel(),
-) {
+fun MedicationRoute(onNavigate: (String) -> Unit = {}, viewModel: MedicationViewModel = hiltViewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     MedicationScreen(uiState = uiState, onEvent = viewModel::onEvent, onNavigate = onNavigate)
 }
@@ -56,20 +53,20 @@ fun MedicationRoute(
 private fun MedicationScreen(
     uiState: MedicationUiState,
     onEvent: (MedicationUiEvent) -> Unit,
-    onNavigate: (String) -> Unit,
+    onNavigate: (String) -> Unit
 ) {
     DaynestNavigationScaffold(
         currentRoute = DaynestDestination.MEDICATION,
-        onNavigate = onNavigate,
+        onNavigate = onNavigate
     ) { innerPadding ->
         when (uiState) {
             MedicationUiState.Loading -> {
                 Box(
                     modifier =
-                        Modifier
-                            .fillMaxSize()
-                            .padding(innerPadding),
-                    contentAlignment = Alignment.Center,
+                    Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding),
+                    contentAlignment = Alignment.Center
                 ) {
                     CircularProgressIndicator()
                 }
@@ -78,20 +75,20 @@ private fun MedicationScreen(
             MedicationUiState.Error -> {
                 Column(
                     modifier =
-                        Modifier
-                            .fillMaxSize()
-                            .padding(innerPadding)
-                            .padding(24.dp),
+                    Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding)
+                        .padding(24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center,
+                    verticalArrangement = Arrangement.Center
                 ) {
                     Text(
                         text = stringResource(id = R.string.medication_error),
-                        style = MaterialTheme.typography.bodyLarge,
+                        style = MaterialTheme.typography.bodyLarge
                     )
                     Button(
                         onClick = { onEvent(MedicationUiEvent.RetryClicked) },
-                        modifier = Modifier.padding(top = 16.dp),
+                        modifier = Modifier.padding(top = 16.dp)
                     ) {
                         Text(text = stringResource(id = R.string.home_retry))
                     }
@@ -102,7 +99,7 @@ private fun MedicationScreen(
                 MedicationContent(
                     state = uiState,
                     onEvent = onEvent,
-                    modifier = Modifier.padding(innerPadding),
+                    modifier = Modifier.padding(innerPadding)
                 )
             }
         }
@@ -114,19 +111,19 @@ private fun MedicationScreen(
 private fun MedicationContent(
     state: MedicationUiState.Content,
     onEvent: (MedicationUiEvent) -> Unit,
-    modifier: Modifier = Modifier,
+    modifier: Modifier = Modifier
 ) {
     var editTarget by remember { mutableStateOf<MedicationPlanDto?>(null) }
 
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         item {
             Text(
                 text = stringResource(id = R.string.medication_title),
-                style = MaterialTheme.typography.headlineMedium,
+                style = MaterialTheme.typography.headlineMedium
             )
         }
 
@@ -135,7 +132,7 @@ private fun MedicationContent(
                 Text(
                     text = message,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error,
+                    color = MaterialTheme.colorScheme.error
                 )
             }
         }
@@ -143,12 +140,12 @@ private fun MedicationContent(
         item {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
                     text = stringResource(id = R.string.medication_plans_section),
                     style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1f)
                 )
                 TextButton(onClick = { onEvent(MedicationUiEvent.ShowCreateForm) }) {
                     Text(text = stringResource(id = R.string.medication_add_plan))
@@ -161,7 +158,7 @@ private fun MedicationContent(
                 Text(
                     text = stringResource(id = R.string.medication_no_plans),
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.outline,
+                    color = MaterialTheme.colorScheme.outline
                 )
             }
         } else {
@@ -169,7 +166,7 @@ private fun MedicationContent(
                 MedicationPlanCard(
                     plan = plan,
                     onEdit = { editTarget = plan },
-                    onDelete = { onEvent(MedicationUiEvent.DeletePlanClicked(plan.id)) },
+                    onDelete = { onEvent(MedicationUiEvent.DeletePlanClicked(plan.id)) }
                 )
             }
         }
@@ -178,7 +175,7 @@ private fun MedicationContent(
             Text(
                 text = stringResource(id = R.string.medication_history_section),
                 style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(top = 8.dp),
+                modifier = Modifier.padding(top = 8.dp)
             )
         }
 
@@ -187,7 +184,7 @@ private fun MedicationContent(
                 Text(
                     text = stringResource(id = R.string.medication_no_history),
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.outline,
+                    color = MaterialTheme.colorScheme.outline
                 )
             }
         } else {
@@ -195,7 +192,7 @@ private fun MedicationContent(
                 state.history,
                 key = { index, item ->
                     "history_${item.medicationDoseInstanceId}_${item.scheduledAt}_$index"
-                },
+                }
             ) { _, item ->
                 MedicationHistoryCard(item = item)
             }
@@ -205,7 +202,7 @@ private fun MedicationContent(
     if (state.showCreateForm) {
         CreateMedicationPlanDialog(
             onConfirm = { onEvent(MedicationUiEvent.CreatePlanClicked(it)) },
-            onDismiss = { onEvent(MedicationUiEvent.DismissCreateForm) },
+            onDismiss = { onEvent(MedicationUiEvent.DismissCreateForm) }
         )
     }
 
@@ -216,33 +213,29 @@ private fun MedicationContent(
                 onEvent(MedicationUiEvent.UpdatePlanClicked(plan.id, it))
                 editTarget = null
             },
-            onDismiss = { editTarget = null },
+            onDismiss = { editTarget = null }
         )
     }
 }
 
 @Composable
-private fun MedicationPlanCard(
-    plan: MedicationPlanDto,
-    onEdit: () -> Unit,
-    onDelete: () -> Unit,
-) {
+private fun MedicationPlanCard(plan: MedicationPlanDto, onEdit: () -> Unit, onDelete: () -> Unit) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(12.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
                     text = plan.name,
                     style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1f)
                 )
                 if (!plan.isActive) {
                     Text(
                         text = stringResource(id = R.string.medication_inactive),
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.outline,
+                        color = MaterialTheme.colorScheme.outline
                     )
                 }
             }
@@ -250,18 +243,18 @@ private fun MedicationPlanCard(
                 Text(
                     text = plan.instructions,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.outline,
+                    color = MaterialTheme.colorScheme.outline
                 )
             }
             Text(
                 text =
-                    stringResource(
-                        id = R.string.medication_plan_schedule,
-                        plan.scheduleTime,
-                        plan.everyNDays,
-                    ),
+                stringResource(
+                    id = R.string.medication_plan_schedule,
+                    plan.scheduleTime,
+                    plan.everyNDays
+                ),
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.outline,
+                color = MaterialTheme.colorScheme.outline
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 TextButton(onClick = onEdit) {
@@ -270,9 +263,9 @@ private fun MedicationPlanCard(
                 TextButton(
                     onClick = onDelete,
                     colors =
-                        androidx.compose.material3.ButtonDefaults.textButtonColors(
-                            contentColor = MaterialTheme.colorScheme.error,
-                        ),
+                    androidx.compose.material3.ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    )
                 ) {
                     Text(text = stringResource(id = R.string.action_delete))
                 }
@@ -286,10 +279,10 @@ private fun MedicationHistoryCard(item: MedicationHistoryItemDto) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
+            Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = item.name, style = MaterialTheme.typography.bodyMedium)
@@ -297,7 +290,7 @@ private fun MedicationHistoryCard(item: MedicationHistoryItemDto) {
                     Text(
                         text = item.scheduledAt,
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline,
+                        color = MaterialTheme.colorScheme.outline
                     )
                 }
             }
@@ -311,7 +304,7 @@ private fun MedicationHistoryCard(item: MedicationHistoryItemDto) {
             Text(
                 text = item.status,
                 style = MaterialTheme.typography.labelSmall,
-                color = statusColor,
+                color = statusColor
             )
         }
     }
@@ -322,7 +315,7 @@ private fun MedicationHistoryCard(item: MedicationHistoryItemDto) {
 private fun EditMedicationPlanDialog(
     plan: MedicationPlanDto,
     onConfirm: (MedicationPlanUpdateDto) -> Unit,
-    onDismiss: () -> Unit,
+    onDismiss: () -> Unit
 ) {
     var name by remember(plan) { mutableStateOf(plan.name) }
     var instructions by remember(plan) { mutableStateOf(plan.instructions) }
@@ -340,40 +333,40 @@ private fun EditMedicationPlanDialog(
                     value = name,
                     onValueChange = { name = it },
                     label = { Text(text = stringResource(id = R.string.medication_name_label)) },
-                    singleLine = true,
+                    singleLine = true
                 )
                 OutlinedTextField(
                     value = instructions,
                     onValueChange = { instructions = it },
                     label = { Text(text = stringResource(id = R.string.medication_instructions_label)) },
-                    singleLine = true,
+                    singleLine = true
                 )
                 OutlinedTextField(
                     value = startDate,
                     onValueChange = { startDate = it },
                     label = { Text(text = stringResource(id = R.string.calendar_planned_date_label)) },
-                    singleLine = true,
+                    singleLine = true
                 )
                 OutlinedTextField(
                     value = scheduleTime,
                     onValueChange = { scheduleTime = it },
                     label = { Text(text = stringResource(id = R.string.medication_time_label)) },
-                    singleLine = true,
+                    singleLine = true
                 )
                 OutlinedTextField(
                     value = everyNDays,
                     onValueChange = { everyNDays = it.filter { c -> c.isDigit() } },
                     label = { Text(text = stringResource(id = R.string.medication_every_n_days_label)) },
-                    singleLine = true,
+                    singleLine = true
                 )
                 TextButton(onClick = { isActive = !isActive }) {
                     Text(
                         text =
-                            if (isActive) {
-                                stringResource(id = R.string.medication_active)
-                            } else {
-                                stringResource(id = R.string.medication_inactive)
-                            },
+                        if (isActive) {
+                            stringResource(id = R.string.medication_active)
+                        } else {
+                            stringResource(id = R.string.medication_inactive)
+                        }
                     )
                 }
             }
@@ -388,16 +381,16 @@ private fun EditMedicationPlanDialog(
                                 instructions = instructions.trim(),
                                 startDate = startDate.trim().ifBlank { plan.startDate },
                                 scheduleTime =
-                                    scheduleTime.trim().ifBlank {
-                                        plan.scheduleTime.take(SCHEDULE_TIME_DISPLAY_LENGTH)
-                                    },
+                                scheduleTime.trim().ifBlank {
+                                    plan.scheduleTime.take(SCHEDULE_TIME_DISPLAY_LENGTH)
+                                },
                                 everyNDays = everyNDays.toIntOrNull() ?: plan.everyNDays,
-                                isActive = isActive,
-                            ),
+                                isActive = isActive
+                            )
                         )
                     }
                 },
-                enabled = name.isNotBlank(),
+                enabled = name.isNotBlank()
             ) {
                 Text(text = stringResource(id = R.string.action_save))
             }
@@ -406,16 +399,13 @@ private fun EditMedicationPlanDialog(
             TextButton(onClick = onDismiss) {
                 Text(text = stringResource(id = R.string.action_cancel))
             }
-        },
+        }
     )
 }
 
 @Composable
 @Suppress("LongMethod")
-private fun CreateMedicationPlanDialog(
-    onConfirm: (MedicationPlanInputDto) -> Unit,
-    onDismiss: () -> Unit,
-) {
+private fun CreateMedicationPlanDialog(onConfirm: (MedicationPlanInputDto) -> Unit, onDismiss: () -> Unit) {
     var name by remember { mutableStateOf("") }
     var instructions by remember { mutableStateOf("") }
     var scheduleTime by remember { mutableStateOf("08:00") }
@@ -430,25 +420,25 @@ private fun CreateMedicationPlanDialog(
                     value = name,
                     onValueChange = { name = it },
                     label = { Text(text = stringResource(id = R.string.medication_name_label)) },
-                    singleLine = true,
+                    singleLine = true
                 )
                 OutlinedTextField(
                     value = instructions,
                     onValueChange = { instructions = it },
                     label = { Text(text = stringResource(id = R.string.medication_instructions_label)) },
-                    singleLine = true,
+                    singleLine = true
                 )
                 OutlinedTextField(
                     value = scheduleTime,
                     onValueChange = { scheduleTime = it },
                     label = { Text(text = stringResource(id = R.string.medication_time_label)) },
-                    singleLine = true,
+                    singleLine = true
                 )
                 OutlinedTextField(
                     value = everyNDays,
                     onValueChange = { everyNDays = it.filter { c -> c.isDigit() } },
                     label = { Text(text = stringResource(id = R.string.medication_every_n_days_label)) },
-                    singleLine = true,
+                    singleLine = true
                 )
             }
         },
@@ -462,12 +452,12 @@ private fun CreateMedicationPlanDialog(
                                 instructions = instructions.trim(),
                                 startDate = LocalDate.now().toString(),
                                 scheduleTime = scheduleTime.trim().ifBlank { "08:00" },
-                                everyNDays = everyNDays.toIntOrNull() ?: 1,
-                            ),
+                                everyNDays = everyNDays.toIntOrNull() ?: 1
+                            )
                         )
                     }
                 },
-                enabled = name.isNotBlank(),
+                enabled = name.isNotBlank()
             ) {
                 Text(text = stringResource(id = R.string.action_add))
             }
@@ -476,6 +466,6 @@ private fun CreateMedicationPlanDialog(
             TextButton(onClick = onDismiss) {
                 Text(text = stringResource(id = R.string.action_cancel))
             }
-        },
+        }
     )
 }

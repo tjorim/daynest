@@ -32,12 +32,11 @@ class DaynestComplicationDataSourceService : SuspendingComplicationDataSourceSer
         return shortTextComplication(text)
     }
 
-    override fun getPreviewData(type: ComplicationType): ComplicationData? =
-        if (type == ComplicationType.SHORT_TEXT) {
-            shortTextComplication(getString(R.string.wear_completion_short, PREVIEW_COMPLETION_PERCENT))
-        } else {
-            null
-        }
+    override fun getPreviewData(type: ComplicationType): ComplicationData? = if (type == ComplicationType.SHORT_TEXT) {
+        shortTextComplication(getString(R.string.wear_completion_short, PREVIEW_COMPLETION_PERCENT))
+    } else {
+        null
+    }
 
     private fun shortTextComplication(text: String): ComplicationData {
         val contentDescription =
@@ -49,12 +48,12 @@ class DaynestComplicationDataSourceService : SuspendingComplicationDataSourceSer
                 this,
                 1001,
                 Intent(this, WearCompanionActivity::class.java),
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
         return ShortTextComplicationData
             .Builder(
                 text = PlainComplicationText.Builder(text).build(),
-                contentDescription = contentDescription,
+                contentDescription = contentDescription
             ).setTapAction(openIntent)
             .build()
     }

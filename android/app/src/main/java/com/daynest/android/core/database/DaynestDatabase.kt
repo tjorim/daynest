@@ -16,10 +16,10 @@ import com.daynest.android.core.database.today.TodaySummaryEntity
         TodaySummaryEntity::class,
         CacheEntryEntity::class,
         PendingMutationEntity::class,
-        SyncNoticeEntity::class,
+        SyncNoticeEntity::class
     ],
     version = 4,
-    exportSchema = false,
+    exportSchema = false
 )
 abstract class DaynestDatabase : RoomDatabase() {
     abstract fun todaySummaryDao(): TodaySummaryDao

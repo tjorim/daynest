@@ -9,6 +9,8 @@ import com.daynest.android.core.database.today.TodaySummaryDao
 import com.daynest.android.core.database.today.TodaySummaryEntity
 import com.daynest.android.core.network.JsonSerializer
 import com.daynest.android.fakes.StubTodayActionsApi
+import java.io.IOException
+import kotlin.collections.ArrayDeque
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,112 +21,107 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.io.IOException
-import kotlin.collections.ArrayDeque
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class TodayRepositoryTest {
     @Test
-    fun `getCachedTodayResponse returns decoded cached payload`() =
-        runTest {
-            val expected =
-                TodayResponseDto(
-                    medication = listOf(MedicationTodayItemDto(7, "Vitamin D", status = "scheduled")),
-                    dueToday = listOf(DueTodayItemDto(2, "Dishes")),
-                    overdue = listOf(OverdueTodayItemDto(3, "Laundry")),
-                )
-            val cacheDao = FakeCacheEntryDao()
-            cacheDao.upsert(
-                CacheEntryEntity(
-                    cacheKey = "today_response",
-                    payload =
-                        JsonSerializer.config.encodeToString(
-                            TodayResponseDto.serializer(),
-                            expected,
-                        ),
-                    updatedAtEpochMillis = 123L,
-                ),
+    fun `getCachedTodayResponse returns decoded cached payload`() = runTest {
+        val expected =
+            TodayResponseDto(
+                medication = listOf(MedicationTodayItemDto(7, "Vitamin D", status = "scheduled")),
+                dueToday = listOf(DueTodayItemDto(2, "Dishes")),
+                overdue = listOf(OverdueTodayItemDto(3, "Laundry"))
             )
-            val repository =
-                TodayRepository(
-                    todayApi = FakeTodayApi(),
-                    todayActionsApi = StubTodayActionsApi(),
-                    todaySummaryDao = FakeTodaySummaryDao(),
-                    cacheEntryDao = cacheDao,
-                    pendingMutationDao = FakePendingMutationDao(),
-                    appContext = null,
-                )
+        val cacheDao = FakeCacheEntryDao()
+        cacheDao.upsert(
+            CacheEntryEntity(
+                cacheKey = "today_response",
+                payload =
+                JsonSerializer.config.encodeToString(
+                    TodayResponseDto.serializer(),
+                    expected
+                ),
+                updatedAtEpochMillis = 123L
+            )
+        )
+        val repository =
+            TodayRepository(
+                todayApi = FakeTodayApi(),
+                todayActionsApi = StubTodayActionsApi(),
+                todaySummaryDao = FakeTodaySummaryDao(),
+                cacheEntryDao = cacheDao,
+                pendingMutationDao = FakePendingMutationDao(),
+                appContext = null
+            )
 
-            val cached = repository.getCachedTodayResponse()
-            assertEquals(expected, cached)
-        }
+        val cached = repository.getCachedTodayResponse()
+        assertEquals(expected, cached)
+    }
 
     @Test
-    fun `network success - entity upserted and flow emits domain model`() =
-        runTest {
-            val dao = FakeTodaySummaryDao()
-            val api =
-                FakeTodayApi().apply {
-                    enqueueSuccess(
-                        TodayResponseDto(
-                            routines = listOf(RoutineTodayItemDto(1, "Morning walk")),
-                            dueToday = listOf(DueTodayItemDto(2, "Dishes")),
-                            overdue = listOf(OverdueTodayItemDto(3, "Laundry")),
-                            medication = listOf(MedicationTodayItemDto(4, "Vitamin D")),
-                            planned =
-                                listOf(
-                                    PlannedTodayItemDto(5, "Call doctor", isDone = false),
-                                    PlannedTodayItemDto(6, "Buy groceries", isDone = true),
-                                ),
-                        ),
+    fun `network success - entity upserted and flow emits domain model`() = runTest {
+        val dao = FakeTodaySummaryDao()
+        val api =
+            FakeTodayApi().apply {
+                enqueueSuccess(
+                    TodayResponseDto(
+                        routines = listOf(RoutineTodayItemDto(1, "Morning walk")),
+                        dueToday = listOf(DueTodayItemDto(2, "Dishes")),
+                        overdue = listOf(OverdueTodayItemDto(3, "Laundry")),
+                        medication = listOf(MedicationTodayItemDto(4, "Vitamin D")),
+                        planned =
+                        listOf(
+                            PlannedTodayItemDto(5, "Call doctor", isDone = false),
+                            PlannedTodayItemDto(6, "Buy groceries", isDone = true)
+                        )
                     )
-                }
-            val repository =
-                TodayRepository(
-                    todayApi = api,
-                    todayActionsApi = StubTodayActionsApi(),
-                    todaySummaryDao = dao,
-                    cacheEntryDao = FakeCacheEntryDao(),
-                    pendingMutationDao = FakePendingMutationDao(),
-                    appContext = null,
                 )
-
-            repository.observeTodaySummary().test {
-                assertNull(awaitItem())
-                assertTrue(repository.refresh().isSuccess)
-                val summary = awaitItem()
-                assertNotNull(summary)
-                assertEquals(1, summary!!.routinesCount)
-                assertEquals(2, summary.choresCount)
-                assertEquals(1, summary.medicationsCount)
-                assertEquals(1, summary.plannedPendingCount)
-                assertEquals(5, summary.remainingCount)
-                cancelAndIgnoreRemainingEvents()
             }
+        val repository =
+            TodayRepository(
+                todayApi = api,
+                todayActionsApi = StubTodayActionsApi(),
+                todaySummaryDao = dao,
+                cacheEntryDao = FakeCacheEntryDao(),
+                pendingMutationDao = FakePendingMutationDao(),
+                appContext = null
+            )
+
+        repository.observeTodaySummary().test {
+            assertNull(awaitItem())
+            assertTrue(repository.refresh().isSuccess)
+            val summary = awaitItem()
+            assertNotNull(summary)
+            assertEquals(1, summary!!.routinesCount)
+            assertEquals(2, summary.choresCount)
+            assertEquals(1, summary.medicationsCount)
+            assertEquals(1, summary.plannedPendingCount)
+            assertEquals(5, summary.remainingCount)
+            cancelAndIgnoreRemainingEvents()
         }
+    }
 
     @Test
-    fun `offline mutation is queued and returned as queued status`() =
-        runTest {
-            val queuedDao = FakePendingMutationDao()
-            val repository =
-                TodayRepository(
-                    todayApi = FakeTodayApi(),
-                    todayActionsApi =
-                        object : TodayActionsApi by StubTodayActionsApi() {
-                            override suspend fun completeChore(id: Int): ChoreMutationDto = throw IOException("offline")
-                        },
-                    todaySummaryDao = FakeTodaySummaryDao(),
-                    cacheEntryDao = FakeCacheEntryDao(),
-                    pendingMutationDao = queuedDao,
-                    appContext = null,
-                )
+    fun `offline mutation is queued and returned as queued status`() = runTest {
+        val queuedDao = FakePendingMutationDao()
+        val repository =
+            TodayRepository(
+                todayApi = FakeTodayApi(),
+                todayActionsApi =
+                object : TodayActionsApi by StubTodayActionsApi() {
+                    override suspend fun completeChore(id: Int): ChoreMutationDto = throw IOException("offline")
+                },
+                todaySummaryDao = FakeTodaySummaryDao(),
+                cacheEntryDao = FakeCacheEntryDao(),
+                pendingMutationDao = queuedDao,
+                appContext = null
+            )
 
-            val result = repository.completeChore(99)
-            assertTrue(result.isSuccess)
-            assertEquals("queued", result.getOrThrow().status)
-            assertEquals(1, queuedDao.listAll().size)
-        }
+        val result = repository.completeChore(99)
+        assertTrue(result.isSuccess)
+        assertEquals("queued", result.getOrThrow().status)
+        assertEquals(1, queuedDao.listAll().size)
+    }
 }
 
 private class FakeTodaySummaryDao : TodaySummaryDao {
@@ -157,9 +154,7 @@ private class FakeTodayApi : TodayApi {
 }
 
 private sealed interface FakeApiResponse {
-    data class Success(
-        val response: TodayResponseDto,
-    ) : FakeApiResponse
+    data class Success(val response: TodayResponseDto) : FakeApiResponse
 }
 
 private class FakeCacheEntryDao : CacheEntryDao {
@@ -192,17 +187,11 @@ private class FakePendingMutationDao : PendingMutationDao {
         count.value = entries.size
     }
 
-    override suspend fun updateAttempts(
-        id: Long,
-        attempts: Int,
-    ) {
+    override suspend fun updateAttempts(id: Long, attempts: Int) {
         entries.replaceAll { entry -> if (entry.id == id) entry.copy(attempts = attempts) else entry }
     }
 
-    override suspend fun markRemoteApplied(
-        id: Long,
-        appliedAtEpochMillis: Long,
-    ) {
+    override suspend fun markRemoteApplied(id: Long, appliedAtEpochMillis: Long) {
         entries.replaceAll { entry ->
             if (entry.id == id) {
                 entry.copy(remoteAppliedAtEpochMillis = appliedAtEpochMillis)

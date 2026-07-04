@@ -1,5 +1,7 @@
+import asyncio
 import hmac
 import logging
+import time
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy import text
@@ -7,6 +9,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from app.core.config import settings
 from app.core.observability import metrics
+from app.core.oidc import check_jwks_reachable
 from app.db.session import engine
 
 logger = logging.getLogger("app.health")
@@ -28,14 +31,47 @@ def liveness_check() -> dict[str, str]:
     return {"status": "alive"}
 
 
+def _check_db() -> None:
+    with engine.connect() as connection:
+        connection.execute(text("SET LOCAL statement_timeout = '2000'"))
+        connection.execute(text("SELECT 1"))
+
+
+# Readiness probes are typically polled every few seconds; caching a successful
+# reachability result avoids hammering the OIDC provider on every probe. Failures
+# are not cached, so recovery is picked up on the very next probe instead of
+# staying "not_ready" for the rest of the cache window.
+_JWKS_READINESS_CACHE_SECONDS = 30.0
+_jwks_readiness_cache: tuple[float, bool] | None = None
+_jwks_readiness_lock = asyncio.Lock()
+
+
+async def _jwks_reachable() -> bool:
+    global _jwks_readiness_cache  # noqa: PLW0603
+    now = time.monotonic()
+    if _jwks_readiness_cache is not None and now - _jwks_readiness_cache[0] < _JWKS_READINESS_CACHE_SECONDS:
+        return _jwks_readiness_cache[1]
+
+    async with _jwks_readiness_lock:
+        now = time.monotonic()
+        if _jwks_readiness_cache is not None and now - _jwks_readiness_cache[0] < _JWKS_READINESS_CACHE_SECONDS:
+            return _jwks_readiness_cache[1]
+
+        reachable = await check_jwks_reachable()
+        _jwks_readiness_cache = (now, True) if reachable else None
+        return reachable
+
+
 @router.get("/health/readiness")
-def readiness_check(response: Response) -> dict[str, str]:
+async def readiness_check(response: Response) -> dict[str, str]:
     try:
-        with engine.connect() as connection:
-            connection.execute(text("SET LOCAL statement_timeout = '2000'"))
-            connection.execute(text("SELECT 1"))
+        await asyncio.to_thread(_check_db)
     except (SQLAlchemyError, OSError, RuntimeError):
         logger.exception("Readiness check failed: database connectivity error")
+        response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+        return {"status": "not_ready"}
+
+    if settings.oidc_issuer_url and not await _jwks_reachable():
         response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
         return {"status": "not_ready"}
 

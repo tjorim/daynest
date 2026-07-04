@@ -40,9 +40,9 @@ class WearCompanionActivity : ComponentActivity() {
             MaterialTheme {
                 Box(
                     modifier =
-                        Modifier
-                            .fillMaxSize()
-                            .background(Color.Black),
+                    Modifier
+                        .fillMaxSize()
+                        .background(Color.Black)
                 ) {
                     WearCompanionRoute()
                 }
@@ -61,7 +61,7 @@ private fun WearCompanionRoute(viewModel: WearCompanionViewModel = hiltViewModel
 private fun WearCompanionScreen(
     uiState: WearCompanionUiState,
     onRefresh: () -> Unit,
-    onComplete: (WearDueItem) -> Unit,
+    onComplete: (WearDueItem) -> Unit
 ) {
     when (uiState) {
         WearCompanionUiState.Loading -> WearLoadingContent()
@@ -72,7 +72,7 @@ private fun WearCompanionScreen(
             WearContentList(
                 uiState = uiState,
                 onRefresh = onRefresh,
-                onComplete = onComplete,
+                onComplete = onComplete
             )
     }
 }
@@ -81,7 +81,7 @@ private fun WearCompanionScreen(
 private fun WearLoadingContent() {
     Box(
         modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center,
+        contentAlignment = Alignment.Center
     ) {
         CircularProgressIndicator()
     }
@@ -91,20 +91,20 @@ private fun WearLoadingContent() {
 private fun WearErrorContent(onRefresh: () -> Unit) {
     Column(
         modifier =
-            Modifier
-                .fillMaxSize()
-                .padding(horizontal = 24.dp),
+        Modifier
+            .fillMaxSize()
+            .padding(horizontal = 24.dp),
         verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally,
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(text = stringResource(id = R.string.wear_error))
         Chip(
             onClick = onRefresh,
             label = { Text(text = stringResource(id = R.string.home_retry)) },
             modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(top = 12.dp),
+            Modifier
+                .fillMaxWidth()
+                .padding(top = 12.dp)
         )
     }
 }
@@ -113,12 +113,12 @@ private fun WearErrorContent(onRefresh: () -> Unit) {
 private fun WearContentList(
     uiState: WearCompanionUiState.Content,
     onRefresh: () -> Unit,
-    onComplete: (WearDueItem) -> Unit,
+    onComplete: (WearDueItem) -> Unit
 ) {
     ScalingLazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 28.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         item { WearSummary(snapshot = uiState.snapshot) }
         if (uiState.isStale) {
@@ -135,7 +135,7 @@ private fun WearContentList(
             Chip(
                 onClick = onRefresh,
                 label = { Text(text = stringResource(id = R.string.action_refresh)) },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth()
             )
         }
     }
@@ -146,27 +146,27 @@ private fun WearSummary(snapshot: WearTodaySnapshot) {
     Text(
         text = stringResource(id = R.string.wear_title),
         style = MaterialTheme.typography.title3,
-        fontWeight = FontWeight.Bold,
+        fontWeight = FontWeight.Bold
     )
     Text(
         text =
-            stringResource(
-                id = R.string.wear_completion_percent,
-                snapshot.completionPercent,
-            ),
+        stringResource(
+            id = R.string.wear_completion_percent,
+            snapshot.completionPercent
+        )
     )
     Text(
         text =
-            stringResource(
-                id = R.string.wear_overdue_count,
-                snapshot.overdueCount,
-            ),
+        stringResource(
+            id = R.string.wear_overdue_count,
+            snapshot.overdueCount
+        )
     )
     Text(
         text =
-            snapshot.nextMedication?.let {
-                stringResource(id = R.string.wear_next_medication, it)
-            } ?: stringResource(id = R.string.wear_next_medication_none),
+        snapshot.nextMedication?.let {
+            stringResource(id = R.string.wear_next_medication, it)
+        } ?: stringResource(id = R.string.wear_next_medication_none)
     )
 }
 
@@ -174,15 +174,12 @@ private fun WearSummary(snapshot: WearTodaySnapshot) {
 private fun WearStaleNotice() {
     Text(
         text = stringResource(id = R.string.home_stale_notice),
-        style = MaterialTheme.typography.caption2,
+        style = MaterialTheme.typography.caption2
     )
 }
 
 @Composable
-private fun WearDueItemRow(
-    item: WearDueItem,
-    onComplete: () -> Unit,
-) {
+private fun WearDueItemRow(item: WearDueItem, onComplete: () -> Unit) {
     val actionText =
         if (item.type == WearDueItemType.MEDICATION) {
             stringResource(id = R.string.action_take)
@@ -197,9 +194,9 @@ private fun WearDueItemRow(
         secondaryLabel = {
             Text(
                 text = item.subtitle ?: actionText,
-                style = MaterialTheme.typography.caption2,
+                style = MaterialTheme.typography.caption2
             )
         },
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth()
     )
 }

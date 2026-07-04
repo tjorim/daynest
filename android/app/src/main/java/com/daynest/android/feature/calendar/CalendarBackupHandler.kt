@@ -3,13 +3,13 @@ package com.daynest.android.feature.calendar
 import com.daynest.android.data.today.PlannedItemCreateDto
 import com.daynest.android.data.today.PlannedItemRepository
 import com.daynest.android.data.today.PlannedTodayItemDto
+import java.time.Instant
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.time.Instant
 
 private const val IMPORT_BATCH_SIZE = 5
 
@@ -17,7 +17,7 @@ internal class CalendarBackupHandler(
     private val scope: CoroutineScope,
     private val plannedItemRepository: PlannedItemRepository,
     private val uiState: MutableStateFlow<CalendarUiState>,
-    private val onRefresh: () -> Unit,
+    private val onRefresh: () -> Unit
 ) {
     fun exportMonthBackup(onReady: (PlannedItemBackupDto) -> Unit) {
         val current = uiState.value as? CalendarUiState.Content ?: return
@@ -31,8 +31,8 @@ internal class CalendarBackupHandler(
                         source = "daynest",
                         schemaVersion = 1,
                         exportedAt = Instant.now().toString(),
-                        items = items.map { it.toBackupItem() },
-                    ),
+                        items = items.map { it.toBackupItem() }
+                    )
                 )
             }
         }
@@ -71,14 +71,13 @@ internal class CalendarBackupHandler(
     }
 }
 
-private fun PlannedTodayItemDto.toBackupItem() =
-    PlannedItemBackupItemDto(
-        title = title,
-        plannedFor = plannedFor,
-        notes = notes,
-        moduleKey = moduleKey,
-        rrule = rrule,
-        recurrenceHint = recurrenceHint,
-        linkedSource = linkedSource,
-        linkedRef = linkedRef,
-    )
+private fun PlannedTodayItemDto.toBackupItem() = PlannedItemBackupItemDto(
+    title = title,
+    plannedFor = plannedFor,
+    notes = notes,
+    moduleKey = moduleKey,
+    rrule = rrule,
+    recurrenceHint = recurrenceHint,
+    linkedSource = linkedSource,
+    linkedRef = linkedRef
+)

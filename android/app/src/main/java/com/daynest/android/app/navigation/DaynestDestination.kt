@@ -16,10 +16,7 @@ object DaynestDestination {
     const val SETTINGS = "settings"
 }
 
-data class DaynestTopLevelDestination(
-    val route: String,
-    @param:StringRes val labelResId: Int,
-)
+data class DaynestTopLevelDestination(val route: String, @param:StringRes val labelResId: Int)
 
 val daynestTopLevelDestinations =
     listOf(
@@ -29,5 +26,5 @@ val daynestTopLevelDestinations =
         DaynestTopLevelDestination(DaynestDestination.TEMPLATES, R.string.templates_title),
         DaynestTopLevelDestination(DaynestDestination.SHOPPING, R.string.shopping_title),
         DaynestTopLevelDestination(DaynestDestination.MEAL_PLAN, R.string.meal_plan_title),
-        DaynestTopLevelDestination(DaynestDestination.SETTINGS, R.string.settings_title),
+        DaynestTopLevelDestination(DaynestDestination.SETTINGS, R.string.settings_title)
     )

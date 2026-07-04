@@ -25,20 +25,16 @@ import com.daynest.android.data.today.RoutineTodayItemDto
 import com.daynest.android.data.today.UpcomingTodayItemDto
 
 @Composable
-internal fun MedicationTodayCard(
-    item: MedicationTodayItemDto,
-    onTake: () -> Unit,
-    onSkip: () -> Unit,
-) {
+internal fun MedicationTodayCard(item: MedicationTodayItemDto, onTake: () -> Unit, onSkip: () -> Unit) {
     val isScheduled = item.status == "scheduled"
 
     Card(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
+            Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = item.name, style = MaterialTheme.typography.bodyMedium)
@@ -46,7 +42,7 @@ internal fun MedicationTodayCard(
                     Text(
                         text = item.instructions,
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline,
+                        color = MaterialTheme.colorScheme.outline
                     )
                 }
             }
@@ -61,7 +57,7 @@ internal fun MedicationTodayCard(
                 Text(
                     text = item.status,
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.outline,
+                    color = MaterialTheme.colorScheme.outline
                 )
             }
         }
@@ -75,7 +71,7 @@ internal fun RoutineCard(
     onToggleSelect: () -> Unit,
     onStart: () -> Unit,
     onComplete: () -> Unit,
-    onSkip: () -> Unit,
+    onSkip: () -> Unit
 ) {
     val isDone = item.status == "completed"
     val isSkipped = item.status == "skipped"
@@ -84,17 +80,17 @@ internal fun RoutineCard(
     Card(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
+            Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Checkbox(checked = isSelected, onCheckedChange = { onToggleSelect() })
             Text(
                 text = item.title,
                 style = MaterialTheme.typography.bodyMedium,
                 textDecoration = if (isDone) TextDecoration.LineThrough else TextDecoration.None,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(1f)
             )
             if (canMutate) {
                 if (canStart) {
@@ -122,15 +118,15 @@ internal fun ChoreCard(
     onComplete: () -> Unit,
     onSkip: () -> Unit,
     onReschedule: () -> Unit,
-    onSnooze: () -> Unit,
+    onSnooze: () -> Unit
 ) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
+            Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Checkbox(checked = isSelected, onCheckedChange = { onToggleSelect() })
             Column(modifier = Modifier.weight(1f)) {
@@ -139,7 +135,7 @@ internal fun ChoreCard(
                     Text(
                         text = subtitle,
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline,
+                        color = MaterialTheme.colorScheme.outline
                     )
                 }
             }
@@ -167,16 +163,16 @@ internal fun PlannedItemCard(
     onToggleDone: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
-    onDeleteFuture: (() -> Unit)? = null,
+    onDeleteFuture: (() -> Unit)? = null
 ) {
     val isRecurring = item.rrule != null || item.recurrenceSeriesId != null
     Card(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
+            Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Checkbox(checked = isSelected, onCheckedChange = { onToggleSelect() })
             Column(modifier = Modifier.weight(1f)) {
@@ -185,31 +181,31 @@ internal fun PlannedItemCard(
                 Text(
                     text = displayTitle,
                     style = MaterialTheme.typography.bodyMedium,
-                    textDecoration = if (item.isDone) TextDecoration.LineThrough else TextDecoration.None,
+                    textDecoration = if (item.isDone) TextDecoration.LineThrough else TextDecoration.None
                 )
                 if (!item.notes.isNullOrBlank()) {
                     Text(
                         text = item.notes,
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline,
+                        color = MaterialTheme.colorScheme.outline
                     )
                 }
                 if (!item.moduleKey.isNullOrBlank()) {
                     Text(
                         text = item.moduleKey,
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary,
+                        color = MaterialTheme.colorScheme.primary
                     )
                 }
             }
             TextButton(onClick = onToggleDone) {
                 Text(
                     text =
-                        if (item.isDone) {
-                            stringResource(id = R.string.action_undo)
-                        } else {
-                            stringResource(id = R.string.action_done)
-                        },
+                    if (item.isDone) {
+                        stringResource(id = R.string.action_undo)
+                    } else {
+                        stringResource(id = R.string.action_done)
+                    }
                 )
             }
             TextButton(onClick = onEdit) {
@@ -221,28 +217,24 @@ internal fun PlannedItemCard(
 }
 
 @Composable
-private fun PlannedItemDeleteButtons(
-    isRecurring: Boolean,
-    onDelete: () -> Unit,
-    onDeleteFuture: (() -> Unit)?,
-) {
+private fun PlannedItemDeleteButtons(isRecurring: Boolean, onDelete: () -> Unit, onDeleteFuture: (() -> Unit)?) {
     if (isRecurring && onDeleteFuture != null) {
         TextButton(
             onClick = onDelete,
-            colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+            colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
         ) {
             Text(text = stringResource(id = R.string.action_delete_this))
         }
         TextButton(
             onClick = onDeleteFuture,
-            colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+            colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
         ) {
             Text(text = stringResource(id = R.string.action_delete_this_and_future))
         }
     } else {
         TextButton(
             onClick = onDelete,
-            colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+            colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
         ) {
             Text(text = stringResource(id = R.string.action_delete))
         }
@@ -250,28 +242,25 @@ private fun PlannedItemDeleteButtons(
 }
 
 @Composable
-internal fun UpcomingChoreCard(
-    item: UpcomingTodayItemDto,
-    onReschedule: () -> Unit,
-) {
+internal fun UpcomingChoreCard(item: UpcomingTodayItemDto, onReschedule: () -> Unit) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
+            Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
                 text = item.title,
                 style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(1f)
             )
             if (item.scheduledDate.isNotEmpty()) {
                 Text(
                     text = item.scheduledDate,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.outline,
+                    color = MaterialTheme.colorScheme.outline
                 )
             }
             TextButton(onClick = onReschedule) {

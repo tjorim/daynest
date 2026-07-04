@@ -11,10 +11,8 @@ class StubTodayActionsApi : TodayActionsApi {
 
     override suspend fun skipChore(id: Int): ChoreMutationDto = ChoreMutationDto(id, "skipped")
 
-    override suspend fun rescheduleChore(
-        id: Int,
-        request: RescheduleChoreDto,
-    ): ChoreMutationDto = ChoreMutationDto(id, "pending")
+    override suspend fun rescheduleChore(id: Int, request: RescheduleChoreDto): ChoreMutationDto =
+        ChoreMutationDto(id, "pending")
 
     override suspend fun completeTask(id: Int): TaskMutationDto = TaskMutationDto(id, "completed")
 

@@ -52,13 +52,13 @@ import com.daynest.android.data.today.PlannedItemCreateDto
 import com.daynest.android.data.today.PlannedItemUpdateDto
 import com.daynest.android.ui.PlannedItemFormDialog
 import com.daynest.android.ui.PlannedItemFormState
-import kotlinx.serialization.decodeFromString
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
 import java.time.LocalDate
 import java.time.format.TextStyle
 import java.time.temporal.WeekFields
 import java.util.Locale
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 
 private const val DAYS_IN_WEEK = 7
 
@@ -69,36 +69,29 @@ private val plannedItemBackupJson =
     }
 
 @Composable
-fun CalendarRoute(
-    onNavigate: (String) -> Unit = {},
-    viewModel: CalendarViewModel = hiltViewModel(),
-) {
+fun CalendarRoute(onNavigate: (String) -> Unit = {}, viewModel: CalendarViewModel = hiltViewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     CalendarScreen(
         uiState = uiState,
         onEvent = viewModel::onEvent,
-        onNavigate = onNavigate,
+        onNavigate = onNavigate
     )
 }
 
 @Composable
-private fun CalendarScreen(
-    uiState: CalendarUiState,
-    onEvent: (CalendarUiEvent) -> Unit,
-    onNavigate: (String) -> Unit,
-) {
+private fun CalendarScreen(uiState: CalendarUiState, onEvent: (CalendarUiEvent) -> Unit, onNavigate: (String) -> Unit) {
     DaynestNavigationScaffold(
         currentRoute = DaynestDestination.CALENDAR,
-        onNavigate = onNavigate,
+        onNavigate = onNavigate
     ) { innerPadding ->
         when (val state = uiState) {
             CalendarUiState.Loading -> {
                 Box(
                     modifier =
-                        Modifier
-                            .fillMaxSize()
-                            .padding(innerPadding),
-                    contentAlignment = Alignment.Center,
+                    Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding),
+                    contentAlignment = Alignment.Center
                 ) {
                     CircularProgressIndicator()
                 }
@@ -107,20 +100,20 @@ private fun CalendarScreen(
             is CalendarUiState.Error -> {
                 Column(
                     modifier =
-                        Modifier
-                            .fillMaxSize()
-                            .padding(innerPadding)
-                            .padding(24.dp),
+                    Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding)
+                        .padding(24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center,
+                    verticalArrangement = Arrangement.Center
                 ) {
                     Text(
                         text = stringResource(id = R.string.calendar_error),
-                        style = MaterialTheme.typography.bodyLarge,
+                        style = MaterialTheme.typography.bodyLarge
                     )
                     Button(
                         onClick = { onEvent(CalendarUiEvent.RetryClicked) },
-                        modifier = Modifier.padding(top = 16.dp),
+                        modifier = Modifier.padding(top = 16.dp)
                     ) {
                         Text(text = stringResource(id = R.string.home_retry))
                     }
@@ -131,7 +124,7 @@ private fun CalendarScreen(
                 CalendarContent(
                     state = state,
                     onEvent = onEvent,
-                    modifier = Modifier.padding(innerPadding),
+                    modifier = Modifier.padding(innerPadding)
                 )
             }
         }
@@ -143,7 +136,7 @@ private fun CalendarScreen(
 private fun CalendarContent(
     state: CalendarUiState.Content,
     onEvent: (CalendarUiEvent) -> Unit,
-    modifier: Modifier = Modifier,
+    modifier: Modifier = Modifier
 ) {
     var showAddDialog by remember(state.selectedDate) { mutableStateOf(false) }
     var editingItem by remember(state.selectedDate) { mutableStateOf<UnifiedDayItemDto?>(null) }
@@ -192,7 +185,7 @@ private fun CalendarContent(
             state.showDeviceCalendars &&
             ContextCompat.checkSelfPermission(
                 context,
-                Manifest.permission.READ_CALENDAR,
+                Manifest.permission.READ_CALENDAR
             ) != PackageManager.PERMISSION_GRANTED
         ) {
             calendarPermissionLauncher.launch(Manifest.permission.READ_CALENDAR)
@@ -203,7 +196,7 @@ private fun CalendarContent(
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         item {
             MonthHeader(
@@ -219,10 +212,10 @@ private fun CalendarContent(
                                     state.displayMonth.monthValue.toString().padStart(2, '0')
                                 }.json"
                             exportLauncher.launch(fileName)
-                        },
+                        }
                     )
                 },
-                onImport = { importLauncher.launch(arrayOf("application/json")) },
+                onImport = { importLauncher.launch(arrayOf("application/json")) }
             )
         }
 
@@ -231,7 +224,7 @@ private fun CalendarContent(
                 Text(
                     text = backupMessageText,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.outline,
+                    color = MaterialTheme.colorScheme.outline
                 )
             }
         }
@@ -247,7 +240,7 @@ private fun CalendarContent(
                     } else {
                         onEvent(CalendarUiEvent.DaySelected(date))
                     }
-                },
+                }
             )
         }
 
@@ -256,12 +249,12 @@ private fun CalendarContent(
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
                         text = stringResource(id = R.string.calendar_day_detail_header, state.selectedDate),
                         style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.weight(1f)
                     )
                     TextButton(onClick = { showAddDialog = true }) {
                         Text(text = stringResource(id = R.string.calendar_add_planned))
@@ -280,7 +273,7 @@ private fun CalendarContent(
                     Text(
                         text = stringResource(id = R.string.calendar_day_empty),
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.outline,
+                        color = MaterialTheme.colorScheme.outline
                     )
                 }
             } else {
@@ -288,44 +281,44 @@ private fun CalendarContent(
                     state.dayItems,
                     key = { index, item ->
                         "${item.itemType}_${item.itemId}_${item.scheduledAt ?: item.scheduledDate.orEmpty()}_$index"
-                    },
+                    }
                 ) { _, item ->
                     DayItemCard(
                         item = item,
                         onEdit =
-                            if (item.itemType == "planned") {
-                                { editingItem = item }
-                            } else {
-                                null
-                            },
+                        if (item.itemType == "planned") {
+                            { editingItem = item }
+                        } else {
+                            null
+                        },
                         onDelete =
-                            if (item.itemType == "planned") {
-                                {
-                                    onEvent(
-                                        CalendarUiEvent.DeletePlannedItem(
-                                            item.itemId,
-                                            state.selectedDate,
-                                            DeleteScope.THIS,
-                                        ),
+                        if (item.itemType == "planned") {
+                            {
+                                onEvent(
+                                    CalendarUiEvent.DeletePlannedItem(
+                                        item.itemId,
+                                        state.selectedDate,
+                                        DeleteScope.THIS
                                     )
-                                }
-                            } else {
-                                null
-                            },
+                                )
+                            }
+                        } else {
+                            null
+                        },
                         onDeleteFuture =
-                            if (item.itemType == "planned" && (item.rrule != null || item.recurrenceSeriesId != null)) {
-                                {
-                                    onEvent(
-                                        CalendarUiEvent.DeletePlannedItem(
-                                            item.itemId,
-                                            state.selectedDate,
-                                            DeleteScope.FUTURE,
-                                        ),
+                        if (item.itemType == "planned" && (item.rrule != null || item.recurrenceSeriesId != null)) {
+                            {
+                                onEvent(
+                                    CalendarUiEvent.DeletePlannedItem(
+                                        item.itemId,
+                                        state.selectedDate,
+                                        DeleteScope.FUTURE
                                     )
-                                }
-                            } else {
-                                null
-                            },
+                                )
+                            }
+                        } else {
+                            null
+                        }
                     )
                 }
             }
@@ -338,7 +331,7 @@ private fun CalendarContent(
                     state.deviceCalendarEvents,
                     key = { _, item ->
                         "device_${item.id}"
-                    },
+                    }
                 ) { _, item ->
                     DeviceCalendarEventCard(item = item)
                 }
@@ -353,7 +346,7 @@ private fun CalendarContent(
                 onEvent(CalendarUiEvent.AddPlannedItem(input))
                 showAddDialog = false
             },
-            onDismiss = { showAddDialog = false },
+            onDismiss = { showAddDialog = false }
         )
     }
 
@@ -363,11 +356,11 @@ private fun CalendarContent(
             item = currentEditingItem,
             onConfirm = { input, scope ->
                 onEvent(
-                    CalendarUiEvent.UpdatePlannedItem(currentEditingItem.itemId, state.selectedDate, input, scope),
+                    CalendarUiEvent.UpdatePlannedItem(currentEditingItem.itemId, state.selectedDate, input, scope)
                 )
                 editingItem = null
             },
-            onDismiss = { editingItem = null },
+            onDismiss = { editingItem = null }
         )
     }
 }
@@ -378,7 +371,7 @@ private fun MonthHeader(
     onPrevious: () -> Unit,
     onNext: () -> Unit,
     onExport: () -> Unit,
-    onImport: () -> Unit,
+    onImport: () -> Unit
 ) {
     val monthName =
         remember(displayMonth) {
@@ -388,19 +381,19 @@ private fun MonthHeader(
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
             TextButton(onClick = onPrevious) {
                 Text(text = stringResource(id = R.string.calendar_prev_month))
             }
             Text(
                 text =
-                    stringResource(
-                        id = R.string.calendar_month_year,
-                        monthName,
-                        displayMonth.year.toString(),
-                    ),
-                style = MaterialTheme.typography.titleLarge,
+                stringResource(
+                    id = R.string.calendar_month_year,
+                    monthName,
+                    displayMonth.year.toString()
+                ),
+                style = MaterialTheme.typography.titleLarge
             )
             TextButton(onClick = onNext) {
                 Text(text = stringResource(id = R.string.calendar_next_month))
@@ -408,7 +401,7 @@ private fun MonthHeader(
         }
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.End,
+            horizontalArrangement = Arrangement.End
         ) {
             TextButton(onClick = onExport) {
                 Text(text = stringResource(id = R.string.calendar_export_backup))
@@ -426,7 +419,7 @@ private fun MonthGrid(
     displayMonth: LocalDate,
     days: List<CalendarDaySummaryDto>,
     selectedDate: String?,
-    onDayClick: (String) -> Unit,
+    onDayClick: (String) -> Unit
 ) {
     val today = remember { LocalDate.now().toString() }
     val dayMap = remember(days) { days.associateBy { it.date } }
@@ -452,7 +445,7 @@ private fun MonthGrid(
                     modifier = Modifier.weight(1f),
                     textAlign = TextAlign.Center,
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.outline,
+                    color = MaterialTheme.colorScheme.outline
                 )
             }
         }
@@ -481,7 +474,7 @@ private fun MonthGrid(
                             isSelected = isSelected,
                             isToday = isToday,
                             onClick = { onDayClick(date) },
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier.weight(1f)
                         )
                     }
                 }
@@ -494,23 +487,23 @@ private fun MonthGrid(
 private fun EditPlannedItemDialog(
     item: UnifiedDayItemDto,
     onConfirm: (PlannedItemUpdateDto, EditScope) -> Unit,
-    onDismiss: () -> Unit,
+    onDismiss: () -> Unit
 ) {
     PlannedItemFormDialog(
         titleRes = R.string.calendar_edit_planned_title,
         confirmTextRes = R.string.action_save,
         initialState =
-            PlannedItemFormState(
-                title = item.title,
-                plannedFor = item.scheduledDate.orEmpty(),
-                notes = item.detail,
-                moduleKey = item.moduleKey,
-                rrule = item.rrule,
-                recurrenceHint = item.recurrenceHint,
-                linkedSource = item.linkedSource,
-                linkedRef = item.linkedRef,
-                editScope = EditScope.THIS,
-            ),
+        PlannedItemFormState(
+            title = item.title,
+            plannedFor = item.scheduledDate.orEmpty(),
+            notes = item.detail,
+            moduleKey = item.moduleKey,
+            rrule = item.rrule,
+            recurrenceHint = item.recurrenceHint,
+            linkedSource = item.linkedSource,
+            linkedRef = item.linkedRef,
+            editScope = EditScope.THIS
+        ),
         showEditScope = item.rrule != null || item.recurrenceSeriesId != null,
         onConfirm = { form ->
             onConfirm(
@@ -523,12 +516,12 @@ private fun EditPlannedItemDialog(
                     rrule = form.rrule,
                     recurrenceHint = form.recurrenceHint,
                     linkedSource = form.linkedSource,
-                    linkedRef = form.linkedRef,
+                    linkedRef = form.linkedRef
                 ),
-                form.editScope,
+                form.editScope
             )
         },
-        onDismiss = onDismiss,
+        onDismiss = onDismiss
     )
 }
 
@@ -536,7 +529,7 @@ private fun EditPlannedItemDialog(
 private fun AddPlannedItemDialog(
     selectedDate: String,
     onConfirm: (PlannedItemCreateDto) -> Unit,
-    onDismiss: () -> Unit,
+    onDismiss: () -> Unit
 ) {
     PlannedItemFormDialog(
         titleRes = R.string.calendar_add_planned_title,
@@ -552,55 +545,53 @@ private fun AddPlannedItemDialog(
                     rrule = form.rrule,
                     recurrenceHint = form.recurrenceHint,
                     linkedSource = form.linkedSource,
-                    linkedRef = form.linkedRef,
-                ),
+                    linkedRef = form.linkedRef
+                )
             )
         },
-        onDismiss = onDismiss,
+        onDismiss = onDismiss
     )
 }
 
 @Composable
-private fun CalendarBackupMessage.asText(): String =
-    when (this) {
-        CalendarBackupMessage.InvalidImport -> stringResource(id = R.string.calendar_import_backup_invalid)
-        is CalendarBackupMessage.ImportComplete -> {
-            val importedText =
+private fun CalendarBackupMessage.asText(): String = when (this) {
+    CalendarBackupMessage.InvalidImport -> stringResource(id = R.string.calendar_import_backup_invalid)
+    is CalendarBackupMessage.ImportComplete -> {
+        val importedText =
+            pluralStringResource(
+                id = R.plurals.calendar_import_backup_imported,
+                count = imported,
+                imported
+            )
+        if (failed > 0) {
+            val failedText =
                 pluralStringResource(
-                    id = R.plurals.calendar_import_backup_imported,
-                    count = imported,
-                    imported,
+                    id = R.plurals.calendar_import_backup_failed,
+                    count = failed,
+                    failed
                 )
-            if (failed > 0) {
-                val failedText =
-                    pluralStringResource(
-                        id = R.plurals.calendar_import_backup_failed,
-                        count = failed,
-                        failed,
-                    )
-                stringResource(id = R.string.calendar_import_backup_complete_with_failures, importedText, failedText)
-            } else {
-                stringResource(id = R.string.calendar_import_backup_complete, importedText)
-            }
+            stringResource(id = R.string.calendar_import_backup_complete_with_failures, importedText, failedText)
+        } else {
+            stringResource(id = R.string.calendar_import_backup_complete, importedText)
         }
     }
+}
 
 private fun PlannedItemBackupDto.toJson(): String = plannedItemBackupJson.encodeToString(this)
 
-private fun parsePlannedItemBackup(raw: String): List<PlannedItemCreateDto>? =
-    runCatching {
-        val backup = plannedItemBackupJson.decodeFromString<PlannedItemBackupDto>(raw)
-        if (backup.source != "daynest" || backup.schemaVersion != 1) return null
-        backup.items.map { item ->
-            PlannedItemCreateDto(
-                title = item.title,
-                plannedFor = item.plannedFor,
-                notes = item.notes,
-                moduleKey = item.moduleKey,
-                rrule = item.rrule,
-                recurrenceHint = item.recurrenceHint,
-                linkedSource = item.linkedSource,
-                linkedRef = item.linkedRef,
-            )
-        }
-    }.getOrNull()
+private fun parsePlannedItemBackup(raw: String): List<PlannedItemCreateDto>? = runCatching {
+    val backup = plannedItemBackupJson.decodeFromString<PlannedItemBackupDto>(raw)
+    if (backup.source != "daynest" || backup.schemaVersion != 1) return null
+    backup.items.map { item ->
+        PlannedItemCreateDto(
+            title = item.title,
+            plannedFor = item.plannedFor,
+            notes = item.notes,
+            moduleKey = item.moduleKey,
+            rrule = item.rrule,
+            recurrenceHint = item.recurrenceHint,
+            linkedSource = item.linkedSource,
+            linkedRef = item.linkedRef
+        )
+    }
+}.getOrNull()

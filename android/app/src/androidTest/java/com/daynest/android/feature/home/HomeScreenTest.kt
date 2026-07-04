@@ -17,7 +17,7 @@ class HomeScreenTest {
             DaynestTheme {
                 HomeScreen(
                     uiState = HomeUiState.Loading,
-                    onEvent = {},
+                    onEvent = {}
                 )
             }
         }

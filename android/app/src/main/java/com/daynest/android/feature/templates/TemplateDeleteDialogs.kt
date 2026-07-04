@@ -12,41 +12,29 @@ import com.daynest.android.data.templates.ChoreTemplateDto
 import com.daynest.android.data.templates.RoutineTemplateDto
 
 @Composable
-fun DeleteRoutineDialog(
-    routine: RoutineTemplateDto?,
-    onConfirm: (RoutineTemplateDto) -> Unit,
-    onDismiss: () -> Unit,
-) {
+fun DeleteRoutineDialog(routine: RoutineTemplateDto?, onConfirm: (RoutineTemplateDto) -> Unit, onDismiss: () -> Unit) {
     routine?.let { routine ->
         DeleteTemplateDialog(
             message = stringResource(id = R.string.templates_delete_routine_message, routine.name),
             onConfirm = { onConfirm(routine) },
-            onDismiss = onDismiss,
+            onDismiss = onDismiss
         )
     }
 }
 
 @Composable
-fun DeleteChoreDialog(
-    chore: ChoreTemplateDto?,
-    onConfirm: (ChoreTemplateDto) -> Unit,
-    onDismiss: () -> Unit,
-) {
+fun DeleteChoreDialog(chore: ChoreTemplateDto?, onConfirm: (ChoreTemplateDto) -> Unit, onDismiss: () -> Unit) {
     chore?.let { chore ->
         DeleteTemplateDialog(
             message = stringResource(id = R.string.templates_delete_chore_message, chore.name),
             onConfirm = { onConfirm(chore) },
-            onDismiss = onDismiss,
+            onDismiss = onDismiss
         )
     }
 }
 
 @Composable
-private fun DeleteTemplateDialog(
-    message: String,
-    onConfirm: () -> Unit,
-    onDismiss: () -> Unit,
-) {
+private fun DeleteTemplateDialog(message: String, onConfirm: () -> Unit, onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(text = stringResource(id = R.string.templates_delete_title)) },
@@ -60,6 +48,6 @@ private fun DeleteTemplateDialog(
             TextButton(onClick = onDismiss) {
                 Text(text = stringResource(id = R.string.action_cancel))
             }
-        },
+        }
     )
 }

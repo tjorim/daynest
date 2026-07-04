@@ -24,7 +24,7 @@ import java.time.LocalDate
 internal fun EditChoreDialog(
     chore: ChoreTemplateDto,
     onConfirm: (ChoreTemplateInputDto) -> Unit,
-    onDismiss: () -> Unit,
+    onDismiss: () -> Unit
 ) {
     ChoreTemplateDialog(
         title = stringResource(id = R.string.templates_edit_chore_title),
@@ -36,15 +36,12 @@ internal fun EditChoreDialog(
         isEditing = true,
         confirmText = stringResource(id = R.string.action_save),
         onConfirm = onConfirm,
-        onDismiss = onDismiss,
+        onDismiss = onDismiss
     )
 }
 
 @Composable
-internal fun CreateChoreDialog(
-    onConfirm: (ChoreTemplateInputDto) -> Unit,
-    onDismiss: () -> Unit,
-) {
+internal fun CreateChoreDialog(onConfirm: (ChoreTemplateInputDto) -> Unit, onDismiss: () -> Unit) {
     ChoreTemplateDialog(
         title = stringResource(id = R.string.templates_create_chore_title),
         initialName = "",
@@ -55,7 +52,7 @@ internal fun CreateChoreDialog(
         isEditing = false,
         confirmText = stringResource(id = R.string.action_add),
         onConfirm = onConfirm,
-        onDismiss = onDismiss,
+        onDismiss = onDismiss
     )
 }
 
@@ -70,41 +67,41 @@ private fun ChoreTemplateFields(
     everyNDays: String,
     onEveryNDaysChange: (String) -> Unit,
     isActive: Boolean,
-    onIsActiveToggle: () -> Unit,
+    onIsActiveToggle: () -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         OutlinedTextField(
             value = name,
             onValueChange = onNameChange,
             label = { Text(text = stringResource(id = R.string.templates_name_label)) },
-            singleLine = true,
+            singleLine = true
         )
         OutlinedTextField(
             value = description,
             onValueChange = onDescriptionChange,
             label = { Text(text = stringResource(id = R.string.templates_description_label)) },
-            singleLine = true,
+            singleLine = true
         )
         OutlinedTextField(
             value = startDate,
             onValueChange = onStartDateChange,
             label = { Text(text = stringResource(id = R.string.templates_start_date_label)) },
-            singleLine = true,
+            singleLine = true
         )
         OutlinedTextField(
             value = everyNDays,
             onValueChange = { onEveryNDaysChange(it.filter { c -> c.isDigit() }) },
             label = { Text(text = stringResource(id = R.string.templates_every_n_days_label)) },
-            singleLine = true,
+            singleLine = true
         )
         TextButton(onClick = onIsActiveToggle) {
             Text(
                 text =
-                    if (isActive) {
-                        stringResource(id = R.string.medication_active)
-                    } else {
-                        stringResource(id = R.string.templates_inactive)
-                    },
+                if (isActive) {
+                    stringResource(id = R.string.medication_active)
+                } else {
+                    stringResource(id = R.string.templates_inactive)
+                }
             )
         }
     }
@@ -121,7 +118,7 @@ private fun ChoreTemplateDialog(
     isEditing: Boolean,
     confirmText: String,
     onConfirm: (ChoreTemplateInputDto) -> Unit,
-    onDismiss: () -> Unit,
+    onDismiss: () -> Unit
 ) {
     var name by remember { mutableStateOf(initialName) }
     var description by remember { mutableStateOf(initialDescription) }
@@ -143,7 +140,7 @@ private fun ChoreTemplateDialog(
                 everyNDays = everyNDays,
                 onEveryNDaysChange = { everyNDays = it },
                 isActive = isActive,
-                onIsActiveToggle = { isActive = !isActive },
+                onIsActiveToggle = { isActive = !isActive }
             )
         },
         confirmButton = {
@@ -158,12 +155,12 @@ private fun ChoreTemplateDialog(
                                 description = description.trim().ifBlank { null },
                                 startDate = startDate.trim().ifBlank { fallbackStartDate },
                                 everyNDays = everyNDays.toIntOrNull() ?: fallbackEveryNDays,
-                                isActive = isActive,
-                            ),
+                                isActive = isActive
+                            )
                         )
                     }
                 },
-                enabled = name.isNotBlank(),
+                enabled = name.isNotBlank()
             ) {
                 Text(text = confirmText)
             }
@@ -172,6 +169,6 @@ private fun ChoreTemplateDialog(
             TextButton(onClick = onDismiss) {
                 Text(text = stringResource(id = R.string.action_cancel))
             }
-        },
+        }
     )
 }

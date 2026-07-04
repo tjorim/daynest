@@ -14,11 +14,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @Composable
-fun SessionGateRoute(
-    onGoAuth: () -> Unit,
-    onGoHome: () -> Unit,
-    viewModel: SessionGateViewModel = hiltViewModel(),
-) {
+fun SessionGateRoute(onGoAuth: () -> Unit, onGoHome: () -> Unit, viewModel: SessionGateViewModel = hiltViewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     LaunchedEffect(uiState) {
@@ -31,7 +27,7 @@ fun SessionGateRoute(
 
     Box(
         modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center,
+        contentAlignment = Alignment.Center
     ) {
         if (uiState == SessionGateUiState.Loading) {
             CircularProgressIndicator()

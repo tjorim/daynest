@@ -61,7 +61,7 @@ class DaynestNavigationTest {
         val harness =
             setNavContent(
                 initialToken = "valid-token",
-                fakeApi = FakeNavAuthApi(restoreResult = Result.success(AuthSessionDto("token"))),
+                fakeApi = FakeNavAuthApi(restoreResult = Result.success(AuthSessionDto("token")))
             )
 
         composeTestRule.waitUntil(timeoutMillis = 3_000L) {
@@ -87,7 +87,7 @@ class DaynestNavigationTest {
         val harness =
             setNavContent(
                 initialToken = null,
-                fakeApi = FakeNavAuthApi(signInResult = Result.success(AuthSessionDto("new-token"))),
+                fakeApi = FakeNavAuthApi(signInResult = Result.success(AuthSessionDto("new-token")))
             )
 
         composeTestRule.waitUntil(timeoutMillis = 3_000L) {
@@ -110,7 +110,7 @@ class DaynestNavigationTest {
         val harness =
             setNavContent(
                 initialToken = "valid-token",
-                fakeApi = FakeNavAuthApi(restoreResult = Result.success(AuthSessionDto("token"))),
+                fakeApi = FakeNavAuthApi(restoreResult = Result.success(AuthSessionDto("token")))
             )
 
         composeTestRule.waitUntil(timeoutMillis = 3_000L) {
@@ -130,10 +130,7 @@ class DaynestNavigationTest {
         assertEquals(DaynestDestination.CALENDAR, harness.navController.currentDestination?.route)
     }
 
-    private fun setNavContent(
-        initialToken: String?,
-        fakeApi: FakeNavAuthApi = FakeNavAuthApi(),
-    ): NavTestHarness {
+    private fun setNavContent(initialToken: String?, fakeApi: FakeNavAuthApi = FakeNavAuthApi()): NavTestHarness {
         val fakeStorage = FakeNavTokenStorage(initialToken)
         val authRepo = AuthRepository(authApi = fakeApi, secureTokenStorage = fakeStorage)
         val sessionVm = SessionGateViewModel(authRepo)
@@ -149,33 +146,30 @@ class DaynestNavigationTest {
                     navController = navController,
                     sessionGateViewModel = sessionVm,
                     authViewModel = authVm,
-                    homeViewModel = homeVm,
+                    homeViewModel = homeVm
                 )
             }
         }
 
         return NavTestHarness(
             navController = navController,
-            authViewModel = authVm,
+            authViewModel = authVm
         )
     }
 }
 
-private data class NavTestHarness(
-    val navController: NavHostController,
-    val authViewModel: AuthViewModel,
-)
+private data class NavTestHarness(val navController: NavHostController, val authViewModel: AuthViewModel)
 
 @Composable
 private fun TestNavHost(
     navController: NavHostController,
     sessionGateViewModel: SessionGateViewModel,
     authViewModel: AuthViewModel,
-    homeViewModel: HomeViewModel,
+    homeViewModel: HomeViewModel
 ) {
     NavHost(
         navController = navController,
-        startDestination = DaynestDestination.SESSION_GATE,
+        startDestination = DaynestDestination.SESSION_GATE
     ) {
         composable(route = DaynestDestination.SESSION_GATE) {
             SessionGateRoute(
@@ -189,7 +183,7 @@ private fun TestNavHost(
                         popUpTo(DaynestDestination.SESSION_GATE) { inclusive = true }
                     }
                 },
-                viewModel = sessionGateViewModel,
+                viewModel = sessionGateViewModel
             )
         }
         composable(route = DaynestDestination.AUTH) {
@@ -200,7 +194,7 @@ private fun TestNavHost(
                         launchSingleTop = true
                     }
                 },
-                viewModel = authViewModel,
+                viewModel = authViewModel
             )
         }
         composable(route = DaynestDestination.HOME) {
@@ -221,67 +215,62 @@ private fun TestNavHost(
     }
 }
 
-private fun makeHomeViewModel(): HomeViewModel =
-    HomeViewModel(
-        repository =
-            TodayRepository(
-                todayApi =
-                    object : TodayApi {
-                        override suspend fun getToday(): TodayResponseDto = TodayResponseDto()
-                    },
-                todayActionsApi =
-                    object : TodayActionsApi {
-                        override suspend fun completeChore(id: Int): ChoreMutationDto =
-                            ChoreMutationDto(id, "completed")
+private fun makeHomeViewModel(): HomeViewModel = HomeViewModel(
+    repository =
+    TodayRepository(
+        todayApi =
+        object : TodayApi {
+            override suspend fun getToday(): TodayResponseDto = TodayResponseDto()
+        },
+        todayActionsApi =
+        object : TodayActionsApi {
+            override suspend fun completeChore(id: Int): ChoreMutationDto = ChoreMutationDto(id, "completed")
 
-                        override suspend fun skipChore(id: Int): ChoreMutationDto = ChoreMutationDto(id, "skipped")
+            override suspend fun skipChore(id: Int): ChoreMutationDto = ChoreMutationDto(id, "skipped")
 
-                        override suspend fun completeTask(id: Int): TaskMutationDto = TaskMutationDto(id, "completed")
+            override suspend fun completeTask(id: Int): TaskMutationDto = TaskMutationDto(id, "completed")
 
-                        override suspend fun skipTask(id: Int): TaskMutationDto = TaskMutationDto(id, "skipped")
+            override suspend fun skipTask(id: Int): TaskMutationDto = TaskMutationDto(id, "skipped")
 
-                        override suspend fun startTask(id: Int): TaskMutationDto = TaskMutationDto(id, "in_progress")
+            override suspend fun startTask(id: Int): TaskMutationDto = TaskMutationDto(id, "in_progress")
 
-                        override suspend fun takeDose(id: Int): DoseMutationDto = DoseMutationDto(id, "taken")
+            override suspend fun takeDose(id: Int): DoseMutationDto = DoseMutationDto(id, "taken")
 
-                        override suspend fun skipDose(id: Int): DoseMutationDto = DoseMutationDto(id, "skipped")
+            override suspend fun skipDose(id: Int): DoseMutationDto = DoseMutationDto(id, "skipped")
 
-                        override suspend fun updatePlannedItem(
-                            id: Int,
-                            request: PlannedItemUpdateDto,
-                            scope: EditScope,
-                        ): PlannedTodayItemDto = PlannedTodayItemDto(id, request.title, request.isDone)
+            override suspend fun updatePlannedItem(
+                id: Int,
+                request: PlannedItemUpdateDto,
+                scope: EditScope
+            ): PlannedTodayItemDto = PlannedTodayItemDto(id, request.title, request.isDone)
 
-                        override suspend fun deletePlannedItem(
-                            id: Int,
-                            scope: DeleteScope,
-                        ) = Unit
+            override suspend fun deletePlannedItem(id: Int, scope: DeleteScope) = Unit
 
-                        override suspend fun createPlannedItem(request: PlannedItemCreateDto): PlannedTodayItemDto =
-                            PlannedTodayItemDto(0, request.title, false)
-                    },
-                todaySummaryDao =
-                    object : TodaySummaryDao {
-                        private val flow = MutableStateFlow<TodaySummaryEntity?>(null)
+            override suspend fun createPlannedItem(request: PlannedItemCreateDto): PlannedTodayItemDto =
+                PlannedTodayItemDto(0, request.title, false)
+        },
+        todaySummaryDao =
+        object : TodaySummaryDao {
+            private val flow = MutableStateFlow<TodaySummaryEntity?>(null)
 
-                        override fun observe(): Flow<TodaySummaryEntity?> = flow
+            override fun observe(): Flow<TodaySummaryEntity?> = flow
 
-                        override suspend fun upsert(entity: TodaySummaryEntity) {
-                            flow.value = entity
-                        }
+            override suspend fun upsert(entity: TodaySummaryEntity) {
+                flow.value = entity
+            }
 
-                        override suspend fun clear() {
-                            flow.value = null
-                        }
-                    },
-            ),
+            override suspend fun clear() {
+                flow.value = null
+            }
+        }
     )
+)
 
 private class FakeNavAuthApi(
     private val signInResult: Result<AuthSessionDto> =
         Result.failure(UnsupportedOperationException("signIn not expected")),
     private val restoreResult: Result<AuthSessionDto> =
-        Result.failure(UnsupportedOperationException("restoreSession not expected")),
+        Result.failure(UnsupportedOperationException("restoreSession not expected"))
 ) : AuthApi {
     override suspend fun signIn(request: SignInRequestDto): AuthSessionDto = signInResult.getOrThrow()
 
@@ -291,9 +280,7 @@ private class FakeNavAuthApi(
         throw UnsupportedOperationException("refresh not expected")
 }
 
-private class FakeNavTokenStorage(
-    initialToken: String?,
-) : SecureTokenStorage {
+private class FakeNavTokenStorage(initialToken: String?) : SecureTokenStorage {
     private var storedToken: String? = initialToken
     private var storedRefreshToken: String? = null
 

@@ -31,7 +31,7 @@ fun ApiBaseUrlOverrideCard(
     defaultServerUrl: String,
     customServerUrl: String?,
     onServerUrlChanged: (String?) -> Unit,
-    modifier: Modifier = Modifier,
+    modifier: Modifier = Modifier
 ) {
     val isCustom = customServerUrl != null
     var expanded by remember { mutableStateOf(false) }
@@ -45,7 +45,7 @@ fun ApiBaseUrlOverrideCard(
             expanded = expanded,
             onExpandedChange = { expanded = it },
             onSelectDefault = { onServerUrlChanged(null) },
-            onSelectCustom = { if (!isCustom) onServerUrlChanged(defaultServerUrl) },
+            onSelectCustom = { if (!isCustom) onServerUrlChanged(defaultServerUrl) }
         )
         if (isCustom) {
             CustomServerUrlInput(
@@ -62,7 +62,7 @@ fun ApiBaseUrlOverrideCard(
                     } else {
                         urlError = true
                     }
-                },
+                }
             )
         }
     }
@@ -76,31 +76,31 @@ private fun ServerTypeDropdown(
     expanded: Boolean,
     onExpandedChange: (Boolean) -> Unit,
     onSelectDefault: () -> Unit,
-    onSelectCustom: () -> Unit,
+    onSelectCustom: () -> Unit
 ) {
     ExposedDropdownMenuBox(
         expanded = expanded,
-        onExpandedChange = onExpandedChange,
+        onExpandedChange = onExpandedChange
     ) {
         OutlinedTextField(
             value =
-                if (isCustom) {
-                    stringResource(id = R.string.settings_server_custom)
-                } else {
-                    stringResource(id = R.string.settings_server_default)
-                },
+            if (isCustom) {
+                stringResource(id = R.string.settings_server_custom)
+            } else {
+                stringResource(id = R.string.settings_server_default)
+            },
             onValueChange = {},
             readOnly = true,
             label = { Text(text = stringResource(id = R.string.settings_server_label)) },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
             modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
+            Modifier
+                .fillMaxWidth()
+                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
         )
         ExposedDropdownMenu(
             expanded = expanded,
-            onDismissRequest = { onExpandedChange(false) },
+            onDismissRequest = { onExpandedChange(false) }
         ) {
             DropdownMenuItem(
                 text = {
@@ -109,21 +109,21 @@ private fun ServerTypeDropdown(
                         Text(
                             text = defaultServerUrl,
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.outline,
+                            color = MaterialTheme.colorScheme.outline
                         )
                     }
                 },
                 onClick = {
                     onExpandedChange(false)
                     onSelectDefault()
-                },
+                }
             )
             DropdownMenuItem(
                 text = { Text(text = stringResource(id = R.string.settings_server_custom)) },
                 onClick = {
                     onExpandedChange(false)
                     onSelectCustom()
-                },
+                }
             )
         }
     }
@@ -134,7 +134,7 @@ private fun CustomServerUrlInput(
     customInput: String,
     urlError: Boolean,
     onValueChange: (String) -> Unit,
-    onApply: () -> Unit,
+    onApply: () -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         OutlinedTextField(
@@ -142,20 +142,20 @@ private fun CustomServerUrlInput(
             onValueChange = onValueChange,
             isError = urlError,
             supportingText =
-                if (urlError) {
-                    { Text(text = stringResource(id = R.string.settings_server_url_error)) }
-                } else {
-                    null
-                },
+            if (urlError) {
+                { Text(text = stringResource(id = R.string.settings_server_url_error)) }
+            } else {
+                null
+            },
             label = { Text(text = stringResource(id = R.string.settings_server_url_label)) },
             placeholder = { Text(text = stringResource(id = R.string.settings_server_url_placeholder)) },
             singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth()
         )
         TextButton(
             onClick = onApply,
             enabled = customInput.trim().isNotBlank(),
-            modifier = Modifier.align(Alignment.End),
+            modifier = Modifier.align(Alignment.End)
         ) {
             Text(text = stringResource(id = R.string.settings_server_url_apply))
         }

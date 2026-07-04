@@ -20,7 +20,7 @@ fun DaynestNavigationScaffold(
     modifier: Modifier = Modifier,
     floatingActionButton: @Composable (() -> Unit)? = null,
     snackbarHostState: SnackbarHostState? = null,
-    content: @Composable (PaddingValues) -> Unit,
+    content: @Composable (PaddingValues) -> Unit
 ) {
     Scaffold(
         modifier = modifier,
@@ -36,11 +36,11 @@ fun DaynestNavigationScaffold(
                         selected = currentRoute == destination.route,
                         onClick = { onNavigate(destination.route) },
                         label = { Text(text = label) },
-                        icon = { Text(text = label.take(1)) },
+                        icon = { Text(text = label.take(1)) }
                     )
                 }
             }
         },
-        content = content,
+        content = content
     )
 }

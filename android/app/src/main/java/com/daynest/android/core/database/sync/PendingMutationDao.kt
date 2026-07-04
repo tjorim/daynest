@@ -21,14 +21,8 @@ interface PendingMutationDao {
     suspend fun delete(id: Long)
 
     @Query("UPDATE pending_mutations SET attempts = :attempts WHERE id = :id")
-    suspend fun updateAttempts(
-        id: Long,
-        attempts: Int,
-    )
+    suspend fun updateAttempts(id: Long, attempts: Int)
 
     @Query("UPDATE pending_mutations SET remoteAppliedAtEpochMillis = :appliedAtEpochMillis WHERE id = :id")
-    suspend fun markRemoteApplied(
-        id: Long,
-        appliedAtEpochMillis: Long,
-    )
+    suspend fun markRemoteApplied(id: Long, appliedAtEpochMillis: Long)
 }

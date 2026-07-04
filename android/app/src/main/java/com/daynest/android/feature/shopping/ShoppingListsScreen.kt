@@ -43,7 +43,7 @@ import com.daynest.android.data.shopping.ShoppingListStatus
 fun ShoppingListsRoute(
     onNavigate: (String) -> Unit = {},
     onOpenList: (Int) -> Unit,
-    viewModel: ShoppingViewModel = hiltViewModel(),
+    viewModel: ShoppingViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -60,7 +60,7 @@ fun ShoppingListsRoute(
         onArchive = viewModel::archiveList,
         onDelete = viewModel::deleteList,
         onOpenList = onOpenList,
-        snackbarHostState = snackbarHostState,
+        snackbarHostState = snackbarHostState
     )
 }
 
@@ -73,12 +73,12 @@ internal fun ShoppingListsScreen(
     onArchive: (ShoppingListDto) -> Unit,
     onDelete: (Int) -> Unit,
     onOpenList: (Int) -> Unit,
-    snackbarHostState: SnackbarHostState,
+    snackbarHostState: SnackbarHostState
 ) {
     DaynestNavigationScaffold(
         currentRoute = DaynestDestination.SHOPPING,
         onNavigate = onNavigate,
-        snackbarHostState = snackbarHostState,
+        snackbarHostState = snackbarHostState
     ) { innerPadding ->
         ShoppingListsContent(
             uiState = uiState,
@@ -87,7 +87,7 @@ internal fun ShoppingListsScreen(
             onArchive = onArchive,
             onDelete = onDelete,
             onOpenList = onOpenList,
-            modifier = Modifier.padding(innerPadding),
+            modifier = Modifier.padding(innerPadding)
         )
     }
 }
@@ -100,7 +100,7 @@ private fun ShoppingListsContent(
     onArchive: (ShoppingListDto) -> Unit,
     onDelete: (Int) -> Unit,
     onOpenList: (Int) -> Unit,
-    modifier: Modifier = Modifier,
+    modifier: Modifier = Modifier
 ) {
     val activeLists =
         remember(uiState.lists) {
@@ -114,7 +114,7 @@ private fun ShoppingListsContent(
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item { ShoppingListsHeader(onRefresh = onRefresh) }
 
@@ -131,7 +131,7 @@ private fun ShoppingListsContent(
         item {
             Text(
                 text = stringResource(id = R.string.shopping_active_lists),
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.titleMedium
             )
         }
         if (activeLists.isEmpty() && !uiState.isLoadingLists) {
@@ -142,7 +142,7 @@ private fun ShoppingListsContent(
                 list = list,
                 onOpenList = onOpenList,
                 onArchive = onArchive,
-                onDelete = onDelete,
+                onDelete = onDelete
             )
         }
         if (archivedLists.isNotEmpty()) {
@@ -150,7 +150,7 @@ private fun ShoppingListsContent(
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = stringResource(id = R.string.shopping_archived),
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.titleMedium
                 )
             }
             items(archivedLists, key = { it.id }) { list ->
@@ -158,7 +158,7 @@ private fun ShoppingListsContent(
                     list = list,
                     onOpenList = onOpenList,
                     onArchive = onArchive,
-                    onDelete = onDelete,
+                    onDelete = onDelete
                 )
             }
         }
@@ -170,16 +170,16 @@ private fun ShoppingListsHeader(onRefresh: () -> Unit) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
+        verticalAlignment = Alignment.CenterVertically
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = stringResource(id = R.string.shopping_title),
-                style = MaterialTheme.typography.headlineMedium,
+                style = MaterialTheme.typography.headlineMedium
             )
             Text(
                 text = stringResource(id = R.string.shopping_subtitle),
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodyMedium
             )
         }
         TextButton(onClick = onRefresh) { Text(text = stringResource(id = R.string.action_refresh)) }
@@ -207,29 +207,29 @@ private fun CreateListForm(onCreate: (String, String?, String?) -> Unit) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
                 text = stringResource(id = R.string.shopping_create_list),
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.titleMedium
             )
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
                 label = { Text(text = stringResource(id = R.string.shopping_list_name)) },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth()
             )
             OutlinedTextField(
                 value = store,
                 onValueChange = { store = it },
                 label = { Text(text = stringResource(id = R.string.shopping_store)) },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth()
             )
             OutlinedTextField(
                 value = notes,
                 onValueChange = { notes = it },
                 label = { Text(text = stringResource(id = R.string.shopping_notes)) },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth()
             )
             Button(
                 onClick = {
@@ -238,7 +238,7 @@ private fun CreateListForm(onCreate: (String, String?, String?) -> Unit) {
                     store = ""
                     notes = ""
                 },
-                enabled = name.isNotBlank(),
+                enabled = name.isNotBlank()
             ) {
                 Text(text = stringResource(id = R.string.action_add))
             }
@@ -251,12 +251,12 @@ private fun ShoppingListCard(
     list: ShoppingListDto,
     onOpenList: (Int) -> Unit,
     onArchive: (ShoppingListDto) -> Unit,
-    onDelete: (Int) -> Unit,
+    onDelete: (Int) -> Unit
 ) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(text = list.name, style = MaterialTheme.typography.titleMedium)
             list.store?.let { Text(text = it, style = MaterialTheme.typography.bodyMedium) }

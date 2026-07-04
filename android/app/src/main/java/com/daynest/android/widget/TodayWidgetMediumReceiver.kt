@@ -14,11 +14,7 @@ import androidx.glance.appwidget.GlanceAppWidgetReceiver
 class TodayWidgetMediumReceiver : GlanceAppWidgetReceiver() {
     override val glanceAppWidget: GlanceAppWidget = TodayWidgetMedium()
 
-    override fun onUpdate(
-        context: Context,
-        appWidgetManager: AppWidgetManager,
-        appWidgetIds: IntArray,
-    ) {
+    override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
         super.onUpdate(context, appWidgetManager, appWidgetIds)
         TodayWidgetRefreshWorker.enqueueImmediateRefresh(context)
     }

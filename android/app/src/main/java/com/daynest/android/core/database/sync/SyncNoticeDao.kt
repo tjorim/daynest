@@ -15,8 +15,5 @@ interface SyncNoticeDao {
     suspend fun insert(entity: SyncNoticeEntity)
 
     @Query("UPDATE sync_notices SET consumedAtEpochMillis = :consumedAtEpochMillis WHERE id = :id")
-    suspend fun markConsumed(
-        id: Long,
-        consumedAtEpochMillis: Long,
-    )
+    suspend fun markConsumed(id: Long, consumedAtEpochMillis: Long)
 }

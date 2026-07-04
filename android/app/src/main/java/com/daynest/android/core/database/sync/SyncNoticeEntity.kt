@@ -9,5 +9,5 @@ data class SyncNoticeEntity(
     val id: Long = 0,
     val message: String,
     val createdAtEpochMillis: Long,
-    val consumedAtEpochMillis: Long? = null,
+    val consumedAtEpochMillis: Long? = null
 )

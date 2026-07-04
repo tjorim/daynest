@@ -16,13 +16,10 @@ import javax.inject.Singleton
 object DatabaseDiModule {
     @Provides
     @Singleton
-    fun provideDatabase(
-        @ApplicationContext context: Context,
-    ): DaynestWearDatabase =
-        Room
-            .databaseBuilder(context, DaynestWearDatabase::class.java, "daynest-wear.db")
-            .fallbackToDestructiveMigration()
-            .build()
+    fun provideDatabase(@ApplicationContext context: Context): DaynestWearDatabase = Room
+        .databaseBuilder(context, DaynestWearDatabase::class.java, "daynest-wear.db")
+        .fallbackToDestructiveMigration()
+        .build()
 
     @Provides
     @Singleton

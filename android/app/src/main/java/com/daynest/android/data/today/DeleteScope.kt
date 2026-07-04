@@ -9,13 +9,12 @@ enum class DeleteScope {
     THIS,
 
     @SerialName("future")
-    FUTURE,
+    FUTURE
 
     ;
 
-    override fun toString(): String =
-        when (this) {
-            THIS -> "this"
-            FUTURE -> "future"
-        }
+    override fun toString(): String = when (this) {
+        THIS -> "this"
+        FUTURE -> "future"
+    }
 }

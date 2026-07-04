@@ -1,5 +1,8 @@
 package com.daynest.android.core.network
 
+import com.daynest.android.core.storage.ApiBaseUrlOverrideStore
+import io.mockk.every
+import io.mockk.mockk
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.mockwebserver.MockResponse
@@ -13,8 +16,8 @@ import org.junit.Test
 
 class DynamicBaseUrlInterceptorTest {
     private val mockWebServer = MockWebServer()
-    private val serverUrlHolder = ServerUrlHolder()
-    private val interceptor = DynamicBaseUrlInterceptor(serverUrlHolder)
+    private val apiBaseUrlOverrideStore = mockk<ApiBaseUrlOverrideStore>()
+    private val interceptor = DynamicBaseUrlInterceptor(apiBaseUrlOverrideStore)
     private val client = OkHttpClient.Builder().addInterceptor(interceptor).build()
 
     @Before
@@ -28,10 +31,10 @@ class DynamicBaseUrlInterceptorTest {
     }
 
     @Test
-    fun `requests are routed to the URL stored in ServerUrlHolder`() {
+    fun `requests are routed to the URL stored in ApiBaseUrlOverrideStore`() {
         mockWebServer.enqueue(MockResponse().setResponseCode(200))
         val serverUrl = mockWebServer.url("/").toString()
-        serverUrlHolder.updateUrl(serverUrl)
+        every { apiBaseUrlOverrideStore.currentOverrideBlocking() } returns serverUrl
 
         val request = Request.Builder().url("https://original.example.com/api/v1/today").build()
         client.newCall(request).execute().use { response ->
@@ -44,7 +47,7 @@ class DynamicBaseUrlInterceptorTest {
     @Test
     fun `base URL path prefix is prepended to request path`() {
         mockWebServer.enqueue(MockResponse().setResponseCode(200))
-        serverUrlHolder.updateUrl(mockWebServer.url("/api/").toString())
+        every { apiBaseUrlOverrideStore.currentOverrideBlocking() } returns mockWebServer.url("/api/").toString()
 
         val request = Request.Builder().url("https://original.example.com/v1/today").build()
         client.newCall(request).execute().close()
@@ -55,7 +58,7 @@ class DynamicBaseUrlInterceptorTest {
     @Test
     fun `overlapping base path segment is not duplicated`() {
         mockWebServer.enqueue(MockResponse().setResponseCode(200))
-        serverUrlHolder.updateUrl(mockWebServer.url("/api/").toString())
+        every { apiBaseUrlOverrideStore.currentOverrideBlocking() } returns mockWebServer.url("/api/").toString()
 
         val request = Request.Builder().url("https://original.example.com/api/v1/today").build()
         client.newCall(request).execute().close()
