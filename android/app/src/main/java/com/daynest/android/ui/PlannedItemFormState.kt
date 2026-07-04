@@ -35,7 +35,7 @@ data class PlannedItemFormState(
     val recurrenceHint: String? = null,
     val linkedSource: String? = null,
     val linkedRef: String? = null,
-    val editScope: EditScope = EditScope.THIS,
+    val editScope: EditScope = EditScope.THIS
 )
 
 @Composable
@@ -46,7 +46,7 @@ fun PlannedItemFormDialog(
     initialState: PlannedItemFormState,
     showEditScope: Boolean = false,
     onConfirm: (PlannedItemFormState) -> Unit,
-    onDismiss: () -> Unit,
+    onDismiss: () -> Unit
 ) {
     var title by remember(initialState) { mutableStateOf(initialState.title) }
     var plannedFor by remember(initialState) { mutableStateOf(initialState.plannedFor) }
@@ -66,71 +66,71 @@ fun PlannedItemFormDialog(
         text = {
             Column(
                 modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .heightIn(max = 480.dp)
-                        .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 480.dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 OutlinedTextField(
                     value = title,
                     onValueChange = { title = it },
                     label = { Text(text = stringResource(id = R.string.calendar_planned_title_label)) },
-                    singleLine = true,
+                    singleLine = true
                 )
                 OutlinedTextField(
                     value = plannedFor,
                     onValueChange = { plannedFor = it },
                     label = { Text(text = stringResource(id = R.string.calendar_planned_date_label)) },
-                    singleLine = true,
+                    singleLine = true
                 )
                 OutlinedTextField(
                     value = notes,
                     onValueChange = { notes = it },
-                    label = { Text(text = stringResource(id = R.string.calendar_planned_notes_label)) },
+                    label = { Text(text = stringResource(id = R.string.calendar_planned_notes_label)) }
                 )
                 OutlinedTextField(
                     value = moduleKey,
                     onValueChange = { moduleKey = it },
                     label = { Text(text = stringResource(id = R.string.calendar_planned_module_label)) },
-                    singleLine = true,
+                    singleLine = true
                 )
                 OutlinedTextField(
                     value = rrule,
                     onValueChange = { rrule = it },
                     label = { Text(text = stringResource(id = R.string.calendar_planned_rrule_label)) },
-                    singleLine = true,
+                    singleLine = true
                 )
                 OutlinedTextField(
                     value = recurrenceHint,
                     onValueChange = { recurrenceHint = it },
                     label = { Text(text = stringResource(id = R.string.calendar_planned_recurrence_label)) },
-                    singleLine = true,
+                    singleLine = true
                 )
                 OutlinedTextField(
                     value = linkedSource,
                     onValueChange = { linkedSource = it },
                     label = { Text(text = stringResource(id = R.string.calendar_planned_linked_source_label)) },
-                    singleLine = true,
+                    singleLine = true
                 )
                 OutlinedTextField(
                     value = linkedRef,
                     onValueChange = { linkedRef = it },
                     label = { Text(text = stringResource(id = R.string.calendar_planned_linked_ref_label)) },
-                    singleLine = true,
+                    singleLine = true
                 )
                 if (showEditScope) {
                     Text(text = stringResource(id = R.string.calendar_planned_edit_scope_label))
                     EditScope.entries.forEach { scope ->
                         RowWithRadio(
                             label =
-                                when (scope) {
-                                    EditScope.THIS -> stringResource(id = R.string.calendar_planned_edit_scope_this)
-                                    EditScope.FUTURE -> stringResource(id = R.string.calendar_planned_edit_scope_future)
-                                    EditScope.ALL -> stringResource(id = R.string.calendar_planned_edit_scope_all)
-                                },
+                            when (scope) {
+                                EditScope.THIS -> stringResource(id = R.string.calendar_planned_edit_scope_this)
+                                EditScope.FUTURE -> stringResource(id = R.string.calendar_planned_edit_scope_future)
+                                EditScope.ALL -> stringResource(id = R.string.calendar_planned_edit_scope_all)
+                            },
                             selected = editScope == scope,
-                            onSelect = { editScope = scope },
+                            onSelect = { editScope = scope }
                         )
                     }
                 }
@@ -149,11 +149,11 @@ fun PlannedItemFormDialog(
                             recurrenceHint = recurrenceHint.trim().ifBlank { null },
                             linkedSource = linkedSource.trim().ifBlank { null },
                             linkedRef = linkedRef.trim().ifBlank { null },
-                            editScope = editScope,
-                        ),
+                            editScope = editScope
+                        )
                     )
                 },
-                enabled = trimmedTitle.isNotBlank() && trimmedPlannedFor.isNotBlank(),
+                enabled = trimmedTitle.isNotBlank() && trimmedPlannedFor.isNotBlank()
             ) {
                 Text(text = stringResource(id = confirmTextRes))
             }
@@ -162,19 +162,15 @@ fun PlannedItemFormDialog(
             TextButton(onClick = onDismiss) {
                 Text(text = stringResource(id = R.string.action_cancel))
             }
-        },
+        }
     )
 }
 
 @Composable
-private fun RowWithRadio(
-    label: String,
-    selected: Boolean,
-    onSelect: () -> Unit,
-) {
+private fun RowWithRadio(label: String, selected: Boolean, onSelect: () -> Unit) {
     androidx.compose.foundation.layout.Row(
         modifier = Modifier.fillMaxWidth().clickable(onClick = onSelect),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         RadioButton(selected = selected, onClick = onSelect)
         Text(text = label)

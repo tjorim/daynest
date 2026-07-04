@@ -11,6 +11,8 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import javax.inject.Named
+import javax.inject.Singleton
 import kotlinx.serialization.json.Json
 import okhttp3.CertificatePinner
 import okhttp3.MediaType.Companion.toMediaType
@@ -18,8 +20,6 @@ import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
-import javax.inject.Named
-import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -30,11 +30,10 @@ object NetworkDiModule {
 
     @Provides
     @Singleton
-    fun provideCertificatePinner(): CertificatePinner =
-        CertificatePinnerProvider(
-            host = BuildConfig.CERTIFICATE_PIN_HOST,
-            pins = BuildConfig.CERTIFICATE_PINS.toList(),
-        ).get()
+    fun provideCertificatePinner(): CertificatePinner = CertificatePinnerProvider(
+        host = BuildConfig.CERTIFICATE_PIN_HOST,
+        pins = BuildConfig.CERTIFICATE_PINS.toList()
+    ).get()
 
     // Discovery returns the endpoints the whole auth flow trusts, so it must be
     // pinned exactly like the API client; a plain OkHttpClient would let a
@@ -42,11 +41,10 @@ object NetworkDiModule {
     @Provides
     @Singleton
     @Named("discovery")
-    fun provideDiscoveryOkHttpClient(certificatePinner: CertificatePinner): OkHttpClient =
-        OkHttpClient
-            .Builder()
-            .certificatePinner(certificatePinner)
-            .build()
+    fun provideDiscoveryOkHttpClient(certificatePinner: CertificatePinner): OkHttpClient = OkHttpClient
+        .Builder()
+        .certificatePinner(certificatePinner)
+        .build()
 
     @Provides
     @Singleton
@@ -54,35 +52,30 @@ object NetworkDiModule {
         authInterceptor: AuthInterceptor,
         tokenAuthenticator: TokenAuthenticator,
         certificatePinner: CertificatePinner,
-        dynamicBaseUrlInterceptor: DynamicBaseUrlInterceptor,
-    ): OkHttpClient =
-        OkHttpClient
-            .Builder()
-            .certificatePinner(certificatePinner)
-            .addInterceptor(dynamicBaseUrlInterceptor)
-            .addInterceptor(authInterceptor)
-            .authenticator(tokenAuthenticator)
-            .apply {
-                if (BuildConfig.DEBUG) {
-                    addInterceptor(
-                        HttpLoggingInterceptor().apply {
-                            redactHeader("Authorization")
-                            level = HttpLoggingInterceptor.Level.BODY
-                        },
-                    )
-                }
-            }.build()
+        dynamicBaseUrlInterceptor: DynamicBaseUrlInterceptor
+    ): OkHttpClient = OkHttpClient
+        .Builder()
+        .certificatePinner(certificatePinner)
+        .addInterceptor(dynamicBaseUrlInterceptor)
+        .addInterceptor(authInterceptor)
+        .authenticator(tokenAuthenticator)
+        .apply {
+            if (BuildConfig.DEBUG) {
+                addInterceptor(
+                    HttpLoggingInterceptor().apply {
+                        redactHeader("Authorization")
+                        level = HttpLoggingInterceptor.Level.BODY
+                    }
+                )
+            }
+        }.build()
 
     @Provides
     @Singleton
-    fun provideRetrofit(
-        okHttpClient: OkHttpClient,
-        json: Json,
-    ): Retrofit =
-        Retrofit
-            .Builder()
-            .baseUrl(ApiConfig.baseUrl)
-            .client(okHttpClient)
-            .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
-            .build()
+    fun provideRetrofit(okHttpClient: OkHttpClient, json: Json): Retrofit = Retrofit
+        .Builder()
+        .baseUrl(ApiConfig.baseUrl)
+        .client(okHttpClient)
+        .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
+        .build()
 }

@@ -12,9 +12,9 @@ import com.daynest.android.core.storage.preferences.UserPreferencesRepository
 import com.daynest.android.data.sync.DaynestSyncScheduler
 import com.daynest.android.widget.TodayWidgetRefreshWorker
 import dagger.hilt.android.HiltAndroidApp
+import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 @HiltAndroidApp
 class DaynestApplication :
@@ -42,7 +42,7 @@ class DaynestApplication :
                         userPreferencesRepository.updateLastBackgroundEpochMillis(System.currentTimeMillis())
                     }
                 }
-            },
+            }
         )
     }
 

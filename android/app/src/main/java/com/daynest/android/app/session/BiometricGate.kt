@@ -63,14 +63,14 @@ fun BiometricGate(viewModel: BiometricGateViewModel = hiltViewModel()) {
                         (context as? FragmentActivity)?.let { activity ->
                             showBiometricPrompt(
                                 activity = activity,
-                                onAuthenticated = viewModel::onAuthenticated,
+                                onAuthenticated = viewModel::onAuthenticated
                             )
                         }
-                    },
+                    }
                 ) {
                     Text(text = stringResource(id = R.string.biometric_unlock_action))
                 }
-            },
+            }
         )
     }
 }
@@ -89,7 +89,7 @@ private fun getOrCreateSecretKey(): SecretKey {
         KeyGenParameterSpec
             .Builder(
                 BIOMETRIC_KEY_ALIAS,
-                KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT,
+                KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT
             ).setBlockModes(KeyProperties.BLOCK_MODE_GCM)
             .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
             .setUserAuthenticationRequired(true)
@@ -107,10 +107,7 @@ private fun createEncryptionCipher(): Cipher {
     return cipher
 }
 
-private fun showBiometricPrompt(
-    activity: FragmentActivity,
-    onAuthenticated: () -> Unit,
-) {
+private fun showBiometricPrompt(activity: FragmentActivity, onAuthenticated: () -> Unit) {
     val authenticators =
         BiometricManager.Authenticators.BIOMETRIC_STRONG or
             BiometricManager.Authenticators.DEVICE_CREDENTIAL
@@ -124,7 +121,7 @@ private fun showBiometricPrompt(
         BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE,
         BiometricManager.BIOMETRIC_ERROR_SECURITY_UPDATE_REQUIRED,
         BiometricManager.BIOMETRIC_ERROR_UNSUPPORTED,
-        BiometricManager.BIOMETRIC_STATUS_UNKNOWN,
+        BiometricManager.BIOMETRIC_STATUS_UNKNOWN
         -> {
             Log.w("BiometricGate", "Biometric authentication unavailable: $canAuthenticate")
             Toast.makeText(activity, R.string.biometric_unavailable, Toast.LENGTH_LONG).show()
@@ -137,11 +134,7 @@ private fun showBiometricPrompt(
     }
 }
 
-private fun authenticateWithBiometrics(
-    activity: FragmentActivity,
-    authenticators: Int,
-    onAuthenticated: () -> Unit,
-) {
+private fun authenticateWithBiometrics(activity: FragmentActivity, authenticators: Int, onAuthenticated: () -> Unit) {
     val cipher =
         runCatching { createEncryptionCipher() }
             .getOrElse { error ->
@@ -153,39 +146,34 @@ private fun authenticateWithBiometrics(
         BiometricPrompt(
             activity,
             ContextCompat.getMainExecutor(activity),
-            biometricAuthenticationCallback(activity, onAuthenticated),
+            biometricAuthenticationCallback(activity, onAuthenticated)
         )
     prompt.authenticate(biometricPromptInfo(activity, authenticators), BiometricPrompt.CryptoObject(cipher))
 }
 
 private fun biometricAuthenticationCallback(
     activity: FragmentActivity,
-    onAuthenticated: () -> Unit,
-): BiometricPrompt.AuthenticationCallback =
-    object : BiometricPrompt.AuthenticationCallback() {
-        override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
-            if (isValidCryptoResult(result)) {
-                onAuthenticated()
-            } else {
-                Toast.makeText(activity, R.string.biometric_error, Toast.LENGTH_LONG).show()
-            }
+    onAuthenticated: () -> Unit
+): BiometricPrompt.AuthenticationCallback = object : BiometricPrompt.AuthenticationCallback() {
+    override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
+        if (isValidCryptoResult(result)) {
+            onAuthenticated()
+        } else {
+            Toast.makeText(activity, R.string.biometric_error, Toast.LENGTH_LONG).show()
         }
     }
+}
 
-private fun isValidCryptoResult(result: BiometricPrompt.AuthenticationResult): Boolean =
-    runCatching {
-        val ciphertext =
-            result.cryptoObject
-                ?.cipher
-                ?.doFinal(BIOMETRIC_TEST_PLAINTEXT.toByteArray())
-                ?: return@runCatching false
-        Base64.encodeToString(ciphertext, Base64.NO_WRAP).isNotBlank()
-    }.getOrDefault(false)
+private fun isValidCryptoResult(result: BiometricPrompt.AuthenticationResult): Boolean = runCatching {
+    val ciphertext =
+        result.cryptoObject
+            ?.cipher
+            ?.doFinal(BIOMETRIC_TEST_PLAINTEXT.toByteArray())
+            ?: return@runCatching false
+    Base64.encodeToString(ciphertext, Base64.NO_WRAP).isNotBlank()
+}.getOrDefault(false)
 
-private fun biometricPromptInfo(
-    activity: FragmentActivity,
-    authenticators: Int,
-): BiometricPrompt.PromptInfo =
+private fun biometricPromptInfo(activity: FragmentActivity, authenticators: Int): BiometricPrompt.PromptInfo =
     BiometricPrompt.PromptInfo
         .Builder()
         .setTitle(activity.getString(R.string.biometric_unlock_title))
@@ -193,10 +181,7 @@ private fun biometricPromptInfo(
         .setAllowedAuthenticators(authenticators)
         .build()
 
-private fun launchBiometricEnrollment(
-    activity: FragmentActivity,
-    authenticators: Int,
-) {
+private fun launchBiometricEnrollment(activity: FragmentActivity, authenticators: Int) {
     val enrollIntent =
         Intent(Settings.ACTION_BIOMETRIC_ENROLL).apply {
             putExtra(Settings.EXTRA_BIOMETRIC_AUTHENTICATORS_ALLOWED, authenticators)

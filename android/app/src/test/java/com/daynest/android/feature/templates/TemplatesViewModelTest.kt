@@ -39,46 +39,44 @@ class TemplatesViewModelTest {
     }
 
     @Test
-    fun `state loads templates into content`() =
-        runTest {
-            val viewModel =
-                TemplatesViewModel(
-                    repository =
-                        TemplatesRepository(
-                            templatesApi = FakeTemplatesApi(),
-                            cacheEntryDao = FakeCacheEntryDao(),
-                        ),
+    fun `state loads templates into content`() = runTest {
+        val viewModel =
+            TemplatesViewModel(
+                repository =
+                TemplatesRepository(
+                    templatesApi = FakeTemplatesApi(),
+                    cacheEntryDao = FakeCacheEntryDao()
                 )
+            )
 
-            advanceUntilIdle()
+        advanceUntilIdle()
 
-            val state = viewModel.uiState.value
-            assertTrue(state is TemplatesUiState.Content)
-            state as TemplatesUiState.Content
-            assertEquals(1, state.routines.size)
-            assertEquals(1, state.chores.size)
-            assertEquals(TemplateTab.Routines, state.selectedTab)
-        }
+        val state = viewModel.uiState.value
+        assertTrue(state is TemplatesUiState.Content)
+        state as TemplatesUiState.Content
+        assertEquals(1, state.routines.size)
+        assertEquals(1, state.chores.size)
+        assertEquals(TemplateTab.Routines, state.selectedTab)
+    }
 
     @Test
-    fun `delete routine event removes routine from state`() =
-        runTest {
-            val viewModel =
-                TemplatesViewModel(
-                    repository =
-                        TemplatesRepository(
-                            templatesApi = FakeTemplatesApi(),
-                            cacheEntryDao = FakeCacheEntryDao(),
-                        ),
+    fun `delete routine event removes routine from state`() = runTest {
+        val viewModel =
+            TemplatesViewModel(
+                repository =
+                TemplatesRepository(
+                    templatesApi = FakeTemplatesApi(),
+                    cacheEntryDao = FakeCacheEntryDao()
                 )
+            )
 
-            advanceUntilIdle()
-            viewModel.onEvent(TemplatesUiEvent.DeleteRoutine(1))
-            advanceUntilIdle()
+        advanceUntilIdle()
+        viewModel.onEvent(TemplatesUiEvent.DeleteRoutine(1))
+        advanceUntilIdle()
 
-            val state = viewModel.uiState.value as TemplatesUiState.Content
-            assertTrue(state.routines.isEmpty())
-        }
+        val state = viewModel.uiState.value as TemplatesUiState.Content
+        assertTrue(state.routines.isEmpty())
+    }
 }
 
 private class FakeCacheEntryDao : CacheEntryDao {
@@ -104,8 +102,8 @@ private class FakeTemplatesApi : TemplatesApi {
                 everyNDays = 1,
                 dueTime = "08:00:00",
                 isActive = true,
-                createdAt = "2026-01-01T00:00:00Z",
-            ),
+                createdAt = "2026-01-01T00:00:00Z"
+            )
         )
     private val chores =
         mutableListOf(
@@ -116,8 +114,8 @@ private class FakeTemplatesApi : TemplatesApi {
                 startDate = "2026-01-01",
                 everyNDays = 7,
                 isActive = true,
-                createdAt = "2026-01-01T00:00:00Z",
-            ),
+                createdAt = "2026-01-01T00:00:00Z"
+            )
         )
 
     override suspend fun listRoutines(): List<RoutineTemplateDto> = routines.toList()
@@ -132,16 +130,13 @@ private class FakeTemplatesApi : TemplatesApi {
                 everyNDays = request.everyNDays,
                 dueTime = request.dueTime,
                 isActive = request.isActive,
-                createdAt = "2026-01-01T00:00:00Z",
+                createdAt = "2026-01-01T00:00:00Z"
             )
         routines += routine
         return routine
     }
 
-    override suspend fun updateRoutine(
-        id: Int,
-        request: RoutineTemplateInputDto,
-    ): RoutineTemplateDto {
+    override suspend fun updateRoutine(id: Int, request: RoutineTemplateInputDto): RoutineTemplateDto {
         val index = routines.indexOfFirst { it.id == id }
         check(index >= 0) { "Unknown routine id: $id" }
         val updated =
@@ -151,7 +146,7 @@ private class FakeTemplatesApi : TemplatesApi {
                 startDate = request.startDate,
                 everyNDays = request.everyNDays,
                 dueTime = request.dueTime,
-                isActive = request.isActive,
+                isActive = request.isActive
             )
         routines[index] = updated
         return updated
@@ -172,16 +167,13 @@ private class FakeTemplatesApi : TemplatesApi {
                 startDate = request.startDate,
                 everyNDays = request.everyNDays,
                 isActive = request.isActive,
-                createdAt = "2026-01-01T00:00:00Z",
+                createdAt = "2026-01-01T00:00:00Z"
             )
         chores += chore
         return chore
     }
 
-    override suspend fun updateChore(
-        id: Int,
-        request: ChoreTemplateInputDto,
-    ): ChoreTemplateDto {
+    override suspend fun updateChore(id: Int, request: ChoreTemplateInputDto): ChoreTemplateDto {
         val index = chores.indexOfFirst { it.id == id }
         check(index >= 0) { "Unknown chore id: $id" }
         val updated =
@@ -190,7 +182,7 @@ private class FakeTemplatesApi : TemplatesApi {
                 description = request.description,
                 startDate = request.startDate,
                 everyNDays = request.everyNDays,
-                isActive = request.isActive,
+                isActive = request.isActive
             )
         chores[index] = updated
         return updated

@@ -10,5 +10,5 @@ data class UserPreferences(
     val enabledDeviceCalendarIds: Set<String> = emptySet(),
     val lastBackgroundEpochMillis: Long = 0L,
     val lastFcmEndpoint: String? = null,
-    val lastUnifiedPushEndpoint: String? = null,
+    val lastUnifiedPushEndpoint: String? = null
 )

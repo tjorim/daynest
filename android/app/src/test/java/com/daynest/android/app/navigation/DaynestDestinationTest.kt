@@ -17,9 +17,9 @@ class DaynestDestinationTest {
                 DaynestDestination.TEMPLATES,
                 DaynestDestination.SHOPPING,
                 DaynestDestination.MEAL_PLAN,
-                DaynestDestination.SETTINGS,
+                DaynestDestination.SETTINGS
             ),
-            routes,
+            routes
         )
     }
 

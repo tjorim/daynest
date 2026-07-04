@@ -24,18 +24,14 @@ import com.daynest.android.R
 import com.daynest.android.data.calendar.DeviceCalendar
 
 @Composable
-internal fun deviceCalendarToggleRow(
-    calendar: DeviceCalendar,
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
-) {
+internal fun deviceCalendarToggleRow(calendar: DeviceCalendar, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
+            Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = calendar.name, style = MaterialTheme.typography.bodyMedium)
@@ -43,7 +39,7 @@ internal fun deviceCalendarToggleRow(
                     Text(
                         text = calendar.accountName,
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline,
+                        color = MaterialTheme.colorScheme.outline
                     )
                 }
             }
@@ -56,7 +52,7 @@ internal fun LazyListScope.settingsDeviceCalendarsToggleAndList(
     state: SettingsUiState.Content,
     context: Context,
     deviceCalendarPermissionLauncher: ActivityResultLauncher<String>,
-    onEvent: (SettingsUiEvent) -> Unit,
+    onEvent: (SettingsUiEvent) -> Unit
 ) {
     item {
         SettingToggleCard(
@@ -68,9 +64,9 @@ internal fun LazyListScope.settingsDeviceCalendarsToggleAndList(
                     enabled = enabled,
                     context = context,
                     permissionLauncher = deviceCalendarPermissionLauncher,
-                    onEvent = onEvent,
+                    onEvent = onEvent
                 )
-            },
+            }
         )
     }
     settingsDeviceCalendarsSubList(state, onEvent)
@@ -78,7 +74,7 @@ internal fun LazyListScope.settingsDeviceCalendarsToggleAndList(
 
 internal fun LazyListScope.settingsDeviceCalendarsSubList(
     state: SettingsUiState.Content,
-    onEvent: (SettingsUiEvent) -> Unit,
+    onEvent: (SettingsUiEvent) -> Unit
 ) {
     if (!state.showDeviceCalendars) return
     if (state.deviceCalendars.isEmpty()) {
@@ -88,7 +84,7 @@ internal fun LazyListScope.settingsDeviceCalendarsSubList(
             deviceCalendarToggleRow(
                 calendar = calendar,
                 checked = calendar.id in state.enabledDeviceCalendarIds,
-                onCheckedChange = { onEvent(SettingsUiEvent.UpdateDeviceCalendarEnabled(calendar.id, it)) },
+                onCheckedChange = { onEvent(SettingsUiEvent.UpdateDeviceCalendarEnabled(calendar.id, it)) }
             )
         }
     }
@@ -98,7 +94,7 @@ internal fun handleDeviceCalendarsChanged(
     enabled: Boolean,
     context: Context,
     permissionLauncher: ActivityResultLauncher<String>,
-    onEvent: (SettingsUiEvent) -> Unit,
+    onEvent: (SettingsUiEvent) -> Unit
 ) {
     if (!enabled) {
         onEvent(SettingsUiEvent.UpdateShowDeviceCalendars(false))
@@ -107,7 +103,7 @@ internal fun handleDeviceCalendarsChanged(
     if (
         ContextCompat.checkSelfPermission(
             context,
-            Manifest.permission.READ_CALENDAR,
+            Manifest.permission.READ_CALENDAR
         ) == PackageManager.PERMISSION_GRANTED
     ) {
         onEvent(SettingsUiEvent.UpdateShowDeviceCalendars(true))

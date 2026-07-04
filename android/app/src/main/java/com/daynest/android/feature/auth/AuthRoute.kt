@@ -27,15 +27,12 @@ import com.daynest.android.R
 import com.daynest.android.feature.settings.ApiBaseUrlOverrideCard
 
 @Composable
-fun AuthRoute(
-    onSignedIn: () -> Unit,
-    viewModel: AuthViewModel = hiltViewModel(),
-) {
+fun AuthRoute(onSignedIn: () -> Unit, viewModel: AuthViewModel = hiltViewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     val launcher =
         rememberLauncherForActivityResult(
-            contract = ActivityResultContracts.StartActivityForResult(),
+            contract = ActivityResultContracts.StartActivityForResult()
         ) { result ->
             viewModel.handleAuthorizationResult(result.resultCode, result.data)
         }
@@ -53,52 +50,48 @@ fun AuthRoute(
     AuthScreen(
         uiState = uiState,
         onSignInClicked = viewModel::onSignInClicked,
-        onServerUrlChanged = viewModel::updateServerUrl,
+        onServerUrlChanged = viewModel::updateServerUrl
     )
 }
 
 @Composable
-internal fun AuthScreen(
-    uiState: AuthUiState,
-    onSignInClicked: () -> Unit,
-    onServerUrlChanged: (String?) -> Unit,
-) {
+internal fun AuthScreen(uiState: AuthUiState, onSignInClicked: () -> Unit, onServerUrlChanged: (String?) -> Unit) {
     Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
         Column(
             modifier =
-                Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-                    .padding(24.dp),
+            Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(24.dp),
             verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally,
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
                 text = stringResource(R.string.auth_title),
-                style = MaterialTheme.typography.headlineMedium,
+                style = MaterialTheme.typography.headlineMedium
             )
             ApiBaseUrlOverrideCard(
                 defaultServerUrl = uiState.defaultServerUrl,
                 customServerUrl = uiState.customServerUrl,
                 onServerUrlChanged = onServerUrlChanged,
-                modifier = Modifier.padding(top = 24.dp),
+                modifier = Modifier.padding(top = 24.dp)
             )
             if (uiState.error != null) {
                 Text(
                     text = stringResource(R.string.auth_error_sign_in_failed),
                     color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.padding(top = 12.dp),
+                    modifier = Modifier.padding(top = 12.dp)
                 )
             }
             Button(
                 onClick = onSignInClicked,
                 enabled = !uiState.isLoading,
-                modifier = Modifier.padding(top = 20.dp),
+                modifier = Modifier.padding(top = 20.dp)
             ) {
                 if (uiState.isLoading) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(24.dp),
-                        strokeWidth = 2.dp,
+                        strokeWidth = 2.dp
                     )
                 } else {
                     Text(text = stringResource(R.string.auth_sign_in_button))

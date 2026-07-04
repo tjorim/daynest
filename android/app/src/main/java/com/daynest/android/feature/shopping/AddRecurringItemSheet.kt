@@ -32,7 +32,7 @@ import java.time.LocalDate
 internal fun RecurringItemBottomSheet(
     sheetState: SheetState,
     onAddRecurringItem: (String, String, String?, String?, String?, String?) -> Unit,
-    onDismiss: () -> Unit,
+    onDismiss: () -> Unit
 ) {
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         AddRecurringItemSheet(
@@ -40,7 +40,7 @@ internal fun RecurringItemBottomSheet(
                 onAddRecurringItem(title, plannedFor, tag, notes, rrule, recurrenceHint)
                 onDismiss()
             },
-            onDismiss = onDismiss,
+            onDismiss = onDismiss
         )
     }
 }
@@ -48,7 +48,7 @@ internal fun RecurringItemBottomSheet(
 @Composable
 internal fun AddRecurringItemSheet(
     onAddRecurringItem: (String, String, String?, String?, String?, String?) -> Unit,
-    onDismiss: () -> Unit,
+    onDismiss: () -> Unit
 ) {
     var itemTitle by remember { mutableStateOf("") }
     var plannedFor by remember { mutableStateOf(LocalDate.now().toString()) }
@@ -59,49 +59,49 @@ internal fun AddRecurringItemSheet(
 
     Column(
         modifier = Modifier.fillMaxWidth().padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Text(
             text = stringResource(id = R.string.shopping_add_recurring_item),
-            style = MaterialTheme.typography.titleMedium,
+            style = MaterialTheme.typography.titleMedium
         )
         OutlinedTextField(
             value = itemTitle,
             onValueChange = { itemTitle = it },
             label = { Text(text = stringResource(id = R.string.shopping_item_name)) },
             modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
+            singleLine = true
         )
         OutlinedTextField(
             value = plannedFor,
             onValueChange = { plannedFor = it },
             label = { Text(text = stringResource(id = R.string.shopping_recurring_start_date)) },
             modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
+            singleLine = true
         )
         RecurringScheduleFields(
             rrule = rrule,
             onRruleChange = { rrule = it },
             recurrenceHint = recurrenceHint,
-            onRecurrenceHintChange = { recurrenceHint = it },
+            onRecurrenceHintChange = { recurrenceHint = it }
         )
         OutlinedTextField(
             value = itemTag,
             onValueChange = { itemTag = it },
             label = { Text(text = stringResource(id = R.string.shopping_category_tag)) },
             modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
+            singleLine = true
         )
         OutlinedTextField(
             value = itemNotes,
             onValueChange = { itemNotes = it },
             label = { Text(text = stringResource(id = R.string.shopping_notes)) },
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth()
         )
         RecurringItemSheetActions(
             onDismiss = onDismiss,
             onAdd = { onAddRecurringItem(itemTitle, plannedFor, itemTag, itemNotes, rrule, recurrenceHint) },
-            isAddEnabled = itemTitle.isNotBlank() && plannedFor.isNotBlank(),
+            isAddEnabled = itemTitle.isNotBlank() && plannedFor.isNotBlank()
         )
     }
 }
@@ -111,33 +111,29 @@ private fun RecurringScheduleFields(
     rrule: String,
     onRruleChange: (String) -> Unit,
     recurrenceHint: String,
-    onRecurrenceHintChange: (String) -> Unit,
+    onRecurrenceHintChange: (String) -> Unit
 ) {
     OutlinedTextField(
         value = rrule,
         onValueChange = onRruleChange,
         label = { Text(text = stringResource(id = R.string.shopping_recurring_rrule)) },
         modifier = Modifier.fillMaxWidth(),
-        singleLine = true,
+        singleLine = true
     )
     OutlinedTextField(
         value = recurrenceHint,
         onValueChange = onRecurrenceHintChange,
         label = { Text(text = stringResource(id = R.string.shopping_recurring_hint)) },
         modifier = Modifier.fillMaxWidth(),
-        singleLine = true,
+        singleLine = true
     )
 }
 
 @Composable
-private fun RecurringItemSheetActions(
-    onDismiss: () -> Unit,
-    onAdd: () -> Unit,
-    isAddEnabled: Boolean,
-) {
+private fun RecurringItemSheetActions(onDismiss: () -> Unit, onAdd: () -> Unit, isAddEnabled: Boolean) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
     ) {
         TextButton(onClick = onDismiss) { Text(text = stringResource(id = R.string.action_cancel)) }
         Button(onClick = onAdd, enabled = isAddEnabled) { Text(text = stringResource(id = R.string.action_add)) }

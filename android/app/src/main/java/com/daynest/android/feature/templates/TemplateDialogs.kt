@@ -28,7 +28,7 @@ fun TemplatesDialogs(
     routineDeleteTarget: RoutineTemplateDto?,
     onRoutineDeleteDismiss: () -> Unit,
     choreDeleteTarget: ChoreTemplateDto?,
-    onChoreDeleteDismiss: () -> Unit,
+    onChoreDeleteDismiss: () -> Unit
 ) {
     CreateTemplateDialog(state = state, onEvent = onEvent)
     EditTemplateDialogs(
@@ -36,7 +36,7 @@ fun TemplatesDialogs(
         editRoutineTarget = editRoutineTarget,
         onEditRoutineDismiss = onEditRoutineDismiss,
         editChoreTarget = editChoreTarget,
-        onEditChoreDismiss = onEditChoreDismiss,
+        onEditChoreDismiss = onEditChoreDismiss
     )
     DeleteRoutineDialog(
         routine = routineDeleteTarget,
@@ -44,7 +44,7 @@ fun TemplatesDialogs(
             onEvent(TemplatesUiEvent.DeleteRoutine(routine.id))
             onRoutineDeleteDismiss()
         },
-        onDismiss = onRoutineDeleteDismiss,
+        onDismiss = onRoutineDeleteDismiss
     )
     DeleteChoreDialog(
         chore = choreDeleteTarget,
@@ -52,25 +52,22 @@ fun TemplatesDialogs(
             onEvent(TemplatesUiEvent.DeleteChore(chore.id))
             onChoreDeleteDismiss()
         },
-        onDismiss = onChoreDeleteDismiss,
+        onDismiss = onChoreDeleteDismiss
     )
 }
 
 @Composable
-private fun CreateTemplateDialog(
-    state: TemplatesUiState.Content,
-    onEvent: (TemplatesUiEvent) -> Unit,
-) {
+private fun CreateTemplateDialog(state: TemplatesUiState.Content, onEvent: (TemplatesUiEvent) -> Unit) {
     when (state.createForm) {
         TemplateCreateForm.Routine ->
             CreateRoutineDialog(
                 onConfirm = { onEvent(TemplatesUiEvent.CreateRoutine(it)) },
-                onDismiss = { onEvent(TemplatesUiEvent.DismissCreateForm) },
+                onDismiss = { onEvent(TemplatesUiEvent.DismissCreateForm) }
             )
         TemplateCreateForm.Chore ->
             CreateChoreTemplateDialog(
                 onConfirm = { onEvent(TemplatesUiEvent.CreateChore(it)) },
-                onDismiss = { onEvent(TemplatesUiEvent.DismissCreateForm) },
+                onDismiss = { onEvent(TemplatesUiEvent.DismissCreateForm) }
             )
         null -> Unit
     }
@@ -82,7 +79,7 @@ private fun EditTemplateDialogs(
     editRoutineTarget: RoutineTemplateDto?,
     onEditRoutineDismiss: () -> Unit,
     editChoreTarget: ChoreTemplateDto?,
-    onEditChoreDismiss: () -> Unit,
+    onEditChoreDismiss: () -> Unit
 ) {
     editRoutineTarget?.let { routine ->
         EditRoutineDialog(
@@ -91,7 +88,7 @@ private fun EditTemplateDialogs(
                 onEvent(TemplatesUiEvent.UpdateRoutine(routine.id, it))
                 onEditRoutineDismiss()
             },
-            onDismiss = onEditRoutineDismiss,
+            onDismiss = onEditRoutineDismiss
         )
     }
 
@@ -102,7 +99,7 @@ private fun EditTemplateDialogs(
                 onEvent(TemplatesUiEvent.UpdateChore(chore.id, it))
                 onEditChoreDismiss()
             },
-            onDismiss = onEditChoreDismiss,
+            onDismiss = onEditChoreDismiss
         )
     }
 }
@@ -111,28 +108,25 @@ private fun EditTemplateDialogs(
 private fun EditRoutineDialog(
     routine: RoutineTemplateDto,
     onConfirm: (RoutineTemplateInputDto) -> Unit,
-    onDismiss: () -> Unit,
+    onDismiss: () -> Unit
 ) {
     RoutineTemplateDialog(
         title = stringResource(id = R.string.templates_edit_routine_title),
         initial = RoutineFormState.from(routine),
         confirmText = stringResource(id = R.string.action_save),
         onConfirm = onConfirm,
-        onDismiss = onDismiss,
+        onDismiss = onDismiss
     )
 }
 
 @Composable
-private fun CreateRoutineDialog(
-    onConfirm: (RoutineTemplateInputDto) -> Unit,
-    onDismiss: () -> Unit,
-) {
+private fun CreateRoutineDialog(onConfirm: (RoutineTemplateInputDto) -> Unit, onDismiss: () -> Unit) {
     RoutineTemplateDialog(
         title = stringResource(id = R.string.templates_create_routine_title),
         initial = RoutineFormState.new(),
         confirmText = stringResource(id = R.string.action_add),
         onConfirm = onConfirm,
-        onDismiss = onDismiss,
+        onDismiss = onDismiss
     )
 }
 
@@ -140,28 +134,25 @@ private fun CreateRoutineDialog(
 private fun EditChoreTemplateDialog(
     chore: ChoreTemplateDto,
     onConfirm: (ChoreTemplateInputDto) -> Unit,
-    onDismiss: () -> Unit,
+    onDismiss: () -> Unit
 ) {
     ChoreTemplateDialog(
         title = stringResource(id = R.string.templates_edit_chore_title),
         initial = ChoreFormState.from(chore),
         confirmText = stringResource(id = R.string.action_save),
         onConfirm = onConfirm,
-        onDismiss = onDismiss,
+        onDismiss = onDismiss
     )
 }
 
 @Composable
-private fun CreateChoreTemplateDialog(
-    onConfirm: (ChoreTemplateInputDto) -> Unit,
-    onDismiss: () -> Unit,
-) {
+private fun CreateChoreTemplateDialog(onConfirm: (ChoreTemplateInputDto) -> Unit, onDismiss: () -> Unit) {
     ChoreTemplateDialog(
         title = stringResource(id = R.string.templates_create_chore_title),
         initial = ChoreFormState.new(),
         confirmText = stringResource(id = R.string.action_add),
         onConfirm = onConfirm,
-        onDismiss = onDismiss,
+        onDismiss = onDismiss
     )
 }
 
@@ -171,7 +162,7 @@ private fun RoutineTemplateDialog(
     initial: RoutineFormState,
     confirmText: String,
     onConfirm: (RoutineTemplateInputDto) -> Unit,
-    onDismiss: () -> Unit,
+    onDismiss: () -> Unit
 ) {
     var form by remember { mutableStateOf(initial) }
 
@@ -181,7 +172,7 @@ private fun RoutineTemplateDialog(
         isConfirmEnabled = form.name.isNotBlank(),
         onConfirm = { onConfirm(form.toInput()) },
         onDismiss = onDismiss,
-        content = { RoutineTemplateFields(form = form, onFormChange = { form = it }) },
+        content = { RoutineTemplateFields(form = form, onFormChange = { form = it }) }
     )
 }
 
@@ -191,7 +182,7 @@ private fun ChoreTemplateDialog(
     initial: ChoreFormState,
     confirmText: String,
     onConfirm: (ChoreTemplateInputDto) -> Unit,
-    onDismiss: () -> Unit,
+    onDismiss: () -> Unit
 ) {
     var form by remember { mutableStateOf(initial) }
 
@@ -201,15 +192,12 @@ private fun ChoreTemplateDialog(
         isConfirmEnabled = form.name.isNotBlank(),
         onConfirm = { onConfirm(form.toInput()) },
         onDismiss = onDismiss,
-        content = { ChoreTemplateFields(form = form, onFormChange = { form = it }) },
+        content = { ChoreTemplateFields(form = form, onFormChange = { form = it }) }
     )
 }
 
 @Composable
-fun RoutineTemplateFields(
-    form: RoutineFormState,
-    onFormChange: (RoutineFormState) -> Unit,
-) {
+fun RoutineTemplateFields(form: RoutineFormState, onFormChange: (RoutineFormState) -> Unit) {
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
 
@@ -224,11 +212,11 @@ fun RoutineTemplateFields(
             everyNDays = form.everyNDays,
             onEveryNDaysChange = { onFormChange(form.copy(everyNDays = it)) },
             isActive = form.isActive,
-            onIsActiveToggle = { onFormChange(form.copy(isActive = !form.isActive)) },
+            onIsActiveToggle = { onFormChange(form.copy(isActive = !form.isActive)) }
         )
         TemplateDueTimeField(
             dueTime = form.dueTime,
-            onEditClick = { showTimePicker = true },
+            onEditClick = { showTimePicker = true }
         )
     }
 
@@ -236,21 +224,18 @@ fun RoutineTemplateFields(
         isVisible = showDatePicker,
         initialDate = form.startDate,
         onDateSelected = { onFormChange(form.copy(startDate = it)) },
-        onDismiss = { showDatePicker = false },
+        onDismiss = { showDatePicker = false }
     )
     TemplateTimePickerLauncher(
         isVisible = showTimePicker,
         initialTime = form.dueTime,
         onTimeSelected = { onFormChange(form.copy(dueTime = it)) },
-        onDismiss = { showTimePicker = false },
+        onDismiss = { showTimePicker = false }
     )
 }
 
 @Composable
-fun ChoreTemplateFields(
-    form: ChoreFormState,
-    onFormChange: (ChoreFormState) -> Unit,
-) {
+fun ChoreTemplateFields(form: ChoreFormState, onFormChange: (ChoreFormState) -> Unit) {
     var showDatePicker by remember { mutableStateOf(false) }
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -264,7 +249,7 @@ fun ChoreTemplateFields(
             everyNDays = form.everyNDays,
             onEveryNDaysChange = { onFormChange(form.copy(everyNDays = it)) },
             isActive = form.isActive,
-            onIsActiveToggle = { onFormChange(form.copy(isActive = !form.isActive)) },
+            onIsActiveToggle = { onFormChange(form.copy(isActive = !form.isActive)) }
         )
     }
 
@@ -272,6 +257,6 @@ fun ChoreTemplateFields(
         isVisible = showDatePicker,
         initialDate = form.startDate,
         onDateSelected = { onFormChange(form.copy(startDate = it)) },
-        onDismiss = { showDatePicker = false },
+        onDismiss = { showDatePicker = false }
     )
 }

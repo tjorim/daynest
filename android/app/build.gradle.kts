@@ -41,36 +41,27 @@ fun isReleaseArtifactRequested(): Boolean {
 
 // Cert-pin helpers (resolvePins, pin-format and host-derivation validation,
 // pinsArrayLiteral) live in buildSrc's CertPinning so they have unit tests.
-fun resolvePins(
-    key: String,
-    envKey: String,
-): List<String> =
-    CertPinning.resolvePins(
-        key = key,
-        envKey = envKey,
-        localProperty = localProperties::getProperty,
-        gradleProperty = { providers.gradleProperty(it).orNull },
-        env = { providers.environmentVariable(it).orNull },
-    )
+fun resolvePins(key: String, envKey: String): List<String> = CertPinning.resolvePins(
+    key = key,
+    envKey = envKey,
+    localProperty = localProperties::getProperty,
+    gradleProperty = { providers.gradleProperty(it).orNull },
+    env = { providers.environmentVariable(it).orNull }
+)
 
-fun resolveConfigValue(
-    key: String,
-    envKey: String,
-    required: Boolean,
-    default: String = "",
-): String {
+fun resolveConfigValue(key: String, envKey: String, required: Boolean, default: String = ""): String {
     // A blank value counts as missing so a placeholder line in local.properties
     // still falls through to the next source or the default.
     val explicitValue =
         sequenceOf(
             localProperties.getProperty(key),
             providers.gradleProperty(key).orNull,
-            providers.environmentVariable(envKey).orNull,
+            providers.environmentVariable(envKey).orNull
         ).firstOrNull { !it.isNullOrBlank() }
     if (required && explicitValue.isNullOrBlank()) {
         error(
             "Missing required build property '$key'. " +
-                "Set it in local.properties, as a Gradle property, or as the env var '$envKey'.",
+                "Set it in local.properties, as a Gradle property, or as the env var '$envKey'."
         )
     }
     return explicitValue ?: default
@@ -171,7 +162,7 @@ extensions.configure<ApplicationExtension> {
                     "apiBaseUrlDebug",
                     "API_BASE_URL_DEBUG",
                     required = false,
-                    default = "http://10.0.2.2:8000/",
+                    default = "http://10.0.2.2:8000/"
                 )
             buildConfigField("String", "API_BASE_URL", "\"$url\"")
             buildConfigField("String[]", "CERTIFICATE_PINS", "new String[]{}")
@@ -187,12 +178,12 @@ extensions.configure<ApplicationExtension> {
             } else if (isReleaseArtifactRequested()) {
                 error(
                     "Release build requested but signing credentials are not set " +
-                        "(KEYSTORE_PATH, KEY_ALIAS, KEY_PASSWORD, STORE_PASSWORD).",
+                        "(KEYSTORE_PATH, KEY_ALIAS, KEY_PASSWORD, STORE_PASSWORD)."
                 )
             }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro",
+                "proguard-rules.pro"
             )
             // Same exclusion as the signing config above: lintRelease/testReleaseUnitTest
             // compile and analyze this variant but never ship it, so they must not
@@ -203,7 +194,7 @@ extensions.configure<ApplicationExtension> {
                     "apiBaseUrlRelease",
                     "ANDROID_API_BASE_URL",
                     required = isRequested,
-                    default = if (isRequested) "" else "https://release.placeholder.invalid/",
+                    default = if (isRequested) "" else "https://release.placeholder.invalid/"
                 )
             buildConfigField("String", "API_BASE_URL", "\"$url\"")
             val releaseCertificatePinHost =
@@ -211,19 +202,19 @@ extensions.configure<ApplicationExtension> {
                     "certificatePinHost",
                     "ANDROID_CERTIFICATE_PIN_HOST",
                     required = isRequested,
-                    default = if (isRequested) "" else "release.placeholder.invalid",
+                    default = if (isRequested) "" else "release.placeholder.invalid"
                 )
             val pins =
                 resolvePins(
                     "certificatePins",
-                    "ANDROID_CERTIFICATE_PINS",
+                    "ANDROID_CERTIFICATE_PINS"
                 )
             if (isRequested) {
                 if (pins.isEmpty()) {
                     error(
                         "Missing required build property 'certificatePins'. " +
                             "Set it in local.properties, as a Gradle property, or as the env var " +
-                            "'ANDROID_CERTIFICATE_PINS'.",
+                            "'ANDROID_CERTIFICATE_PINS'."
                     )
                 }
                 CertPinning.requireValidPinFormats(pins)

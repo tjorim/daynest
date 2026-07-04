@@ -12,14 +12,13 @@ enum class EditScope {
     FUTURE,
 
     @SerialName("all")
-    ALL,
+    ALL
 
     ;
 
-    override fun toString(): String =
-        when (this) {
-            THIS -> "this"
-            FUTURE -> "future"
-            ALL -> "all"
-        }
+    override fun toString(): String = when (this) {
+        THIS -> "this"
+        FUTURE -> "future"
+        ALL -> "all"
+    }
 }

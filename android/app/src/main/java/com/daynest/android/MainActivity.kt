@@ -28,13 +28,13 @@ class MainActivity : FragmentActivity() {
         val alreadyGranted =
             ContextCompat.checkSelfPermission(
                 this,
-                Manifest.permission.POST_NOTIFICATIONS,
+                Manifest.permission.POST_NOTIFICATIONS
             ) == PackageManager.PERMISSION_GRANTED
         if (!alreadyGranted) {
             ActivityCompat.requestPermissions(
                 this,
                 arrayOf(Manifest.permission.POST_NOTIFICATIONS),
-                NOTIFICATION_PERMISSION_REQUEST_CODE,
+                NOTIFICATION_PERMISSION_REQUEST_CODE
             )
         }
     }

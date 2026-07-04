@@ -26,7 +26,7 @@ internal fun TemplateFormDialog(
     isConfirmEnabled: Boolean,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
-    content: @Composable () -> Unit,
+    content: @Composable () -> Unit
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -35,14 +35,14 @@ internal fun TemplateFormDialog(
         confirmButton = {
             TextButton(
                 onClick = onConfirm,
-                enabled = isConfirmEnabled,
+                enabled = isConfirmEnabled
             ) { Text(text = confirmText) }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
                 Text(stringResource(R.string.action_cancel))
             }
-        },
+        }
     )
 }
 
@@ -57,18 +57,18 @@ fun TemplateCommonFields(
     everyNDays: String,
     onEveryNDaysChange: (String) -> Unit,
     isActive: Boolean,
-    onIsActiveToggle: () -> Unit,
+    onIsActiveToggle: () -> Unit
 ) {
     TemplateNameDescriptionFields(
         name = name,
         onNameChange = onNameChange,
         description = description,
-        onDescriptionChange = onDescriptionChange,
+        onDescriptionChange = onDescriptionChange
     )
     TemplateDateField(startDate = startDate, onEditClick = onStartDateClick)
     TemplateEveryNDaysField(
         everyNDays = everyNDays,
-        onEveryNDaysChange = onEveryNDaysChange,
+        onEveryNDaysChange = onEveryNDaysChange
     )
     TemplateActiveToggle(isActive = isActive, onClick = onIsActiveToggle)
 }
@@ -78,27 +78,24 @@ fun TemplateNameDescriptionFields(
     name: String,
     onNameChange: (String) -> Unit,
     description: String,
-    onDescriptionChange: (String) -> Unit,
+    onDescriptionChange: (String) -> Unit
 ) {
     OutlinedTextField(
         value = name,
         onValueChange = onNameChange,
         label = { Text(stringResource(R.string.templates_name_label)) },
-        singleLine = true,
+        singleLine = true
     )
     OutlinedTextField(
         value = description,
         onValueChange = onDescriptionChange,
         label = { Text(stringResource(R.string.templates_description_label)) },
-        singleLine = true,
+        singleLine = true
     )
 }
 
 @Composable
-fun TemplateDateField(
-    startDate: String,
-    onEditClick: () -> Unit,
-) {
+fun TemplateDateField(startDate: String, onEditClick: () -> Unit) {
     OutlinedTextField(
         value = startDate,
         onValueChange = {},
@@ -109,28 +106,22 @@ fun TemplateDateField(
             TextButton(onClick = onEditClick) {
                 Text(text = stringResource(R.string.action_edit))
             }
-        },
+        }
     )
 }
 
 @Composable
-fun TemplateEveryNDaysField(
-    everyNDays: String,
-    onEveryNDaysChange: (String) -> Unit,
-) {
+fun TemplateEveryNDaysField(everyNDays: String, onEveryNDaysChange: (String) -> Unit) {
     OutlinedTextField(
         value = everyNDays,
         onValueChange = { onEveryNDaysChange(it.filter { c -> c.isDigit() }) },
         label = { Text(stringResource(R.string.templates_every_n_days_label)) },
-        singleLine = true,
+        singleLine = true
     )
 }
 
 @Composable
-fun TemplateDueTimeField(
-    dueTime: String,
-    onEditClick: () -> Unit,
-) {
+fun TemplateDueTimeField(dueTime: String, onEditClick: () -> Unit) {
     OutlinedTextField(
         value = dueTime,
         onValueChange = {},
@@ -141,15 +132,12 @@ fun TemplateDueTimeField(
             TextButton(onClick = onEditClick) {
                 Text(text = stringResource(R.string.action_edit))
             }
-        },
+        }
     )
 }
 
 @Composable
-fun TemplateActiveToggle(
-    isActive: Boolean,
-    onClick: () -> Unit,
-) {
+fun TemplateActiveToggle(isActive: Boolean, onClick: () -> Unit) {
     TextButton(onClick = onClick) {
         Text(text = activeLabel(isActive))
     }
@@ -160,13 +148,13 @@ fun TemplateDatePickerLauncher(
     isVisible: Boolean,
     initialDate: String,
     onDateSelected: (String) -> Unit,
-    onDismiss: () -> Unit,
+    onDismiss: () -> Unit
 ) {
     if (isVisible) {
         TemplateDatePickerDialog(
             initialDate = initialDate,
             onDateSelected = onDateSelected,
-            onDismiss = onDismiss,
+            onDismiss = onDismiss
         )
     }
 }
@@ -176,27 +164,23 @@ fun TemplateTimePickerLauncher(
     isVisible: Boolean,
     initialTime: String,
     onTimeSelected: (String) -> Unit,
-    onDismiss: () -> Unit,
+    onDismiss: () -> Unit
 ) {
     if (isVisible) {
         TemplateTimePickerDialog(
             initialTime = initialTime,
             onTimeSelected = onTimeSelected,
-            onDismiss = onDismiss,
+            onDismiss = onDismiss
         )
     }
 }
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
-private fun TemplateDatePickerDialog(
-    initialDate: String,
-    onDateSelected: (String) -> Unit,
-    onDismiss: () -> Unit,
-) {
+private fun TemplateDatePickerDialog(initialDate: String, onDateSelected: (String) -> Unit, onDismiss: () -> Unit) {
     val datePickerState =
         rememberDatePickerState(
-            initialSelectedDateMillis = initialDate.toEpochMillisOrNull(),
+            initialSelectedDateMillis = initialDate.toEpochMillisOrNull()
         )
 
     DatePickerDialog(
@@ -208,7 +192,7 @@ private fun TemplateDatePickerDialog(
                         ?.toLocalDateString()
                         ?.let(onDateSelected)
                     onDismiss()
-                },
+                }
             ) {
                 Text(text = stringResource(id = R.string.action_done))
             }
@@ -217,7 +201,7 @@ private fun TemplateDatePickerDialog(
             TextButton(onClick = onDismiss) {
                 Text(text = stringResource(id = R.string.action_cancel))
             }
-        },
+        }
     ) {
         DatePicker(state = datePickerState)
     }
@@ -225,18 +209,14 @@ private fun TemplateDatePickerDialog(
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
-private fun TemplateTimePickerDialog(
-    initialTime: String,
-    onTimeSelected: (String) -> Unit,
-    onDismiss: () -> Unit,
-) {
+private fun TemplateTimePickerDialog(initialTime: String, onTimeSelected: (String) -> Unit, onDismiss: () -> Unit) {
     val context = LocalContext.current
     val is24Hour = remember(context) { DateFormat.is24HourFormat(context) }
     val timePickerState =
         rememberTimePickerState(
             initialHour = initialTime.timePartAt(0, defaultValue = 8, range = 0..23),
             initialMinute = initialTime.timePartAt(1, defaultValue = 0, range = 0..59),
-            is24Hour = is24Hour,
+            is24Hour = is24Hour
         )
 
     AlertDialog(
@@ -248,7 +228,7 @@ private fun TemplateTimePickerDialog(
                 onClick = {
                     onTimeSelected("%02d:%02d".format(timePickerState.hour, timePickerState.minute))
                     onDismiss()
-                },
+                }
             ) {
                 Text(text = stringResource(id = R.string.action_done))
             }
@@ -257,6 +237,6 @@ private fun TemplateTimePickerDialog(
             TextButton(onClick = onDismiss) {
                 Text(text = stringResource(id = R.string.action_cancel))
             }
-        },
+        }
     )
 }

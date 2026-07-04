@@ -6,11 +6,11 @@ import android.content.Intent
 import android.util.Log
 import com.daynest.android.data.push.PushRegistrationManager
 import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 @AndroidEntryPoint
 class UnifiedPushReceiver : BroadcastReceiver() {
@@ -22,10 +22,7 @@ class UnifiedPushReceiver : BroadcastReceiver() {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
-    override fun onReceive(
-        context: Context,
-        intent: Intent,
-    ) {
+    override fun onReceive(context: Context, intent: Intent) {
         when (intent.action) {
             ACTION_NEW_ENDPOINT ->
                 scope.launch {
@@ -33,7 +30,7 @@ class UnifiedPushReceiver : BroadcastReceiver() {
                         pushRegistrationManager.registerUnifiedPushEndpoint(
                             endpoint = intent.getStringExtra(EXTRA_ENDPOINT).orEmpty(),
                             p256dh = intent.getStringExtra(EXTRA_P256DH),
-                            auth = intent.getStringExtra(EXTRA_AUTH),
+                            auth = intent.getStringExtra(EXTRA_AUTH)
                         )
                     }.onFailure { error -> Log.w(TAG, "Unable to register Unified Push endpoint", error) }
                 }

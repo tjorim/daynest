@@ -48,10 +48,7 @@ import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 
 @Composable
-fun MealPlannerRoute(
-    onNavigate: (String) -> Unit = {},
-    viewModel: MealPlannerViewModel = hiltViewModel(),
-) {
+fun MealPlannerRoute(onNavigate: (String) -> Unit = {}, viewModel: MealPlannerViewModel = hiltViewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -70,7 +67,7 @@ fun MealPlannerRoute(
         onDraftChange = viewModel::updateDraft,
         onSaveSlot = viewModel::saveSlot,
         onGenerateShoppingList = viewModel::generateShoppingList,
-        snackbarHostState = snackbarHostState,
+        snackbarHostState = snackbarHostState
     )
 }
 
@@ -86,7 +83,7 @@ internal fun MealPlannerScreen(
     onDraftChange: (MealSlotDraft) -> Unit,
     onSaveSlot: () -> Unit,
     onGenerateShoppingList: () -> Unit,
-    snackbarHostState: SnackbarHostState,
+    snackbarHostState: SnackbarHostState
 ) {
     DaynestNavigationScaffold(
         currentRoute = DaynestDestination.MEAL_PLAN,
@@ -96,7 +93,7 @@ internal fun MealPlannerScreen(
             FloatingActionButton(onClick = onGenerateShoppingList) {
                 Text(text = stringResource(id = R.string.meal_plan_generate_shopping_list_short))
             }
-        },
+        }
     ) { innerPadding ->
         MealPlannerContent(
             uiState = uiState,
@@ -104,7 +101,7 @@ internal fun MealPlannerScreen(
             onNextWeek = onNextWeek,
             onRefresh = onRefresh,
             onEditSlot = onEditSlot,
-            modifier = Modifier.padding(innerPadding),
+            modifier = Modifier.padding(innerPadding)
         )
     }
 
@@ -113,7 +110,7 @@ internal fun MealPlannerScreen(
             draft = uiState.draft,
             onDraftChange = onDraftChange,
             onDismiss = onDismissEditor,
-            onSave = onSaveSlot,
+            onSave = onSaveSlot
         )
     }
 }
@@ -125,18 +122,18 @@ private fun MealPlannerContent(
     onNextWeek: () -> Unit,
     onRefresh: () -> Unit,
     onEditSlot: (MealSlotDto) -> Unit,
-    modifier: Modifier = Modifier,
+    modifier: Modifier = Modifier
 ) {
     Column(
         modifier = modifier.fillMaxSize().padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text(text = stringResource(id = R.string.meal_plan_title), style = MaterialTheme.typography.headlineSmall)
         Text(text = stringResource(id = R.string.meal_plan_subtitle), style = MaterialTheme.typography.bodyMedium)
         WeekNavigation(
             weekStart = uiState.weekStart,
             onPreviousWeek = onPreviousWeek,
-            onNextWeek = onNextWeek,
+            onNextWeek = onNextWeek
         )
         uiState.error?.let { error ->
             Text(text = error, color = MaterialTheme.colorScheme.error)
@@ -151,55 +148,48 @@ private fun MealPlannerContent(
             val slots = remember(week.days) { mealGridSlots(week.days) }
             MealWeekGrid(
                 days = slots,
-                onEditSlot = onEditSlot,
+                onEditSlot = onEditSlot
             )
         }
     }
 }
 
 @Composable
-private fun WeekNavigation(
-    weekStart: LocalDate,
-    onPreviousWeek: () -> Unit,
-    onNextWeek: () -> Unit,
-) {
+private fun WeekNavigation(weekStart: LocalDate, onPreviousWeek: () -> Unit, onNextWeek: () -> Unit) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
+        verticalAlignment = Alignment.CenterVertically
     ) {
         val prevLabel = stringResource(R.string.meal_plan_previous_week)
         val nextLabel = stringResource(R.string.meal_plan_next_week)
         TextButton(
             onClick = onPreviousWeek,
-            modifier = Modifier.semantics { contentDescription = prevLabel },
+            modifier = Modifier.semantics { contentDescription = prevLabel }
         ) { Text(text = "‹") }
         Text(
             text =
-                stringResource(
-                    id = R.string.meal_plan_week_range,
-                    weekStart.format(DateTimeFormatter.ISO_DATE),
-                    weekStart.plusDays(WEEK_END_DAY_OFFSET).format(DateTimeFormatter.ISO_DATE),
-                ),
-            fontWeight = FontWeight.Bold,
+            stringResource(
+                id = R.string.meal_plan_week_range,
+                weekStart.format(DateTimeFormatter.ISO_DATE),
+                weekStart.plusDays(WEEK_END_DAY_OFFSET).format(DateTimeFormatter.ISO_DATE)
+            ),
+            fontWeight = FontWeight.Bold
         )
         TextButton(
             onClick = onNextWeek,
-            modifier = Modifier.semantics { contentDescription = nextLabel },
+            modifier = Modifier.semantics { contentDescription = nextLabel }
         ) { Text(text = "›") }
     }
 }
 
 @Composable
-private fun MealWeekGrid(
-    days: List<MealSlotDto>,
-    onEditSlot: (MealSlotDto) -> Unit,
-) {
+private fun MealWeekGrid(days: List<MealSlotDto>, onEditSlot: (MealSlotDto) -> Unit) {
     LazyVerticalGrid(
         columns = GridCells.Fixed(DAYS_PER_WEEK),
         contentPadding = PaddingValues(bottom = 88.dp),
         horizontalArrangement = Arrangement.spacedBy(6.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
         items(days, key = { it.id }) { slot ->
             MealSlotCard(slot = slot, onEditSlot = onEditSlot)
@@ -208,10 +198,7 @@ private fun MealWeekGrid(
 }
 
 @Composable
-private fun MealSlotCard(
-    slot: MealSlotDto,
-    onEditSlot: (MealSlotDto) -> Unit,
-) {
+private fun MealSlotCard(slot: MealSlotDto, onEditSlot: (MealSlotDto) -> Unit) {
     val date = remember(slot.slotDate) { LocalDate.parse(slot.slotDate) }
     val locale = LocalConfiguration.current.locales[0]
     val slotTypeLabel =
@@ -224,19 +211,19 @@ private fun MealSlotCard(
         }
     Card(
         modifier =
-            Modifier
-                .fillMaxWidth()
-                .height(132.dp)
-                .clickable { onEditSlot(slot) },
+        Modifier
+            .fillMaxWidth()
+            .height(132.dp)
+            .clickable { onEditSlot(slot) }
     ) {
         Column(
             modifier = Modifier.padding(8.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             Text(
                 text = date.dayOfWeek.getDisplayName(TextStyle.SHORT, locale),
                 style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.Bold,
+                fontWeight = FontWeight.Bold
             )
             Text(text = slotTypeLabel, style = MaterialTheme.typography.labelSmall)
             Spacer(modifier = Modifier.height(2.dp))
@@ -244,12 +231,12 @@ private fun MealSlotCard(
                 text = slot.title.ifBlank { stringResource(id = R.string.meal_plan_empty_slot) },
                 style = MaterialTheme.typography.bodySmall,
                 maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
+                overflow = TextOverflow.Ellipsis
             )
             if (slot.ingredients.isNotEmpty()) {
                 Text(
                     text = stringResource(id = R.string.meal_plan_ingredient_count, slot.ingredients.size),
-                    style = MaterialTheme.typography.labelSmall,
+                    style = MaterialTheme.typography.labelSmall
                 )
             }
         }

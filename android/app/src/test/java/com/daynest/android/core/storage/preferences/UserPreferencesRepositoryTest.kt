@@ -15,62 +15,59 @@ class UserPreferencesRepositoryTest {
     private val repository = UserPreferencesRepository(fakeDataStore)
 
     @Test
-    fun `preferences emits default value when no data stored`() =
-        runTest {
-            repository.preferences.test {
-                val prefs = awaitItem()
-                assertEquals(0L, prefs.lastTodayFetchEpochMillis)
-                assertEquals(false, prefs.biometricLockEnabled)
-                assertEquals(5, prefs.biometricIdleTimeoutMinutes)
-                assertEquals(true, prefs.pushNotificationsEnabled)
-                assertEquals(false, prefs.calendarSyncEnabled)
-                assertEquals(false, prefs.showDeviceCalendars)
-                assertEquals(emptySet<String>(), prefs.enabledDeviceCalendarIds)
-                cancelAndIgnoreRemainingEvents()
-            }
+    fun `preferences emits default value when no data stored`() = runTest {
+        repository.preferences.test {
+            val prefs = awaitItem()
+            assertEquals(0L, prefs.lastTodayFetchEpochMillis)
+            assertEquals(false, prefs.biometricLockEnabled)
+            assertEquals(5, prefs.biometricIdleTimeoutMinutes)
+            assertEquals(true, prefs.pushNotificationsEnabled)
+            assertEquals(false, prefs.calendarSyncEnabled)
+            assertEquals(false, prefs.showDeviceCalendars)
+            assertEquals(emptySet<String>(), prefs.enabledDeviceCalendarIds)
+            cancelAndIgnoreRemainingEvents()
         }
+    }
 
     @Test
-    fun `updateLastTodayFetch stores and emits updated epoch millis`() =
-        runTest {
-            repository.preferences.test {
-                assertEquals(0L, awaitItem().lastTodayFetchEpochMillis)
+    fun `updateLastTodayFetch stores and emits updated epoch millis`() = runTest {
+        repository.preferences.test {
+            assertEquals(0L, awaitItem().lastTodayFetchEpochMillis)
 
-                repository.updateLastTodayFetch(1_700_000_000_000L)
+            repository.updateLastTodayFetch(1_700_000_000_000L)
 
-                assertEquals(1_700_000_000_000L, awaitItem().lastTodayFetchEpochMillis)
-                cancelAndIgnoreRemainingEvents()
-            }
+            assertEquals(1_700_000_000_000L, awaitItem().lastTodayFetchEpochMillis)
+            cancelAndIgnoreRemainingEvents()
         }
+    }
 
     @Test
-    fun `privacy toggles persist`() =
-        runTest {
-            repository.preferences.test {
-                awaitItem()
+    fun `privacy toggles persist`() = runTest {
+        repository.preferences.test {
+            awaitItem()
 
-                repository.updateBiometricLockEnabled(true)
-                awaitItem()
-                repository.updateBiometricIdleTimeoutMinutes(30)
-                awaitItem()
-                repository.updatePushNotificationsEnabled(false)
-                awaitItem()
-                repository.updateCalendarSyncEnabled(true)
-                awaitItem()
-                repository.updateShowDeviceCalendars(true)
-                awaitItem()
-                repository.updateEnabledDeviceCalendarIds(setOf("1", "2"))
+            repository.updateBiometricLockEnabled(true)
+            awaitItem()
+            repository.updateBiometricIdleTimeoutMinutes(30)
+            awaitItem()
+            repository.updatePushNotificationsEnabled(false)
+            awaitItem()
+            repository.updateCalendarSyncEnabled(true)
+            awaitItem()
+            repository.updateShowDeviceCalendars(true)
+            awaitItem()
+            repository.updateEnabledDeviceCalendarIds(setOf("1", "2"))
 
-                val updated = awaitItem()
-                assertEquals(true, updated.biometricLockEnabled)
-                assertEquals(30, updated.biometricIdleTimeoutMinutes)
-                assertEquals(false, updated.pushNotificationsEnabled)
-                assertEquals(true, updated.calendarSyncEnabled)
-                assertEquals(true, updated.showDeviceCalendars)
-                assertEquals(setOf("1", "2"), updated.enabledDeviceCalendarIds)
-                cancelAndIgnoreRemainingEvents()
-            }
+            val updated = awaitItem()
+            assertEquals(true, updated.biometricLockEnabled)
+            assertEquals(30, updated.biometricIdleTimeoutMinutes)
+            assertEquals(false, updated.pushNotificationsEnabled)
+            assertEquals(true, updated.calendarSyncEnabled)
+            assertEquals(true, updated.showDeviceCalendars)
+            assertEquals(setOf("1", "2"), updated.enabledDeviceCalendarIds)
+            cancelAndIgnoreRemainingEvents()
         }
+    }
 }
 
 private class FakePreferencesDataStore : DataStore<Preferences> {

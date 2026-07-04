@@ -12,43 +12,43 @@ import java.time.LocalDate
 
 @HiltWorker
 class NotificationActionWorker
-    @AssistedInject
-    constructor(
-        @Assisted appContext: Context,
-        @Assisted params: WorkerParameters,
-        private val todayRepository: TodayRepository,
-    ) : CoroutineWorker(appContext, params) {
-        override suspend fun doWork(): Result {
-            val id = inputData.getInt(KEY_ITEM_ID, -1).takeIf { it > 0 }
-            val type = inputData.getString(KEY_TYPE).orEmpty()
-            val action = inputData.getString(KEY_ACTION).orEmpty()
-            val mutationSucceeded =
-                if (id == null) {
-                    true
-                } else {
-                    when {
-                        type == "medication" && action == "complete" -> todayRepository.takeDose(id).isSuccess
-                        type == "medication" && action == "skip" -> todayRepository.skipDose(id).isSuccess
-                        action == "complete" -> todayRepository.completeChore(id).isSuccess
-                        action == "skip" -> todayRepository.skipChore(id).isSuccess
-                        action == "snooze" ->
-                            todayRepository
-                                .rescheduleChore(id, LocalDate.now().plusDays(1).toString())
-                                .isSuccess
-                        else -> true
-                    }
-                }
-            return if (mutationSucceeded) {
-                DaynestSyncScheduler.enqueueOneShot(applicationContext)
-                Result.success()
+@AssistedInject
+constructor(
+    @Assisted appContext: Context,
+    @Assisted params: WorkerParameters,
+    private val todayRepository: TodayRepository
+) : CoroutineWorker(appContext, params) {
+    override suspend fun doWork(): Result {
+        val id = inputData.getInt(KEY_ITEM_ID, -1).takeIf { it > 0 }
+        val type = inputData.getString(KEY_TYPE).orEmpty()
+        val action = inputData.getString(KEY_ACTION).orEmpty()
+        val mutationSucceeded =
+            if (id == null) {
+                true
             } else {
-                Result.retry()
+                when {
+                    type == "medication" && action == "complete" -> todayRepository.takeDose(id).isSuccess
+                    type == "medication" && action == "skip" -> todayRepository.skipDose(id).isSuccess
+                    action == "complete" -> todayRepository.completeChore(id).isSuccess
+                    action == "skip" -> todayRepository.skipChore(id).isSuccess
+                    action == "snooze" ->
+                        todayRepository
+                            .rescheduleChore(id, LocalDate.now().plusDays(1).toString())
+                            .isSuccess
+                    else -> true
+                }
             }
-        }
-
-        companion object {
-            const val KEY_TYPE = "type"
-            const val KEY_ITEM_ID = "item_id"
-            const val KEY_ACTION = "action"
+        return if (mutationSucceeded) {
+            DaynestSyncScheduler.enqueueOneShot(applicationContext)
+            Result.success()
+        } else {
+            Result.retry()
         }
     }
+
+    companion object {
+        const val KEY_TYPE = "type"
+        const val KEY_ITEM_ID = "item_id"
+        const val KEY_ACTION = "action"
+    }
+}

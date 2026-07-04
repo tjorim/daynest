@@ -9,11 +9,7 @@ import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
 
-class NetworkModule(
-    baseUrl: String,
-    isDebug: Boolean,
-    json: Json = JsonSerializer.config,
-) {
+class NetworkModule(baseUrl: String, isDebug: Boolean, json: Json = JsonSerializer.config) {
     private val jsonMediaType = "application/json".toMediaType()
 
     private val okHttpClient: OkHttpClient =
@@ -25,7 +21,7 @@ class NetworkModule(
                         HttpLoggingInterceptor().apply {
                             redactHeader("Authorization")
                             level = HttpLoggingInterceptor.Level.BASIC
-                        },
+                        }
                     )
                 }
             }.build()
@@ -41,10 +37,9 @@ class NetworkModule(
     val todayApi: TodayApi = retrofit.create(TodayApi::class.java)
 
     companion object {
-        fun default(): NetworkModule =
-            NetworkModule(
-                baseUrl = ApiConfig.baseUrl,
-                isDebug = BuildConfig.DEBUG,
-            )
+        fun default(): NetworkModule = NetworkModule(
+            baseUrl = ApiConfig.baseUrl,
+            isDebug = BuildConfig.DEBUG
+        )
     }
 }

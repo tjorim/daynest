@@ -13,35 +13,22 @@ import retrofit2.http.Query
 
 interface ShoppingListApi {
     @GET("api/shopping-lists")
-    suspend fun listShoppingLists(
-        @Query("status") status: String = "active",
-    ): List<ShoppingListDto>
+    suspend fun listShoppingLists(@Query("status") status: String = "active"): List<ShoppingListDto>
 
     @POST("api/shopping-lists")
-    suspend fun createShoppingList(
-        @Body request: ShoppingListCreateDto,
-    ): ShoppingListDto
+    suspend fun createShoppingList(@Body request: ShoppingListCreateDto): ShoppingListDto
 
     @GET("api/shopping-lists/{id}")
-    suspend fun getShoppingList(
-        @Path("id") id: Int,
-    ): ShoppingListDto
+    suspend fun getShoppingList(@Path("id") id: Int): ShoppingListDto
 
     @PUT("api/shopping-lists/{id}")
-    suspend fun updateShoppingList(
-        @Path("id") id: Int,
-        @Body request: ShoppingListUpdateDto,
-    ): ShoppingListDto
+    suspend fun updateShoppingList(@Path("id") id: Int, @Body request: ShoppingListUpdateDto): ShoppingListDto
 
     @DELETE("api/shopping-lists/{id}")
-    suspend fun deleteShoppingList(
-        @Path("id") id: Int,
-    )
+    suspend fun deleteShoppingList(@Path("id") id: Int)
 
     @POST("api/shopping-lists/{id}/import-recurring")
-    suspend fun importRecurring(
-        @Path("id") id: Int,
-    ): List<PlannedTodayItemDto>
+    suspend fun importRecurring(@Path("id") id: Int): List<PlannedTodayItemDto>
 }
 
 @Serializable
@@ -54,22 +41,18 @@ data class ShoppingListDto(
     val notes: String? = null,
     val status: String = ShoppingListStatus.ACTIVE,
     @SerialName("created_at")
-    val createdAt: String = "",
+    val createdAt: String = ""
 )
 
 @Serializable
-data class ShoppingListCreateDto(
-    val name: String,
-    val store: String? = null,
-    val notes: String? = null,
-)
+data class ShoppingListCreateDto(val name: String, val store: String? = null, val notes: String? = null)
 
 @Serializable
 data class ShoppingListUpdateDto(
     val name: String? = null,
     val store: String? = null,
     val notes: String? = null,
-    val status: String? = null,
+    val status: String? = null
 )
 
 object ShoppingListStatus {

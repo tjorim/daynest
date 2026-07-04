@@ -20,191 +20,189 @@ import javax.inject.Singleton
 
 @Singleton
 class SystemCalendarSyncer
-    @Inject
-    constructor(
-        @ApplicationContext private val context: Context,
-    ) {
-        fun sync(today: TodayResponseDto) {
-            if (!hasCalendarPermissions()) return
-            val calendarId = ensureCalendar() ?: return
-            val desired = buildEvents(today)
-            val existing = loadExistingEvents(calendarId)
-            val ops = ArrayList<ContentProviderOperation>()
-            desired.forEach { item ->
-                val existingEventId = existing[item.syncKey]
-                if (existingEventId != null) {
-                    ops +=
-                        ContentProviderOperation
-                            .newUpdate(CalendarContract.Events.CONTENT_URI)
-                            .withSelection("${CalendarContract.Events._ID}=?", arrayOf(existingEventId.toString()))
-                            .withValues(item.toContentValues(calendarId))
-                            .build()
-                    ops +=
-                        ContentProviderOperation
-                            .newDelete(CalendarContract.Reminders.CONTENT_URI)
-                            .withSelection(
-                                "${CalendarContract.Reminders.EVENT_ID}=?",
-                                arrayOf(existingEventId.toString()),
-                            ).build()
-                    ops +=
-                        ContentProviderOperation
-                            .newInsert(CalendarContract.Reminders.CONTENT_URI)
-                            .withValue(CalendarContract.Reminders.EVENT_ID, existingEventId)
-                            .withValue(CalendarContract.Reminders.MINUTES, DEFAULT_REMINDER_MINUTES)
-                            .withValue(CalendarContract.Reminders.METHOD, CalendarContract.Reminders.METHOD_ALERT)
-                            .build()
-                } else {
-                    val eventOpIndex = ops.size
-                    ops +=
-                        ContentProviderOperation
-                            .newInsert(CalendarContract.Events.CONTENT_URI)
-                            .withValues(item.toContentValues(calendarId))
-                            .build()
-                    ops +=
-                        ContentProviderOperation
-                            .newInsert(CalendarContract.Reminders.CONTENT_URI)
-                            .withValueBackReference(CalendarContract.Reminders.EVENT_ID, eventOpIndex)
-                            .withValue(CalendarContract.Reminders.MINUTES, DEFAULT_REMINDER_MINUTES)
-                            .withValue(CalendarContract.Reminders.METHOD, CalendarContract.Reminders.METHOD_ALERT)
-                            .build()
-                }
-            }
-            val desiredKeys = desired.map { it.syncKey }.toSet()
-            existing.filterKeys { it !in desiredKeys }.values.forEach { eventId ->
+@Inject
+constructor(@ApplicationContext private val context: Context) {
+    fun sync(today: TodayResponseDto) {
+        if (!hasCalendarPermissions()) return
+        val calendarId = ensureCalendar() ?: return
+        val desired = buildEvents(today)
+        val existing = loadExistingEvents(calendarId)
+        val ops = ArrayList<ContentProviderOperation>()
+        desired.forEach { item ->
+            val existingEventId = existing[item.syncKey]
+            if (existingEventId != null) {
                 ops +=
                     ContentProviderOperation
-                        .newDelete(CalendarContract.Events.CONTENT_URI)
-                        .withSelection("${CalendarContract.Events._ID}=?", arrayOf(eventId.toString()))
+                        .newUpdate(CalendarContract.Events.CONTENT_URI)
+                        .withSelection("${CalendarContract.Events._ID}=?", arrayOf(existingEventId.toString()))
+                        .withValues(item.toContentValues(calendarId))
+                        .build()
+                ops +=
+                    ContentProviderOperation
+                        .newDelete(CalendarContract.Reminders.CONTENT_URI)
+                        .withSelection(
+                            "${CalendarContract.Reminders.EVENT_ID}=?",
+                            arrayOf(existingEventId.toString())
+                        ).build()
+                ops +=
+                    ContentProviderOperation
+                        .newInsert(CalendarContract.Reminders.CONTENT_URI)
+                        .withValue(CalendarContract.Reminders.EVENT_ID, existingEventId)
+                        .withValue(CalendarContract.Reminders.MINUTES, DEFAULT_REMINDER_MINUTES)
+                        .withValue(CalendarContract.Reminders.METHOD, CalendarContract.Reminders.METHOD_ALERT)
+                        .build()
+            } else {
+                val eventOpIndex = ops.size
+                ops +=
+                    ContentProviderOperation
+                        .newInsert(CalendarContract.Events.CONTENT_URI)
+                        .withValues(item.toContentValues(calendarId))
+                        .build()
+                ops +=
+                    ContentProviderOperation
+                        .newInsert(CalendarContract.Reminders.CONTENT_URI)
+                        .withValueBackReference(CalendarContract.Reminders.EVENT_ID, eventOpIndex)
+                        .withValue(CalendarContract.Reminders.MINUTES, DEFAULT_REMINDER_MINUTES)
+                        .withValue(CalendarContract.Reminders.METHOD, CalendarContract.Reminders.METHOD_ALERT)
                         .build()
             }
-            if (ops.isNotEmpty()) {
-                runCatching { context.contentResolver.applyBatch(CalendarContract.AUTHORITY, ops) }
-            }
         }
-
-        private fun hasCalendarPermissions(): Boolean =
-            ContextCompat.checkSelfPermission(context, Manifest.permission.READ_CALENDAR) ==
-                PackageManager.PERMISSION_GRANTED &&
-                ContextCompat.checkSelfPermission(context, Manifest.permission.WRITE_CALENDAR) ==
-                PackageManager.PERMISSION_GRANTED
-
-        private fun ensureCalendar(): Long? {
-            val resolver = context.contentResolver
-            resolver
-                .query(
-                    CalendarContract.Calendars.CONTENT_URI,
-                    arrayOf(CalendarContract.Calendars._ID),
-                    "${CalendarContract.Calendars.ACCOUNT_NAME}=? AND " +
-                        "${CalendarContract.Calendars.ACCOUNT_TYPE}=? AND " +
-                        "${CalendarContract.Calendars.OWNER_ACCOUNT}=? AND " +
-                        "${CalendarContract.Calendars.CALENDAR_DISPLAY_NAME}=?",
-                    arrayOf(
-                        DAYNEST_ACCOUNT_NAME,
-                        CalendarContract.ACCOUNT_TYPE_LOCAL,
-                        DAYNEST_ACCOUNT_NAME,
-                        DAYNEST_CALENDAR_DISPLAY_NAME,
-                    ),
-                    null,
-                )?.use { cursor ->
-                    if (cursor.moveToFirst()) {
-                        return cursor.getLong(0)
-                    }
-                }
-            val values =
-                ContentValues().apply {
-                    put(CalendarContract.Calendars.ACCOUNT_NAME, DAYNEST_ACCOUNT_NAME)
-                    put(CalendarContract.Calendars.ACCOUNT_TYPE, CalendarContract.ACCOUNT_TYPE_LOCAL)
-                    put(CalendarContract.Calendars.CALENDAR_DISPLAY_NAME, DAYNEST_CALENDAR_DISPLAY_NAME)
-                    put(CalendarContract.Calendars.NAME, DAYNEST_CALENDAR_NAME)
-                    put(CalendarContract.Calendars.CALENDAR_COLOR, 0xFF5E35B1.toInt())
-                    put(CalendarContract.Calendars.CALENDAR_ACCESS_LEVEL, CalendarContract.Calendars.CAL_ACCESS_READ)
-                    put(CalendarContract.Calendars.CAN_MODIFY_TIME_ZONE, 0)
-                    put(CalendarContract.Calendars.OWNER_ACCOUNT, DAYNEST_ACCOUNT_NAME)
-                    put(CalendarContract.Calendars.VISIBLE, 1)
-                    put(CalendarContract.Calendars.SYNC_EVENTS, 1)
-                }
-            val uri =
-                CalendarContract.Calendars.CONTENT_URI
-                    .buildUpon()
-                    .appendQueryParameter(CalendarContract.CALLER_IS_SYNCADAPTER, "true")
-                    .appendQueryParameter(CalendarContract.Calendars.ACCOUNT_NAME, DAYNEST_ACCOUNT_NAME)
-                    .appendQueryParameter(CalendarContract.Calendars.ACCOUNT_TYPE, CalendarContract.ACCOUNT_TYPE_LOCAL)
+        val desiredKeys = desired.map { it.syncKey }.toSet()
+        existing.filterKeys { it !in desiredKeys }.values.forEach { eventId ->
+            ops +=
+                ContentProviderOperation
+                    .newDelete(CalendarContract.Events.CONTENT_URI)
+                    .withSelection("${CalendarContract.Events._ID}=?", arrayOf(eventId.toString()))
                     .build()
-            return resolver.insert(uri, values)?.lastPathSegment?.toLongOrNull()
         }
-
-        private fun loadExistingEvents(calendarId: Long): Map<String, Long> {
-            val map = mutableMapOf<String, Long>()
-            context.contentResolver
-                .query(
-                    CalendarContract.Events.CONTENT_URI,
-                    arrayOf(CalendarContract.Events._ID, CalendarContract.Events.SYNC_DATA1),
-                    "${CalendarContract.Events.CALENDAR_ID}=? AND ${CalendarContract.Events.SYNC_DATA1} IS NOT NULL",
-                    arrayOf(calendarId.toString()),
-                    null,
-                )?.use { cursor ->
-                    while (cursor.moveToNext()) {
-                        val id = cursor.getLong(0)
-                        val syncKey = cursor.getString(1) ?: continue
-                        map[syncKey] = id
-                    }
-                }
-            return map
-        }
-
-        private fun buildEvents(today: TodayResponseDto): List<SyncEvent> {
-            val zone = ZoneId.systemDefault()
-            val description = context.getString(R.string.sync_event_description)
-            val events = mutableListOf<SyncEvent>()
-            today.dueToday.forEach { item ->
-                events +=
-                    SyncEvent(
-                        "chore_due_${item.choreInstanceId}",
-                        item.title,
-                        "${item.scheduledDate}T09:00:00",
-                        zone,
-                        description,
-                    )
-            }
-            today.overdue.forEach { item ->
-                val date = item.overdueSince.ifBlank { LocalDate.now().toString() }
-                events +=
-                    SyncEvent(
-                        "chore_overdue_${item.choreInstanceId}",
-                        item.title,
-                        "${date}T09:00:00",
-                        zone,
-                        description,
-                    )
-            }
-            today.upcoming.forEach { item ->
-                events +=
-                    SyncEvent(
-                        "chore_upcoming_${item.choreInstanceId}",
-                        item.title,
-                        "${item.scheduledDate}T09:00:00",
-                        zone,
-                        description,
-                    )
-            }
-            today.planned.filter { !it.isDone }.forEach { item ->
-                events += SyncEvent("planned_${item.id}", item.title, "${item.plannedFor}T09:00:00", zone, description)
-            }
-            today.medication.forEach { item ->
-                val scheduled = item.scheduledAt.ifBlank { "${LocalDate.now()}T09:00:00Z" }
-                events +=
-                    SyncEvent("medication_${item.medicationDoseInstanceId}", item.name, scheduled, zone, description)
-            }
-            return events
+        if (ops.isNotEmpty()) {
+            runCatching { context.contentResolver.applyBatch(CalendarContract.AUTHORITY, ops) }
         }
     }
+
+    private fun hasCalendarPermissions(): Boolean =
+        ContextCompat.checkSelfPermission(context, Manifest.permission.READ_CALENDAR) ==
+            PackageManager.PERMISSION_GRANTED &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.WRITE_CALENDAR) ==
+            PackageManager.PERMISSION_GRANTED
+
+    private fun ensureCalendar(): Long? {
+        val resolver = context.contentResolver
+        resolver
+            .query(
+                CalendarContract.Calendars.CONTENT_URI,
+                arrayOf(CalendarContract.Calendars._ID),
+                "${CalendarContract.Calendars.ACCOUNT_NAME}=? AND " +
+                    "${CalendarContract.Calendars.ACCOUNT_TYPE}=? AND " +
+                    "${CalendarContract.Calendars.OWNER_ACCOUNT}=? AND " +
+                    "${CalendarContract.Calendars.CALENDAR_DISPLAY_NAME}=?",
+                arrayOf(
+                    DAYNEST_ACCOUNT_NAME,
+                    CalendarContract.ACCOUNT_TYPE_LOCAL,
+                    DAYNEST_ACCOUNT_NAME,
+                    DAYNEST_CALENDAR_DISPLAY_NAME
+                ),
+                null
+            )?.use { cursor ->
+                if (cursor.moveToFirst()) {
+                    return cursor.getLong(0)
+                }
+            }
+        val values =
+            ContentValues().apply {
+                put(CalendarContract.Calendars.ACCOUNT_NAME, DAYNEST_ACCOUNT_NAME)
+                put(CalendarContract.Calendars.ACCOUNT_TYPE, CalendarContract.ACCOUNT_TYPE_LOCAL)
+                put(CalendarContract.Calendars.CALENDAR_DISPLAY_NAME, DAYNEST_CALENDAR_DISPLAY_NAME)
+                put(CalendarContract.Calendars.NAME, DAYNEST_CALENDAR_NAME)
+                put(CalendarContract.Calendars.CALENDAR_COLOR, 0xFF5E35B1.toInt())
+                put(CalendarContract.Calendars.CALENDAR_ACCESS_LEVEL, CalendarContract.Calendars.CAL_ACCESS_READ)
+                put(CalendarContract.Calendars.CAN_MODIFY_TIME_ZONE, 0)
+                put(CalendarContract.Calendars.OWNER_ACCOUNT, DAYNEST_ACCOUNT_NAME)
+                put(CalendarContract.Calendars.VISIBLE, 1)
+                put(CalendarContract.Calendars.SYNC_EVENTS, 1)
+            }
+        val uri =
+            CalendarContract.Calendars.CONTENT_URI
+                .buildUpon()
+                .appendQueryParameter(CalendarContract.CALLER_IS_SYNCADAPTER, "true")
+                .appendQueryParameter(CalendarContract.Calendars.ACCOUNT_NAME, DAYNEST_ACCOUNT_NAME)
+                .appendQueryParameter(CalendarContract.Calendars.ACCOUNT_TYPE, CalendarContract.ACCOUNT_TYPE_LOCAL)
+                .build()
+        return resolver.insert(uri, values)?.lastPathSegment?.toLongOrNull()
+    }
+
+    private fun loadExistingEvents(calendarId: Long): Map<String, Long> {
+        val map = mutableMapOf<String, Long>()
+        context.contentResolver
+            .query(
+                CalendarContract.Events.CONTENT_URI,
+                arrayOf(CalendarContract.Events._ID, CalendarContract.Events.SYNC_DATA1),
+                "${CalendarContract.Events.CALENDAR_ID}=? AND ${CalendarContract.Events.SYNC_DATA1} IS NOT NULL",
+                arrayOf(calendarId.toString()),
+                null
+            )?.use { cursor ->
+                while (cursor.moveToNext()) {
+                    val id = cursor.getLong(0)
+                    val syncKey = cursor.getString(1) ?: continue
+                    map[syncKey] = id
+                }
+            }
+        return map
+    }
+
+    private fun buildEvents(today: TodayResponseDto): List<SyncEvent> {
+        val zone = ZoneId.systemDefault()
+        val description = context.getString(R.string.sync_event_description)
+        val events = mutableListOf<SyncEvent>()
+        today.dueToday.forEach { item ->
+            events +=
+                SyncEvent(
+                    "chore_due_${item.choreInstanceId}",
+                    item.title,
+                    "${item.scheduledDate}T09:00:00",
+                    zone,
+                    description
+                )
+        }
+        today.overdue.forEach { item ->
+            val date = item.overdueSince.ifBlank { LocalDate.now().toString() }
+            events +=
+                SyncEvent(
+                    "chore_overdue_${item.choreInstanceId}",
+                    item.title,
+                    "${date}T09:00:00",
+                    zone,
+                    description
+                )
+        }
+        today.upcoming.forEach { item ->
+            events +=
+                SyncEvent(
+                    "chore_upcoming_${item.choreInstanceId}",
+                    item.title,
+                    "${item.scheduledDate}T09:00:00",
+                    zone,
+                    description
+                )
+        }
+        today.planned.filter { !it.isDone }.forEach { item ->
+            events += SyncEvent("planned_${item.id}", item.title, "${item.plannedFor}T09:00:00", zone, description)
+        }
+        today.medication.forEach { item ->
+            val scheduled = item.scheduledAt.ifBlank { "${LocalDate.now()}T09:00:00Z" }
+            events +=
+                SyncEvent("medication_${item.medicationDoseInstanceId}", item.name, scheduled, zone, description)
+        }
+        return events
+    }
+}
 
 private data class SyncEvent(
     val syncKey: String,
     val title: String,
     val startsAt: String,
     val zone: ZoneId,
-    val description: String,
+    val description: String
 ) {
     fun toContentValues(calendarId: Long): ContentValues {
         val dtStart =

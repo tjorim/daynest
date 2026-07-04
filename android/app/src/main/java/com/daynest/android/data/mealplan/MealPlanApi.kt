@@ -15,26 +15,20 @@ interface MealPlanApi {
     suspend fun listMealPlans(): List<MealPlanDto>
 
     @POST("api/meal-plans")
-    suspend fun createMealPlan(
-        @Body request: MealPlanCreateDto,
-    ): MealPlanDto
+    suspend fun createMealPlan(@Body request: MealPlanCreateDto): MealPlanDto
 
     @GET("api/meal-plans/{mealPlanId}/slots")
-    suspend fun getWeekPlan(
-        @Path("mealPlanId") mealPlanId: Int,
-    ): WeekGridDto
+    suspend fun getWeekPlan(@Path("mealPlanId") mealPlanId: Int): WeekGridDto
 
     @PUT("api/meal-plans/{mealPlanId}/slots/{slotId}")
     suspend fun updateSlot(
         @Path("mealPlanId") mealPlanId: Int,
         @Path("slotId") slotId: Int,
-        @Body request: MealSlotUpdateDto,
+        @Body request: MealSlotUpdateDto
     ): MealSlotDto
 
     @POST("api/meal-plans/{mealPlanId}/generate-shopping-list")
-    suspend fun generateShoppingList(
-        @Path("mealPlanId") mealPlanId: Int,
-    ): GenerateShoppingListDto
+    suspend fun generateShoppingList(@Path("mealPlanId") mealPlanId: Int): GenerateShoppingListDto
 }
 
 @Serializable
@@ -47,7 +41,7 @@ data class MealPlanDto(
     val weekStart: String,
     val notes: String? = null,
     @SerialName("created_at")
-    val createdAt: String = "",
+    val createdAt: String = ""
 )
 
 @Serializable
@@ -55,7 +49,7 @@ data class MealPlanCreateDto(
     val name: String,
     @SerialName("week_start")
     val weekStart: String,
-    val notes: String? = null,
+    val notes: String? = null
 )
 
 @Serializable
@@ -73,7 +67,7 @@ data class MealSlotDto(
     @SerialName("ingredients_json")
     val ingredients: List<String> = emptyList(),
     @SerialName("planned_item_id")
-    val plannedItemId: Int? = null,
+    val plannedItemId: Int? = null
 )
 
 @Serializable
@@ -84,25 +78,22 @@ data class MealSlotUpdateDto(
     @SerialName("ingredients_json")
     val ingredients: List<String>? = null,
     @SerialName("planned_item_id")
-    val plannedItemId: Int? = null,
+    val plannedItemId: Int? = null
 )
 
 @Serializable
-data class WeekDayDto(
-    val date: String,
-    val slots: Map<String, MealSlotDto> = emptyMap(),
-)
+data class WeekDayDto(val date: String, val slots: Map<String, MealSlotDto> = emptyMap())
 
 @Serializable
 data class WeekGridDto(
     @SerialName("meal_plan")
     val mealPlan: MealPlanDto,
-    val days: List<WeekDayDto> = emptyList(),
+    val days: List<WeekDayDto> = emptyList()
 )
 
 @Serializable
 data class GenerateShoppingListDto(
     @SerialName("shopping_list")
     val shoppingList: ShoppingListDto,
-    val items: List<PlannedTodayItemDto> = emptyList(),
+    val items: List<PlannedTodayItemDto> = emptyList()
 )

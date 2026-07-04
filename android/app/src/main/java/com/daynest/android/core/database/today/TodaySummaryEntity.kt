@@ -10,5 +10,5 @@ data class TodaySummaryEntity(
     val choresCount: Int,
     val medicationsCount: Int,
     val plannedPendingCount: Int,
-    val lastFetchedEpochMillis: Long,
+    val lastFetchedEpochMillis: Long
 )

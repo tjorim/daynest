@@ -49,7 +49,7 @@ import java.time.format.DateTimeFormatter
 fun SettingsRoute(
     onNavigate: (String) -> Unit = {},
     onSignedOut: (() -> Unit)? = null,
-    viewModel: SettingsViewModel = hiltViewModel(),
+    viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
@@ -63,23 +63,19 @@ fun SettingsRoute(
 }
 
 @Composable
-private fun SettingsScreen(
-    uiState: SettingsUiState,
-    onEvent: (SettingsUiEvent) -> Unit,
-    onNavigate: (String) -> Unit,
-) {
+private fun SettingsScreen(uiState: SettingsUiState, onEvent: (SettingsUiEvent) -> Unit, onNavigate: (String) -> Unit) {
     DaynestNavigationScaffold(
         currentRoute = DaynestDestination.SETTINGS,
-        onNavigate = onNavigate,
+        onNavigate = onNavigate
     ) { innerPadding ->
         when (uiState) {
             SettingsUiState.Loading, SettingsUiState.SignedOut -> {
                 Box(
                     modifier =
-                        Modifier
-                            .fillMaxSize()
-                            .padding(innerPadding),
-                    contentAlignment = Alignment.Center,
+                    Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding),
+                    contentAlignment = Alignment.Center
                 ) {
                     CircularProgressIndicator()
                 }
@@ -89,7 +85,7 @@ private fun SettingsScreen(
                 SettingsContent(
                     state = uiState,
                     onEvent = onEvent,
-                    modifier = Modifier.padding(innerPadding),
+                    modifier = Modifier.padding(innerPadding)
                 )
             }
         }
@@ -100,7 +96,7 @@ private fun SettingsScreen(
 private fun SettingsContent(
     state: SettingsUiState.Content,
     onEvent: (SettingsUiEvent) -> Unit,
-    modifier: Modifier = Modifier,
+    modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     val deviceCalendarPermissionLauncher =
@@ -123,12 +119,12 @@ private fun SettingsContent(
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         item {
             Text(
                 text = stringResource(id = R.string.settings_title),
-                style = MaterialTheme.typography.headlineMedium,
+                style = MaterialTheme.typography.headlineMedium
             )
         }
         settingsServerSection(state, onEvent)
@@ -138,7 +134,7 @@ private fun SettingsContent(
             notificationsPermissionLauncher = notificationsPermissionLauncher,
             calendarPermissionLauncher = calendarPermissionLauncher,
             deviceCalendarPermissionLauncher = deviceCalendarPermissionLauncher,
-            onEvent = onEvent,
+            onEvent = onEvent
         )
         settingsAccountSection(onEvent)
         settingsClientsSection(state, onEvent)
@@ -148,39 +144,34 @@ private fun SettingsContent(
     if (state.showCreateForm) {
         CreateClientDialog(
             onConfirm = { onEvent(SettingsUiEvent.CreateClient(it)) },
-            onDismiss = { onEvent(SettingsUiEvent.DismissCreateClientForm) },
+            onDismiss = { onEvent(SettingsUiEvent.DismissCreateClientForm) }
         )
     }
 
     if (state.newApiKey != null) {
         NewApiKeyDialog(
             apiKey = state.newApiKey,
-            onDismiss = { onEvent(SettingsUiEvent.DismissNewKeyDialog) },
+            onDismiss = { onEvent(SettingsUiEvent.DismissNewKeyDialog) }
         )
     }
 }
 
 @Composable
-internal fun SettingToggleCard(
-    title: String,
-    subtitle: String,
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
-) {
+internal fun SettingToggleCard(title: String, subtitle: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
+            Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = title, style = MaterialTheme.typography.bodyMedium)
                 Text(
                     text = subtitle,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.outline,
+                    color = MaterialTheme.colorScheme.outline
                 )
             }
             Switch(checked = checked, onCheckedChange = onCheckedChange)
@@ -189,10 +180,7 @@ internal fun SettingToggleCard(
 }
 
 @Composable
-internal fun OAuthSessionCard(
-    session: OAuthSessionDto,
-    onRevoke: () -> Unit,
-) {
+internal fun OAuthSessionCard(session: OAuthSessionDto, onRevoke: () -> Unit) {
     val formatter = remember { DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm").withZone(ZoneId.systemDefault()) }
     val lastActiveText =
         remember(session.lastAccess) {
@@ -202,10 +190,10 @@ internal fun OAuthSessionCard(
     Card(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
+            Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 val clientNames =
@@ -217,23 +205,23 @@ internal fun OAuthSessionCard(
                     Text(
                         text = session.ipAddress,
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline,
+                        color = MaterialTheme.colorScheme.outline
                     )
                 }
                 if (lastActiveText != null) {
                     Text(
                         text = stringResource(id = R.string.settings_session_last_active, lastActiveText),
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline,
+                        color = MaterialTheme.colorScheme.outline
                     )
                 }
             }
             TextButton(
                 onClick = onRevoke,
                 colors =
-                    androidx.compose.material3.ButtonDefaults.textButtonColors(
-                        contentColor = MaterialTheme.colorScheme.error,
-                    ),
+                androidx.compose.material3.ButtonDefaults.textButtonColors(
+                    contentColor = MaterialTheme.colorScheme.error
+                )
             ) {
                 Text(text = stringResource(id = R.string.settings_revoke_session))
             }
@@ -247,47 +235,44 @@ internal fun IntegrationClientCard(client: IntegrationClientDto) {
         Column(modifier = Modifier.padding(12.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
                     text = client.name,
                     style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1f)
                 )
                 Text(
                     text =
-                        if (client.isActive) {
-                            stringResource(id = R.string.settings_client_active)
-                        } else {
-                            stringResource(id = R.string.settings_client_inactive)
-                        },
+                    if (client.isActive) {
+                        stringResource(id = R.string.settings_client_active)
+                    } else {
+                        stringResource(id = R.string.settings_client_inactive)
+                    },
                     style = MaterialTheme.typography.labelSmall,
                     color =
-                        if (client.isActive) {
-                            MaterialTheme.colorScheme.primary
-                        } else {
-                            MaterialTheme.colorScheme.outline
-                        },
+                    if (client.isActive) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.outline
+                    }
                 )
             }
             Text(
                 text =
-                    stringResource(
-                        id = R.string.settings_client_rate_limit,
-                        client.rateLimitPerMinute,
-                    ),
+                stringResource(
+                    id = R.string.settings_client_rate_limit,
+                    client.rateLimitPerMinute
+                ),
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.outline,
+                color = MaterialTheme.colorScheme.outline
             )
         }
     }
 }
 
 @Composable
-private fun CreateClientDialog(
-    onConfirm: (IntegrationClientInputDto) -> Unit,
-    onDismiss: () -> Unit,
-) {
+private fun CreateClientDialog(onConfirm: (IntegrationClientInputDto) -> Unit, onDismiss: () -> Unit) {
     var name by remember { mutableStateOf("") }
     var rateLimit by remember { mutableStateOf("60") }
 
@@ -300,13 +285,13 @@ private fun CreateClientDialog(
                     value = name,
                     onValueChange = { name = it },
                     label = { Text(text = stringResource(id = R.string.settings_client_name_label)) },
-                    singleLine = true,
+                    singleLine = true
                 )
                 OutlinedTextField(
                     value = rateLimit,
                     onValueChange = { rateLimit = it.filter { c -> c.isDigit() } },
                     label = { Text(text = stringResource(id = R.string.settings_client_rate_limit_label)) },
-                    singleLine = true,
+                    singleLine = true
                 )
             }
         },
@@ -317,12 +302,12 @@ private fun CreateClientDialog(
                         onConfirm(
                             IntegrationClientInputDto(
                                 name = name.trim(),
-                                rateLimitPerMinute = rateLimit.toIntOrNull() ?: 60,
-                            ),
+                                rateLimitPerMinute = rateLimit.toIntOrNull() ?: 60
+                            )
                         )
                     }
                 },
-                enabled = name.isNotBlank(),
+                enabled = name.isNotBlank()
             ) {
                 Text(text = stringResource(id = R.string.action_add))
             }
@@ -331,15 +316,12 @@ private fun CreateClientDialog(
             TextButton(onClick = onDismiss) {
                 Text(text = stringResource(id = R.string.action_cancel))
             }
-        },
+        }
     )
 }
 
 @Composable
-private fun NewApiKeyDialog(
-    apiKey: String,
-    onDismiss: () -> Unit,
-) {
+private fun NewApiKeyDialog(apiKey: String, onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(text = stringResource(id = R.string.settings_new_key_title)) },
@@ -347,12 +329,12 @@ private fun NewApiKeyDialog(
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
                     text = stringResource(id = R.string.settings_new_key_notice),
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.bodyMedium
                 )
                 Text(
                     text = apiKey,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.primary,
+                    color = MaterialTheme.colorScheme.primary
                 )
             }
         },
@@ -360,6 +342,6 @@ private fun NewApiKeyDialog(
             TextButton(onClick = onDismiss) {
                 Text(text = stringResource(id = R.string.settings_new_key_dismiss))
             }
-        },
+        }
     )
 }

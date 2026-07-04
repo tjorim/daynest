@@ -15,31 +15,31 @@ class WearTodaySnapshotTest {
         val today =
             TodayResponseDto(
                 routines =
-                    listOf(
-                        RoutineTodayItemDto(taskInstanceId = 1, title = "Routine done", status = "done"),
-                        RoutineTodayItemDto(taskInstanceId = 2, title = "Routine pending", status = "pending"),
-                    ),
+                listOf(
+                    RoutineTodayItemDto(taskInstanceId = 1, title = "Routine done", status = "done"),
+                    RoutineTodayItemDto(taskInstanceId = 2, title = "Routine pending", status = "pending")
+                ),
                 overdue =
-                    listOf(
-                        OverdueTodayItemDto(choreInstanceId = 10, title = "Late chore", status = "pending"),
-                        OverdueTodayItemDto(choreInstanceId = 11, title = "Done overdue", status = "done"),
-                    ),
+                listOf(
+                    OverdueTodayItemDto(choreInstanceId = 10, title = "Late chore", status = "pending"),
+                    OverdueTodayItemDto(choreInstanceId = 11, title = "Done overdue", status = "done")
+                ),
                 dueToday = listOf(DueTodayItemDto(choreInstanceId = 12, title = "Due chore", status = "pending")),
                 medication =
-                    listOf(
-                        MedicationTodayItemDto(
-                            medicationDoseInstanceId = 21,
-                            name = "Vitamin D",
-                            scheduledAt = "2026-05-25T09:00:00",
-                            status = "taken",
-                        ),
-                        MedicationTodayItemDto(
-                            medicationDoseInstanceId = 22,
-                            name = "Omega 3",
-                            scheduledAt = "2026-05-25T19:00:00",
-                            status = "scheduled",
-                        ),
+                listOf(
+                    MedicationTodayItemDto(
+                        medicationDoseInstanceId = 21,
+                        name = "Vitamin D",
+                        scheduledAt = "2026-05-25T09:00:00",
+                        status = "taken"
                     ),
+                    MedicationTodayItemDto(
+                        medicationDoseInstanceId = 22,
+                        name = "Omega 3",
+                        scheduledAt = "2026-05-25T19:00:00",
+                        status = "scheduled"
+                    )
+                )
             )
 
         val snapshot = today.toWearTodaySnapshot()

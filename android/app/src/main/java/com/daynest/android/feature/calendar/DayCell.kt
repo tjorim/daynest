@@ -37,7 +37,7 @@ internal fun DayCell(
     isSelected: Boolean,
     isToday: Boolean,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier,
+    modifier: Modifier = Modifier
 ) {
     val bgColor =
         when {
@@ -63,19 +63,19 @@ internal fun DayCell(
 
     Box(
         modifier =
-            modifier
-                .aspectRatio(1f)
-                .padding(2.dp)
-                .clip(CircleShape)
-                .background(bgColor)
-                .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center,
+        modifier
+            .aspectRatio(1f)
+            .padding(2.dp)
+            .clip(CircleShape)
+            .background(bgColor)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 text = dayNum.toString(),
                 style = MaterialTheme.typography.bodySmall,
-                color = textColor,
+                color = textColor
             )
             if (dotTypes.isNotEmpty()) {
                 DayCellDots(dotTypes = dotTypes, isSelected = isSelected)
@@ -85,10 +85,7 @@ internal fun DayCell(
 }
 
 @Composable
-internal fun DayCellDots(
-    dotTypes: List<String>,
-    isSelected: Boolean,
-) {
+internal fun DayCellDots(dotTypes: List<String>, isSelected: Boolean) {
     val colorScheme = MaterialTheme.colorScheme
     Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
         dotTypes.forEach { typeKey ->
@@ -105,10 +102,10 @@ internal fun DayCellDots(
                 }
             Box(
                 modifier =
-                    Modifier
-                        .size(3.dp)
-                        .clip(CircleShape)
-                        .background(dotColor),
+                Modifier
+                    .size(3.dp)
+                    .clip(CircleShape)
+                    .background(dotColor)
             )
         }
     }

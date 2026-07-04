@@ -27,22 +27,19 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.daynest.android.R
 
-internal fun LazyListScope.settingsServerSection(
-    state: SettingsUiState.Content,
-    onEvent: (SettingsUiEvent) -> Unit,
-) {
+internal fun LazyListScope.settingsServerSection(state: SettingsUiState.Content, onEvent: (SettingsUiEvent) -> Unit) {
     item {
         HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
         Text(
             text = stringResource(id = R.string.settings_server_section),
-            style = MaterialTheme.typography.titleMedium,
+            style = MaterialTheme.typography.titleMedium
         )
     }
     item {
         ApiBaseUrlOverrideCard(
             defaultServerUrl = state.defaultServerUrl,
             customServerUrl = state.customServerUrl,
-            onServerUrlChanged = { onEvent(SettingsUiEvent.UpdateServerUrl(it)) },
+            onServerUrlChanged = { onEvent(SettingsUiEvent.UpdateServerUrl(it)) }
         )
     }
 }
@@ -53,13 +50,13 @@ internal fun LazyListScope.settingsPrivacySection(
     notificationsPermissionLauncher: ManagedActivityResultLauncher<String, Boolean>,
     calendarPermissionLauncher: ManagedActivityResultLauncher<Array<String>, Map<String, Boolean>>,
     deviceCalendarPermissionLauncher: ActivityResultLauncher<String>,
-    onEvent: (SettingsUiEvent) -> Unit,
+    onEvent: (SettingsUiEvent) -> Unit
 ) {
     item {
         HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
         Text(
             text = stringResource(id = R.string.settings_privacy_section),
-            style = MaterialTheme.typography.titleMedium,
+            style = MaterialTheme.typography.titleMedium
         )
     }
     item {
@@ -72,9 +69,9 @@ internal fun LazyListScope.settingsPrivacySection(
                     enabled = enabled,
                     context = context,
                     notificationsPermissionLauncher = notificationsPermissionLauncher,
-                    onEvent = onEvent,
+                    onEvent = onEvent
                 )
-            },
+            }
         )
     }
     settingsBiometricItems(state, onEvent)
@@ -88,29 +85,26 @@ internal fun LazyListScope.settingsPrivacySection(
                     enabled = enabled,
                     context = context,
                     calendarPermissionLauncher = calendarPermissionLauncher,
-                    onEvent = onEvent,
+                    onEvent = onEvent
                 )
-            },
+            }
         )
     }
     settingsDeviceCalendarsToggleAndList(
         state = state,
         context = context,
         deviceCalendarPermissionLauncher = deviceCalendarPermissionLauncher,
-        onEvent = onEvent,
+        onEvent = onEvent
     )
 }
 
-private fun LazyListScope.settingsBiometricItems(
-    state: SettingsUiState.Content,
-    onEvent: (SettingsUiEvent) -> Unit,
-) {
+private fun LazyListScope.settingsBiometricItems(state: SettingsUiState.Content, onEvent: (SettingsUiEvent) -> Unit) {
     item {
         SettingToggleCard(
             title = stringResource(id = R.string.settings_biometric_label),
             subtitle = stringResource(id = R.string.settings_biometric_hint),
             checked = state.biometricLockEnabled,
-            onCheckedChange = { onEvent(SettingsUiEvent.UpdateBiometricLockEnabled(it)) },
+            onCheckedChange = { onEvent(SettingsUiEvent.UpdateBiometricLockEnabled(it)) }
         )
     }
     item {
@@ -123,27 +117,27 @@ internal fun LazyListScope.settingsAccountSection(onEvent: (SettingsUiEvent) -> 
         HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
         Text(
             text = stringResource(id = R.string.settings_account_section),
-            style = MaterialTheme.typography.titleMedium,
+            style = MaterialTheme.typography.titleMedium
         )
     }
     item {
         Card(modifier = Modifier.fillMaxWidth()) {
             Row(
                 modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(12.dp),
-                verticalAlignment = Alignment.CenterVertically,
+                Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
                     text = stringResource(id = R.string.settings_session_active),
                     style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1f)
                 )
                 TextButton(onClick = { onEvent(SettingsUiEvent.SignOutClicked) }) {
                     Text(
                         text = stringResource(id = R.string.settings_sign_out),
-                        color = MaterialTheme.colorScheme.error,
+                        color = MaterialTheme.colorScheme.error
                     )
                 }
             }
@@ -151,20 +145,17 @@ internal fun LazyListScope.settingsAccountSection(onEvent: (SettingsUiEvent) -> 
     }
 }
 
-internal fun LazyListScope.settingsClientsSection(
-    state: SettingsUiState.Content,
-    onEvent: (SettingsUiEvent) -> Unit,
-) {
+internal fun LazyListScope.settingsClientsSection(state: SettingsUiState.Content, onEvent: (SettingsUiEvent) -> Unit) {
     item {
         HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
                 text = stringResource(id = R.string.settings_integrations_section),
                 style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(1f)
             )
             TextButton(onClick = { onEvent(SettingsUiEvent.ShowCreateClientForm) }) {
                 Text(text = stringResource(id = R.string.settings_new_client))
@@ -176,7 +167,7 @@ internal fun LazyListScope.settingsClientsSection(
             item {
                 loadErrorText(
                     messageRes = R.string.settings_clients_error,
-                    onRetry = { onEvent(SettingsUiEvent.RetryClicked) },
+                    onRetry = { onEvent(SettingsUiEvent.RetryClicked) }
                 )
             }
         state.clients.isEmpty() ->
@@ -190,15 +181,12 @@ internal fun LazyListScope.settingsClientsSection(
     }
 }
 
-internal fun LazyListScope.settingsSessionsSection(
-    state: SettingsUiState.Content,
-    onEvent: (SettingsUiEvent) -> Unit,
-) {
+internal fun LazyListScope.settingsSessionsSection(state: SettingsUiState.Content, onEvent: (SettingsUiEvent) -> Unit) {
     item {
         HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
         Text(
             text = stringResource(id = R.string.settings_sessions_section),
-            style = MaterialTheme.typography.titleMedium,
+            style = MaterialTheme.typography.titleMedium
         )
     }
     when {
@@ -206,7 +194,7 @@ internal fun LazyListScope.settingsSessionsSection(
             item {
                 loadErrorText(
                     messageRes = R.string.settings_sessions_error,
-                    onRetry = { onEvent(SettingsUiEvent.RetryClicked) },
+                    onRetry = { onEvent(SettingsUiEvent.RetryClicked) }
                 )
             }
         state.sessions.isEmpty() ->
@@ -217,28 +205,25 @@ internal fun LazyListScope.settingsSessionsSection(
             items(state.sessions, key = { "session_${it.id}" }) { session ->
                 OAuthSessionCard(
                     session = session,
-                    onRevoke = { onEvent(SettingsUiEvent.RevokeSessionClicked(session.id)) },
+                    onRevoke = { onEvent(SettingsUiEvent.RevokeSessionClicked(session.id)) }
                 )
             }
     }
 }
 
 @Composable
-private fun biometricTimeoutCard(
-    state: SettingsUiState.Content,
-    onEvent: (SettingsUiEvent) -> Unit,
-) {
+private fun biometricTimeoutCard(state: SettingsUiState.Content, onEvent: (SettingsUiEvent) -> Unit) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
                 text = stringResource(id = R.string.settings_biometric_timeout_label),
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodyMedium
             )
             OutlinedTextField(
                 value = state.biometricIdleTimeoutMinutes.toString(),
@@ -247,21 +232,18 @@ private fun biometricTimeoutCard(
                         onEvent(SettingsUiEvent.UpdateBiometricIdleTimeoutMinutes(minutes))
                     }
                 },
-                singleLine = true,
+                singleLine = true
             )
         }
     }
 }
 
 @Composable
-private fun loadErrorText(
-    messageRes: Int,
-    onRetry: () -> Unit,
-) {
+private fun loadErrorText(messageRes: Int, onRetry: () -> Unit) {
     Text(
         text = stringResource(id = messageRes),
         style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.error,
+        color = MaterialTheme.colorScheme.error
     )
     TextButton(onClick = onRetry) {
         Text(text = stringResource(id = R.string.home_retry))
@@ -273,7 +255,7 @@ internal fun emptyStateText(messageRes: Int) {
     Text(
         text = stringResource(id = messageRes),
         style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.outline,
+        color = MaterialTheme.colorScheme.outline
     )
 }
 
@@ -281,7 +263,7 @@ private fun handleNotificationsChanged(
     enabled: Boolean,
     context: Context,
     notificationsPermissionLauncher: ManagedActivityResultLauncher<String, Boolean>,
-    onEvent: (SettingsUiEvent) -> Unit,
+    onEvent: (SettingsUiEvent) -> Unit
 ) {
     if (!enabled) {
         onEvent(SettingsUiEvent.UpdatePushNotificationsEnabled(false))
@@ -289,7 +271,7 @@ private fun handleNotificationsChanged(
         Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
         ContextCompat.checkSelfPermission(
             context,
-            Manifest.permission.POST_NOTIFICATIONS,
+            Manifest.permission.POST_NOTIFICATIONS
         ) != PackageManager.PERMISSION_GRANTED
     ) {
         notificationsPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
@@ -302,7 +284,7 @@ private fun handleCalendarSyncChanged(
     enabled: Boolean,
     context: Context,
     calendarPermissionLauncher: ManagedActivityResultLauncher<Array<String>, Map<String, Boolean>>,
-    onEvent: (SettingsUiEvent) -> Unit,
+    onEvent: (SettingsUiEvent) -> Unit
 ) {
     if (!enabled) {
         onEvent(SettingsUiEvent.UpdateCalendarSyncEnabled(false))
@@ -312,12 +294,12 @@ private fun handleCalendarSyncChanged(
     val hasRead =
         ContextCompat.checkSelfPermission(
             context,
-            Manifest.permission.READ_CALENDAR,
+            Manifest.permission.READ_CALENDAR
         ) == PackageManager.PERMISSION_GRANTED
     val hasWrite =
         ContextCompat.checkSelfPermission(
             context,
-            Manifest.permission.WRITE_CALENDAR,
+            Manifest.permission.WRITE_CALENDAR
         ) == PackageManager.PERMISSION_GRANTED
     if (hasRead && hasWrite) {
         onEvent(SettingsUiEvent.UpdateCalendarSyncEnabled(true))
@@ -325,8 +307,8 @@ private fun handleCalendarSyncChanged(
         calendarPermissionLauncher.launch(
             arrayOf(
                 Manifest.permission.READ_CALENDAR,
-                Manifest.permission.WRITE_CALENDAR,
-            ),
+                Manifest.permission.WRITE_CALENDAR
+            )
         )
     }
 }

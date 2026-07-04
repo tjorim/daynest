@@ -7,26 +7,22 @@ import retrofit2.http.Path
 
 interface TodayActionsApi {
     @POST("api/v1/chores/{id}/complete")
-    suspend fun completeChore(
-        @Path("id") id: Int,
-    ): ChoreMutationDto
+    suspend fun completeChore(@Path("id") id: Int): ChoreMutationDto
 
     @POST("api/v1/medication-doses/{id}/take")
-    suspend fun takeDose(
-        @Path("id") id: Int,
-    ): DoseMutationDto
+    suspend fun takeDose(@Path("id") id: Int): DoseMutationDto
 }
 
 @Serializable
 data class ChoreMutationDto(
     @SerialName("chore_instance_id")
     val choreInstanceId: Int,
-    val status: String,
+    val status: String
 )
 
 @Serializable
 data class DoseMutationDto(
     @SerialName("medication_dose_instance_id")
     val medicationDoseInstanceId: Int,
-    val status: String,
+    val status: String
 )

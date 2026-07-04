@@ -2,17 +2,17 @@ package com.daynest.android.feature.calendar
 
 import com.daynest.android.core.storage.preferences.UserPreferences
 import com.daynest.android.data.calendar.DeviceCalendarRepository
+import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.time.LocalDate
 
 internal class CalendarDeviceEventsHandler(
     private val scope: CoroutineScope,
     private val deviceCalendarRepository: DeviceCalendarRepository,
     private val uiState: MutableStateFlow<CalendarUiState>,
-    private val preferences: () -> UserPreferences,
+    private val preferences: () -> UserPreferences
 ) {
     fun load(date: LocalDate) {
         scope.launch {
@@ -20,7 +20,7 @@ internal class CalendarDeviceEventsHandler(
                 updateContent {
                     it.copy(
                         deviceCalendarEvents = emptyList(),
-                        deviceCalendarStatus = DeviceCalendarStatus.Idle,
+                        deviceCalendarStatus = DeviceCalendarStatus.Idle
                     )
                 }
                 return@launch
@@ -29,7 +29,7 @@ internal class CalendarDeviceEventsHandler(
                 updateContent {
                     it.copy(
                         deviceCalendarEvents = emptyList(),
-                        deviceCalendarStatus = DeviceCalendarStatus.NoEnabledCalendars,
+                        deviceCalendarStatus = DeviceCalendarStatus.NoEnabledCalendars
                     )
                 }
                 return@launch
@@ -43,7 +43,7 @@ internal class CalendarDeviceEventsHandler(
                         current.copy(
                             deviceCalendarEvents = events,
                             deviceCalendarStatus =
-                                if (events.isEmpty()) DeviceCalendarStatus.Empty else DeviceCalendarStatus.Ready,
+                            if (events.isEmpty()) DeviceCalendarStatus.Empty else DeviceCalendarStatus.Ready
                         )
                     }
                 }.onFailure {
@@ -51,7 +51,7 @@ internal class CalendarDeviceEventsHandler(
                         if (current.selectedDate != date.toString()) return@updateContent current
                         current.copy(
                             deviceCalendarEvents = emptyList(),
-                            deviceCalendarStatus = DeviceCalendarStatus.PermissionRequired,
+                            deviceCalendarStatus = DeviceCalendarStatus.PermissionRequired
                         )
                     }
                 }
@@ -69,7 +69,7 @@ internal class CalendarDeviceEventsHandler(
                     if (current is CalendarUiState.Content) {
                         current.copy(
                             deviceCalendarEvents = emptyList(),
-                            deviceCalendarStatus = DeviceCalendarStatus.PermissionRequired,
+                            deviceCalendarStatus = DeviceCalendarStatus.PermissionRequired
                         )
                     } else {
                         current

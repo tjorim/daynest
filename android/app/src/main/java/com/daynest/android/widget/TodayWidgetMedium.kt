@@ -49,10 +49,7 @@ import com.daynest.android.R
 class TodayWidgetMedium : GlanceAppWidget() {
     override val stateDefinition = PreferencesGlanceStateDefinition
 
-    override suspend fun provideGlance(
-        context: Context,
-        id: GlanceId,
-    ) {
+    override suspend fun provideGlance(context: Context, id: GlanceId) {
         provideContent { MediumWidgetContent() }
     }
 }
@@ -78,35 +75,31 @@ private fun MediumWidgetContent() {
     }
 }
 
-private fun Preferences.toMediumWidgetState(): MediumWidgetState =
-    MediumWidgetState(
-        completionPercent = this[TodayWidgetStateKeys.COMPLETION_PERCENT] ?: 0,
-        overdueCount = this[TodayWidgetStateKeys.OVERDUE_COUNT] ?: 0,
-        nextMedication = this[TodayWidgetStateKeys.NEXT_MEDICATION_NAME],
-        dueItems =
-            listOfNotNull(
-                this[TodayWidgetStateKeys.DUE_ITEM_0],
-                this[TodayWidgetStateKeys.DUE_ITEM_1],
-                this[TodayWidgetStateKeys.DUE_ITEM_2],
-            ),
-        dataLoaded = this[TodayWidgetStateKeys.DATA_LOADED] ?: false,
-        showMedication = this[TodayWidgetStateKeys.SHOW_MEDICATION] ?: true,
-        showDueItems = this[TodayWidgetStateKeys.SHOW_DUE_ITEMS] ?: true,
-        showOverdue = this[TodayWidgetStateKeys.SHOW_OVERDUE] ?: true,
-    )
+private fun Preferences.toMediumWidgetState(): MediumWidgetState = MediumWidgetState(
+    completionPercent = this[TodayWidgetStateKeys.COMPLETION_PERCENT] ?: 0,
+    overdueCount = this[TodayWidgetStateKeys.OVERDUE_COUNT] ?: 0,
+    nextMedication = this[TodayWidgetStateKeys.NEXT_MEDICATION_NAME],
+    dueItems =
+    listOfNotNull(
+        this[TodayWidgetStateKeys.DUE_ITEM_0],
+        this[TodayWidgetStateKeys.DUE_ITEM_1],
+        this[TodayWidgetStateKeys.DUE_ITEM_2]
+    ),
+    dataLoaded = this[TodayWidgetStateKeys.DATA_LOADED] ?: false,
+    showMedication = this[TodayWidgetStateKeys.SHOW_MEDICATION] ?: true,
+    showDueItems = this[TodayWidgetStateKeys.SHOW_DUE_ITEMS] ?: true,
+    showOverdue = this[TodayWidgetStateKeys.SHOW_OVERDUE] ?: true
+)
 
 @Composable
-private fun MediumWidgetContainer(
-    launchIntent: Intent,
-    content: @Composable () -> Unit,
-) {
+private fun MediumWidgetContainer(launchIntent: Intent, content: @Composable () -> Unit) {
     Box(
         modifier =
-            GlanceModifier
-                .fillMaxSize()
-                .background(GlanceTheme.colors.surface)
-                .clickable(actionStartActivity(launchIntent))
-                .padding(12.dp),
+        GlanceModifier
+            .fillMaxSize()
+            .background(GlanceTheme.colors.surface)
+            .clickable(actionStartActivity(launchIntent))
+            .padding(12.dp)
     ) {
         content()
     }
@@ -116,24 +109,21 @@ private fun MediumWidgetContainer(
 private fun MediumWidgetNoData(context: Context) {
     Box(
         modifier = GlanceModifier.fillMaxSize(),
-        contentAlignment = Alignment.Center,
+        contentAlignment = Alignment.Center
     ) {
         Text(
             text = context.getString(R.string.widget_no_data),
             style =
-                TextStyle(
-                    color = GlanceTheme.colors.onSurface,
-                    fontSize = 12.sp,
-                ),
+            TextStyle(
+                color = GlanceTheme.colors.onSurface,
+                fontSize = 12.sp
+            )
         )
     }
 }
 
 @Composable
-private fun MediumWidgetLoadedContent(
-    widgetState: MediumWidgetState,
-    context: Context,
-) {
+private fun MediumWidgetLoadedContent(widgetState: MediumWidgetState, context: Context) {
     Column(modifier = GlanceModifier.fillMaxSize()) {
         MediumWidgetTitleRow(widgetState = widgetState, context = context)
         Spacer(modifier = GlanceModifier.height(6.dp))
@@ -145,44 +135,38 @@ private fun MediumWidgetLoadedContent(
 }
 
 @Composable
-private fun MediumWidgetTitleRow(
-    widgetState: MediumWidgetState,
-    context: Context,
-) {
+private fun MediumWidgetTitleRow(widgetState: MediumWidgetState, context: Context) {
     Row(
         modifier = GlanceModifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
+        verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
             text = context.getString(R.string.widget_title),
             modifier = GlanceModifier.defaultWeight(),
             style =
-                TextStyle(
-                    color = GlanceTheme.colors.onSurface,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold,
-                ),
+            TextStyle(
+                color = GlanceTheme.colors.onSurface,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold
+            )
         )
         Text(
             text = context.getString(R.string.widget_completion_done, widgetState.completionPercent),
             style =
-                TextStyle(
-                    color = GlanceTheme.colors.primary,
-                    fontSize = 12.sp,
-                ),
+            TextStyle(
+                color = GlanceTheme.colors.primary,
+                fontSize = 12.sp
+            )
         )
     }
 }
 
 @Composable
-private fun MediumWidgetStatusRow(
-    widgetState: MediumWidgetState,
-    context: Context,
-) {
+private fun MediumWidgetStatusRow(widgetState: MediumWidgetState, context: Context) {
     if (!widgetState.hasStatusRow) return
     Row(
         modifier = GlanceModifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
+        verticalAlignment = Alignment.CenterVertically
     ) {
         MediumWidgetOverdueBadge(widgetState = widgetState, context = context)
         if (widgetState.hasOverdue && widgetState.hasMedication) {
@@ -194,92 +178,80 @@ private fun MediumWidgetStatusRow(
 }
 
 @Composable
-private fun MediumWidgetOverdueBadge(
-    widgetState: MediumWidgetState,
-    context: Context,
-) {
+private fun MediumWidgetOverdueBadge(widgetState: MediumWidgetState, context: Context) {
     if (!widgetState.hasOverdue) return
     Text(
         text =
-            context.resources.getQuantityString(
-                R.plurals.widget_overdue_count,
-                widgetState.overdueCount,
-                widgetState.overdueCount,
-            ),
+        context.resources.getQuantityString(
+            R.plurals.widget_overdue_count,
+            widgetState.overdueCount,
+            widgetState.overdueCount
+        ),
         style =
-            TextStyle(
-                color = GlanceTheme.colors.error,
-                fontSize = 11.sp,
-            ),
+        TextStyle(
+            color = GlanceTheme.colors.error,
+            fontSize = 11.sp
+        )
     )
 }
 
 @Composable
-private fun MediumWidgetMedicationChip(
-    widgetState: MediumWidgetState,
-    context: Context,
-) {
+private fun MediumWidgetMedicationChip(widgetState: MediumWidgetState, context: Context) {
     val medication = widgetState.nextMedication ?: return
     if (!widgetState.showMedication) return
     Text(
         text = context.getString(R.string.widget_medication_chip, medication),
         style =
-            TextStyle(
-                color = GlanceTheme.colors.secondary,
-                fontSize = 11.sp,
-            ),
+        TextStyle(
+            color = GlanceTheme.colors.secondary,
+            fontSize = 11.sp
+        )
     )
 }
 
 @Composable
-private fun MediumWidgetDueItems(
-    widgetState: MediumWidgetState,
-    context: Context,
-) {
+private fun MediumWidgetDueItems(widgetState: MediumWidgetState, context: Context) {
     if (!widgetState.showDueItems) return
     widgetState.dueItems.forEach { title ->
         Text(
             text = context.getString(R.string.widget_due_item, title),
             style =
-                TextStyle(
-                    color = GlanceTheme.colors.onSurface,
-                    fontSize = 11.sp,
-                ),
+            TextStyle(
+                color = GlanceTheme.colors.onSurface,
+                fontSize = 11.sp
+            )
         )
     }
 }
 
 @Composable
-private fun WidgetProgressBar(
-    percent: Int,
-    modifier: GlanceModifier = GlanceModifier,
-) {
+private fun WidgetProgressBar(percent: Int, modifier: GlanceModifier = GlanceModifier) {
     val segments = 10
     val filled = ((percent * segments) / 100).coerceIn(0, segments)
     val filledColor =
         ColorProvider(
             day = Color(0xFF4CAF50),
-            night = Color(0xFF81C784),
+            night = Color(0xFF81C784)
         )
     val trackColor =
         ColorProvider(
             day = Color(0xFFE0E0E0),
-            night = Color(0xFF424242),
+            night = Color(0xFF424242)
         )
     Row(
         modifier =
-            modifier
-                .fillMaxWidth()
-                .height(8.dp),
+        modifier
+            .fillMaxWidth()
+            .height(8.dp)
     ) {
         repeat(segments) { index ->
             Box(
                 modifier =
-                    GlanceModifier
-                        .defaultWeight()
-                        .fillMaxHeight()
-                        .padding(start = 1.dp, end = 1.dp)
-                        .background(if (index < filled) filledColor else trackColor),
+                GlanceModifier
+                    .defaultWeight()
+                    .fillMaxHeight()
+                    .padding(start = 1.dp, end = 1.dp)
+                    .background(if (index < filled) filledColor else trackColor)
             ) {}
         }
     }
@@ -293,7 +265,7 @@ private data class MediumWidgetState(
     val dataLoaded: Boolean,
     val showMedication: Boolean,
     val showDueItems: Boolean,
-    val showOverdue: Boolean,
+    val showOverdue: Boolean
 ) {
     val hasOverdue: Boolean = showOverdue && overdueCount > 0
     val hasMedication: Boolean = showMedication && nextMedication != null

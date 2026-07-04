@@ -28,49 +28,49 @@ fun DaynestParityRoute(
     onNavigate: (String) -> Unit,
     @StringRes titleRes: Int,
     @StringRes subtitleRes: Int,
-    capabilityResIds: List<Int>,
+    capabilityResIds: List<Int>
 ) {
     DaynestNavigationScaffold(
         currentRoute = currentRoute,
-        onNavigate = onNavigate,
+        onNavigate = onNavigate
     ) { innerPadding ->
         LazyColumn(
             modifier =
-                Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding),
+            Modifier
+                .fillMaxSize()
+                .padding(innerPadding),
             contentPadding = PaddingValues(24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item {
                 Column {
                     Text(
                         text = stringResource(id = titleRes),
-                        style = MaterialTheme.typography.headlineMedium,
+                        style = MaterialTheme.typography.headlineMedium
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = stringResource(id = subtitleRes),
-                        style = MaterialTheme.typography.bodyLarge,
+                        style = MaterialTheme.typography.bodyLarge
                     )
                 }
             }
             itemsIndexed(
                 capabilityResIds,
-                key = { index, capabilityResId -> "capability_${capabilityResId}_$index" },
+                key = { index, capabilityResId -> "capability_${capabilityResId}_$index" }
             ) { _, capabilityResId ->
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Text(
                         text = stringResource(id = capabilityResId),
                         modifier = Modifier.padding(16.dp),
-                        style = MaterialTheme.typography.bodyMedium,
+                        style = MaterialTheme.typography.bodyMedium
                     )
                 }
             }
             item {
                 Text(
                     text = stringResource(id = R.string.parity_more_coming),
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.bodySmall
                 )
             }
         }

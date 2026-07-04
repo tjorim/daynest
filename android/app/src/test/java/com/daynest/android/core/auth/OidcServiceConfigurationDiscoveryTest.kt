@@ -5,6 +5,7 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.unmockkStatic
+import java.io.IOException
 import okhttp3.OkHttpClient
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
@@ -14,7 +15,6 @@ import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
-import java.io.IOException
 
 class OidcServiceConfigurationDiscoveryTest {
     private val server = MockWebServer()
@@ -50,8 +50,8 @@ class OidcServiceConfigurationDiscoveryTest {
                   "authorization_url": "https://auth.example.test/realms/daynest/protocol/openid-connect/auth",
                   "token_url": "https://auth.example.test/realms/daynest/protocol/openid-connect/token"
                 }
-                """.trimIndent(),
-            ),
+                """.trimIndent()
+            )
         )
 
         val config =
@@ -61,11 +61,11 @@ class OidcServiceConfigurationDiscoveryTest {
         assertEquals("/api/v1/auth/oidc-config", server.takeRequest().path)
         assertEquals(
             "https://auth.example.test/realms/daynest/protocol/openid-connect/auth",
-            config.authorizationEndpoint.toString(),
+            config.authorizationEndpoint.toString()
         )
         assertEquals(
             "https://auth.example.test/realms/daynest/protocol/openid-connect/token",
-            config.tokenEndpoint.toString(),
+            config.tokenEndpoint.toString()
         )
     }
 

@@ -17,10 +17,8 @@ import javax.inject.Singleton
 object PreferencesDiModule {
     @Provides
     @Singleton
-    fun provideDataStore(
-        @ApplicationContext context: Context,
-    ): DataStore<Preferences> =
+    fun provideDataStore(@ApplicationContext context: Context): DataStore<Preferences> =
         PreferenceDataStoreFactory.create(
-            produceFile = { context.preferencesDataStoreFile("daynest_user_prefs") },
+            produceFile = { context.preferencesDataStoreFile("daynest_user_prefs") }
         )
 }

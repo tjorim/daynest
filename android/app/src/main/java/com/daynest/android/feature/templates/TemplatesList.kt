@@ -44,17 +44,17 @@ fun TemplatesList(
     onEditChore: (ChoreTemplateDto) -> Unit,
     onDeleteRoutine: (RoutineTemplateDto) -> Unit,
     onDeleteChore: (ChoreTemplateDto) -> Unit,
-    modifier: Modifier = Modifier,
+    modifier: Modifier = Modifier
 ) {
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         item {
             Text(
                 text = stringResource(id = R.string.templates_title),
-                style = MaterialTheme.typography.headlineMedium,
+                style = MaterialTheme.typography.headlineMedium
             )
         }
 
@@ -63,7 +63,7 @@ fun TemplatesList(
                 Text(
                     text = message,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error,
+                    color = MaterialTheme.colorScheme.error
                 )
             }
         }
@@ -77,36 +77,33 @@ fun TemplatesList(
                 routineTemplatesList(
                     routines = state.routines,
                     onEdit = onEditRoutine,
-                    onDelete = onDeleteRoutine,
+                    onDelete = onDeleteRoutine
                 )
             TemplateTab.Chores ->
                 choreTemplatesList(
                     chores = state.chores,
                     onEdit = onEditChore,
-                    onDelete = onDeleteChore,
+                    onDelete = onDeleteChore
                 )
         }
     }
 }
 
 @Composable
-private fun TemplatesTabRow(
-    selectedTab: TemplateTab,
-    onEvent: (TemplatesUiEvent) -> Unit,
-) {
+private fun TemplatesTabRow(selectedTab: TemplateTab, onEvent: (TemplatesUiEvent) -> Unit) {
     PrimaryTabRow(
         selectedTabIndex = selectedTab.ordinal,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth()
     ) {
         Tab(
             selected = selectedTab == TemplateTab.Routines,
             onClick = { onEvent(TemplatesUiEvent.TabSelected(TemplateTab.Routines)) },
-            text = { Text(text = stringResource(id = R.string.templates_tab_routines)) },
+            text = { Text(text = stringResource(id = R.string.templates_tab_routines)) }
         )
         Tab(
             selected = selectedTab == TemplateTab.Chores,
             onClick = { onEvent(TemplatesUiEvent.TabSelected(TemplateTab.Chores)) },
-            text = { Text(text = stringResource(id = R.string.templates_tab_chores)) },
+            text = { Text(text = stringResource(id = R.string.templates_tab_chores)) }
         )
     }
 }
@@ -114,7 +111,7 @@ private fun TemplatesTabRow(
 private fun LazyListScope.routineTemplatesList(
     routines: List<RoutineTemplateDto>,
     onEdit: (RoutineTemplateDto) -> Unit,
-    onDelete: (RoutineTemplateDto) -> Unit,
+    onDelete: (RoutineTemplateDto) -> Unit
 ) {
     if (routines.isEmpty()) {
         item {
@@ -125,7 +122,7 @@ private fun LazyListScope.routineTemplatesList(
             SwipeToDeleteTemplateCard(onDeleteRequested = { onDelete(routine) }) {
                 RoutineTemplateCard(
                     routine = routine,
-                    onEdit = { onEdit(routine) },
+                    onEdit = { onEdit(routine) }
                 )
             }
         }
@@ -135,7 +132,7 @@ private fun LazyListScope.routineTemplatesList(
 private fun LazyListScope.choreTemplatesList(
     chores: List<ChoreTemplateDto>,
     onEdit: (ChoreTemplateDto) -> Unit,
-    onDelete: (ChoreTemplateDto) -> Unit,
+    onDelete: (ChoreTemplateDto) -> Unit
 ) {
     if (chores.isEmpty()) {
         item {
@@ -146,7 +143,7 @@ private fun LazyListScope.choreTemplatesList(
             SwipeToDeleteTemplateCard(onDeleteRequested = { onDelete(chore) }) {
                 ChoreTemplateCard(
                     chore = chore,
-                    onEdit = { onEdit(chore) },
+                    onEdit = { onEdit(chore) }
                 )
             }
         }
@@ -158,57 +155,48 @@ private fun EmptyTemplatesMessage(textResId: Int) {
     Text(
         text = stringResource(id = textResId),
         style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.outline,
+        color = MaterialTheme.colorScheme.outline
     )
 }
 
 @Composable
-private fun RoutineTemplateCard(
-    routine: RoutineTemplateDto,
-    onEdit: () -> Unit,
-) {
+private fun RoutineTemplateCard(routine: RoutineTemplateDto, onEdit: () -> Unit) {
     TemplateCard(onEdit = onEdit) {
         TemplateCardBody(
             name = routine.name,
             description = routine.description,
             everyNDays = routine.everyNDays,
-            isActive = routine.isActive,
+            isActive = routine.isActive
         )
     }
 }
 
 @Composable
-private fun ChoreTemplateCard(
-    chore: ChoreTemplateDto,
-    onEdit: () -> Unit,
-) {
+private fun ChoreTemplateCard(chore: ChoreTemplateDto, onEdit: () -> Unit) {
     TemplateCard(onEdit = onEdit) {
         TemplateCardBody(
             name = chore.name,
             description = chore.description,
             everyNDays = chore.everyNDays,
-            isActive = chore.isActive,
+            isActive = chore.isActive
         )
     }
 }
 
 @Composable
-private fun TemplateCard(
-    onEdit: () -> Unit,
-    body: @Composable () -> Unit,
-) {
+private fun TemplateCard(onEdit: () -> Unit, body: @Composable () -> Unit) {
     Card(
         modifier =
-            Modifier
-                .fillMaxWidth()
-                .clickable(onClick = onEdit),
+        Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onEdit)
     ) {
         Row(
             modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
+            Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 body()
@@ -221,50 +209,41 @@ private fun TemplateCard(
 }
 
 @Composable
-private fun TemplateCardBody(
-    name: String,
-    description: String?,
-    everyNDays: Int,
-    isActive: Boolean,
-) {
+private fun TemplateCardBody(name: String, description: String?, everyNDays: Int, isActive: Boolean) {
     Text(text = name, style = MaterialTheme.typography.bodyMedium)
     if (!description.isNullOrBlank()) {
         Text(
             text = description,
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.outline,
+            color = MaterialTheme.colorScheme.outline
         )
     }
     Text(
         text = stringResource(id = R.string.templates_every_n_days, everyNDays),
         style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.outline,
+        color = MaterialTheme.colorScheme.outline
     )
     Text(
         text = activeLabel(isActive),
         style = MaterialTheme.typography.labelSmall,
-        color = MaterialTheme.colorScheme.outline,
+        color = MaterialTheme.colorScheme.outline
     )
 }
 
 @Composable
-fun activeLabel(isActive: Boolean): String =
-    if (isActive) {
-        stringResource(id = R.string.templates_active)
-    } else {
-        stringResource(id = R.string.templates_inactive)
-    }
+fun activeLabel(isActive: Boolean): String = if (isActive) {
+    stringResource(id = R.string.templates_active)
+} else {
+    stringResource(id = R.string.templates_inactive)
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun SwipeToDeleteTemplateCard(
-    onDeleteRequested: () -> Unit,
-    content: @Composable RowScope.() -> Unit,
-) {
+private fun SwipeToDeleteTemplateCard(onDeleteRequested: () -> Unit, content: @Composable RowScope.() -> Unit) {
     val dismissState =
         rememberSwipeToDismissBoxState(
             initialValue = SwipeToDismissBoxValue.Settled,
-            positionalThreshold = SwipeToDismissBoxDefaults.positionalThreshold,
+            positionalThreshold = SwipeToDismissBoxDefaults.positionalThreshold
         )
 
     LaunchedEffect(dismissState.currentValue) {
@@ -280,18 +259,18 @@ private fun SwipeToDeleteTemplateCard(
         backgroundContent = {
             Box(
                 modifier =
-                    Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 16.dp),
-                contentAlignment = Alignment.CenterEnd,
+                Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp),
+                contentAlignment = Alignment.CenterEnd
             ) {
                 Text(
                     text = stringResource(id = R.string.action_delete),
                     color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.labelLarge,
+                    style = MaterialTheme.typography.labelLarge
                 )
             }
         },
-        content = content,
+        content = content
     )
 }

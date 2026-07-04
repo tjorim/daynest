@@ -24,35 +24,35 @@ internal fun DayItemCard(
     item: UnifiedDayItemDto,
     onEdit: (() -> Unit)?,
     onDelete: (() -> Unit)?,
-    onDeleteFuture: (() -> Unit)? = null,
+    onDeleteFuture: (() -> Unit)? = null
 ) {
     val isRecurring = item.rrule != null || item.recurrenceSeriesId != null
     Card(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
+            Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 val displayTitle =
                     if (isRecurring) stringResource(R.string.planned_item_recurring_title, item.title) else item.title
                 Text(
                     text = displayTitle,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.bodyMedium
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
                         text = item.itemType,
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary,
+                        color = MaterialTheme.colorScheme.primary
                     )
                     if (item.status.isNotEmpty()) {
                         Text(
                             text = item.status,
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.outline,
+                            color = MaterialTheme.colorScheme.outline
                         )
                     }
                 }
@@ -60,7 +60,7 @@ internal fun DayItemCard(
                     Text(
                         text = item.detail,
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline,
+                        color = MaterialTheme.colorScheme.outline
                     )
                 }
             }
@@ -77,29 +77,25 @@ internal fun DayItemCard(
 }
 
 @Composable
-private fun DayItemDeleteButtons(
-    isRecurring: Boolean,
-    onDelete: () -> Unit,
-    onDeleteFuture: (() -> Unit)?,
-) {
+private fun DayItemDeleteButtons(isRecurring: Boolean, onDelete: () -> Unit, onDeleteFuture: (() -> Unit)?) {
     if (isRecurring && onDeleteFuture != null) {
         TextButton(onClick = onDelete) {
             Text(
                 text = stringResource(id = R.string.action_delete_this),
-                color = MaterialTheme.colorScheme.error,
+                color = MaterialTheme.colorScheme.error
             )
         }
         TextButton(onClick = onDeleteFuture) {
             Text(
                 text = stringResource(id = R.string.action_delete_this_and_future),
-                color = MaterialTheme.colorScheme.error,
+                color = MaterialTheme.colorScheme.error
             )
         }
     } else {
         TextButton(onClick = onDelete) {
             Text(
                 text = stringResource(id = R.string.action_delete),
-                color = MaterialTheme.colorScheme.error,
+                color = MaterialTheme.colorScheme.error
             )
         }
     }

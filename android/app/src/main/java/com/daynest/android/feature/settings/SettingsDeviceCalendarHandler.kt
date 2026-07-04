@@ -14,7 +14,7 @@ internal class SettingsDeviceCalendarHandler(
     private val appContext: Context,
     private val deviceCalendarRepository: DeviceCalendarRepository,
     private val userPreferencesRepository: UserPreferencesRepository,
-    private val uiState: MutableStateFlow<SettingsUiState>,
+    private val uiState: MutableStateFlow<SettingsUiState>
 ) {
     fun onPreferencesEvent(event: SettingsUiEvent) {
         when (event) {
@@ -61,7 +61,7 @@ internal class SettingsDeviceCalendarHandler(
                         current.copy(
                             showDeviceCalendars = enabled,
                             deviceCalendars = calendars,
-                            enabledDeviceCalendarIds = updatedIds,
+                            enabledDeviceCalendarIds = updatedIds
                         )
                     } else {
                         current
@@ -74,10 +74,7 @@ internal class SettingsDeviceCalendarHandler(
         }
     }
 
-    fun updateDeviceCalendarEnabled(
-        calendarId: String,
-        enabled: Boolean,
-    ) {
+    fun updateDeviceCalendarEnabled(calendarId: String, enabled: Boolean) {
         scope.launch {
             var updatedIds: Set<String>? = null
             uiState.update { state ->

@@ -7,23 +7,14 @@ import retrofit2.http.Query
 
 interface CalendarApi {
     @GET("api/v1/calendar/month")
-    suspend fun getMonth(
-        @Query("year") year: Int,
-        @Query("month") month: Int,
-    ): CalendarMonthDto
+    suspend fun getMonth(@Query("year") year: Int, @Query("month") month: Int): CalendarMonthDto
 
     @GET("api/v1/calendar/day")
-    suspend fun getDay(
-        @Query("date") date: String,
-    ): CalendarDayDto
+    suspend fun getDay(@Query("date") date: String): CalendarDayDto
 }
 
 @Serializable
-data class CalendarMonthDto(
-    val year: Int,
-    val month: Int,
-    val days: List<CalendarDaySummaryDto>,
-)
+data class CalendarMonthDto(val year: Int, val month: Int, val days: List<CalendarDaySummaryDto>)
 
 @Serializable
 data class CalendarDaySummaryDto(
@@ -32,14 +23,11 @@ data class CalendarDaySummaryDto(
     val routines: Int,
     val chores: Int,
     val medications: Int,
-    val planned: Int,
+    val planned: Int
 )
 
 @Serializable
-data class CalendarDayDto(
-    val date: String,
-    val items: List<UnifiedDayItemDto>,
-)
+data class CalendarDayDto(val date: String, val items: List<UnifiedDayItemDto>)
 
 @Serializable
 data class UnifiedDayItemDto(
@@ -64,5 +52,5 @@ data class UnifiedDayItemDto(
     @SerialName("linked_source")
     val linkedSource: String? = null,
     @SerialName("linked_ref")
-    val linkedRef: String? = null,
+    val linkedRef: String? = null
 )

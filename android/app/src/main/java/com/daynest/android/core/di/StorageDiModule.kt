@@ -16,9 +16,7 @@ import javax.inject.Singleton
 object StorageDiModule {
     @Provides
     @Singleton
-    fun provideSecurePreferences(
-        @ApplicationContext context: Context,
-    ): SharedPreferences {
+    fun provideSecurePreferences(@ApplicationContext context: Context): SharedPreferences {
         val masterKey =
             MasterKey
                 .Builder(context)
@@ -30,7 +28,7 @@ object StorageDiModule {
             "daynest_secure_store",
             masterKey,
             EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
         )
     }
 }

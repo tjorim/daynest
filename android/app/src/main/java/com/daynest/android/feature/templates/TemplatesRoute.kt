@@ -31,10 +31,7 @@ import com.daynest.android.data.templates.ChoreTemplateDto
 import com.daynest.android.data.templates.RoutineTemplateDto
 
 @Composable
-fun TemplatesRoute(
-    onNavigate: (String) -> Unit = {},
-    viewModel: TemplatesViewModel = hiltViewModel(),
-) {
+fun TemplatesRoute(onNavigate: (String) -> Unit = {}, viewModel: TemplatesViewModel = hiltViewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     TemplatesScreen(uiState = uiState, onEvent = viewModel::onEvent, onNavigate = onNavigate)
 }
@@ -43,7 +40,7 @@ fun TemplatesRoute(
 private fun TemplatesScreen(
     uiState: TemplatesUiState,
     onEvent: (TemplatesUiEvent) -> Unit,
-    onNavigate: (String) -> Unit,
+    onNavigate: (String) -> Unit
 ) {
     val selectedTab =
         (uiState as? TemplatesUiState.Content)?.selectedTab ?: TemplateTab.Routines
@@ -54,14 +51,14 @@ private fun TemplatesScreen(
             TemplatesFloatingActionButton(
                 isVisible = uiState is TemplatesUiState.Content,
                 selectedTab = selectedTab,
-                onEvent = onEvent,
+                onEvent = onEvent
             )
-        },
+        }
     ) { innerPadding ->
         TemplatesScreenContent(
             uiState = uiState,
             onEvent = onEvent,
-            innerPadding = innerPadding,
+            innerPadding = innerPadding
         )
     }
 }
@@ -70,7 +67,7 @@ private fun TemplatesScreen(
 private fun TemplatesFloatingActionButton(
     isVisible: Boolean,
     selectedTab: TemplateTab,
-    onEvent: (TemplatesUiEvent) -> Unit,
+    onEvent: (TemplatesUiEvent) -> Unit
 ) {
     if (!isVisible) return
 
@@ -81,9 +78,9 @@ private fun TemplatesFloatingActionButton(
                     TemplatesUiEvent.ShowCreateRoutineForm
                 } else {
                     TemplatesUiEvent.ShowCreateChoreForm
-                },
+                }
             )
-        },
+        }
     ) {
         Text(text = stringResource(id = R.string.action_add))
     }
@@ -93,21 +90,21 @@ private fun TemplatesFloatingActionButton(
 private fun TemplatesScreenContent(
     uiState: TemplatesUiState,
     onEvent: (TemplatesUiEvent) -> Unit,
-    innerPadding: PaddingValues,
+    innerPadding: PaddingValues
 ) {
     when (uiState) {
         TemplatesUiState.Loading -> TemplatesLoading(modifier = Modifier.padding(innerPadding))
         TemplatesUiState.Error -> {
             TemplatesError(
                 onRetry = { onEvent(TemplatesUiEvent.RetryClicked) },
-                modifier = Modifier.padding(innerPadding),
+                modifier = Modifier.padding(innerPadding)
             )
         }
         is TemplatesUiState.Content -> {
             TemplatesContent(
                 state = uiState,
                 onEvent = onEvent,
-                modifier = Modifier.padding(innerPadding),
+                modifier = Modifier.padding(innerPadding)
             )
         }
     }
@@ -117,32 +114,29 @@ private fun TemplatesScreenContent(
 private fun TemplatesLoading(modifier: Modifier = Modifier) {
     Box(
         modifier = modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center,
+        contentAlignment = Alignment.Center
     ) {
         CircularProgressIndicator()
     }
 }
 
 @Composable
-private fun TemplatesError(
-    onRetry: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
+private fun TemplatesError(onRetry: () -> Unit, modifier: Modifier = Modifier) {
     Column(
         modifier =
-            modifier
-                .fillMaxSize()
-                .padding(24.dp),
+        modifier
+            .fillMaxSize()
+            .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
+        verticalArrangement = Arrangement.Center
     ) {
         Text(
             text = stringResource(id = R.string.templates_error),
-            style = MaterialTheme.typography.bodyLarge,
+            style = MaterialTheme.typography.bodyLarge
         )
         Button(
             onClick = onRetry,
-            modifier = Modifier.padding(top = 16.dp),
+            modifier = Modifier.padding(top = 16.dp)
         ) {
             Text(text = stringResource(id = R.string.home_retry))
         }
@@ -153,7 +147,7 @@ private fun TemplatesError(
 private fun TemplatesContent(
     state: TemplatesUiState.Content,
     onEvent: (TemplatesUiEvent) -> Unit,
-    modifier: Modifier = Modifier,
+    modifier: Modifier = Modifier
 ) {
     var editRoutineTarget by remember { mutableStateOf<RoutineTemplateDto?>(null) }
     var editChoreTarget by remember { mutableStateOf<ChoreTemplateDto?>(null) }
@@ -167,7 +161,7 @@ private fun TemplatesContent(
         onEditChore = { editChoreTarget = it },
         onDeleteRoutine = { routineDeleteTarget = it },
         onDeleteChore = { choreDeleteTarget = it },
-        modifier = modifier,
+        modifier = modifier
     )
 
     TemplatesDialogs(
@@ -180,6 +174,6 @@ private fun TemplatesContent(
         routineDeleteTarget = routineDeleteTarget,
         onRoutineDeleteDismiss = { routineDeleteTarget = null },
         choreDeleteTarget = choreDeleteTarget,
-        onChoreDeleteDismiss = { choreDeleteTarget = null },
+        onChoreDeleteDismiss = { choreDeleteTarget = null }
     )
 }

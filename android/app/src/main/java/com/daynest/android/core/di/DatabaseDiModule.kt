@@ -21,13 +21,10 @@ import javax.inject.Singleton
 object DatabaseDiModule {
     @Provides
     @Singleton
-    fun provideDaynestDatabase(
-        @ApplicationContext context: Context,
-    ): DaynestDatabase =
-        Room
-            .databaseBuilder(context, DaynestDatabase::class.java, "daynest.db")
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
-            .build()
+    fun provideDaynestDatabase(@ApplicationContext context: Context): DaynestDatabase = Room
+        .databaseBuilder(context, DaynestDatabase::class.java, "daynest.db")
+        .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+        .build()
 
     @Provides
     @Singleton
@@ -57,7 +54,7 @@ object DatabaseDiModule {
                         createdAtEpochMillis INTEGER NOT NULL,
                         attempts INTEGER NOT NULL
                     )
-                    """.trimIndent(),
+                    """.trimIndent()
                 )
             }
         }
@@ -80,7 +77,7 @@ object DatabaseDiModule {
                         createdAtEpochMillis INTEGER NOT NULL,
                         consumedAtEpochMillis INTEGER
                     )
-                    """.trimIndent(),
+                    """.trimIndent()
                 )
             }
         }

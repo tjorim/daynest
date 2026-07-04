@@ -45,7 +45,7 @@ fun ShoppingListDetailRoute(
     listId: Int,
     onNavigate: (String) -> Unit = {},
     onBack: () -> Unit,
-    viewModel: ShoppingViewModel = hiltViewModel(),
+    viewModel: ShoppingViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -60,7 +60,7 @@ fun ShoppingListDetailRoute(
     DaynestNavigationScaffold(
         currentRoute = DaynestDestination.SHOPPING,
         onNavigate = onNavigate,
-        snackbarHostState = snackbarHostState,
+        snackbarHostState = snackbarHostState
     ) { innerPadding ->
         ShoppingListDetailContent(
             uiState = uiState,
@@ -73,7 +73,7 @@ fun ShoppingListDetailRoute(
             onAddRecurringItem = viewModel::addRecurringItem,
             onImportRecurring = viewModel::importRecurringItems,
             onCheckOff = viewModel::checkOffItem,
-            modifier = Modifier.padding(innerPadding),
+            modifier = Modifier.padding(innerPadding)
         )
     }
 }
@@ -88,7 +88,7 @@ private fun ShoppingListDetailContent(
     onAddRecurringItem: (String, String, String?, String?, String?, String?) -> Unit,
     onImportRecurring: () -> Unit,
     onCheckOff: (PlannedTodayItemDto) -> Unit,
-    modifier: Modifier = Modifier,
+    modifier: Modifier = Modifier
 ) {
     val openItems = remember(uiState.items) { uiState.items.filterNot { it.isDone } }
     val completedItems = remember(uiState.items) { uiState.items.filter { it.isDone } }
@@ -104,21 +104,21 @@ private fun ShoppingListDetailContent(
         RecurringItemBottomSheet(
             sheetState = recurringSheetState,
             onAddRecurringItem = onAddRecurringItem,
-            onDismiss = { showRecurringSheet = false },
+            onDismiss = { showRecurringSheet = false }
         )
     }
 
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
             ShoppingListHeader(
                 uiState = uiState,
                 openItemCount = openItems.size,
                 onBack = onBack,
-                onRefresh = onRefresh,
+                onRefresh = onRefresh
             )
         }
 
@@ -126,7 +126,7 @@ private fun ShoppingListDetailContent(
             item {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     CircularProgressIndicator()
                 }
@@ -141,7 +141,7 @@ private fun ShoppingListDetailContent(
             ShoppingListActions(
                 onShowRecurring = { showRecurringSheet = true },
                 onImportRecurring = onImportRecurring,
-                enabled = !uiState.isLoadingItems,
+                enabled = !uiState.isLoadingItems
             )
         }
 
@@ -150,7 +150,7 @@ private fun ShoppingListDetailContent(
         groupedItemsList(
             groupedOpenItems = groupedOpenItems,
             isLoadingItems = uiState.isLoadingItems,
-            onCheckOff = onCheckOff,
+            onCheckOff = onCheckOff
         )
         completedItemsList(completedItems = completedItems)
     }
@@ -161,22 +161,22 @@ private fun ShoppingListHeader(
     uiState: ShoppingUiState,
     openItemCount: Int,
     onBack: () -> Unit,
-    onRefresh: () -> Unit,
+    onRefresh: () -> Unit
 ) {
     TextButton(onClick = onBack) { Text(text = stringResource(id = R.string.shopping_back_to_lists)) }
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
+        verticalAlignment = Alignment.CenterVertically
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = uiState.selectedList?.name ?: stringResource(id = R.string.shopping_title),
-                style = MaterialTheme.typography.headlineMedium,
+                style = MaterialTheme.typography.headlineMedium
             )
             Text(
                 text = stringResource(id = R.string.shopping_item_count, openItemCount),
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodyMedium
             )
         }
         TextButton(onClick = onRefresh) { Text(text = stringResource(id = R.string.action_refresh)) }
@@ -195,29 +195,29 @@ private fun AddItemForm(onAddItem: (String, String?, String?) -> Unit) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
                 text = stringResource(id = R.string.shopping_add_item),
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.titleMedium
             )
             OutlinedTextField(
                 value = itemTitle,
                 onValueChange = { itemTitle = it },
                 label = { Text(text = stringResource(id = R.string.shopping_item_name)) },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth()
             )
             OutlinedTextField(
                 value = itemTag,
                 onValueChange = { itemTag = it },
                 label = { Text(text = stringResource(id = R.string.shopping_category_tag)) },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth()
             )
             OutlinedTextField(
                 value = itemNotes,
                 onValueChange = { itemNotes = it },
                 label = { Text(text = stringResource(id = R.string.shopping_notes)) },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth()
             )
             Button(
                 onClick = {
@@ -226,7 +226,7 @@ private fun AddItemForm(onAddItem: (String, String?, String?) -> Unit) {
                     itemTag = ""
                     itemNotes = ""
                 },
-                enabled = itemTitle.isNotBlank(),
+                enabled = itemTitle.isNotBlank()
             ) {
                 Text(text = stringResource(id = R.string.action_add))
             }
@@ -235,15 +235,11 @@ private fun AddItemForm(onAddItem: (String, String?, String?) -> Unit) {
 }
 
 @Composable
-private fun ShoppingListActions(
-    onShowRecurring: () -> Unit,
-    onImportRecurring: () -> Unit,
-    enabled: Boolean = true,
-) {
+private fun ShoppingListActions(onShowRecurring: () -> Unit, onImportRecurring: () -> Unit, enabled: Boolean = true) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Button(onClick = onShowRecurring, modifier = Modifier.fillMaxWidth(), enabled = enabled) {
                 Text(text = stringResource(id = R.string.shopping_add_recurring_item))
@@ -258,7 +254,7 @@ private fun ShoppingListActions(
 private fun LazyListScope.groupedItemsList(
     groupedOpenItems: Map<String, List<PlannedTodayItemDto>>,
     isLoadingItems: Boolean,
-    onCheckOff: (PlannedTodayItemDto) -> Unit,
+    onCheckOff: (PlannedTodayItemDto) -> Unit
 ) {
     if (groupedOpenItems.isEmpty() && !isLoadingItems) {
         item { Text(text = stringResource(id = R.string.shopping_no_items)) }
@@ -276,7 +272,7 @@ private fun LazyListScope.completedItemsList(completedItems: List<PlannedTodayIt
         item {
             Text(
                 text = stringResource(id = R.string.shopping_completed_items, completedItems.size),
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.titleMedium
             )
         }
         items(completedItems, key = { it.id }) { item ->
@@ -286,18 +282,15 @@ private fun LazyListScope.completedItemsList(completedItems: List<PlannedTodayIt
 }
 
 @Composable
-private fun ShoppingItemRow(
-    item: PlannedTodayItemDto,
-    onCheckOff: (PlannedTodayItemDto) -> Unit,
-) {
+private fun ShoppingItemRow(item: PlannedTodayItemDto, onCheckOff: (PlannedTodayItemDto) -> Unit) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier =
-                Modifier
-                    .padding(12.dp)
-                    .fillMaxWidth(),
+            Modifier
+                .padding(12.dp)
+                .fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Checkbox(checked = item.isDone, onCheckedChange = { checked -> if (checked) onCheckOff(item) })
             Column(modifier = Modifier.weight(1f)) {

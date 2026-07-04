@@ -14,39 +14,25 @@ interface TemplatesApi {
     suspend fun listRoutines(): List<RoutineTemplateDto>
 
     @POST("api/v1/templates/routines")
-    suspend fun createRoutine(
-        @Body request: RoutineTemplateInputDto,
-    ): RoutineTemplateDto
+    suspend fun createRoutine(@Body request: RoutineTemplateInputDto): RoutineTemplateDto
 
     @PUT("api/v1/templates/routines/{id}")
-    suspend fun updateRoutine(
-        @Path("id") id: Int,
-        @Body request: RoutineTemplateInputDto,
-    ): RoutineTemplateDto
+    suspend fun updateRoutine(@Path("id") id: Int, @Body request: RoutineTemplateInputDto): RoutineTemplateDto
 
     @DELETE("api/v1/templates/routines/{id}")
-    suspend fun deleteRoutine(
-        @Path("id") id: Int,
-    )
+    suspend fun deleteRoutine(@Path("id") id: Int)
 
     @GET("api/v1/templates/chores")
     suspend fun listChores(): List<ChoreTemplateDto>
 
     @POST("api/v1/templates/chores")
-    suspend fun createChore(
-        @Body request: ChoreTemplateInputDto,
-    ): ChoreTemplateDto
+    suspend fun createChore(@Body request: ChoreTemplateInputDto): ChoreTemplateDto
 
     @PUT("api/v1/templates/chores/{id}")
-    suspend fun updateChore(
-        @Path("id") id: Int,
-        @Body request: ChoreTemplateInputDto,
-    ): ChoreTemplateDto
+    suspend fun updateChore(@Path("id") id: Int, @Body request: ChoreTemplateInputDto): ChoreTemplateDto
 
     @DELETE("api/v1/templates/chores/{id}")
-    suspend fun deleteChore(
-        @Path("id") id: Int,
-    )
+    suspend fun deleteChore(@Path("id") id: Int)
 }
 
 @Serializable
@@ -63,7 +49,7 @@ data class RoutineTemplateDto(
     @SerialName("is_active")
     val isActive: Boolean,
     @SerialName("created_at")
-    val createdAt: String,
+    val createdAt: String
 )
 
 @Serializable
@@ -77,7 +63,7 @@ data class RoutineTemplateInputDto(
     @SerialName("due_time")
     val dueTime: String? = null,
     @SerialName("is_active")
-    val isActive: Boolean,
+    val isActive: Boolean
 )
 
 @Serializable
@@ -92,7 +78,7 @@ data class ChoreTemplateDto(
     @SerialName("is_active")
     val isActive: Boolean,
     @SerialName("created_at")
-    val createdAt: String,
+    val createdAt: String
 )
 
 @Serializable
@@ -104,5 +90,5 @@ data class ChoreTemplateInputDto(
     @SerialName("every_n_days")
     val everyNDays: Int,
     @SerialName("is_active")
-    val isActive: Boolean,
+    val isActive: Boolean
 )

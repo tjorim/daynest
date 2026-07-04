@@ -9,46 +9,25 @@ import com.daynest.android.data.today.PlannedItemUpdateDto
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class MutationIdPayload(
-    val id: Int,
-)
+data class MutationIdPayload(val id: Int)
 
 @Serializable
-data class ReschedulePayload(
-    val id: Int,
-    val scheduledDate: String,
-)
+data class ReschedulePayload(val id: Int, val scheduledDate: String)
 
 @Serializable
-data class UpdatePlannedPayload(
-    val id: Int,
-    val request: PlannedItemUpdateDto,
-    val scope: EditScope = EditScope.THIS,
-)
+data class UpdatePlannedPayload(val id: Int, val request: PlannedItemUpdateDto, val scope: EditScope = EditScope.THIS)
 
 @Serializable
-data class DeletePlannedPayload(
-    val id: Int,
-    val scope: DeleteScope = DeleteScope.THIS,
-)
+data class DeletePlannedPayload(val id: Int, val scope: DeleteScope = DeleteScope.THIS)
 
 @Serializable
-data class CreatePlannedPayload(
-    val request: PlannedItemCreateDto,
-)
+data class CreatePlannedPayload(val request: PlannedItemCreateDto)
 
 @Serializable
-data class CreateShoppingListPayload(
-    val request: ShoppingListCreateDto,
-)
+data class CreateShoppingListPayload(val request: ShoppingListCreateDto)
 
 @Serializable
-data class UpdateShoppingListPayload(
-    val id: Int,
-    val request: ShoppingListUpdateDto,
-)
+data class UpdateShoppingListPayload(val id: Int, val request: ShoppingListUpdateDto)
 
 @Serializable
-data class DeleteShoppingListPayload(
-    val id: Int,
-)
+data class DeleteShoppingListPayload(val id: Int)

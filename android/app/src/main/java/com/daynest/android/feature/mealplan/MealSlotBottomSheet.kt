@@ -28,12 +28,12 @@ fun MealSlotBottomSheet(
     onDraftChange: (MealSlotDraft) -> Unit,
     onDismiss: () -> Unit,
     onSave: () -> Unit,
-    modifier: Modifier = Modifier,
+    modifier: Modifier = Modifier
 ) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(
             modifier = modifier.padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(text = stringResource(id = R.string.meal_plan_edit_slot_title))
             OutlinedTextField(
@@ -41,7 +41,7 @@ fun MealSlotBottomSheet(
                 onValueChange = { onDraftChange(draft.copy(title = it)) },
                 modifier = Modifier.fillMaxWidth(),
                 label = { Text(text = stringResource(id = R.string.meal_plan_slot_title_label)) },
-                singleLine = true,
+                singleLine = true
             )
             OutlinedTextField(
                 value = draft.recipeUrl,
@@ -49,18 +49,18 @@ fun MealSlotBottomSheet(
                 modifier = Modifier.fillMaxWidth(),
                 label = { Text(text = stringResource(id = R.string.meal_plan_recipe_url_label)) },
                 singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri)
             )
             OutlinedTextField(
                 value = draft.ingredients,
                 onValueChange = { onDraftChange(draft.copy(ingredients = it)) },
                 modifier = Modifier.fillMaxWidth(),
                 label = { Text(text = stringResource(id = R.string.meal_plan_ingredients_label)) },
-                minLines = 4,
+                minLines = 4
             )
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
+                horizontalArrangement = Arrangement.End
             ) {
                 TextButton(onClick = onDismiss) {
                     Text(text = stringResource(id = R.string.action_cancel))

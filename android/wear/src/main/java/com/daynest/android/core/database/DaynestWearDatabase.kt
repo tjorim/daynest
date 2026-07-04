@@ -8,7 +8,7 @@ import com.daynest.android.core.database.sync.CacheEntryEntity
 @Database(
     entities = [CacheEntryEntity::class],
     version = 1,
-    exportSchema = false,
+    exportSchema = false
 )
 abstract class DaynestWearDatabase : RoomDatabase() {
     abstract fun cacheEntryDao(): CacheEntryDao

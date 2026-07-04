@@ -28,6 +28,7 @@ import com.daynest.android.data.today.TodayRepository
 import com.daynest.android.data.today.TodayResponseDto
 import com.daynest.android.data.today.UpcomingTodayItemDto
 import com.daynest.android.fakes.StubTodayActionsApi
+import kotlin.collections.ArrayDeque
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -46,7 +47,6 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
-import kotlin.collections.ArrayDeque
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class HomeViewModelTest {
@@ -63,152 +63,148 @@ class HomeViewModelTest {
     }
 
     @Test
-    fun `state emits success when repository returns today data`() =
-        runTest {
-            val viewModel =
-                HomeViewModel(
-                    repository =
-                        TodayRepository(
-                            todayApi =
-                                FakeTodayApi().apply {
-                                    enqueueSuccess(todayResponse())
-                                },
-                            todayActionsApi = StubTodayActionsApi(),
-                            todaySummaryDao = FakeTodaySummaryDao(),
-                            cacheEntryDao = FakeCacheEntryDao(),
-                            pendingMutationDao = FakePendingMutationDao(),
-                        ),
-                    plannedItemRepository =
-                        PlannedItemRepository(
-                            plannedItemApi = StubPlannedItemApi(),
-                            cacheEntryDao = FakeCacheEntryDao(),
-                            pendingMutationDao = FakePendingMutationDao(),
-                        ),
-                )
-
-            advanceUntilIdle()
-
-            val state = viewModel.uiState.value
-
-            assertTrue(state is HomeUiState.Content)
-            val content = state as HomeUiState.Content
-            assertEquals(5, content.summary.remainingCount)
-            assertFalse(content.isStale)
-            assertTrue(!content.summary.isCaughtUp)
-        }
-
-    @Test
-    fun `state emits error when repository request fails`() =
-        runTest {
-            val viewModel =
-                HomeViewModel(
-                    repository =
-                        TodayRepository(
-                            todayApi =
-                                FakeTodayApi().apply {
-                                    enqueueError(IllegalStateException("boom"))
-                                },
-                            todayActionsApi = StubTodayActionsApi(),
-                            todaySummaryDao = FakeTodaySummaryDao(),
-                            cacheEntryDao = FakeCacheEntryDao(),
-                            pendingMutationDao = FakePendingMutationDao(),
-                        ),
-                    plannedItemRepository =
-                        PlannedItemRepository(
-                            plannedItemApi = StubPlannedItemApi(),
-                            cacheEntryDao = FakeCacheEntryDao(),
-                            pendingMutationDao = FakePendingMutationDao(),
-                        ),
-                )
-
-            advanceUntilIdle()
-
-            val state = viewModel.uiState.value
-
-            assertTrue(state is HomeUiState.Error)
-            assertEquals(HomeError.LoadTodayFailed, (state as HomeUiState.Error).error)
-        }
-
-    @Test
-    fun `retry transitions from error to loading to content`() =
-        runTest {
-            val loadGate = CompletableDeferred<Unit>()
-            val api =
-                FakeTodayApi().apply {
-                    enqueueError(IllegalStateException("initial load failure"))
-                    enqueueSuccess(todayResponse(), gate = loadGate)
-                }
-            val repository =
+    fun `state emits success when repository returns today data`() = runTest {
+        val viewModel =
+            HomeViewModel(
+                repository =
                 TodayRepository(
-                    todayApi = api,
+                    todayApi =
+                    FakeTodayApi().apply {
+                        enqueueSuccess(todayResponse())
+                    },
                     todayActionsApi = StubTodayActionsApi(),
                     todaySummaryDao = FakeTodaySummaryDao(),
                     cacheEntryDao = FakeCacheEntryDao(),
-                    pendingMutationDao = FakePendingMutationDao(),
+                    pendingMutationDao = FakePendingMutationDao()
+                ),
+                plannedItemRepository =
+                PlannedItemRepository(
+                    plannedItemApi = StubPlannedItemApi(),
+                    cacheEntryDao = FakeCacheEntryDao(),
+                    pendingMutationDao = FakePendingMutationDao()
                 )
-            val viewModel =
-                HomeViewModel(
-                    repository = repository,
-                    plannedItemRepository =
-                        PlannedItemRepository(
-                            plannedItemApi = StubPlannedItemApi(),
-                            cacheEntryDao = FakeCacheEntryDao(),
-                            pendingMutationDao = FakePendingMutationDao(),
-                        ),
-                )
+            )
 
-            advanceUntilIdle()
-            assertTrue(viewModel.uiState.value is HomeUiState.Error)
+        advanceUntilIdle()
 
-            viewModel.onEvent(HomeUiEvent.RetryClicked)
-            runCurrent()
+        val state = viewModel.uiState.value
 
-            assertEquals(HomeUiState.Loading, viewModel.uiState.value)
-
-            loadGate.complete(Unit)
-            advanceUntilIdle()
-
-            assertTrue(viewModel.uiState.value is HomeUiState.Content)
-        }
+        assertTrue(state is HomeUiState.Content)
+        val content = state as HomeUiState.Content
+        assertEquals(5, content.summary.remainingCount)
+        assertFalse(content.isStale)
+        assertTrue(!content.summary.isCaughtUp)
+    }
 
     @Test
-    fun `state shows stale content when refresh fails but cache exists`() =
-        runTest {
-            val dao = FakeTodaySummaryDao()
-            val api =
-                FakeTodayApi().apply {
-                    enqueueSuccess(todayResponse())
-                    enqueueError(IllegalStateException("network gone"))
-                }
-            val viewModel =
-                HomeViewModel(
-                    repository =
-                        TodayRepository(
-                            todayApi = api,
-                            todayActionsApi = StubTodayActionsApi(),
-                            todaySummaryDao = dao,
-                            cacheEntryDao = FakeCacheEntryDao(),
-                            pendingMutationDao = FakePendingMutationDao(),
-                        ),
-                    plannedItemRepository =
-                        PlannedItemRepository(
-                            plannedItemApi = StubPlannedItemApi(),
-                            cacheEntryDao = FakeCacheEntryDao(),
-                            pendingMutationDao = FakePendingMutationDao(),
-                        ),
+    fun `state emits error when repository request fails`() = runTest {
+        val viewModel =
+            HomeViewModel(
+                repository =
+                TodayRepository(
+                    todayApi =
+                    FakeTodayApi().apply {
+                        enqueueError(IllegalStateException("boom"))
+                    },
+                    todayActionsApi = StubTodayActionsApi(),
+                    todaySummaryDao = FakeTodaySummaryDao(),
+                    cacheEntryDao = FakeCacheEntryDao(),
+                    pendingMutationDao = FakePendingMutationDao()
+                ),
+                plannedItemRepository =
+                PlannedItemRepository(
+                    plannedItemApi = StubPlannedItemApi(),
+                    cacheEntryDao = FakeCacheEntryDao(),
+                    pendingMutationDao = FakePendingMutationDao()
                 )
+            )
 
-            advanceUntilIdle()
-            assertTrue(viewModel.uiState.value is HomeUiState.Content)
-            assertFalse((viewModel.uiState.value as HomeUiState.Content).isStale)
+        advanceUntilIdle()
 
-            viewModel.onEvent(HomeUiEvent.RetryClicked)
-            advanceUntilIdle()
+        val state = viewModel.uiState.value
 
-            val state = viewModel.uiState.value
-            assertTrue(state is HomeUiState.Content)
-            assertTrue((state as HomeUiState.Content).isStale)
-        }
+        assertTrue(state is HomeUiState.Error)
+        assertEquals(HomeError.LoadTodayFailed, (state as HomeUiState.Error).error)
+    }
+
+    @Test
+    fun `retry transitions from error to loading to content`() = runTest {
+        val loadGate = CompletableDeferred<Unit>()
+        val api =
+            FakeTodayApi().apply {
+                enqueueError(IllegalStateException("initial load failure"))
+                enqueueSuccess(todayResponse(), gate = loadGate)
+            }
+        val repository =
+            TodayRepository(
+                todayApi = api,
+                todayActionsApi = StubTodayActionsApi(),
+                todaySummaryDao = FakeTodaySummaryDao(),
+                cacheEntryDao = FakeCacheEntryDao(),
+                pendingMutationDao = FakePendingMutationDao()
+            )
+        val viewModel =
+            HomeViewModel(
+                repository = repository,
+                plannedItemRepository =
+                PlannedItemRepository(
+                    plannedItemApi = StubPlannedItemApi(),
+                    cacheEntryDao = FakeCacheEntryDao(),
+                    pendingMutationDao = FakePendingMutationDao()
+                )
+            )
+
+        advanceUntilIdle()
+        assertTrue(viewModel.uiState.value is HomeUiState.Error)
+
+        viewModel.onEvent(HomeUiEvent.RetryClicked)
+        runCurrent()
+
+        assertEquals(HomeUiState.Loading, viewModel.uiState.value)
+
+        loadGate.complete(Unit)
+        advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value is HomeUiState.Content)
+    }
+
+    @Test
+    fun `state shows stale content when refresh fails but cache exists`() = runTest {
+        val dao = FakeTodaySummaryDao()
+        val api =
+            FakeTodayApi().apply {
+                enqueueSuccess(todayResponse())
+                enqueueError(IllegalStateException("network gone"))
+            }
+        val viewModel =
+            HomeViewModel(
+                repository =
+                TodayRepository(
+                    todayApi = api,
+                    todayActionsApi = StubTodayActionsApi(),
+                    todaySummaryDao = dao,
+                    cacheEntryDao = FakeCacheEntryDao(),
+                    pendingMutationDao = FakePendingMutationDao()
+                ),
+                plannedItemRepository =
+                PlannedItemRepository(
+                    plannedItemApi = StubPlannedItemApi(),
+                    cacheEntryDao = FakeCacheEntryDao(),
+                    pendingMutationDao = FakePendingMutationDao()
+                )
+            )
+
+        advanceUntilIdle()
+        assertTrue(viewModel.uiState.value is HomeUiState.Content)
+        assertFalse((viewModel.uiState.value as HomeUiState.Content).isStale)
+
+        viewModel.onEvent(HomeUiEvent.RetryClicked)
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertTrue(state is HomeUiState.Content)
+        assertTrue((state as HomeUiState.Content).isStale)
+    }
 }
 
 private class FakeCacheEntryDao : CacheEntryDao {
@@ -241,17 +237,11 @@ private class FakePendingMutationDao : PendingMutationDao {
         count.value = entries.size
     }
 
-    override suspend fun updateAttempts(
-        id: Long,
-        attempts: Int,
-    ) {
+    override suspend fun updateAttempts(id: Long, attempts: Int) {
         entries.replaceAll { entry -> if (entry.id == id) entry.copy(attempts = attempts) else entry }
     }
 
-    override suspend fun markRemoteApplied(
-        id: Long,
-        appliedAtEpochMillis: Long,
-    ) {
+    override suspend fun markRemoteApplied(id: Long, appliedAtEpochMillis: Long) {
         entries.replaceAll { entry ->
             if (entry.id == id) entry.copy(remoteAppliedAtEpochMillis = appliedAtEpochMillis) else entry
         }
@@ -275,17 +265,11 @@ private class FakeTodaySummaryDao : TodaySummaryDao {
 private class FakeTodayApi : TodayApi {
     private val requests: ArrayDeque<FakeResponse> = ArrayDeque()
 
-    fun enqueueSuccess(
-        response: TodayResponseDto,
-        gate: CompletableDeferred<Unit>? = null,
-    ) {
+    fun enqueueSuccess(response: TodayResponseDto, gate: CompletableDeferred<Unit>? = null) {
         requests.addLast(FakeResponse.Success(response = response, gate = gate))
     }
 
-    fun enqueueError(
-        error: Throwable,
-        gate: CompletableDeferred<Unit>? = null,
-    ) {
+    fun enqueueError(error: Throwable, gate: CompletableDeferred<Unit>? = null) {
         requests.addLast(FakeResponse.Error(error = error, gate = gate))
     }
 
@@ -307,41 +291,33 @@ private class FakeTodayApi : TodayApi {
 private sealed interface FakeResponse {
     val gate: CompletableDeferred<Unit>?
 
-    data class Success(
-        val response: TodayResponseDto,
-        override val gate: CompletableDeferred<Unit>? = null,
-    ) : FakeResponse
+    data class Success(val response: TodayResponseDto, override val gate: CompletableDeferred<Unit>? = null) :
+        FakeResponse
 
-    data class Error(
-        val error: Throwable,
-        override val gate: CompletableDeferred<Unit>? = null,
-    ) : FakeResponse
+    data class Error(val error: Throwable, override val gate: CompletableDeferred<Unit>? = null) : FakeResponse
 }
 
-private fun todayResponse() =
-    TodayResponseDto(
-        medication = listOf(MedicationTodayItemDto(1, "Vitamin D")),
-        medicationHistory = listOf(MedicationHistoryItemDto(2, "Omega-3")),
-        routines = listOf(RoutineTodayItemDto(3, "Walk the dog")),
-        overdue = listOf(OverdueTodayItemDto(4, "Trash out")),
-        dueToday = listOf(DueTodayItemDto(5, "Laundry")),
-        upcoming = listOf(UpcomingTodayItemDto(6, "Plant watering")),
-        planned =
-            listOf(
-                PlannedTodayItemDto(7, "Buy groceries", isDone = false),
-                PlannedTodayItemDto(8, "Call insurance", isDone = true),
-            ),
+private fun todayResponse() = TodayResponseDto(
+    medication = listOf(MedicationTodayItemDto(1, "Vitamin D")),
+    medicationHistory = listOf(MedicationHistoryItemDto(2, "Omega-3")),
+    routines = listOf(RoutineTodayItemDto(3, "Walk the dog")),
+    overdue = listOf(OverdueTodayItemDto(4, "Trash out")),
+    dueToday = listOf(DueTodayItemDto(5, "Laundry")),
+    upcoming = listOf(UpcomingTodayItemDto(6, "Plant watering")),
+    planned =
+    listOf(
+        PlannedTodayItemDto(7, "Buy groceries", isDone = false),
+        PlannedTodayItemDto(8, "Call insurance", isDone = true)
     )
+)
 
 private class StubTodayActionsApi : TodayActionsApi {
     override suspend fun completeChore(id: Int): ChoreMutationDto = ChoreMutationDto(id, "completed")
 
     override suspend fun skipChore(id: Int): ChoreMutationDto = ChoreMutationDto(id, "skipped")
 
-    override suspend fun rescheduleChore(
-        id: Int,
-        request: RescheduleChoreDto,
-    ): ChoreMutationDto = ChoreMutationDto(id, "pending")
+    override suspend fun rescheduleChore(id: Int, request: RescheduleChoreDto): ChoreMutationDto =
+        ChoreMutationDto(id, "pending")
 
     override suspend fun completeTask(id: Int): TaskMutationDto = TaskMutationDto(id, "completed")
 
@@ -358,19 +334,13 @@ private class StubPlannedItemApi : PlannedItemApi {
     override suspend fun updatePlannedItem(
         id: Int,
         request: PlannedItemUpdateDto,
-        scope: EditScope,
+        scope: EditScope
     ): PlannedTodayItemDto = PlannedTodayItemDto(id, request.title, request.isDone)
 
-    override suspend fun deletePlannedItem(
-        id: Int,
-        scope: DeleteScope,
-    ) = Unit
+    override suspend fun deletePlannedItem(id: Int, scope: DeleteScope) = Unit
 
     override suspend fun createPlannedItem(request: PlannedItemCreateDto): PlannedTodayItemDto =
         PlannedTodayItemDto(0, request.title, false)
 
-    override suspend fun listPlannedItems(
-        startDate: String?,
-        endDate: String?,
-    ): List<PlannedTodayItemDto> = emptyList()
+    override suspend fun listPlannedItems(startDate: String?, endDate: String?): List<PlannedTodayItemDto> = emptyList()
 }

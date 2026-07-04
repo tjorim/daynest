@@ -27,7 +27,7 @@ object DaynestSyncScheduler {
         WorkManager.getInstance(context).enqueueUniquePeriodicWork(
             PERIODIC_SYNC_NAME,
             ExistingPeriodicWorkPolicy.UPDATE,
-            request,
+            request
         )
     }
 
@@ -44,7 +44,7 @@ object DaynestSyncScheduler {
         WorkManager.getInstance(context).enqueueUniqueWork(
             ONE_SHOT_SYNC_NAME,
             ExistingWorkPolicy.REPLACE,
-            request,
+            request
         )
     }
 }

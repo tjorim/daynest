@@ -20,7 +20,7 @@ data class TodayResponseDto(
     @SerialName("due_today")
     val dueToday: List<DueTodayItemDto> = emptyList(),
     val upcoming: List<UpcomingTodayItemDto> = emptyList(),
-    val planned: List<PlannedTodayItemDto> = emptyList(),
+    val planned: List<PlannedTodayItemDto> = emptyList()
 )
 
 @Serializable
@@ -31,7 +31,7 @@ data class MedicationTodayItemDto(
     val instructions: String = "",
     @SerialName("scheduled_at")
     val scheduledAt: String = "",
-    val status: String = "scheduled",
+    val status: String = "scheduled"
 )
 
 @Serializable
@@ -42,7 +42,7 @@ data class MedicationHistoryItemDto(
     val instructions: String = "",
     @SerialName("scheduled_at")
     val scheduledAt: String = "",
-    val status: String = "taken",
+    val status: String = "taken"
 )
 
 @Serializable
@@ -52,7 +52,7 @@ data class RoutineTodayItemDto(
     val title: String,
     val status: String = "pending",
     @SerialName("scheduled_date")
-    val scheduledDate: String = "",
+    val scheduledDate: String = ""
 )
 
 @Serializable
@@ -62,7 +62,7 @@ data class OverdueTodayItemDto(
     val title: String,
     val status: String = "pending",
     @SerialName("overdue_since")
-    val overdueSince: String = "",
+    val overdueSince: String = ""
 )
 
 @Serializable
@@ -72,7 +72,7 @@ data class DueTodayItemDto(
     val title: String,
     val status: String = "pending",
     @SerialName("scheduled_date")
-    val scheduledDate: String = "",
+    val scheduledDate: String = ""
 )
 
 @Serializable
@@ -81,7 +81,7 @@ data class UpcomingTodayItemDto(
     val choreInstanceId: Int,
     val title: String,
     @SerialName("scheduled_date")
-    val scheduledDate: String = "",
+    val scheduledDate: String = ""
 )
 
 @Serializable
@@ -109,5 +109,5 @@ data class PlannedTodayItemDto(
     @SerialName("linked_ref")
     val linkedRef: String? = null,
     val priority: String = "normal",
-    val tags: List<String> = emptyList(),
+    val tags: List<String> = emptyList()
 )

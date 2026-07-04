@@ -15,24 +15,19 @@ interface PlannedItemApi {
     suspend fun updatePlannedItem(
         @Path("id") id: Int,
         @Body request: PlannedItemUpdateDto,
-        @Query("scope") scope: EditScope = EditScope.THIS,
+        @Query("scope") scope: EditScope = EditScope.THIS
     ): PlannedTodayItemDto
 
     @DELETE("api/v1/planned-items/{id}")
-    suspend fun deletePlannedItem(
-        @Path("id") id: Int,
-        @Query("scope") scope: DeleteScope = DeleteScope.THIS,
-    )
+    suspend fun deletePlannedItem(@Path("id") id: Int, @Query("scope") scope: DeleteScope = DeleteScope.THIS)
 
     @POST("api/v1/planned-items")
-    suspend fun createPlannedItem(
-        @Body request: PlannedItemCreateDto,
-    ): PlannedTodayItemDto
+    suspend fun createPlannedItem(@Body request: PlannedItemCreateDto): PlannedTodayItemDto
 
     @GET("api/v1/planned-items")
     suspend fun listPlannedItems(
         @Query("start_date") startDate: String?,
-        @Query("end_date") endDate: String?,
+        @Query("end_date") endDate: String?
     ): List<PlannedTodayItemDto>
 }
 
@@ -60,7 +55,7 @@ data class PlannedItemUpdateDto(
     @SerialName("auto_add_to_list_id")
     val autoAddToListId: Int? = null,
     val priority: String = "normal",
-    val tags: List<String> = emptyList(),
+    val tags: List<String> = emptyList()
 )
 
 @Serializable
@@ -85,5 +80,5 @@ data class PlannedItemCreateDto(
     @SerialName("auto_add_to_list_id")
     val autoAddToListId: Int? = null,
     val priority: String = "normal",
-    val tags: List<String> = emptyList(),
+    val tags: List<String> = emptyList()
 )
