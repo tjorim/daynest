@@ -177,7 +177,6 @@ extensions.configure<ApplicationExtension> {
             buildConfigField("String[]", "CERTIFICATE_PINS", "new String[]{}")
             buildConfigField("String", "CERTIFICATE_PIN_HOST", "\"\"")
             buildConfigField("String", "OIDC_CLIENT_ID", "\"daynest\"")
-            buildConfigField("String", "OIDC_REDIRECT_URI", "\"im.tjor.daynest:/oauth2redirect\"")
         }
         release {
             isMinifyEnabled = true
@@ -233,7 +232,6 @@ extensions.configure<ApplicationExtension> {
             buildConfigField("String[]", "CERTIFICATE_PINS", CertPinning.pinsArrayLiteral(pins))
             buildConfigField("String", "CERTIFICATE_PIN_HOST", "\"$releaseCertificatePinHost\"")
             buildConfigField("String", "OIDC_CLIENT_ID", "\"daynest\"")
-            buildConfigField("String", "OIDC_REDIRECT_URI", "\"im.tjor.daynest:/oauth2redirect\"")
         }
     }
 

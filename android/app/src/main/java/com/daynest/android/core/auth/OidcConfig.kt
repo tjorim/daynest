@@ -5,6 +5,6 @@ import com.daynest.android.BuildConfig
 
 internal object OidcConfig {
     val clientId: String = BuildConfig.OIDC_CLIENT_ID
-    val redirectUri: Uri = Uri.parse(BuildConfig.OIDC_REDIRECT_URI)
+    val redirectUri: Uri = Uri.parse("${BuildConfig.APPLICATION_ID}:/oauth2redirect")
     val scopes: List<String> = listOf("openid", "profile", "email")
 }
