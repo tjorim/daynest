@@ -59,7 +59,11 @@ class AuthViewModel
         fun updateServerUrl(url: String?) {
             viewModelScope.launch {
                 runCatching {
-                    if (url == null) apiBaseUrlOverrideStore.clearOverride() else apiBaseUrlOverrideStore.setOverride(url)
+                    if (url == null) {
+                        apiBaseUrlOverrideStore.clearOverride()
+                    } else {
+                        apiBaseUrlOverrideStore.setOverride(url)
+                    }
                 }.onSuccess {
                     _uiState.update { it.copy(customServerUrl = url) }
                 }
