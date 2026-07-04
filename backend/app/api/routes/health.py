@@ -43,6 +43,7 @@ def _check_db() -> None:
 # staying "not_ready" for the rest of the cache window.
 _JWKS_READINESS_CACHE_SECONDS = 30.0
 _jwks_readiness_cache: tuple[float, bool] | None = None
+_jwks_readiness_lock = asyncio.Lock()
 
 
 async def _jwks_reachable() -> bool:
@@ -51,9 +52,14 @@ async def _jwks_reachable() -> bool:
     if _jwks_readiness_cache is not None and now - _jwks_readiness_cache[0] < _JWKS_READINESS_CACHE_SECONDS:
         return _jwks_readiness_cache[1]
 
-    reachable = await check_jwks_reachable()
-    _jwks_readiness_cache = (now, True) if reachable else None
-    return reachable
+    async with _jwks_readiness_lock:
+        now = time.monotonic()
+        if _jwks_readiness_cache is not None and now - _jwks_readiness_cache[0] < _JWKS_READINESS_CACHE_SECONDS:
+            return _jwks_readiness_cache[1]
+
+        reachable = await check_jwks_reachable()
+        _jwks_readiness_cache = (now, True) if reachable else None
+        return reachable
 
 
 @router.get("/health/readiness")

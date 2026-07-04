@@ -3,6 +3,7 @@ import logging
 import uuid
 
 from fastapi.testclient import TestClient
+import pytest
 
 
 def test_liveness_and_health_endpoints(client: TestClient) -> None:
@@ -54,6 +55,27 @@ def test_readiness_endpoint_returns_not_ready_with_db_down(client: TestClient, m
     readiness_response = client.get("/api/health/readiness")
     assert readiness_response.status_code == 503
     assert readiness_response.json()["status"] == "not_ready"
+
+
+@pytest.mark.anyio
+async def test_jwks_reachable_coalesces_concurrent_cache_misses(monkeypatch) -> None:
+    from app.api.routes import health
+
+    calls = 0
+
+    async def reachable() -> bool:
+        nonlocal calls
+        calls += 1
+        await health.asyncio.sleep(0)
+        return True
+
+    monkeypatch.setattr(health, "_jwks_readiness_cache", None)
+    monkeypatch.setattr(health, "check_jwks_reachable", reachable)
+
+    results = await health.asyncio.gather(*(health._jwks_reachable() for _ in range(5)))
+
+    assert results == [True] * 5
+    assert calls == 1
 
 
 def test_request_id_generated_when_absent(client: TestClient) -> None:
