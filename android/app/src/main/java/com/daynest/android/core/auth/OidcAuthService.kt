@@ -95,7 +95,7 @@ constructor(
     fun signOut() = clearState()
 
     private suspend fun discoverServiceConfiguration(): AuthorizationServiceConfiguration {
-        val serverUrl = apiBaseUrlOverrideStore.currentOverrideBlocking() ?: BuildConfig.API_BASE_URL
+        val serverUrl = apiBaseUrlOverrideStore.override.value ?: BuildConfig.API_BASE_URL
         serviceConfiguration?.takeIf { it.first == serverUrl }?.let { return it.second }
         return configMutex.withLock {
             serviceConfiguration?.takeIf { it.first == serverUrl }?.second

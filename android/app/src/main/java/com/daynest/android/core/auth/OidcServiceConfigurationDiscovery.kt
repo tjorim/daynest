@@ -26,7 +26,7 @@ constructor(
                     "OIDC config endpoint returned HTTP ${response.code} ${response.message}: $errorBody"
                 )
             }
-            val body = response.body.string()
+            val body = runCatching { response.body.string() }.getOrElse { "" }
             if (body.isBlank()) {
                 throw IOException("Empty response from OIDC config endpoint")
             }

@@ -8,14 +8,14 @@ import javax.inject.Singleton
 class SecureSessionStore
 @Inject
 constructor(private val securePreferences: SharedPreferences) {
-    fun readAuthStateJson(): String? = securePreferences.getString(KEY_AUTH_STATE, null)
+    fun readAuthStateJson(): String? = runCatching { securePreferences.getString(KEY_AUTH_STATE, null) }.getOrNull()
 
     fun writeAuthStateJson(value: String) {
-        securePreferences.edit().putString(KEY_AUTH_STATE, value).apply()
+        runCatching { securePreferences.edit().putString(KEY_AUTH_STATE, value).apply() }
     }
 
     fun clear() {
-        securePreferences.edit().remove(KEY_AUTH_STATE).apply()
+        runCatching { securePreferences.edit().remove(KEY_AUTH_STATE).apply() }
     }
 
     private companion object {
