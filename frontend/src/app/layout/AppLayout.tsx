@@ -207,6 +207,9 @@ export function AppLayout() {
         ) : null}
       </header>
       <Outlet />
+      <footer className="mt-4 pt-3 border-top text-center text-muted small">
+        <Link to="/privacy">{m.app_footer_privacy_policy()}</Link>
+      </footer>
     </>
   );
 }

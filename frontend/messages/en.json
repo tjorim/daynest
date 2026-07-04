@@ -414,5 +414,6 @@
   "settings_calendar_regenerate_confirm": "Regenerating your calendar feed URL will immediately break existing calendar subscriptions. Continue?",
   "settings_calendar_regenerated": "Calendar feed URL regenerated. Copy the new URL into your calendar app.",
   "settings_calendar_regenerate_error": "Failed to regenerate calendar feed URL.",
-  "settings_calendar_load_error": "Failed to load calendar feed URL."
+  "settings_calendar_load_error": "Failed to load calendar feed URL.",
+  "app_footer_privacy_policy": "Privacy Policy"
 }

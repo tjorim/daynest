@@ -414,5 +414,6 @@
   "settings_calendar_regenerate_confirm": "Als je de kalender-feed-URL opnieuw genereert, worden bestaande kalenderabonnementen onmiddellijk verbroken. Doorgaan?",
   "settings_calendar_regenerated": "Kalender-feed-URL opnieuw gegenereerd. Kopieer de nieuwe URL naar je kalenderapp.",
   "settings_calendar_regenerate_error": "Kan de kalender-feed-URL niet opnieuw genereren.",
-  "settings_calendar_load_error": "Kan de kalender-feed-URL niet laden."
+  "settings_calendar_load_error": "Kan de kalender-feed-URL niet laden.",
+  "app_footer_privacy_policy": "Privacybeleid"
 }

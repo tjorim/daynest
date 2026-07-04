@@ -22,6 +22,7 @@ import { ShoppingListDetail } from "@/features/shopping/ShoppingListDetail";
 import { ShoppingListsPage } from "@/features/shopping/ShoppingListsPage";
 import { RecurringGroceriesPage } from "@/features/shopping/RecurringGroceriesPage";
 import { MealPlannerPage } from "@/features/meal-planning/MealPlannerPage";
+import { PrivacyPolicyPage } from "@/features/legal/PrivacyPolicyPage";
 
 type RouterContext = {
   auth: {
@@ -85,6 +86,12 @@ const authCallbackRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/auth/callback",
   component: AuthCallback,
+});
+
+const privacyRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/privacy",
+  component: PrivacyPolicyPage,
 });
 
 const protectedRoute = createRoute({
@@ -177,6 +184,7 @@ const routeTree = rootRoute.addChildren([
   indexRoute,
   authRoute,
   authCallbackRoute,
+  privacyRoute,
   protectedRoute.addChildren([
     todayRoute,
     calendarRoute,
