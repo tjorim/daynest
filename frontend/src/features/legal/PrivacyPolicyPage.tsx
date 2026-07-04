@@ -2,7 +2,7 @@ const LAST_UPDATED = "July 4, 2026";
 
 export function PrivacyPolicyPage() {
   return (
-    <section className="mx-auto" style={{ maxWidth: "48rem" }}>
+    <section className="mx-auto px-3" style={{ maxWidth: "48rem" }}>
       <h2 className="h4 mb-1">Privacy Policy</h2>
       <p className="text-muted mb-4">Last updated: {LAST_UPDATED}</p>
 
