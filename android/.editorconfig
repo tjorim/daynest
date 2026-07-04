@@ -1,5 +1,5 @@
 root = true
 
 [*.{kt,kts}]
-ktlint_code_style = android_studio
-max_line_length = 160
+ktlint_code_style = ktlint_official
+max_line_length = 120
