@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.daynest.android.BuildConfig
 import com.daynest.android.core.auth.OidcAuthService
+import com.daynest.android.core.storage.ApiBaseUrlOverrideStore
 import com.daynest.android.core.storage.preferences.UserPreferencesRepository
 import com.daynest.android.data.calendar.DeviceCalendar
 import com.daynest.android.data.calendar.DeviceCalendarRepository
@@ -32,6 +33,7 @@ class SettingsViewModel
         private val settingsRepository: SettingsRepository,
         private val oidcAuthService: OidcAuthService,
         private val userPreferencesRepository: UserPreferencesRepository,
+        private val apiBaseUrlOverrideStore: ApiBaseUrlOverrideStore,
         private val pushRegistrationManager: PushRegistrationManager,
         private val deviceCalendarRepository: DeviceCalendarRepository,
         @ApplicationContext private val appContext: Context,
@@ -83,10 +85,12 @@ class SettingsViewModel
             viewModelScope.launch {
                 _uiState.value = SettingsUiState.Loading
                 val prefsDeferred = async { userPreferencesRepository.preferences.first() }
+                val customServerUrlDeferred = async { apiBaseUrlOverrideStore.override.first() }
                 val clientsDeferred = async { settingsRepository.listClients() }
                 val sessionsDeferred = async { settingsRepository.listSessions() }
                 val deviceCalendarsDeferred = async { deviceCalendarRepository.listCalendars() }
                 val prefs = prefsDeferred.await()
+                val customServerUrl = customServerUrlDeferred.await()
                 val clientsResult = clientsDeferred.await()
                 val sessionsResult = sessionsDeferred.await()
                 val deviceCalendarsResult = deviceCalendarsDeferred.await()
@@ -98,7 +102,7 @@ class SettingsViewModel
                         newApiKey = null,
                         clientsLoadError = clientsResult.isFailure,
                         sessionsLoadError = sessionsResult.isFailure,
-                        customServerUrl = prefs.customServerUrl,
+                        customServerUrl = customServerUrl,
                         defaultServerUrl = BuildConfig.API_BASE_URL,
                         pushNotificationsEnabled = prefs.pushNotificationsEnabled,
                         biometricLockEnabled = prefs.biometricLockEnabled,
@@ -131,7 +135,9 @@ class SettingsViewModel
 
         private fun updateServerUrl(url: String?) {
             viewModelScope.launch {
-                runCatching { userPreferencesRepository.updateCustomServerUrl(url) }.onSuccess {
+                runCatching {
+                    if (url == null) apiBaseUrlOverrideStore.clearOverride() else apiBaseUrlOverrideStore.setOverride(url)
+                }.onSuccess {
                     _uiState.update { current ->
                         if (current is SettingsUiState.Content) current.copy(customServerUrl = url) else current
                     }

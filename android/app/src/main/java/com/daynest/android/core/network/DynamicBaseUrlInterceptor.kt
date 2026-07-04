@@ -1,5 +1,7 @@
 package com.daynest.android.core.network
 
+import com.daynest.android.BuildConfig
+import com.daynest.android.core.storage.ApiBaseUrlOverrideStore
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.Interceptor
 import okhttp3.Response
@@ -10,12 +12,12 @@ import javax.inject.Singleton
 class DynamicBaseUrlInterceptor
     @Inject
     constructor(
-        private val serverUrlHolder: ServerUrlHolder,
+        private val apiBaseUrlOverrideStore: ApiBaseUrlOverrideStore,
     ) : Interceptor {
         override fun intercept(chain: Interceptor.Chain): Response {
             val request = chain.request()
             val newBase =
-                serverUrlHolder.currentUrl.toHttpUrlOrNull()
+                (apiBaseUrlOverrideStore.currentOverrideBlocking() ?: BuildConfig.API_BASE_URL).toHttpUrlOrNull()
                     ?: return chain.proceed(request)
             val basePath = newBase.encodedPath.trimEnd('/')
             val requestPath = request.url.encodedPath

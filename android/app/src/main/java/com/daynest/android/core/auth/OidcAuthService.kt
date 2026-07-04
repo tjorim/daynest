@@ -3,8 +3,9 @@ package com.daynest.android.core.auth
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
-import android.content.SharedPreferences
-import com.daynest.android.core.network.ServerUrlHolder
+import com.daynest.android.BuildConfig
+import com.daynest.android.core.storage.ApiBaseUrlOverrideStore
+import com.daynest.android.core.storage.SecureSessionStore
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -27,9 +28,10 @@ class OidcAuthService
     @Inject
     constructor(
         @param:ApplicationContext private val context: Context,
-        private val securePreferences: SharedPreferences,
-        private val serverUrlHolder: ServerUrlHolder,
+        private val secureSessionStore: SecureSessionStore,
+        private val apiBaseUrlOverrideStore: ApiBaseUrlOverrideStore,
         private val oidcDiscovery: OidcServiceConfigurationDiscovery,
+        private val oidcConfig: OidcConfig,
     ) {
         private val authorizationService = AuthorizationService(context)
         private val mutex = Mutex()
@@ -48,10 +50,10 @@ class OidcAuthService
                 AuthorizationRequest
                     .Builder(
                         config,
-                        OidcConfig.clientId,
+                        oidcConfig.clientId,
                         ResponseTypeValues.CODE,
-                        OidcConfig.redirectUri,
-                    ).setScopes(OidcConfig.scopes)
+                        oidcConfig.redirectUri,
+                    ).setScope(oidcConfig.scope)
                     .build()
             return authorizationService.getAuthorizationRequestIntent(request)
         }
@@ -97,7 +99,7 @@ class OidcAuthService
         fun signOut() = clearState()
 
         private suspend fun discoverServiceConfiguration(): AuthorizationServiceConfiguration {
-            val serverUrl = serverUrlHolder.currentUrl
+            val serverUrl = apiBaseUrlOverrideStore.currentOverrideBlocking() ?: BuildConfig.API_BASE_URL
             serviceConfiguration?.takeIf { it.first == serverUrl }?.let { return it.second }
             return configMutex.withLock {
                 serviceConfiguration?.takeIf { it.first == serverUrl }?.second
@@ -108,21 +110,17 @@ class OidcAuthService
         }
 
         private fun loadPersistedState(): AuthState {
-            val json = securePreferences.getString(KEY_AUTH_STATE, null) ?: return AuthState()
+            val json = secureSessionStore.readAuthStateJson() ?: return AuthState()
             return runCatching { AuthState.jsonDeserialize(json) }.getOrElse { AuthState() }
         }
 
         private fun persistState(state: AuthState) {
             authState = state
-            securePreferences.edit().putString(KEY_AUTH_STATE, state.jsonSerializeString()).apply()
+            secureSessionStore.writeAuthStateJson(state.jsonSerializeString())
         }
 
         private fun clearState() {
             authState = AuthState()
-            securePreferences.edit().remove(KEY_AUTH_STATE).apply()
-        }
-
-        companion object {
-            private const val KEY_AUTH_STATE = "oidc_auth_state"
+            secureSessionStore.clear()
         }
     }

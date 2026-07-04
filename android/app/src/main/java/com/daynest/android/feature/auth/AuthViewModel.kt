@@ -5,7 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.daynest.android.BuildConfig
 import com.daynest.android.core.auth.OidcAuthService
-import com.daynest.android.core.storage.preferences.UserPreferencesRepository
+import com.daynest.android.core.storage.ApiBaseUrlOverrideStore
 import com.daynest.android.data.push.PushRegistrationManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
@@ -25,7 +25,7 @@ class AuthViewModel
     @Inject
     constructor(
         private val oidcAuthService: OidcAuthService,
-        private val userPreferencesRepository: UserPreferencesRepository,
+        private val apiBaseUrlOverrideStore: ApiBaseUrlOverrideStore,
         private val pushRegistrationManager: PushRegistrationManager,
     ) : ViewModel() {
         private val _uiState =
@@ -34,8 +34,8 @@ class AuthViewModel
 
         init {
             viewModelScope.launch {
-                val prefs = userPreferencesRepository.preferences.first()
-                _uiState.update { it.copy(customServerUrl = prefs.customServerUrl) }
+                val customServerUrl = apiBaseUrlOverrideStore.override.first()
+                _uiState.update { it.copy(customServerUrl = customServerUrl) }
             }
         }
 
@@ -58,10 +58,11 @@ class AuthViewModel
 
         fun updateServerUrl(url: String?) {
             viewModelScope.launch {
-                runCatching { userPreferencesRepository.updateCustomServerUrl(url) }
-                    .onSuccess {
-                        _uiState.update { it.copy(customServerUrl = url) }
-                    }
+                runCatching {
+                    if (url == null) apiBaseUrlOverrideStore.clearOverride() else apiBaseUrlOverrideStore.setOverride(url)
+                }.onSuccess {
+                    _uiState.update { it.copy(customServerUrl = url) }
+                }
             }
         }
 

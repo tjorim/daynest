@@ -23,7 +23,6 @@ class UserPreferencesRepository
             dataStore.data.map { prefs ->
                 UserPreferences(
                     lastTodayFetchEpochMillis = prefs[LAST_TODAY_FETCH] ?: 0L,
-                    customServerUrl = prefs[CUSTOM_SERVER_URL],
                     biometricLockEnabled = prefs[BIOMETRIC_LOCK_ENABLED] ?: false,
                     biometricIdleTimeoutMinutes = prefs[BIOMETRIC_IDLE_TIMEOUT_MINUTES] ?: 5,
                     pushNotificationsEnabled = prefs[PUSH_NOTIFICATIONS_ENABLED] ?: true,
@@ -39,16 +38,6 @@ class UserPreferencesRepository
         suspend fun updateLastTodayFetch(epochMillis: Long) {
             dataStore.edit { prefs ->
                 prefs[LAST_TODAY_FETCH] = epochMillis
-            }
-        }
-
-        suspend fun updateCustomServerUrl(url: String?) {
-            dataStore.edit { prefs ->
-                if (url != null) {
-                    prefs[CUSTOM_SERVER_URL] = url
-                } else {
-                    prefs.remove(CUSTOM_SERVER_URL)
-                }
             }
         }
 
@@ -120,7 +109,6 @@ class UserPreferencesRepository
             const val MAX_BIOMETRIC_TIMEOUT_MINUTES = 240
 
             val LAST_TODAY_FETCH = longPreferencesKey("last_today_fetch_epoch_millis")
-            val CUSTOM_SERVER_URL = stringPreferencesKey("custom_server_url")
             val BIOMETRIC_LOCK_ENABLED = booleanPreferencesKey("biometric_lock_enabled")
             val BIOMETRIC_IDLE_TIMEOUT_MINUTES = intPreferencesKey("biometric_idle_timeout_minutes")
             val PUSH_NOTIFICATIONS_ENABLED = booleanPreferencesKey("push_notifications_enabled")

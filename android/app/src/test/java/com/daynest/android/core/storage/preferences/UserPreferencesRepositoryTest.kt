@@ -20,7 +20,6 @@ class UserPreferencesRepositoryTest {
             repository.preferences.test {
                 val prefs = awaitItem()
                 assertEquals(0L, prefs.lastTodayFetchEpochMillis)
-                assertEquals(null, prefs.customServerUrl)
                 assertEquals(false, prefs.biometricLockEnabled)
                 assertEquals(5, prefs.biometricIdleTimeoutMinutes)
                 assertEquals(true, prefs.pushNotificationsEnabled)
@@ -40,35 +39,6 @@ class UserPreferencesRepositoryTest {
                 repository.updateLastTodayFetch(1_700_000_000_000L)
 
                 assertEquals(1_700_000_000_000L, awaitItem().lastTodayFetchEpochMillis)
-                cancelAndIgnoreRemainingEvents()
-            }
-        }
-
-    @Test
-    fun `updateCustomServerUrl stores and emits the new URL`() =
-        runTest {
-            repository.preferences.test {
-                assertEquals(null, awaitItem().customServerUrl)
-
-                repository.updateCustomServerUrl("https://selfhosted.example.com/")
-
-                assertEquals("https://selfhosted.example.com/", awaitItem().customServerUrl)
-                cancelAndIgnoreRemainingEvents()
-            }
-        }
-
-    @Test
-    fun `updateCustomServerUrl with null clears the stored URL`() =
-        runTest {
-            repository.preferences.test {
-                awaitItem() // initial default
-
-                repository.updateCustomServerUrl("https://selfhosted.example.com/")
-                awaitItem() // after set
-
-                repository.updateCustomServerUrl(null)
-
-                assertEquals(null, awaitItem().customServerUrl)
                 cancelAndIgnoreRemainingEvents()
             }
         }
