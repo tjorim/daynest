@@ -5,9 +5,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class SecureSessionStore
-@Inject
-constructor(private val securePreferences: SharedPreferences) {
+class SecureSessionStore @Inject constructor(private val securePreferences: SharedPreferences) {
     fun readAuthStateJson(): String? = securePreferences.getString(KEY_AUTH_STATE, null)
 
     fun writeAuthStateJson(value: String) {
