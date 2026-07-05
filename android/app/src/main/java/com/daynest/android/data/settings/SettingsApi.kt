@@ -20,6 +20,9 @@ interface SettingsApi {
 
     @DELETE("api/v1/auth/sessions/{id}")
     suspend fun revokeSession(@Path("id") id: String)
+
+    @DELETE("api/v1/users/me")
+    suspend fun deleteCurrentUser()
 }
 
 @Serializable

@@ -185,6 +185,13 @@
     <string name="settings_account_section">Account</string>
     <string name="settings_session_active">Signed in</string>
     <string name="settings_sign_out">Sign out</string>
+    <string name="settings_delete_account_title">Delete account</string>
+    <string name="settings_delete_account_hint">Permanently delete your Daynest account and personal data. Household-shared chores must be deleted, transferred, or left first.</string>
+    <string name="settings_delete_account_action">Delete my account</string>
+    <string name="settings_delete_account_deleting">Deleting…</string>
+    <string name="settings_delete_account_confirm">This permanently deletes your Daynest account and personal data. This cannot be undone.</string>
+    <string name="settings_delete_account_confirm_action">Delete account</string>
+    <string name="settings_delete_account_error">Unable to delete account. Please try again.</string>
     <string name="settings_integrations_section">Integration Clients</string>
     <string name="settings_new_client">+ New client</string>
     <string name="settings_no_clients">No integration clients configured.</string>

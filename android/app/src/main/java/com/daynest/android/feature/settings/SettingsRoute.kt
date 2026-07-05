@@ -136,7 +136,7 @@ private fun SettingsContent(
             deviceCalendarPermissionLauncher = deviceCalendarPermissionLauncher,
             onEvent = onEvent
         )
-        settingsAccountSection(onEvent)
+        settingsAccountSection(state, onEvent)
         settingsClientsSection(state, onEvent)
         settingsSessionsSection(state, onEvent)
     }
@@ -152,6 +152,14 @@ private fun SettingsContent(
         NewApiKeyDialog(
             apiKey = state.newApiKey,
             onDismiss = { onEvent(SettingsUiEvent.DismissNewKeyDialog) }
+        )
+    }
+
+    if (state.showDeleteAccountConfirm) {
+        DeleteAccountDialog(
+            isDeleting = state.isDeletingAccount,
+            onConfirm = { onEvent(SettingsUiEvent.DeleteAccountConfirmed) },
+            onDismiss = { onEvent(SettingsUiEvent.DismissDeleteAccountDialog) }
         )
     }
 }
@@ -341,6 +349,27 @@ private fun NewApiKeyDialog(apiKey: String, onDismiss: () -> Unit) {
         confirmButton = {
             TextButton(onClick = onDismiss) {
                 Text(text = stringResource(id = R.string.settings_new_key_dismiss))
+            }
+        }
+    )
+}
+
+@Composable
+private fun DeleteAccountDialog(isDeleting: Boolean, onConfirm: () -> Unit, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = {
+            if (!isDeleting) onDismiss()
+        },
+        title = { Text(text = stringResource(id = R.string.settings_delete_account_title)) },
+        text = { Text(text = stringResource(id = R.string.settings_delete_account_confirm)) },
+        confirmButton = {
+            TextButton(onClick = onConfirm, enabled = !isDeleting) {
+                Text(text = stringResource(id = R.string.settings_delete_account_confirm_action))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss, enabled = !isDeleting) {
+                Text(text = stringResource(id = R.string.action_cancel))
             }
         }
     )
