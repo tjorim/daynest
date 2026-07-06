@@ -13,6 +13,7 @@ object DaynestDestination {
     const val SHOPPING = "shopping"
     const val MEAL_PLAN = "meal-plan"
     const val SHOPPING_DETAIL = "shopping/{listId}"
+    const val RECURRING_GROCERIES = "shopping-recurring"
     const val SETTINGS = "settings"
     const val PRIVACY_POLICY = "privacy-policy"
 }

@@ -263,6 +263,19 @@
         <item quantity="other">%1$d terugkerende items geïmporteerd</item>
     </plurals>
     <string name="shopping_error_check_off_item">Kan boodschappenitem niet afvinken</string>
+    <string name="shopping_recurring_page_title">Terugkerende boodschappen</string>
+    <string name="shopping_recurring_page_subtitle">Beheer boodschappenitems die volgens een schema terugkeren, voor al je boodschappenlijsten.</string>
+    <string name="shopping_recurring_manage">Terugkerende boodschappen beheren</string>
+    <string name="shopping_recurring_no_series">Nog geen terugkerende boodschappen.</string>
+    <string name="shopping_recurring_add_new">Terugkerende boodschap toevoegen</string>
+    <string name="shopping_recurring_edit">Bewerken</string>
+    <string name="shopping_recurring_delete">Verwijderen</string>
+    <string name="shopping_recurring_delete_title">Terugkerende boodschap verwijderen?</string>
+    <string name="shopping_recurring_delete_message">Dit verwijdert toekomstige herhalingen van “%1$s”. Al geplande, voorbije herhalingen blijven behouden.</string>
+    <string name="shopping_recurring_auto_add_list_label">Automatisch toevoegen aan lijst</string>
+    <string name="shopping_recurring_auto_add_none">Geen</string>
+    <string name="shopping_recurring_saved">Terugkerende boodschap opgeslagen</string>
+    <string name="shopping_error_delete_recurring_item">Kan terugkerende boodschap niet verwijderen</string>
 
 
     <!-- Maaltijdplanner -->

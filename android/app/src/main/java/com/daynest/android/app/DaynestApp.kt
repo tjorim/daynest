@@ -21,6 +21,7 @@ import com.daynest.android.feature.legal.PrivacyPolicyRoute
 import com.daynest.android.feature.mealplan.MealPlannerRoute
 import com.daynest.android.feature.medication.MedicationRoute
 import com.daynest.android.feature.settings.SettingsRoute
+import com.daynest.android.feature.shopping.RecurringGroceriesRoute
 import com.daynest.android.feature.shopping.ShoppingListDetailRoute
 import com.daynest.android.feature.shopping.ShoppingListsRoute
 import com.daynest.android.feature.templates.TemplatesRoute
@@ -105,7 +106,8 @@ private fun NavGraphBuilder.shoppingDestinations(navController: NavHostControlle
     composable(route = DaynestDestination.SHOPPING) {
         ShoppingListsRoute(
             onNavigate = navController::navigateTopLevel,
-            onOpenList = { listId -> navController.navigate("${DaynestDestination.SHOPPING}/$listId") }
+            onOpenList = { listId -> navController.navigate("${DaynestDestination.SHOPPING}/$listId") },
+            onOpenRecurringGroceries = { navController.navigate(DaynestDestination.RECURRING_GROCERIES) }
         )
     }
     composable(
@@ -118,6 +120,9 @@ private fun NavGraphBuilder.shoppingDestinations(navController: NavHostControlle
             onNavigate = navController::navigateTopLevel,
             onBack = { navController.popBackStack() }
         )
+    }
+    composable(route = DaynestDestination.RECURRING_GROCERIES) {
+        RecurringGroceriesRoute(onBack = { navController.popBackStack() })
     }
 }
 

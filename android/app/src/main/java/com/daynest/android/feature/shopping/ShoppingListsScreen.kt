@@ -43,6 +43,7 @@ import com.daynest.android.data.shopping.ShoppingListStatus
 fun ShoppingListsRoute(
     onNavigate: (String) -> Unit = {},
     onOpenList: (Int) -> Unit,
+    onOpenRecurringGroceries: () -> Unit = {},
     viewModel: ShoppingViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -60,6 +61,7 @@ fun ShoppingListsRoute(
         onArchive = viewModel::archiveList,
         onDelete = viewModel::deleteList,
         onOpenList = onOpenList,
+        onOpenRecurringGroceries = onOpenRecurringGroceries,
         snackbarHostState = snackbarHostState
     )
 }
@@ -73,6 +75,7 @@ internal fun ShoppingListsScreen(
     onArchive: (ShoppingListDto) -> Unit,
     onDelete: (Int) -> Unit,
     onOpenList: (Int) -> Unit,
+    onOpenRecurringGroceries: () -> Unit,
     snackbarHostState: SnackbarHostState
 ) {
     DaynestNavigationScaffold(
@@ -87,6 +90,7 @@ internal fun ShoppingListsScreen(
             onArchive = onArchive,
             onDelete = onDelete,
             onOpenList = onOpenList,
+            onOpenRecurringGroceries = onOpenRecurringGroceries,
             modifier = Modifier.padding(innerPadding)
         )
     }
@@ -100,6 +104,7 @@ private fun ShoppingListsContent(
     onArchive: (ShoppingListDto) -> Unit,
     onDelete: (Int) -> Unit,
     onOpenList: (Int) -> Unit,
+    onOpenRecurringGroceries: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val activeLists =
@@ -117,6 +122,11 @@ private fun ShoppingListsContent(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item { ShoppingListsHeader(onRefresh = onRefresh) }
+        item {
+            TextButton(onClick = onOpenRecurringGroceries) {
+                Text(text = stringResource(id = R.string.shopping_recurring_manage))
+            }
+        }
 
         if (uiState.isLoadingLists) {
             item { LoadingIndicator() }
