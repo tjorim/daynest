@@ -61,12 +61,7 @@ export function PrivacyPolicyPage() {
       <h3 className="h5 mt-4">{m.privacy_page_contact_title()}</h3>
       <p>
         {m.privacy_page_contact_body()}{" "}
-        <a href="mailto:tielemans.jorim@gmail.com">tielemans.jorim@gmail.com</a>
-        {m.privacy_page_contact_or()}{" "}
-        <a href="https://github.com/tjorim/daynest" target="_blank" rel="noreferrer">
-          {m.privacy_page_contact_github_link()}
-        </a>
-        .
+        <a href="mailto:tielemans.jorim@gmail.com">tielemans.jorim@gmail.com</a>.
       </p>
     </section>
   );
