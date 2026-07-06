@@ -14,6 +14,7 @@ object DaynestDestination {
     const val MEAL_PLAN = "meal-plan"
     const val SHOPPING_DETAIL = "shopping/{listId}"
     const val SETTINGS = "settings"
+    const val PRIVACY_POLICY = "privacy-policy"
 }
 
 data class DaynestTopLevelDestination(val route: String, @param:StringRes val labelResId: Int)

@@ -236,6 +236,7 @@
     <string name="shopping_open_list">Openen</string>
     <string name="shopping_archive">Archiveren</string>
     <string name="shopping_back_to_lists">Terug naar lijsten</string>
+    <string name="action_back">Terug</string>
     <string name="shopping_item_count">%1$d open items</string>
     <string name="shopping_add_item">Item toevoegen</string>
     <string name="shopping_item_name">Itemnaam</string>
@@ -318,4 +319,46 @@
         <item quantity="one">%1$d item mislukt</item>
         <item quantity="other">%1$d items mislukt</item>
     </plurals>
+
+    <string name="settings_privacy_policy_link">Privacybeleid</string>
+    <string name="privacy_page_title">Privacybeleid</string>
+    <string name="privacy_page_last_updated">Laatst bijgewerkt: %1$s</string>
+    <string name="privacy_page_last_updated_date">4 juli 2026</string>
+    <string name="privacy_page_intro">Daynest (\"Daynest\", \"wij\", \"ons\") is een persoonlijke/huishoudelijke planningsapp voor dagelijkse routines, klusjes, medicatieherinneringen, maaltijdplanning en boodschappenlijstjes. Dit beleid legt uit welke gegevens de officiële Daynest-dienst op daynest.tjor.im, en de Daynest-web- en Android-apps die daarmee verbinden, verzamelen en hoe die gegevens worden gebruikt.</string>
+    <string name="privacy_page_self_hosting">Daynest is open source en kan door iedereen zelf gehost worden. Als u een zelf-gehoste instantie gebruikt die door iemand anders dan ons wordt beheerd, is die beheerder verantwoordelijk voor uw gegevens en is dit beleid niet van toepassing op die instantie.</string>
+    <string name="privacy_page_data_collected_title">Gegevens die wij verzamelen</string>
+    <string name="privacy_page_account_title">Account en authenticatie</string>
+    <string name="privacy_page_account_body">Wanneer u zich registreert of aanmeldt (ook via single sign-on/OIDC), bewaren wij uw e-mailadres, weergavenaam, een veilig gehasht wachtwoord (als u er een gebruikt), uw tijdzone en uw voorkeuren voor meldingen/stille uren. Als u deel uitmaakt van een huishouden, bewaren wij bij welk(e) huishouden(s) u hoort.</string>
+    <string name="privacy_page_household_data_title">Huishoudelijke en planningsgegevens</string>
+    <string name="privacy_page_household_data_body">Routines, klusjes, taken, maaltijdplannen, boodschappenlijstjes en sjablonen die u of leden van uw huishouden aanmaken, worden opgeslagen zodat de app deze voor u kan tonen en inplannen.</string>
+    <string name="privacy_page_medication_title">Medicatiegegevens (optioneel)</string>
+    <string name="privacy_page_medication_body">Als u de medicatiefunctie gebruikt, bewaren wij de medicatienamen, doseringsinstructies en schema\'s die u invoert. Dit is gezondheidsgerelateerde informatie die u zelf kiest te verstrekken; deze wordt alleen opgeslagen als u deze optionele functie gebruikt en wordt nooit gebruikt voor iets anders dan het tonen en herinneren van uw eigen medicatieschema.</string>
+    <string name="privacy_page_calendar_title">Agenda-integratie</string>
+    <string name="privacy_page_calendar_body">U kunt een externe agenda-app abonneren op een privé, accountgebonden agenda-feed-URL met uw Daynest-planning. De Android-app kan ook de agenda van uw apparaat lezen en schrijven (met uw toestemming) om lokale agenda-items synchroon te houden met Daynest.</string>
+    <string name="privacy_page_notifications_title">Pushmeldingen</string>
+    <string name="privacy_page_notifications_body">Als u meldingen inschakelt, bewaren wij het push-abonnement dat uw browser of apparaat ons geeft (een endpoint-URL en versleutelingssleutels) zodat wij herinneringen voor klusjes en medicatie kunnen afleveren. Afhankelijk van het platform gebeurt dit via Web Push, Firebase Cloud Messaging (Android) of UnifiedPush.</string>
+    <string name="privacy_page_integrations_title">Integraties met derden</string>
+    <string name="privacy_page_integrations_body">Als u Daynest verbindt met een externe tool (bijvoorbeeld Home Assistant of een MCP-compatibele assistent), bewaren wij de toegangsgegevens die nodig zijn om die verbinding toe te staan, beperkt tot uw account.</string>
+    <string name="privacy_page_diagnostics_title">Diagnostiek en logs</string>
+    <string name="privacy_page_diagnostics_body">Onze server houdt basale verzoekmetadata bij (gebruikers-ID, route, statuscode, latentie) om de dienst te beheren en problemen op te lossen. Als foutmonitoring is ingeschakeld, worden crashrapporten naar Sentry gestuurd met standaard uitgeschakelde verzameling van persoonsgegevens.</string>
+    <string name="privacy_page_data_use_title">Hoe wij deze gegevens gebruiken</string>
+    <string name="privacy_page_data_use_body">Wij gebruiken de bovenstaande gegevens uitsluitend om de kernfunctionaliteit van Daynest te leveren en te verbeteren: het tonen van uw taken en planning, het versturen van herinneringen waarvoor u zich heeft aangemeld, het synchroniseren van uw agenda en het betrouwbaar en veilig houden van de dienst. Wij verkopen uw gegevens niet en gebruiken ze niet voor reclame.</string>
+    <string name="privacy_page_sharing_title">Delen met derden</string>
+    <string name="privacy_page_sharing_intro">Wij delen gegevens alleen met de infrastructuurpartijen die nodig zijn om de dienst te laten draaien:</string>
+    <string name="privacy_page_sharing_hosting">Onze hostingprovider, die de server en database beheert.</string>
+    <string name="privacy_page_sharing_sentry">Sentry, voor optionele foutmonitoring/crashrapportage (geconfigureerd zonder standaard verzameling van persoonsgegevens).</string>
+    <string name="privacy_page_sharing_push">Firebase Cloud Messaging (Google) of een UnifiedPush-distributeur naar keuze, om pushmeldingen op Android af te leveren.</string>
+    <string name="privacy_page_sharing_outro">Wij delen, verhuren of verkopen uw gegevens verder niet aan derden.</string>
+    <string name="privacy_page_retention_title">Bewaring en verwijdering van gegevens</string>
+    <string name="privacy_page_retention_body">Wij bewaren uw gegevens zolang uw account actief is. Als u uw account verwijdert (of ons vraagt dit te doen), worden uw account en alle bijbehorende gegevens — huishoudlidmaatschap, planningsgegevens, medicatiegegevens, agenda-tokens, push-abonnementen en integratiegegevens — verwijderd. Neem contact met ons op via onderstaande gegevens om verwijdering aan te vragen.</string>
+    <string name="privacy_page_security_title">Beveiliging</string>
+    <string name="privacy_page_security_body">Gegevens worden verzonden via versleutelde HTTPS-verbindingen, de Android-app pint het TLS-certificaat van de server, en wachtwoorden worden opgeslagen met veilige eenrichtingshashing. Toegang tot uw gegevens vereist authenticatie.</string>
+    <string name="privacy_page_children_title">Privacy van kinderen</string>
+    <string name="privacy_page_children_body">Daynest is bedoeld voor gebruik door volwassenen die hun eigen huishouden beheren. Het is niet gericht op kinderen en wij verzamelen niet bewust gegevens van kinderen.</string>
+    <string name="privacy_page_changes_title">Wijzigingen in dit beleid</string>
+    <string name="privacy_page_changes_body">Wij kunnen dit beleid bijwerken naarmate de app zich ontwikkelt. Materiële wijzigingen worden weergegeven door de datum \"Laatst bijgewerkt\" hierboven te actualiseren.</string>
+    <string name="privacy_page_contact_title">Contact</string>
+    <string name="privacy_page_contact_body">Vragen, verzoeken tot inzage of verwijdering van gegevens kunt u sturen naar:</string>
+    <string name="privacy_page_contact_email">tielemans.jorim@gmail.com</string>
+    <string name="privacy_page_contact_github_link">Of dien een issue in op de Daynest GitHub-repository</string>
 </resources>

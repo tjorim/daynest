@@ -17,6 +17,7 @@ import com.daynest.android.app.session.SessionGateRoute
 import com.daynest.android.feature.auth.AuthRoute
 import com.daynest.android.feature.calendar.CalendarRoute
 import com.daynest.android.feature.home.HomeRoute
+import com.daynest.android.feature.legal.PrivacyPolicyRoute
 import com.daynest.android.feature.mealplan.MealPlannerRoute
 import com.daynest.android.feature.medication.MedicationRoute
 import com.daynest.android.feature.settings.SettingsRoute
@@ -86,6 +87,7 @@ private fun NavGraphBuilder.daynestDestinations(navController: NavHostController
     composable(route = DaynestDestination.SETTINGS) {
         SettingsRoute(
             onNavigate = navController::navigateTopLevel,
+            onOpenPrivacyPolicy = { navController.navigate(DaynestDestination.PRIVACY_POLICY) },
             onSignedOut = {
                 navController.navigate(DaynestDestination.AUTH) {
                     popUpTo(DaynestDestination.HOME) { inclusive = true }
@@ -93,6 +95,9 @@ private fun NavGraphBuilder.daynestDestinations(navController: NavHostController
                 }
             }
         )
+    }
+    composable(route = DaynestDestination.PRIVACY_POLICY) {
+        PrivacyPolicyRoute(onBack = { navController.popBackStack() })
     }
 }
 

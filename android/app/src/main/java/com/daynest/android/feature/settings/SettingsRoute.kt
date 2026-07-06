@@ -48,6 +48,7 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun SettingsRoute(
     onNavigate: (String) -> Unit = {},
+    onOpenPrivacyPolicy: () -> Unit = {},
     onSignedOut: (() -> Unit)? = null,
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
@@ -59,11 +60,21 @@ fun SettingsRoute(
         }
     }
 
-    SettingsScreen(uiState = uiState, onEvent = viewModel::onEvent, onNavigate = onNavigate)
+    SettingsScreen(
+        uiState = uiState,
+        onEvent = viewModel::onEvent,
+        onNavigate = onNavigate,
+        onOpenPrivacyPolicy = onOpenPrivacyPolicy
+    )
 }
 
 @Composable
-private fun SettingsScreen(uiState: SettingsUiState, onEvent: (SettingsUiEvent) -> Unit, onNavigate: (String) -> Unit) {
+private fun SettingsScreen(
+    uiState: SettingsUiState,
+    onEvent: (SettingsUiEvent) -> Unit,
+    onNavigate: (String) -> Unit,
+    onOpenPrivacyPolicy: () -> Unit
+) {
     DaynestNavigationScaffold(
         currentRoute = DaynestDestination.SETTINGS,
         onNavigate = onNavigate
@@ -85,6 +96,7 @@ private fun SettingsScreen(uiState: SettingsUiState, onEvent: (SettingsUiEvent) 
                 SettingsContent(
                     state = uiState,
                     onEvent = onEvent,
+                    onOpenPrivacyPolicy = onOpenPrivacyPolicy,
                     modifier = Modifier.padding(innerPadding)
                 )
             }
@@ -96,6 +108,7 @@ private fun SettingsScreen(uiState: SettingsUiState, onEvent: (SettingsUiEvent) 
 private fun SettingsContent(
     state: SettingsUiState.Content,
     onEvent: (SettingsUiEvent) -> Unit,
+    onOpenPrivacyPolicy: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -137,7 +150,7 @@ private fun SettingsContent(
             onEvent = onEvent
         )
         settingsNotificationsSection(state, onEvent)
-        settingsAccountSection(onEvent)
+        settingsAccountSection(onEvent, onOpenPrivacyPolicy)
         settingsClientsSection(state, onEvent)
         settingsSessionsSection(state, onEvent)
     }

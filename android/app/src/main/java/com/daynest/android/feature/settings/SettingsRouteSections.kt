@@ -173,7 +173,10 @@ internal fun LazyListScope.settingsNotificationsSection(
     item { calendarFeedCard(state, onEvent) }
 }
 
-internal fun LazyListScope.settingsAccountSection(onEvent: (SettingsUiEvent) -> Unit) {
+internal fun LazyListScope.settingsAccountSection(
+    onEvent: (SettingsUiEvent) -> Unit,
+    onOpenPrivacyPolicy: () -> Unit
+) {
     item {
         HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
         Text(
@@ -202,6 +205,11 @@ internal fun LazyListScope.settingsAccountSection(onEvent: (SettingsUiEvent) -> 
                     )
                 }
             }
+        }
+    }
+    item {
+        TextButton(onClick = onOpenPrivacyPolicy) {
+            Text(text = stringResource(id = R.string.settings_privacy_policy_link))
         }
     }
 }
