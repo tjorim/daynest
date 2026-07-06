@@ -14,6 +14,7 @@ object DaynestDestination {
     const val MEAL_PLAN = "meal-plan"
     const val SHOPPING_DETAIL = "shopping/{listId}"
     const val RECURRING_GROCERIES = "shopping-recurring"
+    const val STATS = "stats"
     const val SETTINGS = "settings"
     const val PRIVACY_POLICY = "privacy-policy"
 }
@@ -28,5 +29,6 @@ val daynestTopLevelDestinations =
         DaynestTopLevelDestination(DaynestDestination.TEMPLATES, R.string.templates_title),
         DaynestTopLevelDestination(DaynestDestination.SHOPPING, R.string.shopping_title),
         DaynestTopLevelDestination(DaynestDestination.MEAL_PLAN, R.string.meal_plan_title),
+        DaynestTopLevelDestination(DaynestDestination.STATS, R.string.stats_title),
         DaynestTopLevelDestination(DaynestDestination.SETTINGS, R.string.settings_title)
     )

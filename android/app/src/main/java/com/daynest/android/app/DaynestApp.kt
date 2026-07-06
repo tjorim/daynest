@@ -24,6 +24,7 @@ import com.daynest.android.feature.settings.SettingsRoute
 import com.daynest.android.feature.shopping.RecurringGroceriesRoute
 import com.daynest.android.feature.shopping.ShoppingListDetailRoute
 import com.daynest.android.feature.shopping.ShoppingListsRoute
+import com.daynest.android.feature.stats.StatsRoute
 import com.daynest.android.feature.templates.TemplatesRoute
 import com.daynest.android.ui.theme.DaynestTheme
 
@@ -84,6 +85,9 @@ private fun NavGraphBuilder.daynestDestinations(navController: NavHostController
     shoppingDestinations(navController)
     composable(route = DaynestDestination.MEAL_PLAN) {
         MealPlannerRoute(onNavigate = navController::navigateTopLevel)
+    }
+    composable(route = DaynestDestination.STATS) {
+        StatsRoute(onNavigate = navController::navigateTopLevel)
     }
     composable(route = DaynestDestination.SETTINGS) {
         SettingsRoute(

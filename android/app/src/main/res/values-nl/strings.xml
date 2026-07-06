@@ -304,6 +304,28 @@
     <string name="meal_plan_previous_week">Vorige week</string>
     <string name="meal_plan_next_week">Volgende week</string>
 
+    <string name="stats_title">Statistieken</string>
+    <string name="stats_period_week">Week</string>
+    <string name="stats_period_month">Maand</string>
+    <string name="stats_period_year">Jaar</string>
+    <string name="stats_completion_header">Voltooiing</string>
+    <string name="stats_chores_label">Klusjes</string>
+    <string name="stats_routines_label">Routines</string>
+    <string name="stats_medication_label">Medicatie</string>
+    <string name="stats_planned_items_label">Geplande items</string>
+    <string name="stats_streak_header">Reeksen</string>
+    <string name="stats_no_streaks">Nog geen reeksen.</string>
+    <string name="stats_streak_current">Huidig: %1$d dagen</string>
+    <string name="stats_streak_longest">Beste: %1$d dagen</string>
+    <string name="stats_most_skipped_header">Meest overgeslagen</string>
+    <string name="stats_no_skipped">Niets overgeslagen.</string>
+    <string name="stats_skip_count">%1$d keer overgeslagen</string>
+    <string name="stats_chores_daily_header">Trend klusjesvoltooiing</string>
+    <string name="stats_routines_daily_header">Trend routinevoltooiing</string>
+    <string name="stats_medication_adherence_header">Trend medicatietrouw</string>
+    <string name="stats_load_error">Kan statistieken niet laden.</string>
+    <string name="stats_no_trend_data">Nog niet genoeg gegevens.</string>
+
     <!-- Startscherm-widgets -->
     <string name="widget_small_label">Daynest (klein)</string>
     <string name="widget_medium_label">Daynest (middel)</string>

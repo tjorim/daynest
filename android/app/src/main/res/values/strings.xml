@@ -332,6 +332,28 @@
     <string name="meal_plan_previous_week">Previous week</string>
     <string name="meal_plan_next_week">Next week</string>
 
+    <string name="stats_title">Stats</string>
+    <string name="stats_period_week">Week</string>
+    <string name="stats_period_month">Month</string>
+    <string name="stats_period_year">Year</string>
+    <string name="stats_completion_header">Completion</string>
+    <string name="stats_chores_label">Chores</string>
+    <string name="stats_routines_label">Routines</string>
+    <string name="stats_medication_label">Medication</string>
+    <string name="stats_planned_items_label">Planned items</string>
+    <string name="stats_streak_header">Streaks</string>
+    <string name="stats_no_streaks">No streaks yet.</string>
+    <string name="stats_streak_current">Current: %1$d days</string>
+    <string name="stats_streak_longest">Best: %1$d days</string>
+    <string name="stats_most_skipped_header">Most skipped</string>
+    <string name="stats_no_skipped">Nothing skipped.</string>
+    <string name="stats_skip_count">%1$d skips</string>
+    <string name="stats_chores_daily_header">Chore completion trend</string>
+    <string name="stats_routines_daily_header">Routine completion trend</string>
+    <string name="stats_medication_adherence_header">Medication adherence trend</string>
+    <string name="stats_load_error">Unable to load stats.</string>
+    <string name="stats_no_trend_data">Not enough data yet.</string>
+
     <string name="settings_privacy_policy_link">Privacy policy</string>
     <string name="privacy_page_title">Privacy Policy</string>
     <string name="privacy_page_last_updated">Last updated: %1$s</string>
