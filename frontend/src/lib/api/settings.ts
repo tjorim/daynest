@@ -1,5 +1,4 @@
 import { fetchWithAuth, getJson, sendJson } from "@/lib/api/http";
-import { setOidcAccessToken } from "@/lib/auth/session";
 import { z } from "zod";
 
 export interface CalendarFeedResponse {
@@ -70,7 +69,6 @@ export async function updateUserSettings(patch: UserSettingsPatch): Promise<User
 export async function deleteAccount(): Promise<void> {
   const response = await fetchWithAuth("/api/users/me", { method: "DELETE" });
   if (response.ok) {
-    setOidcAccessToken(undefined);
     return;
   }
 

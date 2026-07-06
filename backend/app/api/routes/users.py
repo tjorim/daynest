@@ -3,9 +3,10 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query, Response, status
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, aliased
 
 from app.api.dependencies.auth import get_current_user
+from app.core.enums import HouseholdMemberRole
 from app.db.session import get_db
 from app.models.chore_template import ChoreTemplate
 from app.models.household_member import HouseholdMember
@@ -23,6 +24,41 @@ def _has_household_shared_chores(db: Session, user_id: int) -> bool:
         .where(
             ChoreTemplate.user_id == user_id,
             HouseholdMember.user_id != user_id,
+        )
+        .exists()
+    )
+    return db.scalar(select(stmt)) or False
+
+
+def _is_sole_owner_of_shared_household(db: Session, user_id: int) -> bool:
+    owner = aliased(HouseholdMember)
+    other_member = aliased(HouseholdMember)
+    other_owner = aliased(HouseholdMember)
+
+    has_other_member = (
+        select(other_member.id)
+        .where(
+            other_member.household_id == owner.household_id,
+            other_member.user_id != user_id,
+        )
+        .exists()
+    )
+    has_other_owner = (
+        select(other_owner.id)
+        .where(
+            other_owner.household_id == owner.household_id,
+            other_owner.user_id != user_id,
+            other_owner.role == HouseholdMemberRole.owner,
+        )
+        .exists()
+    )
+    stmt = (
+        select(owner.id)
+        .where(
+            owner.user_id == user_id,
+            owner.role == HouseholdMemberRole.owner,
+            has_other_member,
+            ~has_other_owner,
         )
         .exists()
     )
@@ -116,6 +152,15 @@ def delete_current_user(
             detail=(
                 "Account deletion is blocked while you own household-shared chores. "
                 "Delete or transfer those chores, or leave shared households before deleting your account."
+            ),
+        )
+
+    if _is_sole_owner_of_shared_household(db, current_user.id):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                "Account deletion is blocked while you are the sole owner of a shared household. "
+                "Transfer ownership, remove the other members, or delete the household before deleting your account."
             ),
         )
 

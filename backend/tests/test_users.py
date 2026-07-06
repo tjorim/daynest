@@ -81,3 +81,23 @@ def test_delete_current_user_blocks_household_shared_chores(client: TestClient, 
     assert response.status_code == 409
     assert "household-shared chores" in response.json()["detail"]
     assert db_session.get(User, owner.id) is not None
+
+
+def test_delete_current_user_blocks_sole_owner_of_shared_household(client: TestClient, db_session: Session) -> None:
+    owner = _create_user(db_session, "sole-owner@example.com")
+    member = _create_user(db_session, "ownerless-member@example.com")
+    household = Household(name="Shared home")
+    db_session.add(household)
+    db_session.flush()
+    db_session.add_all([
+        HouseholdMember(household_id=household.id, user_id=owner.id, role="owner"),
+        HouseholdMember(household_id=household.id, user_id=member.id, role="member"),
+    ])
+    db_session.commit()
+    _auth_as(owner)
+
+    response = client.delete("/api/users/me")
+
+    assert response.status_code == 409
+    assert "sole owner" in response.json()["detail"]
+    assert db_session.get(User, owner.id) is not None

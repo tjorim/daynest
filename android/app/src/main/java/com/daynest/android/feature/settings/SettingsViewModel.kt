@@ -19,6 +19,7 @@ import com.daynest.android.data.settings.SettingsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -224,9 +225,13 @@ constructor(
     private fun deleteCurrentAccount() {
         viewModelScope.launch {
             updateContent { it.copy(isDeletingAccount = true, accountDeletionError = null) }
+            try {
+                pushRegistrationManager.unregisterAllKnownEndpoints()
+            } catch (error: Exception) {
+                if (error is CancellationException) throw error
+            }
             settingsRepository.deleteCurrentUser()
                 .onSuccess {
-                    runCatching { pushRegistrationManager.unregisterAllKnownEndpoints() }
                     oidcAuthService.signOut()
                     _uiState.value = SettingsUiState.SignedOut
                 }
