@@ -29,6 +29,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -332,6 +333,9 @@ private fun timezoneCard(state: SettingsUiState.Content, onEvent: (SettingsUiEve
 
 @Composable
 private fun medicationReminderMinutesCard(state: SettingsUiState.Content, onEvent: (SettingsUiEvent) -> Unit) {
+    var input by remember(state.medicationReminderMinutes) {
+        mutableStateOf(state.medicationReminderMinutes.toString())
+    }
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(12.dp),
@@ -342,10 +346,12 @@ private fun medicationReminderMinutesCard(state: SettingsUiState.Content, onEven
                 style = MaterialTheme.typography.bodyMedium
             )
             OutlinedTextField(
-                value = state.medicationReminderMinutes.toString(),
+                value = input,
                 onValueChange = { raw ->
-                    raw.toIntOrNull()?.let { minutes ->
-                        onEvent(SettingsUiEvent.UpdateMedicationReminderMinutes(minutes.coerceAtLeast(0)))
+                    val filtered = raw.filter { it.isDigit() }
+                    input = filtered
+                    filtered.toIntOrNull()?.let { minutes ->
+                        onEvent(SettingsUiEvent.UpdateMedicationReminderMinutes(minutes))
                     }
                 },
                 singleLine = true
@@ -432,15 +438,17 @@ private fun Modifier.clickableTimePicker(
             }
         } ?: (0 to 0)
     return this.then(
-        Modifier.clickable {
-            TimePickerDialog(
-                context,
-                { _, hour, minute -> onSelected("%02d:%02d:00".format(hour, minute)) },
-                initialHour,
-                initialMinute,
-                true
-            ).show()
-        }
+        Modifier
+            .focusProperties { canFocus = false }
+            .clickable {
+                TimePickerDialog(
+                    context,
+                    { _, hour, minute -> onSelected("%02d:%02d:00".format(hour, minute)) },
+                    initialHour,
+                    initialMinute,
+                    true
+                ).show()
+            }
     )
 }
 

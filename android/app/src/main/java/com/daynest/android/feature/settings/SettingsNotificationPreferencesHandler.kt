@@ -25,16 +25,21 @@ internal class SettingsNotificationPreferencesHandler(
             is SettingsUiEvent.UpdateMedicationReminderMinutes ->
                 updateUserSettings { copy(medicationReminderMinutes = event.minutes) }
             is SettingsUiEvent.UpdateQuietHours ->
-                updateUserSettings { copy(quietHoursStart = event.start, quietHoursEnd = event.end) }
+                updateUserSettings(isQuietHoursUpdate = true) {
+                    copy(quietHoursStart = event.start, quietHoursEnd = event.end)
+                }
             SettingsUiEvent.RegenerateCalendarFeedClicked -> regenerateCalendarFeed()
             else -> Unit
         }
     }
 
-    private fun updateUserSettings(patch: UserSettingsPatchDto.() -> UserSettingsPatchDto) {
+    private fun updateUserSettings(
+        isQuietHoursUpdate: Boolean = false,
+        patch: UserSettingsPatchDto.() -> UserSettingsPatchDto
+    ) {
         val previous = (uiState.value as? SettingsUiState.Content) ?: return
         val request = UserSettingsPatchDto().patch()
-        applyOptimistic(request)
+        applyOptimistic(request, isQuietHoursUpdate)
         scope.launch {
             uiState.update { current ->
                 if (current is SettingsUiState.Content) current.copy(userSettingsSaving = true) else current
@@ -49,12 +54,27 @@ internal class SettingsNotificationPreferencesHandler(
                     }
                 }
             }.onFailure {
-                uiState.value = previous.copy(userSettingsSaving = false)
+                uiState.update { current ->
+                    if (current is SettingsUiState.Content) {
+                        current.copy(
+                            timezone = previous.timezone,
+                            pushOverdueChoresEnabled = previous.pushOverdueChoresEnabled,
+                            pushMedicationRemindersEnabled = previous.pushMedicationRemindersEnabled,
+                            pushMissedMedicationsEnabled = previous.pushMissedMedicationsEnabled,
+                            medicationReminderMinutes = previous.medicationReminderMinutes,
+                            quietHoursStart = previous.quietHoursStart,
+                            quietHoursEnd = previous.quietHoursEnd,
+                            userSettingsSaving = false
+                        )
+                    } else {
+                        current
+                    }
+                }
             }
         }
     }
 
-    private fun applyOptimistic(request: UserSettingsPatchDto) {
+    private fun applyOptimistic(request: UserSettingsPatchDto, isQuietHoursUpdate: Boolean) {
         uiState.update { current ->
             if (current !is SettingsUiState.Content) return@update current
             current.copy(
@@ -65,8 +85,8 @@ internal class SettingsNotificationPreferencesHandler(
                 pushMissedMedicationsEnabled =
                 request.pushMissedMedicationsEnabled ?: current.pushMissedMedicationsEnabled,
                 medicationReminderMinutes = request.medicationReminderMinutes ?: current.medicationReminderMinutes,
-                quietHoursStart = request.quietHoursStart ?: current.quietHoursStart,
-                quietHoursEnd = request.quietHoursEnd ?: current.quietHoursEnd
+                quietHoursStart = if (isQuietHoursUpdate) request.quietHoursStart else current.quietHoursStart,
+                quietHoursEnd = if (isQuietHoursUpdate) request.quietHoursEnd else current.quietHoursEnd
             )
         }
     }
