@@ -176,6 +176,25 @@
     <string name="settings_biometric_timeout_label">Biometrische time-out bij inactiviteit (minuten)</string>
     <string name="settings_calendar_sync_label">Systeemkalendersynchronisatie</string>
     <string name="settings_calendar_sync_hint">Synchroniseer aankomende taken en doses vanuit de lokale cache naar een door Daynest beheerde apparaatkalender.</string>
+    <string name="settings_notifications_section">Meldingen &amp; herinneringen</string>
+    <string name="settings_notifications_error">Je meldingsvoorkeuren konden niet worden geladen.</string>
+    <string name="settings_timezone_label">Tijdzone (IANA, bv. Europe/Brussels)</string>
+    <string name="settings_timezone_save">Opslaan</string>
+    <string name="settings_push_overdue_label">Meldingen voor achterstallige taken</string>
+    <string name="settings_push_overdue_hint">Ontvang een melding wanneer een taak achterstallig wordt.</string>
+    <string name="settings_push_med_reminders_label">Medicatieherinneringen</string>
+    <string name="settings_push_med_reminders_hint">Ontvang een melding voordat een geplande medicatiedosis moet worden ingenomen.</string>
+    <string name="settings_push_missed_med_label">Meldingen voor gemiste medicatie</string>
+    <string name="settings_push_missed_med_hint">Ontvang een melding als een medicatiedosis wordt gemist.</string>
+    <string name="settings_medication_reminder_minutes_label">Voorlooptijd medicatieherinnering (minuten)</string>
+    <string name="settings_quiet_hours_label">Stille uren</string>
+    <string name="settings_quiet_hours_start_label">Begin</string>
+    <string name="settings_quiet_hours_end_label">Einde</string>
+    <string name="settings_quiet_hours_clear">Stille uren wissen</string>
+    <string name="settings_calendar_feed_label">Kalenderabonnement (ICS-feed)</string>
+    <string name="settings_calendar_feed_copy">Link kopiëren</string>
+    <string name="settings_calendar_feed_regenerate">Link vernieuwen</string>
+    <string name="settings_calendar_feed_regenerate_confirm">Door te vernieuwen wordt de huidige link ongeldig. Elke agenda-app die hierop is geabonneerd, ontvangt geen updates meer totdat je opnieuw abonneert met de nieuwe link.</string>
     <string name="biometric_unlock_title">Daynest ontgrendelen</string>
     <string name="biometric_unlock_subtitle">Verificatie is vereist om door te gaan.</string>
     <string name="biometric_unlock_action">Ontgrendelen</string>
@@ -244,7 +263,6 @@
     </plurals>
     <string name="shopping_error_check_off_item">Kan boodschappenitem niet afvinken</string>
 
-    <string name="parity_more_coming">Native bewerkingsbediening blijft groeien vanuit dezelfde gedeelde API-contracten.</string>
 
     <!-- Maaltijdplanner -->
     <string name="meal_plan_title">Maaltijden</string>

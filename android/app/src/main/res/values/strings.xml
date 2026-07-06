@@ -176,6 +176,25 @@
     <string name="settings_biometric_timeout_label">Biometric idle timeout (minutes)</string>
     <string name="settings_calendar_sync_label">System calendar sync</string>
     <string name="settings_calendar_sync_hint">Sync upcoming tasks and doses from local cache to a Daynest-managed device calendar.</string>
+    <string name="settings_notifications_section">Notifications &amp; reminders</string>
+    <string name="settings_notifications_error">Couldn\'t load your notification preferences.</string>
+    <string name="settings_timezone_label">Timezone (IANA, e.g. Europe/Brussels)</string>
+    <string name="settings_timezone_save">Save</string>
+    <string name="settings_push_overdue_label">Overdue chore alerts</string>
+    <string name="settings_push_overdue_hint">Get notified when a chore becomes overdue.</string>
+    <string name="settings_push_med_reminders_label">Medication reminders</string>
+    <string name="settings_push_med_reminders_hint">Get notified before a scheduled medication dose is due.</string>
+    <string name="settings_push_missed_med_label">Missed medication alerts</string>
+    <string name="settings_push_missed_med_hint">Get notified if a medication dose is missed.</string>
+    <string name="settings_medication_reminder_minutes_label">Medication reminder lead time (minutes)</string>
+    <string name="settings_quiet_hours_label">Quiet hours</string>
+    <string name="settings_quiet_hours_start_label">Start</string>
+    <string name="settings_quiet_hours_end_label">End</string>
+    <string name="settings_quiet_hours_clear">Clear quiet hours</string>
+    <string name="settings_calendar_feed_label">Calendar subscription (ICS feed)</string>
+    <string name="settings_calendar_feed_copy">Copy link</string>
+    <string name="settings_calendar_feed_regenerate">Regenerate link</string>
+    <string name="settings_calendar_feed_regenerate_confirm">Regenerating invalidates the current link. Any calendar app subscribed to it will stop receiving updates until you re-subscribe with the new link.</string>
     <string name="biometric_unlock_title">Unlock Daynest</string>
     <string name="biometric_unlock_subtitle">Authentication is required to continue.</string>
     <string name="biometric_unlock_action">Unlock</string>
@@ -244,7 +263,6 @@
     </plurals>
     <string name="shopping_error_check_off_item">Unable to check off shopping item</string>
 
-    <string name="parity_more_coming">Native editing controls will continue to grow from the same shared API contracts.</string>
 
     <!-- Home-screen widgets -->
     <string name="widget_small_label">Daynest (small)</string>

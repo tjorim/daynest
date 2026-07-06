@@ -5,6 +5,7 @@ import kotlinx.serialization.Serializable
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
+import retrofit2.http.PATCH
 import retrofit2.http.POST
 import retrofit2.http.Path
 
@@ -20,6 +21,18 @@ interface SettingsApi {
 
     @DELETE("api/v1/auth/sessions/{id}")
     suspend fun revokeSession(@Path("id") id: String)
+
+    @GET("api/users/me/settings")
+    suspend fun getUserSettings(): UserSettingsDto
+
+    @PATCH("api/users/me/settings")
+    suspend fun updateUserSettings(@Body request: UserSettingsPatchDto): UserSettingsDto
+
+    @GET("api/calendar/feed")
+    suspend fun getCalendarFeed(): CalendarFeedDto
+
+    @POST("api/calendar/feed/regenerate")
+    suspend fun regenerateCalendarFeed(): CalendarFeedDto
 }
 
 @Serializable
@@ -76,4 +89,47 @@ data class IntegrationClientCreateResponseDto(
     val clientSecret: String? = null,
     @SerialName("token_url")
     val tokenUrl: String? = null
+)
+
+@Serializable
+data class UserSettingsDto(
+    val timezone: String,
+    @SerialName("default_snooze_days")
+    val defaultSnoozeDays: Int,
+    @SerialName("medication_reminder_minutes")
+    val medicationReminderMinutes: Int,
+    @SerialName("quiet_hours_start")
+    val quietHoursStart: String? = null,
+    @SerialName("quiet_hours_end")
+    val quietHoursEnd: String? = null,
+    @SerialName("push_overdue_chores_enabled")
+    val pushOverdueChoresEnabled: Boolean,
+    @SerialName("push_medication_reminders_enabled")
+    val pushMedicationRemindersEnabled: Boolean,
+    @SerialName("push_missed_medications_enabled")
+    val pushMissedMedicationsEnabled: Boolean
+)
+
+@Serializable
+data class UserSettingsPatchDto(
+    val timezone: String? = null,
+    @SerialName("medication_reminder_minutes")
+    val medicationReminderMinutes: Int? = null,
+    @SerialName("quiet_hours_start")
+    val quietHoursStart: String? = null,
+    @SerialName("quiet_hours_end")
+    val quietHoursEnd: String? = null,
+    @SerialName("push_overdue_chores_enabled")
+    val pushOverdueChoresEnabled: Boolean? = null,
+    @SerialName("push_medication_reminders_enabled")
+    val pushMedicationRemindersEnabled: Boolean? = null,
+    @SerialName("push_missed_medications_enabled")
+    val pushMissedMedicationsEnabled: Boolean? = null
+)
+
+@Serializable
+data class CalendarFeedDto(
+    val token: String,
+    @SerialName("feed_url")
+    val feedUrl: String
 )

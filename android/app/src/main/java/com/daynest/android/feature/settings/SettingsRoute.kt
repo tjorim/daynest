@@ -136,6 +136,7 @@ private fun SettingsContent(
             deviceCalendarPermissionLauncher = deviceCalendarPermissionLauncher,
             onEvent = onEvent
         )
+        settingsNotificationsSection(state, onEvent)
         settingsAccountSection(onEvent)
         settingsClientsSection(state, onEvent)
         settingsSessionsSection(state, onEvent)

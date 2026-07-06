@@ -50,6 +50,13 @@ constructor(
             uiState = _uiState
         )
 
+    private val notificationPreferencesHandler =
+        SettingsNotificationPreferencesHandler(
+            scope = viewModelScope,
+            settingsRepository = settingsRepository,
+            uiState = _uiState
+        )
+
     init {
         load()
     }
@@ -68,6 +75,13 @@ constructor(
             is SettingsUiEvent.CreateClient -> createClient(event.input)
             is SettingsUiEvent.UpdateServerUrl -> updateServerUrl(event.url)
             is SettingsUiEvent.RevokeSessionClicked -> revokeSession(event.sessionId)
+            is SettingsUiEvent.UpdateTimezone,
+            is SettingsUiEvent.UpdatePushOverdueChoresEnabled,
+            is SettingsUiEvent.UpdatePushMedicationRemindersEnabled,
+            is SettingsUiEvent.UpdatePushMissedMedicationsEnabled,
+            is SettingsUiEvent.UpdateMedicationReminderMinutes,
+            is SettingsUiEvent.UpdateQuietHours,
+            SettingsUiEvent.RegenerateCalendarFeedClicked -> notificationPreferencesHandler.onEvent(event)
             else -> onPreferencesEvent(event)
         }
     }
@@ -89,11 +103,16 @@ constructor(
             val clientsDeferred = async { settingsRepository.listClients() }
             val sessionsDeferred = async { settingsRepository.listSessions() }
             val deviceCalendarsDeferred = async { deviceCalendarRepository.listCalendars() }
+            val userSettingsDeferred = async { settingsRepository.getUserSettings() }
+            val calendarFeedDeferred = async { settingsRepository.getCalendarFeed() }
             val prefs = prefsDeferred.await()
             val customServerUrl = customServerUrlDeferred.await()
             val clientsResult = clientsDeferred.await()
             val sessionsResult = sessionsDeferred.await()
             val deviceCalendarsResult = deviceCalendarsDeferred.await()
+            val userSettingsResult = userSettingsDeferred.await()
+            val calendarFeedResult = calendarFeedDeferred.await()
+            val userSettings = userSettingsResult.getOrNull()
             _uiState.value =
                 SettingsUiState.Content(
                     clients = clientsResult.getOrElse { emptyList() },
@@ -110,7 +129,18 @@ constructor(
                     calendarSyncEnabled = prefs.calendarSyncEnabled,
                     showDeviceCalendars = prefs.showDeviceCalendars,
                     deviceCalendars = deviceCalendarsResult.getOrElse { emptyList() },
-                    enabledDeviceCalendarIds = prefs.enabledDeviceCalendarIds
+                    enabledDeviceCalendarIds = prefs.enabledDeviceCalendarIds,
+                    timezone = userSettings?.timezone ?: "UTC",
+                    pushOverdueChoresEnabled = userSettings?.pushOverdueChoresEnabled ?: false,
+                    pushMedicationRemindersEnabled = userSettings?.pushMedicationRemindersEnabled ?: false,
+                    pushMissedMedicationsEnabled = userSettings?.pushMissedMedicationsEnabled ?: false,
+                    medicationReminderMinutes = userSettings?.medicationReminderMinutes ?: 0,
+                    quietHoursStart = userSettings?.quietHoursStart,
+                    quietHoursEnd = userSettings?.quietHoursEnd,
+                    userSettingsLoadError = userSettingsResult.isFailure,
+                    userSettingsSaving = false,
+                    calendarFeedUrl = calendarFeedResult.getOrNull()?.feedUrl,
+                    calendarFeedRegenerating = false
                 )
         }
     }
@@ -244,7 +274,18 @@ sealed interface SettingsUiState {
         val calendarSyncEnabled: Boolean,
         val showDeviceCalendars: Boolean,
         val deviceCalendars: List<DeviceCalendar>,
-        val enabledDeviceCalendarIds: Set<String>
+        val enabledDeviceCalendarIds: Set<String>,
+        val timezone: String,
+        val pushOverdueChoresEnabled: Boolean,
+        val pushMedicationRemindersEnabled: Boolean,
+        val pushMissedMedicationsEnabled: Boolean,
+        val medicationReminderMinutes: Int,
+        val quietHoursStart: String?,
+        val quietHoursEnd: String?,
+        val userSettingsLoadError: Boolean,
+        val userSettingsSaving: Boolean,
+        val calendarFeedUrl: String?,
+        val calendarFeedRegenerating: Boolean
     ) : SettingsUiState
 
     data object SignedOut : SettingsUiState
@@ -278,4 +319,18 @@ sealed interface SettingsUiEvent {
     data class UpdateShowDeviceCalendars(val enabled: Boolean) : SettingsUiEvent
 
     data class UpdateDeviceCalendarEnabled(val calendarId: String, val enabled: Boolean) : SettingsUiEvent
+
+    data class UpdateTimezone(val timezone: String) : SettingsUiEvent
+
+    data class UpdatePushOverdueChoresEnabled(val enabled: Boolean) : SettingsUiEvent
+
+    data class UpdatePushMedicationRemindersEnabled(val enabled: Boolean) : SettingsUiEvent
+
+    data class UpdatePushMissedMedicationsEnabled(val enabled: Boolean) : SettingsUiEvent
+
+    data class UpdateMedicationReminderMinutes(val minutes: Int) : SettingsUiEvent
+
+    data class UpdateQuietHours(val start: String?, val end: String?) : SettingsUiEvent
+
+    data object RegenerateCalendarFeedClicked : SettingsUiEvent
 }
