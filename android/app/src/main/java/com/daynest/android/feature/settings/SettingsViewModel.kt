@@ -19,7 +19,6 @@ import com.daynest.android.data.settings.SettingsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -225,11 +224,7 @@ constructor(
     private fun deleteCurrentAccount() {
         viewModelScope.launch {
             updateContent { it.copy(isDeletingAccount = true, accountDeletionError = null) }
-            try {
-                pushRegistrationManager.unregisterAllKnownEndpoints()
-            } catch (error: Exception) {
-                if (error is CancellationException) throw error
-            }
+            pushRegistrationManager.unregisterAllKnownEndpoints()
             settingsRepository.deleteCurrentUser()
                 .onSuccess {
                     oidcAuthService.signOut()
@@ -253,14 +248,14 @@ constructor(
             if (current is SettingsUiState.Content) transform(current) else current
         }
     }
-
-    private fun IntegrationClientCreateResponseDto.toDto() = IntegrationClientDto(
-        id = id,
-        name = name,
-        rateLimitPerMinute = rateLimitPerMinute,
-        isActive = isActive
-    )
 }
+
+private fun IntegrationClientCreateResponseDto.toDto() = IntegrationClientDto(
+    id = id,
+    name = name,
+    rateLimitPerMinute = rateLimitPerMinute,
+    isActive = isActive
+)
 
 sealed interface SettingsUiState {
     data object Loading : SettingsUiState

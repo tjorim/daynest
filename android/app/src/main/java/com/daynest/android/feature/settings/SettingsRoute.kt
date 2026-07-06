@@ -141,20 +141,23 @@ private fun SettingsContent(
         settingsSessionsSection(state, onEvent)
     }
 
+    SettingsDialogs(state = state, onEvent = onEvent)
+}
+
+@Composable
+private fun SettingsDialogs(state: SettingsUiState.Content, onEvent: (SettingsUiEvent) -> Unit) {
     if (state.showCreateForm) {
         CreateClientDialog(
             onConfirm = { onEvent(SettingsUiEvent.CreateClient(it)) },
             onDismiss = { onEvent(SettingsUiEvent.DismissCreateClientForm) }
         )
     }
-
     if (state.newApiKey != null) {
         NewApiKeyDialog(
             apiKey = state.newApiKey,
             onDismiss = { onEvent(SettingsUiEvent.DismissNewKeyDialog) }
         )
     }
-
     if (state.showDeleteAccountConfirm) {
         DeleteAccountDialog(
             isDeleting = state.isDeletingAccount,

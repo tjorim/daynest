@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -122,70 +121,10 @@ internal fun LazyListScope.settingsAccountSection(state: SettingsUiState.Content
         )
     }
     item {
-        Card(modifier = Modifier.fillMaxWidth()) {
-            Row(
-                modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = stringResource(id = R.string.settings_session_active),
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.weight(1f)
-                )
-                TextButton(onClick = { onEvent(SettingsUiEvent.SignOutClicked) }) {
-                    Text(
-                        text = stringResource(id = R.string.settings_sign_out),
-                        color = MaterialTheme.colorScheme.error
-                    )
-                }
-            }
-        }
+        accountSessionCard(onEvent = onEvent)
     }
     item {
-        Card(modifier = Modifier.fillMaxWidth()) {
-            Column(
-                modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                Text(
-                    text = stringResource(id = R.string.settings_delete_account_title),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.error
-                )
-                Text(
-                    text = stringResource(id = R.string.settings_delete_account_hint),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.outline
-                )
-                state.accountDeletionError?.let { message ->
-                    Text(
-                        text = message,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error
-                    )
-                }
-                TextButton(
-                    onClick = { onEvent(SettingsUiEvent.ShowDeleteAccountDialog) },
-                    enabled = !state.isDeletingAccount,
-                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
-                ) {
-                    Text(
-                        text =
-                        if (state.isDeletingAccount) {
-                            stringResource(id = R.string.settings_delete_account_deleting)
-                        } else {
-                            stringResource(id = R.string.settings_delete_account_action)
-                        }
-                    )
-                }
-            }
-        }
+        deleteAccountCard(state = state, onEvent = onEvent)
     }
 }
 
