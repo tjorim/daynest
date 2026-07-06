@@ -185,6 +185,13 @@
     <string name="settings_account_section">Account</string>
     <string name="settings_session_active">Aangemeld</string>
     <string name="settings_sign_out">Afmelden</string>
+    <string name="settings_delete_account_title">Account verwijderen</string>
+    <string name="settings_delete_account_hint">Verwijder uw Daynest-account en persoonlijke gegevens permanent. Gedeelde huishoudelijke klusjes moeten eerst worden verwijderd, overgedragen of verlaten.</string>
+    <string name="settings_delete_account_action">Mijn account verwijderen</string>
+    <string name="settings_delete_account_deleting">Verwijderen…</string>
+    <string name="settings_delete_account_confirm">Dit verwijdert uw Daynest-account en persoonlijke gegevens permanent. Dit kan niet ongedaan worden gemaakt.</string>
+    <string name="settings_delete_account_confirm_action">Account verwijderen</string>
+    <string name="settings_delete_account_error">Kan account niet verwijderen. Probeer het opnieuw.</string>
     <string name="settings_integrations_section">Integratieclients</string>
     <string name="settings_new_client">+ Nieuwe client</string>
     <string name="settings_no_clients">Geen integratieclients geconfigureerd.</string>
