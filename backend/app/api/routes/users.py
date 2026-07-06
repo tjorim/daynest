@@ -2,7 +2,7 @@ from typing import Any
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query, Response, status
-from sqlalchemy import exists, select
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.dependencies.auth import get_current_user
@@ -17,21 +17,16 @@ router = APIRouter(prefix="/users", tags=["users"])
 
 
 def _has_household_shared_chores(db: Session, user_id: int) -> bool:
-    other_household_member = (
-        select(HouseholdMember.id)
-        .where(HouseholdMember.household_id == ChoreTemplate.household_id)
-        .where(HouseholdMember.user_id != user_id)
+    stmt = (
+        select(ChoreTemplate.id)
+        .join(HouseholdMember, HouseholdMember.household_id == ChoreTemplate.household_id)
+        .where(
+            ChoreTemplate.user_id == user_id,
+            HouseholdMember.user_id != user_id,
+        )
         .exists()
     )
-    return db.scalar(
-        select(
-            exists().where(
-                ChoreTemplate.user_id == user_id,
-                ChoreTemplate.household_id.is_not(None),
-                other_household_member,
-            )
-        )
-    ) or False
+    return db.scalar(select(stmt)) or False
 
 
 def _to_response(user: User) -> UserSettingsResponse:
