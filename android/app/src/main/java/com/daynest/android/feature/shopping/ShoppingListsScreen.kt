@@ -138,39 +138,58 @@ private fun ShoppingListsContent(
 
         item { CreateListForm(onCreate = onCreate) }
 
+        activeListsSection(activeLists, uiState.isLoadingLists, onOpenList, onArchive, onDelete)
+        archivedListsSection(archivedLists, onOpenList, onArchive, onDelete)
+    }
+}
+
+private fun LazyListScope.activeListsSection(
+    activeLists: List<ShoppingListDto>,
+    isLoadingLists: Boolean,
+    onOpenList: (Int) -> Unit,
+    onArchive: (ShoppingListDto) -> Unit,
+    onDelete: (Int) -> Unit
+) {
+    item {
+        Text(
+            text = stringResource(id = R.string.shopping_active_lists),
+            style = MaterialTheme.typography.titleMedium
+        )
+    }
+    if (activeLists.isEmpty() && !isLoadingLists) {
+        item { Text(text = stringResource(id = R.string.shopping_no_lists)) }
+    }
+    items(activeLists, key = { it.id }) { list ->
+        ShoppingListCard(
+            list = list,
+            onOpenList = onOpenList,
+            onArchive = onArchive,
+            onDelete = onDelete
+        )
+    }
+}
+
+private fun LazyListScope.archivedListsSection(
+    archivedLists: List<ShoppingListDto>,
+    onOpenList: (Int) -> Unit,
+    onArchive: (ShoppingListDto) -> Unit,
+    onDelete: (Int) -> Unit
+) {
+    if (archivedLists.isNotEmpty()) {
         item {
+            Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = stringResource(id = R.string.shopping_active_lists),
+                text = stringResource(id = R.string.shopping_archived),
                 style = MaterialTheme.typography.titleMedium
             )
         }
-        if (activeLists.isEmpty() && !uiState.isLoadingLists) {
-            item { Text(text = stringResource(id = R.string.shopping_no_lists)) }
-        }
-        items(activeLists, key = { it.id }) { list ->
+        items(archivedLists, key = { it.id }) { list ->
             ShoppingListCard(
                 list = list,
                 onOpenList = onOpenList,
                 onArchive = onArchive,
                 onDelete = onDelete
             )
-        }
-        if (archivedLists.isNotEmpty()) {
-            item {
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = stringResource(id = R.string.shopping_archived),
-                    style = MaterialTheme.typography.titleMedium
-                )
-            }
-            items(archivedLists, key = { it.id }) { list ->
-                ShoppingListCard(
-                    list = list,
-                    onOpenList = onOpenList,
-                    onArchive = onArchive,
-                    onDelete = onDelete
-                )
-            }
         }
     }
 }

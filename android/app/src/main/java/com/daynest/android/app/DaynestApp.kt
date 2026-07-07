@@ -96,6 +96,10 @@ private fun NavGraphBuilder.daynestDestinations(navController: NavHostController
     composable(route = DaynestDestination.STATS) {
         StatsRoute(onNavigate = navController::navigateTopLevel)
     }
+    settingsDestinations(navController)
+}
+
+private fun NavGraphBuilder.settingsDestinations(navController: NavHostController) {
     composable(route = DaynestDestination.SETTINGS) {
         SettingsRoute(
             onNavigate = navController::navigateTopLevel,

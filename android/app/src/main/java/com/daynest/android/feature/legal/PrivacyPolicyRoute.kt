@@ -29,60 +29,72 @@ fun PrivacyPolicyRoute(onBack: () -> Unit) {
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        item {
-            TextButton(onClick = onBack) {
-                Text(text = stringResource(id = R.string.action_back))
-            }
+        privacyHeader(onBack)
+        privacyDataSections()
+        privacyClosingSections(contactEmail) { uriHandler.openUri("mailto:$contactEmail") }
+    }
+}
+
+private fun LazyListScope.privacyHeader(onBack: () -> Unit) {
+    item {
+        TextButton(onClick = onBack) {
+            Text(text = stringResource(id = R.string.action_back))
         }
-        item {
-            Text(
-                text = stringResource(id = R.string.privacy_page_title),
-                style = MaterialTheme.typography.headlineMedium
-            )
-        }
-        item {
-            Text(
-                text =
-                stringResource(
-                    id = R.string.privacy_page_last_updated,
-                    stringResource(id = R.string.privacy_page_last_updated_date)
-                ),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.outline
-            )
-        }
-        privacyParagraph(R.string.privacy_page_intro)
-        privacyParagraph(R.string.privacy_page_self_hosting)
-        privacySectionTitle(R.string.privacy_page_data_collected_title)
-        privacySubsection(R.string.privacy_page_account_title, R.string.privacy_page_account_body)
-        privacySubsection(R.string.privacy_page_household_data_title, R.string.privacy_page_household_data_body)
-        privacySubsection(R.string.privacy_page_medication_title, R.string.privacy_page_medication_body)
-        privacySubsection(R.string.privacy_page_calendar_title, R.string.privacy_page_calendar_body)
-        privacySubsection(R.string.privacy_page_notifications_title, R.string.privacy_page_notifications_body)
-        privacySubsection(R.string.privacy_page_integrations_title, R.string.privacy_page_integrations_body)
-        privacySubsection(R.string.privacy_page_diagnostics_title, R.string.privacy_page_diagnostics_body)
-        privacySectionTitle(R.string.privacy_page_data_use_title)
-        privacyParagraph(R.string.privacy_page_data_use_body)
-        privacySectionTitle(R.string.privacy_page_sharing_title)
-        privacyParagraph(R.string.privacy_page_sharing_intro)
-        privacyBullet(R.string.privacy_page_sharing_hosting)
-        privacyBullet(R.string.privacy_page_sharing_sentry)
-        privacyBullet(R.string.privacy_page_sharing_push)
-        privacyParagraph(R.string.privacy_page_sharing_outro)
-        privacySectionTitle(R.string.privacy_page_retention_title)
-        privacyParagraph(R.string.privacy_page_retention_body)
-        privacySectionTitle(R.string.privacy_page_security_title)
-        privacyParagraph(R.string.privacy_page_security_body)
-        privacySectionTitle(R.string.privacy_page_children_title)
-        privacyParagraph(R.string.privacy_page_children_body)
-        privacySectionTitle(R.string.privacy_page_changes_title)
-        privacyParagraph(R.string.privacy_page_changes_body)
-        privacySectionTitle(R.string.privacy_page_contact_title)
-        privacyParagraph(R.string.privacy_page_contact_body)
-        item {
-            TextButton(onClick = { uriHandler.openUri("mailto:$contactEmail") }) {
-                Text(text = contactEmail)
-            }
+    }
+    item {
+        Text(
+            text = stringResource(id = R.string.privacy_page_title),
+            style = MaterialTheme.typography.headlineMedium
+        )
+    }
+    item {
+        Text(
+            text =
+            stringResource(
+                id = R.string.privacy_page_last_updated,
+                stringResource(id = R.string.privacy_page_last_updated_date)
+            ),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.outline
+        )
+    }
+}
+
+private fun LazyListScope.privacyDataSections() {
+    privacyParagraph(R.string.privacy_page_intro)
+    privacyParagraph(R.string.privacy_page_self_hosting)
+    privacySectionTitle(R.string.privacy_page_data_collected_title)
+    privacySubsection(R.string.privacy_page_account_title, R.string.privacy_page_account_body)
+    privacySubsection(R.string.privacy_page_household_data_title, R.string.privacy_page_household_data_body)
+    privacySubsection(R.string.privacy_page_medication_title, R.string.privacy_page_medication_body)
+    privacySubsection(R.string.privacy_page_calendar_title, R.string.privacy_page_calendar_body)
+    privacySubsection(R.string.privacy_page_notifications_title, R.string.privacy_page_notifications_body)
+    privacySubsection(R.string.privacy_page_integrations_title, R.string.privacy_page_integrations_body)
+    privacySubsection(R.string.privacy_page_diagnostics_title, R.string.privacy_page_diagnostics_body)
+    privacySectionTitle(R.string.privacy_page_data_use_title)
+    privacyParagraph(R.string.privacy_page_data_use_body)
+    privacySectionTitle(R.string.privacy_page_sharing_title)
+    privacyParagraph(R.string.privacy_page_sharing_intro)
+    privacyBullet(R.string.privacy_page_sharing_hosting)
+    privacyBullet(R.string.privacy_page_sharing_sentry)
+    privacyBullet(R.string.privacy_page_sharing_push)
+    privacyParagraph(R.string.privacy_page_sharing_outro)
+}
+
+private fun LazyListScope.privacyClosingSections(contactEmail: String, onEmailClick: () -> Unit) {
+    privacySectionTitle(R.string.privacy_page_retention_title)
+    privacyParagraph(R.string.privacy_page_retention_body)
+    privacySectionTitle(R.string.privacy_page_security_title)
+    privacyParagraph(R.string.privacy_page_security_body)
+    privacySectionTitle(R.string.privacy_page_children_title)
+    privacyParagraph(R.string.privacy_page_children_body)
+    privacySectionTitle(R.string.privacy_page_changes_title)
+    privacyParagraph(R.string.privacy_page_changes_body)
+    privacySectionTitle(R.string.privacy_page_contact_title)
+    privacyParagraph(R.string.privacy_page_contact_body)
+    item {
+        TextButton(onClick = onEmailClick) {
+            Text(text = contactEmail)
         }
     }
 }

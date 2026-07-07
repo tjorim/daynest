@@ -1,11 +1,9 @@
 package com.daynest.android.core.di
 
-import com.daynest.android.data.analytics.AnalyticsApi
 import com.daynest.android.data.calendar.CalendarApi
 import com.daynest.android.data.mealplan.MealPlanApi
 import com.daynest.android.data.medication.MedicationApi
 import com.daynest.android.data.push.PushApi
-import com.daynest.android.data.search.SearchApi
 import com.daynest.android.data.settings.SettingsApi
 import com.daynest.android.data.shopping.ShoppingListApi
 import com.daynest.android.data.templates.TemplatesApi
@@ -61,12 +59,4 @@ object NetworkApiDiModule {
     @Provides
     @Singleton
     fun provideMealPlanApi(retrofit: Retrofit): MealPlanApi = retrofit.create(MealPlanApi::class.java)
-
-    @Provides
-    @Singleton
-    fun provideAnalyticsApi(retrofit: Retrofit): AnalyticsApi = retrofit.create(AnalyticsApi::class.java)
-
-    @Provides
-    @Singleton
-    fun provideSearchApi(retrofit: Retrofit): SearchApi = retrofit.create(SearchApi::class.java)
 }

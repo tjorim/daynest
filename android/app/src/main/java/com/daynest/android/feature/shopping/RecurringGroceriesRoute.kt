@@ -80,51 +80,19 @@ private fun RecurringGroceriesContent(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        item {
-            TextButton(onClick = onBack) { Text(text = stringResource(id = R.string.action_back)) }
-        }
-        item {
-            Column {
-                Text(
-                    text = stringResource(id = R.string.shopping_recurring_page_title),
-                    style = MaterialTheme.typography.headlineMedium
-                )
-                Text(
-                    text = stringResource(id = R.string.shopping_recurring_page_subtitle),
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            }
-        }
-        item {
-            Button(
-                onClick = {
-                    editingSeries = null
-                    showForm = true
-                }
-            ) {
-                Text(text = stringResource(id = R.string.shopping_recurring_add_new))
-            }
-        }
-        if (uiState.isLoading) {
-            item { CircularProgressIndicator() }
-        }
-        uiState.error?.let { message ->
-            item { Text(text = message, color = MaterialTheme.colorScheme.error) }
-        }
-        if (uiState.series.isEmpty() && !uiState.isLoading) {
-            item { Text(text = stringResource(id = R.string.shopping_recurring_no_series)) }
-        }
-        items(uiState.series, key = { it.key }) { series ->
-            RecurringGroceryCard(
-                series = series,
-                listName = uiState.shoppingLists.firstOrNull { it.id == series.autoAddToListId }?.name,
-                onEdit = {
-                    editingSeries = series
-                    showForm = true
-                },
-                onDelete = { deleteTarget = series }
-            )
-        }
+        recurringGroceriesListItems(
+            uiState = uiState,
+            onBack = onBack,
+            onAddNew = {
+                editingSeries = null
+                showForm = true
+            },
+            onEditSeries = { series ->
+                editingSeries = series
+                showForm = true
+            },
+            onDeleteRequested = { series -> deleteTarget = series }
+        )
     }
 
     if (showForm) {
@@ -140,27 +108,80 @@ private fun RecurringGroceriesContent(
     }
 
     deleteTarget?.let { series ->
-        AlertDialog(
-            onDismissRequest = { deleteTarget = null },
-            title = { Text(text = stringResource(id = R.string.shopping_recurring_delete_title)) },
-            text = { Text(text = stringResource(id = R.string.shopping_recurring_delete_message, series.title)) },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        onDelete(series)
-                        deleteTarget = null
-                    }
-                ) {
-                    Text(text = stringResource(id = R.string.action_delete))
-                }
+        DeleteRecurringGroceryDialog(
+            series = series,
+            onConfirm = {
+                onDelete(series)
+                deleteTarget = null
             },
-            dismissButton = {
-                TextButton(onClick = { deleteTarget = null }) {
-                    Text(text = stringResource(id = R.string.action_cancel))
-                }
-            }
+            onDismiss = { deleteTarget = null }
         )
     }
+}
+
+private fun LazyListScope.recurringGroceriesListItems(
+    uiState: RecurringGroceriesUiState,
+    onBack: () -> Unit,
+    onAddNew: () -> Unit,
+    onEditSeries: (RecurringGrocerySeries) -> Unit,
+    onDeleteRequested: (RecurringGrocerySeries) -> Unit
+) {
+    item {
+        TextButton(onClick = onBack) { Text(text = stringResource(id = R.string.action_back)) }
+    }
+    item {
+        Column {
+            Text(
+                text = stringResource(id = R.string.shopping_recurring_page_title),
+                style = MaterialTheme.typography.headlineMedium
+            )
+            Text(
+                text = stringResource(id = R.string.shopping_recurring_page_subtitle),
+                style = MaterialTheme.typography.bodyMedium
+            )
+        }
+    }
+    item {
+        Button(onClick = onAddNew) {
+            Text(text = stringResource(id = R.string.shopping_recurring_add_new))
+        }
+    }
+    if (uiState.isLoading) {
+        item { CircularProgressIndicator() }
+    }
+    uiState.error?.let { message ->
+        item { Text(text = message, color = MaterialTheme.colorScheme.error) }
+    }
+    if (uiState.series.isEmpty() && !uiState.isLoading) {
+        item { Text(text = stringResource(id = R.string.shopping_recurring_no_series)) }
+    }
+    items(uiState.series, key = { it.key }) { series ->
+        RecurringGroceryCard(
+            series = series,
+            listName = uiState.shoppingLists.firstOrNull { it.id == series.autoAddToListId }?.name,
+            onEdit = { onEditSeries(series) },
+            onDelete = { onDeleteRequested(series) }
+        )
+    }
+}
+
+@Composable
+private fun DeleteRecurringGroceryDialog(series: RecurringGrocerySeries, onConfirm: () -> Unit, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(text = stringResource(id = R.string.shopping_recurring_delete_title)) },
+        text = { Text(text = stringResource(id = R.string.shopping_recurring_delete_message, series.title)) },
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text(text = stringResource(id = R.string.action_delete))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(text = stringResource(id = R.string.action_cancel))
+            }
+        }
+    )
 }
 
 @Composable
@@ -211,87 +232,26 @@ private fun RecurringGroceryFormDialog(
     var recurrenceHint by remember { mutableStateOf(editing?.recurrenceHint.orEmpty().ifBlank { "weekly" }) }
     var notes by remember { mutableStateOf(editing?.notes.orEmpty()) }
     var selectedListId by remember { mutableStateOf(editing?.autoAddToListId) }
-    var listPickerExpanded by remember { mutableStateOf(false) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(text = stringResource(id = R.string.shopping_recurring_add_new)) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
-                    value = title,
-                    onValueChange = { title = it },
-                    label = { Text(text = stringResource(id = R.string.shopping_item_name)) },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    value = startDate,
-                    onValueChange = { startDate = it },
-                    label = { Text(text = stringResource(id = R.string.shopping_recurring_start_date)) },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    value = rrule,
-                    onValueChange = { rrule = it },
-                    label = { Text(text = stringResource(id = R.string.shopping_recurring_rrule)) },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    value = recurrenceHint,
-                    onValueChange = { recurrenceHint = it },
-                    label = { Text(text = stringResource(id = R.string.shopping_recurring_hint)) },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    value = notes,
-                    onValueChange = { notes = it },
-                    label = { Text(text = stringResource(id = R.string.shopping_notes)) },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                ExposedDropdownMenuBox(
-                    expanded = listPickerExpanded,
-                    onExpandedChange = { listPickerExpanded = it }
-                ) {
-                    OutlinedTextField(
-                        value =
-                        shoppingLists.firstOrNull { it.id == selectedListId }?.name
-                            ?: stringResource(id = R.string.shopping_recurring_auto_add_none),
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text(text = stringResource(id = R.string.shopping_recurring_auto_add_list_label)) },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = listPickerExpanded) },
-                        modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
-                    )
-                    ExposedDropdownMenu(
-                        expanded = listPickerExpanded,
-                        onDismissRequest = { listPickerExpanded = false }
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text(text = stringResource(id = R.string.shopping_recurring_auto_add_none)) },
-                            onClick = {
-                                selectedListId = null
-                                listPickerExpanded = false
-                            }
-                        )
-                        shoppingLists.forEach { list ->
-                            DropdownMenuItem(
-                                text = { Text(text = list.name) },
-                                onClick = {
-                                    selectedListId = list.id
-                                    listPickerExpanded = false
-                                }
-                            )
-                        }
-                    }
-                }
-            }
+            RecurringGroceryFormFields(
+                title = title,
+                onTitleChange = { title = it },
+                startDate = startDate,
+                onStartDateChange = { startDate = it },
+                rrule = rrule,
+                onRruleChange = { rrule = it },
+                recurrenceHint = recurrenceHint,
+                onRecurrenceHintChange = { recurrenceHint = it },
+                notes = notes,
+                onNotesChange = { notes = it },
+                shoppingLists = shoppingLists,
+                selectedListId = selectedListId,
+                onSelectedListIdChange = { selectedListId = it }
+            )
         },
         confirmButton = {
             TextButton(
@@ -318,4 +278,112 @@ private fun RecurringGroceryFormDialog(
             }
         }
     )
+}
+
+@Composable
+private fun RecurringGroceryFormFields(
+    title: String,
+    onTitleChange: (String) -> Unit,
+    startDate: String,
+    onStartDateChange: (String) -> Unit,
+    rrule: String,
+    onRruleChange: (String) -> Unit,
+    recurrenceHint: String,
+    onRecurrenceHintChange: (String) -> Unit,
+    notes: String,
+    onNotesChange: (String) -> Unit,
+    shoppingLists: List<ShoppingListDto>,
+    selectedListId: Int?,
+    onSelectedListIdChange: (Int?) -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        OutlinedTextField(
+            value = title,
+            onValueChange = onTitleChange,
+            label = { Text(text = stringResource(id = R.string.shopping_item_name)) },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth()
+        )
+        OutlinedTextField(
+            value = startDate,
+            onValueChange = onStartDateChange,
+            label = { Text(text = stringResource(id = R.string.shopping_recurring_start_date)) },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth()
+        )
+        OutlinedTextField(
+            value = rrule,
+            onValueChange = onRruleChange,
+            label = { Text(text = stringResource(id = R.string.shopping_recurring_rrule)) },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth()
+        )
+        OutlinedTextField(
+            value = recurrenceHint,
+            onValueChange = onRecurrenceHintChange,
+            label = { Text(text = stringResource(id = R.string.shopping_recurring_hint)) },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth()
+        )
+        OutlinedTextField(
+            value = notes,
+            onValueChange = onNotesChange,
+            label = { Text(text = stringResource(id = R.string.shopping_notes)) },
+            modifier = Modifier.fillMaxWidth()
+        )
+        RecurringGroceryListPicker(
+            shoppingLists = shoppingLists,
+            selectedListId = selectedListId,
+            onSelectedListIdChange = onSelectedListIdChange
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun RecurringGroceryListPicker(
+    shoppingLists: List<ShoppingListDto>,
+    selectedListId: Int?,
+    onSelectedListIdChange: (Int?) -> Unit
+) {
+    var listPickerExpanded by remember { mutableStateOf(false) }
+    ExposedDropdownMenuBox(
+        expanded = listPickerExpanded,
+        onExpandedChange = { listPickerExpanded = it }
+    ) {
+        OutlinedTextField(
+            value =
+            shoppingLists.firstOrNull { it.id == selectedListId }?.name
+                ?: stringResource(id = R.string.shopping_recurring_auto_add_none),
+            onValueChange = {},
+            readOnly = true,
+            label = { Text(text = stringResource(id = R.string.shopping_recurring_auto_add_list_label)) },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = listPickerExpanded) },
+            modifier =
+            Modifier
+                .fillMaxWidth()
+                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
+        )
+        ExposedDropdownMenu(
+            expanded = listPickerExpanded,
+            onDismissRequest = { listPickerExpanded = false }
+        ) {
+            DropdownMenuItem(
+                text = { Text(text = stringResource(id = R.string.shopping_recurring_auto_add_none)) },
+                onClick = {
+                    onSelectedListIdChange(null)
+                    listPickerExpanded = false
+                }
+            )
+            shoppingLists.forEach { list ->
+                DropdownMenuItem(
+                    text = { Text(text = list.name) },
+                    onClick = {
+                        onSelectedListIdChange(list.id)
+                        listPickerExpanded = false
+                    }
+                )
+            }
+        }
+    }
 }
