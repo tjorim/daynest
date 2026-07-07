@@ -17,6 +17,7 @@ class DaynestDestinationTest {
                 DaynestDestination.TEMPLATES,
                 DaynestDestination.SHOPPING,
                 DaynestDestination.MEAL_PLAN,
+                DaynestDestination.STATS,
                 DaynestDestination.SETTINGS
             ),
             routes
