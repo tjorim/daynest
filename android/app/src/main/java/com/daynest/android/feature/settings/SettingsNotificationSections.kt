@@ -275,7 +275,7 @@ private fun calendarFeedCard(state: SettingsUiState.Content, onEvent: (SettingsU
     }
 
     if (showConfirmRegenerate) {
-        RegenerateCalendarFeedDialog(
+        regenerateCalendarFeedDialog(
             onConfirm = {
                 showConfirmRegenerate = false
                 onEvent(SettingsUiEvent.RegenerateCalendarFeedClicked)
@@ -286,7 +286,7 @@ private fun calendarFeedCard(state: SettingsUiState.Content, onEvent: (SettingsU
 }
 
 @Composable
-private fun RegenerateCalendarFeedDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
+private fun regenerateCalendarFeedDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(text = stringResource(id = R.string.settings_calendar_feed_regenerate)) },
