@@ -56,16 +56,7 @@ internal class SettingsNotificationPreferencesHandler(
             }.onFailure {
                 uiState.update { current ->
                     if (current is SettingsUiState.Content) {
-                        current.copy(
-                            timezone = previous.timezone,
-                            pushOverdueChoresEnabled = previous.pushOverdueChoresEnabled,
-                            pushMedicationRemindersEnabled = previous.pushMedicationRemindersEnabled,
-                            pushMissedMedicationsEnabled = previous.pushMissedMedicationsEnabled,
-                            medicationReminderMinutes = previous.medicationReminderMinutes,
-                            quietHoursStart = previous.quietHoursStart,
-                            quietHoursEnd = previous.quietHoursEnd,
-                            userSettingsSaving = false
-                        )
+                        current.revertOptimistic(request, previous, isQuietHoursUpdate).copy(userSettingsSaving = false)
                     } else {
                         current
                     }
@@ -73,6 +64,36 @@ internal class SettingsNotificationPreferencesHandler(
             }
         }
     }
+
+    private fun SettingsUiState.Content.revertOptimistic(
+        request: UserSettingsPatchDto,
+        previous: SettingsUiState.Content,
+        isQuietHoursUpdate: Boolean
+    ): SettingsUiState.Content = copy(
+        timezone = if (request.timezone != null) previous.timezone else timezone,
+        pushOverdueChoresEnabled =
+        if (request.pushOverdueChoresEnabled != null) previous.pushOverdueChoresEnabled else pushOverdueChoresEnabled,
+        pushMedicationRemindersEnabled =
+        if (request.pushMedicationRemindersEnabled != null) {
+            previous.pushMedicationRemindersEnabled
+        } else {
+            pushMedicationRemindersEnabled
+        },
+        pushMissedMedicationsEnabled =
+        if (request.pushMissedMedicationsEnabled != null) {
+            previous.pushMissedMedicationsEnabled
+        } else {
+            pushMissedMedicationsEnabled
+        },
+        medicationReminderMinutes =
+        if (request.medicationReminderMinutes != null) {
+            previous.medicationReminderMinutes
+        } else {
+            medicationReminderMinutes
+        },
+        quietHoursStart = if (isQuietHoursUpdate) previous.quietHoursStart else quietHoursStart,
+        quietHoursEnd = if (isQuietHoursUpdate) previous.quietHoursEnd else quietHoursEnd
+    )
 
     private fun applyOptimistic(request: UserSettingsPatchDto, isQuietHoursUpdate: Boolean) {
         uiState.update { current ->

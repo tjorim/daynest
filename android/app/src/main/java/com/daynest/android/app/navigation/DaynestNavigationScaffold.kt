@@ -16,6 +16,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import com.daynest.android.R
 
 val LocalOnOpenSearch = compositionLocalOf<() -> Unit> { {} }
 
@@ -30,6 +33,7 @@ fun DaynestNavigationScaffold(
     content: @Composable (PaddingValues) -> Unit
 ) {
     val onOpenSearch = LocalOnOpenSearch.current
+    val searchLabel = stringResource(id = R.string.app_search)
 
     Scaffold(
         modifier = modifier,
@@ -38,7 +42,10 @@ fun DaynestNavigationScaffold(
                 title = {},
                 actions = {
                     IconButton(onClick = onOpenSearch) {
-                        Text(text = "🔍")
+                        Text(
+                            text = "🔍",
+                            modifier = Modifier.clearAndSetSemantics { contentDescription = searchLabel }
+                        )
                     }
                 }
             )

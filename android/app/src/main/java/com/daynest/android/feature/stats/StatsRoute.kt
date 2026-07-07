@@ -285,10 +285,14 @@ private fun DailyTrendChart(values: List<Float>, modifier: Modifier = Modifier) 
             if (index == 0) path.moveTo(x, y) else path.lineTo(x, y)
         }
         drawPath(path = path, color = lineColor, style = Stroke(width = 4f))
-        values.forEachIndexed { index, value ->
-            val x = index * stepX
-            val y = size.height * (1f - value.coerceIn(0f, 1f))
-            drawCircle(color = lineColor, radius = 6f, center = Offset(x, y))
+        if (values.size < MAX_TREND_POINTS_WITH_MARKERS) {
+            values.forEachIndexed { index, value ->
+                val x = index * stepX
+                val y = size.height * (1f - value.coerceIn(0f, 1f))
+                drawCircle(color = lineColor, radius = 6f, center = Offset(x, y))
+            }
         }
     }
 }
+
+private const val MAX_TREND_POINTS_WITH_MARKERS = 30

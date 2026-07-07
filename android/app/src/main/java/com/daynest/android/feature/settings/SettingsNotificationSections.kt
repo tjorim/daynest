@@ -31,6 +31,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import com.daynest.android.R
 import java.time.ZoneId
+import java.util.Locale
 
 internal fun LazyListScope.settingsNotificationsSection(
     state: SettingsUiState.Content,
@@ -118,6 +119,9 @@ private fun medicationReminderMinutesCard(state: SettingsUiState.Content, onEven
     var input by remember(state.medicationReminderMinutes) {
         mutableStateOf(state.medicationReminderMinutes.toString())
     }
+    val minutes = input.toIntOrNull()
+    val isValid = minutes != null && minutes >= 0
+
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(12.dp),
@@ -129,15 +133,17 @@ private fun medicationReminderMinutesCard(state: SettingsUiState.Content, onEven
             )
             OutlinedTextField(
                 value = input,
-                onValueChange = { raw ->
-                    val filtered = raw.filter { it.isDigit() }
-                    input = filtered
-                    filtered.toIntOrNull()?.let { minutes ->
-                        onEvent(SettingsUiEvent.UpdateMedicationReminderMinutes(minutes))
-                    }
-                },
-                singleLine = true
+                onValueChange = { raw -> input = raw.filter { it.isDigit() } },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
             )
+            TextButton(
+                onClick = { minutes?.let { onEvent(SettingsUiEvent.UpdateMedicationReminderMinutes(it)) } },
+                enabled = isValid && minutes != state.medicationReminderMinutes && !state.userSettingsSaving,
+                modifier = Modifier.align(Alignment.End)
+            ) {
+                Text(text = stringResource(id = R.string.settings_timezone_save))
+            }
         }
     }
 }
@@ -225,7 +231,7 @@ private fun Modifier.clickableTimePicker(
             .clickable {
                 TimePickerDialog(
                     context,
-                    { _, hour, minute -> onSelected("%02d:%02d:00".format(hour, minute)) },
+                    { _, hour, minute -> onSelected("%02d:%02d:00".format(Locale.ROOT, hour, minute)) },
                     initialHour,
                     initialMinute,
                     true

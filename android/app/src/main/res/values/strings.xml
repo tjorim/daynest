@@ -280,6 +280,7 @@
     <string name="shopping_recurring_delete_title">Delete recurring grocery?</string>
     <string name="shopping_recurring_delete_message">This removes future occurrences of “%1$s”. Past, already-planned occurrences are kept.</string>
     <string name="shopping_recurring_auto_add_list_label">Auto-add to list</string>
+    <string name="shopping_recurring_auto_add_list_format">%1$s: %2$s</string>
     <string name="shopping_recurring_auto_add_none">None</string>
     <string name="shopping_recurring_saved">Recurring grocery saved</string>
     <string name="shopping_error_delete_recurring_item">Unable to delete recurring grocery</string>
