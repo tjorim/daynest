@@ -24,8 +24,7 @@ constructor(private val settingsApi: SettingsApi) {
 
     suspend fun getCalendarFeed(): Result<CalendarFeedDto> = safeApiCall { settingsApi.getCalendarFeed() }
 
-    suspend fun regenerateCalendarFeed(): Result<CalendarFeedDto> =
-        safeApiCall { settingsApi.regenerateCalendarFeed() }
+    suspend fun regenerateCalendarFeed(): Result<CalendarFeedDto> = safeApiCall { settingsApi.regenerateCalendarFeed() }
 
     suspend fun deleteCurrentUser(): Result<Unit> = safeApiCall { settingsApi.deleteCurrentUser() }
 }

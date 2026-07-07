@@ -109,14 +109,13 @@ internal class SettingsNotificationPreferencesHandler(
         }
     }
 
-    private fun SettingsUiState.Content.applyUserSettings(dto: UserSettingsDto): SettingsUiState.Content =
-        copy(
-            timezone = dto.timezone,
-            pushOverdueChoresEnabled = dto.pushOverdueChoresEnabled,
-            pushMedicationRemindersEnabled = dto.pushMedicationRemindersEnabled,
-            pushMissedMedicationsEnabled = dto.pushMissedMedicationsEnabled,
-            medicationReminderMinutes = dto.medicationReminderMinutes,
-            quietHoursStart = dto.quietHoursStart,
-            quietHoursEnd = dto.quietHoursEnd
-        )
+    private fun SettingsUiState.Content.applyUserSettings(dto: UserSettingsDto): SettingsUiState.Content = copy(
+        timezone = dto.timezone,
+        pushOverdueChoresEnabled = dto.pushOverdueChoresEnabled,
+        pushMedicationRemindersEnabled = dto.pushMedicationRemindersEnabled,
+        pushMissedMedicationsEnabled = dto.pushMissedMedicationsEnabled,
+        medicationReminderMinutes = dto.medicationReminderMinutes,
+        quietHoursStart = dto.quietHoursStart,
+        quietHoursEnd = dto.quietHoursEnd
+    )
 }

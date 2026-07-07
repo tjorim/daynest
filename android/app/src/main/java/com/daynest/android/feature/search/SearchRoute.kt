@@ -39,11 +39,7 @@ import com.daynest.android.data.search.SearchResponseDto
 private const val MIN_QUERY_LENGTH = 2
 
 @Composable
-fun SearchRoute(
-    onBack: () -> Unit,
-    onNavigate: (String) -> Unit = {},
-    viewModel: SearchViewModel = hiltViewModel()
-) {
+fun SearchRoute(onBack: () -> Unit, onNavigate: (String) -> Unit = {}, viewModel: SearchViewModel = hiltViewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val focusRequester = remember { FocusRequester() }
 
