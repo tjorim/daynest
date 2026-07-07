@@ -333,6 +333,20 @@
     <string name="stats_load_error">Kan statistieken niet laden.</string>
     <string name="stats_no_trend_data">Nog niet genoeg gegevens.</string>
 
+    <string name="app_search">Zoeken</string>
+    <string name="search_placeholder">Zoek sjablonen, medicatie, geplande items…</string>
+    <string name="search_min_chars">Blijf typen om te zoeken (2+ tekens).</string>
+    <string name="search_no_results">Geen resultaten.</string>
+    <string name="search_searching">Zoeken…</string>
+    <string name="search_error">Zoeken is momenteel niet mogelijk.</string>
+    <string name="search_routine_templates">Routines</string>
+    <string name="search_chore_templates">Klusjes</string>
+    <string name="search_medications">Medicatie</string>
+    <string name="search_planned_items">Geplande items</string>
+    <string name="search_done">Voltooid</string>
+    <string name="search_planned">Gepland</string>
+    <string name="search_inactive">Inactief</string>
+
     <!-- Startscherm-widgets -->
     <string name="widget_small_label">Daynest (klein)</string>
     <string name="widget_medium_label">Daynest (middel)</string>

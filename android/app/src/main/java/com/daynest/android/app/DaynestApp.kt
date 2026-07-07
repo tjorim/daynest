@@ -3,6 +3,7 @@
 package com.daynest.android.app
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
@@ -12,6 +13,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.daynest.android.app.navigation.DaynestDestination
+import com.daynest.android.app.navigation.LocalOnOpenSearch
 import com.daynest.android.app.session.BiometricGate
 import com.daynest.android.app.session.SessionGateRoute
 import com.daynest.android.feature.auth.AuthRoute
@@ -20,6 +22,7 @@ import com.daynest.android.feature.home.HomeRoute
 import com.daynest.android.feature.legal.PrivacyPolicyRoute
 import com.daynest.android.feature.mealplan.MealPlannerRoute
 import com.daynest.android.feature.medication.MedicationRoute
+import com.daynest.android.feature.search.SearchRoute
 import com.daynest.android.feature.settings.SettingsRoute
 import com.daynest.android.feature.shopping.RecurringGroceriesRoute
 import com.daynest.android.feature.shopping.ShoppingListDetailRoute
@@ -34,11 +37,15 @@ fun DaynestApp() {
         val navController = rememberNavController()
         BiometricGate()
 
-        NavHost(
-            navController = navController,
-            startDestination = DaynestDestination.SESSION_GATE
+        CompositionLocalProvider(
+            LocalOnOpenSearch provides { navController.navigate(DaynestDestination.SEARCH) }
         ) {
-            daynestDestinations(navController)
+            NavHost(
+                navController = navController,
+                startDestination = DaynestDestination.SESSION_GATE
+            ) {
+                daynestDestinations(navController)
+            }
         }
     }
 }
@@ -103,6 +110,9 @@ private fun NavGraphBuilder.daynestDestinations(navController: NavHostController
     }
     composable(route = DaynestDestination.PRIVACY_POLICY) {
         PrivacyPolicyRoute(onBack = { navController.popBackStack() })
+    }
+    composable(route = DaynestDestination.SEARCH) {
+        SearchRoute(onBack = { navController.popBackStack() }, onNavigate = navController::navigateTopLevel)
     }
 }
 

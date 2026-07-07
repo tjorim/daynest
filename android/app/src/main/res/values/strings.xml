@@ -361,6 +361,20 @@
     <string name="stats_load_error">Unable to load stats.</string>
     <string name="stats_no_trend_data">Not enough data yet.</string>
 
+    <string name="app_search">Search</string>
+    <string name="search_placeholder">Search templates, medication, planned items…</string>
+    <string name="search_min_chars">Keep typing to search (2+ characters).</string>
+    <string name="search_no_results">No results.</string>
+    <string name="search_searching">Searching…</string>
+    <string name="search_error">Unable to search right now.</string>
+    <string name="search_routine_templates">Routines</string>
+    <string name="search_chore_templates">Chores</string>
+    <string name="search_medications">Medication</string>
+    <string name="search_planned_items">Planned items</string>
+    <string name="search_done">Done</string>
+    <string name="search_planned">Planned</string>
+    <string name="search_inactive">Inactive</string>
+
     <string name="settings_privacy_policy_link">Privacy policy</string>
     <string name="privacy_page_title">Privacy Policy</string>
     <string name="privacy_page_last_updated">Last updated: %1$s</string>
