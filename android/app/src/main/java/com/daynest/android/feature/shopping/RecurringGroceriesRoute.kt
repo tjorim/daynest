@@ -2,9 +2,6 @@
 
 package com.daynest.android.feature.shopping
 
-import android.app.DatePickerDialog
-import android.content.Context
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -38,14 +35,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.focusProperties
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.daynest.android.R
 import com.daynest.android.data.shopping.ShoppingListDto
+import com.daynest.android.ui.components.datePickerField
 import java.time.LocalDate
 
 @Composable
@@ -343,36 +339,10 @@ private fun RecurringGroceryFormFields(
 
 @Composable
 private fun RecurringGroceryDateField(value: String, onSelected: (String) -> Unit) {
-    val context = LocalContext.current
-    OutlinedTextField(
-        value = value,
-        onValueChange = {},
-        readOnly = true,
-        label = { Text(text = stringResource(id = R.string.shopping_recurring_start_date)) },
-        singleLine = true,
-        modifier =
-        Modifier.fillMaxWidth().clickableDatePicker(context = context, initialValue = value, onSelected = onSelected)
-    )
-}
-
-private fun Modifier.clickableDatePicker(
-    context: Context,
-    initialValue: String,
-    onSelected: (String) -> Unit
-): Modifier {
-    val initialDate = runCatching { LocalDate.parse(initialValue) }.getOrDefault(LocalDate.now())
-    return this.then(
-        Modifier
-            .focusProperties { canFocus = false }
-            .clickable {
-                DatePickerDialog(
-                    context,
-                    { _, year, month, day -> onSelected(LocalDate.of(year, month + 1, day).toString()) },
-                    initialDate.year,
-                    initialDate.monthValue - 1,
-                    initialDate.dayOfMonth
-                ).show()
-            }
+    datePickerField(
+        label = stringResource(id = R.string.shopping_recurring_start_date),
+        date = runCatching { LocalDate.parse(value) }.getOrNull(),
+        onDateSelected = { onSelected(it.toString()) }
     )
 }
 

@@ -101,9 +101,9 @@ constructor(
                     )
                 }
             result
-                .onSuccess {
+                .onSuccess { savedItem ->
                     _effects.emit(getString(R.string.shopping_recurring_saved))
-                    refresh()
+                    updateSavedSeries(savedItem, editing)
                 }.onFailure { _effects.emit(it.message ?: getString(R.string.shopping_error_add_recurring_item)) }
         }
     }
@@ -112,8 +112,26 @@ constructor(
         viewModelScope.launch {
             plannedItemRepository
                 .deletePlannedItem(series.representativeId, DeleteScope.FUTURE)
-                .onSuccess { refresh() }
+                .onSuccess { removeSeries(series) }
                 .onFailure { _effects.emit(it.message ?: getString(R.string.shopping_error_delete_recurring_item)) }
+        }
+    }
+
+    private fun updateSavedSeries(savedItem: PlannedTodayItemDto, editing: RecurringGrocerySeries?) {
+        val savedSeries = savedItem.toRecurringGrocerySeries()
+        _uiState.update { state ->
+            val series =
+                state.series
+                    .filterNot { it.key == editing?.key || it.key == savedSeries.key }
+                    .plus(savedSeries)
+                    .sortedWith(compareBy({ it.title.lowercase() }, { it.startDate }))
+            state.copy(series = series)
+        }
+    }
+
+    private fun removeSeries(series: RecurringGrocerySeries) {
+        _uiState.update { state ->
+            state.copy(series = state.series.filterNot { it.key == series.key })
         }
     }
 
@@ -162,18 +180,20 @@ private fun List<PlannedTodayItemDto>.toRecurringGrocerySeries(): List<Recurring
     return grouped.values
         .sortedWith(compareBy({ it.title.lowercase() }, { it.plannedFor }))
         .map { item ->
-            RecurringGrocerySeries(
-                key = item.recurrenceSeriesId ?: "item-${item.id}",
-                representativeId = item.id,
-                title = item.title,
-                startDate = item.plannedFor,
-                notes = item.notes,
-                rrule = item.rrule.orEmpty(),
-                recurrenceHint = item.recurrenceHint,
-                autoAddToListId = item.autoAddToListId,
-                tags = item.tags
-            )
+            item.toRecurringGrocerySeries()
         }
 }
+
+private fun PlannedTodayItemDto.toRecurringGrocerySeries(): RecurringGrocerySeries = RecurringGrocerySeries(
+    key = recurrenceSeriesId ?: "item-$id",
+    representativeId = id,
+    title = title,
+    startDate = plannedFor,
+    notes = notes,
+    rrule = rrule.orEmpty(),
+    recurrenceHint = recurrenceHint,
+    autoAddToListId = autoAddToListId,
+    tags = tags
+)
 
 private const val RECURRING_GROCERY_MODULE = "recurring_grocery"
