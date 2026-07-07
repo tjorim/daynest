@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.daynest.android.BuildConfig
+import com.daynest.android.R
 import com.daynest.android.core.auth.OidcAuthService
 import com.daynest.android.core.storage.ApiBaseUrlOverrideStore
 import com.daynest.android.core.storage.preferences.UserPreferencesRepository
@@ -72,6 +73,11 @@ constructor(
             SettingsUiEvent.ShowCreateClientForm -> updateContent { it.copy(showCreateForm = true) }
             SettingsUiEvent.DismissCreateClientForm -> updateContent { it.copy(showCreateForm = false) }
             SettingsUiEvent.DismissNewKeyDialog -> updateContent { it.copy(newApiKey = null) }
+            SettingsUiEvent.ShowDeleteAccountDialog -> updateContent {
+                it.copy(showDeleteAccountConfirm = true, accountDeletionError = null)
+            }
+            SettingsUiEvent.DismissDeleteAccountDialog -> updateContent { it.copy(showDeleteAccountConfirm = false) }
+            SettingsUiEvent.DeleteAccountConfirmed -> deleteCurrentAccount()
             is SettingsUiEvent.CreateClient -> createClient(event.input)
             is SettingsUiEvent.UpdateServerUrl -> updateServerUrl(event.url)
             is SettingsUiEvent.RevokeSessionClicked -> revokeSession(event.sessionId)
@@ -119,6 +125,9 @@ constructor(
                     sessions = sessionsResult.getOrElse { emptyList() },
                     showCreateForm = false,
                     newApiKey = null,
+                    showDeleteAccountConfirm = false,
+                    isDeletingAccount = false,
+                    accountDeletionError = null,
                     clientsLoadError = clientsResult.isFailure,
                     sessionsLoadError = sessionsResult.isFailure,
                     customServerUrl = customServerUrl,
@@ -242,19 +251,41 @@ constructor(
         }
     }
 
+    private fun deleteCurrentAccount() {
+        viewModelScope.launch {
+            updateContent { it.copy(isDeletingAccount = true, accountDeletionError = null) }
+            pushRegistrationManager.unregisterAllKnownEndpoints()
+            settingsRepository.deleteCurrentUser()
+                .onSuccess {
+                    oidcAuthService.signOut()
+                    _uiState.value = SettingsUiState.SignedOut
+                }
+                .onFailure { error ->
+                    updateContent {
+                        it.copy(
+                            showDeleteAccountConfirm = false,
+                            isDeletingAccount = false,
+                            accountDeletionError =
+                            error.message ?: appContext.getString(R.string.settings_delete_account_error)
+                        )
+                    }
+                }
+        }
+    }
+
     private fun updateContent(transform: (SettingsUiState.Content) -> SettingsUiState.Content) {
         _uiState.update { current ->
             if (current is SettingsUiState.Content) transform(current) else current
         }
     }
-
-    private fun IntegrationClientCreateResponseDto.toDto() = IntegrationClientDto(
-        id = id,
-        name = name,
-        rateLimitPerMinute = rateLimitPerMinute,
-        isActive = isActive
-    )
 }
+
+private fun IntegrationClientCreateResponseDto.toDto() = IntegrationClientDto(
+    id = id,
+    name = name,
+    rateLimitPerMinute = rateLimitPerMinute,
+    isActive = isActive
+)
 
 sealed interface SettingsUiState {
     data object Loading : SettingsUiState
@@ -264,6 +295,9 @@ sealed interface SettingsUiState {
         val sessions: List<OAuthSessionDto> = emptyList(),
         val showCreateForm: Boolean,
         val newApiKey: String?,
+        val showDeleteAccountConfirm: Boolean,
+        val isDeletingAccount: Boolean,
+        val accountDeletionError: String?,
         val clientsLoadError: Boolean,
         val sessionsLoadError: Boolean,
         val customServerUrl: String?,
@@ -301,6 +335,12 @@ sealed interface SettingsUiEvent {
     data object DismissCreateClientForm : SettingsUiEvent
 
     data object DismissNewKeyDialog : SettingsUiEvent
+
+    data object ShowDeleteAccountDialog : SettingsUiEvent
+
+    data object DismissDeleteAccountDialog : SettingsUiEvent
+
+    data object DeleteAccountConfirmed : SettingsUiEvent
 
     data class CreateClient(val input: IntegrationClientInputDto) : SettingsUiEvent
 

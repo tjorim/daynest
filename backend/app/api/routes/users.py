@@ -2,15 +2,67 @@ from typing import Any
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query, Response, status
-from sqlalchemy.orm import Session
+from sqlalchemy import select
+from sqlalchemy.orm import Session, aliased
 
 from app.api.dependencies.auth import get_current_user
+from app.core.enums import HouseholdMemberRole
 from app.db.session import get_db
+from app.models.chore_template import ChoreTemplate
+from app.models.household_member import HouseholdMember
 from app.models.user import User
 from app.schemas.users import UserSettingsPatchRequest, UserSettingsResponse
 from app.services.export_import_service import build_user_export, import_user_export, user_export_to_csv
 
 router = APIRouter(prefix="/users", tags=["users"])
+
+
+def _has_household_shared_chores(db: Session, user_id: int) -> bool:
+    stmt = (
+        select(ChoreTemplate.id)
+        .join(HouseholdMember, HouseholdMember.household_id == ChoreTemplate.household_id)
+        .where(
+            ChoreTemplate.user_id == user_id,
+            HouseholdMember.user_id != user_id,
+        )
+        .exists()
+    )
+    return db.scalar(select(stmt)) or False
+
+
+def _is_sole_owner_of_shared_household(db: Session, user_id: int) -> bool:
+    owner = aliased(HouseholdMember)
+    other_member = aliased(HouseholdMember)
+    other_owner = aliased(HouseholdMember)
+
+    has_other_member = (
+        select(other_member.id)
+        .where(
+            other_member.household_id == owner.household_id,
+            other_member.user_id != user_id,
+        )
+        .exists()
+    )
+    has_other_owner = (
+        select(other_owner.id)
+        .where(
+            other_owner.household_id == owner.household_id,
+            other_owner.user_id != user_id,
+            other_owner.role == HouseholdMemberRole.owner,
+        )
+        .exists()
+    )
+    stmt = (
+        select(owner.id)
+        .where(
+            owner.user_id == user_id,
+            owner.role == HouseholdMemberRole.owner,
+            has_other_member,
+            ~has_other_owner,
+        )
+        .exists()
+    )
+    return db.scalar(select(stmt)) or False
 
 
 def _to_response(user: User) -> UserSettingsResponse:
@@ -87,3 +139,31 @@ def import_user_data(
 ) -> dict[str, Any]:
     counts = import_user_export(db, current_user, payload, replace=replace)
     return {"imported": counts}
+
+
+@router.delete("/me", status_code=status.HTTP_204_NO_CONTENT)
+def delete_current_user(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> Response:
+    if _has_household_shared_chores(db, current_user.id):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                "Account deletion is blocked while you own household-shared chores. "
+                "Delete or transfer those chores, or leave shared households before deleting your account."
+            ),
+        )
+
+    if _is_sole_owner_of_shared_household(db, current_user.id):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                "Account deletion is blocked while you are the sole owner of a shared household. "
+                "Transfer ownership, remove the other members, or delete the household before deleting your account."
+            ),
+        )
+
+    db.delete(current_user)
+    db.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

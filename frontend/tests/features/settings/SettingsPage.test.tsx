@@ -14,6 +14,7 @@ const apiMock = vi.hoisted(() => ({
   rotateIntegrationClient: vi.fn(),
   fetchUserSettings: vi.fn(),
   updateUserSettings: vi.fn(),
+  deleteAccount: vi.fn(),
 }));
 
 const pwaMock = vi.hoisted(() => ({
@@ -32,6 +33,7 @@ vi.mock("@/lib/api/integrationClients", () => ({
 vi.mock("@/lib/api/settings", () => ({
   fetchUserSettings: apiMock.fetchUserSettings,
   updateUserSettings: apiMock.updateUserSettings,
+  deleteAccount: apiMock.deleteAccount,
 }));
 
 vi.mock("@/app/pwa/installPrompt", () => ({
@@ -50,6 +52,7 @@ describe("SettingsPage", () => {
     apiMock.rotateIntegrationClient.mockReset();
     apiMock.fetchUserSettings.mockReset();
     apiMock.updateUserSettings.mockReset();
+    apiMock.deleteAccount.mockReset();
     pwaMock.getDeferredInstallPrompt.mockReset();
     pwaMock.promptToInstallApp.mockReset();
     pwaMock.subscribeInstallPrompt.mockReset();

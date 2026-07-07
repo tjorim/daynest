@@ -84,11 +84,6 @@ fun PrivacyPolicyRoute(onBack: () -> Unit) {
                 Text(text = contactEmail)
             }
         }
-        item {
-            TextButton(onClick = { uriHandler.openUri("https://github.com/tjorim/daynest") }) {
-                Text(text = stringResource(id = R.string.privacy_page_contact_github_link))
-            }
-        }
     }
 }
 

@@ -174,6 +174,7 @@ internal fun LazyListScope.settingsNotificationsSection(
 }
 
 internal fun LazyListScope.settingsAccountSection(
+    state: SettingsUiState.Content,
     onEvent: (SettingsUiEvent) -> Unit,
     onOpenPrivacyPolicy: () -> Unit
 ) {
@@ -185,27 +186,10 @@ internal fun LazyListScope.settingsAccountSection(
         )
     }
     item {
-        Card(modifier = Modifier.fillMaxWidth()) {
-            Row(
-                modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = stringResource(id = R.string.settings_session_active),
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.weight(1f)
-                )
-                TextButton(onClick = { onEvent(SettingsUiEvent.SignOutClicked) }) {
-                    Text(
-                        text = stringResource(id = R.string.settings_sign_out),
-                        color = MaterialTheme.colorScheme.error
-                    )
-                }
-            }
-        }
+        accountSessionCard(onEvent = onEvent)
+    }
+    item {
+        deleteAccountCard(state = state, onEvent = onEvent)
     }
     item {
         TextButton(onClick = onOpenPrivacyPolicy) {

@@ -33,6 +33,9 @@ interface SettingsApi {
 
     @POST("api/calendar/feed/regenerate")
     suspend fun regenerateCalendarFeed(): CalendarFeedDto
+
+    @DELETE("api/v1/users/me")
+    suspend fun deleteCurrentUser()
 }
 
 @Serializable

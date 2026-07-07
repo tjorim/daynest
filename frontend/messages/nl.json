@@ -453,6 +453,10 @@
   "privacy_page_changes_body": "Wij kunnen dit beleid bijwerken naarmate de app zich ontwikkelt. Materiële wijzigingen worden weergegeven door de datum \"Laatst bijgewerkt\" hierboven te actualiseren.",
   "privacy_page_contact_title": "Contact",
   "privacy_page_contact_body": "Vragen, verzoeken tot inzage of verwijdering van gegevens kunt u sturen naar",
-  "privacy_page_contact_or": ", of indienen als issue op de",
-  "privacy_page_contact_github_link": "Daynest GitHub-repository"
+  "settings_delete_account_header": "Account verwijderen",
+  "settings_delete_account_description": "Verwijder je Daynest-account en persoonlijke gegevens permanent, inclusief medicatie-, planning-, kalender-, pushmelding-, sessie- en integratiegegevens. Huishoudelijke gedeelde klusjes moeten eerst worden verwijderd, overgedragen of verlaten.",
+  "settings_delete_account_button": "Mijn account verwijderen",
+  "settings_delete_account_deleting": "Verwijderen…",
+  "settings_delete_account_confirm": "Dit verwijdert je Daynest-account en persoonlijke gegevens permanent. Dit kan niet ongedaan worden gemaakt. Doorgaan?",
+  "settings_delete_account_error": "Account verwijderen mislukt."
 }

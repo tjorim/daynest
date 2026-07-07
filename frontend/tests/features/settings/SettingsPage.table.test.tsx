@@ -17,6 +17,7 @@ const apiMock = vi.hoisted(() => ({
   rotateIntegrationClient: vi.fn(),
   fetchUserSettings: vi.fn(),
   updateUserSettings: vi.fn(),
+  deleteAccount: vi.fn(),
 }));
 
 const authMock = vi.hoisted(() => ({
@@ -40,6 +41,7 @@ vi.mock("@/lib/api/integrationClients", () => ({
 vi.mock("@/lib/api/settings", () => ({
   fetchUserSettings: apiMock.fetchUserSettings,
   updateUserSettings: apiMock.updateUserSettings,
+  deleteAccount: apiMock.deleteAccount,
 }));
 
 vi.mock("@/lib/api/auth", () => ({
