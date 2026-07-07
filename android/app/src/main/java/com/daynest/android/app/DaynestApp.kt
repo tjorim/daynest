@@ -3,6 +3,7 @@
 package com.daynest.android.app
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
@@ -12,16 +13,21 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.daynest.android.app.navigation.DaynestDestination
+import com.daynest.android.app.navigation.LocalOnOpenSearch
 import com.daynest.android.app.session.BiometricGate
 import com.daynest.android.app.session.SessionGateRoute
 import com.daynest.android.feature.auth.AuthRoute
 import com.daynest.android.feature.calendar.CalendarRoute
 import com.daynest.android.feature.home.HomeRoute
+import com.daynest.android.feature.legal.PrivacyPolicyRoute
 import com.daynest.android.feature.mealplan.MealPlannerRoute
 import com.daynest.android.feature.medication.MedicationRoute
+import com.daynest.android.feature.search.SearchRoute
 import com.daynest.android.feature.settings.SettingsRoute
+import com.daynest.android.feature.shopping.RecurringGroceriesRoute
 import com.daynest.android.feature.shopping.ShoppingListDetailRoute
 import com.daynest.android.feature.shopping.ShoppingListsRoute
+import com.daynest.android.feature.stats.StatsRoute
 import com.daynest.android.feature.templates.TemplatesRoute
 import com.daynest.android.ui.theme.DaynestTheme
 
@@ -31,11 +37,15 @@ fun DaynestApp() {
         val navController = rememberNavController()
         BiometricGate()
 
-        NavHost(
-            navController = navController,
-            startDestination = DaynestDestination.SESSION_GATE
+        CompositionLocalProvider(
+            LocalOnOpenSearch provides { navController.navigate(DaynestDestination.SEARCH) }
         ) {
-            daynestDestinations(navController)
+            NavHost(
+                navController = navController,
+                startDestination = DaynestDestination.SESSION_GATE
+            ) {
+                daynestDestinations(navController)
+            }
         }
     }
 }
@@ -83,9 +93,17 @@ private fun NavGraphBuilder.daynestDestinations(navController: NavHostController
     composable(route = DaynestDestination.MEAL_PLAN) {
         MealPlannerRoute(onNavigate = navController::navigateTopLevel)
     }
+    composable(route = DaynestDestination.STATS) {
+        StatsRoute(onNavigate = navController::navigateTopLevel)
+    }
+    settingsDestinations(navController)
+}
+
+private fun NavGraphBuilder.settingsDestinations(navController: NavHostController) {
     composable(route = DaynestDestination.SETTINGS) {
         SettingsRoute(
             onNavigate = navController::navigateTopLevel,
+            onOpenPrivacyPolicy = { navController.navigate(DaynestDestination.PRIVACY_POLICY) },
             onSignedOut = {
                 navController.navigate(DaynestDestination.AUTH) {
                     popUpTo(DaynestDestination.HOME) { inclusive = true }
@@ -94,13 +112,20 @@ private fun NavGraphBuilder.daynestDestinations(navController: NavHostController
             }
         )
     }
+    composable(route = DaynestDestination.PRIVACY_POLICY) {
+        PrivacyPolicyRoute(onBack = { navController.popBackStack() })
+    }
+    composable(route = DaynestDestination.SEARCH) {
+        SearchRoute(onBack = { navController.popBackStack() }, onNavigate = navController::navigateTopLevel)
+    }
 }
 
 private fun NavGraphBuilder.shoppingDestinations(navController: NavHostController) {
     composable(route = DaynestDestination.SHOPPING) {
         ShoppingListsRoute(
             onNavigate = navController::navigateTopLevel,
-            onOpenList = { listId -> navController.navigate("${DaynestDestination.SHOPPING}/$listId") }
+            onOpenList = { listId -> navController.navigate("${DaynestDestination.SHOPPING}/$listId") },
+            onOpenRecurringGroceries = { navController.navigate(DaynestDestination.RECURRING_GROCERIES) }
         )
     }
     composable(
@@ -113,6 +138,9 @@ private fun NavGraphBuilder.shoppingDestinations(navController: NavHostControlle
             onNavigate = navController::navigateTopLevel,
             onBack = { navController.popBackStack() }
         )
+    }
+    composable(route = DaynestDestination.RECURRING_GROCERIES) {
+        RecurringGroceriesRoute(onBack = { navController.popBackStack() })
     }
 }
 

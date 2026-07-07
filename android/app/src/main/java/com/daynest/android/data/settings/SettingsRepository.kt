@@ -17,5 +17,14 @@ constructor(private val settingsApi: SettingsApi) {
 
     suspend fun revokeSession(id: String): Result<Unit> = safeApiCall { settingsApi.revokeSession(id) }
 
+    suspend fun getUserSettings(): Result<UserSettingsDto> = safeApiCall { settingsApi.getUserSettings() }
+
+    suspend fun updateUserSettings(request: UserSettingsPatchDto): Result<UserSettingsDto> =
+        safeApiCall { settingsApi.updateUserSettings(request) }
+
+    suspend fun getCalendarFeed(): Result<CalendarFeedDto> = safeApiCall { settingsApi.getCalendarFeed() }
+
+    suspend fun regenerateCalendarFeed(): Result<CalendarFeedDto> = safeApiCall { settingsApi.regenerateCalendarFeed() }
+
     suspend fun deleteCurrentUser(): Result<Unit> = safeApiCall { settingsApi.deleteCurrentUser() }
 }

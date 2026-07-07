@@ -112,7 +112,11 @@ private fun LazyListScope.settingsBiometricItems(state: SettingsUiState.Content,
     }
 }
 
-internal fun LazyListScope.settingsAccountSection(state: SettingsUiState.Content, onEvent: (SettingsUiEvent) -> Unit) {
+internal fun LazyListScope.settingsAccountSection(
+    state: SettingsUiState.Content,
+    onEvent: (SettingsUiEvent) -> Unit,
+    onOpenPrivacyPolicy: () -> Unit
+) {
     item {
         HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
         Text(
@@ -125,6 +129,11 @@ internal fun LazyListScope.settingsAccountSection(state: SettingsUiState.Content
     }
     item {
         deleteAccountCard(state = state, onEvent = onEvent)
+    }
+    item {
+        TextButton(onClick = onOpenPrivacyPolicy) {
+            Text(text = stringResource(id = R.string.settings_privacy_policy_link))
+        }
     }
 }
 
@@ -222,7 +231,7 @@ private fun biometricTimeoutCard(state: SettingsUiState.Content, onEvent: (Setti
 }
 
 @Composable
-private fun loadErrorText(messageRes: Int, onRetry: () -> Unit) {
+internal fun loadErrorText(messageRes: Int, onRetry: () -> Unit) {
     Text(
         text = stringResource(id = messageRes),
         style = MaterialTheme.typography.bodySmall,

@@ -81,6 +81,7 @@ constructor(
             recurrenceHint = input.recurrenceHint,
             linkedSource = input.linkedSource,
             linkedRef = input.linkedRef,
+            autoAddToListId = input.autoAddToListId,
             priority = input.priority,
             tags = input.tags
         )
@@ -118,6 +119,7 @@ constructor(
             recurrenceHint = request.recurrenceHint,
             linkedSource = request.linkedSource,
             linkedRef = request.linkedRef,
+            autoAddToListId = request.autoAddToListId,
             priority = request.priority,
             tags = request.tags
         )

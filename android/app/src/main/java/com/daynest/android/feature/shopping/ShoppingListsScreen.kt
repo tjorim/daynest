@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -43,6 +44,7 @@ import com.daynest.android.data.shopping.ShoppingListStatus
 fun ShoppingListsRoute(
     onNavigate: (String) -> Unit = {},
     onOpenList: (Int) -> Unit,
+    onOpenRecurringGroceries: () -> Unit = {},
     viewModel: ShoppingViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -60,6 +62,7 @@ fun ShoppingListsRoute(
         onArchive = viewModel::archiveList,
         onDelete = viewModel::deleteList,
         onOpenList = onOpenList,
+        onOpenRecurringGroceries = onOpenRecurringGroceries,
         snackbarHostState = snackbarHostState
     )
 }
@@ -73,6 +76,7 @@ internal fun ShoppingListsScreen(
     onArchive: (ShoppingListDto) -> Unit,
     onDelete: (Int) -> Unit,
     onOpenList: (Int) -> Unit,
+    onOpenRecurringGroceries: () -> Unit,
     snackbarHostState: SnackbarHostState
 ) {
     DaynestNavigationScaffold(
@@ -87,6 +91,7 @@ internal fun ShoppingListsScreen(
             onArchive = onArchive,
             onDelete = onDelete,
             onOpenList = onOpenList,
+            onOpenRecurringGroceries = onOpenRecurringGroceries,
             modifier = Modifier.padding(innerPadding)
         )
     }
@@ -100,6 +105,7 @@ private fun ShoppingListsContent(
     onArchive: (ShoppingListDto) -> Unit,
     onDelete: (Int) -> Unit,
     onOpenList: (Int) -> Unit,
+    onOpenRecurringGroceries: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val activeLists =
@@ -117,6 +123,11 @@ private fun ShoppingListsContent(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item { ShoppingListsHeader(onRefresh = onRefresh) }
+        item {
+            TextButton(onClick = onOpenRecurringGroceries) {
+                Text(text = stringResource(id = R.string.shopping_recurring_manage))
+            }
+        }
 
         if (uiState.isLoadingLists) {
             item { LoadingIndicator() }
@@ -128,39 +139,58 @@ private fun ShoppingListsContent(
 
         item { CreateListForm(onCreate = onCreate) }
 
+        activeListsSection(activeLists, uiState.isLoadingLists, onOpenList, onArchive, onDelete)
+        archivedListsSection(archivedLists, onOpenList, onArchive, onDelete)
+    }
+}
+
+private fun LazyListScope.activeListsSection(
+    activeLists: List<ShoppingListDto>,
+    isLoadingLists: Boolean,
+    onOpenList: (Int) -> Unit,
+    onArchive: (ShoppingListDto) -> Unit,
+    onDelete: (Int) -> Unit
+) {
+    item {
+        Text(
+            text = stringResource(id = R.string.shopping_active_lists),
+            style = MaterialTheme.typography.titleMedium
+        )
+    }
+    if (activeLists.isEmpty() && !isLoadingLists) {
+        item { Text(text = stringResource(id = R.string.shopping_no_lists)) }
+    }
+    items(activeLists, key = { it.id }) { list ->
+        ShoppingListCard(
+            list = list,
+            onOpenList = onOpenList,
+            onArchive = onArchive,
+            onDelete = onDelete
+        )
+    }
+}
+
+private fun LazyListScope.archivedListsSection(
+    archivedLists: List<ShoppingListDto>,
+    onOpenList: (Int) -> Unit,
+    onArchive: (ShoppingListDto) -> Unit,
+    onDelete: (Int) -> Unit
+) {
+    if (archivedLists.isNotEmpty()) {
         item {
+            Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = stringResource(id = R.string.shopping_active_lists),
+                text = stringResource(id = R.string.shopping_archived),
                 style = MaterialTheme.typography.titleMedium
             )
         }
-        if (activeLists.isEmpty() && !uiState.isLoadingLists) {
-            item { Text(text = stringResource(id = R.string.shopping_no_lists)) }
-        }
-        items(activeLists, key = { it.id }) { list ->
+        items(archivedLists, key = { it.id }) { list ->
             ShoppingListCard(
                 list = list,
                 onOpenList = onOpenList,
                 onArchive = onArchive,
                 onDelete = onDelete
             )
-        }
-        if (archivedLists.isNotEmpty()) {
-            item {
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = stringResource(id = R.string.shopping_archived),
-                    style = MaterialTheme.typography.titleMedium
-                )
-            }
-            items(archivedLists, key = { it.id }) { list ->
-                ShoppingListCard(
-                    list = list,
-                    onOpenList = onOpenList,
-                    onArchive = onArchive,
-                    onDelete = onDelete
-                )
-            }
         }
     }
 }

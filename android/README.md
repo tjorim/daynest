@@ -61,22 +61,24 @@ openssl s_client -connect daynest.tjor.im:443 -servername daynest.tjor.im \
 
 ## Current feature parity
 
-The native app now exposes the same authenticated top-level product areas as the web app:
+The native app exposes the same authenticated top-level product areas as the web app:
 
 - Today
 - Calendar
 - Medication
 - Templates
+- Shopping (including recurring groceries)
+- Meal Plan
 - Settings
 
-Today is backed by the shared API read model. The other top-level areas currently provide native destination surfaces that mirror the web modules and will continue gaining editing controls from the shared backend contracts.
+Today is backed by the shared API read model. The other top-level areas currently provide native destination surfaces that mirror the web modules and will continue gaining editing controls from the shared backend contracts. Stats/analytics and global search exist on the web app but do not yet have Android equivalents.
 
 ## Implementation status
 
 ### Foundation
 - ✅ Detekt, ktlint, GitHub Actions Android build checks
 - ✅ Debug / release build configs with per-environment API URLs
-- ⬜ Gradle version catalog (`libs.versions.toml`) — tracked in [#156](https://github.com/tjorim/daynest/issues/156)
+- ✅ Gradle version catalog (`libs.versions.toml`) — see [#156](https://github.com/tjorim/daynest/issues/156)
 
 ### App architecture
 - ✅ Data / domain layers and repository contracts
@@ -87,7 +89,7 @@ Today is backed by the shared API read model. The other top-level areas currentl
 
 ### Product flows
 - ✅ Login flow and session persistence
-- ✅ Today, Calendar, Medication, Templates, Settings screens backed by real API data
+- ✅ Today, Calendar, Medication, Templates, Shopping, Meal Plan, Settings screens backed by real API data
 - ✅ Instrumented tests (navigation + home screen)
 - ✅ Home-screen widgets (Glance): small 2×1 and medium 4×2, refreshed every 15 min via WorkManager
 - ✅ Wear OS companion surface in dedicated `:wear` module: Today tile, short-text complication, and quick-action due list activity
