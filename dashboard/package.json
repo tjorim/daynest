@@ -18,7 +18,7 @@
     "typescript": "^6.0.3"
   },
   "dependencies": {
-    "@schedule-x/calendar": "^4.6.0",
-    "@schedule-x/theme-default": "^4.6.0"
+    "@schedule-x/calendar": "^4.6.1",
+    "@schedule-x/theme-default": "^4.6.1"
   }
 }
