@@ -19,7 +19,8 @@ export function TemplatesPage() {
   const [routineSubmitError, setRoutineSubmitError] = useState<string | null>(null);
   const [choreSubmitError, setChoreSubmitError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isRoutineSubmitting, setIsRoutineSubmitting] = useState(false);
+  const [isChoreSubmitting, setIsChoreSubmitting] = useState(false);
   const routinesQuery = useRoutineTemplatesQuery();
   const choresQuery = useChoreTemplatesQuery();
   const analyticsQuery = useTemplateAnalyticsQuery();
@@ -103,7 +104,7 @@ export function TemplatesPage() {
       setRoutineSubmitError(m.templates_every_n_error());
       return;
     }
-    setIsSubmitting(true);
+    setIsRoutineSubmitting(true);
     setRoutineSubmitError(null);
     setSuccessMessage(null);
     try {
@@ -130,7 +131,7 @@ export function TemplatesPage() {
     } catch (err) {
       setRoutineSubmitError(err instanceof Error ? err.message : m.templates_routine_save_failed());
     } finally {
-      setIsSubmitting(false);
+      setIsRoutineSubmitting(false);
     }
   };
 
@@ -144,7 +145,7 @@ export function TemplatesPage() {
       setChoreSubmitError(m.templates_every_n_error());
       return;
     }
-    setIsSubmitting(true);
+    setIsChoreSubmitting(true);
     setChoreSubmitError(null);
     setSuccessMessage(null);
     try {
@@ -167,13 +168,13 @@ export function TemplatesPage() {
     } catch (err) {
       setChoreSubmitError(err instanceof Error ? err.message : m.templates_chore_save_failed());
     } finally {
-      setIsSubmitting(false);
+      setIsChoreSubmitting(false);
     }
   };
 
   const handleDeleteRoutine = async (routineId: number) => {
     setConfirmDeleteRoutineId(null);
-    setIsSubmitting(true);
+    setIsRoutineSubmitting(true);
     setRoutineSubmitError(null);
     setSuccessMessage(null);
     try {
@@ -185,13 +186,13 @@ export function TemplatesPage() {
         err instanceof Error ? err.message : m.templates_routine_delete_failed(),
       );
     } finally {
-      setIsSubmitting(false);
+      setIsRoutineSubmitting(false);
     }
   };
 
   const handleDeleteChore = async (choreId: number) => {
     setConfirmDeleteChoreId(null);
-    setIsSubmitting(true);
+    setIsChoreSubmitting(true);
     setChoreSubmitError(null);
     setSuccessMessage(null);
     try {
@@ -201,7 +202,7 @@ export function TemplatesPage() {
     } catch (err) {
       setChoreSubmitError(err instanceof Error ? err.message : m.templates_chore_delete_failed());
     } finally {
-      setIsSubmitting(false);
+      setIsChoreSubmitting(false);
     }
   };
 
@@ -320,10 +321,10 @@ export function TemplatesPage() {
                 <button
                   type="button"
                   className="btn btn-primary"
-                  disabled={isSubmitting}
+                  disabled={isRoutineSubmitting}
                   onClick={() => void submitRoutine()}
                 >
-                  {isSubmitting
+                  {isRoutineSubmitting
                     ? editingRoutineId !== null
                       ? m.action_saving()
                       : m.action_creating()
@@ -335,7 +336,7 @@ export function TemplatesPage() {
                   <button
                     type="button"
                     className="btn btn-outline-secondary"
-                    disabled={isSubmitting}
+                    disabled={isRoutineSubmitting}
                     onClick={resetRoutineForm}
                   >
                     {m.templates_cancel_edit()}
@@ -400,6 +401,7 @@ export function TemplatesPage() {
                             setRoutineActive(routine.is_active);
                             setConfirmDeleteRoutineId(null);
                             setRoutineSubmitError(null);
+                            setSuccessMessage(null);
                           }}
                         >
                           {m.action_edit()}
@@ -409,7 +411,7 @@ export function TemplatesPage() {
                             <button
                               type="button"
                               className="btn btn-danger btn-sm"
-                              disabled={isSubmitting}
+                              disabled={isRoutineSubmitting}
                               onClick={() => void handleDeleteRoutine(routine.id)}
                             >
                               {m.action_confirm()}
@@ -417,7 +419,7 @@ export function TemplatesPage() {
                             <button
                               type="button"
                               className="btn btn-outline-secondary btn-sm"
-                              disabled={isSubmitting}
+                              disabled={isRoutineSubmitting}
                               onClick={() => setConfirmDeleteRoutineId(null)}
                             >
                               {m.action_cancel()}
@@ -501,10 +503,10 @@ export function TemplatesPage() {
                 <button
                   type="button"
                   className="btn btn-primary"
-                  disabled={isSubmitting}
+                  disabled={isChoreSubmitting}
                   onClick={() => void submitChore()}
                 >
-                  {isSubmitting
+                  {isChoreSubmitting
                     ? editingChoreId !== null
                       ? m.action_saving()
                       : m.action_creating()
@@ -516,7 +518,7 @@ export function TemplatesPage() {
                   <button
                     type="button"
                     className="btn btn-outline-secondary"
-                    disabled={isSubmitting}
+                    disabled={isChoreSubmitting}
                     onClick={resetChoreForm}
                   >
                     {m.templates_cancel_edit()}
@@ -576,6 +578,7 @@ export function TemplatesPage() {
                             setChoreActive(chore.is_active);
                             setConfirmDeleteChoreId(null);
                             setChoreSubmitError(null);
+                            setSuccessMessage(null);
                           }}
                         >
                           {m.action_edit()}
@@ -585,7 +588,7 @@ export function TemplatesPage() {
                             <button
                               type="button"
                               className="btn btn-danger btn-sm"
-                              disabled={isSubmitting}
+                              disabled={isChoreSubmitting}
                               onClick={() => void handleDeleteChore(chore.id)}
                             >
                               {m.action_confirm()}
@@ -593,7 +596,7 @@ export function TemplatesPage() {
                             <button
                               type="button"
                               className="btn btn-outline-secondary btn-sm"
-                              disabled={isSubmitting}
+                              disabled={isChoreSubmitting}
                               onClick={() => setConfirmDeleteChoreId(null)}
                             >
                               {m.action_cancel()}
