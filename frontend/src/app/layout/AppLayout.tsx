@@ -8,7 +8,7 @@ import { drain as drainOfflineQueue, getQueuedCount } from "@/lib/offlineQueue";
 import { SearchOverlay } from "@/features/search/SearchOverlay";
 
 export function AppLayout() {
-  const { isAuthenticated, isLoading, logout, user } = useAuth();
+  const { isAuthenticated, isLoading, logout, refreshUser, sessionError, user } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const isOnline = useOnlineStatus();
   const [queuedCount, setQueuedCount] = React.useState(() => getQueuedCount());
@@ -123,6 +123,18 @@ export function AppLayout() {
       ) : queuedCount > 0 ? (
         <div className="alert alert-info py-2 mb-3">
           {m.app_syncing_queued({ count: queuedCount })}
+        </div>
+      ) : null}
+      {sessionError ? (
+        <div className="alert alert-danger py-2 mb-3 d-flex justify-content-between align-items-center gap-2 flex-wrap">
+          <span>{m.app_session_retry_banner()}</span>
+          <button
+            type="button"
+            className="btn btn-sm btn-outline-danger"
+            onClick={() => void refreshUser()}
+          >
+            {m.action_retry()}
+          </button>
         </div>
       ) : null}
       {searchOpen && isAuthenticated ? (

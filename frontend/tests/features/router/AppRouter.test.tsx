@@ -8,7 +8,7 @@ vi.mock("react-oidc-context", () => ({
 }));
 
 vi.mock("@/app/providers/AuthProvider", () => ({
-  useAuth: () => ({ isAuthenticated: true, isLoading: false, user: null, login: vi.fn(), logout: vi.fn(), refreshUser: vi.fn() }),
+  useAuth: () => ({ isAuthenticated: true, isLoading: false, user: null, login: vi.fn(), logout: vi.fn(), refreshUser: vi.fn(), sessionError: null }),
 }));
 
 vi.mock("@/paraglide/messages", () => ({
