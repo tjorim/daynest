@@ -52,6 +52,7 @@
   "router_completing_sign_in": "Completing sign in…",
   "today_subtitle": "Medication, routines, chores, and planned tasks — everything due or active today.",
   "today_loading": "Loading today...",
+  "today_live_updates_interrupted": "Live Today updates were interrupted. Reconnecting with the latest session…",
   "today_nothing_scheduled": "Nothing scheduled for today yet.",
   "today_create_first_chore": "Create your first chore",
   "today_summary_overdue": "Overdue",

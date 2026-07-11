@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import * as m from "@/paraglide/messages";
 import { buildApiUrl } from "@/lib/api/serverConfig";
 import { useOidcAccessToken } from "@/lib/auth/session";
 import { queryKeys } from "@/lib/query/queryKeys";
@@ -35,9 +36,7 @@ export function useTodayLiveUpdates(): string | null {
     });
 
     es.addEventListener("error", () => {
-      setConnectionError(
-        "Live Today updates were interrupted. Reconnecting with the latest session…",
-      );
+      setConnectionError(m.today_live_updates_interrupted());
     });
 
     return () => {

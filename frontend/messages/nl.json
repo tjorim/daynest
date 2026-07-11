@@ -52,6 +52,7 @@
   "router_completing_sign_in": "Aanmelding voltooien…",
   "today_subtitle": "Medicatie, routines, klusjes en geplande taken — alles dat vandaag vervalt of actief is.",
   "today_loading": "Vandaag laden...",
+  "today_live_updates_interrupted": "Live updates voor Vandaag zijn onderbroken. Opnieuw verbinden met de nieuwste sessie…",
   "today_nothing_scheduled": "Nog niets ingepland voor vandaag.",
   "today_create_first_chore": "Maak je eerste klusje",
   "today_summary_overdue": "Achterstallig",

@@ -3,6 +3,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { createElement } from "react";
 import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import * as m from "@/paraglide/messages";
 import { useTodayLiveUpdates } from "@/features/today/useTodayLiveUpdates";
 import { queryKeys } from "@/lib/query/queryKeys";
 import * as session from "@/lib/auth/session";
@@ -182,7 +183,7 @@ describe("useTodayLiveUpdates", () => {
     await act(async () => {
       capturedEs!.emit("error", "");
     });
-    expect(result.current).toContain("Live Today updates were interrupted");
+    expect(result.current).toBe(m.today_live_updates_interrupted());
 
     await act(async () => {
       capturedEs!.emit("open", "");
