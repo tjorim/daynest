@@ -21,6 +21,7 @@ import net.openid.appauth.AuthorizationRequest
 import net.openid.appauth.AuthorizationResponse
 import net.openid.appauth.AuthorizationService
 import net.openid.appauth.AuthorizationServiceConfiguration
+import net.openid.appauth.EndSessionRequest
 import net.openid.appauth.ResponseTypeValues
 
 @Singleton
@@ -90,6 +91,21 @@ constructor(
                 }
             }
         }
+    }
+
+    suspend fun buildSignOutIntent(): Intent? {
+        val idToken = authState.idToken
+        val config = discoverServiceConfiguration()
+        clearState()
+        if (config.endSessionEndpoint == null) return null
+        val requestBuilder =
+            EndSessionRequest
+                .Builder(config)
+                .setPostLogoutRedirectUri(oidcConfig.redirectUri)
+        if (idToken != null) {
+            requestBuilder.setIdTokenHint(idToken)
+        }
+        return authorizationService.getEndSessionRequestIntent(requestBuilder.build())
     }
 
     fun signOut() = clearState()
