@@ -16,7 +16,8 @@ import {
 } from "@/features/templates/useTemplateQueries";
 
 export function TemplatesPage() {
-  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [routineSubmitError, setRoutineSubmitError] = useState<string | null>(null);
+  const [choreSubmitError, setChoreSubmitError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const routinesQuery = useRoutineTemplatesQuery();
@@ -32,9 +33,15 @@ export function TemplatesPage() {
   const chores = choresQuery.data ?? [];
   const analytics = analyticsQuery.data ?? null;
   const loading = routinesQuery.isPending || choresQuery.isPending || analyticsQuery.isPending;
-  const refreshing = (routinesQuery.isFetching || choresQuery.isFetching || analyticsQuery.isFetching) && !loading;
+  const refreshing =
+    (routinesQuery.isFetching || choresQuery.isFetching || analyticsQuery.isFetching) && !loading;
   const queryError = routinesQuery.error ?? choresQuery.error ?? analyticsQuery.error;
-  const error = queryError instanceof Error ? queryError.message : queryError ? "Unable to load template data." : null;
+  const error =
+    queryError instanceof Error
+      ? queryError.message
+      : queryError
+        ? "Unable to load template data."
+        : null;
   const canRetry = queryError ? isRetryableApiError(queryError) : false;
 
   const routineStreakMap = useMemo(
@@ -88,16 +95,16 @@ export function TemplatesPage() {
 
   const submitRoutine = async () => {
     if (!routineName.trim()) {
-      setSubmitError(m.templates_routine_name_required());
+      setRoutineSubmitError(m.templates_routine_name_required());
       return;
     }
     const everyNDaysRoutine = parseInt(routineEveryNDays, 10);
     if (!Number.isInteger(everyNDaysRoutine) || everyNDaysRoutine < 1) {
-      setSubmitError(m.templates_every_n_error());
+      setRoutineSubmitError(m.templates_every_n_error());
       return;
     }
     setIsSubmitting(true);
-    setSubmitError(null);
+    setRoutineSubmitError(null);
     setSuccessMessage(null);
     try {
       const payload = {
@@ -109,7 +116,10 @@ export function TemplatesPage() {
         is_active: routineActive,
       };
       if (editingRoutineId !== null) {
-        await updateRoutineMutation.mutateAsync({ routineTemplateId: editingRoutineId, input: payload });
+        await updateRoutineMutation.mutateAsync({
+          routineTemplateId: editingRoutineId,
+          input: payload,
+        });
       } else {
         await createRoutineMutation.mutateAsync(payload);
       }
@@ -118,7 +128,7 @@ export function TemplatesPage() {
         editingRoutineId !== null ? m.templates_routine_updated() : m.templates_routine_created(),
       );
     } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : m.templates_routine_save_failed());
+      setRoutineSubmitError(err instanceof Error ? err.message : m.templates_routine_save_failed());
     } finally {
       setIsSubmitting(false);
     }
@@ -126,16 +136,16 @@ export function TemplatesPage() {
 
   const submitChore = async () => {
     if (!choreName.trim()) {
-      setSubmitError(m.templates_chore_name_required());
+      setChoreSubmitError(m.templates_chore_name_required());
       return;
     }
     const everyNDaysChore = parseInt(choreEveryNDays, 10);
     if (!Number.isInteger(everyNDaysChore) || everyNDaysChore < 1) {
-      setSubmitError(m.templates_every_n_error());
+      setChoreSubmitError(m.templates_every_n_error());
       return;
     }
     setIsSubmitting(true);
-    setSubmitError(null);
+    setChoreSubmitError(null);
     setSuccessMessage(null);
     try {
       const payload = {
@@ -155,7 +165,7 @@ export function TemplatesPage() {
         editingChoreId !== null ? m.templates_chore_updated() : m.templates_chore_created(),
       );
     } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : m.templates_chore_save_failed());
+      setChoreSubmitError(err instanceof Error ? err.message : m.templates_chore_save_failed());
     } finally {
       setIsSubmitting(false);
     }
@@ -164,14 +174,16 @@ export function TemplatesPage() {
   const handleDeleteRoutine = async (routineId: number) => {
     setConfirmDeleteRoutineId(null);
     setIsSubmitting(true);
-    setSubmitError(null);
+    setRoutineSubmitError(null);
     setSuccessMessage(null);
     try {
       await deleteRoutineMutation.mutateAsync(routineId);
       if (editingRoutineId === routineId) resetRoutineForm();
       setSuccessMessage(m.templates_routine_deleted());
     } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : m.templates_routine_delete_failed());
+      setRoutineSubmitError(
+        err instanceof Error ? err.message : m.templates_routine_delete_failed(),
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -180,14 +192,14 @@ export function TemplatesPage() {
   const handleDeleteChore = async (choreId: number) => {
     setConfirmDeleteChoreId(null);
     setIsSubmitting(true);
-    setSubmitError(null);
+    setChoreSubmitError(null);
     setSuccessMessage(null);
     try {
       await deleteChoreMutation.mutateAsync(choreId);
       if (editingChoreId === choreId) resetChoreForm();
       setSuccessMessage(m.templates_chore_deleted());
     } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : m.templates_chore_delete_failed());
+      setChoreSubmitError(err instanceof Error ? err.message : m.templates_chore_delete_failed());
     } finally {
       setIsSubmitting(false);
     }
@@ -204,14 +216,16 @@ export function TemplatesPage() {
           onClick={() => void loadTemplates()}
         >
           {refreshing ? (
-            <span className="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true" />
+            <span
+              className="spinner-border spinner-border-sm me-1"
+              role="status"
+              aria-hidden="true"
+            />
           ) : null}
           {m.action_refresh()}
         </button>
       </div>
-      <p className="text-muted mb-3">
-        {m.templates_subtitle()}
-      </p>
+      <p className="text-muted mb-3">{m.templates_subtitle()}</p>
 
       <FeedbackBanner message={loading ? m.templates_loading() : null} tone="info" />
       {error ? (
@@ -228,14 +242,22 @@ export function TemplatesPage() {
           ) : null}
         </div>
       ) : null}
-      <FeedbackBanner message={submitError} tone="danger" onDismiss={() => setSubmitError(null)} />
-      <FeedbackBanner message={successMessage} tone="success" onDismiss={() => setSuccessMessage(null)} />
+      <FeedbackBanner
+        message={successMessage}
+        tone="success"
+        onDismiss={() => setSuccessMessage(null)}
+      />
 
       <div className="row g-3">
         <div className="col-xl-6">
           <div className="card mb-3">
             <div className="card-header fw-semibold py-2">{m.templates_routine_form_header()}</div>
             <div className="card-body d-grid gap-2">
+              <FeedbackBanner
+                message={routineSubmitError}
+                tone="danger"
+                onDismiss={() => setRoutineSubmitError(null)}
+              />
               <input
                 className="form-control"
                 value={routineName}
@@ -251,7 +273,9 @@ export function TemplatesPage() {
               />
               <div className="row g-2">
                 <div className="col-sm-6">
-                  <label className="form-label small fw-semibold mb-1">{m.templates_start_date_label()}</label>
+                  <label className="form-label small fw-semibold mb-1">
+                    {m.templates_start_date_label()}
+                  </label>
                   <input
                     className="form-control"
                     type="date"
@@ -260,7 +284,9 @@ export function TemplatesPage() {
                   />
                 </div>
                 <div className="col-sm-6">
-                  <label className="form-label small fw-semibold mb-1">{m.templates_every_n_days_label()}</label>
+                  <label className="form-label small fw-semibold mb-1">
+                    {m.templates_every_n_days_label()}
+                  </label>
                   <input
                     className="form-control"
                     type="number"
@@ -271,7 +297,9 @@ export function TemplatesPage() {
                 </div>
               </div>
               <div>
-                <label className="form-label small fw-semibold mb-1">{m.templates_due_time_label()}</label>
+                <label className="form-label small fw-semibold mb-1">
+                  {m.templates_due_time_label()}
+                </label>
                 <input
                   className="form-control"
                   type="time"
@@ -351,7 +379,10 @@ export function TemplatesPage() {
                         {(() => {
                           const streak = routineStreakMap.get(routine.id);
                           return streak && streak.current_streak > 0 ? (
-                            <span className="badge text-bg-warning" title={`Best: ${streak.longest_streak}`}>
+                            <span
+                              className="badge text-bg-warning"
+                              title={`Best: ${streak.longest_streak}`}
+                            >
                               🔥 {streak.current_streak}
                             </span>
                           ) : null;
@@ -368,7 +399,7 @@ export function TemplatesPage() {
                             setRoutineDueTime(routine.due_time ? routine.due_time.slice(0, 5) : "");
                             setRoutineActive(routine.is_active);
                             setConfirmDeleteRoutineId(null);
-                            setSubmitError(null);
+                            setRoutineSubmitError(null);
                           }}
                         >
                           {m.action_edit()}
@@ -414,6 +445,11 @@ export function TemplatesPage() {
           <div className="card mb-3">
             <div className="card-header fw-semibold py-2">{m.templates_chore_form_header()}</div>
             <div className="card-body d-grid gap-2">
+              <FeedbackBanner
+                message={choreSubmitError}
+                tone="danger"
+                onDismiss={() => setChoreSubmitError(null)}
+              />
               <input
                 className="form-control"
                 value={choreName}
@@ -429,7 +465,9 @@ export function TemplatesPage() {
               />
               <div className="row g-2">
                 <div className="col-sm-6">
-                  <label className="form-label small fw-semibold mb-1">{m.templates_start_date_label()}</label>
+                  <label className="form-label small fw-semibold mb-1">
+                    {m.templates_start_date_label()}
+                  </label>
                   <input
                     className="form-control"
                     type="date"
@@ -438,7 +476,9 @@ export function TemplatesPage() {
                   />
                 </div>
                 <div className="col-sm-6">
-                  <label className="form-label small fw-semibold mb-1">{m.templates_every_n_days_label()}</label>
+                  <label className="form-label small fw-semibold mb-1">
+                    {m.templates_every_n_days_label()}
+                  </label>
                   <input
                     className="form-control"
                     type="number"
@@ -516,7 +556,10 @@ export function TemplatesPage() {
                         {(() => {
                           const streak = choreStreakMap.get(chore.id);
                           return streak && streak.current_streak > 0 ? (
-                            <span className="badge text-bg-warning" title={`Best: ${streak.longest_streak}`}>
+                            <span
+                              className="badge text-bg-warning"
+                              title={`Best: ${streak.longest_streak}`}
+                            >
                               🔥 {streak.current_streak}
                             </span>
                           ) : null;
@@ -532,7 +575,7 @@ export function TemplatesPage() {
                             setChoreEveryNDays(String(chore.every_n_days));
                             setChoreActive(chore.is_active);
                             setConfirmDeleteChoreId(null);
-                            setSubmitError(null);
+                            setChoreSubmitError(null);
                           }}
                         >
                           {m.action_edit()}
