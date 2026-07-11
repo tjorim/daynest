@@ -459,5 +459,6 @@
   "settings_delete_account_button": "Mijn account verwijderen",
   "settings_delete_account_deleting": "Verwijderen…",
   "settings_delete_account_confirm": "Dit verwijdert je Daynest-account en persoonlijke gegevens permanent. Dit kan niet ongedaan worden gemaakt. Doorgaan?",
-  "settings_delete_account_error": "Account verwijderen mislukt."
+  "settings_delete_account_error": "Account verwijderen mislukt.",
+  "nav_menu": "Menu"
 }
