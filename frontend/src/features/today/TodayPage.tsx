@@ -30,7 +30,7 @@ export function TodayPage() {
   const todayQuery = useTodayQuery();
   const today = todayQuery.data ?? null;
   const isLoading = todayQuery.isLoading;
-  const isRefreshing = todayQuery.isFetching;
+  const isRefreshing = todayQuery.isFetching && !isLoading;
   const error = todayQuery.error ? (todayQuery.error instanceof Error ? todayQuery.error.message : "Unable to load today payload.") : null;
   const canRetry = todayQuery.error ? isRetryableApiError(todayQuery.error) : false;
   const loadToday = useCallback(async () => {
@@ -178,7 +178,7 @@ export function TodayPage() {
           <button
             className="btn btn-outline-primary btn-sm flex-md-grow-0"
             type="button"
-            disabled={isRefreshing}
+            disabled={isLoading || isRefreshing}
             onClick={() => void loadToday()}
           >
             {isRefreshing ? (
