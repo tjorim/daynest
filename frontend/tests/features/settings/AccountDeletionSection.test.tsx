@@ -68,6 +68,10 @@ describe("AccountDeletionSection", () => {
     apiMock.deleteAccount.mockResolvedValue(undefined);
 
     await user.click(screen.getByRole("button", { name: /delete my account/i }));
+    await user.type(
+      screen.getByLabelText(/type your email address to confirm/i),
+      "user@example.com",
+    );
     await user.click(screen.getByRole("button", { name: /confirm/i }));
 
     expect(confirmSpy).not.toHaveBeenCalled();
@@ -83,6 +87,10 @@ describe("AccountDeletionSection", () => {
     apiMock.deleteAccount.mockRejectedValue(new Error("Delete shared chores first."));
 
     await user.click(screen.getByRole("button", { name: /delete my account/i }));
+    await user.type(
+      screen.getByLabelText(/type your email address to confirm/i),
+      "user@example.com",
+    );
     await user.click(screen.getByRole("button", { name: /confirm/i }));
 
     expect(await screen.findByText("Delete shared chores first.")).toBeInTheDocument();
@@ -98,6 +106,10 @@ describe("AccountDeletionSection", () => {
     apiMock.deleteAccount.mockRejectedValue(new Error("Delete shared chores first."));
 
     await user.click(screen.getByRole("button", { name: /delete my account/i }));
+    await user.type(
+      screen.getByLabelText(/type your email address to confirm/i),
+      "user@example.com",
+    );
     await user.click(screen.getByRole("button", { name: /confirm/i }));
 
     expect(await screen.findByText("Delete shared chores first.")).toBeInTheDocument();
