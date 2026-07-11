@@ -14,6 +14,7 @@ import {
   type UpcomingTodayItem,
 } from "@/lib/api/today";
 import { capitalize, formatDate, formatDateTime, formatTime } from "@/lib/dateUtils";
+import { FeedbackBanner } from "@/components/common/FeedbackBanner";
 import { useTodayActions } from "@/features/today/useTodayActions";
 
 export type BulkAction = {
@@ -602,14 +603,12 @@ export function SectionCard({
   const allSelected = selectableItems.length > 0 && selectedIds.length === selectableItems.length;
 
   const toggleSelected = (itemId: string) => {
-    setBulkFeedback(null);
     setSelectedIds((current) =>
       current.includes(itemId) ? current.filter((id) => id !== itemId) : [...current, itemId],
     );
   };
 
   const toggleAllSelected = () => {
-    setBulkFeedback(null);
     setSelectedIds(allSelected ? [] : selectableItems.map((item) => item.id));
   };
 
@@ -685,9 +684,11 @@ export function SectionCard({
                   );
                 })}
               </div>
-              {bulkFeedback ? (
-                <small className={`text-${bulkFeedback.tone}`}>{bulkFeedback.text}</small>
-              ) : null}
+              <FeedbackBanner
+                message={bulkFeedback?.text ?? null}
+                tone={bulkFeedback?.tone}
+                onDismiss={() => setBulkFeedback(null)}
+              />
             </div>
           ) : null}
         </div>

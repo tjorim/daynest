@@ -211,6 +211,64 @@ describe("Today section components", () => {
     expect(screen.getByText("Bulk Done updated 1 item and failed for 1.")).toBeInTheDocument();
   });
 
+  it("keeps bulk partial-failure feedback visible after items refresh", async () => {
+    const user = userEvent.setup();
+    const onRefresh = vi.fn().mockResolvedValue(undefined);
+    const runBulkDone = vi
+      .fn()
+      .mockResolvedValueOnce(undefined)
+      .mockRejectedValueOnce(new Error("boom"));
+    const initialItems: SectionItem[] = [
+      { id: "item-1", title: "Water plants", choreInstanceId: 1, choreStatus: "pending" },
+      { id: "item-2", title: "Laundry", choreInstanceId: 2, choreStatus: "pending" },
+    ];
+    const refreshedItems: SectionItem[] = [
+      { id: "item-2", title: "Laundry", choreInstanceId: 2, choreStatus: "pending" },
+    ];
+    const bulkActions: BulkAction[] = [
+      {
+        key: "bulk-done",
+        label: "Bulk Done",
+        buttonClassName: "btn-success",
+        isAvailable: () => true,
+        run: runBulkDone,
+      },
+    ];
+
+    const { rerender } = render(
+      <QueryTestProvider>
+        <SectionCard
+          sectionId="due-today"
+          heading="Due Today"
+          items={initialItems}
+          onRefresh={onRefresh}
+          bulkActions={bulkActions}
+        />
+      </QueryTestProvider>,
+    );
+
+    await user.click(screen.getByLabelText("Select Water plants"));
+    await user.click(screen.getByLabelText("Select Laundry"));
+    await user.click(screen.getByRole("button", { name: "Bulk Done" }));
+
+    await screen.findByText("Bulk Done updated 1 item and failed for 1.");
+
+    rerender(
+      <QueryTestProvider>
+        <SectionCard
+          sectionId="due-today"
+          heading="Due Today"
+          items={refreshedItems}
+          onRefresh={onRefresh}
+          bulkActions={bulkActions}
+        />
+      </QueryTestProvider>,
+    );
+
+    expect(screen.getByText("Bulk Done updated 1 item and failed for 1.")).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("Bulk Done updated 1 item and failed for 1.");
+  });
+
   it("selects all items via the select-all checkbox", async () => {
     const user = userEvent.setup();
     const onRefresh = vi.fn().mockResolvedValue(undefined);
