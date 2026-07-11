@@ -87,7 +87,22 @@ export function AppLayout() {
         to={link.to}
         activeProps={{ className: "nav-link active" }}
         inactiveProps={{ className: "nav-link" }}
-        onClick={onNavigate}
+        onClick={(event) => {
+          if (
+            event.defaultPrevented ||
+            event.button !== 0 ||
+            event.metaKey ||
+            event.ctrlKey ||
+            event.shiftKey ||
+            event.altKey
+          ) {
+            return;
+          }
+
+          if (mobileNavOpen) {
+            onNavigate?.();
+          }
+        }}
       >
         {link.label}
       </Link>
