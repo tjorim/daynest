@@ -204,11 +204,7 @@ export function TodayPage() {
         </div>
       ) : null}
       {!isLoading && !error && today && !hasAnyItems ? (
-        <div
-          className="alert alert-secondary py-2 d-flex justify-content-between align-items-center gap-2 flex-wrap"
-          role="status"
-          aria-live="polite"
-        >
+        <div className="alert alert-secondary py-2 d-flex justify-content-between align-items-center gap-2 flex-wrap">
           <span>{m.today_nothing_scheduled()}</span>
           <Link to="/templates" className="btn btn-primary btn-sm">
             {m.today_create_first_chore()}
