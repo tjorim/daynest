@@ -96,16 +96,18 @@ constructor(
     suspend fun buildSignOutIntent(): Intent? {
         val idToken = authState.idToken
         val config = discoverServiceConfiguration()
-        clearState()
-        if (config.endSessionEndpoint == null) return null
-        val requestBuilder =
-            EndSessionRequest
-                .Builder(config)
-                .setPostLogoutRedirectUri(oidcConfig.redirectUri)
-        if (idToken != null) {
-            requestBuilder.setIdTokenHint(idToken)
+        return if (idToken != null && config.endSessionEndpoint != null) {
+            clearState()
+            val request =
+                EndSessionRequest
+                    .Builder(config)
+                    .setPostLogoutRedirectUri(oidcConfig.redirectUri)
+                    .setIdTokenHint(idToken)
+                    .build()
+            authorizationService.getEndSessionRequestIntent(request)
+        } else {
+            null
         }
-        return authorizationService.getEndSessionRequestIntent(requestBuilder.build())
     }
 
     fun signOut() = clearState()
