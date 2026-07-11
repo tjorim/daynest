@@ -30,6 +30,7 @@
   "app_offline_queued": "{count} actie(s) worden gesynchroniseerd zodra de verbinding is hersteld.",
   "app_syncing_queued": "{count} wachtende actie(s) synchroniseren…",
   "app_server_unavailable": "Kan geen verbinding maken met de Daynest-server. Controleer uw verbinding en probeer het opnieuw.",
+  "app_session_retry_banner": "We konden uw accountgegevens niet vernieuwen. Uw sessie is nog actief; probeer opnieuw om opnieuw te verbinden.",
   "app_theme_switch_to_light": "Overschakelen naar lichte modus",
   "app_theme_switch_to_dark": "Overschakelen naar donkere modus",
   "app_theme_switch_to_auto": "Overschakelen naar automatische modus",

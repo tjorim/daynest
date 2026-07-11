@@ -30,6 +30,7 @@
   "app_offline_queued": "{count} action(s) will sync when reconnected.",
   "app_syncing_queued": "Syncing {count} queued action(s)…",
   "app_server_unavailable": "Cannot connect to Daynest server. Please check your connection and try again.",
+  "app_session_retry_banner": "We could not refresh your account details. Your session is still active; try again to reconnect.",
   "app_theme_switch_to_light": "Switch to light mode",
   "app_theme_switch_to_dark": "Switch to dark mode",
   "app_theme_switch_to_auto": "Switch to auto mode",

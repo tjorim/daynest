@@ -8,10 +8,11 @@ import { drain as drainOfflineQueue, getQueuedCount } from "@/lib/offlineQueue";
 import { SearchOverlay } from "@/features/search/SearchOverlay";
 
 export function AppLayout() {
-  const { isAuthenticated, isLoading, logout, user } = useAuth();
+  const { isAuthenticated, isLoading, logout, refreshUser, sessionError, user } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const isOnline = useOnlineStatus();
   const [queuedCount, setQueuedCount] = React.useState(() => getQueuedCount());
+  const [isRetryingSession, setIsRetryingSession] = React.useState(false);
   const [searchOpen, setSearchOpen] = React.useState(false);
   const [mobileNavOpen, setMobileNavOpen] = React.useState(false);
 
@@ -125,6 +126,26 @@ export function AppLayout() {
           {m.app_syncing_queued({ count: queuedCount })}
         </div>
       ) : null}
+      {sessionError ? (
+        <div className="alert alert-danger py-2 mb-3 d-flex justify-content-between align-items-center gap-2 flex-wrap">
+          <span>{m.app_session_retry_banner()}</span>
+          <button
+            type="button"
+            className="btn btn-sm btn-outline-danger"
+            disabled={isRetryingSession}
+            onClick={async () => {
+              setIsRetryingSession(true);
+              try {
+                await refreshUser();
+              } finally {
+                setIsRetryingSession(false);
+              }
+            }}
+          >
+            {m.action_retry()}
+          </button>
+        </div>
+      ) : null}
       {searchOpen && isAuthenticated ? (
         <SearchOverlay onClose={() => setSearchOpen(false)} />
       ) : null}
@@ -158,12 +179,14 @@ export function AppLayout() {
                 aria-hidden="true"
               />
             </button>
-            {isAuthenticated && user ? (
+            {isAuthenticated ? (
               <div className="d-flex flex-column flex-sm-row align-items-start align-items-sm-center gap-2">
-                <div className="small text-muted text-sm-end">
-                  <div className="fw-semibold text-body">{user.full_name}</div>
-                  <div>{user.email}</div>
-                </div>
+                {user ? (
+                  <div className="small text-muted text-sm-end">
+                    <div className="fw-semibold text-body">{user.full_name}</div>
+                    <div>{user.email}</div>
+                  </div>
+                ) : null}
                 <button type="button" className="btn btn-outline-secondary btn-sm" onClick={logout}>
                   {m.app_logout()}
                 </button>

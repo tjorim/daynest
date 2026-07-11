@@ -17,6 +17,7 @@ vi.mock("@/app/providers/AuthProvider", () => ({
     login: authMock.loginStub,
     logout: authMock.logoutStub,
     refreshUser: authMock.refreshUserStub,
+    sessionError: null,
     user: null,
   }),
 }));
