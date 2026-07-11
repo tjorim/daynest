@@ -75,6 +75,7 @@ async def discover_oidc_endpoints() -> OidcDiscoveryConfig:
                 "issuer": data.get("issuer", issuer),
                 "authorization_url": data["authorization_endpoint"],
                 "token_url": data["token_endpoint"],
+                "end_session_endpoint": data.get("end_session_endpoint"),
             }
         )
     except (KeyError, ValueError) as exc:

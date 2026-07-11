@@ -1,6 +1,7 @@
 package com.daynest.android.feature.settings
 
 import android.content.Context
+import android.content.Intent
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.daynest.android.BuildConfig
@@ -20,8 +21,11 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
@@ -41,6 +45,18 @@ constructor(
 ) : ViewModel() {
     private val _uiState = MutableStateFlow<SettingsUiState>(SettingsUiState.Loading)
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
+
+    private val _signOutIntent = MutableSharedFlow<Intent>(extraBufferCapacity = 1)
+    val signOutIntent: SharedFlow<Intent> = _signOutIntent.asSharedFlow()
+
+    private val signOutHandler =
+        SettingsSignOutHandler(
+            scope = viewModelScope,
+            oidcAuthService = oidcAuthService,
+            pushRegistrationManager = pushRegistrationManager,
+            uiState = _uiState,
+            signOutIntent = _signOutIntent
+        )
 
     private val deviceCalendarHandler =
         SettingsDeviceCalendarHandler(
@@ -65,11 +81,7 @@ constructor(
     fun onEvent(event: SettingsUiEvent) {
         when (event) {
             SettingsUiEvent.RetryClicked -> load()
-            SettingsUiEvent.SignOutClicked -> {
-                viewModelScope.launch { runCatching { pushRegistrationManager.unregisterAllKnownEndpoints() } }
-                oidcAuthService.signOut()
-                _uiState.value = SettingsUiState.SignedOut
-            }
+            SettingsUiEvent.SignOutClicked -> signOutHandler.signOut()
             SettingsUiEvent.ShowCreateClientForm -> updateContent { it.copy(showCreateForm = true) }
             SettingsUiEvent.DismissCreateClientForm -> updateContent { it.copy(showCreateForm = false) }
             SettingsUiEvent.DismissNewKeyDialog -> updateContent { it.copy(newApiKey = null) }
@@ -257,8 +269,7 @@ constructor(
             pushRegistrationManager.unregisterAllKnownEndpoints()
             settingsRepository.deleteCurrentUser()
                 .onSuccess {
-                    oidcAuthService.signOut()
-                    _uiState.value = SettingsUiState.SignedOut
+                    signOutHandler.signOut(unregisterPushEndpoints = false)
                 }
                 .onFailure { error ->
                     updateContent {

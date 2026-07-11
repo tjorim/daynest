@@ -62,6 +62,7 @@ class TestOidcConfigEndpoint:
                 "issuer": issuer,
                 "authorization_endpoint": f"{issuer}/protocol/openid-connect/auth",
                 "token_endpoint": f"{issuer}/protocol/openid-connect/token",
+                "end_session_endpoint": f"{issuer}/protocol/openid-connect/logout",
             }),
         )
 
@@ -71,6 +72,7 @@ class TestOidcConfigEndpoint:
         assert str(config.issuer) == issuer
         assert str(config.authorization_url) == f"{issuer}/protocol/openid-connect/auth"
         assert str(config.token_url) == f"{issuer}/protocol/openid-connect/token"
+        assert str(config.end_session_endpoint) == f"{issuer}/protocol/openid-connect/logout"
 
     def test_oidc_config_caches_discovery(self, monkeypatch: pytest.MonkeyPatch) -> None:
         issuer = "https://auth.example.test/application/o/daynest"
