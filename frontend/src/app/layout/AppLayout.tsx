@@ -12,6 +12,7 @@ export function AppLayout() {
   const { theme, toggleTheme } = useTheme();
   const isOnline = useOnlineStatus();
   const [queuedCount, setQueuedCount] = React.useState(() => getQueuedCount());
+  const [isRetryingSession, setIsRetryingSession] = React.useState(false);
   const [searchOpen, setSearchOpen] = React.useState(false);
   const [mobileNavOpen, setMobileNavOpen] = React.useState(false);
 
@@ -131,7 +132,15 @@ export function AppLayout() {
           <button
             type="button"
             className="btn btn-sm btn-outline-danger"
-            onClick={() => void refreshUser()}
+            disabled={isRetryingSession}
+            onClick={async () => {
+              setIsRetryingSession(true);
+              try {
+                await refreshUser();
+              } finally {
+                setIsRetryingSession(false);
+              }
+            }}
           >
             {m.action_retry()}
           </button>
@@ -170,12 +179,14 @@ export function AppLayout() {
                 aria-hidden="true"
               />
             </button>
-            {isAuthenticated && user ? (
+            {isAuthenticated ? (
               <div className="d-flex flex-column flex-sm-row align-items-start align-items-sm-center gap-2">
-                <div className="small text-muted text-sm-end">
-                  <div className="fw-semibold text-body">{user.full_name}</div>
-                  <div>{user.email}</div>
-                </div>
+                {user ? (
+                  <div className="small text-muted text-sm-end">
+                    <div className="fw-semibold text-body">{user.full_name}</div>
+                    <div>{user.email}</div>
+                  </div>
+                ) : null}
                 <button type="button" className="btn btn-outline-secondary btn-sm" onClick={logout}>
                   {m.app_logout()}
                 </button>
