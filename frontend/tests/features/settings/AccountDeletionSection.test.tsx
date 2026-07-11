@@ -76,6 +76,21 @@ describe("AccountDeletionSection", () => {
     });
   });
 
+  it("clears server errors when inline confirmation is cancelled", async () => {
+    const user = userEvent.setup();
+    renderSection();
+    apiMock.deleteAccount.mockRejectedValue(new Error("Delete shared chores first."));
+
+    await user.click(screen.getByRole("button", { name: /delete my account/i }));
+    await user.click(screen.getByRole("button", { name: /confirm/i }));
+
+    expect(await screen.findByText("Delete shared chores first.")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /cancel/i }));
+
+    expect(screen.queryByText("Delete shared chores first.")).not.toBeInTheDocument();
+  });
+
   it("shows the server error when deletion is blocked", async () => {
     const user = userEvent.setup();
     const { logout } = renderSection();

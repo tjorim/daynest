@@ -47,7 +47,10 @@ export function AccountDeletionSection() {
             <button
               type="button"
               className="btn btn-outline-secondary btn-sm"
-              onClick={() => setIsConfirming(false)}
+              onClick={() => {
+                setIsConfirming(false);
+                setError(null);
+              }}
               disabled={isDeleting}
             >
               {m.action_cancel()}
