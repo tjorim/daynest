@@ -13,6 +13,7 @@ export function AppLayout() {
   const isOnline = useOnlineStatus();
   const [queuedCount, setQueuedCount] = React.useState(() => getQueuedCount());
   const [searchOpen, setSearchOpen] = React.useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = React.useState(false);
 
   React.useEffect(() => {
     if (isOnline && getQueuedCount() > 0) {
@@ -66,6 +67,31 @@ export function AppLayout() {
       : theme === "light"
         ? m.app_theme_light()
         : m.app_theme_dark();
+
+  const navLinks = [
+    { to: "/today", label: m.nav_today() },
+    { to: "/calendar", label: m.nav_calendar() },
+    { to: "/medication", label: m.nav_medication() },
+    { to: "/meal-plan", label: m.nav_meal_plan() },
+    { to: "/shopping", label: m.nav_shopping() },
+    { to: "/shopping/recurring", label: m.nav_recurring_groceries() },
+    { to: "/templates", label: m.nav_templates() },
+    { to: "/stats", label: m.nav_stats() },
+    { to: "/settings", label: m.nav_settings() },
+  ] as const;
+
+  const renderNavLinks = (onNavigate?: () => void) =>
+    navLinks.map((link) => (
+      <Link
+        key={link.to}
+        to={link.to}
+        activeProps={{ className: "nav-link active" }}
+        inactiveProps={{ className: "nav-link" }}
+        onClick={onNavigate}
+      >
+        {link.label}
+      </Link>
+    ));
 
   return (
     <>
@@ -139,71 +165,28 @@ export function AppLayout() {
           </div>
         </div>
         {isAuthenticated ? (
-          <nav className="nav nav-pills gap-2">
-            <Link
-              to="/today"
-              activeProps={{ className: "nav-link active" }}
-              inactiveProps={{ className: "nav-link" }}
+          <div className="d-flex flex-column gap-2">
+            <button
+              type="button"
+              className="btn btn-outline-primary d-md-none align-self-start"
+              aria-controls="primary-navigation"
+              aria-expanded={mobileNavOpen}
+              onClick={() => setMobileNavOpen((isOpen) => !isOpen)}
             >
-              {m.nav_today()}
-            </Link>
-            <Link
-              to="/calendar"
-              activeProps={{ className: "nav-link active" }}
-              inactiveProps={{ className: "nav-link" }}
+              <i
+                className={`bi ${mobileNavOpen ? "bi-x-lg" : "bi-list"} me-2`}
+                aria-hidden="true"
+              />
+              {m.nav_menu()}
+            </button>
+            <nav
+              id="primary-navigation"
+              className={`${mobileNavOpen ? "d-flex" : "d-none"} d-md-flex nav nav-pills flex-column flex-md-row gap-2`}
+              aria-label={m.nav_menu()}
             >
-              {m.nav_calendar()}
-            </Link>
-            <Link
-              to="/medication"
-              activeProps={{ className: "nav-link active" }}
-              inactiveProps={{ className: "nav-link" }}
-            >
-              {m.nav_medication()}
-            </Link>
-            <Link
-              to="/meal-plan"
-              activeProps={{ className: "nav-link active" }}
-              inactiveProps={{ className: "nav-link" }}
-            >
-              {m.nav_meal_plan()}
-            </Link>
-            <Link
-              to="/shopping"
-              activeProps={{ className: "nav-link active" }}
-              inactiveProps={{ className: "nav-link" }}
-            >
-              {m.nav_shopping()}
-            </Link>
-            <Link
-              to="/shopping/recurring"
-              activeProps={{ className: "nav-link active" }}
-              inactiveProps={{ className: "nav-link" }}
-            >
-              {m.nav_recurring_groceries()}
-            </Link>
-            <Link
-              to="/templates"
-              activeProps={{ className: "nav-link active" }}
-              inactiveProps={{ className: "nav-link" }}
-            >
-              {m.nav_templates()}
-            </Link>
-            <Link
-              to="/stats"
-              activeProps={{ className: "nav-link active" }}
-              inactiveProps={{ className: "nav-link" }}
-            >
-              {m.nav_stats()}
-            </Link>
-            <Link
-              to="/settings"
-              activeProps={{ className: "nav-link active" }}
-              inactiveProps={{ className: "nav-link" }}
-            >
-              {m.nav_settings()}
-            </Link>
-          </nav>
+              {renderNavLinks(() => setMobileNavOpen(false))}
+            </nav>
+          </div>
         ) : null}
       </header>
       <Outlet />
