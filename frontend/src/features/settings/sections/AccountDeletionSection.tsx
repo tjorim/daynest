@@ -5,12 +5,27 @@ import { deleteAccount } from "@/lib/api/settings";
 
 export function AccountDeletionSection() {
   const auth = useContext(AuthContext);
+  const userEmail = auth?.user?.email ?? "";
   const [isDeleting, setIsDeleting] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
+  const [confirmationEmail, setConfirmationEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const canDelete = userEmail.length > 0 && confirmationEmail.trim() === userEmail;
+
+  const resetConfirmation = () => {
+    setIsConfirming(false);
+    setConfirmationEmail("");
+    setError(null);
+  };
 
   const handleDelete = async () => {
     setError(null);
+
+    if (!canDelete) {
+      setError(m.settings_delete_account_mismatch());
+      return;
+    }
+
     setIsDeleting(true);
     try {
       await deleteAccount();
@@ -30,7 +45,27 @@ export function AccountDeletionSection() {
         <p className="text-muted small mb-2">{m.settings_delete_account_description()}</p>
         {isConfirming ? (
           <div className="alert alert-danger py-2 small mb-2">
-            {m.settings_delete_account_confirm()}
+            {m.settings_delete_account_confirm({ email: userEmail })}
+          </div>
+        ) : null}
+        {isConfirming ? (
+          <div className="mb-2">
+            <label className="form-label small mb-1" htmlFor="delete-account-email-confirmation">
+              {m.settings_delete_account_email_label()}
+            </label>
+            <input
+              type="email"
+              className="form-control form-control-sm"
+              id="delete-account-email-confirmation"
+              value={confirmationEmail}
+              onChange={(event) => {
+                setConfirmationEmail(event.target.value);
+                setError(null);
+              }}
+              placeholder={m.settings_delete_account_email_placeholder({ email: userEmail })}
+              autoComplete="off"
+              disabled={isDeleting}
+            />
           </div>
         ) : null}
         {error ? <div className="alert alert-danger py-2 small mb-2">{error}</div> : null}
@@ -40,17 +75,14 @@ export function AccountDeletionSection() {
               type="button"
               className="btn btn-danger btn-sm"
               onClick={handleDelete}
-              disabled={isDeleting}
+              disabled={isDeleting || !canDelete}
             >
               {isDeleting ? m.settings_delete_account_deleting() : m.action_confirm()}
             </button>
             <button
               type="button"
               className="btn btn-outline-secondary btn-sm"
-              onClick={() => {
-                setIsConfirming(false);
-                setError(null);
-              }}
+              onClick={resetConfirmation}
               disabled={isDeleting}
             >
               {m.action_cancel()}
@@ -62,9 +94,10 @@ export function AccountDeletionSection() {
             className="btn btn-outline-danger btn-sm"
             onClick={() => {
               setError(null);
+              setConfirmationEmail("");
               setIsConfirming(true);
             }}
-            disabled={isDeleting}
+            disabled={isDeleting || userEmail.length === 0}
           >
             {m.settings_delete_account_button()}
           </button>

@@ -460,7 +460,10 @@
   "settings_delete_account_description": "Permanently delete your Daynest account and personal data, including medication, planning, calendar, push notification, session, and integration data. Household-shared chores must be deleted, transferred, or left before account deletion.",
   "settings_delete_account_button": "Delete my account",
   "settings_delete_account_deleting": "Deleting…",
-  "settings_delete_account_confirm": "This permanently deletes your Daynest account and personal data. This cannot be undone. Continue?",
+  "settings_delete_account_confirm": "This permanently deletes your Daynest account and personal data. This cannot be undone. Type {email} to confirm.",
+  "settings_delete_account_email_label": "Type your email address to confirm",
+  "settings_delete_account_email_placeholder": "Enter {email}",
+  "settings_delete_account_mismatch": "Enter your email address exactly to enable account deletion.",
   "settings_delete_account_error": "Failed to delete account.",
   "nav_menu": "Menu"
 }
