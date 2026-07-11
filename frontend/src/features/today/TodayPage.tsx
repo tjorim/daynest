@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import confetti from "canvas-confetti";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import * as m from "@/paraglide/messages";
@@ -202,10 +203,18 @@ export function TodayPage() {
           ) : null}
         </div>
       ) : null}
-      <FeedbackBanner
-        message={!isLoading && !error && today && !hasAnyItems ? m.today_nothing_scheduled() : null}
-        tone="secondary"
-      />
+      {!isLoading && !error && today && !hasAnyItems ? (
+        <div
+          className="alert alert-secondary py-2 d-flex justify-content-between align-items-center gap-2 flex-wrap"
+          role="status"
+          aria-live="polite"
+        >
+          <span>{m.today_nothing_scheduled()}</span>
+          <Link to="/templates" className="btn btn-primary btn-sm">
+            {m.today_create_first_chore()}
+          </Link>
+        </div>
+      ) : null}
 
       {!isLoading && !error && today ? (
         <>

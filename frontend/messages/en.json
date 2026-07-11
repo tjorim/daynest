@@ -52,6 +52,7 @@
   "today_subtitle": "Medication, routines, chores, and planned tasks — everything due or active today.",
   "today_loading": "Loading today...",
   "today_nothing_scheduled": "Nothing scheduled for today yet.",
+  "today_create_first_chore": "Create your first chore",
   "today_summary_overdue": "Overdue",
   "today_summary_due_today": "Due Today",
   "today_summary_medication_due": "Medication Due",
