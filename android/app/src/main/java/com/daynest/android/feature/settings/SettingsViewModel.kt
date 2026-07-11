@@ -49,6 +49,15 @@ constructor(
     private val _signOutIntent = MutableSharedFlow<Intent>(extraBufferCapacity = 1)
     val signOutIntent: SharedFlow<Intent> = _signOutIntent.asSharedFlow()
 
+    private val signOutHandler =
+        SettingsSignOutHandler(
+            scope = viewModelScope,
+            oidcAuthService = oidcAuthService,
+            pushRegistrationManager = pushRegistrationManager,
+            uiState = _uiState,
+            signOutIntent = _signOutIntent
+        )
+
     private val deviceCalendarHandler =
         SettingsDeviceCalendarHandler(
             scope = viewModelScope,
@@ -72,7 +81,7 @@ constructor(
     fun onEvent(event: SettingsUiEvent) {
         when (event) {
             SettingsUiEvent.RetryClicked -> load()
-            SettingsUiEvent.SignOutClicked -> signOut()
+            SettingsUiEvent.SignOutClicked -> signOutHandler.signOut()
             SettingsUiEvent.ShowCreateClientForm -> updateContent { it.copy(showCreateForm = true) }
             SettingsUiEvent.DismissCreateClientForm -> updateContent { it.copy(showCreateForm = false) }
             SettingsUiEvent.DismissNewKeyDialog -> updateContent { it.copy(newApiKey = null) }
@@ -254,28 +263,13 @@ constructor(
         }
     }
 
-    private fun signOut() {
-        viewModelScope.launch { performSignOut() }
-    }
-
-    private suspend fun performSignOut() {
-        runCatching { pushRegistrationManager.unregisterAllKnownEndpoints() }
-        val endSessionIntent = runCatching { oidcAuthService.buildSignOutIntent() }.getOrNull()
-        if (endSessionIntent != null) {
-            _signOutIntent.emit(endSessionIntent)
-        } else {
-            oidcAuthService.signOut()
-        }
-        _uiState.value = SettingsUiState.SignedOut
-    }
-
     private fun deleteCurrentAccount() {
         viewModelScope.launch {
             updateContent { it.copy(isDeletingAccount = true, accountDeletionError = null) }
             pushRegistrationManager.unregisterAllKnownEndpoints()
             settingsRepository.deleteCurrentUser()
                 .onSuccess {
-                    performSignOut()
+                    signOutHandler.signOut(unregisterPushEndpoints = false)
                 }
                 .onFailure { error ->
                     updateContent {
