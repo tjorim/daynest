@@ -32,6 +32,7 @@ export function TemplatesPage() {
   const chores = choresQuery.data ?? [];
   const analytics = analyticsQuery.data ?? null;
   const loading = routinesQuery.isPending || choresQuery.isPending || analyticsQuery.isPending;
+  const refreshing = (routinesQuery.isFetching || choresQuery.isFetching || analyticsQuery.isFetching) && !loading;
   const queryError = routinesQuery.error ?? choresQuery.error ?? analyticsQuery.error;
   const error = queryError instanceof Error ? queryError.message : queryError ? "Unable to load template data." : null;
   const canRetry = queryError ? isRetryableApiError(queryError) : false;
@@ -199,9 +200,12 @@ export function TemplatesPage() {
         <button
           type="button"
           className="btn btn-outline-primary btn-sm"
-          disabled={loading}
+          disabled={loading || refreshing}
           onClick={() => void loadTemplates()}
         >
+          {refreshing ? (
+            <span className="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true" />
+          ) : null}
           {m.action_refresh()}
         </button>
       </div>
