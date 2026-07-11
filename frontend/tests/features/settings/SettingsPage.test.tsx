@@ -267,6 +267,34 @@ describe("SettingsPage", () => {
     });
   });
 
+  it("uses an inline confirmation before deleting an account", async () => {
+    const user = userEvent.setup();
+    const confirmSpy = vi.spyOn(window, "confirm");
+    apiMock.deleteAccount.mockResolvedValue(undefined);
+
+    try {
+      render(
+        <QueryTestProvider>
+          <SettingsPage />
+        </QueryTestProvider>,
+      );
+
+      const deleteButton = await screen.findByRole("button", { name: /delete my account/i });
+      await user.click(deleteButton);
+
+      expect(confirmSpy).not.toHaveBeenCalled();
+      expect(screen.getByText(/this permanently deletes your daynest account/i)).toBeInTheDocument();
+
+      await user.click(screen.getByRole("button", { name: /^confirm$/i }));
+
+      await waitFor(() => {
+        expect(apiMock.deleteAccount).toHaveBeenCalledTimes(1);
+      });
+    } finally {
+      confirmSpy.mockRestore();
+    }
+  });
+
   it("switches language to Dutch immediately", async () => {
     const user = userEvent.setup();
     render(
