@@ -2,6 +2,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { AuthContext } from "@/app/providers/AuthProvider";
 import { SettingsPage } from "@/features/settings/SettingsPage";
 import { LanguageProvider } from "@/i18n/LanguageProvider";
 import { setLocale } from "@/paraglide/runtime";
@@ -41,6 +42,30 @@ vi.mock("@/app/pwa/installPrompt", () => ({
   promptToInstallApp: pwaMock.promptToInstallApp,
   subscribeInstallPrompt: pwaMock.subscribeInstallPrompt,
 }));
+
+function renderSettingsPage(children: React.ReactNode) {
+  return render(
+    <AuthContext.Provider
+      value={{
+        user: {
+          id: 1,
+          email: "user@example.com",
+          full_name: "Test User",
+          is_active: true,
+          roles: [],
+        },
+        isLoading: false,
+        isAuthenticated: true,
+        login: vi.fn(),
+        logout: vi.fn(),
+        refreshUser: vi.fn(),
+        sessionError: null,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>,
+  );
+}
 
 describe("SettingsPage", () => {
   beforeEach(() => {
@@ -211,7 +236,9 @@ describe("SettingsPage", () => {
     await user.click(overdueToggle);
 
     await waitFor(() => {
-      expect(apiMock.updateUserSettings).toHaveBeenCalledWith({ push_overdue_chores_enabled: false });
+      expect(apiMock.updateUserSettings).toHaveBeenCalledWith({
+        push_overdue_chores_enabled: false,
+      });
     });
   });
 
@@ -219,7 +246,10 @@ describe("SettingsPage", () => {
     const user = userEvent.setup();
     let resolveFirst!: (v: unknown) => void;
     apiMock.updateUserSettings.mockImplementationOnce(
-      () => new Promise((r) => { resolveFirst = r; }),
+      () =>
+        new Promise((r) => {
+          resolveFirst = r;
+        }),
     );
     render(
       <QueryTestProvider>
@@ -273,7 +303,7 @@ describe("SettingsPage", () => {
     apiMock.deleteAccount.mockResolvedValue(undefined);
 
     try {
-      render(
+      renderSettingsPage(
         <QueryTestProvider>
           <SettingsPage />
         </QueryTestProvider>,
@@ -283,8 +313,14 @@ describe("SettingsPage", () => {
       await user.click(deleteButton);
 
       expect(confirmSpy).not.toHaveBeenCalled();
-      expect(screen.getByText(/this permanently deletes your daynest account/i)).toBeInTheDocument();
+      expect(
+        screen.getByText(/this permanently deletes your daynest account/i),
+      ).toBeInTheDocument();
 
+      await user.type(
+        screen.getByLabelText(/type your email address to confirm/i),
+        "user@example.com",
+      );
       await user.click(screen.getByRole("button", { name: /^confirm$/i }));
 
       await waitFor(() => {
@@ -299,13 +335,17 @@ describe("SettingsPage", () => {
     const user = userEvent.setup();
     render(
       <QueryTestProvider>
-        <LanguageProvider><SettingsPage /></LanguageProvider>
+        <LanguageProvider>
+          <SettingsPage />
+        </LanguageProvider>
       </QueryTestProvider>,
     );
 
     const languageSelect = await screen.findByRole("combobox", { name: /language/i });
     await user.selectOptions(languageSelect, "nl");
 
-    expect(await screen.findByRole("heading", { level: 2, name: /instellingen/i })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { level: 2, name: /instellingen/i }),
+    ).toBeInTheDocument();
   });
 });

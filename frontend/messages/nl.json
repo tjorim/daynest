@@ -460,7 +460,10 @@
   "settings_delete_account_description": "Verwijder je Daynest-account en persoonlijke gegevens permanent, inclusief medicatie-, planning-, kalender-, pushmelding-, sessie- en integratiegegevens. Huishoudelijke gedeelde klusjes moeten eerst worden verwijderd, overgedragen of verlaten.",
   "settings_delete_account_button": "Mijn account verwijderen",
   "settings_delete_account_deleting": "Verwijderen…",
-  "settings_delete_account_confirm": "Dit verwijdert je Daynest-account en persoonlijke gegevens permanent. Dit kan niet ongedaan worden gemaakt. Doorgaan?",
+  "settings_delete_account_confirm": "Dit verwijdert je Daynest-account en persoonlijke gegevens permanent. Dit kan niet ongedaan worden gemaakt. Typ {email} om te bevestigen.",
+  "settings_delete_account_email_label": "Typ je e-mailadres om te bevestigen",
+  "settings_delete_account_email_placeholder": "Voer {email} in",
+  "settings_delete_account_mismatch": "Voer je e-mailadres exact in om accountverwijdering in te schakelen.",
   "settings_delete_account_error": "Account verwijderen mislukt.",
   "nav_menu": "Menu"
 }
