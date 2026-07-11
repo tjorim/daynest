@@ -46,37 +46,58 @@ describe("AccountDeletionSection", () => {
     vi.restoreAllMocks();
   });
 
-  it("does not delete the account when confirmation is cancelled", async () => {
+  it("does not delete the account when inline confirmation is cancelled", async () => {
     const user = userEvent.setup();
-    vi.spyOn(window, "confirm").mockReturnValue(false);
+    const confirmSpy = vi.spyOn(window, "confirm");
     renderSection();
 
     await user.click(screen.getByRole("button", { name: /delete my account/i }));
+    expect(screen.getByText(/this permanently deletes your daynest account/i)).toBeInTheDocument();
 
+    await user.click(screen.getByRole("button", { name: /cancel/i }));
+
+    expect(confirmSpy).not.toHaveBeenCalled();
     expect(apiMock.deleteAccount).not.toHaveBeenCalled();
   });
 
   it("deletes the account and logs out after confirmation", async () => {
     const user = userEvent.setup();
     const { logout } = renderSection();
-    vi.spyOn(window, "confirm").mockReturnValue(true);
+    const confirmSpy = vi.spyOn(window, "confirm");
     apiMock.deleteAccount.mockResolvedValue(undefined);
 
     await user.click(screen.getByRole("button", { name: /delete my account/i }));
+    await user.click(screen.getByRole("button", { name: /confirm/i }));
 
+    expect(confirmSpy).not.toHaveBeenCalled();
     await waitFor(() => {
       expect(apiMock.deleteAccount).toHaveBeenCalledTimes(1);
       expect(logout).toHaveBeenCalledTimes(1);
     });
   });
 
-  it("shows the server error when deletion is blocked", async () => {
+  it("clears server errors when inline confirmation is cancelled", async () => {
     const user = userEvent.setup();
-    const { logout } = renderSection();
-    vi.spyOn(window, "confirm").mockReturnValue(true);
+    renderSection();
     apiMock.deleteAccount.mockRejectedValue(new Error("Delete shared chores first."));
 
     await user.click(screen.getByRole("button", { name: /delete my account/i }));
+    await user.click(screen.getByRole("button", { name: /confirm/i }));
+
+    expect(await screen.findByText("Delete shared chores first.")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /cancel/i }));
+
+    expect(screen.queryByText("Delete shared chores first.")).not.toBeInTheDocument();
+  });
+
+  it("shows the server error when deletion is blocked", async () => {
+    const user = userEvent.setup();
+    const { logout } = renderSection();
+    apiMock.deleteAccount.mockRejectedValue(new Error("Delete shared chores first."));
+
+    await user.click(screen.getByRole("button", { name: /delete my account/i }));
+    await user.click(screen.getByRole("button", { name: /confirm/i }));
 
     expect(await screen.findByText("Delete shared chores first.")).toBeInTheDocument();
     expect(logout).not.toHaveBeenCalled();
