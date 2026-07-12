@@ -63,20 +63,26 @@ constructor(
         val isOk = resultCode == Activity.RESULT_OK && data != null
         val response = data?.let { AuthorizationResponse.fromIntent(it) }
         val exception = data?.let { AuthorizationException.fromIntent(it) }
-        if (exception == AuthorizationException.GeneralErrors.USER_CANCELED_AUTH_FLOW) {
-            return AuthorizationResult.Cancelled
-        }
-        if (!isOk || response == null || exception != null) {
-            return if (data == null) AuthorizationResult.Cancelled else AuthorizationResult.Failed
-        }
-        return suspendCancellableCoroutine { cont ->
-            authorizationService.performTokenRequest(response.createTokenExchangeRequest()) { tokenResponse, ex ->
-                if (tokenResponse != null) {
-                    val newState = AuthState(response, null).apply { update(tokenResponse, ex) }
-                    persistState(newState)
-                    cont.resume(AuthorizationResult.Authorized)
-                } else {
-                    cont.resume(AuthorizationResult.Failed)
+
+        return when {
+            exception == AuthorizationException.GeneralErrors.USER_CANCELED_AUTH_FLOW -> AuthorizationResult.Cancelled
+            !isOk || response == null || exception != null -> {
+                if (data == null) AuthorizationResult.Cancelled else AuthorizationResult.Failed
+            }
+            else -> {
+                suspendCancellableCoroutine { cont ->
+                    authorizationService.performTokenRequest(
+                        response.createTokenExchangeRequest()
+                    ) { tokenResponse, ex ->
+                        when (tokenResponse) {
+                            null -> cont.resume(AuthorizationResult.Failed)
+                            else -> {
+                                val newState = AuthState(response, null).apply { update(tokenResponse, ex) }
+                                persistState(newState)
+                                cont.resume(AuthorizationResult.Authorized)
+                            }
+                        }
+                    }
                 }
             }
         }
