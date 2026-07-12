@@ -24,6 +24,7 @@ export interface OAuthSession {
   last_access: number | null;
   expires: number | null;
   clients: OAuthSessionClient[];
+  is_current: boolean;
 }
 
 export class AuthApiError extends Error {

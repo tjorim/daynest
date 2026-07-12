@@ -337,6 +337,8 @@
   "settings_rotate_secret": "Rotate secret",
   "settings_revoking": "Revoking…",
   "settings_revoke": "Revoke",
+  "settings_this_device": "This device",
+  "settings_revoke_current_session_confirm": "This is your current device. Revoking it may sign you out immediately. Continue?",
   "settings_oauth_sessions_header": "Active OAuth sessions",
   "settings_loading_sessions": "Loading sessions…",
   "settings_no_sessions": "No active OAuth sessions.",

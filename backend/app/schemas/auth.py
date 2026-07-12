@@ -51,3 +51,4 @@ class OAuthSessionResponse(BaseModel):
     last_access: int | None = None
     expires: int | None = None
     clients: list[OAuthSessionClient] = []
+    is_current: bool = False
