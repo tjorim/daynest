@@ -337,6 +337,8 @@
   "settings_rotate_secret": "Geheim roteren",
   "settings_revoking": "Intrekken…",
   "settings_revoke": "Intrekken",
+  "settings_this_device": "Dit apparaat",
+  "settings_revoke_current_session_confirm": "Dit is je huidige apparaat. Als je deze sessie intrekt, word je mogelijk meteen afgemeld. Doorgaan?",
   "settings_oauth_sessions_header": "Actieve OAuth-sessies",
   "settings_loading_sessions": "Sessies laden…",
   "settings_no_sessions": "Geen actieve OAuth-sessies.",

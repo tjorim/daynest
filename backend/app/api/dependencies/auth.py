@@ -12,6 +12,7 @@ bearer_scheme = HTTPBearer(auto_error=False)
 def _set_request_auth_state(request: Request, user: User, claims: dict[str, object]) -> None:
     request.state.user_id = user.id
     request.state.roles = _extract_roles(claims)
+    request.state.oidc_session_id = claims.get("sid")
     request.state.auth_type = "oidc"
 
 
