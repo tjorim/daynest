@@ -76,7 +76,7 @@ constructor(
             _uiState.update { it.copy(isLoading = true, error = null) }
             val authorizationResult = oidcAuthService.handleAuthorizationResult(resultCode, data)
             if (authorizationResult == AuthorizationResult.Authorized) {
-                runCatching { pushRegistrationManager.registerIfEnabled() }
+                launch { runCatching { pushRegistrationManager.registerIfEnabled() } }
             }
             _uiState.update {
                 it.copy(

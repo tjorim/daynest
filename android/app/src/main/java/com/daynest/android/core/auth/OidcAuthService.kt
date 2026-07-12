@@ -65,9 +65,12 @@ constructor(
         val exception = data?.let { AuthorizationException.fromIntent(it) }
 
         return when {
-            exception == AuthorizationException.GeneralErrors.USER_CANCELED_AUTH_FLOW -> AuthorizationResult.Cancelled
+            resultCode == Activity.RESULT_CANCELED ||
+                exception == AuthorizationException.GeneralErrors.USER_CANCELED_AUTH_FLOW -> {
+                AuthorizationResult.Cancelled
+            }
             !isOk || response == null || exception != null -> {
-                if (data == null) AuthorizationResult.Cancelled else AuthorizationResult.Failed
+                AuthorizationResult.Failed
             }
             else -> {
                 suspendCancellableCoroutine { cont ->
