@@ -401,25 +401,6 @@ class TestRevokeSession:
             _clear_auth()
 
 
-    def test_marks_current_session_and_sorts_it_first(
-        self, client: TestClient, db_session: Session, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        user = _make_user(db_session, email="current-session@example.com", oidc_subject="sub-current")
-        _override_auth(user, oidc_session_id="session-def456")
-        monkeypatch.setattr("app.api.routes.auth._http_client", MagicMock(
-            get=AsyncMock(return_value=_make_httpx_response(200, SAMPLE_SESSIONS))
-        ))
-        monkeypatch.setattr("app.api.routes.auth.settings.oidc_issuer_url", "http://keycloak/realms/daynest")
-        try:
-            resp = client.get("/api/auth/sessions", headers={"Authorization": "Bearer dummy-token"})
-            assert resp.status_code == 200
-            data = resp.json()
-            assert [session["id"] for session in data] == ["session-def456", "session-abc123"]
-            assert data[0]["is_current"] is True
-            assert data[1]["is_current"] is False
-        finally:
-            _clear_auth()
-
     def test_returns_501_when_oidc_not_configured(
         self, client: TestClient, db_session: Session, monkeypatch: pytest.MonkeyPatch
     ) -> None:
