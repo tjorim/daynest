@@ -20,6 +20,7 @@ type AuthContextValue = {
   logout: () => void;
   refreshUser: () => Promise<void>;
   sessionError: string | null;
+  oidcError: string | null;
 };
 
 export const AuthContext = createContext<AuthContextValue | null>(null);
@@ -103,6 +104,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       },
       sessionError,
+      oidcError: oidc.error?.message ?? null,
     }),
     [user, oidc, isFetching, sessionError],
   );

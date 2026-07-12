@@ -8,6 +8,7 @@ const authMock = vi.hoisted(() => ({
   loginStub: vi.fn(),
   logoutStub: vi.fn(),
   refreshUserStub: vi.fn(),
+  oidcError: null as string | null,
 }));
 
 vi.mock("@/app/providers/AuthProvider", () => ({
@@ -18,6 +19,7 @@ vi.mock("@/app/providers/AuthProvider", () => ({
     logout: authMock.logoutStub,
     refreshUser: authMock.refreshUserStub,
     sessionError: null,
+    oidcError: authMock.oidcError,
     user: null,
   }),
 }));
@@ -34,6 +36,7 @@ describe("AuthPage", () => {
     authMock.loginStub.mockReset();
     authMock.logoutStub.mockReset();
     authMock.refreshUserStub.mockReset();
+    authMock.oidcError = null;
   });
 
   it("renders the sign-in heading", async () => {
@@ -50,6 +53,15 @@ describe("AuthPage", () => {
     const { container } = renderAuthPage();
     expect(container.querySelector('input[type="email"]')).not.toBeInTheDocument();
     expect(container.querySelector('input[type="password"]')).not.toBeInTheDocument();
+  });
+
+  it("renders an OIDC error when sign-in fails after redirect", async () => {
+    authMock.oidcError = "State mismatch";
+
+    renderAuthPage();
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(/sign-in failed/i);
+    expect(screen.getByText("State mismatch")).toBeInTheDocument();
   });
 
   it("calls login() when the sign-in button is clicked", async () => {

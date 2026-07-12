@@ -47,6 +47,7 @@
   "auth_title": "Aanmelden bij Daynest",
   "auth_subtitle": "Gebruik uw account om Vandaag, Kalender en toekomstige planningsmodules te synchroniseren.",
   "auth_sign_in": "Aanmelden",
+  "auth_error_title": "Aanmelden mislukt",
   "auth_loading": "Laden…",
   "router_loading_session": "Sessie laden...",
   "router_completing_sign_in": "Aanmelding voltooien…",
