@@ -19,6 +19,7 @@ vi.mock("@/app/providers/AuthProvider", async (importOriginal) => {
       login: () => {},
       logout: () => {},
       refreshUser: async () => {},
+      sessionError: null,
     }),
   };
 });

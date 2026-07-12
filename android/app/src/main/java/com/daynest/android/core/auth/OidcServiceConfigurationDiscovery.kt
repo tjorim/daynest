@@ -40,7 +40,9 @@ constructor(
         val json = JSONObject(body)
         AuthorizationServiceConfiguration(
             Uri.parse(json.getString("authorization_url")),
-            Uri.parse(json.getString("token_url"))
+            Uri.parse(json.getString("token_url")),
+            null,
+            json.optString("end_session_endpoint").takeIf { it.isNotBlank() }?.let { Uri.parse(it) }
         )
     } catch (e: JSONException) {
         throw IOException("Failed to parse OIDC config response", e)

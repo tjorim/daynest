@@ -29,6 +29,7 @@ class OidcDiscoveryConfig(BaseModel):
     issuer: HttpUrl
     authorization_url: HttpUrl
     token_url: HttpUrl
+    end_session_endpoint: HttpUrl | None = None
 
 
 class OAuthSessionClient(BaseModel):
@@ -50,3 +51,4 @@ class OAuthSessionResponse(BaseModel):
     last_access: int | None = None
     expires: int | None = None
     clients: list[OAuthSessionClient] = []
+    is_current: bool = False

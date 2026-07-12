@@ -32,7 +32,12 @@ export function OAuthSessionsSection() {
     }
   };
 
-  const onRevokeSession = async (sessionId: string) => {
+  const onRevokeSession = async (session: OAuthSession) => {
+    if (session.is_current && !window.confirm(m.settings_revoke_current_session_confirm())) {
+      return;
+    }
+
+    const sessionId = session.id;
     setRevokingSession(sessionId);
     setRevokeError(null);
     try {
@@ -86,8 +91,13 @@ export function OAuthSessionsSection() {
                 <li key={session.id} className="list-group-item py-2">
                   <div className="d-flex justify-content-between align-items-start gap-3">
                     <div>
-                      <div className="fw-semibold">
-                        {clientNames.length > 0 ? clientNames.join(", ") : m.settings_unknown_client()}
+                      <div className="fw-semibold d-flex align-items-center flex-wrap gap-2">
+                        <span>
+                          {clientNames.length > 0 ? clientNames.join(", ") : m.settings_unknown_client()}
+                        </span>
+                        {session.is_current ? (
+                          <span className="badge text-bg-primary">{m.settings_this_device()}</span>
+                        ) : null}
                       </div>
                       {metaParts.length > 0 ? (
                         <small className="text-muted d-block">{metaParts.join(" • ")}</small>
@@ -97,7 +107,7 @@ export function OAuthSessionsSection() {
                       type="button"
                       className="btn btn-outline-danger btn-sm flex-shrink-0"
                       disabled={revokingSession === session.id}
-                      onClick={() => void onRevokeSession(session.id)}
+                      onClick={() => void onRevokeSession(session)}
                     >
                       {revokingSession === session.id ? m.settings_revoking() : m.settings_revoke()}
                     </button>

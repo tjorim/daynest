@@ -54,6 +54,17 @@ fun SettingsRoute(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
+    val signOutLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.StartActivityForResult()
+        ) { }
+
+    LaunchedEffect(Unit) {
+        viewModel.signOutIntent.collect { intent ->
+            signOutLauncher.launch(intent)
+        }
+    }
+
     LaunchedEffect(uiState) {
         if (uiState is SettingsUiState.SignedOut) {
             onSignedOut?.invoke()

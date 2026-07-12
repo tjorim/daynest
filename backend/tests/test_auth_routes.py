@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import httpx
 import pytest
-from fastapi import HTTPException
+from fastapi import HTTPException, Request
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
@@ -31,9 +31,10 @@ def _make_user(db: Session, *, email: str, oidc_subject: str | None = None, full
     return user
 
 
-def _override_auth(user: User):
+def _override_auth(user: User, *, oidc_session_id: str | None = None):
     """Return an async dependency that always yields *user*."""
-    async def _dep() -> User:
+    async def _dep(request: Request) -> User:
+        request.state.oidc_session_id = oidc_session_id
         return user
     app.dependency_overrides[get_current_user] = _dep
 
@@ -62,6 +63,7 @@ class TestOidcConfigEndpoint:
                 "issuer": issuer,
                 "authorization_endpoint": f"{issuer}/protocol/openid-connect/auth",
                 "token_endpoint": f"{issuer}/protocol/openid-connect/token",
+                "end_session_endpoint": f"{issuer}/protocol/openid-connect/logout",
             }),
         )
 
@@ -71,6 +73,7 @@ class TestOidcConfigEndpoint:
         assert str(config.issuer) == issuer
         assert str(config.authorization_url) == f"{issuer}/protocol/openid-connect/auth"
         assert str(config.token_url) == f"{issuer}/protocol/openid-connect/token"
+        assert str(config.end_session_endpoint) == f"{issuer}/protocol/openid-connect/logout"
 
     def test_oidc_config_caches_discovery(self, monkeypatch: pytest.MonkeyPatch) -> None:
         issuer = "https://auth.example.test/application/o/daynest"
@@ -316,7 +319,29 @@ class TestListSessions:
             assert data[0]["id"] == "session-abc123"
             assert data[0]["ip_address"] == "192.168.1.1"
             assert data[0]["clients"] == [{"clientId": "claude-ai-mcp", "clientName": "Claude.ai MCP Connector", "userConsentRequired": False, "inUse": True, "offlineAccess": False}]
+            assert data[0]["is_current"] is False
             assert data[1]["id"] == "session-def456"
+            assert data[1]["is_current"] is False
+        finally:
+            _clear_auth()
+
+
+    def test_marks_current_session_and_sorts_it_first(
+        self, client: TestClient, db_session: Session, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        user = _make_user(db_session, email="current-session@example.com", oidc_subject="sub-current")
+        _override_auth(user, oidc_session_id="session-def456")
+        monkeypatch.setattr("app.api.routes.auth._http_client", MagicMock(
+            get=AsyncMock(return_value=_make_httpx_response(200, SAMPLE_SESSIONS))
+        ))
+        monkeypatch.setattr("app.api.routes.auth.settings.oidc_issuer_url", "http://keycloak/realms/daynest")
+        try:
+            resp = client.get("/api/auth/sessions", headers={"Authorization": "Bearer dummy-token"})
+            assert resp.status_code == 200
+            data = resp.json()
+            assert [session["id"] for session in data] == ["session-def456", "session-abc123"]
+            assert data[0]["is_current"] is True
+            assert data[1]["is_current"] is False
         finally:
             _clear_auth()
 
@@ -374,6 +399,7 @@ class TestRevokeSession:
             assert resp.status_code == 204
         finally:
             _clear_auth()
+
 
     def test_returns_501_when_oidc_not_configured(
         self, client: TestClient, db_session: Session, monkeypatch: pytest.MonkeyPatch

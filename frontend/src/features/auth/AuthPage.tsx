@@ -13,7 +13,7 @@ function buildRedirectPath(value: unknown): string {
 }
 
 export function AuthPage() {
-  const { isAuthenticated, isLoading, login } = useAuth();
+  const { isAuthenticated, isLoading, login, oidcError } = useAuth();
   const search = useSearch({ from: "/auth" });
   const redirectTo = buildRedirectPath(search.from);
 
@@ -26,15 +26,14 @@ export function AuthPage() {
       <div className="card shadow-sm">
         <div className="card-body p-4 text-center">
           <h2 className="h4 mb-1">{m.auth_title()}</h2>
-          <p className="text-muted mb-3">
-            {m.auth_subtitle()}
-          </p>
-          <button
-            type="button"
-            className="btn btn-primary"
-            onClick={login}
-            disabled={isLoading}
-          >
+          <p className="text-muted mb-3">{m.auth_subtitle()}</p>
+          {oidcError ? (
+            <div className="alert alert-danger text-start" role="alert">
+              <p className="fw-semibold mb-1">{m.auth_error_title()}</p>
+              <p className="mb-0">{oidcError}</p>
+            </div>
+          ) : null}
+          <button type="button" className="btn btn-primary" onClick={login} disabled={isLoading}>
             {isLoading ? m.auth_loading() : m.auth_sign_in()}
           </button>
         </div>

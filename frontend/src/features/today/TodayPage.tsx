@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import confetti from "canvas-confetti";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import * as m from "@/paraglide/messages";
@@ -25,11 +26,16 @@ import { useTodayLiveUpdates } from "@/features/today/useTodayLiveUpdates";
 import { useTodayQuery } from "@/features/today/useTodayQuery";
 
 export function TodayPage() {
-  useTodayLiveUpdates();
+  const liveUpdatesError = useTodayLiveUpdates();
   const todayQuery = useTodayQuery();
   const today = todayQuery.data ?? null;
   const isLoading = todayQuery.isLoading;
-  const error = todayQuery.error ? (todayQuery.error instanceof Error ? todayQuery.error.message : "Unable to load today payload.") : null;
+  const isRefreshing = todayQuery.isFetching && !isLoading;
+  const error = todayQuery.error
+    ? todayQuery.error instanceof Error
+      ? todayQuery.error.message
+      : "Unable to load today payload."
+    : null;
   const canRetry = todayQuery.error ? isRetryableApiError(todayQuery.error) : false;
   const loadToday = useCallback(async () => {
     await todayQuery.refetch();
@@ -55,7 +61,8 @@ export function TodayPage() {
         label: m.action_done(),
         buttonClassName: "btn-success",
         isAvailable: (item) => Boolean(item.taskInstanceId && isItemActionable(item)),
-        run: (item) => actions.completeRoutineTask(item.taskInstanceId as number, { refresh: false }),
+        run: (item) =>
+          actions.completeRoutineTask(item.taskInstanceId as number, { refresh: false }),
       },
       {
         key: "routine-skip",
@@ -176,18 +183,24 @@ export function TodayPage() {
           <button
             className="btn btn-outline-primary btn-sm flex-md-grow-0"
             type="button"
-            disabled={isLoading}
+            disabled={isLoading || isRefreshing}
             onClick={() => void loadToday()}
           >
+            {isRefreshing ? (
+              <span
+                className="spinner-border spinner-border-sm me-1"
+                role="status"
+                aria-hidden="true"
+              />
+            ) : null}
             {m.action_refresh()}
           </button>
         </div>
       </div>
-      <p className="text-muted mb-3">
-        {m.today_subtitle()}
-      </p>
+      <p className="text-muted mb-3">{m.today_subtitle()}</p>
 
       <FeedbackBanner message={isLoading ? m.today_loading() : null} tone="info" />
+      <FeedbackBanner message={liveUpdatesError} tone="warning" />
       {!isLoading && error ? (
         <div className="alert alert-danger py-2 d-flex justify-content-between align-items-center gap-2 flex-wrap">
           <span>{error}</span>
@@ -202,19 +215,43 @@ export function TodayPage() {
           ) : null}
         </div>
       ) : null}
-      <FeedbackBanner
-        message={!isLoading && !error && today && !hasAnyItems ? m.today_nothing_scheduled() : null}
-        tone="secondary"
-      />
+      {!isLoading && !error && today && !hasAnyItems ? (
+        <div className="alert alert-secondary py-2 d-flex justify-content-between align-items-center gap-2 flex-wrap">
+          <span>{m.today_nothing_scheduled()}</span>
+          <Link to="/templates" className="btn btn-primary btn-sm">
+            {m.today_create_first_chore()}
+          </Link>
+        </div>
+      ) : null}
 
       {!isLoading && !error && today ? (
         <>
           <div className="row g-3 mb-3">
-            <SummaryCard label={m.today_summary_overdue()} value={today.overdue.length} tone="danger" />
-            <SummaryCard label={m.today_summary_due_today()} value={today.due_today.length} tone="warning" />
-            <SummaryCard label={m.today_summary_medication_due()} value={scheduledMedicationCount} tone="info" />
-            <SummaryCard label={m.today_summary_open_plans()} value={openPlannedCount} tone="primary" />
-            <SummaryCard label={m.today_summary_open_routines()} value={routineOpenCount} tone="secondary" />
+            <SummaryCard
+              label={m.today_summary_overdue()}
+              value={today.overdue.length}
+              tone="danger"
+            />
+            <SummaryCard
+              label={m.today_summary_due_today()}
+              value={today.due_today.length}
+              tone="warning"
+            />
+            <SummaryCard
+              label={m.today_summary_medication_due()}
+              value={scheduledMedicationCount}
+              tone="info"
+            />
+            <SummaryCard
+              label={m.today_summary_open_plans()}
+              value={openPlannedCount}
+              tone="primary"
+            />
+            <SummaryCard
+              label={m.today_summary_open_routines()}
+              value={routineOpenCount}
+              tone="secondary"
+            />
           </div>
           <WebFocusPanel sections={sections} />
           <PlannedSection
@@ -222,16 +259,18 @@ export function TodayPage() {
             onRefresh={loadToday}
             bulkActions={plannedBulkActions}
           />
-          {sections.filter((section) => section.key !== "planned").map((section) => (
-            <SectionCard
-              key={section.key}
-              sectionId={section.key}
-              heading={section.heading}
-              items={section.items}
-              onRefresh={loadToday}
-              bulkActions={section.bulkActions}
-            />
-          ))}
+          {sections
+            .filter((section) => section.key !== "planned")
+            .map((section) => (
+              <SectionCard
+                key={section.key}
+                sectionId={section.key}
+                heading={section.heading}
+                items={section.items}
+                onRefresh={loadToday}
+                bulkActions={section.bulkActions}
+              />
+            ))}
         </>
       ) : null}
     </section>

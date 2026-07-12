@@ -75,6 +75,7 @@ async def discover_oidc_endpoints() -> OidcDiscoveryConfig:
                 "issuer": data.get("issuer", issuer),
                 "authorization_url": data["authorization_endpoint"],
                 "token_url": data["token_endpoint"],
+                "end_session_endpoint": data.get("end_session_endpoint"),
             }
         )
     except (KeyError, ValueError) as exc:
@@ -113,6 +114,7 @@ async def update_me(
 
 @router.get("/sessions", response_model=list[OAuthSessionResponse])
 async def list_sessions(
+    request: Request,
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
     current_user: User = Depends(get_current_user),
 ) -> list[OAuthSessionResponse]:
@@ -150,7 +152,9 @@ async def list_sessions(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail="Invalid response from OIDC provider.",
         )
-    return [
+    current_session_id = getattr(request.state, "oidc_session_id", None)
+
+    sessions = [
         OAuthSessionResponse(
             id=s["id"],
             ip_address=s.get("ipAddress"),
@@ -158,10 +162,12 @@ async def list_sessions(
             last_access=s.get("lastAccess"),
             expires=s.get("expires"),
             clients=s.get("clients") or [],
+            is_current=isinstance(current_session_id, str) and s["id"] == current_session_id,
         )
         for s in raw_sessions
         if isinstance(s, dict) and s.get("id")
     ]
+    return sorted(sessions, key=lambda session: not session.is_current)
 
 
 @router.delete("/sessions/{session_id}", status_code=status.HTTP_204_NO_CONTENT)

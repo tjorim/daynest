@@ -3,6 +3,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { createElement } from "react";
 import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import * as m from "@/paraglide/messages";
 import { useTodayLiveUpdates } from "@/features/today/useTodayLiveUpdates";
 import { queryKeys } from "@/lib/query/queryKeys";
 import * as session from "@/lib/auth/session";
@@ -38,6 +39,7 @@ function wrapper({ children }: { children: ReactNode }) {
 
 describe("useTodayLiveUpdates", () => {
   afterEach(() => {
+    session.setOidcAccessToken(undefined);
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
   });
@@ -53,13 +55,14 @@ describe("useTodayLiveUpdates", () => {
         }
       },
     );
-    vi.spyOn(session, "getOidcAccessToken").mockReturnValue("test-token");
+    session.setOidcAccessToken("test-token");
 
     const queryClient = createQueryTestClient();
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
 
     renderHook(() => useTodayLiveUpdates(), {
-      wrapper: ({ children }) => createElement(QueryClientProvider, { client: queryClient }, children),
+      wrapper: ({ children }) =>
+        createElement(QueryClientProvider, { client: queryClient }, children),
     });
 
     expect(capturedEs).toBeDefined();
@@ -74,7 +77,7 @@ describe("useTodayLiveUpdates", () => {
   it("does not open EventSource when there is no access token", () => {
     const constructorSpy = vi.fn();
     vi.stubGlobal("EventSource", constructorSpy);
-    vi.spyOn(session, "getOidcAccessToken").mockReturnValue(undefined);
+    session.setOidcAccessToken(undefined);
 
     renderHook(() => useTodayLiveUpdates(), { wrapper });
 
@@ -92,7 +95,7 @@ describe("useTodayLiveUpdates", () => {
         }
       },
     );
-    vi.spyOn(session, "getOidcAccessToken").mockReturnValue("test-token");
+    session.setOidcAccessToken("test-token");
 
     const { unmount } = renderHook(() => useTodayLiveUpdates(), { wrapper });
 
@@ -112,13 +115,14 @@ describe("useTodayLiveUpdates", () => {
         }
       },
     );
-    vi.spyOn(session, "getOidcAccessToken").mockReturnValue("test-token");
+    session.setOidcAccessToken("test-token");
 
     const queryClient = createQueryTestClient();
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
 
     renderHook(() => useTodayLiveUpdates(), {
-      wrapper: ({ children }) => createElement(QueryClientProvider, { client: queryClient }, children),
+      wrapper: ({ children }) =>
+        createElement(QueryClientProvider, { client: queryClient }, children),
     });
 
     // Initial connect — should NOT invalidate.
@@ -145,19 +149,46 @@ describe("useTodayLiveUpdates", () => {
         }
       },
     );
-    const tokenSpy = vi.spyOn(session, "getOidcAccessToken").mockReturnValue("token-a");
+    session.setOidcAccessToken("token-a");
 
-    const { rerender } = renderHook(() => useTodayLiveUpdates(), { wrapper });
+    renderHook(() => useTodayLiveUpdates(), { wrapper });
     expect(instances).toHaveLength(1);
     const first = instances[0]!;
     expect(first.url).toContain("token=token-a");
 
-    tokenSpy.mockReturnValue("token-b");
-    rerender();
+    act(() => {
+      session.setOidcAccessToken("token-b");
+    });
 
     expect(first.closed).toBe(true);
     expect(instances).toHaveLength(2);
     expect(instances[1]!.url).toContain("token=token-b");
+  });
+
+  it("reports and clears connection errors", async () => {
+    let capturedEs: MockEventSource | undefined;
+    vi.stubGlobal(
+      "EventSource",
+      class extends MockEventSource {
+        constructor(url: string) {
+          super(url);
+          capturedEs = this;
+        }
+      },
+    );
+    session.setOidcAccessToken("test-token");
+
+    const { result } = renderHook(() => useTodayLiveUpdates(), { wrapper });
+
+    await act(async () => {
+      capturedEs!.emit("error", "");
+    });
+    expect(result.current).toBe(m.today_live_updates_interrupted());
+
+    await act(async () => {
+      capturedEs!.emit("open", "");
+    });
+    expect(result.current).toBeNull();
   });
 
   it("opens EventSource with the token in the URL", () => {
@@ -171,7 +202,7 @@ describe("useTodayLiveUpdates", () => {
         }
       },
     );
-    vi.spyOn(session, "getOidcAccessToken").mockReturnValue("my-token");
+    session.setOidcAccessToken("my-token");
 
     renderHook(() => useTodayLiveUpdates(), { wrapper });
 

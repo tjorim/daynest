@@ -11,6 +11,7 @@ const authMock = vi.hoisted(() => ({
     isAuthenticated: false,
     signinRedirect: vi.fn(),
     signoutRedirect: vi.fn(),
+    error: undefined as unknown,
   },
 }));
 
@@ -31,9 +32,15 @@ function LoginButton() {
   return <button onClick={login}>Sign in</button>;
 }
 
+function OidcErrorMessage() {
+  const { oidcError } = useAuth();
+  return <div>{oidcError}</div>;
+}
+
 describe("AuthProvider login returnTo", () => {
   beforeEach(() => {
     authMock.oidc.signinRedirect.mockReset();
+    authMock.oidc.error = undefined;
   });
 
   it("uses /today when login starts on /auth", async () => {
@@ -51,6 +58,18 @@ describe("AuthProvider login returnTo", () => {
     expect(authMock.oidc.signinRedirect).toHaveBeenCalledWith({
       state: { returnTo: "/today" },
     });
+  });
+
+  it("falls back to the OIDC error string when message is empty", () => {
+    authMock.oidc.error = { message: "", toString: () => "State mismatch" };
+
+    render(
+      <AuthProvider>
+        <OidcErrorMessage />
+      </AuthProvider>,
+    );
+
+    expect(screen.getByText("State mismatch")).toBeInTheDocument();
   });
 
   it("preserves path, search, and hash for app routes", async () => {

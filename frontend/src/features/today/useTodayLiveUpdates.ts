@@ -1,14 +1,18 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import * as m from "@/paraglide/messages";
 import { buildApiUrl } from "@/lib/api/serverConfig";
-import { getOidcAccessToken } from "@/lib/auth/session";
+import { useOidcAccessToken } from "@/lib/auth/session";
 import { queryKeys } from "@/lib/query/queryKeys";
 
-export function useTodayLiveUpdates(): void {
+export function useTodayLiveUpdates(): string | null {
   const queryClient = useQueryClient();
-  const token = getOidcAccessToken();
+  const token = useOidcAccessToken();
+  const [connectionError, setConnectionError] = useState<string | null>(null);
 
   useEffect(() => {
+    setConnectionError(null);
+
     if (typeof EventSource === "undefined") return;
     if (!token) return;
 
@@ -17,6 +21,8 @@ export function useTodayLiveUpdates(): void {
     let connected = false;
 
     es.addEventListener("open", () => {
+      setConnectionError(null);
+
       if (connected) {
         // Reconnect after a drop — missed events won't be replayed, so refetch.
         void queryClient.invalidateQueries({ queryKey: queryKeys.today.read() });
@@ -25,11 +31,18 @@ export function useTodayLiveUpdates(): void {
     });
 
     es.addEventListener("today_updated", () => {
+      setConnectionError(null);
       void queryClient.invalidateQueries({ queryKey: queryKeys.today.read() });
+    });
+
+    es.addEventListener("error", () => {
+      setConnectionError(m.today_live_updates_interrupted());
     });
 
     return () => {
       es.close();
     };
   }, [queryClient, token]);
+
+  return connectionError;
 }

@@ -48,7 +48,8 @@ class OidcServiceConfigurationDiscoveryTest {
                 {
                   "issuer": "https://auth.example.test/realms/daynest",
                   "authorization_url": "https://auth.example.test/realms/daynest/protocol/openid-connect/auth",
-                  "token_url": "https://auth.example.test/realms/daynest/protocol/openid-connect/token"
+                  "token_url": "https://auth.example.test/realms/daynest/protocol/openid-connect/token",
+                  "end_session_endpoint": "https://auth.example.test/realms/daynest/protocol/openid-connect/logout"
                 }
                 """.trimIndent()
             )
@@ -66,6 +67,10 @@ class OidcServiceConfigurationDiscoveryTest {
         assertEquals(
             "https://auth.example.test/realms/daynest/protocol/openid-connect/token",
             config.tokenEndpoint.toString()
+        )
+        assertEquals(
+            "https://auth.example.test/realms/daynest/protocol/openid-connect/logout",
+            config.endSessionEndpoint.toString()
         )
     }
 

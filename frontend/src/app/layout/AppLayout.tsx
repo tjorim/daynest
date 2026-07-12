@@ -8,11 +8,13 @@ import { drain as drainOfflineQueue, getQueuedCount } from "@/lib/offlineQueue";
 import { SearchOverlay } from "@/features/search/SearchOverlay";
 
 export function AppLayout() {
-  const { isAuthenticated, isLoading, logout, user } = useAuth();
+  const { isAuthenticated, isLoading, logout, refreshUser, sessionError, user } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const isOnline = useOnlineStatus();
   const [queuedCount, setQueuedCount] = React.useState(() => getQueuedCount());
+  const [isRetryingSession, setIsRetryingSession] = React.useState(false);
   const [searchOpen, setSearchOpen] = React.useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = React.useState(false);
 
   React.useEffect(() => {
     if (isOnline && getQueuedCount() > 0) {
@@ -67,6 +69,46 @@ export function AppLayout() {
         ? m.app_theme_light()
         : m.app_theme_dark();
 
+  const navLinks = [
+    { to: "/today", label: m.nav_today() },
+    { to: "/calendar", label: m.nav_calendar() },
+    { to: "/medication", label: m.nav_medication() },
+    { to: "/meal-plan", label: m.nav_meal_plan() },
+    { to: "/shopping", label: m.nav_shopping() },
+    { to: "/shopping/recurring", label: m.nav_recurring_groceries() },
+    { to: "/templates", label: m.nav_templates() },
+    { to: "/stats", label: m.nav_stats() },
+    { to: "/settings", label: m.nav_settings() },
+  ] as const;
+
+  const renderNavLinks = (onNavigate?: () => void) =>
+    navLinks.map((link) => (
+      <Link
+        key={link.to}
+        to={link.to}
+        activeProps={{ className: "nav-link active" }}
+        inactiveProps={{ className: "nav-link" }}
+        onClick={(event) => {
+          if (
+            event.defaultPrevented ||
+            event.button !== 0 ||
+            event.metaKey ||
+            event.ctrlKey ||
+            event.shiftKey ||
+            event.altKey
+          ) {
+            return;
+          }
+
+          if (mobileNavOpen) {
+            onNavigate?.();
+          }
+        }}
+      >
+        {link.label}
+      </Link>
+    ));
+
   return (
     <>
       <a className="skip-link" href="#main-content">
@@ -82,6 +124,26 @@ export function AppLayout() {
       ) : queuedCount > 0 ? (
         <div className="alert alert-info py-2 mb-3">
           {m.app_syncing_queued({ count: queuedCount })}
+        </div>
+      ) : null}
+      {sessionError ? (
+        <div className="alert alert-danger py-2 mb-3 d-flex justify-content-between align-items-center gap-2 flex-wrap">
+          <span>{m.app_session_retry_banner()}</span>
+          <button
+            type="button"
+            className="btn btn-sm btn-outline-danger"
+            disabled={isRetryingSession}
+            onClick={async () => {
+              setIsRetryingSession(true);
+              try {
+                await refreshUser();
+              } finally {
+                setIsRetryingSession(false);
+              }
+            }}
+          >
+            {m.action_retry()}
+          </button>
         </div>
       ) : null}
       {searchOpen && isAuthenticated ? (
@@ -117,12 +179,14 @@ export function AppLayout() {
                 aria-hidden="true"
               />
             </button>
-            {isAuthenticated && user ? (
+            {isAuthenticated ? (
               <div className="d-flex flex-column flex-sm-row align-items-start align-items-sm-center gap-2">
-                <div className="small text-muted text-sm-end">
-                  <div className="fw-semibold text-body">{user.full_name}</div>
-                  <div>{user.email}</div>
-                </div>
+                {user ? (
+                  <div className="small text-muted text-sm-end">
+                    <div className="fw-semibold text-body">{user.full_name}</div>
+                    <div>{user.email}</div>
+                  </div>
+                ) : null}
                 <button type="button" className="btn btn-outline-secondary btn-sm" onClick={logout}>
                   {m.app_logout()}
                 </button>
@@ -139,71 +203,28 @@ export function AppLayout() {
           </div>
         </div>
         {isAuthenticated ? (
-          <nav className="nav nav-pills gap-2">
-            <Link
-              to="/today"
-              activeProps={{ className: "nav-link active" }}
-              inactiveProps={{ className: "nav-link" }}
+          <div className="d-flex flex-column gap-2">
+            <button
+              type="button"
+              className="btn btn-outline-primary d-md-none align-self-start"
+              aria-controls="primary-navigation"
+              aria-expanded={mobileNavOpen}
+              onClick={() => setMobileNavOpen((isOpen) => !isOpen)}
             >
-              {m.nav_today()}
-            </Link>
-            <Link
-              to="/calendar"
-              activeProps={{ className: "nav-link active" }}
-              inactiveProps={{ className: "nav-link" }}
+              <i
+                className={`bi ${mobileNavOpen ? "bi-x-lg" : "bi-list"} me-2`}
+                aria-hidden="true"
+              />
+              {m.nav_menu()}
+            </button>
+            <nav
+              id="primary-navigation"
+              className={`${mobileNavOpen ? "d-flex" : "d-none"} d-md-flex nav nav-pills flex-column flex-md-row gap-2`}
+              aria-label={m.nav_menu()}
             >
-              {m.nav_calendar()}
-            </Link>
-            <Link
-              to="/medication"
-              activeProps={{ className: "nav-link active" }}
-              inactiveProps={{ className: "nav-link" }}
-            >
-              {m.nav_medication()}
-            </Link>
-            <Link
-              to="/meal-plan"
-              activeProps={{ className: "nav-link active" }}
-              inactiveProps={{ className: "nav-link" }}
-            >
-              {m.nav_meal_plan()}
-            </Link>
-            <Link
-              to="/shopping"
-              activeProps={{ className: "nav-link active" }}
-              inactiveProps={{ className: "nav-link" }}
-            >
-              {m.nav_shopping()}
-            </Link>
-            <Link
-              to="/shopping/recurring"
-              activeProps={{ className: "nav-link active" }}
-              inactiveProps={{ className: "nav-link" }}
-            >
-              {m.nav_recurring_groceries()}
-            </Link>
-            <Link
-              to="/templates"
-              activeProps={{ className: "nav-link active" }}
-              inactiveProps={{ className: "nav-link" }}
-            >
-              {m.nav_templates()}
-            </Link>
-            <Link
-              to="/stats"
-              activeProps={{ className: "nav-link active" }}
-              inactiveProps={{ className: "nav-link" }}
-            >
-              {m.nav_stats()}
-            </Link>
-            <Link
-              to="/settings"
-              activeProps={{ className: "nav-link active" }}
-              inactiveProps={{ className: "nav-link" }}
-            >
-              {m.nav_settings()}
-            </Link>
-          </nav>
+              {renderNavLinks(() => setMobileNavOpen(false))}
+            </nav>
+          </div>
         ) : null}
       </header>
       <Outlet />
