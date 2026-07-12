@@ -59,21 +59,33 @@ constructor(
         return authorizationService.getAuthorizationRequestIntent(request)
     }
 
-    suspend fun handleAuthorizationResult(resultCode: Int, data: Intent?): Boolean {
+    suspend fun handleAuthorizationResult(resultCode: Int, data: Intent?): AuthorizationResult {
         val isOk = resultCode == Activity.RESULT_OK && data != null
         val response = data?.let { AuthorizationResponse.fromIntent(it) }
         val exception = data?.let { AuthorizationException.fromIntent(it) }
-        if (!isOk || response == null || exception != null) {
-            return false
-        }
-        return suspendCancellableCoroutine { cont ->
-            authorizationService.performTokenRequest(response.createTokenExchangeRequest()) { tokenResponse, ex ->
-                if (tokenResponse != null) {
-                    val newState = AuthState(response, null).apply { update(tokenResponse, ex) }
-                    persistState(newState)
-                    cont.resume(true)
-                } else {
-                    cont.resume(false)
+
+        return when {
+            resultCode == Activity.RESULT_CANCELED ||
+                exception == AuthorizationException.GeneralErrors.USER_CANCELED_AUTH_FLOW -> {
+                AuthorizationResult.Cancelled
+            }
+            !isOk || response == null || exception != null -> {
+                AuthorizationResult.Failed
+            }
+            else -> {
+                suspendCancellableCoroutine { cont ->
+                    authorizationService.performTokenRequest(
+                        response.createTokenExchangeRequest()
+                    ) { tokenResponse, ex ->
+                        when (tokenResponse) {
+                            null -> cont.resume(AuthorizationResult.Failed)
+                            else -> {
+                                val newState = AuthState(response, null).apply { update(tokenResponse, ex) }
+                                persistState(newState)
+                                cont.resume(AuthorizationResult.Authorized)
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -137,4 +149,10 @@ constructor(
         authState = AuthState()
         secureSessionStore.clear()
     }
+}
+
+enum class AuthorizationResult {
+    Authorized,
+    Cancelled,
+    Failed
 }

@@ -4,6 +4,7 @@ import android.content.Intent
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.daynest.android.BuildConfig
+import com.daynest.android.core.auth.AuthorizationResult
 import com.daynest.android.core.auth.OidcAuthService
 import com.daynest.android.core.storage.ApiBaseUrlOverrideStore
 import com.daynest.android.data.push.PushRegistrationManager
@@ -73,15 +74,15 @@ constructor(
     fun handleAuthorizationResult(resultCode: Int, data: Intent?) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
-            val succeeded = oidcAuthService.handleAuthorizationResult(resultCode, data)
-            if (succeeded) {
-                runCatching { pushRegistrationManager.registerIfEnabled() }
+            val authorizationResult = oidcAuthService.handleAuthorizationResult(resultCode, data)
+            if (authorizationResult == AuthorizationResult.Authorized) {
+                launch { runCatching { pushRegistrationManager.registerIfEnabled() } }
             }
             _uiState.update {
                 it.copy(
                     isLoading = false,
-                    isSignedIn = succeeded,
-                    error = if (succeeded) null else AuthError.SignInFailed
+                    isSignedIn = authorizationResult == AuthorizationResult.Authorized,
+                    error = if (authorizationResult == AuthorizationResult.Failed) AuthError.SignInFailed else null
                 )
             }
         }
