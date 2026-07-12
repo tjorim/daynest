@@ -59,21 +59,24 @@ constructor(
         return authorizationService.getAuthorizationRequestIntent(request)
     }
 
-    suspend fun handleAuthorizationResult(resultCode: Int, data: Intent?): Boolean {
+    suspend fun handleAuthorizationResult(resultCode: Int, data: Intent?): AuthorizationResult {
         val isOk = resultCode == Activity.RESULT_OK && data != null
         val response = data?.let { AuthorizationResponse.fromIntent(it) }
         val exception = data?.let { AuthorizationException.fromIntent(it) }
+        if (exception == AuthorizationException.GeneralErrors.USER_CANCELED_AUTH_FLOW) {
+            return AuthorizationResult.Cancelled
+        }
         if (!isOk || response == null || exception != null) {
-            return false
+            return if (data == null) AuthorizationResult.Cancelled else AuthorizationResult.Failed
         }
         return suspendCancellableCoroutine { cont ->
             authorizationService.performTokenRequest(response.createTokenExchangeRequest()) { tokenResponse, ex ->
                 if (tokenResponse != null) {
                     val newState = AuthState(response, null).apply { update(tokenResponse, ex) }
                     persistState(newState)
-                    cont.resume(true)
+                    cont.resume(AuthorizationResult.Authorized)
                 } else {
-                    cont.resume(false)
+                    cont.resume(AuthorizationResult.Failed)
                 }
             }
         }
@@ -137,4 +140,10 @@ constructor(
         authState = AuthState()
         secureSessionStore.clear()
     }
+}
+
+enum class AuthorizationResult {
+    Authorized,
+    Cancelled,
+    Failed
 }
