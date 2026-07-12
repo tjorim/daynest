@@ -30,6 +30,7 @@ function renderSection(logout = vi.fn()) {
         logout,
         refreshUser: vi.fn(),
         sessionError: null,
+        oidcError: null,
       }}
     >
       <AccountDeletionSection />

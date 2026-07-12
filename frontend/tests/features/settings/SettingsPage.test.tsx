@@ -60,6 +60,7 @@ function renderSettingsPage(children: React.ReactNode) {
         logout: vi.fn(),
         refreshUser: vi.fn(),
         sessionError: null,
+        oidcError: null,
       }}
     >
       {children}

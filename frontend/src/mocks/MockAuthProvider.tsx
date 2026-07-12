@@ -25,6 +25,7 @@ export function MockAuthProvider({ children }: { children: React.ReactNode }) {
         logout: () => {},
         refreshUser: async () => {},
         sessionError: null,
+        oidcError: null,
       }}
     >
       {children}
