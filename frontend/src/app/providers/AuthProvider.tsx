@@ -4,6 +4,17 @@ import { AuthApiError, fetchMe, type AuthUser } from "@/lib/api/auth";
 import { setOidcAccessToken } from "@/lib/auth/session";
 import { AUTH_ROUTE_PATHS } from "@/config/oidc";
 
+function getOidcErrorMessage(error: unknown) {
+  if (!error) return null;
+
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  const fallbackMessage = String(error);
+  return fallbackMessage || "Unable to complete sign in";
+}
+
 function getLoginReturnTo() {
   if (AUTH_ROUTE_PATHS.has(window.location.pathname)) {
     return "/today";
@@ -104,7 +115,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       },
       sessionError,
-      oidcError: oidc.error?.message ?? null,
+      oidcError: getOidcErrorMessage(oidc.error),
     }),
     [user, oidc, isFetching, sessionError],
   );
