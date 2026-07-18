@@ -37,7 +37,11 @@ jobs:
         run: |
           set -euo pipefail
           kotlin_version="$(awk -F '"' '/^kotlin = / { print $2 }' android/gradle/libs.versions.toml)"
-          max_supported="2.4.0"
+          # CodeQL supports Kotlin versions below 2.4.10; newer versions fail the
+          # build with "Kotlin version X is too recent". Verify the supported range
+          # at https://codeql.github.com/docs/codeql-overview/supported-languages-and-frameworks/
+          # before raising this gate.
+          max_supported="2.4.9"
           if printf '%s\n%s\n' "${kotlin_version}" "${max_supported}" | sort -V -C; then
             echo "supported=true" >> "$GITHUB_OUTPUT"
           else
