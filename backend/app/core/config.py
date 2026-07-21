@@ -62,6 +62,12 @@ class AppSettings(BaseSettings):
     feature_mcp: bool = True
     feature_export_import: bool = False
 
+    # Per-client-IP rate limiting (slowapi) on the general REST API. Health
+    # probes are exempt. rate_limit_default uses the flask-limiter/slowapi
+    # rate string format, e.g. "200/minute", "10/second", "5000/hour".
+    rate_limit_enabled: bool = True
+    rate_limit_default: str = "200/minute"
+
     log_level: str = "INFO"
     sentry_dsn: str | None = None
     sentry_traces_sample_rate: float = 0.0

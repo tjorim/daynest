@@ -9,6 +9,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastmcp.utilities.lifespan import combine_lifespans
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 from starlette.applications import Starlette
 
 from app.api.routes.auth import close_http_client as close_auth_http_client
@@ -38,6 +40,7 @@ from app.mcp_server import (
     MCP_TOOL_NAMES,
     create_mcp_server,
 )
+from app.middleware.rate_limit import handle_rate_limit_exceeded, limiter
 from app.models.user import User
 from app.services.event_bus import EventBus
 from app.services.push_service import (
@@ -198,6 +201,13 @@ if settings.cors_allow_origins:
         allow_headers=["*"],
         expose_headers=["X-Request-ID"],
     )
+
+# Per-client-IP rate limiting. `limiter.enabled` (settings.rate_limit_enabled)
+# gates actual enforcement; the middleware is always registered so a 429 still
+# gets a request ID and observability log entry like any other response.
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, handle_rate_limit_exceeded)
+app.add_middleware(SlowAPIMiddleware)
 
 app.include_router(system_router, prefix=settings.api_prefix)
 app.include_router(auth_router, prefix=settings.api_prefix)
