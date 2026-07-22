@@ -1,5 +1,8 @@
+import hashlib
+import hmac
 import json
 import logging
+import time
 import uuid
 
 from fastapi.testclient import TestClient
@@ -95,31 +98,58 @@ def test_request_id_propagated_when_supplied(client: TestClient) -> None:
     assert response.headers.get("X-Request-ID") == supplied_id
 
 
-def test_metrics_requires_secret(client: TestClient) -> None:
+def _make_metrics_token(secret: str, ts: int | None = None) -> str:
+    ts = int(time.time()) if ts is None else ts
+    sig = hmac.new(secret.encode(), str(ts).encode(), hashlib.sha256).hexdigest()
+    return f"{ts}:{sig}"
+
+
+def test_metrics_not_found_when_secret_unset(client: TestClient, monkeypatch) -> None:
     from app.core.config import settings
 
-    # When no secret is configured the endpoint is always forbidden (fail-closed).
+    monkeypatch.setattr(settings, "metrics_hmac_secret", None)
+
     response = client.get("/api/metrics")
-    assert response.status_code == 403
-    if settings.metrics_secret is not None:
-        authed = client.get("/api/metrics", headers={"X-Metrics-Secret": settings.metrics_secret})
-        assert authed.status_code == 200
-        assert "request_total" in authed.json()
+    assert response.status_code == 404
 
 
 def test_metrics_forbidden_with_wrong_secret(client: TestClient, monkeypatch) -> None:
     from app.core.config import settings
 
-    monkeypatch.setattr(settings, "metrics_secret", "correct-secret")
+    monkeypatch.setattr(settings, "metrics_hmac_secret", "correct-secret")
 
-    response = client.get("/api/metrics", headers={"X-Metrics-Secret": "wrong-secret"})
+    token = _make_metrics_token("wrong-secret")
+    response = client.get("/api/metrics", headers={"X-Metrics-Token": token})
     assert response.status_code == 403
 
     response_no_header = client.get("/api/metrics")
     assert response_no_header.status_code == 403
 
-    authed = client.get("/api/metrics", headers={"X-Metrics-Secret": "correct-secret"})
+    authed = client.get("/api/metrics", headers={"X-Metrics-Token": _make_metrics_token("correct-secret")})
     assert authed.status_code == 200
+    assert "request_total" in authed.json()
+
+
+def test_metrics_forbidden_with_expired_token(client: TestClient, monkeypatch) -> None:
+    from app.core.config import settings
+
+    secret = "correct-secret"
+    monkeypatch.setattr(settings, "metrics_hmac_secret", secret)
+
+    old_token = _make_metrics_token(secret, ts=int(time.time()) - 120)
+    response = client.get("/api/metrics", headers={"X-Metrics-Token": old_token})
+    assert response.status_code == 403
+
+
+def test_metrics_forbidden_with_future_token(client: TestClient, monkeypatch) -> None:
+    from app.core.config import settings
+
+    secret = "correct-secret"
+    monkeypatch.setattr(settings, "metrics_hmac_secret", secret)
+
+    future_token = _make_metrics_token(secret, ts=int(time.time()) + 120)
+    response = client.get("/api/metrics", headers={"X-Metrics-Token": future_token})
+    assert response.status_code == 403
 
 
 def test_structured_log_payload_shape(client: TestClient, caplog) -> None:

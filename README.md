@@ -206,7 +206,7 @@ docker compose up -d
 
 Configure these per environment via env files:
 
-- `CORS_ALLOW_ORIGINS` (comma-separated)
+- `CORS_ORIGINS` (comma-separated)
 - `TRUSTED_HOSTS` (comma-separated)
 
 ### DB/network exposure by environment

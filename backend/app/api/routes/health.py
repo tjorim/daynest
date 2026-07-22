@@ -1,4 +1,5 @@
 import asyncio
+import hashlib
 import hmac
 import logging
 import time
@@ -17,13 +18,35 @@ logger = logging.getLogger("app.health")
 
 router = APIRouter(tags=["system"])
 
+_METRICS_TOKEN_MAX_AGE_SECONDS = 60
+
+
+def _verify_metrics_token(token: str, secret: str) -> bool:
+    """Verify an HMAC metrics token of the form ``<timestamp>:<hex-signature>``.
+
+    The signature is HMAC-SHA256(secret, timestamp); tokens older than
+    _METRICS_TOKEN_MAX_AGE_SECONDS or timestamped in the future are rejected.
+    """
+    try:
+        ts_str, provided_sig = token.split(":", 1)
+        ts = int(ts_str)
+    except (ValueError, AttributeError):
+        return False
+
+    now = int(time.time())
+    if ts > now or now - ts > _METRICS_TOKEN_MAX_AGE_SECONDS:
+        return False
+
+    expected_sig = hmac.new(secret.encode(), ts_str.encode(), hashlib.sha256).hexdigest()
+    return hmac.compare_digest(expected_sig, provided_sig)
+
 
 def _require_metrics_access(request: Request) -> None:
-    secret = settings.metrics_secret
+    secret = settings.metrics_hmac_secret
     if not secret:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
-    provided = request.headers.get("X-Metrics-Secret", "")
-    if not hmac.compare_digest(provided, secret):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not Found")
+    provided = request.headers.get("X-Metrics-Token", "")
+    if not provided or not _verify_metrics_token(provided, secret):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
 
 
