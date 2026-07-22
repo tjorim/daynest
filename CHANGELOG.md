@@ -26,6 +26,11 @@ artifact is built or published if any check fails.
 
 ---
 
+## [0.1.11] - 2026-07-22
+
+### Fixed
+- **Android:** several Retrofit API clients — including OIDC discovery, which blocked sign-in entirely — were still calling the `/api/v1/...` paths removed when the backend's API prefix was simplified to `/api/...` in v0.1.9. Selecting a server and signing in now works again; the same stale prefix was also fixed in the Wear OS module's Today APIs.
+
 ## [0.1.10] - 2026-07-22
 
 ### Added
@@ -148,7 +153,9 @@ artifact is built or published if any check fails.
 - MCP server with Keycloak OIDC auth and medication plan CRUD tools
 - Tag-driven GitHub Release workflow publishing HACS zip, Android APK, and python-daynest to PyPI
 
-[Unreleased]: https://github.com/tjorim/daynest/compare/v0.1.9...HEAD
+[Unreleased]: https://github.com/tjorim/daynest/compare/v0.1.11...HEAD
+[0.1.11]: https://github.com/tjorim/daynest/compare/v0.1.10...v0.1.11
+[0.1.10]: https://github.com/tjorim/daynest/compare/v0.1.9...v0.1.10
 [0.1.9]: https://github.com/tjorim/daynest/compare/v0.1.8...v0.1.9
 [0.1.8]: https://github.com/tjorim/daynest/compare/v0.1.7...v0.1.8
 [0.1.7]: https://github.com/tjorim/daynest/compare/v0.1.6...v0.1.7
