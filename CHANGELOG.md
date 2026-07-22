@@ -2,29 +2,51 @@
 
 All notable changes to this project will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
+This project's own version (the `## [x.y.z]` headers below, `vYYYY.MM.MICRO`
+release tags, frontend/Android/HACS integration) uses
+[CalVer](https://calver.org/) — `YYYY.MM.MICRO`, a counter that resets each
+month — while `python-daynest`, the PyPI client library, stays on
+[Semantic Versioning](https://semver.org/spec/v2.0.0.html) independently,
+since HACS/Home Assistant consumers pin against it for compatibility (#673).
 
 ## Maintainer notes
 
-Before tagging a release, update **all** of the following to match the new version:
+`VERSION` (repo root) is the single source of truth for the app's own version.
+After bumping it, run `bash scripts/sync-version.sh` to stamp the value into
+every file that needs a static, checked-in copy, then update the rest of this
+list by hand:
 
-| File | Field |
-|---|---|
-| `python-daynest/pyproject.toml` | `version` |
-| `custom_components/daynest/manifest.json` | `version`, `requirements` pin |
-| `android/app/build.gradle.kts` | `versionName`, `versionCode` |
-| `frontend/package.json` | `version` |
-| `dashboard/package.json` | `version` |
-| `CHANGELOG.md` | new `## [x.y.z]` section |
+| File | Field | How it's updated |
+|---|---|---|
+| `VERSION` | contents | hand-edit — the source of truth |
+| `frontend/package.json` | `version` | `scripts/sync-version.sh` |
+| `dashboard/package.json` | `version` | `scripts/sync-version.sh` |
+| `custom_components/daynest/manifest.json` | `version` | `scripts/sync-version.sh` |
+| `android/app/build.gradle.kts` | `versionName`, `versionCode` | auto-derived from `VERSION` at build time — never hand-edit |
+| `CHANGELOG.md` | new `## [YYYY.MM.MICRO]` section | hand-edit |
+| `python-daynest/pyproject.toml` | `version` | hand-edit, **independently** — only bump when the library itself changes, not on every app release |
+| `custom_components/daynest/manifest.json` | `requirements` pin | hand-edit to match `python-daynest/pyproject.toml`'s version whenever that changes |
 
-**Android `versionCode` convention:** `MAJOR × 1000000 + MINOR × 1000 + PATCH`
-Examples: `v0.1.0` → `1000`, `v1.0.0` → `1000000`, `v1.2.3` → `1002003`
+**Android `versionCode` convention:** `MAJOR × 1000000 + MINOR × 1000 + PATCH`,
+where `MAJOR.MINOR.PATCH` is `YYYY.MM.MICRO`.
+Examples: `v2026.7.1` → `2026007001`, `v2026.12.3` → `2026012003`.
 
 The release preflight job enforces all of the above and fails the workflow before any
-artifact is built or published if any check fails.
+artifact is built or published if any check fails. `python-daynest`'s PyPI publish step
+skips (rather than fails) when its current version is already published, since it doesn't
+bump on every app release.
 
 ---
+
+## [2026.7.1] - 2026-07-22
+
+### Changed
+- **Versioning:** app version switched from SemVer to CalVer (`YYYY.MM.MICRO`); `python-daynest`
+  stays on independent SemVer. `VERSION` (repo root) is now the single source of truth, synced
+  to `frontend/package.json`, `dashboard/package.json`, and `manifest.json` via
+  `scripts/sync-version.sh`; Android's `versionName`/`versionCode` are derived from it at build
+  time (#673).
 
 ## [0.1.11] - 2026-07-22
 
@@ -153,7 +175,8 @@ artifact is built or published if any check fails.
 - MCP server with Keycloak OIDC auth and medication plan CRUD tools
 - Tag-driven GitHub Release workflow publishing HACS zip, Android APK, and python-daynest to PyPI
 
-[Unreleased]: https://github.com/tjorim/daynest/compare/v0.1.11...HEAD
+[Unreleased]: https://github.com/tjorim/daynest/compare/v2026.7.1...HEAD
+[2026.7.1]: https://github.com/tjorim/daynest/compare/v0.1.11...v2026.7.1
 [0.1.11]: https://github.com/tjorim/daynest/compare/v0.1.10...v0.1.11
 [0.1.10]: https://github.com/tjorim/daynest/compare/v0.1.9...v0.1.10
 [0.1.9]: https://github.com/tjorim/daynest/compare/v0.1.8...v0.1.9

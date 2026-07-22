@@ -1,7 +1,6 @@
 import com.android.build.api.dsl.ApplicationExtension
 import com.daynest.buildlogic.CertPinning
 import dev.detekt.gradle.Detekt
-import groovy.json.JsonSlurper
 import java.util.Properties
 
 plugins {
@@ -68,20 +67,21 @@ fun resolveConfigValue(key: String, envKey: String, required: Boolean, default: 
     return explicitValue ?: default
 }
 
-// Single source of truth for the app version: frontend/package.json, kept in
-// lockstep with the web release version instead of a hand-maintained literal here.
-// Read via providers.fileContents (not File.readText()) so the file is tracked
-// as a build configuration input and this stays Configuration Cache-compatible.
+// Single source of truth for the app version: the root VERSION file. Every
+// other checked-in copy (frontend/package.json, dashboard/package.json,
+// manifest.json) is stamped from it by scripts/sync-version.sh — this is the
+// only one read directly by the build. Read via providers.fileContents (not
+// File.readText()) so the file is tracked as a build configuration input and
+// this stays Configuration Cache-compatible.
 val appVersion =
     providers
-        .fileContents(layout.projectDirectory.file("../../frontend/package.json"))
+        .fileContents(layout.projectDirectory.file("../../VERSION"))
         .asText
-        .map { jsonText ->
-            val json = JsonSlurper().parseText(jsonText) as Map<*, *>
-            json["version"] as? String
-                ?: error("Could not find a \"version\" field in frontend/package.json")
-        }.get()
+        .map { it.trim() }
+        .get()
 
+// Version is YYYY.MM.MICRO (CalVer — see issue #673), which is still a strict
+// 3-part X.Y.Z, so it drops into this MAJOR/MINOR/PATCH split unchanged.
 fun versionCodeFor(version: String): Int {
     val parts = version.substringBefore("-").substringBefore("+").split(".")
     check(parts.size == 3) { "Expected a MAJOR.MINOR.PATCH version, got \"$version\"" }

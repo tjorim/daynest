@@ -28,7 +28,10 @@ class AppSettings(BaseSettings):
     _cached_integration_key_hash_secret: str | None = PrivateAttr(default=None)
 
     app_name: str = "Daynest API"
-    version: str = "0.1.0"
+    # Mirrors mcp_server.py's own BUILD_VERSION read: one env var, set by
+    # whoever builds the image (see backend/Dockerfile's BUILD_VERSION ARG),
+    # instead of a hand-maintained literal that drifts from the real release.
+    version: str = Field(default="dev", validation_alias="BUILD_VERSION")
     api_prefix: str = "/api"
     environment: str = "dev"
 
