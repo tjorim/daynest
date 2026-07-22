@@ -15,7 +15,7 @@ class CertPinningTest {
 
     @Test
     fun `extractHost returns host for a normal URL`() {
-        assertEquals("api.example.com", CertPinning.extractHost("https://api.example.com/v1/"))
+        assertEquals("api.example.com", CertPinning.extractHost("https://api.example.com/api/"))
     }
 
     @Test

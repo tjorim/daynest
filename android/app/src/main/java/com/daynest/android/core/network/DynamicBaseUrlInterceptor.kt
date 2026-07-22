@@ -21,7 +21,7 @@ constructor(private val apiBaseUrlOverrideStore: ApiBaseUrlOverrideStore) :
         val basePath = newBase.encodedPath.trimEnd('/')
         val requestPath = request.url.encodedPath
         // Avoid duplicating the base path prefix when request path already includes it
-        // (e.g. base "/api/" + request "/api/v1" must not produce "/api/api/v1").
+        // (e.g. base "/api/" + request "/api/today" must not produce "/api/api/today").
         val mergedPath =
             if (basePath.isEmpty() || requestPath.startsWith("$basePath/")) {
                 requestPath
