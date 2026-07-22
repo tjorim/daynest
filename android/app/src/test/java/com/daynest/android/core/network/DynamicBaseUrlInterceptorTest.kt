@@ -52,7 +52,7 @@ class DynamicBaseUrlInterceptorTest {
         val request = Request.Builder().url("https://original.example.com/v1/today").build()
         client.newCall(request).execute().close()
 
-        assertEquals("/api/today", mockWebServer.takeRequest().path)
+        assertEquals("/api/v1/today", mockWebServer.takeRequest().path)
     }
 
     @Test
