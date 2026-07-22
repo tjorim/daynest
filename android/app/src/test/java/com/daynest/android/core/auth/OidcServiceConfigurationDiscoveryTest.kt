@@ -59,7 +59,7 @@ class OidcServiceConfigurationDiscoveryTest {
             OidcServiceConfigurationDiscovery(OkHttpClient())
                 .fetch(server.url("/").toString())
 
-        assertEquals("/api/v1/auth/oidc-config", server.takeRequest().path)
+        assertEquals("/api/auth/oidc-config", server.takeRequest().path)
         assertEquals(
             "https://auth.example.test/realms/daynest/protocol/openid-connect/auth",
             config.authorizationEndpoint.toString()

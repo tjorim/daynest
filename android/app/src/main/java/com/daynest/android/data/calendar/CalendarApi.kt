@@ -6,10 +6,10 @@ import retrofit2.http.GET
 import retrofit2.http.Query
 
 interface CalendarApi {
-    @GET("api/v1/calendar/month")
+    @GET("api/calendar/month")
     suspend fun getMonth(@Query("year") year: Int, @Query("month") month: Int): CalendarMonthDto
 
-    @GET("api/v1/calendar/day")
+    @GET("api/calendar/day")
     suspend fun getDay(@Query("date") date: String): CalendarDayDto
 }
 

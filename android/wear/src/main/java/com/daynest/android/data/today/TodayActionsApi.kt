@@ -6,10 +6,10 @@ import retrofit2.http.POST
 import retrofit2.http.Path
 
 interface TodayActionsApi {
-    @POST("api/v1/chores/{id}/complete")
+    @POST("api/chores/{id}/complete")
     suspend fun completeChore(@Path("id") id: Int): ChoreMutationDto
 
-    @POST("api/v1/medication-doses/{id}/take")
+    @POST("api/medication-doses/{id}/take")
     suspend fun takeDose(@Path("id") id: Int): DoseMutationDto
 }
 

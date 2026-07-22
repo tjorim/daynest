@@ -11,20 +11,20 @@ import retrofit2.http.Path
 import retrofit2.http.Query
 
 interface PlannedItemApi {
-    @PUT("api/v1/planned-items/{id}")
+    @PUT("api/planned-items/{id}")
     suspend fun updatePlannedItem(
         @Path("id") id: Int,
         @Body request: PlannedItemUpdateDto,
         @Query("scope") scope: EditScope = EditScope.THIS
     ): PlannedTodayItemDto
 
-    @DELETE("api/v1/planned-items/{id}")
+    @DELETE("api/planned-items/{id}")
     suspend fun deletePlannedItem(@Path("id") id: Int, @Query("scope") scope: DeleteScope = DeleteScope.THIS)
 
-    @POST("api/v1/planned-items")
+    @POST("api/planned-items")
     suspend fun createPlannedItem(@Body request: PlannedItemCreateDto): PlannedTodayItemDto
 
-    @GET("api/v1/planned-items")
+    @GET("api/planned-items")
     suspend fun listPlannedItems(
         @Query("start_date") startDate: String?,
         @Query("end_date") endDate: String?

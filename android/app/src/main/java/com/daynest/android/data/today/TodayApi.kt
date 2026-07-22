@@ -5,7 +5,7 @@ import kotlinx.serialization.Serializable
 import retrofit2.http.GET
 
 interface TodayApi {
-    @GET("api/v1/today")
+    @GET("api/today")
     suspend fun getToday(): TodayResponseDto
 }
 

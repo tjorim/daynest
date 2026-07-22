@@ -10,19 +10,19 @@ import retrofit2.http.PUT
 import retrofit2.http.Path
 
 interface MedicationApi {
-    @GET("api/v1/medications")
+    @GET("api/medications")
     suspend fun listPlans(): List<MedicationPlanDto>
 
-    @POST("api/v1/medications")
+    @POST("api/medications")
     suspend fun createPlan(@Body request: MedicationPlanInputDto): MedicationPlanDto
 
-    @PUT("api/v1/medications/{id}")
+    @PUT("api/medications/{id}")
     suspend fun updatePlan(@Path("id") id: Int, @Body request: MedicationPlanUpdateDto): MedicationPlanDto
 
-    @DELETE("api/v1/medications/{id}")
+    @DELETE("api/medications/{id}")
     suspend fun deletePlan(@Path("id") id: Int)
 
-    @GET("api/v1/medication-doses/history")
+    @GET("api/medication-doses/history")
     suspend fun getHistory(): MedicationHistoryResponseDto
 }
 

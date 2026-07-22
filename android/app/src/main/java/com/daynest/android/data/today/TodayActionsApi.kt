@@ -7,28 +7,28 @@ import retrofit2.http.POST
 import retrofit2.http.Path
 
 interface TodayActionsApi {
-    @POST("api/v1/chores/{id}/complete")
+    @POST("api/chores/{id}/complete")
     suspend fun completeChore(@Path("id") id: Int): ChoreMutationDto
 
-    @POST("api/v1/chores/{id}/skip")
+    @POST("api/chores/{id}/skip")
     suspend fun skipChore(@Path("id") id: Int): ChoreMutationDto
 
-    @POST("api/v1/chores/{id}/reschedule")
+    @POST("api/chores/{id}/reschedule")
     suspend fun rescheduleChore(@Path("id") id: Int, @Body request: RescheduleChoreDto): ChoreMutationDto
 
-    @POST("api/v1/tasks/{id}/complete")
+    @POST("api/tasks/{id}/complete")
     suspend fun completeTask(@Path("id") id: Int): TaskMutationDto
 
-    @POST("api/v1/tasks/{id}/skip")
+    @POST("api/tasks/{id}/skip")
     suspend fun skipTask(@Path("id") id: Int): TaskMutationDto
 
-    @POST("api/v1/tasks/{id}/start")
+    @POST("api/tasks/{id}/start")
     suspend fun startTask(@Path("id") id: Int): TaskMutationDto
 
-    @POST("api/v1/medication-doses/{id}/take")
+    @POST("api/medication-doses/{id}/take")
     suspend fun takeDose(@Path("id") id: Int): DoseMutationDto
 
-    @POST("api/v1/medication-doses/{id}/skip")
+    @POST("api/medication-doses/{id}/skip")
     suspend fun skipDose(@Path("id") id: Int): DoseMutationDto
 }
 

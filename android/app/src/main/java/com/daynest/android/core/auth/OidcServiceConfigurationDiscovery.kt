@@ -34,7 +34,7 @@ constructor(
         }
     }
 
-    private fun configUrl(serverUrl: String): String = "${serverUrl.trimEnd('/')}/api/v1/auth/oidc-config"
+    private fun configUrl(serverUrl: String): String = "${serverUrl.trimEnd('/')}/api/auth/oidc-config"
 
     private fun parse(body: String): AuthorizationServiceConfiguration = try {
         val json = JSONObject(body)

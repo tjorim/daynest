@@ -10,16 +10,16 @@ import retrofit2.http.POST
 import retrofit2.http.Path
 
 interface SettingsApi {
-    @GET("api/v1/integrations/clients")
+    @GET("api/integrations/clients")
     suspend fun listClients(): List<IntegrationClientDto>
 
-    @POST("api/v1/integrations/clients")
+    @POST("api/integrations/clients")
     suspend fun createClient(@Body request: IntegrationClientInputDto): IntegrationClientCreateResponseDto
 
-    @GET("api/v1/auth/sessions")
+    @GET("api/auth/sessions")
     suspend fun listSessions(): List<OAuthSessionDto>
 
-    @DELETE("api/v1/auth/sessions/{id}")
+    @DELETE("api/auth/sessions/{id}")
     suspend fun revokeSession(@Path("id") id: String)
 
     @GET("api/users/me/settings")
@@ -34,7 +34,7 @@ interface SettingsApi {
     @POST("api/calendar/feed/regenerate")
     suspend fun regenerateCalendarFeed(): CalendarFeedDto
 
-    @DELETE("api/v1/users/me")
+    @DELETE("api/users/me")
     suspend fun deleteCurrentUser()
 }
 

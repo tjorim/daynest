@@ -36,12 +36,12 @@ class DynamicBaseUrlInterceptorTest {
         val serverUrl = mockWebServer.url("/").toString()
         every { apiBaseUrlOverrideStore.currentOverrideBlocking() } returns serverUrl
 
-        val request = Request.Builder().url("https://original.example.com/api/v1/today").build()
+        val request = Request.Builder().url("https://original.example.com/api/today").build()
         client.newCall(request).execute().use { response ->
             assertEquals(200, response.code)
         }
         val recorded = mockWebServer.takeRequest()
-        assertEquals("/api/v1/today", recorded.path)
+        assertEquals("/api/today", recorded.path)
     }
 
     @Test
@@ -52,7 +52,7 @@ class DynamicBaseUrlInterceptorTest {
         val request = Request.Builder().url("https://original.example.com/v1/today").build()
         client.newCall(request).execute().close()
 
-        assertEquals("/api/v1/today", mockWebServer.takeRequest().path)
+        assertEquals("/api/today", mockWebServer.takeRequest().path)
     }
 
     @Test
@@ -60,10 +60,10 @@ class DynamicBaseUrlInterceptorTest {
         mockWebServer.enqueue(MockResponse().setResponseCode(200))
         every { apiBaseUrlOverrideStore.currentOverrideBlocking() } returns mockWebServer.url("/api/").toString()
 
-        val request = Request.Builder().url("https://original.example.com/api/v1/today").build()
+        val request = Request.Builder().url("https://original.example.com/api/today").build()
         client.newCall(request).execute().close()
 
-        assertEquals("/api/v1/today", mockWebServer.takeRequest().path)
+        assertEquals("/api/today", mockWebServer.takeRequest().path)
     }
 
     @Test
