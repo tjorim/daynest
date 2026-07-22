@@ -189,13 +189,13 @@ app.middleware("http")(observability_middleware)
 if settings.trusted_hosts:
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.trusted_hosts)
 
-if settings.cors_allow_origins:
-    wildcard = "*" in settings.cors_allow_origins
+if settings.cors_origins:
+    wildcard = "*" in settings.cors_origins
     # Wrap CORSMiddleware so it skips /mcp — fastmcp handles CORS for its own
     # OAuth .well-known routes and a second CORS layer causes 404s on those paths.
     app.add_middleware(
         _MCPAwareCORSMiddleware,
-        allow_origins=settings.cors_allow_origins,
+        allow_origins=settings.cors_origins,
         allow_credentials=not wildcard,
         allow_methods=["*"],
         allow_headers=["*"],

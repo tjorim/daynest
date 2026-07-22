@@ -62,7 +62,7 @@ Example:
 
 | Endpoint | Auth |
 |---|---|
-| `GET /api/v1/metrics` | `X-Metrics-Secret` header (HMAC-SHA256 constant-time comparison) |
+| `GET /api/v1/metrics` | `X-Metrics-Token` header: `<unix-timestamp>:<hex HMAC-SHA256 of timestamp>`, signed with `METRICS_HMAC_SECRET` |
 
 Returns a JSON snapshot of in-process counters:
 
@@ -81,7 +81,7 @@ Returns a JSON snapshot of in-process counters:
 - In a multi-worker deployment (multiple Uvicorn/Gunicorn workers) each process has independent counters — values are **not** aggregated across workers.
 - For production-grade aggregated metrics, export to Prometheus or another time-series system.
 
-The endpoint returns 403 if `METRICS_SECRET` is not set in the environment (fail-closed), or if the supplied secret does not match.
+The endpoint returns 404 if `METRICS_HMAC_SECRET` is not set in the environment (so it's invisible to scanners), or 403 if the token is missing, malformed, incorrectly signed, or more than 60 seconds old (rejecting stale/replayed tokens).
 
 ---
 

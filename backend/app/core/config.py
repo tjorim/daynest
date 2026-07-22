@@ -49,10 +49,10 @@ class AppSettings(BaseSettings):
     upcoming_horizon_days: int = 7
     medication_missed_grace_minutes: int = 30
 
-    cors_allow_origins: Annotated[list[str], NoDecode] = Field(default_factory=list)
+    cors_origins: Annotated[list[str], NoDecode] = Field(default_factory=list)
     trusted_hosts: Annotated[list[str], NoDecode] = Field(default_factory=lambda: ["localhost", "127.0.0.1"])
 
-    metrics_secret: str | None = None
+    metrics_hmac_secret: str | None = None
     integration_key_hash_secret: str | None = None
     integration_key_hash_secret_file: str | None = None
 
@@ -78,7 +78,7 @@ class AppSettings(BaseSettings):
     vapid_public_key: str | None = None
     vapid_claims_email: str | None = None
 
-    @field_validator("cors_allow_origins", "trusted_hosts", mode="before")
+    @field_validator("cors_origins", "trusted_hosts", mode="before")
     @classmethod
     def _split_csv_lists(cls, value: str | list[str]) -> list[str]:
         if isinstance(value, str):
