@@ -101,6 +101,8 @@ class AppSettings(BaseSettings):
             raise ValueError(
                 "INTEGRATION_KEY_HASH_SECRET or INTEGRATION_KEY_HASH_SECRET_FILE must be set in non-dev environments"
             )
+        if self.trusted_hosts == ["localhost", "127.0.0.1"] and self.environment != "dev":
+            raise ValueError("TRUSTED_HOSTS must be set in non-dev environments")
         return self
 
     @property

@@ -26,11 +26,12 @@ artifact is built or published if any check fails.
 
 ---
 
-## [Unreleased]
+## [0.1.10] - 2026-07-22
 
 ### Added
 - **Backend:** growth-module migration CI now validates shopping lists, recurring groceries, meal planning, and calendar subscription schema after upgrading to Alembic head.
 - **MCP:** `GET /api/mcp/capabilities` advertises the mounted MCP server, tools, resources, and prompts, including growth-module shopping and meal planning tools.
+- **Backend:** per-client-IP rate limiting on every public REST API route (health probes exempt), configurable via `RATE_LIMIT_ENABLED`/`RATE_LIMIT_DEFAULT` (#670).
 
 ## [0.1.9] - 2026-05-31
 

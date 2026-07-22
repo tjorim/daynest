@@ -64,27 +64,10 @@ jobs:
           fi
           echo "✓ manifest.json requirements pin: python-daynest==${FILE_VERSION}"
 
-      - name: Check android/app/build.gradle.kts versionName
-        run: |
-          set -euo pipefail
-          FILE_VERSION=$(grep -oP 'versionName\s*=\s*"\K[^"]+' android/app/build.gradle.kts)
-          if [[ "${FILE_VERSION}" != "${VERSION}" ]]; then
-            echo "::error::android/app/build.gradle.kts versionName '${FILE_VERSION}' does not match tag '${VERSION}'"
-            exit 1
-          fi
-          echo "✓ android/app/build.gradle.kts versionName: ${FILE_VERSION}"
-
-      - name: Check android/app/build.gradle.kts versionCode
-        run: |
-          set -euo pipefail
-          IFS='.' read -r MAJOR MINOR PATCH <<< "${VERSION}"
-          EXPECTED_CODE=$(( MAJOR * 1000000 + MINOR * 1000 + PATCH ))
-          ACTUAL_CODE=$(grep -oP 'versionCode\s*=\s*\K[0-9]+' android/app/build.gradle.kts)
-          if [[ "${ACTUAL_CODE}" != "${EXPECTED_CODE}" ]]; then
-            echo "::error::android versionCode '${ACTUAL_CODE}' does not match expected ${EXPECTED_CODE} (MAJOR×1000000 + MINOR×1000 + PATCH for v${VERSION})"
-            exit 1
-          fi
-          echo "✓ android/app/build.gradle.kts versionCode: ${ACTUAL_CODE}"
+      # android/app/build.gradle.kts versionName/versionCode are no longer
+      # hand-maintained literals — both are computed from frontend/package.json's
+      # version at build time (see versionCodeFor()), which is checked below,
+      # so there's nothing left here that could independently drift.
 
       - name: Check frontend/package.json
         run: |
