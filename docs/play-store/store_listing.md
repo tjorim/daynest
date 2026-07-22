@@ -30,6 +30,6 @@
 
   Daynest brings the small, recurring tasks of daily life - medication, meals, chores and your calendar - into a single, organised app.
 
-- **App icon (512x512 PNG):** not produced — no image-generation tool available in this environment; supply your own or export from `android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml`.
-- **Feature graphic (1024x500 PNG/JPEG):** not produced — needs a real design asset.
+- **App icon (512x512 PNG):** `icon-512.png` — matches the Android adaptive icon / PWA icon (blue `#0d6efd` background, white "P" mark, light-blue accent dot).
+- **Feature graphic (1024x500 PNG/JPEG):** `feature-graphic-1024x500.png` — same brand mark on a blue gradient with the "Daynest" wordmark and a short tagline.
 - **Phone / 7-inch tablet / 10-inch tablet screenshots:** not produced — capturing these requires running the app on a device or emulator with a display, which isn't available on this headless host.
