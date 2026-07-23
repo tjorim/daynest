@@ -148,7 +148,7 @@ extensions.configure<ApplicationExtension> {
 
     defaultConfig {
         applicationId = "im.tjor.daynest"
-        minSdk = 26
+        minSdk = 30
         targetSdk = 37
         // versionCode = MAJOR * 1000000 + MINOR * 1000 + PATCH (e.g. v1.2.3 → 1002003)
         versionCode = versionCodeFor(appVersion)
