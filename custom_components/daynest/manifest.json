@@ -11,5 +11,5 @@
   "issue_tracker": "https://github.com/tjorim/daynest/issues",
   "homeassistant": "2024.4.0",
   "requirements": ["python-daynest==0.1.11"],
-  "version": "0.1.11"
+  "version": "2026.7.1"
 }

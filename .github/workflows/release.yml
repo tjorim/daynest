@@ -16,24 +16,38 @@ jobs:
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
-      - name: Validate SemVer tag
+      - name: Validate release tag format
         run: |
           set -euo pipefail
+          # App version is CalVer YYYY.MM.MICRO (see issue #673) but that's
+          # still a strict 3-part X.Y.Z, so the tag pattern itself is unchanged.
           if [[ ! "${GITHUB_REF_NAME}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "::error::Tag '${GITHUB_REF_NAME}' is not a strict SemVer release tag (expected format: v1.2.3)"
+            echo "::error::Tag '${GITHUB_REF_NAME}' is not a strict X.Y.Z release tag (expected format: v2026.7.1)"
             exit 1
           fi
           echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
 
-      - name: Check python-daynest/pyproject.toml
+      - name: Check VERSION file
         run: |
           set -euo pipefail
-          FILE_VERSION=$(grep -oP '^version\s*=\s*"\K[^"]+' python-daynest/pyproject.toml)
+          FILE_VERSION=$(<VERSION)
           if [[ "${FILE_VERSION}" != "${VERSION}" ]]; then
-            echo "::error::python-daynest/pyproject.toml version '${FILE_VERSION}' does not match tag '${VERSION}'"
+            echo "::error::VERSION file '${FILE_VERSION}' does not match tag '${VERSION}'"
             exit 1
           fi
-          echo "✓ python-daynest/pyproject.toml: ${FILE_VERSION}"
+          echo "✓ VERSION: ${FILE_VERSION}"
+
+      - name: Read python-daynest/pyproject.toml version
+        # python-daynest keeps its own independent SemVer version — it is
+        # NOT expected to match the app's CalVer tag (see issue #673). This
+        # just captures it for the requirements-pin cross-check below; the
+        # lib job separately skips publishing if this version is already
+        # on PyPI.
+        run: |
+          set -euo pipefail
+          LIB_VERSION=$(grep -oP '^version\s*=\s*"\K[^"]+' python-daynest/pyproject.toml)
+          echo "LIB_VERSION=${LIB_VERSION}" >> "$GITHUB_ENV"
+          echo "✓ python-daynest/pyproject.toml: ${LIB_VERSION}"
 
       - name: Check custom_components/daynest/manifest.json version
         run: |
@@ -58,15 +72,17 @@ jobs:
               sys.exit(1)
           print(m.group(1))
           ")
-          if [[ "${FILE_VERSION}" != "${VERSION}" ]]; then
-            echo "::error::manifest.json python-daynest requirement pin '${FILE_VERSION}' does not match tag '${VERSION}'"
+          # Checked against python-daynest's own version, not the app tag —
+          # the two are independently versioned (see issue #673).
+          if [[ "${FILE_VERSION}" != "${LIB_VERSION}" ]]; then
+            echo "::error::manifest.json python-daynest requirement pin '${FILE_VERSION}' does not match python-daynest/pyproject.toml's version '${LIB_VERSION}'"
             exit 1
           fi
           echo "✓ manifest.json requirements pin: python-daynest==${FILE_VERSION}"
 
       # android/app/build.gradle.kts versionName/versionCode are no longer
-      # hand-maintained literals — both are computed from frontend/package.json's
-      # version at build time (see versionCodeFor()), which is checked below,
+      # hand-maintained literals — both are computed from the root VERSION
+      # file at build time (see versionCodeFor()), which is checked above,
       # so there's nothing left here that could independently drift.
 
       - name: Check frontend/package.json
@@ -138,7 +154,24 @@ jobs:
       - name: Build
         run: uv build
 
+      - name: Check if this version is already on PyPI
+        # python-daynest releases independently of the app (see issue #673),
+        # so most app tags won't have bumped its version. Skip rather than
+        # fail — `uv publish` would otherwise error on a duplicate version.
+        id: check-published
+        run: |
+          set -euo pipefail
+          LIB_VERSION=$(grep -oP '^version\s*=\s*"\K[^"]+' pyproject.toml)
+          HTTP_STATUS=$(curl -s -o /dev/null -w '%{http_code}' "https://pypi.org/pypi/python-daynest/${LIB_VERSION}/json")
+          if [[ "${HTTP_STATUS}" == "200" ]]; then
+            echo "already_published=true" >> "$GITHUB_OUTPUT"
+            echo "python-daynest ${LIB_VERSION} is already on PyPI; skipping publish."
+          else
+            echo "already_published=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Publish to PyPI
+        if: steps.check-published.outputs.already_published == 'false'
         run: uv publish --trusted-publishing always
 
   hacs:
