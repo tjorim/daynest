@@ -46,6 +46,13 @@ class AppSettings(BaseSettings):
     oidc_jwks_uri: str | None = None
     oidc_algorithms: str = "RS256"
 
+    # Local-dev-only shortcut that skips real OIDC/JWKS verification entirely
+    # -- no Keycloak/IdP container needed. When set, a request bearing this
+    # exact string as its Bearer token is treated as a fixed dev user (see
+    # oidc._DEV_BYPASS_CLAIMS). Empty by default; _validate_secrets() refuses
+    # to start if this is ever set outside environment == "dev".
+    dev_auth_bypass_token: str | None = None
+
     upcoming_horizon_days: int = 7
     medication_missed_grace_minutes: int = 30
 
@@ -103,6 +110,8 @@ class AppSettings(BaseSettings):
             )
         if self.trusted_hosts == ["localhost", "127.0.0.1"] and self.environment != "dev":
             raise ValueError("TRUSTED_HOSTS must be set in non-dev environments")
+        if self.dev_auth_bypass_token and self.environment != "dev":
+            raise ValueError("DEV_AUTH_BYPASS_TOKEN must not be set outside environment=dev")
         return self
 
     @property

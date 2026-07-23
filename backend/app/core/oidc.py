@@ -17,6 +17,7 @@ Realm roles are extracted from the ``realm_access.roles`` JWT claim.
 from __future__ import annotations
 
 import asyncio
+import hmac
 import logging
 from typing import Any
 
@@ -37,6 +38,19 @@ _OIDC_AUDIENCE: str | None = settings.oidc_audience or None
 _OIDC_ISSUER: str | None = settings.oidc_issuer_url or None
 
 _http_client = httpx.AsyncClient(timeout=10)
+
+# Fixed claims returned for DEV_AUTH_BYPASS_TOKEN (see decode_oidc_token
+# below) — shaped like a real Keycloak-issued token so downstream code
+# (username derivation, realm role extraction) needs no bypass-specific
+# handling.
+_DEV_BYPASS_CLAIMS: dict[str, Any] = {
+    "sub": "dev-bypass-user",
+    "preferred_username": "devuser",
+    "name": "Dev User",
+    "email": "dev@localhost",
+    "email_verified": True,
+    "realm_access": {"roles": ["admin"]},
+}
 
 
 class OIDCTokenError(Exception):
@@ -123,6 +137,9 @@ async def decode_oidc_token(token: str) -> dict[str, Any]:
 
     Tries cached JWKS first; refreshes once on key-not-found to handle key rotation.
     """
+    if settings.dev_auth_bypass_token and hmac.compare_digest(token, settings.dev_auth_bypass_token):
+        return dict(_DEV_BYPASS_CLAIMS)
+
     options: Any = {
         "verify_aud": _OIDC_AUDIENCE is not None,
         "verify_iss": _OIDC_ISSUER is not None,
