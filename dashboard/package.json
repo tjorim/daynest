@@ -1,6 +1,6 @@
 {
   "name": "daynest-card",
-  "version": "2026.7.1",
+  "version": "2026.7.2",
   "type": "module",
   "scripts": {
     "build": "rollup -c rollup.config.mjs",

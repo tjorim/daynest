@@ -39,6 +39,13 @@ bump on every app release.
 
 ---
 
+## [2026.7.2] - 2026-07-24
+
+### Removed
+- **Android:** the Wear OS companion module (`:wear`) has been removed — tile, complication,
+  and quick-action due list activity all deleted, along with its DI modules, local Room cache,
+  and CI checks. Superseded by a planned Pebble (Alloy) companion app (#676).
+
 ## [2026.7.1] - 2026-07-22
 
 ### Changed
