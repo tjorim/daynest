@@ -1,0 +1,28 @@
+{
+  "name": "daynest-pebble",
+  "author": "tjorim",
+  "version": "0.1.0",
+  "keywords": ["pebble-app"],
+  "private": true,
+  "dependencies": {
+    "@moddable/pebbleproxy": "^0.1.0"
+  },
+  "pebble": {
+    "displayName": "Daynest",
+    "uuid": "f31cdd67-ec60-4220-9508-7316ba0f1dd7",
+    "projectType": "moddable",
+    "sdkVersion": "3",
+    "enableMultiJS": true,
+    "targetPlatforms": [
+      "emery",
+      "gabbro"
+    ],
+    "watchapp": {
+      "watchface": false
+    },
+    "messageKeys": {},
+    "resources": {
+      "media": []
+    }
+  }
+}
