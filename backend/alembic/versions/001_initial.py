@@ -1,31 +1,4 @@
-"""initial schema — squashed, all tables at final cumulative state
-
-IMPORTANT — PRODUCTION DEPLOYMENT NOTE
-=======================================
-This migration replaces the entire previous migration chain (formerly 19
-files, revisions 20260423_0001 through 20260607_0015 / 20260606_0016) with a
-single migration that reproduces the exact same end-state schema. No schema
-changes are introduced by this squash — it is a pure bookkeeping change.
-
-The production database has already run the full original chain, so its
-`alembic_version` table is stamped at the old final revision (20260606_0016).
-Since this squash changes revision IDs, production must NOT run a normal
-`alembic upgrade head` against this revision. Instead, a human must run:
-
-    alembic stamp 001
-
-against production *after* this PR is reviewed, to re-point `alembic_version`
-at the new sole revision without touching the (unchanged) schema. Running
-`alembic upgrade head` on a database that already has this schema, without
-stamping first, will fail because the tables/types already exist.
-
-Excluded from the squash: the data-backfill statements in the old
-20260525_0010 migration (which populated `recurrence_series` from existing
-`planned_items` rows, and nulled out orphaned `recurrence_series_id` values)
-were dropped — they are no-ops on a fresh/empty database. The DDL from that
-migration (the `recurrence_series` table itself, plus the FK and unique
-constraint it added to `planned_items`) is fully preserved below, inlined
-into the relevant `CREATE TABLE` blocks.
+"""Initial schema — all tables at final cumulative state, including households, shopping lists, and meal planning.
 
 Revision ID: 001
 Revises:
