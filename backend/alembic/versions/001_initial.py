@@ -12,7 +12,7 @@ The production database has already run the full original chain, so its
 Since this squash changes revision IDs, production must NOT run a normal
 `alembic upgrade head` against this revision. Instead, a human must run:
 
-    alembic stamp 20260423_0001
+    alembic stamp 001
 
 against production *after* this PR is reviewed, to re-point `alembic_version`
 at the new sole revision without touching the (unchanged) schema. Running
@@ -27,7 +27,7 @@ migration (the `recurrence_series` table itself, plus the FK and unique
 constraint it added to `planned_items`) is fully preserved below, inlined
 into the relevant `CREATE TABLE` blocks.
 
-Revision ID: 20260423_0001
+Revision ID: 001
 Revises:
 Create Date: 2026-04-23 00:00:00.000000
 """
@@ -37,7 +37,7 @@ from typing import Sequence
 from alembic import op
 import sqlalchemy as sa
 
-revision: str = "20260423_0001"
+revision: str = "001"
 down_revision: str | None = None
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
