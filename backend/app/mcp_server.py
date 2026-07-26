@@ -6,7 +6,7 @@ import os
 import sys
 from collections.abc import Callable
 from contextlib import contextmanager
-from datetime import date, datetime, time
+from datetime import UTC, date, datetime, time
 from secrets import token_urlsafe
 from typing import Any, Literal, TypeVar, cast
 
@@ -31,13 +31,19 @@ from app.core.oidc import get_or_create_local_user
 from app.db.session import SessionLocal
 from app.models.integration_client import IntegrationClient
 from app.models.user import User
-from app.repositories.analytics_repository import get_scheduling_suggestions as build_scheduling_suggestions
+from app.repositories.analytics_repository import (
+    get_scheduling_suggestions as build_scheduling_suggestions,
+)
 from app.repositories.meal_plan_repository import MealPlanRepository
 from app.repositories.shopping_list_repository import ShoppingListRepository
 from app.repositories.today_repository import TodayRepository
 from app.schemas.meal_plan import MealSlotUpdate
 from app.schemas.shopping_list import ShoppingListCreateRequest, ShoppingListStatus
-from app.schemas.today import PlannedItemCreateRequest, PlannedItemModuleKey, PlannedItemUpdateRequest
+from app.schemas.today import (
+    PlannedItemCreateRequest,
+    PlannedItemModuleKey,
+    PlannedItemUpdateRequest,
+)
 from app.services.meal_plan_service import MealPlanService
 from app.services.shopping_list_service import ShoppingListService
 from app.services.today_service import TodayService
@@ -109,7 +115,7 @@ T = TypeVar("T")
 
 def _parse_date(value: str | None) -> date:
     if not value or value == "today":
-        return date.today()
+        return datetime.now(UTC).date()
     try:
         return date.fromisoformat(value)
     except ValueError:
@@ -121,7 +127,7 @@ def _parse_time(value: str | None) -> time | None:
         return None
     for fmt in ("%H:%M", "%H:%M:%S"):
         try:
-            return datetime.strptime(value, fmt).time()
+            return datetime.strptime(value, fmt).replace(tzinfo=UTC).time()
         except ValueError:
             continue
     raise ValueError(f"Invalid time '{value}'. Expected HH:MM or HH:MM:SS format.")
@@ -746,7 +752,7 @@ class DaynestMcpBackend:
                     }
                     for item in service.repository.get_medication_history(
                         user_id=user.id,
-                        before_date=datetime.now().date(),
+                        before_date=datetime.now(UTC).date(),
                         limit=capped_limit,
                         medication_plan_id=medication_plan_id,
                     )
@@ -762,7 +768,7 @@ class DaynestMcpBackend:
         return self._with_service(_operation)
 
     def get_scheduling_suggestions(self, for_date: str | None = None) -> dict[str, Any]:
-        parsed_date = _parse_date(for_date) if for_date else date.today()
+        parsed_date = _parse_date(for_date) if for_date else datetime.now(UTC).date()
         with self._session_scope() as db:
             user = self.resolve_user(db)
             suggestions = build_scheduling_suggestions(db, user.id, parsed_date)

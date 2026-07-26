@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from secrets import token_urlsafe
 
 import jwt
@@ -7,7 +7,10 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.dependencies.auth import get_current_user
-from app.api.dependencies.integration_auth import get_integration_client_by_token_hash, hash_integration_key
+from app.api.dependencies.integration_auth import (
+    get_integration_client_by_token_hash,
+    hash_integration_key,
+)
 from app.core.config import settings
 from app.db.session import get_db
 from app.models.integration_client import IntegrationClient
@@ -26,7 +29,7 @@ _INTEGRATION_JWT_ISSUER = "daynest-integration"
 
 
 def _create_integration_token(client: IntegrationClient) -> str:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     payload = {
         "iss": _INTEGRATION_JWT_ISSUER,
         "sub": str(client.id),

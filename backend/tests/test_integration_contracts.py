@@ -1,20 +1,20 @@
-from datetime import date
+from datetime import UTC, datetime
 
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from app.api.dependencies.integration_auth import hash_integration_key
+from app.core.enums import ChoreStatus
+from app.models.chore_instance import ChoreInstance
+from app.models.chore_template import ChoreTemplate
+from app.models.integration_client import IntegrationClient
+from app.models.user import User
 from app.schemas.integration_contracts import (
     HOME_ASSISTANT_ADAPTER,
     HOME_ASSISTANT_CONTRACT_VERSION,
     INTEGRATION_CONTRACT_HEADER,
     integration_contract_header,
 )
-from app.core.enums import ChoreStatus
-from app.models.chore_instance import ChoreInstance
-from app.models.chore_template import ChoreTemplate
-from app.models.integration_client import IntegrationClient
-from app.models.user import User
 
 
 def _create_user(db_session: Session, email: str) -> User:
@@ -43,7 +43,7 @@ def _setup_contract_chore(db_session: Session, user: User, name: str) -> None:
         user_id=user.id,
         name=name,
         description=None,
-        start_date=date.today(),
+        start_date=datetime.now(UTC).date(),
         every_n_days=1,
         is_active=True,
     )
@@ -56,7 +56,7 @@ def _setup_contract_chore(db_session: Session, user: User, name: str) -> None:
             user_id=user.id,
             chore_template_id=template.id,
             title=name,
-            scheduled_date=date.today(),
+            scheduled_date=datetime.now(UTC).date(),
             status=ChoreStatus.pending,
         )
     )
@@ -141,7 +141,7 @@ def test_home_assistant_contract_calendar_shape(client: TestClient, db_session: 
     _setup_contract_chore(db_session, user, "Calendar Contract Chore")
 
     key = _create_integration_key(db_session, user.id)
-    today = date.today()
+    today = datetime.now(UTC).date()
     response = client.get(
         "/api/integrations/home-assistant/calendar",
         params={"start": today.isoformat(), "end": today.isoformat()},

@@ -66,7 +66,7 @@ _jwks_cache: PyJWKSet | None = None
 
 async def _resolve_jwks_uri() -> str:
     """Return the JWKS URI, discovering it from the OIDC configuration document."""
-    global _jwks_uri_cache  # noqa: PLW0603
+    global _jwks_uri_cache
     if settings.oidc_jwks_uri:
         return settings.oidc_jwks_uri
     async with _jwks_uri_lock:
@@ -116,7 +116,7 @@ async def _fetch_jwks() -> PyJWKSet:
 
 
 async def _get_jwks(*, force_refresh: bool = False) -> PyJWKSet:
-    global _jwks_cache  # noqa: PLW0603
+    global _jwks_cache
     async with _jwks_lock:
         if _jwks_cache is None or force_refresh:
             _jwks_cache = await _fetch_jwks()
@@ -178,7 +178,7 @@ async def decode_oidc_token(token: str) -> dict[str, Any]:
     raise OIDCTokenError("Token validation failed after JWKS refresh")
 
 
-def get_or_create_local_user(subject: str, claims: dict[str, Any], db: Session) -> "Any":
+def get_or_create_local_user(subject: str, claims: dict[str, Any], db: Session) -> Any:
     """Return the local user for an OIDC subject, auto-provisioning when missing.
 
     Migration path: on first OIDC login, links existing local users by email so

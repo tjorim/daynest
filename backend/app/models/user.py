@@ -14,9 +14,9 @@ if TYPE_CHECKING:
     from app.models.chore_template import ChoreTemplate
     from app.models.household_member import HouseholdMember
     from app.models.integration_client import IntegrationClient
+    from app.models.meal_plan import MealPlan
     from app.models.medication_dose_instance import MedicationDoseInstance
     from app.models.medication_plan import MedicationPlan
-    from app.models.meal_plan import MealPlan
     from app.models.planned_item import PlannedItem
     from app.models.push_subscription import PushSubscription
     from app.models.recurrence_series import RecurrenceSeries
@@ -62,36 +62,36 @@ class User(Base):
     calendar_feed_token: Mapped[str | None] = mapped_column(String(64), nullable=True, unique=True, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
-    routine_templates: Mapped[list["RoutineTemplate"]] = relationship(back_populates="user", cascade="all, delete-orphan")
-    task_instances: Mapped[list["TaskInstance"]] = relationship(back_populates="user", cascade="all, delete-orphan")
-    chore_templates: Mapped[list["ChoreTemplate"]] = relationship(back_populates="user", cascade="all, delete-orphan")
-    chore_instances: Mapped[list["ChoreInstance"]] = relationship(
+    routine_templates: Mapped[list[RoutineTemplate]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    task_instances: Mapped[list[TaskInstance]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    chore_templates: Mapped[list[ChoreTemplate]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    chore_instances: Mapped[list[ChoreInstance]] = relationship(
         back_populates="user",
         cascade="all, delete-orphan",
         foreign_keys="[ChoreInstance.user_id]",
     )
-    medication_plans: Mapped[list["MedicationPlan"]] = relationship(back_populates="user", cascade="all, delete-orphan")
-    meal_plans: Mapped[list["MealPlan"]] = relationship(back_populates="user", cascade="all, delete-orphan")
-    medication_dose_instances: Mapped[list["MedicationDoseInstance"]] = relationship(
+    medication_plans: Mapped[list[MedicationPlan]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    meal_plans: Mapped[list[MealPlan]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    medication_dose_instances: Mapped[list[MedicationDoseInstance]] = relationship(
         back_populates="user",
         cascade="all, delete-orphan",
     )
-    planned_items: Mapped[list["PlannedItem"]] = relationship(back_populates="user", cascade="all, delete-orphan")
-    shopping_lists: Mapped[list["ShoppingList"]] = relationship(back_populates="user", cascade="all, delete-orphan")
-    recurrence_series: Mapped[list["RecurrenceSeries"]] = relationship(back_populates="user", cascade="all, delete-orphan")
-    integration_clients: Mapped[list["IntegrationClient"]] = relationship(
+    planned_items: Mapped[list[PlannedItem]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    shopping_lists: Mapped[list[ShoppingList]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    recurrence_series: Mapped[list[RecurrenceSeries]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    integration_clients: Mapped[list[IntegrationClient]] = relationship(
         back_populates="user",
         cascade="all, delete-orphan",
     )
-    refresh_tokens: Mapped[list["RefreshToken"]] = relationship(
+    refresh_tokens: Mapped[list[RefreshToken]] = relationship(
         back_populates="user",
         cascade="all, delete-orphan",
     )
-    push_subscriptions: Mapped[list["PushSubscription"]] = relationship(
+    push_subscriptions: Mapped[list[PushSubscription]] = relationship(
         back_populates="user",
         cascade="all, delete-orphan",
     )
-    household_members: Mapped[list["HouseholdMember"]] = relationship(
+    household_members: Mapped[list[HouseholdMember]] = relationship(
         back_populates="user",
         cascade="all, delete-orphan",
     )

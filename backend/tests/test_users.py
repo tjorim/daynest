@@ -1,6 +1,6 @@
 """Tests for user account settings and deletion endpoints."""
 
-from datetime import date, time
+from datetime import UTC, datetime, time
 
 import pytest
 from fastapi.testclient import TestClient
@@ -42,7 +42,7 @@ def clear_auth_override():
 
 def test_delete_current_user_removes_personal_data(client: TestClient, db_session: Session) -> None:
     user = _create_user(db_session, "delete-me@example.com")
-    plan = MedicationPlan(user_id=user.id, name="Vitamin D", instructions="Take daily", start_date=date.today(), schedule_time=time(8, 0))
+    plan = MedicationPlan(user_id=user.id, name="Vitamin D", instructions="Take daily", start_date=datetime.now(UTC).date(), schedule_time=time(8, 0))
     db_session.add(plan)
     db_session.commit()
     _auth_as(user)
@@ -69,7 +69,7 @@ def test_delete_current_user_blocks_household_shared_chores(client: TestClient, 
             user_id=owner.id,
             household_id=household.id,
             name="Shared dishes",
-            start_date=date.today(),
+            start_date=datetime.now(UTC).date(),
             every_n_days=1,
         )
     )

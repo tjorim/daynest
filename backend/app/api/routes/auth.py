@@ -10,7 +10,12 @@ from app.api.dependencies.auth import bearer_scheme, get_current_user
 from app.core.config import settings
 from app.db.session import get_db
 from app.models.user import User
-from app.schemas.auth import OAuthSessionResponse, OidcDiscoveryConfig, UserMeResponse, UserUpdateRequest
+from app.schemas.auth import (
+    OAuthSessionResponse,
+    OidcDiscoveryConfig,
+    UserMeResponse,
+    UserUpdateRequest,
+)
 
 logger = logging.getLogger(__name__)
 

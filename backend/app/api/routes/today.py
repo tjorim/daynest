@@ -1,12 +1,15 @@
 import asyncio
 import json
-from datetime import date
+from datetime import UTC, date, datetime
 from typing import Literal, cast
 
 from fastapi import APIRouter, Depends, Query, Request, Response, status
 from sse_starlette import EventSourceResponse
 
-from app.api.dependencies.auth import get_current_user, get_current_user_from_query_token
+from app.api.dependencies.auth import (
+    get_current_user,
+    get_current_user_from_query_token,
+)
 from app.api.dependencies.events import get_event_bus
 from app.api.dependencies.today import get_today_service
 from app.models.user import User
@@ -33,7 +36,7 @@ def get_today(
     service: TodayService = Depends(get_today_service),
     current_user: User = Depends(get_current_user),
 ) -> TodayResponse:
-    return service.get_today(user_id=current_user.id, for_date=date.today())
+    return service.get_today(user_id=current_user.id, for_date=datetime.now(UTC).date())
 
 
 @router.get("/today/stream")

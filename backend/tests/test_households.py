@@ -1,16 +1,16 @@
 """Tests for household/shared mode API endpoints."""
 
-from datetime import date
+from datetime import UTC, datetime
 
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from app.api.dependencies.auth import get_current_user
+from app.core.enums import HouseholdMemberRole
 from app.main import app
 from app.models.chore_instance import ChoreInstance
 from app.models.user import User
-from app.core.enums import HouseholdMemberRole
 
 
 def _create_user(db_session: Session, email: str) -> User:
@@ -242,7 +242,7 @@ def test_create_household_chore_template(client: TestClient, db_session: Session
         "/api/templates/chores",
         json={
             "name": "Vacuum Living Room",
-            "start_date": str(date.today()),
+            "start_date": str(datetime.now(UTC).date()),
             "every_n_days": 7,
             "household_id": household_id,
         },
@@ -265,7 +265,7 @@ def test_create_household_chore_template_non_member_forbidden(client: TestClient
         "/api/templates/chores",
         json={
             "name": "Vacuum",
-            "start_date": str(date.today()),
+            "start_date": str(datetime.now(UTC).date()),
             "every_n_days": 7,
             "household_id": household_id,
         },
@@ -287,7 +287,7 @@ def test_member_can_see_household_chore_templates(client: TestClient, db_session
         "/api/templates/chores",
         json={
             "name": "Shared Chore",
-            "start_date": str(date.today()),
+            "start_date": str(datetime.now(UTC).date()),
             "every_n_days": 1,
             "household_id": household_id,
         },
@@ -313,7 +313,7 @@ def test_member_cannot_update_household_chore_template(client: TestClient, db_se
         "/api/templates/chores",
         json={
             "name": "Shared Chore",
-            "start_date": str(date.today()),
+            "start_date": str(datetime.now(UTC).date()),
             "every_n_days": 1,
             "household_id": household_id,
         },
@@ -324,7 +324,7 @@ def test_member_cannot_update_household_chore_template(client: TestClient, db_se
         f"/api/templates/chores/{created_template['id']}",
         json={
             "name": "Renamed Chore",
-            "start_date": str(date.today()),
+            "start_date": str(datetime.now(UTC).date()),
             "every_n_days": 1,
             "household_id": household_id,
         },
@@ -345,7 +345,7 @@ def test_member_cannot_delete_household_chore_template(client: TestClient, db_se
         "/api/templates/chores",
         json={
             "name": "Shared Chore",
-            "start_date": str(date.today()),
+            "start_date": str(datetime.now(UTC).date()),
             "every_n_days": 1,
             "household_id": household_id,
         },
@@ -374,7 +374,7 @@ def test_assign_chore(client: TestClient, db_session: Session) -> None:
         "/api/templates/chores",
         json={
             "name": "Wash Dishes",
-            "start_date": str(date.today()),
+            "start_date": str(datetime.now(UTC).date()),
             "every_n_days": 1,
             "household_id": household_id,
         },
@@ -411,7 +411,7 @@ def test_assign_household_chore_rejects_non_member(client: TestClient, db_sessio
         "/api/templates/chores",
         json={
             "name": "Wash Dishes",
-            "start_date": str(date.today()),
+            "start_date": str(datetime.now(UTC).date()),
             "every_n_days": 1,
             "household_id": household_id,
         },
@@ -436,7 +436,7 @@ def test_assign_personal_chore_rejects_other_user(client: TestClient, db_session
         "/api/templates/chores",
         json={
             "name": "Personal Chore",
-            "start_date": str(date.today()),
+            "start_date": str(datetime.now(UTC).date()),
             "every_n_days": 1,
         },
     )
@@ -464,7 +464,7 @@ def test_complete_chore_sets_completed_by(client: TestClient, db_session: Sessio
         "/api/templates/chores",
         json={
             "name": "Clean Kitchen",
-            "start_date": str(date.today()),
+            "start_date": str(datetime.now(UTC).date()),
             "every_n_days": 1,
             "household_id": household_id,
         },

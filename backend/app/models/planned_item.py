@@ -5,7 +5,17 @@ from typing import TYPE_CHECKING
 from uuid import UUID
 
 import sqlalchemy as sa
-from sqlalchemy import Boolean, Date, DateTime, ForeignKey, JSON, String, Text, UniqueConstraint, func
+from sqlalchemy import (
+    JSON,
+    Boolean,
+    Date,
+    DateTime,
+    ForeignKey,
+    String,
+    Text,
+    UniqueConstraint,
+    func,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.enums import Priority
@@ -50,5 +60,5 @@ class PlannedItem(Base):
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
-    user: Mapped["User"] = relationship(back_populates="planned_items")
-    recurrence_series: Mapped["RecurrenceSeries | None"] = relationship(back_populates="planned_items")
+    user: Mapped[User] = relationship(back_populates="planned_items")
+    recurrence_series: Mapped[RecurrenceSeries | None] = relationship(back_populates="planned_items")

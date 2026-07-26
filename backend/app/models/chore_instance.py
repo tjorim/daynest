@@ -39,7 +39,7 @@ class ChoreInstance(Base):
     skipped_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
-    user: Mapped["User"] = relationship(back_populates="chore_instances", foreign_keys="[ChoreInstance.user_id]")
-    assigned_to_user: Mapped["User | None"] = relationship(foreign_keys="[ChoreInstance.assigned_to]")
-    completed_by_user: Mapped["User | None"] = relationship(foreign_keys="[ChoreInstance.completed_by]")
-    chore_template: Mapped["ChoreTemplate"] = relationship(back_populates="chore_instances")
+    user: Mapped[User] = relationship(back_populates="chore_instances", foreign_keys="[ChoreInstance.user_id]")
+    assigned_to_user: Mapped[User | None] = relationship(foreign_keys="[ChoreInstance.assigned_to]")
+    completed_by_user: Mapped[User | None] = relationship(foreign_keys="[ChoreInstance.completed_by]")
+    chore_template: Mapped[ChoreTemplate] = relationship(back_populates="chore_instances")

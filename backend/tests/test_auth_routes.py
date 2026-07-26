@@ -11,13 +11,15 @@ from fastapi import HTTPException, Request
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from app.api.dependencies.auth import get_current_user, get_current_user_from_query_token
+from app.api.dependencies.auth import (
+    get_current_user,
+    get_current_user_from_query_token,
+)
 from app.api.routes import auth as auth_routes
 from app.core.config import settings
 from app.core.oidc import get_or_create_local_user
 from app.main import app
 from app.models.user import User
-
 
 # ---------------------------------------------------------------------------
 # Helpers

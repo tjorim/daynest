@@ -4,7 +4,18 @@ from datetime import date, datetime, time
 from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
-from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Integer, String, Text, Time, UniqueConstraint, func
+from sqlalchemy import (
+    Boolean,
+    Date,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    Time,
+    UniqueConstraint,
+    func,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -28,8 +39,8 @@ class MedicationPlan(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default=sa.text("true"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
-    user: Mapped["User"] = relationship(back_populates="medication_plans")
-    dose_instances: Mapped[list["MedicationDoseInstance"]] = relationship(
+    user: Mapped[User] = relationship(back_populates="medication_plans")
+    dose_instances: Mapped[list[MedicationDoseInstance]] = relationship(
         back_populates="medication_plan",
         cascade="all, delete-orphan",
     )

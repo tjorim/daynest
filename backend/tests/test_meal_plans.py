@@ -10,9 +10,9 @@ from sqlalchemy.orm import Session
 from app.api.dependencies.auth import get_current_user
 from app.main import app
 from app.models.planned_item import PlannedItem
-from app.schemas.meal_plan import MealPlanCreate
 from app.models.user import User
 from app.repositories.meal_plan_repository import MealPlanRepository
+from app.schemas.meal_plan import MealPlanCreate
 from app.services.meal_plan_service import MealPlanService
 
 
