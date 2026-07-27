@@ -2,16 +2,16 @@
 
 from __future__ import annotations
 
-import logging
-import json
-import inspect
 import asyncio
 import copy
+import inspect
+import json
+import logging
 import time
 import weakref
 from collections.abc import Awaitable, Callable, Mapping
 from datetime import date, timedelta
-from typing import Any, TypeVar
+from typing import Any, Self, TypeVar
 from urllib.parse import urlencode, urljoin
 
 import aiohttp
@@ -98,7 +98,7 @@ class DaynestClient:
         self._enable_sse = enable_sse
         self._background_tasks: set[asyncio.Task[Any]] = set()
 
-    async def __aenter__(self) -> DaynestClient:
+    async def __aenter__(self) -> Self:
         self._context_depth += 1
         if self._owned_session and self._session is None:
             self._session = aiohttp.ClientSession()
@@ -162,7 +162,7 @@ class DaynestClient:
                     body = await response.json(content_type=None)
                     if not isinstance(body, Mapping):
                         msg = "Token endpoint response was not a JSON object"
-                        raise ValueError(msg)
+                        raise TypeError(msg)
                     token = body.get("access_token")
                     if not isinstance(token, str) or not token:
                         msg = "Token endpoint returned no access_token"
@@ -171,7 +171,7 @@ class DaynestClient:
                         expires_in = int(body.get("expires_in", 300))
                     except (TypeError, ValueError):
                         expires_in = 300
-                except ValueError as err:
+                except (TypeError, ValueError) as err:
                     msg = f"Token endpoint returned malformed payload: {err}"
                     raise DaynestAuthError(msg) from err
                 self._cached_token = token
@@ -218,8 +218,8 @@ class DaynestClient:
                         token_url = data.get("token_url")
                         if isinstance(auth_url, str) and isinstance(token_url, str):
                             return auth_url, token_url
-        except Exception:  # noqa: BLE001
-            pass
+        except Exception:
+            logger.debug("Failed to fetch OIDC discovery config from %s", url, exc_info=True)
         finally:
             if owned:
                 await session.close()
@@ -697,7 +697,7 @@ class DaynestClient:
                                     payload = {}
                                 try:
                                     await callback(event_name, payload)
-                                except Exception:  # noqa: BLE001
+                                except Exception:
                                     logger.exception(
                                         "SSE callback failed for event %s with payload %r",
                                         event_name,
