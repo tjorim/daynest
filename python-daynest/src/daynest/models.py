@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date, datetime, time
-from typing import Any, Generic, TypeVar
+from typing import Any
 from uuid import UUID
 
 from daynest.exceptions import DaynestMalformedResponseError
@@ -67,11 +67,8 @@ class DaynestDashboard:
         return cls(payload=payload)
 
 
-ModelT = TypeVar("ModelT")
-
-
 @dataclass(slots=True, frozen=True)
-class DaynestApiResponse(Generic[ModelT]):
+class DaynestApiResponse[ModelT]:
     """Typed response wrapper carrying contract metadata."""
 
     data: ModelT
@@ -396,7 +393,7 @@ class CalendarDay:
             raise DaynestMalformedResponseError(msg)
         return cls(
             date=_parse_date(_require(payload, "date", context="calendar month day"), field="date"),
-            items=tuple(),
+            items=(),
             total=int(payload.get("total", 0)),
             routines=int(payload.get("routines", 0)),
             chores=int(payload.get("chores", 0)),
