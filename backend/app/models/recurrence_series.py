@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 from uuid import UUID, uuid4
 
 import sqlalchemy as sa
-from sqlalchemy import Date, DateTime, ForeignKey, JSON, String, Text, func
+from sqlalchemy import JSON, Date, DateTime, ForeignKey, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.enums import Priority
@@ -47,6 +47,6 @@ class RecurrenceSeries(Base):
     materialized_through: Mapped[date | None] = mapped_column(Date, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
-    user: Mapped["User"] = relationship(back_populates="recurrence_series")
-    planned_items: Mapped[list["PlannedItem"]] = relationship(back_populates="recurrence_series")
-    auto_add_to_list: Mapped["ShoppingList | None"] = relationship()
+    user: Mapped[User] = relationship(back_populates="recurrence_series")
+    planned_items: Mapped[list[PlannedItem]] = relationship(back_populates="recurrence_series")
+    auto_add_to_list: Mapped[ShoppingList | None] = relationship()

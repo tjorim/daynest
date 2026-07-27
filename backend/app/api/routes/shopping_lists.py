@@ -9,13 +9,13 @@ from app.db.session import get_db
 from app.models.user import User
 from app.repositories.shopping_list_repository import ShoppingListRepository
 from app.repositories.today_repository import TodayRepository
-from app.schemas.today import PlannedTodayItem
 from app.schemas.shopping_list import (
     ShoppingListCreateRequest,
     ShoppingListResponse,
     ShoppingListStatus,
     ShoppingListUpdateRequest,
 )
+from app.schemas.today import PlannedTodayItem
 from app.services.shopping_list_service import ShoppingListService
 from app.services.today_service import TodayService
 

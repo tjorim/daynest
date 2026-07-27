@@ -1,4 +1,4 @@
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
 from typing import Literal
 
 from fastapi import APIRouter, Depends, Query, Response
@@ -58,7 +58,7 @@ def home_assistant_summary(
     integration_user: User = Depends(require_integration_auth()),
     _: None = Depends(_set_ha_contract_header),
 ) -> dict[str, str | int | None]:
-    read_model = service.get_dashboard_read_model(user_id=integration_user.id, for_date=date.today())
+    read_model = service.get_dashboard_read_model(user_id=integration_user.id, for_date=datetime.now(UTC).date())
     return {
         "sensor_daynest_chores_due": read_model.due_today_count,
         "sensor_daynest_routines_open": read_model.routines_open_count,
@@ -75,7 +75,7 @@ def home_assistant_entities(
     integration_user: User = Depends(require_integration_auth()),
     _: None = Depends(_set_ha_contract_header),
 ) -> list[HomeAssistantEntity]:
-    read_model = service.get_dashboard_read_model(user_id=integration_user.id, for_date=date.today())
+    read_model = service.get_dashboard_read_model(user_id=integration_user.id, for_date=datetime.now(UTC).date())
     return [
         HomeAssistantEntity(
             entity_id="sensor.daynest_chores_due",
@@ -121,7 +121,7 @@ def home_assistant_dashboard(
     integration_user: User = Depends(require_integration_auth()),
     _: None = Depends(_set_ha_contract_header),
 ) -> DashboardReadModel:
-    return service.get_dashboard_read_model(user_id=integration_user.id, for_date=date.today())
+    return service.get_dashboard_read_model(user_id=integration_user.id, for_date=datetime.now(UTC).date())
 
 
 @router.get("/calendar", response_model=list[HACalendarEvent])
@@ -164,7 +164,7 @@ def home_assistant_snooze_task(
     integration_user: User = Depends(require_integration_auth()),
 ) -> HAActionResult:
     """Reschedule a chore instance N days into the future via Home Assistant automation."""
-    new_date = date.today() + timedelta(days=request.days)
+    new_date = datetime.now(UTC).date() + timedelta(days=request.days)
     service.reschedule_chore(user_id=integration_user.id, chore_instance_id=request.chore_instance_id, scheduled_date=new_date)
     return HAActionResult(success=True, detail=f"Task {request.chore_instance_id} rescheduled by {request.days} day(s)")
 

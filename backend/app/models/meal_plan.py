@@ -3,7 +3,17 @@ from __future__ import annotations
 from datetime import date, datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import CheckConstraint, Date, DateTime, ForeignKey, Index, JSON, String, Text, func
+from sqlalchemy import (
+    JSON,
+    CheckConstraint,
+    Date,
+    DateTime,
+    ForeignKey,
+    Index,
+    String,
+    Text,
+    func,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -23,8 +33,8 @@ class MealPlan(Base):
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
-    user: Mapped["User"] = relationship(back_populates="meal_plans")
-    slots: Mapped[list["MealSlot"]] = relationship(
+    user: Mapped[User] = relationship(back_populates="meal_plans")
+    slots: Mapped[list[MealSlot]] = relationship(
         back_populates="meal_plan",
         cascade="all, delete-orphan",
         order_by="MealSlot.slot_date, MealSlot.slot_type",
@@ -49,4 +59,4 @@ class MealSlot(Base):
         ForeignKey("planned_items.id", ondelete="SET NULL"), nullable=True, index=True
     )
 
-    meal_plan: Mapped["MealPlan"] = relationship(back_populates="slots")
+    meal_plan: Mapped[MealPlan] = relationship(back_populates="slots")

@@ -30,4 +30,4 @@ class ShoppingList(Base):
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
 
-    user: Mapped["User"] = relationship(back_populates="shopping_lists")
+    user: Mapped[User] = relationship(back_populates="shopping_lists")

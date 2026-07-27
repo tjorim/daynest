@@ -19,7 +19,7 @@ class Household(Base):
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
-    members: Mapped[list["HouseholdMember"]] = relationship(
+    members: Mapped[list[HouseholdMember]] = relationship(
         back_populates="household",
         cascade="all, delete-orphan",
     )

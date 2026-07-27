@@ -1,4 +1,4 @@
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
 from typing import Literal
 
 from fastapi import APIRouter, Depends, Query
@@ -12,9 +12,14 @@ from app.repositories.analytics_repository import (
     get_medication_stats,
     get_planned_item_stats,
     get_routine_stats,
+)
+from app.repositories.analytics_repository import (
     get_scheduling_suggestions as build_scheduling_suggestions,
 )
-from app.schemas.analytics import AnalyticsSummaryResponse, SchedulingSuggestionsResponse
+from app.schemas.analytics import (
+    AnalyticsSummaryResponse,
+    SchedulingSuggestionsResponse,
+)
 
 router = APIRouter(prefix="/analytics", tags=["analytics"])
 
@@ -35,7 +40,7 @@ def get_analytics_summary(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> AnalyticsSummaryResponse:
-    end_date = date.today()
+    end_date = datetime.now(UTC).date()
     start_date = _period_start(end_date, period)
     return AnalyticsSummaryResponse(
         period=period,
@@ -53,6 +58,6 @@ def get_scheduling_suggestions(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> SchedulingSuggestionsResponse:
-    for_date = date.today()
+    for_date = datetime.now(UTC).date()
     suggestions = build_scheduling_suggestions(db, current_user.id, for_date)
     return SchedulingSuggestionsResponse(for_date=for_date, suggestions=suggestions)

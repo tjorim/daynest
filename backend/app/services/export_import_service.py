@@ -5,9 +5,9 @@ import enum
 import json
 import logging
 from collections.abc import Iterable, Mapping
-from datetime import date, datetime, time, timezone
+from datetime import UTC, date, datetime, time
 from io import StringIO
-from typing import Any, NoReturn, TypeVar
+from typing import Any, NoReturn
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from fastapi import HTTPException, status
@@ -26,8 +26,6 @@ from app.models.task_instance import TaskInstance
 from app.models.user import User
 
 logger = logging.getLogger(__name__)
-
-_E = TypeVar("_E", bound=enum.Enum)
 
 EXPORT_VERSION = 1
 
@@ -127,7 +125,7 @@ _PLANNED_ITEM_FIELDS = (
 def build_user_export(db: Session, user: User) -> dict[str, Any]:
     return {
         "version": EXPORT_VERSION,
-        "exported_at": datetime.now(timezone.utc).isoformat(),
+        "exported_at": datetime.now(UTC).isoformat(),
         "user_settings": _fields_to_dict(user, _USER_SETTING_FIELDS),
         "routine_templates": _export_rows(
             db.query(RoutineTemplate).filter(RoutineTemplate.user_id == user.id).order_by(RoutineTemplate.id).all(),
@@ -468,7 +466,7 @@ def _bool(value: Any, field: str) -> bool:
     return value
 
 
-def _enum(cls: type[_E], value: Any, field: str) -> _E:
+def _enum[E: enum.Enum](cls: type[E], value: Any, field: str) -> E:
     s = _str(value, field)
     try:
         return cls(s)  # type: ignore[call-arg]

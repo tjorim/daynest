@@ -1,6 +1,6 @@
 import json
 import logging
-from datetime import datetime, time, timedelta, timezone
+from datetime import UTC, datetime, time, timedelta
 from typing import Any
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -43,7 +43,7 @@ def _user_can_receive_push(now: datetime, user: User) -> bool:
     try:
         tz = ZoneInfo(user.timezone)
     except ZoneInfoNotFoundError:
-        tz = timezone.utc
+        tz = UTC
     local_time = now.astimezone(tz).time()
     return not _is_quiet_time(local_time, user.quiet_hours_start, user.quiet_hours_end)
 
@@ -162,7 +162,7 @@ def _notification_sent_exists(user_id_column, notification_type: str, item_id_co
 
 
 def pending_push_user_ids(db: Session, *, now: datetime | None = None) -> list[int]:
-    now = now or datetime.now(timezone.utc)
+    now = now or datetime.now(UTC)
     pending_user_ids: set[int] = set()
 
     pending_user_ids.update(
@@ -209,7 +209,7 @@ def pending_push_user_ids(db: Session, *, now: datetime | None = None) -> list[i
 
 
 def dispatch_overdue_chores(db: Session, user_id: int, *, now: datetime | None = None) -> int:
-    now = now or datetime.now(timezone.utc)
+    now = now or datetime.now(UTC)
     user = db.scalar(select(User).where(User.id == user_id).where(User.is_active.is_(True)))
     if user is None or not user.push_overdue_chores_enabled or not _user_can_receive_push(now, user):
         return 0
@@ -239,7 +239,7 @@ def dispatch_overdue_chores(db: Session, user_id: int, *, now: datetime | None =
 
 
 def dispatch_medication_reminders(db: Session, user_id: int, *, now: datetime | None = None) -> int:
-    now = now or datetime.now(timezone.utc)
+    now = now or datetime.now(UTC)
     user = db.scalar(select(User).where(User.id == user_id).where(User.is_active.is_(True)))
     if user is None or not user.push_medication_reminders_enabled or not _user_can_receive_push(now, user):
         return 0
@@ -271,7 +271,7 @@ def dispatch_medication_reminders(db: Session, user_id: int, *, now: datetime | 
 
 
 def dispatch_missed_medications(db: Session, user_id: int, *, now: datetime | None = None) -> int:
-    now = now or datetime.now(timezone.utc)
+    now = now or datetime.now(UTC)
     user = db.scalar(select(User).where(User.id == user_id).where(User.is_active.is_(True)))
     if user is None or not user.push_missed_medications_enabled or not _user_can_receive_push(now, user):
         return 0

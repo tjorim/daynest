@@ -1,6 +1,6 @@
 from collections import defaultdict
 from dataclasses import dataclass
-from datetime import date, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 
 from sqlalchemy import case, func, select
 from sqlalchemy.orm import Session, joinedload
@@ -19,9 +19,9 @@ from app.schemas.analytics import (
     DailyCount,
     MedicationStats,
     PlannedItemStats,
-    SchedulingSuggestion,
     RoutineStats,
     RoutineStreak,
+    SchedulingSuggestion,
     SkippedChore,
 )
 
@@ -406,7 +406,7 @@ def get_scheduling_suggestions(db: Session, user_id: int, for_date: date) -> lis
         _, medication_plan_id = weakest_medication
         stats = medication_counts[medication_plan_id]
         current_time = stats.time_label or "09:00"
-        base_time = datetime.strptime(current_time, "%H:%M")
+        base_time = datetime.strptime(current_time, "%H:%M").replace(tzinfo=UTC)
         suggested_time = _shift_time_label(base_time, minutes=-30)
         suggestions.append(
             SchedulingSuggestion(

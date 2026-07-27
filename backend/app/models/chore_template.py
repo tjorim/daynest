@@ -4,7 +4,17 @@ from datetime import date, datetime
 from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
-from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Integer, JSON, String, Text, func
+from sqlalchemy import (
+    JSON,
+    Boolean,
+    Date,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    func,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.enums import Priority
@@ -41,9 +51,9 @@ class ChoreTemplate(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default=sa.text("true"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
-    user: Mapped["User"] = relationship(back_populates="chore_templates")
-    household: Mapped["Household | None"] = relationship()
-    chore_instances: Mapped[list["ChoreInstance"]] = relationship(
+    user: Mapped[User] = relationship(back_populates="chore_templates")
+    household: Mapped[Household | None] = relationship()
+    chore_instances: Mapped[list[ChoreInstance]] = relationship(
         back_populates="chore_template",
         cascade="all, delete-orphan",
         passive_deletes=True,

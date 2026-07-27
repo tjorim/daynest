@@ -1,6 +1,6 @@
 """Tests for shopping-list backend APIs and service behavior."""
 
-from datetime import date, timedelta
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from fastapi.testclient import TestClient
@@ -102,7 +102,7 @@ def test_delete_shopping_list_deletes_linked_planned_items(db_session: Session) 
         title="Screws",
         module_key="shopping_list",
         linked_ref=str(shopping_list.id),
-        planned_for=date.today(),
+        planned_for=datetime.now(UTC).date(),
         is_done=False,
     )
     db_session.add(linked)
@@ -191,7 +191,7 @@ def test_import_recurring_groceries_route_links_upcoming_items(
         "/api/shopping-lists", json={"name": "Groceries"}
     ).json()["id"]
 
-    today = date.today()
+    today = datetime.now(UTC).date()
     next_week = today + timedelta(weeks=1)
     db_session.add(
         RecurrenceSeries(

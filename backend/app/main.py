@@ -2,7 +2,7 @@ import asyncio
 import contextlib
 import logging
 from contextlib import asynccontextmanager
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from fastapi import FastAPI
@@ -13,26 +13,30 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from starlette.applications import Starlette
 
+from app.api.dependencies.events import get_event_bus
+from app.api.routes.analytics import router as analytics_router
 from app.api.routes.auth import close_http_client as close_auth_http_client
 from app.api.routes.auth import router as auth_router
-from app.api.routes.analytics import router as analytics_router
 from app.api.routes.bulk import router as bulk_router
 from app.api.routes.calendar import router as calendar_router
-from app.api.routes.households import router as households_router
-from app.api.routes.search import router as search_router
-from app.api.routes.shopping_lists import router as shopping_lists_router
 from app.api.routes.health import router as system_router
+from app.api.routes.households import router as households_router
 from app.api.routes.integrations.clients import router as integration_clients_router
 from app.api.routes.integrations.home_assistant import router as home_assistant_router
-from app.api.routes.medications import router as medications_router
 from app.api.routes.meal_plans import router as meal_plans_router
+from app.api.routes.medications import router as medications_router
 from app.api.routes.push import router as push_router
+from app.api.routes.search import router as search_router
+from app.api.routes.shopping_lists import router as shopping_lists_router
 from app.api.routes.templates import router as templates_router
 from app.api.routes.today import router as today_router
 from app.api.routes.users import router as users_router
-from app.api.dependencies.events import get_event_bus
 from app.core.config import settings
-from app.core.observability import configure_error_tracking, configure_logging, observability_middleware
+from app.core.observability import (
+    configure_error_tracking,
+    configure_logging,
+    observability_middleware,
+)
 from app.db.session import SessionLocal
 from app.mcp_server import (
     MCP_PROMPT_NAMES,
@@ -45,6 +49,8 @@ from app.models.user import User
 from app.services.event_bus import EventBus
 from app.services.push_service import (
     close_http_client as close_push_http_client,
+)
+from app.services.push_service import (
     dispatch_medication_reminders,
     dispatch_missed_medications,
     dispatch_overdue_chores,
@@ -110,7 +116,7 @@ def _user_local_date(user: User, now: datetime) -> date:
     try:
         tz = ZoneInfo(user.timezone)
     except ZoneInfoNotFoundError:
-        tz = timezone.utc
+        tz = UTC
     return now.astimezone(tz).date()
 
 
@@ -121,7 +127,7 @@ def _publish_today_rollovers(
     *,
     now: datetime | None = None,
 ) -> None:
-    now = now or datetime.now(timezone.utc)
+    now = now or datetime.now(UTC)
     subscribed_user_ids = event_bus.subscribed_user_ids()
     for user_id in list(known_local_dates):
         if user_id not in subscribed_user_ids:
