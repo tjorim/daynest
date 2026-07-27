@@ -1,4 +1,4 @@
-from datetime import date, datetime, time, timedelta, timezone
+from datetime import UTC, date, datetime, time, timedelta
 
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
@@ -12,8 +12,12 @@ from app.models.medication_plan import MedicationPlan
 from app.models.notification_sent import NotificationSent
 from app.models.push_subscription import PushSubscription
 from app.models.user import User
-from app.services.push_service import dispatch_medication_reminders, dispatch_overdue_chores, pending_push_user_ids
-from app.services.push_service import send_notification
+from app.services.push_service import (
+    dispatch_medication_reminders,
+    dispatch_overdue_chores,
+    pending_push_user_ids,
+    send_notification,
+)
 
 
 def _create_user(db_session: Session, email: str) -> User:
@@ -172,7 +176,7 @@ def test_dispatch_functions_and_quiet_hours(client: TestClient, db_session: Sess
         name="Vitamin D",
         instructions="Take with water",
         scheduled_date=date(2026, 5, 21),
-        scheduled_at=datetime(2026, 5, 21, 10, 10, tzinfo=timezone.utc),
+        scheduled_at=datetime(2026, 5, 21, 10, 10, tzinfo=UTC),
         status="scheduled",
     )
     db_session.add_all([subscription, overdue, reminder])
@@ -186,7 +190,7 @@ def test_dispatch_functions_and_quiet_hours(client: TestClient, db_session: Sess
 
     monkeypatch.setattr("app.services.push_service.send_notification", _fake_send)
 
-    now = datetime(2026, 5, 21, 10, 0, tzinfo=timezone.utc)
+    now = datetime(2026, 5, 21, 10, 0, tzinfo=UTC)
     assert dispatch_overdue_chores(db_session, user.id, now=now) == 1
     assert dispatch_medication_reminders(db_session, user.id, now=now) == 1
     assert len(sent) == 2
@@ -236,7 +240,7 @@ def test_dispatch_overdue_chores_respects_user_preference(db_session: Session, m
     assert dispatch_overdue_chores(
         db_session,
         user.id,
-        now=datetime(2026, 5, 21, 10, 0, tzinfo=timezone.utc),
+        now=datetime(2026, 5, 21, 10, 0, tzinfo=UTC),
     ) == 0
     assert sent == []
 
@@ -294,5 +298,5 @@ def test_pending_push_user_ids_only_returns_users_with_unnotified_candidates(db_
 
     assert pending_push_user_ids(
         db_session,
-        now=datetime(2026, 5, 21, 10, 0, tzinfo=timezone.utc),
+        now=datetime(2026, 5, 21, 10, 0, tzinfo=UTC),
     ) == [candidate.id]

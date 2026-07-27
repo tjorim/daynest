@@ -1,4 +1,4 @@
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 from secrets import token_urlsafe
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -58,8 +58,8 @@ def _build_ical(event_lines: list[str]) -> str:
 def _format_utc_ical_datetime(value: str) -> str:
     dt = datetime.fromisoformat(value)
     if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=timezone.utc)
-    return dt.astimezone(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+        dt = dt.replace(tzinfo=UTC)
+    return dt.astimezone(UTC).strftime("%Y%m%dT%H%M%SZ")
 
 
 def _format_event(
@@ -206,7 +206,7 @@ def _build_planned_items_calendar(user: User, planned_items: list[PlannedItem]) 
     except (ZoneInfoNotFoundError, TypeError):
         tz = ZoneInfo("UTC")
 
-    dtstamp = datetime.now(timezone.utc)
+    dtstamp = datetime.now(UTC)
     for item in planned_items:
         event = Event()
         start = _planned_item_start(item, tz)
@@ -303,7 +303,7 @@ def export_ical(
 
     events = service.get_calendar_events(user_id=user.id, start_date=start_date, end_date=end_date)
     reminder_minutes = user.medication_reminder_minutes
-    dtstamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    dtstamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
 
     event_lines: list[str] = []
     for event in events:

@@ -1,4 +1,4 @@
-from datetime import date, datetime, time, timezone
+from datetime import UTC, date, datetime, time
 
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
@@ -87,9 +87,9 @@ def _seed_export_data(db_session: Session, user: User) -> None:
                 routine_template_id=routine.id,
                 title=routine.name,
                 scheduled_date=date(2026, 5, 4),
-                due_at=datetime(2026, 5, 4, 8, 0, tzinfo=timezone.utc),
+                due_at=datetime(2026, 5, 4, 8, 0, tzinfo=UTC),
                 status=TaskStatus.completed,
-                completed_at=datetime(2026, 5, 4, 8, 10, tzinfo=timezone.utc),
+                completed_at=datetime(2026, 5, 4, 8, 10, tzinfo=UTC),
             ),
             ChoreInstance(
                 user_id=user.id,
@@ -97,7 +97,7 @@ def _seed_export_data(db_session: Session, user: User) -> None:
                 title=chore.name,
                 scheduled_date=date(2026, 5, 2),
                 status=ChoreStatus.skipped,
-                skipped_at=datetime(2026, 5, 2, 11, 0, tzinfo=timezone.utc),
+                skipped_at=datetime(2026, 5, 2, 11, 0, tzinfo=UTC),
             ),
             MedicationDoseInstance(
                 user_id=user.id,
@@ -105,9 +105,9 @@ def _seed_export_data(db_session: Session, user: User) -> None:
                 name=medication.name,
                 instructions=medication.instructions,
                 scheduled_date=date(2026, 5, 1),
-                scheduled_at=datetime(2026, 5, 1, 9, 30, tzinfo=timezone.utc),
+                scheduled_at=datetime(2026, 5, 1, 9, 30, tzinfo=UTC),
                 status=MedicationDoseStatus.taken,
-                taken_at=datetime(2026, 5, 1, 9, 35, tzinfo=timezone.utc),
+                taken_at=datetime(2026, 5, 1, 9, 35, tzinfo=UTC),
             ),
             PlannedItem(
                 user_id=user.id,
@@ -121,7 +121,7 @@ def _seed_export_data(db_session: Session, user: User) -> None:
                 priority=Priority.urgent,
                 tags=["food"],
                 is_done=True,
-                completed_at=datetime(2026, 5, 3, 16, 0, tzinfo=timezone.utc),
+                completed_at=datetime(2026, 5, 3, 16, 0, tzinfo=UTC),
             ),
         ]
     )

@@ -4,7 +4,18 @@ from datetime import date, datetime, time
 from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
-from sqlalchemy import Boolean, CheckConstraint, Date, DateTime, ForeignKey, Integer, String, Text, Time, func
+from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
+    Date,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    Time,
+    func,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -32,8 +43,8 @@ class RoutineTemplate(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default=sa.text("true"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
-    user: Mapped["User"] = relationship(back_populates="routine_templates")
-    task_instances: Mapped[list["TaskInstance"]] = relationship(
+    user: Mapped[User] = relationship(back_populates="routine_templates")
+    task_instances: Mapped[list[TaskInstance]] = relationship(
         back_populates="routine_template",
         cascade="all, delete-orphan",
         passive_deletes=True,

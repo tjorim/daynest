@@ -1,7 +1,7 @@
 import threading
 from collections import defaultdict, deque
 from collections.abc import Callable
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from hmac import digest
 
 import jwt
@@ -11,7 +11,12 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
 from app.core.config import settings
-from app.core.oidc import OIDCTokenError, _extract_roles, decode_oidc_token, get_or_create_local_user
+from app.core.oidc import (
+    OIDCTokenError,
+    _extract_roles,
+    decode_oidc_token,
+    get_or_create_local_user,
+)
 from app.db.session import get_db
 from app.models.integration_client import IntegrationClient
 from app.models.user import User
@@ -43,7 +48,7 @@ def get_integration_client_by_token_hash(db: Session, token_hash: str) -> Integr
 
 def enforce_integration_rate_limit(client: IntegrationClient) -> None:
     with _request_log_lock:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         cutoff = now - timedelta(minutes=1)
         bucket = _request_log[client.id]
         while bucket and bucket[0] < cutoff:

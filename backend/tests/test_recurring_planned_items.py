@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import UTC, date, datetime
 
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
@@ -235,7 +235,7 @@ def test_create_planned_item_with_rrule_not_matching_planned_for_returns_422(cli
 def test_delete_planned_item_scope_future_deletes_series_from_today(client: TestClient, db_session: Session) -> None:
     user = _create_user(db_session, "planned-delete-future@example.com")
     _auth_as(user)
-    start = date.today().isoformat()
+    start = datetime.now(UTC).date().isoformat()
     try:
         create = client.post(
             "/api/planned-items",
@@ -270,7 +270,7 @@ def test_delete_planned_item_scope_future_deletes_series_from_today(client: Test
 def test_delete_planned_item_scope_future_from_middle_truncates_series_rule(client: TestClient, db_session: Session) -> None:
     user = _create_user(db_session, "planned-delete-future-middle@example.com")
     _auth_as(user)
-    start = date.today()
+    start = datetime.now(UTC).date()
     end = start + (date.resolution * 6)
     try:
         create = client.post(
@@ -315,7 +315,7 @@ def test_update_planned_item_scope_future_updates_template_and_clears_materializ
 ) -> None:
     user = _create_user(db_session, "planned-update-future@example.com")
     _auth_as(user)
-    start = date.today()
+    start = datetime.now(UTC).date()
     end = start + (date.resolution * 3)
     try:
         create = client.post(
@@ -366,7 +366,7 @@ def test_update_planned_item_scope_all_updates_template_and_clears_materialized_
 ) -> None:
     user = _create_user(db_session, "planned-update-all@example.com")
     _auth_as(user)
-    start = date.today()
+    start = datetime.now(UTC).date()
     end = start + (date.resolution * 3)
     try:
         create = client.post(
@@ -417,7 +417,7 @@ def test_update_planned_item_scope_all_from_later_instance_preserves_series_star
 ) -> None:
     user = _create_user(db_session, "planned-update-all-later@example.com")
     _auth_as(user)
-    start = date.today()
+    start = datetime.now(UTC).date()
     edit_date = start + date.resolution
     end = start + (date.resolution * 3)
     try:
@@ -474,7 +474,7 @@ def test_update_planned_item_scope_all_shifts_series_start_when_date_changes(
 ) -> None:
     user = _create_user(db_session, "planned-update-all-shift-anchor@example.com")
     _auth_as(user)
-    start = date.today()
+    start = datetime.now(UTC).date()
     end = start + (date.resolution * 4)
     try:
         create = client.post(

@@ -1,4 +1,4 @@
-from datetime import date, datetime, time, timedelta, timezone
+from datetime import UTC, date, datetime, time, timedelta
 from types import SimpleNamespace
 from typing import Any, cast
 
@@ -9,7 +9,7 @@ from app.core.config import AppSettings
 from app.core.enums import ChoreStatus, MedicationDoseStatus, TaskStatus
 from app.services.today_service import TodayService
 
-_FIXED_NOW = datetime(2026, 4, 23, 10, 0, tzinfo=timezone.utc)
+_FIXED_NOW = datetime(2026, 4, 23, 10, 0, tzinfo=UTC)
 
 
 class StubTodayRepository:
@@ -47,7 +47,6 @@ class StubTodayRepository:
 
     def mark_due_medications_missed(self, user_id: int, now, grace_minutes: int = 30):
         self.grace_minutes = grace_minutes
-        return None
 
     def utcnow(self):
         return _FIXED_NOW
@@ -126,7 +125,7 @@ def test_get_today_shapes_chore_sections() -> None:
             medication_plan_id=8,
             name="Vitamin D",
             instructions="Take with breakfast",
-            scheduled_at=datetime(2026, 4, 23, 9, 0, tzinfo=timezone.utc),
+            scheduled_at=datetime(2026, 4, 23, 9, 0, tzinfo=UTC),
             scheduled_date=for_date,
             status=MedicationDoseStatus.scheduled,
         )
@@ -321,7 +320,7 @@ def _make_dose(status: MedicationDoseStatus) -> SimpleNamespace:
         name="Vitamin D",
         instructions="Take with breakfast",
         scheduled_date=date(2026, 4, 23),
-        scheduled_at=datetime(2026, 4, 23, 9, 0, tzinfo=timezone.utc),
+        scheduled_at=datetime(2026, 4, 23, 9, 0, tzinfo=UTC),
         status=status,
         taken_at=None,
         skipped_at=None,
@@ -410,7 +409,7 @@ def test_mutate_medication_miss_from_missed_raises_conflict() -> None:
 
 def test_mutate_medication_not_found_raises_404() -> None:
     """Missing dose raises 404."""
-    repo, service = _make_service(dose=None)
+    _repo, service = _make_service(dose=None)
 
     with pytest.raises(HTTPException) as exc_info:
         service.mutate_medication_status(user_id=7, medication_dose_instance_id=99, action="take")

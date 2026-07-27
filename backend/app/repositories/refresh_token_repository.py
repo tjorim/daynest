@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import select, update
 from sqlalchemy.orm import Session
@@ -21,12 +21,12 @@ class RefreshTokenRepository:
         return self.db.scalar(select(RefreshToken).where(RefreshToken.jti == jti))
 
     def revoke(self, token: RefreshToken) -> None:
-        token.revoked_at = datetime.now(timezone.utc)
+        token.revoked_at = datetime.now(UTC)
         self.db.commit()
 
     def consume_if_unrevoked(self, jti: str) -> RefreshToken | None:
         """Atomically revoke token only if currently unrevoked. Returns token on success, None if already revoked or not found."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         stmt = (
             update(RefreshToken)
             .where(RefreshToken.jti == jti)
@@ -40,7 +40,7 @@ class RefreshTokenRepository:
         return token
 
     def revoke_all_for_user(self, user_id: int) -> None:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         self.db.execute(
             update(RefreshToken)
             .where(RefreshToken.user_id == user_id)

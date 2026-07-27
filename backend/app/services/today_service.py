@@ -2,7 +2,7 @@ import logging
 from calendar import monthrange
 from collections import defaultdict
 from dataclasses import dataclass
-from datetime import date, datetime, time, timedelta, timezone
+from datetime import UTC, date, datetime, time, timedelta
 from typing import Literal, cast
 from uuid import UUID
 from zoneinfo import ZoneInfo
@@ -418,7 +418,7 @@ class TodayService:
         items.sort(
             key=lambda value: (
                 value.scheduled_at is None,
-                value.scheduled_at or datetime.min.replace(tzinfo=timezone.utc),
+                value.scheduled_at or datetime.min.replace(tzinfo=UTC),
                 _PRIORITY_RANK.get(value.priority, 2),
                 value.item_type,
                 value.item_id,
@@ -1292,7 +1292,7 @@ class TodayService:
                 raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Medication dose can only be taken from scheduled or missed")
             if taken_at is not None:
                 # Ensure timezone-aware for comparison
-                ta = taken_at if taken_at.tzinfo is not None else taken_at.replace(tzinfo=timezone.utc)
+                ta = taken_at if taken_at.tzinfo is not None else taken_at.replace(tzinfo=UTC)
                 if ta > now:
                     raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="taken_at must not be in the future")
                 resolved_taken_at = ta

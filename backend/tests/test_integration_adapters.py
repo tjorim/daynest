@@ -1,4 +1,4 @@
-from datetime import date, time, timedelta
+from datetime import UTC, date, datetime, time, timedelta
 
 from fastapi.testclient import TestClient
 from pytest import MonkeyPatch
@@ -6,20 +6,19 @@ from sqlalchemy.orm import Session
 
 from app.api.dependencies.auth import get_current_user
 from app.api.dependencies.integration_auth import hash_integration_key
+from app.core.enums import ChoreStatus
 from app.main import app
+from app.models.chore_instance import ChoreInstance
+from app.models.chore_template import ChoreTemplate
+from app.models.integration_client import IntegrationClient
+from app.models.medication_plan import MedicationPlan
+from app.models.user import User
 from app.schemas.integration_contracts import (
     HOME_ASSISTANT_ADAPTER,
     HOME_ASSISTANT_CONTRACT_VERSION,
     INTEGRATION_CONTRACT_HEADER,
     integration_contract_header,
 )
-from app.core.enums import ChoreStatus
-from app.models.chore_instance import ChoreInstance
-from app.models.chore_template import ChoreTemplate
-from app.models.integration_client import IntegrationClient
-from app.models.medication_plan import MedicationPlan
-from app.models.user import User
-
 
 HOME_ASSISTANT_ENDPOINTS = ("summary", "entities", "dashboard")
 FIXED_TODAY = date(2026, 1, 15)
@@ -35,14 +34,14 @@ def _clear_auth() -> None:
     app.dependency_overrides.pop(get_current_user, None)
 
 
-class FrozenDate(date):
+class FrozenDatetime(datetime):
     @classmethod
-    def today(cls) -> date:
-        return FIXED_TODAY
+    def now(cls, tz=None) -> datetime:
+        return datetime.combine(FIXED_TODAY, time(0, 0), tzinfo=tz)
 
 
 def _freeze_route_today(monkeypatch: MonkeyPatch, route_module: str) -> None:
-    monkeypatch.setattr(f"{route_module}.date", FrozenDate)
+    monkeypatch.setattr(f"{route_module}.datetime", FrozenDatetime)
 
 
 def _create_user(db_session: Session, email: str) -> User:
@@ -309,7 +308,7 @@ def test_home_assistant_mark_medication_taken(
     db_session: Session,
     monkeypatch: MonkeyPatch,
 ) -> None:
-    from datetime import datetime, timezone
+    from datetime import datetime
 
     from app.core.enums import MedicationDoseStatus
     from app.models.medication_dose_instance import MedicationDoseInstance
@@ -325,7 +324,7 @@ def test_home_assistant_mark_medication_taken(
     assert plan is not None
 
     # Create a dose instance in scheduled status directly (avoids missed-marking by dashboard)
-    future_scheduled_at = datetime(2026, 1, 15, 12, 0, tzinfo=timezone.utc)
+    future_scheduled_at = datetime(2026, 1, 15, 12, 0, tzinfo=UTC)
     dose = MedicationDoseInstance(
         user_id=user.id,
         medication_plan_id=plan.id,

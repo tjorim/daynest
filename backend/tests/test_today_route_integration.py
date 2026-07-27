@@ -1,4 +1,4 @@
-from datetime import date, datetime, time, timedelta, timezone
+from datetime import UTC, date, datetime, time, timedelta
 from unittest.mock import MagicMock
 
 from fastapi.testclient import TestClient
@@ -55,7 +55,7 @@ def test_get_today_includes_generated_chore_sections(client: TestClient, db_sess
         user_id=user.id,
         name="Morning reset",
         description="Kitchen and windows",
-        start_date=date.today(),
+        start_date=datetime.now(UTC).date(),
         every_n_days=1,
         due_time=time(8, 0),
         is_active=True,
@@ -64,7 +64,7 @@ def test_get_today_includes_generated_chore_sections(client: TestClient, db_sess
         user_id=user.id,
         name="Take out trash",
         description=None,
-        start_date=date.today(),
+        start_date=datetime.now(UTC).date(),
         every_n_days=1,
         is_active=True,
     )
@@ -72,7 +72,7 @@ def test_get_today_includes_generated_chore_sections(client: TestClient, db_sess
         user_id=user.id,
         name="Vitamin D",
         instructions="Take with breakfast and water",
-        start_date=date.today(),
+        start_date=datetime.now(UTC).date(),
         schedule_time=time(9, 0),
         every_n_days=1,
         is_active=True,
@@ -183,10 +183,11 @@ def test_routine_generation_falls_back_for_invalid_rrule(db_session: Session) ->
         .all()
     )
     assert [item.scheduled_date for item in generated] == [date(2026, 4, 20), date(2026, 4, 22), date(2026, 4, 24)]
+    # SQLite round-trips DateTime(timezone=True) columns as naive UTC values.
     assert [item.due_at for item in generated] == [
-        datetime(2026, 4, 20, 7, 30),
-        datetime(2026, 4, 22, 7, 30),
-        datetime(2026, 4, 24, 7, 30),
+        datetime(2026, 4, 20, 7, 30),  # noqa: DTZ001
+        datetime(2026, 4, 22, 7, 30),  # noqa: DTZ001
+        datetime(2026, 4, 24, 7, 30),  # noqa: DTZ001
     ]
 
 
@@ -217,7 +218,7 @@ def test_routine_generation_does_not_fallback_for_exhausted_rrule(db_session: Se
         .all()
     )
     assert [item.scheduled_date for item in generated] == [date(2026, 4, 20)]
-    assert generated[0].due_at == datetime(2026, 4, 20, 8, 0)
+    assert generated[0].due_at == datetime(2026, 4, 20, 8, 0)  # noqa: DTZ001 -- SQLite round-trips as naive UTC
 
 
 def test_get_today_allows_today_service_dependency_override(client: TestClient, db_session: Session) -> None:
@@ -230,7 +231,7 @@ def test_get_today_allows_today_service_dependency_override(client: TestClient, 
 
         def get_today(self, *, user_id: int, for_date: date) -> TodayResponse:
             assert user_id == user.id
-            assert for_date == date.today()
+            assert for_date == datetime.now(UTC).date()
             return TodayResponse(
                 medication=[],
                 medication_history=[],
@@ -351,7 +352,7 @@ def test_medication_endpoints_create_list_history_and_mutate_status(client: Test
             name=plan.name,
             instructions=plan.instructions,
             scheduled_date=date(2026, 4, 22),
-            scheduled_at=datetime(2026, 4, 22, 20, 0, tzinfo=timezone.utc),
+            scheduled_at=datetime(2026, 4, 22, 20, 0, tzinfo=UTC),
             status=MedicationDoseStatus.scheduled,
         )
         db_session.add(dose)
@@ -488,7 +489,7 @@ def test_ical_export_window_uses_user_timezone(
     class FixedDatetime(datetime):
         @classmethod
         def now(cls, tz=None):
-            value = datetime(2026, 1, 1, 10, 0, tzinfo=timezone.utc)
+            value = datetime(2026, 1, 1, 10, 0, tzinfo=UTC)
             return value.astimezone(tz) if tz else value.replace(tzinfo=None)
 
     app.dependency_overrides[get_today_service] = lambda: StubCalendarService()
@@ -738,7 +739,7 @@ def test_routine_task_generation_and_mutation_endpoints(client: TestClient, db_s
         user_id=user.id,
         name="Morning check",
         description="Review day plan",
-        start_date=date.today(),
+        start_date=datetime.now(UTC).date(),
         every_n_days=1,
         due_time=time(7, 30),
         is_active=True,
@@ -764,11 +765,11 @@ def test_routine_task_generation_and_mutation_endpoints(client: TestClient, db_s
             user_id=user.id,
             routine_template_id=routine_template.id,
             title=routine_template.name,
-            scheduled_date=date.fromordinal(date.today().toordinal() + 1),
+            scheduled_date=date.fromordinal(datetime.now(UTC).date().toordinal() + 1),
             due_at=datetime.combine(
-                date.fromordinal(date.today().toordinal() + 1),
+                date.fromordinal(datetime.now(UTC).date().toordinal() + 1),
                 time(7, 30),
-                tzinfo=timezone.utc,
+                tzinfo=UTC,
             ),
             status=TaskStatus.pending,
         )
@@ -823,7 +824,7 @@ def test_calendar_feed_ics_serializes_planned_items(client: TestClient, db_sessi
     user = _create_user(db_session, email="calendar-feed-ics@example.com")
     user.calendar_feed_token = "feed-token"
     user.timezone = "UTC"
-    today = date.today()
+    today = datetime.now(UTC).date()
     included = PlannedItem(
         user_id=user.id,
         title="Plan menu, shop",

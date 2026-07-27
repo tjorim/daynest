@@ -1,6 +1,6 @@
 import logging
 from collections.abc import Mapping, Sequence
-from datetime import date, datetime, time, timedelta, timezone
+from datetime import UTC, date, datetime, time, timedelta
 from uuid import UUID
 from zoneinfo import ZoneInfo
 
@@ -10,9 +10,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, joinedload
 
 from app.core.enums import ChoreStatus, MedicationDoseStatus, Priority, TaskStatus
-from app.models.user import User
 from app.models.chore_instance import ChoreInstance
-from app.models.shopping_list import ShoppingList
 from app.models.chore_template import ChoreTemplate
 from app.models.household_member import HouseholdMember
 from app.models.medication_dose_instance import MedicationDoseInstance
@@ -20,7 +18,9 @@ from app.models.medication_plan import MedicationPlan
 from app.models.planned_item import PlannedItem
 from app.models.recurrence_series import RecurrenceSeries
 from app.models.routine_template import RoutineTemplate
+from app.models.shopping_list import ShoppingList
 from app.models.task_instance import TaskInstance
+from app.models.user import User
 
 logger = logging.getLogger(__name__)
 
@@ -172,7 +172,7 @@ class TodayRepository:
 
             tz = ZoneInfo(user_timezone)
             while cursor <= through_date:
-                scheduled_at = datetime.combine(cursor, template.schedule_time, tzinfo=tz).astimezone(timezone.utc)
+                scheduled_at = datetime.combine(cursor, template.schedule_time, tzinfo=tz).astimezone(UTC)
                 new_instances.append(
                     MedicationDoseInstance(
                         user_id=user_id,
@@ -287,7 +287,7 @@ class TodayRepository:
                     rrule_generated = True
                     for dt in occurrences:
                         cursor = dt.date()
-                        due_at = datetime.combine(cursor, template.due_time, tzinfo=timezone.utc) if template.due_time else None
+                        due_at = datetime.combine(cursor, template.due_time, tzinfo=UTC) if template.due_time else None
                         rows.append({
                             "user_id": user_id,
                             "routine_template_id": template.id,
@@ -301,7 +301,7 @@ class TodayRepository:
                 step = max(template.every_n_days, 1)
                 cursor = template.start_date if last is None else date.fromordinal(last.toordinal() + step)
                 while cursor <= through_date:
-                    due_at = datetime.combine(cursor, template.due_time, tzinfo=timezone.utc) if template.due_time else None
+                    due_at = datetime.combine(cursor, template.due_time, tzinfo=UTC) if template.due_time else None
                     rows.append({
                         "user_id": user_id,
                         "routine_template_id": template.id,
@@ -912,4 +912,4 @@ class TodayRepository:
         self.db.commit()
 
     def utcnow(self) -> datetime:
-        return datetime.now(timezone.utc)
+        return datetime.now(UTC)
