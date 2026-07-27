@@ -38,12 +38,19 @@ if (manifest.modules?.["*"] !== "./main") throw new Error("Embedded main module 
 
 const watchSource = readFileSync(resolve(root, "src/embeddedjs/main.js"), "utf8");
 const phoneSource = readFileSync(resolve(root, "src/pkjs/index.js"), "utf8");
+const configSource = readFileSync(
+  resolve(repoRoot, "frontend/public/pebble-config.html"),
+  "utf8",
+);
 if (!watchSource.includes("fetch(")) throw new Error("Watch code must use Alloy fetch()");
 for (const action of ["complete-task", "skip-task"]) {
   if (!watchSource.includes(action)) throw new Error(`Missing Daynest action: ${action}`);
 }
 if (!phoneSource.includes("@moddable/pebbleproxy")) {
   throw new Error("Phone code must initialize the official Alloy network proxy");
+}
+if (!configSource.includes("!/^https:\\/\\//i.test(apiBaseUrl)")) {
+  throw new Error("Configuration must reject plaintext HTTP server URLs");
 }
 
 for (const file of ["src/embeddedjs/main.js", "src/pkjs/index.js"]) {
