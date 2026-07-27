@@ -1,12 +1,66 @@
-// Enables fetch()/HTTPClient/WebSocket calls made from the watch (src/embeddedjs)
-// to reach the internet by proxying them through PebbleKit JS on the phone.
-// See: https://developer.repebble.com/guides/alloy/networking/
+// Phone-side Alloy network proxy and runtime configuration handoff.
 const moddableProxy = require("@moddable/pebbleproxy");
 
-Pebble.addEventListener("ready", moddableProxy.readyReceived);
+const CONFIG_URL = "https://daynest.tjor.im/pebble-config.html";
+const CONFIG_STORAGE_KEY = "daynestPebbleConfig";
 
-Pebble.addEventListener("appmessage", function (e) {
-  if (moddableProxy.appMessageReceived(e)) return;
+function loadConfig() {
+  try {
+    const raw = localStorage.getItem(CONFIG_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch (error) {
+    console.log(`Daynest: failed to load configuration: ${error}`);
+    return null;
+  }
+}
 
-  // Not a Moddable proxy event — nothing else to handle for this app.
+function saveConfig(config) {
+  localStorage.setItem(CONFIG_STORAGE_KEY, JSON.stringify(config));
+}
+
+function sendConfigToWatch(config) {
+  if (!config || !config.apiBaseUrl || !config.token) return;
+  Pebble.sendAppMessage(
+    {
+      API_BASE_URL: config.apiBaseUrl,
+      AUTH_TOKEN: config.token,
+    },
+    function () {
+      console.log("Daynest: configuration relayed to watch");
+    },
+    function (error) {
+      console.log(`Daynest: failed to relay configuration: ${JSON.stringify(error)}`);
+    },
+  );
+}
+
+Pebble.addEventListener("ready", function (event) {
+  moddableProxy.readyReceived(event);
+  sendConfigToWatch(loadConfig());
+});
+
+Pebble.addEventListener("appmessage", function (event) {
+  if (moddableProxy.appMessageReceived(event)) return;
+});
+
+Pebble.addEventListener("showConfiguration", function () {
+  const config = loadConfig();
+  const baseUrl = config && config.apiBaseUrl ? config.apiBaseUrl : "";
+  Pebble.openURL(`${CONFIG_URL}?apiBaseUrl=${encodeURIComponent(baseUrl)}`);
+});
+
+Pebble.addEventListener("webviewclosed", function (event) {
+  if (!event.response) return;
+  try {
+    const result = JSON.parse(decodeURIComponent(event.response));
+    if (!result.apiBaseUrl || !result.token) return;
+    const config = {
+      apiBaseUrl: result.apiBaseUrl.replace(/\/$/, ""),
+      token: result.token,
+    };
+    saveConfig(config);
+    sendConfigToWatch(config);
+  } catch (error) {
+    console.log(`Daynest: failed to parse configuration response: ${error}`);
+  }
 });

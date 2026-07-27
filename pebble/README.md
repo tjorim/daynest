@@ -27,15 +27,16 @@ from the watch (`src/embeddedjs/main.js`) reach the internet over the
 phone's connection. See
 [Alloy networking](https://developer.repebble.com/guides/alloy/networking/).
 
-- **`src/pkjs/index.js`** — wires up the two proxy event listeners. That's
-  its entire job; no Daynest-specific code runs on the phone.
+- **`src/pkjs/index.js`** — wires up the network proxy and the standard
+  Pebble configuration flow, then relays the server URL and integration key
+  to the watch.
 - **`src/embeddedjs/main.js`** — the actual app: fetches today's dashboard,
   renders a Piu text screen, caches the last result via
   `device.keyValue` for offline display, and maps the hardware buttons to
   quick actions (UP refresh, SELECT complete, DOWN skip on the first due
   item).
-- **`src/embeddedjs/config.js`** (gitignored, copy from `config.example.js`)
-  — server URL + integration API key, read at build time.
+- **`frontend/public/pebble-config.html`** — hosted configuration page for
+  entering the server URL and integration key at runtime.
 
 ## A course-correction from the original issue plan
 
@@ -66,27 +67,21 @@ work, rather than permanently piggybacking on the HA routes.
 
 1. Get an integration API key: Daynest web app → Settings → Integration
    Clients → create one. Copy the key shown once at creation time.
-2. `cp src/embeddedjs/config.example.js src/embeddedjs/config.js` and fill
-   in `API_BASE_URL` (your Daynest server, no trailing slash) and
-   `API_INTEGRATION_KEY`.
-3. Open this directory in [CloudPebble](https://cloudpebble.repebble.com/)
+2. Open this directory in [CloudPebble](https://cloudpebble.repebble.com/)
    (no local install needed), or install the SDK locally — see
    [Installing the Pebble SDK](https://developer.repebble.com/sdk/). Local
    builds also need `@moddable/pebbleproxy` installed
    (`pebble package install @moddable/pebbleproxy` — already declared in
    `package.json`'s `dependencies`, so a normal build should fetch it).
-4. To sideload directly instead of using CloudPebble's install button,
+3. To sideload directly instead of using CloudPebble's install button,
    enable "Developer Connection" in the Pebble mobile app so the `pebble`
    CLI can push builds and stream logs to a paired watch.
+4. In the Pebble mobile app, open Daynest's settings, enter the Daynest
+   server URL and integration key, and save. The phone relays the values to
+   the watch, where they are persisted in `localStorage`.
 
 ## Known gaps / next steps
 
-- **Config entry has no on-watch UI.** `config.js` is a build-time file,
-  not a runtime settings screen — there's no way to change the server URL
-  or key without rebuilding. Alloy supports a `Settings`-module-backed
-  configurable webview for this
-  ([App Configuration guide](https://developer.rebble.io/guides/user-interfaces/app-configuration/)),
-  which would need a small hosted HTML page; not built here.
 - **No AppGlance or Timeline pins yet.** The Pebble-native equivalents of
   the Wear OS tile/complication — pushing "3 due today" straight to the
   launcher via the

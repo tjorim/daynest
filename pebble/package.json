@@ -4,6 +4,9 @@
   "version": "0.1.0",
   "keywords": ["pebble-app"],
   "private": true,
+  "scripts": {
+    "validate": "node scripts/validate.mjs"
+  },
   "dependencies": {
     "@moddable/pebbleproxy": "^0.1.0"
   },
@@ -20,7 +23,7 @@
     "watchapp": {
       "watchface": false
     },
-    "messageKeys": {},
+    "messageKeys": ["API_BASE_URL", "AUTH_TOKEN"],
     "resources": {
       "media": []
     }

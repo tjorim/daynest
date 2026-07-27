@@ -1,2 +1,3 @@
 build/
-src/embeddedjs/config.js
+node_modules/
+*.pbw

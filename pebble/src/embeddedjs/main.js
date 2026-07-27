@@ -1,6 +1,6 @@
 import {} from "piu/MC";
 import Button from "pebble/button";
-import { API_BASE_URL, API_INTEGRATION_KEY } from "config";
+import Message from "pebble/message";
 
 // Today glance + quick actions for Daynest, replacing the removed Wear OS
 // tile/complication/quick-action surface (see issue #676).
@@ -15,6 +15,7 @@ import { API_BASE_URL, API_INTEGRATION_KEY } from "config";
 const DASHBOARD_PATH = "/api/integrations/home-assistant/dashboard";
 const COMPLETE_TASK_PATH = "/api/integrations/home-assistant/actions/complete-task";
 const SKIP_TASK_PATH = "/api/integrations/home-assistant/actions/skip-task";
+const DEFAULT_API_BASE_URL = "https://daynest.tjor.im";
 
 const CACHE_PATH = "daynest-today";
 const CACHE_KEY = "dashboard";
@@ -36,6 +37,8 @@ const DaynestApplication = Application.template($ => ({
 
 const application = new DaynestApplication(null, { displayListLength: 4096 });
 
+let apiBaseUrl = localStorage.getItem("apiBaseUrl") || DEFAULT_API_BASE_URL;
+let authToken = localStorage.getItem("authToken");
 let lastDashboard = loadCachedDashboard();
 renderDashboard(lastDashboard, { stale: !!lastDashboard });
 
@@ -43,7 +46,13 @@ function loadCachedDashboard() {
   const store = device.keyValue.open({ path: CACHE_PATH, format: "string" });
   const raw = store.read(CACHE_KEY);
   store.close();
-  return raw ? JSON.parse(raw) : null;
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw);
+  } catch (error) {
+    console.log(`Daynest: invalid cached dashboard: ${error}`);
+    return null;
+  }
 }
 
 function saveCachedDashboard(dashboard) {
@@ -81,19 +90,19 @@ function renderDashboard(dashboard, { stale = false } = {}) {
 }
 
 async function fetchDashboard() {
-  const response = await fetch(`${API_BASE_URL}${DASHBOARD_PATH}`, {
-    headers: { "X-Integration-Key": API_INTEGRATION_KEY },
+  const response = await fetch(`${apiBaseUrl}${DASHBOARD_PATH}`, {
+    headers: { "X-Integration-Key": authToken },
   });
   if (!response.ok) throw new Error(`dashboard fetch failed: HTTP ${response.status}`);
   return response.json();
 }
 
 async function postAction(path, body) {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  const response = await fetch(`${apiBaseUrl}${path}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "X-Integration-Key": API_INTEGRATION_KEY,
+      "X-Integration-Key": authToken,
     },
     body: JSON.stringify(body),
   });
@@ -102,6 +111,11 @@ async function postAction(path, body) {
 }
 
 async function refresh() {
+  if (!authToken) {
+    application.content("status").string =
+      "Daynest\n\nNot configured.\nOpen Settings in the\nPebble phone app.";
+    return;
+  }
   if (!watch.connected.pebblekit) {
     console.log("Daynest: proxy not ready yet, showing cache");
     renderDashboard(lastDashboard, { stale: !!lastDashboard });
@@ -131,6 +145,24 @@ async function runAction(kind) {
     console.log(`Daynest ${kind} action failed: ${e}`);
   }
 }
+
+const message = new Message({
+  keys: ["API_BASE_URL", "AUTH_TOKEN"],
+  onReadable() {
+    const payload = this.read();
+    const baseUrl = payload.get("API_BASE_URL");
+    const token = payload.get("AUTH_TOKEN");
+    if (baseUrl) {
+      apiBaseUrl = baseUrl.replace(/\/$/, "");
+      localStorage.setItem("apiBaseUrl", apiBaseUrl);
+    }
+    if (token) {
+      authToken = token;
+      localStorage.setItem("authToken", authToken);
+    }
+    refresh();
+  },
+});
 
 watch.addEventListener("connected", refresh);
 refresh();
