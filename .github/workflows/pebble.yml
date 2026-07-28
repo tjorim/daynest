@@ -5,12 +5,26 @@ on:
     paths:
       - "pebble/**"
       - "frontend/public/pebble-config.html"
+      - "frontend/src/app/providers/AuthProvider.tsx"
+      - "frontend/src/app/router/AppRouter.tsx"
+      - "frontend/src/config/oidc.ts"
+      - "frontend/src/features/pebble/PebblePairPage.tsx"
+      - "backend/app/api/routes/integrations/clients.py"
+      - "backend/app/api/routes/integrations/pebble.py"
+      - "backend/app/main.py"
       - ".github/workflows/pebble.yml"
   push:
     branches: [main]
     paths:
       - "pebble/**"
       - "frontend/public/pebble-config.html"
+      - "frontend/src/app/providers/AuthProvider.tsx"
+      - "frontend/src/app/router/AppRouter.tsx"
+      - "frontend/src/config/oidc.ts"
+      - "frontend/src/features/pebble/PebblePairPage.tsx"
+      - "backend/app/api/routes/integrations/clients.py"
+      - "backend/app/api/routes/integrations/pebble.py"
+      - "backend/app/main.py"
       - ".github/workflows/pebble.yml"
 
 permissions:

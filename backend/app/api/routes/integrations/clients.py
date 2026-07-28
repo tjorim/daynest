@@ -121,6 +121,10 @@ def pair_pebble_client(
 ) -> IntegrationClientCreateResponse:
     """Create or rotate the user's narrowly scoped Pebble integration client."""
     response.headers["Cache-Control"] = "no-store"
+    # Serialize first-time creation and later rotations for this user. Without
+    # the row lock, concurrent requests can both observe no Pebble client and
+    # insert separate active credentials.
+    db.execute(select(User.id).where(User.id == current_user.id).with_for_update())
     raw_key = f"daynest_{token_urlsafe(30)}"
     client = db.scalar(
         select(IntegrationClient).where(

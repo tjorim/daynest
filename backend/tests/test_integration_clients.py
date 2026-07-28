@@ -175,6 +175,29 @@ class TestPairPebbleClient:
         assert clients[0].is_active is True
         assert clients[0].key_hash == hash_integration_key(second.json()["api_key"])
 
+    def test_locks_user_row_before_rotating(
+        self,
+        client: TestClient,
+        db_session: Session,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        user = _create_user(db_session, "pebble-pair-lock@example.com")
+        _auth_as(user)
+        executed_statements = []
+        original_execute = db_session.execute
+
+        def track_execute(statement, *args, **kwargs):
+            executed_statements.append(statement)
+            return original_execute(statement, *args, **kwargs)
+
+        monkeypatch.setattr(db_session, "execute", track_execute)
+
+        response = client.post("/api/integrations/clients/pebble")
+
+        assert response.status_code == 200
+        assert executed_statements
+        assert executed_statements[0]._for_update_arg is not None
+
 
 class TestRevokeIntegrationClient:
     def test_revoke_deletes_client(self, client: TestClient, db_session: Session) -> None:
