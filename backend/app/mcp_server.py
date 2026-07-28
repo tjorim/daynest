@@ -23,6 +23,7 @@ from sqlalchemy.orm import Session, joinedload
 from app.api.dependencies.integration_auth import (
     enforce_integration_rate_limit,
     get_integration_client_by_token_hash,
+    has_required_scopes,
     hash_integration_key,
 )
 from app.core.config import settings
@@ -230,7 +231,7 @@ class DaynestMcpBackend:
                     raise ValueError("Authenticated MCP integration client is inactive or missing")
                 if client.user is None or not client.user.is_active:
                     raise ValueError("Authenticated integration owner not found or inactive")
-                if "integration:*" not in client.scopes and "mcp:*" not in client.scopes:
+                if not has_required_scopes(set(client.scopes), frozenset({"mcp:*"})):
                     raise PermissionError("Integration client is not authorized to use MCP")
                 return client.user
 

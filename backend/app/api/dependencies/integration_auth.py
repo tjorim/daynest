@@ -59,7 +59,7 @@ def enforce_integration_rate_limit(client: IntegrationClient) -> None:
         bucket.append(now)
 
 
-def _has_required_scopes(granted: set[str], required: frozenset[str]) -> bool:
+def has_required_scopes(granted: set[str], required: frozenset[str]) -> bool:
     if "integration:*" in granted:
         return True
     for scope in required:
@@ -103,7 +103,7 @@ def require_integration_auth(*required_scopes: str) -> Callable:
                     if int_client.user is None:
                         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Integration owner not found")
                     granted = set(int_client.scopes)
-                    if not _has_required_scopes(granted, required):
+                    if not has_required_scopes(granted, required):
                         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Integration token lacks required scope")
                     request.state.user_id = int_client.user.id
                     request.state.auth_type = AuthType.INTEGRATION
@@ -135,7 +135,7 @@ def require_integration_auth(*required_scopes: str) -> Callable:
                 if not user.is_active:
                     raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User account is inactive")
                 granted = set(str(claims.get("scope", "")).split())
-                if not _has_required_scopes(granted, required):
+                if not has_required_scopes(granted, required):
                     raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="OIDC token lacks required scope")
                 request.state.user_id = user.id
                 request.state.roles = _extract_roles(claims)
@@ -168,7 +168,7 @@ def require_integration_auth(*required_scopes: str) -> Callable:
         if client.user is None:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Integration owner not found")
         granted = set(client.scopes)
-        if not _has_required_scopes(granted, required):
+        if not has_required_scopes(granted, required):
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Integration key lacks required scope")
 
         request.state.user_id = client.user.id

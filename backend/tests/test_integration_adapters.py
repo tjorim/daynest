@@ -173,6 +173,27 @@ def test_pebble_and_home_assistant_scopes_are_isolated(
     assert home_assistant_dashboard.status_code == 403
 
 
+def test_home_assistant_scope_cannot_reach_pebble_routes(
+    client: TestClient,
+    db_session: Session,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    _freeze_route_today(monkeypatch, "app.api.routes.integrations.home_assistant")
+    user = _create_home_assistant_fixture(db_session, "reverse-scope-matrix@example.com")
+    home_assistant_key = _create_integration_key(
+        db_session,
+        user.id,
+        scopes=["home_assistant:*"],
+    )
+
+    pebble_dashboard = client.get(
+        "/api/integrations/pebble/dashboard",
+        headers={"X-Integration-Key": home_assistant_key},
+    )
+
+    assert pebble_dashboard.status_code == 403
+
+
 def test_pebble_read_scope_cannot_run_watch_actions(
     client: TestClient,
     db_session: Session,
