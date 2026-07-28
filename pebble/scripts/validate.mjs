@@ -15,8 +15,8 @@ const requiredFiles = [
 for (const file of requiredFiles) {
   if (!existsSync(resolve(root, file))) throw new Error(`Missing Alloy file: ${file}`);
 }
-if (!existsSync(resolve(repoRoot, "frontend/public/pebble-config.html"))) {
-  throw new Error("Hosted Pebble configuration page is missing");
+if (!existsSync(resolve(repoRoot, "frontend/src/features/pebble/PebblePairPage.tsx"))) {
+  throw new Error("Authenticated Pebble pairing page is missing");
 }
 
 const pkg = JSON.parse(readFileSync(resolve(root, "package.json"), "utf8"));
@@ -38,8 +38,12 @@ if (manifest.modules?.["*"] !== "./main") throw new Error("Embedded main module 
 
 const watchSource = readFileSync(resolve(root, "src/embeddedjs/main.js"), "utf8");
 const phoneSource = readFileSync(resolve(root, "src/pkjs/index.js"), "utf8");
-const configSource = readFileSync(
-  resolve(repoRoot, "frontend/public/pebble-config.html"),
+const pairingSource = readFileSync(
+  resolve(repoRoot, "frontend/src/features/pebble/PebblePairPage.tsx"),
+  "utf8",
+);
+const clientSource = readFileSync(
+  resolve(repoRoot, "backend/app/api/routes/integrations/clients.py"),
   "utf8",
 );
 if (!watchSource.includes("fetch(")) throw new Error("Watch code must use Alloy fetch()");
@@ -49,8 +53,13 @@ for (const action of ["complete-task", "skip-task"]) {
 if (!phoneSource.includes("@moddable/pebbleproxy")) {
   throw new Error("Phone code must initialize the official Alloy network proxy");
 }
-if (!configSource.includes("!/^https:\\/\\//i.test(apiBaseUrl)")) {
-  throw new Error("Configuration must reject plaintext HTTP server URLs");
+if (!phoneSource.includes("/pebble-pair") || !pairingSource.includes("pebblejs://close")) {
+  throw new Error("Phone and web code must use the authenticated Pebble pairing flow");
+}
+for (const scope of ["pebble:read", "pebble:write"]) {
+  if (!clientSource.includes(scope)) {
+    throw new Error(`Pairing client must include required scope: ${scope}`);
+  }
 }
 
 for (const file of ["src/embeddedjs/main.js", "src/pkjs/index.js"]) {

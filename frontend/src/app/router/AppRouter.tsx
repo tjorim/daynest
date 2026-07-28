@@ -23,6 +23,7 @@ import { ShoppingListsPage } from "@/features/shopping/ShoppingListsPage";
 import { RecurringGroceriesPage } from "@/features/shopping/RecurringGroceriesPage";
 import { MealPlannerPage } from "@/features/meal-planning/MealPlannerPage";
 import { PrivacyPolicyPage } from "@/features/legal/PrivacyPolicyPage";
+import { PebblePairPage } from "@/features/pebble/PebblePairPage";
 
 type RouterContext = {
   auth: {
@@ -174,6 +175,12 @@ const settingsRoute = createRoute({
   component: SettingsPage,
 });
 
+const pebblePairRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/pebble-pair",
+  component: PebblePairPage,
+});
+
 const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/",
@@ -185,6 +192,7 @@ const routeTree = rootRoute.addChildren([
   authRoute,
   authCallbackRoute,
   privacyRoute,
+  pebblePairRoute,
   protectedRoute.addChildren([
     todayRoute,
     calendarRoute,

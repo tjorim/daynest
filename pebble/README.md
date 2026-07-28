@@ -35,8 +35,9 @@ phone's connection. See
   `device.keyValue` for offline display, and maps the hardware buttons to
   quick actions (UP refresh, SELECT complete, DOWN skip on the first due
   item).
-- **`frontend/public/pebble-config.html`** — hosted configuration page for
-  entering the server URL and integration key at runtime.
+- **`frontend/src/features/pebble/PebblePairPage.tsx`** — authenticated
+  configuration page that creates or rotates a Pebble-scoped integration key
+  and returns it directly to the Pebble mobile app.
 
 ## A course-correction from the original issue plan
 
@@ -60,21 +61,19 @@ Home Assistant integration routes or vice versa:
 
 ## Setup
 
-1. Get an integration API key: Daynest web app → Settings → Integration
-   Clients → create one, selecting the **Pebble** scopes (`pebble:read` +
-   `pebble:write`). Copy the key shown once at creation time.
-2. Open this directory in [CloudPebble](https://cloudpebble.repebble.com/)
+1. Open this directory in [CloudPebble](https://cloudpebble.repebble.com/)
    (no local install needed), or install the SDK locally — see
    [Installing the Pebble SDK](https://developer.repebble.com/sdk/). Local
    builds also need `@moddable/pebbleproxy` installed
    (`pebble package install @moddable/pebbleproxy` — already declared in
    `package.json`'s `dependencies`, so a normal build should fetch it).
-3. To sideload directly instead of using CloudPebble's install button,
+2. To sideload directly instead of using CloudPebble's install button,
    enable "Developer Connection" in the Pebble mobile app so the `pebble`
    CLI can push builds and stream logs to a paired watch.
-4. In the Pebble mobile app, open Daynest's settings, enter the Daynest
-   server URL and integration key, and save. The phone relays the values to
-   the watch, where they are persisted in `localStorage`.
+3. In the Pebble mobile app, open Daynest's settings and sign in through the
+   Daynest configuration webview. Daynest rotates a credential containing only
+   `pebble:read` and `pebble:write`, closes the webview, and relays it to the
+   watch.
 
 ## Known gaps / next steps
 
