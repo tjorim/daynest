@@ -75,10 +75,9 @@ class SettingsSignOutHandlerTest {
         verify(exactly = 1) { oidcAuthService.signOut() }
     }
 
-    private fun authService(endSessionIntent: Intent?): OidcAuthService =
-        mockk<OidcAuthService>(relaxed = true) {
-            coEvery { buildSignOutIntent() } returns endSessionIntent
-        }
+    private fun authService(endSessionIntent: Intent?): OidcAuthService = mockk<OidcAuthService>(relaxed = true) {
+        coEvery { buildSignOutIntent() } returns endSessionIntent
+    }
 
     private fun handler(
         scope: CoroutineScope,

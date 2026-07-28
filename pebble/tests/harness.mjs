@@ -65,19 +65,11 @@ export function createHarness({
       return class FakeApplication {
         constructor(_parent, data) {
           const spec = build(data);
-          // The screen is a Column of named Text sections; index them by name so
-          // `content(name)` resolves the same way Piu does on device.
-          this.sections = new Map();
-          const index = node => {
-            if (!node) return;
-            if (node.name) this.sections.set(node.name, node);
-            for (const child of node.contents || []) index(child);
-          };
-          for (const child of spec.contents || []) index(child);
+          this.status = spec.contents[0];
           hooks.application = this;
         }
         content(name) {
-          return this.sections.get(name) || null;
+          return name === "status" ? this.status : null;
         }
       };
     },
@@ -90,7 +82,6 @@ export function createHarness({
     Skin: class Skin {},
     Style: class Style {},
     Text: (_data, spec) => ({ ...spec }),
-    Column: (_data, spec) => ({ ...spec }),
     console,
     device: {
       keyValue: {
@@ -151,15 +142,8 @@ export function createHarness({
 
   return {
     requests,
-    /** Everything currently on screen, in top-to-bottom order. */
     get status() {
-      return [...hooks.application.sections.values()]
-        .map(section => section.string)
-        .filter(Boolean)
-        .join("\n");
-    },
-    section(name) {
-      return hooks.application.content(name)?.string ?? null;
+      return hooks.application.status.string;
     },
     get cachedDashboard() {
       return keyValueStore.get("dashboard");

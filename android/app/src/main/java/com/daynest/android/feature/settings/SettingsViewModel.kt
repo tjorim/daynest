@@ -78,13 +78,11 @@ constructor(
         load()
     }
 
-    /** Called when the provider end-session activity returns, whatever its result. */
-    fun onSignOutFlowFinished() = signOutHandler.completeSignOut()
-
     fun onEvent(event: SettingsUiEvent) {
         when (event) {
             SettingsUiEvent.RetryClicked -> load()
             SettingsUiEvent.SignOutClicked -> signOutHandler.signOut()
+            SettingsUiEvent.SignOutFlowFinished -> signOutHandler.completeSignOut()
             SettingsUiEvent.ShowCreateClientForm -> updateContent { it.copy(showCreateForm = true) }
             SettingsUiEvent.DismissCreateClientForm -> updateContent { it.copy(showCreateForm = false) }
             SettingsUiEvent.DismissNewKeyDialog -> updateContent { it.copy(newApiKey = null) }
@@ -345,6 +343,9 @@ sealed interface SettingsUiEvent {
     data object RetryClicked : SettingsUiEvent
 
     data object SignOutClicked : SettingsUiEvent
+
+    /** The provider end-session activity returned, whatever its result. */
+    data object SignOutFlowFinished : SettingsUiEvent
 
     data object ShowCreateClientForm : SettingsUiEvent
 

@@ -62,34 +62,33 @@ let t = stringsFor(localStorage.getItem("locale"));
 // Piu resolves `font` through PebbleOS's built-in font table, so only the
 // system families/sizes are available (Gothic 9/14/18/24/28/36, Bitham,
 // Roboto, Droid Serif, Leco — regular or bold). An unknown family throws an
-// uncaught "font not found" URIError that kills the app at startup. Only the
-// documented Gothic sizes are used below, so hierarchy comes from size and
-// layout rather than from weights that may not resolve on every platform.
+// uncaught "font not found" URIError that kills the app at startup.
+//
+// "14px Gothic" is the only value this app has ever been observed to render:
+// it is what #704 replaced the broken "OpenSans-Regular-15" with. A layout
+// built from a Column of differently-sized Texts failed the emulator
+// screenshot guard, and that guard cannot say whether the Column or the extra
+// font sizes was at fault — so both stay out until one can be confirmed on a
+// real watch. Hierarchy here comes from grouping and spacing alone.
 const backgroundSkin = new Skin({ fill: "black" });
-const headerStyle = new Style({ font: "9px Gothic", color: "white", horizontal: "center", vertical: "middle" });
-const countsStyle = new Style({ font: "24px Gothic", color: "white", horizontal: "center", vertical: "middle" });
-const itemsStyle = new Style({ font: "14px Gothic", color: "white", horizontal: "left", vertical: "top" });
-const footerStyle = new Style({ font: "9px Gothic", color: "white", horizontal: "center", vertical: "bottom" });
+const bodyStyle = new Style({ font: "14px Gothic", color: "white", horizontal: "left", vertical: "top" });
 
 const DaynestApplication = Application.template($ => ({
   skin: backgroundSkin,
   contents: [
-    Column($, {
+    Text($, {
+      name: "status",
       left: 4, right: 4, top: 4, bottom: 4,
-      contents: [
-        Text($, { name: "header", left: 0, right: 0, height: 12, style: headerStyle, string: "" }),
-        Text($, { name: "counts", left: 0, right: 0, height: 28, style: countsStyle, string: "" }),
-        Text($, { name: "items", left: 0, right: 0, style: itemsStyle, string: t.loading }),
-        Text($, { name: "footer", left: 0, right: 0, height: 12, style: footerStyle, string: "" }),
-      ],
+      style: bodyStyle,
+      string: `Daynest\n\n${t.loading}`,
     }),
   ],
 }));
 
 const application = new DaynestApplication(null, { displayListLength: 4096 });
 
-function setSection(name, value) {
-  application.content(name).string = value;
+function setScreen(lines) {
+  application.content("status").string = lines.filter(line => line !== null).join("\n");
 }
 
 let apiBaseUrl = localStorage.getItem("apiBaseUrl") || DEFAULT_API_BASE_URL;
@@ -161,10 +160,7 @@ function saveCachedDashboard(dashboard) {
 
 /** Renders a full-screen message with no dashboard behind it. */
 function renderMessage(text) {
-  setSection("header", t.today);
-  setSection("counts", "");
-  setSection("items", text);
-  setSection("footer", "");
+  setScreen(["Daynest", "", text]);
 }
 
 function renderDashboard(dashboard, { staleReason = null, fetchedAt = null } = {}) {
@@ -173,23 +169,24 @@ function renderDashboard(dashboard, { staleReason = null, fetchedAt = null } = {
     return;
   }
 
-  setSection("header", t.today);
-  setSection("counts", t.counts(dashboard.due_today_count, dashboard.overdue_count));
-
   const items = (dashboard.due_today || []).slice(0, 4);
-  setSection(
-    "items",
-    items.length === 0 ? t.nothingDue : items.map(item => `• ${item.title}`).join("\n"),
-  );
+  const lines = [
+    t.today,
+    t.counts(dashboard.due_today_count, dashboard.overdue_count),
+    "",
+    ...(items.length === 0 ? [t.nothingDue] : items.map(item => `• ${item.title}`)),
+  ];
 
-  // The footer is one line, and a stale marker matters more than a hint the
-  // user has already acted on at least once.
+  // One trailing line is all that reliably fits, and a stale marker matters
+  // more than a hint the user has already acted on at least once.
   if (staleReason) {
     const when = fetchedAt ? ` · ${formatClock(fetchedAt)}` : "";
-    setSection("footer", `${staleReason}${when}`);
-  } else {
-    setSection("footer", items.length > 0 && !hintSeen ? t.hint : "");
+    lines.push("", `${staleReason}${when}`);
+  } else if (items.length > 0 && !hintSeen) {
+    lines.push("", t.hint);
   }
+
+  setScreen(lines);
 }
 
 async function fetchDashboard() {
