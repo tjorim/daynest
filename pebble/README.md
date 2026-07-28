@@ -18,10 +18,11 @@ HTTP proxy never receives it, because the Moddable AppMessage channel it rides
 on never becomes writable in the emulator (PebbleOS gates that on a system comm
 session pypkjs doesn't establish). A minimal fetch-only app containing no
 Daynest code stalls identically, so this is an emulator limit rather than an
-app bug — but it does mean the dashboard load, complete/skip actions, offline
-cache fallback, and the mutation-replay guards can only be signed off on
-hardware. Work through the [hardware smoke test](#hardware-smoke-test) on a
-Pebble Time 2 before treating those as done.
+app bug (see [`EMULATOR.md`](EMULATOR.md)) — but it does mean the dashboard
+load, complete/skip actions, offline cache fallback, and the mutation-replay
+guards can only be signed off on hardware. Work through the
+[hardware smoke test](#hardware-smoke-test) on a Pebble Time 2 before treating
+those as done.
 
 ## Architecture
 
@@ -97,6 +98,10 @@ app so the `pebble` CLI can push builds and stream logs.
 `node scripts/validate.mjs` runs the CI contract checks (message keys, target
 platforms, required scopes, and the footguns described below). It does not need
 the SDK.
+
+[`EMULATOR.md`](EMULATOR.md) is the runbook for the Emery emulator: how to drive
+the app without a phone, how to debug a watchapp that renders nothing and logs
+nothing, and which environment quirks to expect.
 
 ### Pairing
 
