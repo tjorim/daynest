@@ -105,11 +105,16 @@ constructor(
         }
     }
 
+    /**
+     * Builds the provider end-session intent, or null when there is nothing to
+     * end remotely. Deliberately leaves local state intact: the caller clears it
+     * with [signOut] once the flow returns, so a session that is still live at
+     * the provider is never reported as signed out locally.
+     */
     suspend fun buildSignOutIntent(): Intent? {
         val idToken = authState.idToken
         val config = discoverServiceConfiguration()
         return if (idToken != null && config.endSessionEndpoint != null) {
-            clearState()
             val request =
                 EndSessionRequest
                     .Builder(config)

@@ -206,3 +206,46 @@ test("a mutation after pairing changes uses the new account state", async () => 
   assert.deepEqual(paths(harness), [COMPLETE_PATH, DASHBOARD_PATH]);
   assert.equal(JSON.parse(harness.requests[0].body).chore_instance_id, 201);
 });
+
+test("counts and tasks render as separate sections", async () => {
+  const harness = createHarness({ storage: TOKEN });
+
+  await harness.settle();
+
+  // Hierarchy is structural: the glance line and the task list are distinct
+  // sections with their own type sizes, not one blob of text.
+  assert.match(harness.section("counts"), /2 due · 1 late/);
+  assert.match(harness.section("items"), /• Task 101/);
+  assert.doesNotMatch(harness.section("counts"), /Task 101/);
+});
+
+test("the controls hint retires once a button has been used", async () => {
+  const harness = createHarness({ storage: TOKEN });
+  await harness.settle();
+
+  assert.match(harness.section("footer"), /SELECT done · DOWN skip/);
+
+  await harness.press("select");
+
+  assert.equal(harness.section("footer"), "");
+  assert.equal(harness.stored.hintSeen, "1");
+});
+
+test("a phone locale switches the watch copy", async () => {
+  const harness = createHarness({ storage: TOKEN });
+  await harness.settle();
+
+  await harness.configure({ LOCALE: "nl-BE" });
+
+  assert.match(harness.status, /VANDAAG/);
+  assert.match(harness.section("counts"), /2 te doen · 1 te laat/);
+  assert.equal(harness.stored.locale, "nl-BE");
+});
+
+test("an unknown locale falls back to English", async () => {
+  const harness = createHarness({ storage: { ...TOKEN, locale: "zz" } });
+
+  await harness.settle();
+
+  assert.match(harness.status, /TODAY/);
+});

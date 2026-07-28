@@ -17,30 +17,87 @@ const CACHE_KEY = "dashboard";
 const SNAPSHOT_VERSION = 1;
 const SNAPSHOT_MAX_AGE_SECONDS = 12 * 60 * 60;
 
+// Watch-side copy. The watch has no locale of its own, so the phone sends one
+// with the pairing message; anything unknown falls back to English.
+const STRINGS = {
+  en: {
+    loading: "Loading…",
+    waiting: "No data yet.\nWaiting for phone…",
+    today: "DAYNEST · TODAY",
+    counts: (due, overdue) => `${due} due · ${overdue} late`,
+    nothingDue: "Nothing due. Nice!",
+    hint: "SELECT done · DOWN skip",
+    notConfigured: "Not configured.\nOpen Settings in the\nPebble phone app.",
+    phoneOffline: "Phone offline",
+    lastKnown: "Last known",
+    updating: "Updating",
+    pairingExpired: "Pairing expired.\nRe-pair in Settings\nin the Pebble app.",
+    tryAgainLater: status => `Try again later (${status})`,
+    requestFailed: status => `Request failed (${status})`,
+  },
+  nl: {
+    loading: "Laden…",
+    waiting: "Nog geen gegevens.\nWachten op telefoon…",
+    today: "DAYNEST · VANDAAG",
+    counts: (due, overdue) => `${due} te doen · ${overdue} te laat`,
+    nothingDue: "Niets te doen. Mooi!",
+    hint: "SELECT klaar · DOWN over",
+    notConfigured: "Niet ingesteld.\nOpen Instellingen in\nde Pebble-app.",
+    phoneOffline: "Telefoon offline",
+    lastKnown: "Laatst bekend",
+    updating: "Bijwerken",
+    pairingExpired: "Koppeling verlopen.\nKoppel opnieuw via\nInstellingen.",
+    tryAgainLater: status => `Probeer later opnieuw (${status})`,
+    requestFailed: status => `Verzoek mislukt (${status})`,
+  },
+};
+
+function stringsFor(locale) {
+  if (!locale) return STRINGS.en;
+  return STRINGS[String(locale).slice(0, 2).toLowerCase()] || STRINGS.en;
+}
+
+let t = stringsFor(localStorage.getItem("locale"));
+
 // Piu resolves `font` through PebbleOS's built-in font table, so only the
 // system families/sizes are available (Gothic 9/14/18/24/28/36, Bitham,
 // Roboto, Droid Serif, Leco — regular or bold). An unknown family throws an
-// uncaught "font not found" URIError that kills the app at startup.
+// uncaught "font not found" URIError that kills the app at startup. Only the
+// documented Gothic sizes are used below, so hierarchy comes from size and
+// layout rather than from weights that may not resolve on every platform.
 const backgroundSkin = new Skin({ fill: "black" });
-const bodyStyle = new Style({ font: "14px Gothic", color: "white", horizontal: "left", vertical: "top" });
+const headerStyle = new Style({ font: "9px Gothic", color: "white", horizontal: "center", vertical: "middle" });
+const countsStyle = new Style({ font: "24px Gothic", color: "white", horizontal: "center", vertical: "middle" });
+const itemsStyle = new Style({ font: "14px Gothic", color: "white", horizontal: "left", vertical: "top" });
+const footerStyle = new Style({ font: "9px Gothic", color: "white", horizontal: "center", vertical: "bottom" });
 
 const DaynestApplication = Application.template($ => ({
   skin: backgroundSkin,
   contents: [
-    Text($, {
-      name: "status",
+    Column($, {
       left: 4, right: 4, top: 4, bottom: 4,
-      style: bodyStyle,
-      string: "Daynest\n\nLoading…",
+      contents: [
+        Text($, { name: "header", left: 0, right: 0, height: 12, style: headerStyle, string: "" }),
+        Text($, { name: "counts", left: 0, right: 0, height: 28, style: countsStyle, string: "" }),
+        Text($, { name: "items", left: 0, right: 0, style: itemsStyle, string: t.loading }),
+        Text($, { name: "footer", left: 0, right: 0, height: 12, style: footerStyle, string: "" }),
+      ],
     }),
   ],
 }));
 
 const application = new DaynestApplication(null, { displayListLength: 4096 });
 
+function setSection(name, value) {
+  application.content(name).string = value;
+}
+
 let apiBaseUrl = localStorage.getItem("apiBaseUrl") || DEFAULT_API_BASE_URL;
 let authToken = localStorage.getItem("authToken");
 let dashboardIsLive = false;
+// The controls hint is onboarding, not chrome: it occupies the one footer line
+// on a four-line screen, so it retires once the user has used a button.
+let hintSeen = localStorage.getItem("hintSeen") === "1";
 const pad = value => (value < 10 ? `0${value}` : String(value));
 let cachedSnapshot = null;
 let lastDashboard = null;
@@ -53,7 +110,7 @@ function formatClock(epochSeconds) {
 cachedSnapshot = loadCachedDashboard();
 lastDashboard = cachedSnapshot && cachedSnapshot.dashboard;
 renderDashboard(lastDashboard, {
-  staleReason: cachedSnapshot ? "Last known" : null,
+  staleReason: cachedSnapshot ? t.lastKnown : null,
   fetchedAt: cachedSnapshot && cachedSnapshot.fetchedAt,
 });
 
@@ -102,35 +159,37 @@ function saveCachedDashboard(dashboard) {
   store.close();
 }
 
+/** Renders a full-screen message with no dashboard behind it. */
+function renderMessage(text) {
+  setSection("header", t.today);
+  setSection("counts", "");
+  setSection("items", text);
+  setSection("footer", "");
+}
+
 function renderDashboard(dashboard, { staleReason = null, fetchedAt = null } = {}) {
-  const statusText = application.content("status");
   if (!dashboard) {
-    statusText.string = "Daynest\n\nNo data yet.\nWaiting for phone…";
+    renderMessage(t.waiting);
     return;
   }
 
-  const lines = [
-    "Daynest — Today",
-    `Due ${dashboard.due_today_count}   Overdue ${dashboard.overdue_count}`,
-    "",
-  ];
+  setSection("header", t.today);
+  setSection("counts", t.counts(dashboard.due_today_count, dashboard.overdue_count));
 
   const items = (dashboard.due_today || []).slice(0, 4);
-  if (items.length === 0) {
-    lines.push("Nothing due. Nice!");
-  } else {
-    for (const item of items) lines.push(`• ${item.title}`);
-    lines.push("");
-    lines.push("SELECT completes / DOWN");
-    lines.push("skips the first item.");
-  }
+  setSection(
+    "items",
+    items.length === 0 ? t.nothingDue : items.map(item => `• ${item.title}`).join("\n"),
+  );
 
+  // The footer is one line, and a stale marker matters more than a hint the
+  // user has already acted on at least once.
   if (staleReason) {
     const when = fetchedAt ? ` · ${formatClock(fetchedAt)}` : "";
-    lines.push(`\n${staleReason}${when}`);
+    setSection("footer", `${staleReason}${when}`);
+  } else {
+    setSection("footer", items.length > 0 && !hintSeen ? t.hint : "");
   }
-
-  statusText.string = lines.join("\n");
 }
 
 async function fetchDashboard() {
@@ -159,10 +218,10 @@ function apiError(status) {
     // The watch has no way to re-authenticate on its own, so a rejected token
     // has to name the phone-side fix rather than just report the failure.
     status === 401 || status === 403
-      ? "Pairing expired.\nRe-pair in Settings\nin the Pebble app."
+      ? t.pairingExpired
       : status === 429 || status >= 500
-        ? `Try again later (${status})`
-        : `Request failed (${status})`,
+        ? t.tryAgainLater(status)
+        : t.requestFailed(status),
   );
   error.status = status;
   return error;
@@ -174,19 +233,18 @@ function showStale(reason) {
     staleReason: lastDashboard ? reason : null,
     fetchedAt: cachedSnapshot && cachedSnapshot.fetchedAt,
   });
-  if (!lastDashboard) application.content("status").string = `Daynest\n\n${reason}`;
+  if (!lastDashboard) renderMessage(reason);
 }
 
 async function refresh() {
   if (!authToken) {
     dashboardIsLive = false;
-    application.content("status").string =
-      "Daynest\n\nNot configured.\nOpen Settings in the\nPebble phone app.";
+    renderMessage(t.notConfigured);
     return false;
   }
   if (!watch.connected.pebblekit) {
     console.log("Daynest: proxy not ready yet, showing cache");
-    showStale("Phone offline");
+    showStale(t.phoneOffline);
     return false;
   }
   const generation = identityGeneration;
@@ -235,7 +293,7 @@ async function runAction(kind) {
     return;
   }
   if (!watch.connected.pebblekit) {
-    showStale("Phone offline");
+    showStale(t.phoneOffline);
     return;
   }
   const generation = identityGeneration;
@@ -252,6 +310,10 @@ async function runAction(kind) {
   try {
     await postAction(path, { chore_instance_id: item.chore_instance_id });
     if (generation !== identityGeneration) return;
+    if (!hintSeen) {
+      hintSeen = true;
+      localStorage.setItem("hintSeen", "1");
+    }
     // Drop the acted-on item locally before refreshing so a failed/slow
     // live refetch that falls back to cache can't replay the same action.
     lastDashboard = Object.assign({}, lastDashboard, {
@@ -260,7 +322,7 @@ async function runAction(kind) {
     });
     saveCachedDashboard(lastDashboard);
     renderDashboard(lastDashboard, {
-      staleReason: "Updating",
+      staleReason: t.updating,
       fetchedAt: cachedSnapshot.fetchedAt,
     });
     await refresh();
@@ -275,11 +337,16 @@ async function runAction(kind) {
 }
 
 const message = new Message({
-  keys: ["API_BASE_URL", "AUTH_TOKEN"],
+  keys: ["API_BASE_URL", "AUTH_TOKEN", "LOCALE"],
   onReadable() {
     const payload = this.read();
     const baseUrl = payload.get("API_BASE_URL");
     const token = payload.get("AUTH_TOKEN");
+    const locale = payload.get("LOCALE");
+    if (locale) {
+      t = stringsFor(locale);
+      localStorage.setItem("locale", locale);
+    }
     const nextBaseUrl = baseUrl ? baseUrl.replace(/\/$/, "") : apiBaseUrl;
     if (nextBaseUrl !== apiBaseUrl || (token && token !== authToken)) {
       identityGeneration += 1;

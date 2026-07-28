@@ -5,6 +5,7 @@ package com.daynest.android.feature.auth
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -19,7 +20,11 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -70,17 +75,14 @@ internal fun AuthScreen(uiState: AuthUiState, onSignInClicked: () -> Unit, onSer
                 text = stringResource(R.string.auth_title),
                 style = MaterialTheme.typography.headlineMedium
             )
-            ApiBaseUrlOverrideCard(
-                defaultServerUrl = uiState.defaultServerUrl,
-                customServerUrl = uiState.customServerUrl,
-                onServerUrlChanged = onServerUrlChanged,
-                modifier = Modifier.padding(top = 24.dp)
-            )
             if (uiState.error != null) {
                 Text(
                     text = stringResource(R.string.auth_error_sign_in_failed),
                     color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.padding(top = 12.dp)
+                    modifier =
+                    Modifier
+                        .padding(top = 12.dp)
+                        .semantics { liveRegion = LiveRegionMode.Polite }
                 )
             }
             Button(
@@ -88,15 +90,32 @@ internal fun AuthScreen(uiState: AuthUiState, onSignInClicked: () -> Unit, onSer
                 enabled = !uiState.isLoading,
                 modifier = Modifier.padding(top = 20.dp)
             ) {
-                if (uiState.isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
-                        strokeWidth = 2.dp
+                // The label stays laid out under the spinner so the button keeps
+                // its width; swapping it for a bare indicator makes the primary
+                // action jump on every tap.
+                Box(contentAlignment = Alignment.Center) {
+                    Text(
+                        text = stringResource(R.string.auth_sign_in_button),
+                        modifier = Modifier.alpha(if (uiState.isLoading) 0f else 1f)
                     )
-                } else {
-                    Text(text = stringResource(R.string.auth_sign_in_button))
+                    if (uiState.isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                    }
                 }
             }
+            // Self-hosting affordance, below the primary action: it matters on a
+            // custom deployment but should not be the first thing a first run
+            // asks someone to think about.
+            ApiBaseUrlOverrideCard(
+                defaultServerUrl = uiState.defaultServerUrl,
+                customServerUrl = uiState.customServerUrl,
+                onServerUrlChanged = onServerUrlChanged,
+                modifier = Modifier.padding(top = 32.dp)
+            )
         }
     }
 }

@@ -24,7 +24,7 @@
     "watchapp": {
       "watchface": false
     },
-    "messageKeys": ["API_BASE_URL", "AUTH_TOKEN"],
+    "messageKeys": ["API_BASE_URL", "AUTH_TOKEN", "LOCALE"],
     "resources": {
       "media": []
     }

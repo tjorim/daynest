@@ -96,7 +96,7 @@ describe("AuthPage", () => {
     // Signing in again would silently return here, so it must not be offered.
     expect(screen.queryByRole("button", { name: /^sign in$/i })).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: /logout/i }));
+    await user.click(screen.getByRole("button", { name: /sign out/i }));
 
     expect(authMock.logoutStub).toHaveBeenCalledOnce();
   });

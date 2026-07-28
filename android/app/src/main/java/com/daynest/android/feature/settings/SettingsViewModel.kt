@@ -78,6 +78,9 @@ constructor(
         load()
     }
 
+    /** Called when the provider end-session activity returns, whatever its result. */
+    fun onSignOutFlowFinished() = signOutHandler.completeSignOut()
+
     fun onEvent(event: SettingsUiEvent) {
         when (event) {
             SettingsUiEvent.RetryClicked -> load()
@@ -269,7 +272,9 @@ constructor(
             pushRegistrationManager.unregisterAllKnownEndpoints()
             settingsRepository.deleteCurrentUser()
                 .onSuccess {
-                    signOutHandler.signOut(unregisterPushEndpoints = false)
+                    // The account is already deleted, so there is no local
+                    // session worth preserving while the provider flow runs.
+                    signOutHandler.signOut(unregisterPushEndpoints = false, awaitProviderFlow = false)
                 }
                 .onFailure { error ->
                     updateContent {
