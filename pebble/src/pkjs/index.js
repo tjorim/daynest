@@ -20,17 +20,20 @@ Pebble.addEventListener("webviewclosed", function (event) {
   try {
     const result = JSON.parse(decodeURIComponent(event.response));
     if (!result.accessToken) return;
-    Pebble.sendAppMessage(
+    // Use the proxy's queue rather than Pebble.sendAppMessage directly: PKJS
+    // allows only a small number of simultaneously enqueued messages, and the
+    // proxy is already using that budget for in-flight fetch() traffic.
+    moddableProxy.sendAppMessage(
       {
         API_BASE_URL: "https://daynest.tjor.im",
-        AUTH_TOKEN: result.accessToken,
+        AUTH_TOKEN: result.accessToken
       },
       function () {
         console.log("Daynest: pairing token relayed to watch");
       },
       function (error) {
-        console.log(`Daynest: failed to relay pairing token: ${JSON.stringify(error)}`);
-      },
+        console.log("Daynest: failed to relay pairing token: " + JSON.stringify(error));
+      }
     );
   } catch (error) {
     console.log(`Daynest: failed to parse pairing response: ${error}`);
