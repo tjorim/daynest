@@ -1,3 +1,5 @@
 build/
 node_modules/
 *.pbw
+screenshot.png
+requests.log

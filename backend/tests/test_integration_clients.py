@@ -150,6 +150,55 @@ class TestRotateIntegrationClient:
         assert response.status_code == 404
 
 
+class TestPairPebbleClient:
+    def test_creates_then_rotates_one_scoped_client(
+        self,
+        client: TestClient,
+        db_session: Session,
+    ) -> None:
+        user = _create_user(db_session, "pebble-pair@example.com")
+        _auth_as(user)
+
+        first = client.post("/api/integrations/clients/pebble")
+        second = client.post("/api/integrations/clients/pebble")
+
+        assert first.status_code == 200
+        assert second.status_code == 200
+        assert first.headers["cache-control"] == "no-store"
+        assert second.json()["id"] == first.json()["id"]
+        assert second.json()["api_key"] != first.json()["api_key"]
+        assert second.json()["scopes"] == ["pebble:read", "pebble:write"]
+
+        clients = db_session.query(IntegrationClient).filter_by(user_id=user.id).all()
+        assert len(clients) == 1
+        assert clients[0].name == "Pebble watch"
+        assert clients[0].is_active is True
+        assert clients[0].key_hash == hash_integration_key(second.json()["api_key"])
+
+    def test_locks_user_row_before_rotating(
+        self,
+        client: TestClient,
+        db_session: Session,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        user = _create_user(db_session, "pebble-pair-lock@example.com")
+        _auth_as(user)
+        executed_statements = []
+        original_execute = db_session.execute
+
+        def track_execute(statement, *args, **kwargs):
+            executed_statements.append(statement)
+            return original_execute(statement, *args, **kwargs)
+
+        monkeypatch.setattr(db_session, "execute", track_execute)
+
+        response = client.post("/api/integrations/clients/pebble")
+
+        assert response.status_code == 200
+        assert executed_statements
+        assert executed_statements[0]._for_update_arg is not None
+
+
 class TestRevokeIntegrationClient:
     def test_revoke_deletes_client(self, client: TestClient, db_session: Session) -> None:
         user = _create_user(db_session, "revoke@example.com")

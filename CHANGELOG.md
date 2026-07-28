@@ -41,10 +41,28 @@ bump on every app release.
 
 ## [2026.7.2] - 2026-07-24
 
+### Added
+- **Pebble:** a companion watchapp for Pebble Time 2, built with Alloy (`pebble/`) — a today
+  glance showing due/overdue counts and the first due items, with UP to refresh, SELECT to
+  complete and DOWN to skip the first due item, and a `device.keyValue` cache so the last
+  dashboard stays readable offline. It talks to a dedicated, narrowly scoped backend router
+  (`/api/integrations/pebble/...`, `pebble:read`/`pebble:write`) and pairs through an
+  authenticated Daynest configuration page opened from the stock Pebble app (#676, #678).
+
+### Fixed
+- **Pebble:** the Alloy package did not build — a trailing comma in `src/pkjs/index.js`'s
+  argument list is a hard `SyntaxError` for the SDK's ES2015-era PKJS bundler. The watchapp
+  also died at startup with a blank screen once it did build, because Piu resolves fonts
+  against PebbleOS's built-in table and the requested `OpenSans-Regular-15` does not exist
+  there; it now uses `14px Gothic`. Both are covered by `pebble/scripts/validate.mjs` (#704).
+- **Pebble:** the pairing token is relayed through `moddableProxy.sendAppMessage()` rather
+  than `Pebble.sendAppMessage()`, so it queues behind in-flight `fetch()` proxy traffic
+  instead of competing with it for PKJS's small outbound message budget (#704).
+
 ### Removed
 - **Android:** the Wear OS companion module (`:wear`) has been removed — tile, complication,
   and quick-action due list activity all deleted, along with its DI modules, local Room cache,
-  and CI checks. Superseded by a planned Pebble (Alloy) companion app (#676).
+  and CI checks. Superseded by the Pebble (Alloy) companion app above (#676).
 
 ## [2026.7.1] - 2026-07-22
 

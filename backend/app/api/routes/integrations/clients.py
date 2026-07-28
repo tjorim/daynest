@@ -24,6 +24,8 @@ from app.schemas.integrations import (
 
 router = APIRouter(prefix="/integrations/clients", tags=["integrations"])
 LEGACY_HOME_ASSISTANT_CLIENT_ID = "home-assistant"
+PEBBLE_PAIR_CLIENT_NAME = "Pebble watch"
+PEBBLE_PAIR_SCOPES = ["pebble:read", "pebble:write"]
 TOKEN_EXPIRES_IN_SECONDS = 300
 _INTEGRATION_JWT_ISSUER = "daynest-integration"
 
@@ -105,6 +107,44 @@ def create_integration_client(
         scopes=list(dict.fromkeys(payload.scopes)),
     )
     db.add(client)
+    db.commit()
+    db.refresh(client)
+    return _create_response(request, client, raw_key)
+
+
+@router.post("/pebble", response_model=IntegrationClientCreateResponse)
+def pair_pebble_client(
+    request: Request,
+    response: Response,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> IntegrationClientCreateResponse:
+    """Create or rotate the user's narrowly scoped Pebble integration client."""
+    response.headers["Cache-Control"] = "no-store"
+    # Serialize first-time creation and later rotations for this user. Without
+    # the row lock, concurrent requests can both observe no Pebble client and
+    # insert separate active credentials.
+    db.execute(select(User.id).where(User.id == current_user.id).with_for_update())
+    raw_key = f"daynest_{token_urlsafe(30)}"
+    client = db.scalar(
+        select(IntegrationClient).where(
+            IntegrationClient.user_id == current_user.id,
+            IntegrationClient.name == PEBBLE_PAIR_CLIENT_NAME,
+        )
+    )
+    if client is None:
+        client = IntegrationClient(
+            user_id=current_user.id,
+            name=PEBBLE_PAIR_CLIENT_NAME,
+            key_hash=hash_integration_key(raw_key),
+            rate_limit_per_minute=120,
+            scopes=PEBBLE_PAIR_SCOPES,
+        )
+        db.add(client)
+    else:
+        client.key_hash = hash_integration_key(raw_key)
+        client.scopes = PEBBLE_PAIR_SCOPES
+        client.is_active = True
     db.commit()
     db.refresh(client)
     return _create_response(request, client, raw_key)

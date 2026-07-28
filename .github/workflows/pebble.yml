@@ -5,12 +5,26 @@ on:
     paths:
       - "pebble/**"
       - "frontend/public/pebble-config.html"
+      - "frontend/src/app/providers/AuthProvider.tsx"
+      - "frontend/src/app/router/AppRouter.tsx"
+      - "frontend/src/config/oidc.ts"
+      - "frontend/src/features/pebble/PebblePairPage.tsx"
+      - "backend/app/api/routes/integrations/clients.py"
+      - "backend/app/api/routes/integrations/pebble.py"
+      - "backend/app/main.py"
       - ".github/workflows/pebble.yml"
   push:
     branches: [main]
     paths:
       - "pebble/**"
       - "frontend/public/pebble-config.html"
+      - "frontend/src/app/providers/AuthProvider.tsx"
+      - "frontend/src/app/router/AppRouter.tsx"
+      - "frontend/src/config/oidc.ts"
+      - "frontend/src/features/pebble/PebblePairPage.tsx"
+      - "backend/app/api/routes/integrations/clients.py"
+      - "backend/app/api/routes/integrations/pebble.py"
+      - "backend/app/main.py"
       - ".github/workflows/pebble.yml"
 
 permissions:
@@ -29,3 +43,94 @@ jobs:
       - name: Validate Alloy package contract
         working-directory: pebble
         run: node scripts/validate.mjs
+      - name: Test watch app logic
+        working-directory: pebble
+        run: npm test
+
+  # Compiling the package and booting it on the Emery emulator catches the two
+  # failure modes the contract checks can only approximate: a build that does
+  # not compile, and a watchapp that compiles but dies on startup. The latter is
+  # silent — PebbleOS tears the app down leaving a blank screen, and watch-side
+  # console output never reaches `pebble logs` in a release build — so the
+  # screenshot is the only mechanical evidence that the app actually ran.
+  # See pebble/EMULATOR.md.
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      SDL_VIDEODRIVER: dummy
+      SDL_AUDIODRIVER: dummy
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6
+        with:
+          node-version: 22
+
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+
+      - name: Install emulator runtime libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libsdl2-2.0-0 libglib2.0-0 libpixman-1-0 zlib1g
+
+      - name: Install the Pebble SDK
+        run: |
+          uv tool install pebble-tool
+          pebble sdk install latest
+
+      - name: Build the Alloy package
+        working-directory: pebble
+        run: pebble build
+
+      - name: Upload the .pbw
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: daynest-pebble-pbw
+          path: pebble/build/*.pbw
+          if-no-files-found: error
+
+      # pypkjs binds its websocket with ("", port), which resolves to AF_INET6.
+      # Where IPv6 is unavailable that fails, and the CLI reports it only as a
+      # bare "Connection refused". Binding loopback is correct for a local
+      # emulator either way, so pin it rather than depend on the runner.
+      - name: Pin pypkjs to an IPv4 bind
+        run: |
+          runner=$(ls "$(uv tool dir)"/pebble-tool/lib/python*/site-packages/pypkjs/runner/websocket.py)
+          sed -i 's/pywsgi.WSGIServer(("", self.port)/pywsgi.WSGIServer(("127.0.0.1", self.port)/' "$runner"
+          grep -q '"127.0.0.1", self.port' "$runner"
+
+      - name: Install and run on the Emery emulator
+        working-directory: pebble
+        run: |
+          for attempt in 1 2; do
+            echo "::group::emulator attempt $attempt"
+            if pebble install --emulator emery; then
+              sleep 10
+              if pebble screenshot --emulator emery --no-open screenshot.png; then
+                echo "::endgroup::"
+                exit 0
+              fi
+            fi
+            echo "::endgroup::"
+            echo "attempt $attempt failed; restarting the emulator"
+            pebble kill || true
+            sleep 5
+          done
+          echo "the emulator did not produce a screenshot after 2 attempts" >&2
+          exit 1
+
+      - name: Check the watchapp actually rendered
+        working-directory: pebble
+        run: python3 scripts/check-screenshot.py screenshot.png
+
+      - name: Upload the screenshot
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: daynest-pebble-screenshot
+          path: pebble/screenshot.png
+          if-no-files-found: warn

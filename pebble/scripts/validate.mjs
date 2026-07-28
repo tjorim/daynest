@@ -15,8 +15,8 @@ const requiredFiles = [
 for (const file of requiredFiles) {
   if (!existsSync(resolve(root, file))) throw new Error(`Missing Alloy file: ${file}`);
 }
-if (!existsSync(resolve(repoRoot, "frontend/public/pebble-config.html"))) {
-  throw new Error("Hosted Pebble configuration page is missing");
+if (!existsSync(resolve(repoRoot, "frontend/src/features/pebble/PebblePairPage.tsx"))) {
+  throw new Error("Authenticated Pebble pairing page is missing");
 }
 
 const pkg = JSON.parse(readFileSync(resolve(root, "package.json"), "utf8"));
@@ -38,19 +38,75 @@ if (manifest.modules?.["*"] !== "./main") throw new Error("Embedded main module 
 
 const watchSource = readFileSync(resolve(root, "src/embeddedjs/main.js"), "utf8");
 const phoneSource = readFileSync(resolve(root, "src/pkjs/index.js"), "utf8");
-const configSource = readFileSync(
-  resolve(repoRoot, "frontend/public/pebble-config.html"),
+const pairingSource = readFileSync(
+  resolve(repoRoot, "frontend/src/features/pebble/PebblePairPage.tsx"),
+  "utf8",
+);
+const clientSource = readFileSync(
+  resolve(repoRoot, "backend/app/api/routes/integrations/clients.py"),
   "utf8",
 );
 if (!watchSource.includes("fetch(")) throw new Error("Watch code must use Alloy fetch()");
 for (const action of ["complete-task", "skip-task"]) {
   if (!watchSource.includes(action)) throw new Error(`Missing Daynest action: ${action}`);
 }
+if (!watchSource.includes("SNAPSHOT_MAX_AGE_SECONDS") || !watchSource.includes("loadCachedDashboard(")) {
+  throw new Error("Watch code must persist and age-limit the offline dashboard snapshot");
+}
+if (!watchSource.includes("!dashboardIsLive && !(await refresh())")) {
+  throw new Error("Cached task state must be re-read before choosing a mutation");
+}
+if (!watchSource.includes("runExclusive(() => runAction(")) {
+  throw new Error("Task actions must go through the exclusive-action guard");
+}
 if (!phoneSource.includes("@moddable/pebbleproxy")) {
   throw new Error("Phone code must initialize the official Alloy network proxy");
 }
-if (!configSource.includes("!/^https:\\/\\//i.test(apiBaseUrl)")) {
-  throw new Error("Configuration must reject plaintext HTTP server URLs");
+if (!phoneSource.includes("/pebble-pair") || !pairingSource.includes("pebblejs://close")) {
+  throw new Error("Phone and web code must use the authenticated Pebble pairing flow");
+}
+for (const scope of ["pebble:read", "pebble:write"]) {
+  if (!clientSource.includes(scope)) {
+    throw new Error(`Pairing client must include required scope: ${scope}`);
+  }
+}
+
+// Piu resolves `font` against PebbleOS's built-in font table. An unknown family
+// throws an uncaught URIError that kills the watchapp the moment it starts, and
+// nothing in the build catches it — so pin the families here instead.
+const PEBBLE_FONT_FAMILIES = ["Gothic", "Bitham", "Roboto", "DroidSerif", "Leco"];
+for (const [, font] of watchSource.matchAll(/font:\s*"([^"]+)"/g)) {
+  const match = /^(?:italic\s+)?(?:\w+\s+)?\d+px\s+(\w+)$/.exec(font);
+  if (!match || !PEBBLE_FONT_FAMILIES.includes(match[1])) {
+    throw new Error(
+      `Unsupported Piu font ${JSON.stringify(font)}: use "<size>px <family>" with one of ` +
+        PEBBLE_FONT_FAMILIES.join(", "),
+    );
+  }
+}
+
+// The SDK does not fall back to a nearby system-font size. An unsupported
+// combination throws while constructing the Style and leaves a blank watchapp.
+const gothicRegularSizes = new Set([9, 14, 18, 24, 28, 36]);
+for (const match of watchSource.matchAll(/font:\s*"(?:(bold)\s+)?(\d+)px Gothic"/g)) {
+  const [, weight, rawSize] = match;
+  const size = Number(rawSize);
+  const supported = weight ? size === 18 : gothicRegularSizes.has(size);
+  if (!supported) {
+    throw new Error(`Unsupported Pebble system font: ${weight ? "bold " : ""}${size}px Gothic`);
+  }
+}
+
+// PKJS is bundled by the SDK's webpack/acorn, which predates ES2017 trailing
+// commas in argument lists — one is a hard build failure, so keep them out.
+if (/,\s*[)\]]/.test(phoneSource)) {
+  throw new Error("Trailing comma in src/pkjs/index.js: the SDK's PKJS bundler cannot parse it");
+}
+
+// The proxy owns the PKJS send queue; bypassing it can drop messages when a
+// fetch() is in flight (see @moddable/pebbleproxy's README).
+if (/Pebble\.sendAppMessage\s*\(/.test(phoneSource)) {
+  throw new Error("Use moddableProxy.sendAppMessage() so sends are queued behind proxy traffic");
 }
 
 for (const file of ["src/embeddedjs/main.js", "src/pkjs/index.js"]) {
