@@ -17,6 +17,18 @@ complete/skip, offline cache fallback, or the mutation-replay guards. Watch-side
 `fetch()` never completes under QEMU. See [The `fetch()` dead
 end](#the-fetch-dead-end) for why, and don't spend a day rediscovering it.
 
+## What CI does with this
+
+`.github/workflows/pebble.yml` runs the same sequence on every PR touching
+`pebble/`: `pebble build`, then boot the emulator, install, screenshot, and
+assert the app rendered via
+[`scripts/check-screenshot.py`](scripts/check-screenshot.py). Both are proven
+against the defects they exist for — reintroducing the trailing comma fails the
+build step, and reintroducing the bad font *passes* the build and fails the
+screenshot check, which is exactly how that bug slipped through in the first
+place. The `.pbw` and the screenshot are uploaded as artifacts, so a failure is
+inspectable without reproducing it locally.
+
 ## One-time setup
 
 ```sh

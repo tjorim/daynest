@@ -95,9 +95,12 @@ pebble logs --emulator emery
 To sideload to a real watch, enable "Developer Connection" in the Pebble mobile
 app so the `pebble` CLI can push builds and stream logs.
 
-`node scripts/validate.mjs` runs the CI contract checks (message keys, target
+`node scripts/validate.mjs` runs the contract checks (message keys, target
 platforms, required scopes, and the footguns described below). It does not need
-the SDK.
+the SDK. CI runs that, plus a real `pebble build` and an emulator boot that
+screenshots the app and asserts it rendered — a watchapp that dies at startup
+compiles cleanly and logs nothing, so the screenshot is the only thing that
+catches it.
 
 [`EMULATOR.md`](EMULATOR.md) is the runbook for the Emery emulator: how to drive
 the app without a phone, how to debug a watchapp that renders nothing and logs
