@@ -39,6 +39,13 @@ bump on every app release.
 
 ---
 
+## [2026.7.2] - 2026-07-24
+
+### Removed
+- **Android:** the Wear OS companion module (`:wear`) has been removed — tile, complication,
+  and quick-action due list activity all deleted, along with its DI modules, local Room cache,
+  and CI checks. Superseded by a planned Pebble (Alloy) companion app (#676).
+
 ## [2026.7.1] - 2026-07-22
 
 ### Changed
@@ -175,7 +182,8 @@ bump on every app release.
 - MCP server with Keycloak OIDC auth and medication plan CRUD tools
 - Tag-driven GitHub Release workflow publishing HACS zip, Android APK, and python-daynest to PyPI
 
-[Unreleased]: https://github.com/tjorim/daynest/compare/v2026.7.1...HEAD
+[Unreleased]: https://github.com/tjorim/daynest/compare/v2026.7.2...HEAD
+[2026.7.2]: https://github.com/tjorim/daynest/compare/v2026.7.1...v2026.7.2
 [2026.7.1]: https://github.com/tjorim/daynest/compare/v0.1.11...v2026.7.1
 [0.1.11]: https://github.com/tjorim/daynest/compare/v0.1.10...v0.1.11
 [0.1.10]: https://github.com/tjorim/daynest/compare/v0.1.9...v0.1.10

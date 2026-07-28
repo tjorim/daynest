@@ -23,6 +23,7 @@ from app.api.routes.health import router as system_router
 from app.api.routes.households import router as households_router
 from app.api.routes.integrations.clients import router as integration_clients_router
 from app.api.routes.integrations.home_assistant import router as home_assistant_router
+from app.api.routes.integrations.pebble import router as pebble_router
 from app.api.routes.meal_plans import router as meal_plans_router
 from app.api.routes.medications import router as medications_router
 from app.api.routes.push import router as push_router
@@ -224,6 +225,7 @@ app.include_router(shopping_lists_router, prefix=f"{settings.api_prefix}/shoppin
 app.include_router(meal_plans_router, prefix=f"{settings.api_prefix}/meal-plans")
 app.include_router(integration_clients_router, prefix=settings.api_prefix)
 app.include_router(home_assistant_router, prefix=settings.api_prefix)
+app.include_router(pebble_router, prefix=settings.api_prefix)
 app.include_router(today_router, prefix=settings.api_prefix)
 app.include_router(medications_router, prefix=settings.api_prefix)
 app.include_router(push_router, prefix=settings.api_prefix)

@@ -23,6 +23,7 @@ from sqlalchemy.orm import Session, joinedload
 from app.api.dependencies.integration_auth import (
     enforce_integration_rate_limit,
     get_integration_client_by_token_hash,
+    has_required_scopes,
     hash_integration_key,
 )
 from app.core.config import settings
@@ -191,6 +192,7 @@ def _integration_client_to_dict(client: IntegrationClient) -> dict[str, Any]:
         "id": client.id,
         "name": client.name,
         "rate_limit_per_minute": client.rate_limit_per_minute,
+        "scopes": client.scopes,
         "is_active": client.is_active,
     }
 
@@ -229,12 +231,34 @@ class DaynestMcpBackend:
                     raise ValueError("Authenticated MCP integration client is inactive or missing")
                 if client.user is None or not client.user.is_active:
                     raise ValueError("Authenticated integration owner not found or inactive")
+                if not has_required_scopes(set(client.scopes), frozenset({"mcp:*"})):
+                    raise PermissionError("Integration client is not authorized to use MCP")
                 return client.user
 
             # OIDC path: KeycloakAuthProvider sets standard JWT claims including sub
             oidc_subject = access_token.claims.get("sub")
             if not oidc_subject:
                 raise ValueError("Authenticated MCP OIDC token is missing a subject")
+            preferred_username = access_token.claims.get("preferred_username")
+            if (
+                isinstance(preferred_username, str)
+                and preferred_username.startswith("service-account-")
+            ):
+                raw_user_id = access_token.claims.get("daynest_user_id")
+                if raw_user_id is None:
+                    raise PermissionError(
+                        "Keycloak service accounts require a daynest_user_id protocol mapper"
+                    )
+                try:
+                    mapped_user_id = int(raw_user_id)
+                except (TypeError, ValueError) as exc:
+                    raise PermissionError(
+                        "Keycloak service accounts require a daynest_user_id protocol mapper"
+                    ) from exc
+                user = db.get(User, mapped_user_id)
+                if user is None or not user.is_active:
+                    raise ValueError("Mapped Daynest service-account user is inactive or missing")
+                return user
             user = get_or_create_local_user(oidc_subject, access_token.claims, db)
             if not user.is_active:
                 raise ValueError(f"User for OIDC subject {oidc_subject} is inactive")
@@ -340,6 +364,7 @@ class DaynestMcpBackend:
                 name=name,
                 key_hash=hash_integration_key(raw_key),
                 rate_limit_per_minute=rate_limit_per_minute,
+                scopes=["mcp:*"],
                 is_active=True,
             )
             db.add(client)

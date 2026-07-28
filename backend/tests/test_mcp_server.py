@@ -1,6 +1,7 @@
 import asyncio
 from datetime import UTC, datetime, time, timedelta
 from hashlib import sha256
+from unittest.mock import MagicMock, patch
 
 import pytest
 from fastapi.testclient import TestClient
@@ -43,6 +44,7 @@ def _create_integration_client(
     *,
     raw_key: str,
     rate_limit_per_minute: int = 50,
+    scopes: list[str] | None = None,
 ) -> IntegrationClient:
     client = IntegrationClient(
         user_id=user.id,
@@ -50,6 +52,7 @@ def _create_integration_client(
         key_hash=hash_integration_key(raw_key),
         rate_limit_per_minute=rate_limit_per_minute,
         is_active=True,
+        **({"scopes": scopes} if scopes is not None else {}),
     )
     db_session.add(client)
     db_session.commit()
@@ -439,7 +442,7 @@ def test_integration_key_token_verifier_accepts_valid_key(db_session: Session) -
 
 def test_mcp_backend_uses_authenticated_integration_owner(db_session: Session, monkeypatch) -> None:
     user = _create_user(db_session, "auth-owner@example.com")
-    client = _create_integration_client(db_session, user, raw_key="daynest_auth_owner")
+    client = _create_integration_client(db_session, user, raw_key="daynest_auth_owner", scopes=["mcp:*"])
     backend = DaynestMcpBackend(_session_factory(db_session))
     access_token = AccessToken(
         token="token",
@@ -475,6 +478,51 @@ def test_mcp_backend_resolves_oidc_numeric_subject(db_session: Session, monkeypa
     whoami = backend.whoami()
 
     assert whoami["email"] == "numeric-oidc@example.com"
+
+
+def test_mcp_backend_requires_user_mapping_for_keycloak_service_account(
+    db_session: Session,
+    monkeypatch,
+) -> None:
+    backend = DaynestMcpBackend(_session_factory(db_session))
+    access_token = AccessToken(
+        token="token",
+        client_id="daynest-mcp",
+        scopes=[],
+        claims={
+            "sub": "service-subject",
+            "preferred_username": "service-account-daynest-mcp",
+            "azp": "daynest-mcp",
+        },
+    )
+    monkeypatch.setattr("app.mcp_server.get_access_token", lambda: access_token)
+
+    with pytest.raises(PermissionError, match="daynest_user_id protocol mapper"):
+        backend.whoami()
+
+
+def test_mcp_backend_maps_keycloak_service_account_to_local_user(
+    db_session: Session,
+    monkeypatch,
+) -> None:
+    user = _create_user(db_session, "mapped-service-account@example.com")
+    backend = DaynestMcpBackend(_session_factory(db_session))
+    access_token = AccessToken(
+        token="token",
+        client_id="daynest-mcp",
+        scopes=[],
+        claims={
+            "sub": "service-subject",
+            "preferred_username": "service-account-daynest-mcp",
+            "azp": "daynest-mcp",
+            "daynest_user_id": user.id,
+        },
+    )
+    monkeypatch.setattr("app.mcp_server.get_access_token", lambda: access_token)
+
+    whoami = backend.whoami()
+
+    assert whoami["email"] == user.email
 
 
 def test_mcp_backend_rejects_authenticated_token_without_client_id(db_session: Session, monkeypatch) -> None:
@@ -690,6 +738,37 @@ def test_create_mcp_server_uses_backend_session_factory(db_session: Session, mon
 
     assert isinstance(mcp.auth, IntegrationKeyTokenVerifier)
     assert mcp.auth.session_factory == session_factory
+
+
+def test_create_mcp_server_requires_default_keycloak_scopes(monkeypatch) -> None:
+    monkeypatch.setattr(settings, "oidc_issuer_url", "https://auth.example/realms/daynest")
+    monkeypatch.setattr(settings, "oidc_audience", "daynest")
+    monkeypatch.setenv("DAYNEST_MCP_RESOURCE_SERVER_URL", "https://api.example/mcp")
+    backend = DaynestMcpBackend(MagicMock())
+
+    with patch("app.mcp_server.KeycloakAuthProvider") as provider:
+        create_mcp_server(backend)
+
+    provider.assert_called_once_with(
+        realm_url="https://auth.example/realms/daynest",
+        base_url="https://api.example/mcp",
+        audience="daynest",
+        required_scopes=["openid", "offline_access"],
+    )
+
+
+def test_create_mcp_server_propagates_keycloak_provider_failure(monkeypatch) -> None:
+    monkeypatch.setattr(settings, "oidc_issuer_url", "https://auth.example/realms/daynest")
+    backend = DaynestMcpBackend(MagicMock())
+
+    with (
+        patch(
+            "app.mcp_server.KeycloakAuthProvider",
+            side_effect=RuntimeError("provider setup failed"),
+        ),
+        pytest.raises(RuntimeError, match="provider setup failed"),
+    ):
+        create_mcp_server(backend)
 
 
 def test_mcp_server_version_uses_build_version_env(db_session: Session, monkeypatch) -> None:

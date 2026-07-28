@@ -5,12 +5,14 @@ export interface IntegrationClient {
   id: number;
   name: string;
   rate_limit_per_minute: number;
+  scopes: string[];
   is_active: boolean;
 }
 
 export interface IntegrationClientInput {
   name: string;
   rate_limit_per_minute: number;
+  scopes: Array<"home_assistant:*" | "pebble:read" | "pebble:write">;
 }
 
 export interface IntegrationClientCreateResponse extends IntegrationClient {
@@ -24,6 +26,7 @@ const integrationClientSchema = z.object({
   id: z.number(),
   name: z.string(),
   rate_limit_per_minute: z.number(),
+  scopes: z.array(z.string()),
   is_active: z.boolean(),
 });
 

@@ -56,15 +56,27 @@ class HAActionResult(BaseModel):
 
 
 
+IntegrationScope = Literal["home_assistant:*", "pebble:read", "pebble:write"]
+
+
+def _default_integration_scopes() -> list[IntegrationScope]:
+    return ["home_assistant:*"]
+
+
 class IntegrationClientCreateRequest(BaseModel):
     name: str = Field(min_length=2, max_length=120)
     rate_limit_per_minute: int = Field(default=120, ge=10, le=600)
+    scopes: list[IntegrationScope] = Field(
+        default_factory=_default_integration_scopes,
+        min_length=1,
+    )
 
 
 class IntegrationClientCreateResponse(BaseModel):
     id: int
     name: str
     rate_limit_per_minute: int
+    scopes: list[str]
     api_key: str
     client_id: str
     client_secret: str
@@ -81,6 +93,7 @@ class IntegrationClientResponse(BaseModel):
     id: int
     name: str
     rate_limit_per_minute: int
+    scopes: list[str]
     is_active: bool
 
 

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { SettingsPage } from "@/features/settings/SettingsPage";
@@ -69,8 +69,20 @@ describe("SettingsPage integration clients table", () => {
     installPromptMock.subscribeInstallPrompt.mockReset();
 
     apiMock.listIntegrationClients.mockResolvedValue([
-      { id: 1, name: "Home Assistant", rate_limit_per_minute: 120, is_active: true },
-      { id: 2, name: "Node-RED", rate_limit_per_minute: 80, is_active: false },
+      {
+        id: 1,
+        name: "Home Assistant",
+        rate_limit_per_minute: 120,
+        scopes: ["home_assistant:*"],
+        is_active: true,
+      },
+      {
+        id: 2,
+        name: "Node-RED",
+        rate_limit_per_minute: 80,
+        scopes: ["home_assistant:*"],
+        is_active: false,
+      },
     ]);
     apiMock.fetchUserSettings.mockResolvedValue({
       timezone: "UTC",
@@ -94,14 +106,15 @@ describe("SettingsPage integration clients table", () => {
       </QueryTestProvider>,
     );
 
-    expect(await screen.findByText("Home Assistant")).toBeInTheDocument();
-    expect(screen.getByText("Node-RED")).toBeInTheDocument();
+    const clientsTable = within(screen.getByRole("table"));
+    expect(await clientsTable.findByText("Node-RED")).toBeInTheDocument();
+    expect(clientsTable.getByText("Home Assistant")).toBeInTheDocument();
 
     await user.type(screen.getByLabelText("Search clients"), "Node");
 
     await waitFor(() => {
-      expect(screen.getByText("Node-RED")).toBeInTheDocument();
-      expect(screen.queryByText("Home Assistant")).not.toBeInTheDocument();
+      expect(clientsTable.getByText("Node-RED")).toBeInTheDocument();
+      expect(clientsTable.queryByText("Home Assistant")).not.toBeInTheDocument();
     });
 
     await user.click(screen.getByRole("checkbox", { name: /rate limit per minute/i }));
