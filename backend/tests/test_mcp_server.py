@@ -740,7 +740,7 @@ def test_create_mcp_server_uses_backend_session_factory(db_session: Session, mon
     assert mcp.auth.session_factory == session_factory
 
 
-def test_create_mcp_server_requires_default_keycloak_scopes(monkeypatch) -> None:
+def test_create_mcp_server_accepts_client_credentials_without_user_scopes(monkeypatch) -> None:
     monkeypatch.setattr(settings, "oidc_issuer_url", "https://auth.example/realms/daynest")
     monkeypatch.setattr(settings, "oidc_audience", "daynest")
     monkeypatch.setenv("DAYNEST_MCP_RESOURCE_SERVER_URL", "https://api.example/mcp")
@@ -753,7 +753,7 @@ def test_create_mcp_server_requires_default_keycloak_scopes(monkeypatch) -> None
         realm_url="https://auth.example/realms/daynest",
         base_url="https://api.example/mcp",
         audience="daynest",
-        required_scopes=["openid", "offline_access"],
+        required_scopes=[],
     )
 
 
