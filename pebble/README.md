@@ -184,4 +184,8 @@ complete a watch-side `fetch()`.
   the Emery emulator; a richer per-item list is a good next iteration.
 - **Storage/offline behavior**: cached via `device.keyValue`; Pebble's docs
   don't document a hard size limit for Emery, just "keep it minimal" — the
-  cached payload here is a single small JSON blob, which should be safe.
+  cached payload here is a single small JSON blob. Snapshots older than 12
+  hours, or stamped in the future after a clock rollback, are discarded.
+  Changing the integration key or server URL also clears the cache; responses
+  still in flight for the previous identity are ignored, and the new refresh
+  is serviced after the active request.

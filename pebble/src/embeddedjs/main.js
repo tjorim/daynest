@@ -77,6 +77,7 @@ function loadCachedDashboard() {
       snapshot.version !== SNAPSHOT_VERSION ||
       !snapshot.dashboard ||
       !snapshot.fetchedAt ||
+      age < 0 ||
       age > SNAPSHOT_MAX_AGE_SECONDS
     ) {
       clearCachedDashboard();
@@ -186,14 +187,17 @@ async function refresh() {
     showStale("Phone offline");
     return false;
   }
+  const generation = identityGeneration;
   try {
     const dashboard = await fetchDashboard();
+    if (generation !== identityGeneration) return false;
     lastDashboard = dashboard;
     saveCachedDashboard(dashboard);
     dashboardIsLive = true;
     renderDashboard(dashboard);
     return true;
   } catch (e) {
+    if (generation !== identityGeneration) return false;
     console.log(`Daynest refresh failed: ${e}`);
     showStale(String(e.message || e));
     return false;
@@ -201,15 +205,26 @@ async function refresh() {
 }
 
 let busy = false;
+let identityGeneration = 0;
+let refreshOwed = false;
 
 async function runExclusive(action) {
   if (busy) return;
   busy = true;
   try {
     await action();
+    while (refreshOwed) {
+      refreshOwed = false;
+      await refresh();
+    }
   } finally {
     busy = false;
   }
+}
+
+function requestRefresh() {
+  if (busy) refreshOwed = true;
+  else runExclusive(refresh);
 }
 
 async function runAction(kind) {
@@ -221,9 +236,11 @@ async function runAction(kind) {
     showStale("Phone offline");
     return;
   }
+  const generation = identityGeneration;
   // Cached state is display-only. Re-read before selecting a task so an item
   // completed or skipped elsewhere cannot be replayed from a stale snapshot.
   if (!dashboardIsLive && !(await refresh())) return;
+  if (generation !== identityGeneration) return;
   const items = lastDashboard && lastDashboard.due_today;
   if (!items || items.length === 0) return;
 
@@ -232,6 +249,7 @@ async function runAction(kind) {
   dashboardIsLive = false;
   try {
     await postAction(path, { chore_instance_id: item.chore_instance_id });
+    if (generation !== identityGeneration) return;
     // Drop the acted-on item locally before refreshing so a failed/slow
     // live refetch that falls back to cache can't replay the same action.
     lastDashboard = Object.assign({}, lastDashboard, {
@@ -245,6 +263,7 @@ async function runAction(kind) {
     });
     await refresh();
   } catch (e) {
+    if (generation !== identityGeneration) return;
     console.log(`Daynest ${kind} action failed: ${e}`);
     // A conflict means server state moved under us. Resolve by reading; never
     // retry a mutation whose outcome is uncertain.
@@ -261,6 +280,7 @@ const message = new Message({
     const token = payload.get("AUTH_TOKEN");
     const nextBaseUrl = baseUrl ? baseUrl.replace(/\/$/, "") : apiBaseUrl;
     if (nextBaseUrl !== apiBaseUrl || (token && token !== authToken)) {
+      identityGeneration += 1;
       clearCachedDashboard();
       dashboardIsLive = false;
     }
@@ -272,12 +292,12 @@ const message = new Message({
       authToken = token;
       localStorage.setItem("authToken", authToken);
     }
-    runExclusive(refresh);
+    requestRefresh();
   },
 });
 
-watch.addEventListener("connected", () => runExclusive(refresh));
-runExclusive(refresh);
+watch.addEventListener("connected", requestRefresh);
+requestRefresh();
 
 new Button({
   types: ["up", "select", "down"],

@@ -52,6 +52,19 @@ test("a cache older than 12 hours is discarded", async () => {
   assert.equal(harness.cachedDashboard, undefined);
 });
 
+test("a snapshot stamped in the future is discarded", async () => {
+  const harness = createHarness({
+    connected: false,
+    storage: TOKEN,
+    cachedDashboard: snapshot(dashboard(), -600),
+  });
+
+  await harness.settle();
+
+  assert.match(harness.status, /Phone offline/);
+  assert.equal(harness.cachedDashboard, undefined);
+});
+
 test("cached task state is re-read before choosing a mutation", async () => {
   const harness = createHarness({
     connected: false,
@@ -131,4 +144,65 @@ test("a changed pairing clears data from the previous account", async () => {
 
   assert.equal(harness.cachedDashboard, undefined);
   assert.match(harness.status, /Phone offline/);
+});
+
+function heldResponder(body) {
+  let release;
+  return [
+    () => ({
+      status: 200,
+      body: new Promise((resolve) => {
+        release = () => resolve(body);
+      }),
+    }),
+    () => release(),
+  ];
+}
+
+test("a reconnect during another request is serviced", async () => {
+  const [held, release] = heldResponder(dashboard());
+  const harness = createHarness({ storage: TOKEN, responder: held });
+  await harness.settle();
+
+  harness.emit("connected");
+  release();
+  await harness.settle();
+
+  assert.deepEqual(paths(harness), [DASHBOARD_PATH, DASHBOARD_PATH]);
+});
+
+test("an old account response is never cached after pairing changes", async () => {
+  const [held, release] = heldResponder(dashboard(101));
+  const harness = createHarness({ storage: TOKEN, responder: held });
+  await harness.settle();
+
+  await harness.configure({ AUTH_TOKEN: "other_key" });
+  harness.setResponder(() => ({ status: 503, body: {} }));
+  release();
+  await harness.settle();
+
+  assert.match(harness.status, /Try again later \(503\)/);
+  assert.equal(harness.cachedDashboard, undefined);
+  assert.equal(harness.requests.at(-1).headers["X-Integration-Key"], "other_key");
+});
+
+test("a mutation after pairing changes uses the new account state", async () => {
+  const [held, release] = heldResponder(dashboard(101));
+  const harness = createHarness({ storage: TOKEN, responder: held });
+  await harness.settle();
+
+  await harness.configure({ AUTH_TOKEN: "other_key" });
+  harness.setResponder((url) =>
+    url.endsWith(DASHBOARD_PATH)
+      ? { status: 200, body: dashboard(201) }
+      : { status: 200, body: {} },
+  );
+  release();
+  await harness.settle();
+  harness.requests.length = 0;
+
+  await harness.press("select");
+
+  assert.deepEqual(paths(harness), [COMPLETE_PATH, DASHBOARD_PATH]);
+  assert.equal(JSON.parse(harness.requests[0].body).chore_instance_id, 201);
 });

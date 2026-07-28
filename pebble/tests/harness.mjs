@@ -175,5 +175,8 @@ export function createHarness({
       hooks.message.onReadable.call(hooks.message);
       await settle();
     },
+    emit(type) {
+      listeners.get(type)?.();
+    },
   };
 }
