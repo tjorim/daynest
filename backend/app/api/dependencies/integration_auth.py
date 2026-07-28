@@ -134,6 +134,9 @@ def require_integration_auth(*required_scopes: str) -> Callable:
                 user = get_or_create_local_user(subject, claims, db)
                 if not user.is_active:
                     raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User account is inactive")
+                granted = set(str(claims.get("scope", "")).split())
+                if not _has_required_scopes(granted, required):
+                    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="OIDC token lacks required scope")
                 request.state.user_id = user.id
                 request.state.roles = _extract_roles(claims)
                 request.state.auth_type = AuthType.KEYCLOAK_USER
@@ -143,7 +146,7 @@ def require_integration_auth(*required_scopes: str) -> Callable:
                     client_id=claims.get("azp") if isinstance(claims.get("azp"), str) else None,
                     auth_type=AuthType.KEYCLOAK_USER,
                     roles=frozenset(_extract_roles(claims)),
-                    scopes=frozenset(str(claims.get("scope", "")).split()),
+                    scopes=frozenset(granted),
                 )
                 return user
 

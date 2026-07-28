@@ -347,38 +347,53 @@ export function IntegrationClientsSection({ backendBaseUrl }: IntegrationClients
       </div>
 
       {createdClient ? (
-        <div className="card mb-3">
-          <div className="card-header fw-semibold py-2">
-            {createdClient.name} - Legacy integration client fallback
-          </div>
-          <div className="card-body">
-            <div className="alert alert-warning py-2">
-              The Home Assistant integration now uses browser OAuth redirect and does not
-              require these values for normal setup. Keep this secret only for legacy
-              compatibility.
+        (() => {
+          const isPebbleClient = createdClient.scopes.some((scope) => scope.startsWith("pebble:"));
+          return (
+            <div className="card mb-3">
+              <div className="card-header fw-semibold py-2">
+                {createdClient.name} - {isPebbleClient ? "Pebble configuration credential" : "Legacy integration client fallback"}
+              </div>
+              <div className="card-body">
+                <div className="alert alert-warning py-2">
+                  {isPebbleClient ? (
+                    <>
+                      This key is the companion app&rsquo;s configuration credential. Enter it, along
+                      with this server&rsquo;s URL, in the Pebble mobile app&rsquo;s Daynest settings
+                      screen (see <code>pebble/README.md</code>) — it is not shown again.
+                    </>
+                  ) : (
+                    <>
+                      The Home Assistant integration now uses browser OAuth redirect and does not
+                      require these values for normal setup. Keep this secret only for legacy
+                      compatibility.
+                    </>
+                  )}
+                </div>
+                <dl className="row small mb-0">
+                  <dt className="col-sm-4">Client ID</dt>
+                  <dd className="col-sm-8"><code>{createdClient.client_id}</code></dd>
+                  <dt className="col-sm-4">Client secret</dt>
+                  <dd className="col-sm-8"><code className="settings-api-key">{createdClient.client_secret}</code></dd>
+                  <dt className="col-sm-4">Token URL</dt>
+                  <dd className="col-sm-8"><code>{createdClient.token_url}</code></dd>
+                  <dt className="col-sm-4">{isPebbleClient ? "Integration key header" : "Fallback key header"}</dt>
+                  <dd className="col-sm-8"><code>X-Integration-Key</code></dd>
+                </dl>
+                <div className="d-flex gap-2 mt-3 flex-wrap">
+                  <button
+                    type="button"
+                    className="btn btn-outline-primary btn-sm"
+                    onClick={() => void copyApiKey()}
+                  >
+                    Copy client secret
+                  </button>
+                  {copyStatus ? <small className="text-muted align-self-center">{copyStatus}</small> : null}
+                </div>
+              </div>
             </div>
-            <dl className="row small mb-0">
-              <dt className="col-sm-4">Client ID</dt>
-              <dd className="col-sm-8"><code>{createdClient.client_id}</code></dd>
-              <dt className="col-sm-4">Client secret</dt>
-              <dd className="col-sm-8"><code className="settings-api-key">{createdClient.client_secret}</code></dd>
-              <dt className="col-sm-4">Token URL</dt>
-              <dd className="col-sm-8"><code>{createdClient.token_url}</code></dd>
-              <dt className="col-sm-4">Fallback key header</dt>
-              <dd className="col-sm-8"><code>X-Integration-Key</code></dd>
-            </dl>
-            <div className="d-flex gap-2 mt-3 flex-wrap">
-              <button
-                type="button"
-                className="btn btn-outline-primary btn-sm"
-                onClick={() => void copyApiKey()}
-              >
-                Copy client secret
-              </button>
-              {copyStatus ? <small className="text-muted align-self-center">{copyStatus}</small> : null}
-            </div>
-          </div>
-        </div>
+          );
+        })()
       ) : null}
 
       <div className="card">

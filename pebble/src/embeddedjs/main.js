@@ -127,17 +127,31 @@ async function refresh() {
   }
 }
 
+let actionInFlight = false;
+
 async function runAction(kind) {
+  if (actionInFlight) return;
   const items = lastDashboard && lastDashboard.due_today;
   if (!items || items.length === 0) return;
 
   const item = items[0];
   const path = kind === "complete" ? COMPLETE_TASK_PATH : SKIP_TASK_PATH;
+  actionInFlight = true;
   try {
     await postAction(path, { chore_instance_id: item.chore_instance_id });
+    // Drop the acted-on item locally before refreshing so a failed/slow
+    // live refetch that falls back to cache can't replay the same action.
+    lastDashboard = Object.assign({}, lastDashboard, {
+      due_today: items.slice(1),
+      due_today_count: Math.max(0, (lastDashboard.due_today_count || items.length) - 1),
+    });
+    saveCachedDashboard(lastDashboard);
+    renderDashboard(lastDashboard, { stale: true });
     await refresh();
   } catch (e) {
     console.log(`Daynest ${kind} action failed: ${e}`);
+  } finally {
+    actionInFlight = false;
   }
 }
 

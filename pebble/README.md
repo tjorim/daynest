@@ -40,33 +40,29 @@ phone's connection. See
 
 ## A course-correction from the original issue plan
 
-#676 says to reuse `/api/today` and the today-actions endpoints. That's
+Issue #676 says to reuse `/api/today` and the today-actions endpoints. That's
 **not quite right**: `/api/today` (`backend/app/api/routes/today.py`) is
 wired to `get_current_user`, which only accepts an interactive OIDC bearer
-token — it does not accept an integration API key. The endpoints that
-*do* accept the integration-client key
-(`backend/app/api/dependencies/integration_auth.py`'s
-`require_integration_auth`) are the Home Assistant integration routes under
-`/api/integrations/home-assistant/*`.
+token — it does not accept an integration API key.
 
-This app calls those instead:
+There's now a dedicated, narrow router for this app:
+`backend/app/api/routes/integrations/pebble.py`, guarded by
+`require_integration_auth` with scoped permissions (see
+`docs/authorization-model.md`) — a key created for Pebble cannot reach the
+Home Assistant integration routes or vice versa:
 
-- `GET /api/integrations/home-assistant/dashboard` — due/overdue counts
-  plus a `due_today` list (`chore_instance_id`, `title`, `status`) —
-  enough for a glance view and to know what SELECT/DOWN act on.
-- `POST /api/integrations/home-assistant/actions/complete-task` /
-  `.../actions/skip-task` — body `{ "chore_instance_id": <int> }`.
-
-This works today with zero backend changes, but the naming is borrowed from
-a Home Assistant-flavored surface. If this app graduates past a prototype,
-consider whether a dedicated `/api/integrations/pebble/...` router (still
-using `require_integration_auth`) is worth the small amount of backend
-work, rather than permanently piggybacking on the HA routes.
+- `GET /api/integrations/pebble/dashboard` (needs `pebble:read`) —
+  due/overdue counts plus a `due_today` list (`chore_instance_id`, `title`,
+  `status`) — enough for a glance view and to know what SELECT/DOWN act on.
+- `POST /api/integrations/pebble/actions/complete-task` /
+  `.../actions/skip-task` (needs `pebble:write`) — body
+  `{ "chore_instance_id": <int> }`.
 
 ## Setup
 
 1. Get an integration API key: Daynest web app → Settings → Integration
-   Clients → create one. Copy the key shown once at creation time.
+   Clients → create one, selecting the **Pebble** scopes (`pebble:read` +
+   `pebble:write`). Copy the key shown once at creation time.
 2. Open this directory in [CloudPebble](https://cloudpebble.repebble.com/)
    (no local install needed), or install the SDK locally — see
    [Installing the Pebble SDK](https://developer.repebble.com/sdk/). Local

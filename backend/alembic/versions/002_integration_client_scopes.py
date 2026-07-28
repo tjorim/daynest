@@ -17,6 +17,8 @@ depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
+    # Backfill existing rows with the migration-only compatibility scope so
+    # credentials created before explicit scopes existed keep working.
     op.add_column(
         "integration_clients",
         sa.Column(
@@ -25,6 +27,13 @@ def upgrade() -> None:
             nullable=False,
             server_default='["integration:*"]',
         ),
+    )
+    # New rows (including any raw insert that omits scopes) should default to
+    # least-privilege, not the unrestricted legacy compatibility scope.
+    op.alter_column(
+        "integration_clients",
+        "scopes",
+        server_default='["home_assistant:*"]',
     )
 
 

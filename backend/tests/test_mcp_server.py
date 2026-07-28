@@ -43,6 +43,7 @@ def _create_integration_client(
     *,
     raw_key: str,
     rate_limit_per_minute: int = 50,
+    scopes: list[str] | None = None,
 ) -> IntegrationClient:
     client = IntegrationClient(
         user_id=user.id,
@@ -50,6 +51,7 @@ def _create_integration_client(
         key_hash=hash_integration_key(raw_key),
         rate_limit_per_minute=rate_limit_per_minute,
         is_active=True,
+        **({"scopes": scopes} if scopes is not None else {}),
     )
     db_session.add(client)
     db_session.commit()
@@ -439,7 +441,7 @@ def test_integration_key_token_verifier_accepts_valid_key(db_session: Session) -
 
 def test_mcp_backend_uses_authenticated_integration_owner(db_session: Session, monkeypatch) -> None:
     user = _create_user(db_session, "auth-owner@example.com")
-    client = _create_integration_client(db_session, user, raw_key="daynest_auth_owner")
+    client = _create_integration_client(db_session, user, raw_key="daynest_auth_owner", scopes=["mcp:*"])
     backend = DaynestMcpBackend(_session_factory(db_session))
     access_token = AccessToken(
         token="token",

@@ -24,8 +24,8 @@ class IntegrationClient(Base):
     scopes: Mapped[list[str]] = mapped_column(
         JSON,
         nullable=False,
-        default=lambda: ["integration:*"],
-        server_default='["integration:*"]',
+        default=lambda: ["home_assistant:*"],
+        server_default='["home_assistant:*"]',
     )
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default=sa.text("true"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
