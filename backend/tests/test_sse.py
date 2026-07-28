@@ -1,6 +1,6 @@
 import asyncio
 from collections.abc import Coroutine
-from datetime import date, datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 from unittest.mock import MagicMock
 
@@ -78,7 +78,7 @@ async def test_today_rollover_publishes_today_updated_for_subscribed_user(db_ses
         db_session,
         event_bus,
         local_dates,
-        now=datetime(2026, 5, 21, 21, 59, tzinfo=timezone.utc),
+        now=datetime(2026, 5, 21, 21, 59, tzinfo=UTC),
     )
     assert queue.empty()
 
@@ -86,7 +86,7 @@ async def test_today_rollover_publishes_today_updated_for_subscribed_user(db_ses
         db_session,
         event_bus,
         local_dates,
-        now=datetime(2026, 5, 21, 22, 1, tzinfo=timezone.utc),
+        now=datetime(2026, 5, 21, 22, 1, tzinfo=UTC),
     )
     event = await asyncio.wait_for(queue.get(), timeout=1)
     assert event == {"type": "today_updated"}
@@ -135,7 +135,7 @@ def test_today_mutation_publishes_today_updated(client: TestClient, db_session: 
     app.dependency_overrides[get_current_user] = _auth_dep
     app.dependency_overrides[get_event_bus] = lambda: mock_bus
     try:
-        payload = {"title": "Test item", "planned_for": str(date.today()), "priority": "normal"}
+        payload = {"title": "Test item", "planned_for": str(datetime.now(UTC).date()), "priority": "normal"}
         response = client.post("/api/planned-items", json=payload)
         assert response.status_code == 200
         mock_bus.publish.assert_called_once_with(user.id, {"type": "today_updated"})

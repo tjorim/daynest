@@ -72,7 +72,7 @@ _jwks_readiness_lock = asyncio.Lock()
 
 
 async def _jwks_reachable() -> bool:
-    global _jwks_readiness_cache  # noqa: PLW0603
+    global _jwks_readiness_cache
     now = time.monotonic()
     if _jwks_readiness_cache is not None and now - _jwks_readiness_cache[0] < _JWKS_READINESS_CACHE_SECONDS:
         return _jwks_readiness_cache[1]

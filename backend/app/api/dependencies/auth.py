@@ -5,7 +5,12 @@ from fastapi import Depends, HTTPException, Query, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
-from app.core.oidc import OIDCTokenError, _extract_roles, decode_oidc_token, get_or_create_local_user
+from app.core.oidc import (
+    OIDCTokenError,
+    _extract_roles,
+    decode_oidc_token,
+    get_or_create_local_user,
+)
 from app.db.session import get_db
 from app.models.user import User
 

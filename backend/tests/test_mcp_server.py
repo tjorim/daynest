@@ -1,11 +1,10 @@
 import asyncio
+from datetime import UTC, datetime, time, timedelta
 from hashlib import sha256
-from datetime import datetime, time, timedelta, timezone
 
 import pytest
 from fastapi.testclient import TestClient
 from fastmcp.server.auth import AccessToken
-
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.api.dependencies.integration_auth import hash_integration_key
@@ -100,7 +99,7 @@ async def test_mcp_capability_tool_names_match_registered_tools(db_session: Sess
 
 
 def test_mcp_backend_resolves_single_active_user_and_returns_today(db_session: Session) -> None:
-    utc_today = datetime.now(timezone.utc).date()
+    utc_today = datetime.now(UTC).date()
     user = _create_user(db_session, "mcp@example.com")
     db_session.add(
         RoutineTemplate(
@@ -189,7 +188,7 @@ def test_mcp_backend_can_create_and_update_planned_items(db_session: Session) ->
 
 
 def test_mcp_backend_can_list_medications(db_session: Session) -> None:
-    utc_today = datetime.now(timezone.utc).date()
+    utc_today = datetime.now(UTC).date()
     user = _create_user(db_session, "med-list@example.com")
     db_session.add(
         MedicationPlan(
@@ -213,7 +212,7 @@ def test_mcp_backend_can_list_medications(db_session: Session) -> None:
 
 
 def test_mcp_backend_can_get_medication_history(db_session: Session) -> None:
-    utc_today = datetime.now(timezone.utc).date()
+    utc_today = datetime.now(UTC).date()
     user = _create_user(db_session, "med-history@example.com")
     plan = MedicationPlan(
         user_id=user.id,
@@ -233,7 +232,7 @@ def test_mcp_backend_can_get_medication_history(db_session: Session) -> None:
         name=plan.name,
         instructions=plan.instructions,
         scheduled_date=utc_today - timedelta(days=1),
-        scheduled_at=datetime(2026, 1, 1, 8, 0, tzinfo=timezone.utc),
+        scheduled_at=datetime(2026, 1, 1, 8, 0, tzinfo=UTC),
         status=MedicationDoseStatus.taken,
     )
     db_session.add(dose)
@@ -248,7 +247,7 @@ def test_mcp_backend_can_get_medication_history(db_session: Session) -> None:
 
 
 def test_mcp_backend_can_get_scheduling_suggestions(db_session: Session) -> None:
-    utc_today = datetime.now(timezone.utc).date()
+    utc_today = datetime.now(UTC).date()
     user = _create_user(db_session, "mcp-suggestions@example.com")
     chore_template = ChoreTemplate(
         user_id=user.id,
@@ -309,7 +308,7 @@ def test_mcp_backend_can_create_medication(db_session: Session) -> None:
 
 
 def test_mcp_backend_can_update_medication(db_session: Session) -> None:
-    utc_today = datetime.now(timezone.utc).date()
+    utc_today = datetime.now(UTC).date()
     user = _create_user(db_session, "med-update@example.com")
     backend = DaynestMcpBackend(_session_factory(db_session), user_email=user.email)
 
@@ -536,7 +535,7 @@ def test_mcp_backend_rejects_authenticated_token_without_client_id(db_session: S
 
 
 def test_mcp_backend_can_list_routines(db_session: Session) -> None:
-    utc_today = datetime.now(timezone.utc).date()
+    utc_today = datetime.now(UTC).date()
     user = _create_user(db_session, "routine-list@example.com")
     db_session.add(
         RoutineTemplate(
@@ -581,7 +580,7 @@ def test_mcp_backend_can_create_routine(db_session: Session) -> None:
 
 
 def test_mcp_backend_can_update_routine(db_session: Session) -> None:
-    utc_today = datetime.now(timezone.utc).date()
+    utc_today = datetime.now(UTC).date()
     user = _create_user(db_session, "routine-update@example.com")
     backend = DaynestMcpBackend(_session_factory(db_session), user_email=user.email)
 
@@ -634,7 +633,7 @@ def test_mcp_backend_delete_routine_raises_for_missing_template(db_session: Sess
 
 
 def test_mcp_backend_can_list_chore_templates(db_session: Session) -> None:
-    utc_today = datetime.now(timezone.utc).date()
+    utc_today = datetime.now(UTC).date()
     user = _create_user(db_session, "chore-list@example.com")
     db_session.add(
         ChoreTemplate(
@@ -676,7 +675,7 @@ def test_mcp_backend_can_create_chore_template(db_session: Session) -> None:
 
 
 def test_mcp_backend_can_update_chore_template(db_session: Session) -> None:
-    utc_today = datetime.now(timezone.utc).date()
+    utc_today = datetime.now(UTC).date()
     user = _create_user(db_session, "chore-update@example.com")
     backend = DaynestMcpBackend(_session_factory(db_session), user_email=user.email)
 
@@ -830,7 +829,7 @@ def test_mcp_backend_defer_planned_item(db_session: Session) -> None:
     )
     result = backend.defer_planned_item(created["id"], days=7)
 
-    expected = (datetime.now(timezone.utc).date() + timedelta(days=7)).isoformat()
+    expected = (datetime.now(UTC).date() + timedelta(days=7)).isoformat()
     assert result["planned_for"] == expected
     assert result["title"] == "Defer me"
     assert result["notes"] == "preserve me"
@@ -840,7 +839,7 @@ def test_mcp_backend_defer_planned_item(db_session: Session) -> None:
 
 
 def test_mcp_backend_take_medication_dose_with_custom_taken_at(db_session: Session) -> None:
-    utc_today = datetime.now(timezone.utc).date()
+    utc_today = datetime.now(UTC).date()
     user = _create_user(db_session, "med-take-takenat@example.com")
     plan = MedicationPlan(
         user_id=user.id,
@@ -855,14 +854,14 @@ def test_mcp_backend_take_medication_dose_with_custom_taken_at(db_session: Sessi
     db_session.commit()
     db_session.refresh(plan)
 
-    past_time = datetime.now(timezone.utc) - timedelta(hours=2)
+    past_time = datetime.now(UTC) - timedelta(hours=2)
     dose = MedicationDoseInstance(
         user_id=user.id,
         medication_plan_id=plan.id,
         name=plan.name,
         instructions=plan.instructions,
         scheduled_date=utc_today,
-        scheduled_at=datetime(utc_today.year, utc_today.month, utc_today.day, 8, 0, tzinfo=timezone.utc),
+        scheduled_at=datetime(utc_today.year, utc_today.month, utc_today.day, 8, 0, tzinfo=UTC),
         status=MedicationDoseStatus.missed,
     )
     db_session.add(dose)
@@ -879,7 +878,7 @@ def test_mcp_backend_take_medication_dose_with_custom_taken_at(db_session: Sessi
 def test_mcp_backend_take_medication_dose_rejects_future_taken_at(db_session: Session) -> None:
     from fastapi import HTTPException
 
-    utc_today = datetime.now(timezone.utc).date()
+    utc_today = datetime.now(UTC).date()
     user = _create_user(db_session, "med-take-future@example.com")
     plan = MedicationPlan(
         user_id=user.id,
@@ -900,14 +899,14 @@ def test_mcp_backend_take_medication_dose_rejects_future_taken_at(db_session: Se
         name=plan.name,
         instructions=plan.instructions,
         scheduled_date=utc_today,
-        scheduled_at=datetime(utc_today.year, utc_today.month, utc_today.day, 9, 0, tzinfo=timezone.utc),
+        scheduled_at=datetime(utc_today.year, utc_today.month, utc_today.day, 9, 0, tzinfo=UTC),
         status=MedicationDoseStatus.scheduled,
     )
     db_session.add(dose)
     db_session.commit()
     db_session.refresh(dose)
 
-    future_time = (datetime.now(timezone.utc) + timedelta(hours=2)).isoformat()
+    future_time = (datetime.now(UTC) + timedelta(hours=2)).isoformat()
     backend = DaynestMcpBackend(_session_factory(db_session), user_email=user.email)
 
     with pytest.raises(HTTPException) as exc_info:
@@ -916,7 +915,7 @@ def test_mcp_backend_take_medication_dose_rejects_future_taken_at(db_session: Se
 
 
 def test_mcp_backend_skip_missed_medication_doses(db_session: Session) -> None:
-    utc_today = datetime.now(timezone.utc).date()
+    utc_today = datetime.now(UTC).date()
     user = _create_user(db_session, "med-skip-missed@example.com")
     plan = MedicationPlan(
         user_id=user.id,
@@ -940,7 +939,7 @@ def test_mcp_backend_skip_missed_medication_doses(db_session: Session) -> None:
             name=plan.name,
             instructions=plan.instructions,
             scheduled_date=d,
-            scheduled_at=datetime(d.year, d.month, d.day, 8, 0, tzinfo=timezone.utc),
+            scheduled_at=datetime(d.year, d.month, d.day, 8, 0, tzinfo=UTC),
             status=MedicationDoseStatus.missed,
         ))
     # One scheduled dose for today — should not be touched
@@ -950,7 +949,7 @@ def test_mcp_backend_skip_missed_medication_doses(db_session: Session) -> None:
         name=plan.name,
         instructions=plan.instructions,
         scheduled_date=utc_today,
-        scheduled_at=datetime(utc_today.year, utc_today.month, utc_today.day, 8, 0, tzinfo=timezone.utc),
+        scheduled_at=datetime(utc_today.year, utc_today.month, utc_today.day, 8, 0, tzinfo=UTC),
         status=MedicationDoseStatus.scheduled,
     ))
     db_session.commit()
@@ -963,7 +962,7 @@ def test_mcp_backend_skip_missed_medication_doses(db_session: Session) -> None:
 
 
 def test_mcp_backend_skip_missed_doses_does_not_touch_today(db_session: Session) -> None:
-    utc_today = datetime.now(timezone.utc).date()
+    utc_today = datetime.now(UTC).date()
     user = _create_user(db_session, "med-skip-today-safe@example.com")
     plan = MedicationPlan(
         user_id=user.id,
@@ -985,7 +984,7 @@ def test_mcp_backend_skip_missed_doses_does_not_touch_today(db_session: Session)
         name=plan.name,
         instructions=plan.instructions,
         scheduled_date=utc_today,
-        scheduled_at=datetime(utc_today.year, utc_today.month, utc_today.day, 22, 0, tzinfo=timezone.utc),
+        scheduled_at=datetime(utc_today.year, utc_today.month, utc_today.day, 22, 0, tzinfo=UTC),
         status=MedicationDoseStatus.missed,
     ))
     db_session.commit()

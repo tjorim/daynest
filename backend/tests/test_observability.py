@@ -5,8 +5,8 @@ import logging
 import time
 import uuid
 
-from fastapi.testclient import TestClient
 import pytest
+from fastapi.testclient import TestClient
 
 
 def test_liveness_and_health_endpoints(client: TestClient) -> None:

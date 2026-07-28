@@ -1,4 +1,4 @@
-from datetime import date, datetime, time, timedelta, timezone
+from datetime import UTC, date, datetime, time, timedelta
 
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
@@ -49,8 +49,8 @@ def _add_chore(
             title=template.name,
             scheduled_date=scheduled_date,
             status=status,
-            completed_at=datetime.now(timezone.utc) if status == ChoreStatus.completed else None,
-            skipped_at=datetime.now(timezone.utc) if status == ChoreStatus.skipped else None,
+            completed_at=datetime.now(UTC) if status == ChoreStatus.completed else None,
+            skipped_at=datetime.now(UTC) if status == ChoreStatus.skipped else None,
         )
     )
 
@@ -62,7 +62,7 @@ def _add_medication_dose(
     scheduled_date: date,
     status: MedicationDoseStatus,
 ) -> None:
-    scheduled_at = datetime.combine(scheduled_date, plan.schedule_time, tzinfo=timezone.utc)
+    scheduled_at = datetime.combine(scheduled_date, plan.schedule_time, tzinfo=UTC)
     db_session.add(
         MedicationDoseInstance(
             user_id=user.id,
@@ -72,9 +72,9 @@ def _add_medication_dose(
             scheduled_date=scheduled_date,
             scheduled_at=scheduled_at,
             status=status,
-            taken_at=datetime.now(timezone.utc) if status == MedicationDoseStatus.taken else None,
-            skipped_at=datetime.now(timezone.utc) if status == MedicationDoseStatus.skipped else None,
-            missed_at=datetime.now(timezone.utc) if status == MedicationDoseStatus.missed else None,
+            taken_at=datetime.now(UTC) if status == MedicationDoseStatus.taken else None,
+            skipped_at=datetime.now(UTC) if status == MedicationDoseStatus.skipped else None,
+            missed_at=datetime.now(UTC) if status == MedicationDoseStatus.missed else None,
         )
     )
 
@@ -98,7 +98,7 @@ def test_analytics_summary_rejects_unknown_period(client: TestClient, db_session
 def test_analytics_summary_aggregates_user_history(client: TestClient, db_session: Session) -> None:
     user = _create_user(db_session, email="analytics@example.com")
     other_user = _create_user(db_session, email="analytics-other@example.com")
-    today = date.today()
+    today = datetime.now(UTC).date()
 
     chore_template = ChoreTemplate(
         user_id=user.id,
@@ -202,7 +202,7 @@ def test_analytics_summary_aggregates_user_history(client: TestClient, db_sessio
 
 def test_analytics_streaks_use_bounded_recent_history(client: TestClient, db_session: Session) -> None:
     user = _create_user(db_session, email="analytics-streak-window@example.com")
-    today = date.today()
+    today = datetime.now(UTC).date()
 
     chore_template = ChoreTemplate(
         user_id=user.id,
@@ -249,14 +249,14 @@ def _add_task(
             title=template.name,
             scheduled_date=scheduled_date,
             status=status,
-            completed_at=datetime.now(timezone.utc) if status == TaskStatus.completed else None,
+            completed_at=datetime.now(UTC) if status == TaskStatus.completed else None,
         )
     )
 
 
 def test_analytics_includes_routine_streaks(client: TestClient, db_session: Session) -> None:
     user = _create_user(db_session, email="analytics-routine-streaks@example.com")
-    today = date.today()
+    today = datetime.now(UTC).date()
 
     routine = RoutineTemplate(
         user_id=user.id,
@@ -297,7 +297,7 @@ def test_analytics_includes_routine_streaks(client: TestClient, db_session: Sess
 def test_analytics_routine_streaks_do_not_leak_across_users(client: TestClient, db_session: Session) -> None:
     owner = _create_user(db_session, email="analytics-routine-owner@example.com")
     other = _create_user(db_session, email="analytics-routine-other@example.com")
-    today = date.today()
+    today = datetime.now(UTC).date()
 
     routine = RoutineTemplate(
         user_id=owner.id,
@@ -341,7 +341,7 @@ def test_analytics_summary_response_includes_routines_key(client: TestClient, db
 
 def test_analytics_suggestions_include_chore_medication_and_load_balancing(client: TestClient, db_session: Session) -> None:
     user = _create_user(db_session, email="analytics-suggestions@example.com")
-    today = date.today()
+    today = datetime.now(UTC).date()
 
     chore_template = ChoreTemplate(
         user_id=user.id,
@@ -402,7 +402,7 @@ def test_analytics_suggestions_include_chore_medication_and_load_balancing(clien
 
 def test_load_balancing_suggestions_ignore_completed_items(client: TestClient, db_session: Session) -> None:
     user = _create_user(db_session, email="analytics-load-completed@example.com")
-    today = date.today()
+    today = datetime.now(UTC).date()
     chore_templates = [
         ChoreTemplate(
             user_id=user.id,
@@ -436,7 +436,7 @@ def test_load_balancing_suggestions_ignore_completed_items(client: TestClient, d
 
 def test_load_balancing_suggestions_consider_empty_target_days(client: TestClient, db_session: Session) -> None:
     user = _create_user(db_session, email="analytics-load-empty-days@example.com")
-    today = date.today()
+    today = datetime.now(UTC).date()
     overloaded_day = today + timedelta(days=1)
     db_session.add_all(
         [
@@ -462,7 +462,7 @@ def test_load_balancing_suggestions_consider_empty_target_days(client: TestClien
 
 def test_load_balancing_move_count_does_not_overload_target(client: TestClient, db_session: Session) -> None:
     user = _create_user(db_session, email="analytics-load-move-count@example.com")
-    today = date.today()
+    today = datetime.now(UTC).date()
     overloaded_day = today
     db_session.add_all(
         [
@@ -498,7 +498,7 @@ def test_load_balancing_move_count_does_not_overload_target(client: TestClient, 
 
 def test_medication_suggestion_uses_plan_schedule_time(client: TestClient, db_session: Session) -> None:
     user = _create_user(db_session, email="analytics-medication-local-time@example.com")
-    today = date.today()
+    today = datetime.now(UTC).date()
     medication_plan = MedicationPlan(
         user_id=user.id,
         name="Vitamin B",
@@ -528,7 +528,7 @@ def test_medication_suggestion_uses_plan_schedule_time(client: TestClient, db_se
                 name=medication_plan.name,
                 instructions=medication_plan.instructions,
                 scheduled_date=scheduled_date,
-                scheduled_at=datetime.combine(scheduled_date, time(7, 0), tzinfo=timezone.utc),
+                scheduled_at=datetime.combine(scheduled_date, time(7, 0), tzinfo=UTC),
                 status=status,
             )
         )

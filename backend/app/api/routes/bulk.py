@@ -6,7 +6,13 @@ from app.api.dependencies.auth import get_current_user
 from app.api.dependencies.events import get_event_bus
 from app.api.dependencies.today import get_today_service
 from app.models.user import User
-from app.schemas.bulk import BulkMutationItem, BulkMutationRequest, BulkMutationResponse, BulkMutationResult, MutationType
+from app.schemas.bulk import (
+    BulkMutationItem,
+    BulkMutationRequest,
+    BulkMutationResponse,
+    BulkMutationResult,
+    MutationType,
+)
 from app.services.event_bus import EventBus
 from app.services.today_service import TodayService
 

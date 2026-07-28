@@ -37,5 +37,5 @@ class HouseholdMember(Base):
     )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
-    household: Mapped["Household"] = relationship(back_populates="members")
-    user: Mapped["User"] = relationship(back_populates="household_members")
+    household: Mapped[Household] = relationship(back_populates="members")
+    user: Mapped[User] = relationship(back_populates="household_members")

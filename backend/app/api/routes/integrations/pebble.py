@@ -1,6 +1,6 @@
 """Narrow API surface for the Daynest Pebble app."""
 
-from datetime import date
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends
 
@@ -23,7 +23,7 @@ def pebble_dashboard(
     service: TodayService = Depends(get_today_service),
     integration_user: User = Depends(require_integration_auth("pebble:read")),
 ) -> DashboardReadModel:
-    return service.get_dashboard_read_model(user_id=integration_user.id, for_date=date.today())
+    return service.get_dashboard_read_model(user_id=integration_user.id, for_date=datetime.now(UTC).date())
 
 
 @router.post("/actions/complete-task", response_model=HAActionResult)

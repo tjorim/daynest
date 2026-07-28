@@ -30,4 +30,4 @@ class IntegrationClient(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default=sa.text("true"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
-    user: Mapped["User"] = relationship(back_populates="integration_clients")
+    user: Mapped[User] = relationship(back_populates="integration_clients")
