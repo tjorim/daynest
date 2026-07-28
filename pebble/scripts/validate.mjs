@@ -62,6 +62,32 @@ for (const scope of ["pebble:read", "pebble:write"]) {
   }
 }
 
+// Piu resolves `font` against PebbleOS's built-in font table. An unknown family
+// throws an uncaught URIError that kills the watchapp the moment it starts, and
+// nothing in the build catches it — so pin the families here instead.
+const PEBBLE_FONT_FAMILIES = ["Gothic", "Bitham", "Roboto", "DroidSerif", "Leco"];
+for (const [, font] of watchSource.matchAll(/font:\s*"([^"]+)"/g)) {
+  const match = /^(?:italic\s+)?(?:\w+\s+)?\d+px\s+(\w+)$/.exec(font);
+  if (!match || !PEBBLE_FONT_FAMILIES.includes(match[1])) {
+    throw new Error(
+      `Unsupported Piu font ${JSON.stringify(font)}: use "<size>px <family>" with one of ` +
+        PEBBLE_FONT_FAMILIES.join(", "),
+    );
+  }
+}
+
+// PKJS is bundled by the SDK's webpack/acorn, which predates ES2017 trailing
+// commas in argument lists — one is a hard build failure, so keep them out.
+if (/,\s*[)\]]/.test(phoneSource)) {
+  throw new Error("Trailing comma in src/pkjs/index.js: the SDK's PKJS bundler cannot parse it");
+}
+
+// The proxy owns the PKJS send queue; bypassing it can drop messages when a
+// fetch() is in flight (see @moddable/pebbleproxy's README).
+if (/Pebble\.sendAppMessage\s*\(/.test(phoneSource)) {
+  throw new Error("Use moddableProxy.sendAppMessage() so sends are queued behind proxy traffic");
+}
+
 for (const file of ["src/embeddedjs/main.js", "src/pkjs/index.js"]) {
   execFileSync(process.execPath, ["--check", resolve(root, file)], { stdio: "inherit" });
 }

@@ -15,8 +15,12 @@ const DEFAULT_API_BASE_URL = "https://daynest.tjor.im";
 const CACHE_PATH = "daynest-today";
 const CACHE_KEY = "dashboard";
 
+// Piu resolves `font` through PebbleOS's built-in font table, so only the
+// system families/sizes are available (Gothic 9/14/18/24/28/36, Bitham,
+// Roboto, Droid Serif, Leco — regular or bold). An unknown family throws an
+// uncaught "font not found" URIError that kills the app at startup.
 const backgroundSkin = new Skin({ fill: "black" });
-const bodyStyle = new Style({ font: "OpenSans-Regular-15", color: "white", horizontal: "left", vertical: "top" });
+const bodyStyle = new Style({ font: "14px Gothic", color: "white", horizontal: "left", vertical: "top" });
 
 const DaynestApplication = Application.template($ => ({
   skin: backgroundSkin,
