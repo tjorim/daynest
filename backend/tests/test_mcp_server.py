@@ -1,6 +1,7 @@
 import asyncio
 from datetime import UTC, datetime, time, timedelta
 from hashlib import sha256
+from unittest.mock import MagicMock, patch
 
 import pytest
 from fastapi.testclient import TestClient
@@ -737,6 +738,37 @@ def test_create_mcp_server_uses_backend_session_factory(db_session: Session, mon
 
     assert isinstance(mcp.auth, IntegrationKeyTokenVerifier)
     assert mcp.auth.session_factory == session_factory
+
+
+def test_create_mcp_server_requires_default_keycloak_scopes(monkeypatch) -> None:
+    monkeypatch.setattr(settings, "oidc_issuer_url", "https://auth.example/realms/daynest")
+    monkeypatch.setattr(settings, "oidc_audience", "daynest")
+    monkeypatch.setenv("DAYNEST_MCP_RESOURCE_SERVER_URL", "https://api.example/mcp")
+    backend = DaynestMcpBackend(MagicMock())
+
+    with patch("app.mcp_server.KeycloakAuthProvider") as provider:
+        create_mcp_server(backend)
+
+    provider.assert_called_once_with(
+        realm_url="https://auth.example/realms/daynest",
+        base_url="https://api.example/mcp",
+        audience="daynest",
+        required_scopes=["openid", "offline_access"],
+    )
+
+
+def test_create_mcp_server_propagates_keycloak_provider_failure(monkeypatch) -> None:
+    monkeypatch.setattr(settings, "oidc_issuer_url", "https://auth.example/realms/daynest")
+    backend = DaynestMcpBackend(MagicMock())
+
+    with (
+        patch(
+            "app.mcp_server.KeycloakAuthProvider",
+            side_effect=RuntimeError("provider setup failed"),
+        ),
+        pytest.raises(RuntimeError, match="provider setup failed"),
+    ):
+        create_mcp_server(backend)
 
 
 def test_mcp_server_version_uses_build_version_env(db_session: Session, monkeypatch) -> None:
