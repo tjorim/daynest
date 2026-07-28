@@ -157,7 +157,9 @@ complete a watch-side `fetch()`.
 - [ ] Repeated SELECT/DOWN presses submit the mutation exactly once (check the
       backend, not just the screen).
 - [ ] With networking off, the last dashboard is still shown and is labelled
-      `(cached — offline)`.
+      `Phone offline · HH:MM`.
+- [ ] An action chosen from cached state re-reads the dashboard first and acts
+      on the current first item, not the cached one.
 - [ ] After a successful mutation, a failed refresh does not resurrect the
       acted-on item from cache.
 - [ ] The integration key works with only `pebble:read` and `pebble:write`.

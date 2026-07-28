@@ -50,6 +50,15 @@ if (!watchSource.includes("fetch(")) throw new Error("Watch code must use Alloy 
 for (const action of ["complete-task", "skip-task"]) {
   if (!watchSource.includes(action)) throw new Error(`Missing Daynest action: ${action}`);
 }
+if (!watchSource.includes("SNAPSHOT_MAX_AGE_SECONDS") || !watchSource.includes("loadCachedDashboard(")) {
+  throw new Error("Watch code must persist and age-limit the offline dashboard snapshot");
+}
+if (!watchSource.includes("!dashboardIsLive && !(await refresh())")) {
+  throw new Error("Cached task state must be re-read before choosing a mutation");
+}
+if (!watchSource.includes("runExclusive(() => runAction(")) {
+  throw new Error("Task actions must go through the exclusive-action guard");
+}
 if (!phoneSource.includes("@moddable/pebbleproxy")) {
   throw new Error("Phone code must initialize the official Alloy network proxy");
 }

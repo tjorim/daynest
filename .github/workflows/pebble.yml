@@ -29,6 +29,9 @@ jobs:
       - name: Validate Alloy package contract
         working-directory: pebble
         run: node scripts/validate.mjs
+      - name: Test watch app logic
+        working-directory: pebble
+        run: npm test
 
   # Compiling the package and booting it on the Emery emulator catches the two
   # failure modes the contract checks can only approximate: a build that does
