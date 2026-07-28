@@ -16,6 +16,14 @@ internal class SettingsSignOutHandler(
     private val uiState: MutableStateFlow<SettingsUiState>,
     private val signOutIntent: MutableSharedFlow<Intent>
 ) {
+    fun onEvent(event: SettingsUiEvent) {
+        when (event) {
+            SettingsUiEvent.SignOutClicked -> signOut()
+            SettingsUiEvent.SignOutFlowFinished -> completeSignOut()
+            else -> Unit
+        }
+    }
+
     /**
      * @param awaitProviderFlow whether to keep the local session until the
      *   provider end-session activity returns. False when the account is

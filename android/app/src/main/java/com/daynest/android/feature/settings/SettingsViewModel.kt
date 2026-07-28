@@ -81,8 +81,8 @@ constructor(
     fun onEvent(event: SettingsUiEvent) {
         when (event) {
             SettingsUiEvent.RetryClicked -> load()
-            SettingsUiEvent.SignOutClicked -> signOutHandler.signOut()
-            SettingsUiEvent.SignOutFlowFinished -> signOutHandler.completeSignOut()
+            SettingsUiEvent.SignOutClicked,
+            SettingsUiEvent.SignOutFlowFinished -> signOutHandler.onEvent(event)
             SettingsUiEvent.ShowCreateClientForm -> updateContent { it.copy(showCreateForm = true) }
             SettingsUiEvent.DismissCreateClientForm -> updateContent { it.copy(showCreateForm = false) }
             SettingsUiEvent.DismissNewKeyDialog -> updateContent { it.copy(newApiKey = null) }

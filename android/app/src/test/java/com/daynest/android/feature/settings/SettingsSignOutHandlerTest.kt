@@ -63,6 +63,18 @@ class SettingsSignOutHandlerTest {
     }
 
     @Test
+    fun `the flow-finished event completes the sign-out rather than starting another`() = runTest(dispatcher) {
+        val oidcAuthService = authService(endSessionIntent = mockk<Intent>())
+        val uiState = MutableStateFlow<SettingsUiState>(SettingsUiState.Loading)
+
+        handler(this, oidcAuthService, uiState).onEvent(SettingsUiEvent.SignOutFlowFinished)
+        advanceUntilIdle()
+
+        assertEquals(SettingsUiState.SignedOut, uiState.value)
+        verify(exactly = 1) { oidcAuthService.signOut() }
+    }
+
+    @Test
     fun `a deleted account does not wait for the provider flow`() = runTest(dispatcher) {
         val oidcAuthService = authService(endSessionIntent = mockk<Intent>())
         val uiState = MutableStateFlow<SettingsUiState>(SettingsUiState.Loading)
