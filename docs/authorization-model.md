@@ -36,7 +36,3 @@ Deploy the backend migration before the updated backend:
 ```sh
 uv run alembic upgrade head
 ```
-
-`docs/release-validation.md` is the runbook for verifying this model on real
-clients — the interactive login/logout and pairing flows that automated tests
-cannot cover.

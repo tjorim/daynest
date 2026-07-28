@@ -29,6 +29,7 @@ describe("PebblePairPage", () => {
       refreshUser: vi.fn(),
       sessionError: null,
       oidcError: null,
+      isAccountRejected: false,
     });
     vi.mocked(fetchWithAuth).mockReset();
     login.mockReset();
@@ -44,12 +45,39 @@ describe("PebblePairPage", () => {
       refreshUser: vi.fn(),
       sessionError: null,
       oidcError: null,
+      isAccountRejected: false,
     });
 
     render(<PebblePairPage />);
 
     await waitFor(() => expect(login).toHaveBeenCalledOnce());
     expect(fetchWithAuth).not.toHaveBeenCalled();
+  });
+
+  it("offers a way back after a sign-in failure instead of dead-ending", async () => {
+    vi.mocked(useAuth).mockReturnValue({
+      user: null,
+      isLoading: false,
+      isAuthenticated: false,
+      login,
+      logout: vi.fn(),
+      refreshUser: vi.fn(),
+      sessionError: null,
+      oidcError: "State mismatch",
+      isAccountRejected: false,
+    });
+
+    const user = userEvent.setup();
+    render(<PebblePairPage />);
+
+    // The auto-login effect is suppressed while the error is showing, so the
+    // button is the only way to start another attempt.
+    expect(login).not.toHaveBeenCalled();
+    expect(await screen.findByText("State mismatch")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Try signing in again" }));
+
+    expect(login).toHaveBeenCalledOnce();
   });
 
   it("allows retrying a transient token-creation failure", async () => {

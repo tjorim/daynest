@@ -156,8 +156,10 @@ async function postAction(path, body) {
 
 function apiError(status) {
   const error = new Error(
+    // The watch has no way to re-authenticate on its own, so a rejected token
+    // has to name the phone-side fix rather than just report the failure.
     status === 401 || status === 403
-      ? "Sign-in needed"
+      ? "Pairing expired.\nRe-pair in Settings\nin the Pebble app."
       : status === 429 || status >= 500
         ? `Try again later (${status})`
         : `Request failed (${status})`,
