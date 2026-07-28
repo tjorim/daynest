@@ -39,6 +39,19 @@ bump on every app release.
 
 ---
 
+## [2026.7.3] - 2026-07-28
+
+### Added
+- **Pebble:** authenticated in-app pairing now rotates a dedicated, narrowly scoped credential
+  without exposing the user's Keycloak tokens to the watch. Emulator, offline-state, token
+  rotation, and live HTTP coverage exercise the complete phone-to-watch path (#705).
+
+### Fixed
+- **MCP:** dedicated Keycloak service-account tokens are accepted alongside interactive user
+  tokens, allowing machine-to-machine clients to use the production authorization model.
+- **Pebble:** account changes, delayed responses, repeated actions, expired cached state, and
+  reconnect refreshes can no longer leak or replay stale data across credentials (#705).
+
 ## [2026.7.2] - 2026-07-24
 
 ### Added
