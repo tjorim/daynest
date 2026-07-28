@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
 from secrets import token_urlsafe
 
 import jwt
-from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
+from fastapi import APIRouter, Depends, Form, HTTPException, Request, Response, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -87,10 +87,12 @@ def list_integration_clients(
 @router.post("", response_model=IntegrationClientCreateResponse)
 def create_integration_client(
     request: Request,
+    response: Response,
     payload: IntegrationClientCreateRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> IntegrationClientCreateResponse:
+    response.headers["Cache-Control"] = "no-store"
     raw_key = f"daynest_{token_urlsafe(30)}"
     client = IntegrationClient(
         user_id=current_user.id,
@@ -109,9 +111,11 @@ def create_integration_client(
 def rotate_integration_client(
     client_id: int,
     request: Request,
+    response: Response,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> IntegrationClientCreateResponse:
+    response.headers["Cache-Control"] = "no-store"
     client = db.scalar(
         select(IntegrationClient).where(
             IntegrationClient.id == client_id,
@@ -129,11 +133,13 @@ def rotate_integration_client(
 
 @router.post("/token", response_model=IntegrationClientTokenResponse, name="exchange_integration_client_token")
 def exchange_integration_client_token(
+    response: Response,
     grant_type: str = Form(...),
     client_id: str = Form(...),
     client_secret: str = Form(...),
     db: Session = Depends(get_db),
 ) -> IntegrationClientTokenResponse:
+    response.headers["Cache-Control"] = "no-store"
     if grant_type != "client_credentials":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

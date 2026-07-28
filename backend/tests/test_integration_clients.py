@@ -85,6 +85,7 @@ class TestCreateIntegrationClient:
         )
 
         assert response.status_code == 200
+        assert response.headers["cache-control"] == "no-store"
         body = response.json()
         assert body["name"] == "New Client"
         assert body["api_key"].startswith("daynest_")
@@ -118,6 +119,7 @@ class TestRotateIntegrationClient:
         response = client.post(f"/api/integrations/clients/{ic.id}/rotate")
 
         assert response.status_code == 200
+        assert response.headers["cache-control"] == "no-store"
         body = response.json()
         assert body["id"] == ic.id
         assert body["api_key"].startswith("daynest_")
@@ -205,6 +207,7 @@ class TestExchangeIntegrationClientToken:
         )
 
         assert token_response.status_code == 200
+        assert token_response.headers["cache-control"] == "no-store"
         body = token_response.json()
         assert body["token_type"] == "Bearer"
         assert body["expires_in"] == 300
