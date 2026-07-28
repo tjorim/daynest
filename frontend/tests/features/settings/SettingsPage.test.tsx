@@ -96,6 +96,7 @@ describe("SettingsPage", () => {
       id: 1,
       name: "Home Assistant Automations",
       rate_limit_per_minute: 120,
+      scopes: ["home_assistant:*"],
       is_active: true,
       api_key: "daynest_test_key",
       client_id: "1",
@@ -135,6 +136,7 @@ describe("SettingsPage", () => {
       expect(apiMock.createIntegrationClient).toHaveBeenCalledWith({
         name: "Home Assistant",
         rate_limit_per_minute: 120,
+        scopes: ["home_assistant:*"],
       });
     });
     expect(await screen.findByText("daynest_test_key")).toBeInTheDocument();
