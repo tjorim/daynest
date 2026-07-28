@@ -97,7 +97,9 @@ app so the `pebble` CLI can push builds and stream logs.
 
 `node scripts/validate.mjs` runs the contract checks (message keys, target
 platforms, required scopes, and the footguns described below). It does not need
-the SDK. CI runs that, plus a real `pebble build` and an emulator boot that
+the SDK. `npm test` covers the offline/action guards against stubbed responses
+and drives the dashboard, complete, and skip paths over real HTTP against the
+mock backend. CI runs both, plus a real `pebble build` and an emulator boot that
 screenshots the app and asserts it rendered — a watchapp that dies at startup
 compiles cleanly and logs nothing, so the screenshot is the only thing that
 catches it.
