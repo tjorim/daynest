@@ -478,6 +478,51 @@ def test_mcp_backend_resolves_oidc_numeric_subject(db_session: Session, monkeypa
     assert whoami["email"] == "numeric-oidc@example.com"
 
 
+def test_mcp_backend_requires_user_mapping_for_keycloak_service_account(
+    db_session: Session,
+    monkeypatch,
+) -> None:
+    backend = DaynestMcpBackend(_session_factory(db_session))
+    access_token = AccessToken(
+        token="token",
+        client_id="daynest-mcp",
+        scopes=[],
+        claims={
+            "sub": "service-subject",
+            "preferred_username": "service-account-daynest-mcp",
+            "azp": "daynest-mcp",
+        },
+    )
+    monkeypatch.setattr("app.mcp_server.get_access_token", lambda: access_token)
+
+    with pytest.raises(PermissionError, match="daynest_user_id protocol mapper"):
+        backend.whoami()
+
+
+def test_mcp_backend_maps_keycloak_service_account_to_local_user(
+    db_session: Session,
+    monkeypatch,
+) -> None:
+    user = _create_user(db_session, "mapped-service-account@example.com")
+    backend = DaynestMcpBackend(_session_factory(db_session))
+    access_token = AccessToken(
+        token="token",
+        client_id="daynest-mcp",
+        scopes=[],
+        claims={
+            "sub": "service-subject",
+            "preferred_username": "service-account-daynest-mcp",
+            "azp": "daynest-mcp",
+            "daynest_user_id": user.id,
+        },
+    )
+    monkeypatch.setattr("app.mcp_server.get_access_token", lambda: access_token)
+
+    whoami = backend.whoami()
+
+    assert whoami["email"] == user.email
+
+
 def test_mcp_backend_rejects_authenticated_token_without_client_id(db_session: Session, monkeypatch) -> None:
     _create_user(db_session, "missing-subject@example.com")
     backend = DaynestMcpBackend(_session_factory(db_session))

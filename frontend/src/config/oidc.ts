@@ -5,7 +5,7 @@ import { buildApiUrl } from "@/lib/api/serverConfig";
 const OIDC_CLIENT_ID = import.meta.env.VITE_OIDC_CLIENT_ID ?? "daynest";
 const OIDC_REDIRECT_URI =
   import.meta.env.VITE_OIDC_REDIRECT_URI ?? `${window.location.origin}/auth/callback`;
-const OIDC_SCOPE = import.meta.env.VITE_OIDC_SCOPE ?? "openid profile email offline_access";
+const OIDC_SCOPE = import.meta.env.VITE_OIDC_SCOPE ?? "openid profile email";
 export const AUTH_ROUTE_PATHS = new Set(["/auth", "/auth/callback"]);
 
 function resolveReturnTo(raw: unknown): string {
@@ -60,8 +60,10 @@ export async function fetchOidcConfig(): Promise<AuthProviderProps> {
     redirect_uri: OIDC_REDIRECT_URI,
     scope: OIDC_SCOPE,
     automaticSilentRenew: true,
+    monitorSession: true,
+    revokeTokensOnSignout: true,
     post_logout_redirect_uri: window.location.origin,
-    userStore: new WebStorageStateStore({ store: window.localStorage }),
+    userStore: new WebStorageStateStore({ store: window.sessionStorage }),
     onSigninCallback,
   };
 }

@@ -58,6 +58,7 @@ def _create_integration_key(
     user_id: int,
     *,
     rate_limit_per_minute: int = 120,
+    scopes: list[str] | None = None,
 ) -> str:
     raw_key = f"daynest_test_{user_id}"
     client = IntegrationClient(
@@ -65,6 +66,7 @@ def _create_integration_key(
         name="test-integration",
         key_hash=hash_integration_key(raw_key),
         rate_limit_per_minute=rate_limit_per_minute,
+        scopes=scopes or ["integration:*"],
     )
     db_session.add(client)
     db_session.commit()
@@ -144,6 +146,52 @@ def test_home_assistant_routes_reject_invalid_key(
             headers={"X-Integration-Key": "daynest_invalid_key"},
         )
         assert denied.status_code == 401
+
+
+def test_pebble_and_home_assistant_scopes_are_isolated(
+    client: TestClient,
+    db_session: Session,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    _freeze_route_today(monkeypatch, "app.api.routes.integrations.pebble")
+    user = _create_home_assistant_fixture(db_session, "integration-scope-matrix@example.com")
+    pebble_key = _create_integration_key(
+        db_session,
+        user.id,
+        scopes=["pebble:read", "pebble:write"],
+    )
+
+    pebble_dashboard = client.get(
+        "/api/integrations/pebble/dashboard",
+        headers={"X-Integration-Key": pebble_key},
+    )
+    home_assistant_dashboard = client.get(
+        "/api/integrations/home-assistant/dashboard",
+        headers={"X-Integration-Key": pebble_key},
+    )
+
+    assert pebble_dashboard.status_code == 200
+    assert home_assistant_dashboard.status_code == 403
+
+
+def test_pebble_read_scope_cannot_run_watch_actions(
+    client: TestClient,
+    db_session: Session,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    _freeze_route_today(monkeypatch, "app.api.routes.integrations.pebble")
+    user = _create_home_assistant_fixture(db_session, "pebble-read-only@example.com")
+    read_key = _create_integration_key(db_session, user.id, scopes=["pebble:read"])
+    chore = db_session.query(ChoreInstance).filter_by(user_id=user.id).first()
+    assert chore is not None
+
+    denied = client.post(
+        "/api/integrations/pebble/actions/complete-task",
+        json={"chore_instance_id": chore.id},
+        headers={"X-Integration-Key": read_key},
+    )
+
+    assert denied.status_code == 403
 
 
 def test_home_assistant_summary_contract_is_stable(

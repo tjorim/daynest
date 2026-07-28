@@ -57,6 +57,7 @@ def _create_response(
         id=client.id,
         name=client.name,
         rate_limit_per_minute=client.rate_limit_per_minute,
+        scopes=client.scopes,
         api_key=raw_key,
         client_id=_integration_client_id(client),
         client_secret=raw_key,
@@ -76,6 +77,7 @@ def list_integration_clients(
             id=client.id,
             name=client.name,
             rate_limit_per_minute=client.rate_limit_per_minute,
+            scopes=client.scopes,
             is_active=client.is_active,
         )
         for client in clients
@@ -95,6 +97,7 @@ def create_integration_client(
         name=payload.name,
         key_hash=hash_integration_key(raw_key),
         rate_limit_per_minute=payload.rate_limit_per_minute,
+        scopes=list(dict.fromkeys(payload.scopes)),
     )
     db.add(client)
     db.commit()

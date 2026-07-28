@@ -48,6 +48,7 @@ export function IntegrationClientsSection({ backendBaseUrl }: IntegrationClients
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [copyStatus, setCopyStatus] = useState<string | null>(null);
   const [name, setName] = useState("Home Assistant");
+  const [clientType, setClientType] = useState<"home_assistant" | "pebble">("home_assistant");
   const [rateLimit, setRateLimit] = useState("120");
   const [revokingClient, setRevokingClient] = useState<number | null>(null);
   const [revokeClientError, setRevokeClientError] = useState<string | null>(null);
@@ -124,6 +125,9 @@ export function IntegrationClientsSection({ backendBaseUrl }: IntegrationClients
       const created = await createClientMutation.mutateAsync({
         name: name.trim(),
         rate_limit_per_minute: parsedRateLimit,
+        scopes: clientType === "pebble"
+          ? ["pebble:read", "pebble:write"]
+          : ["home_assistant:*"],
       });
       setCreatedClient(created);
       setSuccessMessage(
@@ -264,6 +268,27 @@ export function IntegrationClientsSection({ backendBaseUrl }: IntegrationClients
             placeholder={m.settings_client_name_placeholder()}
             aria-label={m.settings_client_name_placeholder()}
           />
+          <div>
+            <label className="form-label small fw-semibold mb-1" htmlFor="client-type">
+              Client type
+            </label>
+            <select
+              id="client-type"
+              className="form-select"
+              value={clientType}
+              onChange={(event) => {
+                const value = event.target.value as "home_assistant" | "pebble";
+                setClientType(value);
+                setName(value === "pebble" ? "Pebble" : "Home Assistant");
+              }}
+            >
+              <option value="home_assistant">Home Assistant</option>
+              <option value="pebble">Pebble watch</option>
+            </select>
+            <small className="text-muted d-block mt-1">
+              The client receives only the API scopes required for this type.
+            </small>
+          </div>
           <div>
             <label className="form-label small fw-semibold mb-1" htmlFor="client-rate-limit">
               {m.settings_rate_limit_label()}

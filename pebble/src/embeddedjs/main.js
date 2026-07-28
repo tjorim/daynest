@@ -5,16 +5,11 @@ import Message from "pebble/message";
 // Today glance + quick actions for Daynest, replacing the removed Wear OS
 // tile/complication/quick-action surface (see issue #676).
 //
-// Auth/data source: the /api/integrations/home-assistant/* endpoints, since
-// those are the only routes currently wired to accept an integration API
-// key (via require_integration_auth in
-// backend/app/api/dependencies/integration_auth.py). Plain /api/today only
-// accepts an interactive OIDC bearer token, which a watch can't produce, so
-// this app deliberately does not call it. Create the integration key from
-// the Daynest web app: Settings > Integration Clients.
-const DASHBOARD_PATH = "/api/integrations/home-assistant/dashboard";
-const COMPLETE_TASK_PATH = "/api/integrations/home-assistant/actions/complete-task";
-const SKIP_TASK_PATH = "/api/integrations/home-assistant/actions/skip-task";
+// Auth/data source: dedicated Pebble routes guarded by pebble:read/write.
+// Create a scoped key from the Daynest web app: Settings > Integration Clients.
+const DASHBOARD_PATH = "/api/integrations/pebble/dashboard";
+const COMPLETE_TASK_PATH = "/api/integrations/pebble/actions/complete-task";
+const SKIP_TASK_PATH = "/api/integrations/pebble/actions/skip-task";
 const DEFAULT_API_BASE_URL = "https://daynest.tjor.im";
 
 const CACHE_PATH = "daynest-today";

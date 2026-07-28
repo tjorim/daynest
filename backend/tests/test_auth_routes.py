@@ -8,6 +8,7 @@ from unittest.mock import AsyncMock, MagicMock
 import httpx
 import pytest
 from fastapi import HTTPException, Request
+from fastapi.security import HTTPAuthorizationCredentials
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
@@ -201,6 +202,33 @@ class TestQueryTokenAuth:
         monkeypatch.setattr("app.api.dependencies.auth.decode_oidc_token", _decode)
         resolved = await get_current_user_from_query_token(request, token="sse-access-token", db=db_session)
         assert resolved.id == user.id
+
+    @pytest.mark.anyio
+    async def test_user_rest_auth_rejects_keycloak_service_account(
+        self,
+        db_session: Session,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        async def _decode(_token: str) -> dict[str, str]:
+            return {
+                "sub": "service-subject",
+                "preferred_username": "service-account-daynest-mcp",
+                "azp": "daynest-mcp",
+            }
+
+        monkeypatch.setattr("app.api.dependencies.auth.decode_oidc_token", _decode)
+
+        with pytest.raises(HTTPException) as exc_info:
+            await get_current_user(
+                MagicMock(),
+                credentials=HTTPAuthorizationCredentials(
+                    scheme="Bearer",
+                    credentials="service-token",
+                ),
+                db=db_session,
+            )
+
+        assert exc_info.value.status_code == 403
 
 
 # ---------------------------------------------------------------------------
