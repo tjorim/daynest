@@ -85,6 +85,18 @@ for (const [, font] of watchSource.matchAll(/font:\s*"([^"]+)"/g)) {
   }
 }
 
+// The SDK does not fall back to a nearby system-font size. An unsupported
+// combination throws while constructing the Style and leaves a blank watchapp.
+const gothicRegularSizes = new Set([9, 14, 18, 24, 28, 36]);
+for (const match of watchSource.matchAll(/font:\s*"(?:(bold)\s+)?(\d+)px Gothic"/g)) {
+  const [, weight, rawSize] = match;
+  const size = Number(rawSize);
+  const supported = weight ? size === 18 : gothicRegularSizes.has(size);
+  if (!supported) {
+    throw new Error(`Unsupported Pebble system font: ${weight ? "bold " : ""}${size}px Gothic`);
+  }
+}
+
 // PKJS is bundled by the SDK's webpack/acorn, which predates ES2017 trailing
 // commas in argument lists — one is a hard build failure, so keep them out.
 if (/,\s*[)\]]/.test(phoneSource)) {
