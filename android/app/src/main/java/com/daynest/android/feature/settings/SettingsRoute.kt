@@ -57,7 +57,7 @@ fun SettingsRoute(
     val signOutLauncher =
         rememberLauncherForActivityResult(
             contract = ActivityResultContracts.StartActivityForResult()
-        ) { }
+        ) { viewModel.onEvent(SettingsUiEvent.SignOutFlowFinished) }
 
     LaunchedEffect(Unit) {
         viewModel.signOutIntent.collect { intent ->

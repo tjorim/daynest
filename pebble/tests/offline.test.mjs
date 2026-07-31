@@ -206,3 +206,34 @@ test("a mutation after pairing changes uses the new account state", async () => 
   assert.deepEqual(paths(harness), [COMPLETE_PATH, DASHBOARD_PATH]);
   assert.equal(JSON.parse(harness.requests[0].body).chore_instance_id, 201);
 });
+
+test("the controls hint retires once a button has been used", async () => {
+  const harness = createHarness({ storage: TOKEN });
+  await harness.settle();
+
+  assert.match(harness.status, /SELECT done · DOWN skip/);
+
+  await harness.press("select");
+
+  assert.doesNotMatch(harness.status, /SELECT done/);
+  assert.equal(harness.stored.hintSeen, "1");
+});
+
+test("a phone locale switches the watch copy", async () => {
+  const harness = createHarness({ storage: TOKEN });
+  await harness.settle();
+
+  await harness.configure({ LOCALE: "nl-BE" });
+
+  assert.match(harness.status, /VANDAAG/);
+  assert.match(harness.status, /2 te doen · 1 te laat/);
+  assert.equal(harness.stored.locale, "nl-BE");
+});
+
+test("an unknown locale falls back to English", async () => {
+  const harness = createHarness({ storage: { ...TOKEN, locale: "zz" } });
+
+  await harness.settle();
+
+  assert.match(harness.status, /TODAY/);
+});

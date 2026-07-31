@@ -61,6 +61,7 @@ function renderSettingsPage(children: React.ReactNode) {
         refreshUser: vi.fn(),
         sessionError: null,
         oidcError: null,
+        isAccountRejected: false,
       }}
     >
       {children}

@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { useAuth as useOidcAuth } from "react-oidc-context";
 import { AuthApiError, fetchMe, type AuthUser } from "@/lib/api/auth";
-import { setOidcAccessToken } from "@/lib/auth/session";
+import { setOidcAccessToken, setSigninSilent } from "@/lib/auth/session";
 import { AUTH_ROUTE_PATHS } from "@/config/oidc";
 
 function getOidcErrorMessage(error: unknown) {
@@ -32,6 +32,13 @@ type AuthContextValue = {
   refreshUser: () => Promise<void>;
   sessionError: string | null;
   oidcError: string | null;
+  /**
+   * The provider authenticated the visitor but the backend refused to resolve
+   * them to a Daynest account. Signing in again cannot fix this — the provider
+   * session is still valid, so it would silently land back here. The UI has to
+   * offer sign-out instead of another sign-in.
+   */
+  isAccountRejected: boolean;
 };
 
 export const AuthContext = createContext<AuthContextValue | null>(null);
@@ -41,10 +48,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isFetching, setIsFetching] = useState(false);
   const [sessionError, setSessionError] = useState<string | null>(null);
+  const [isAccountRejected, setIsAccountRejected] = useState(false);
 
   useEffect(() => {
     setOidcAccessToken(oidc.user?.access_token);
   }, [oidc.user?.access_token]);
+
+  useEffect(() => {
+    setSigninSilent(() => oidc.signinSilent());
+    return () => setSigninSilent(undefined);
+  }, [oidc.signinSilent]);
 
   useEffect(() => {
     const accessToken = oidc.user?.access_token;
@@ -53,6 +66,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsFetching(false);
       setUser(null);
       setSessionError(null);
+      setIsAccountRejected(false);
       return;
     }
 
@@ -64,6 +78,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!cancelled) {
           setUser(nextUser);
           setSessionError(null);
+          setIsAccountRejected(false);
         }
       })
       .catch((error: unknown) => {
@@ -72,9 +87,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (error instanceof AuthApiError && error.status === 401) {
           setUser(null);
           setSessionError(null);
+          setIsAccountRejected(true);
           return;
         }
 
+        setIsAccountRejected(false);
         setSessionError(error instanceof Error ? error.message : "Unable to load session");
       })
       .finally(() => {
@@ -104,20 +121,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const nextUser = await fetchMe(accessToken);
           setUser(nextUser);
           setSessionError(null);
+          setIsAccountRejected(false);
         } catch (error: unknown) {
           if (error instanceof AuthApiError && error.status === 401) {
             setUser(null);
             setSessionError(null);
+            setIsAccountRejected(true);
             return;
           }
 
+          setIsAccountRejected(false);
           setSessionError(error instanceof Error ? error.message : "Unable to load session");
         }
       },
       sessionError,
       oidcError: getOidcErrorMessage(oidc.error),
+      isAccountRejected,
     }),
-    [user, oidc, isFetching, sessionError],
+    [user, oidc, isFetching, sessionError, isAccountRejected],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

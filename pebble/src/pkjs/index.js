@@ -3,6 +3,16 @@ const moddableProxy = require("@moddable/pebbleproxy");
 
 const CONFIG_URL = "https://daynest.tjor.im/pebble-pair";
 
+function phoneLocale() {
+  try {
+    // PKJS exposes navigator on most runtimes but not all; a missing locale is
+    // fine, the watch falls back to English.
+    return (navigator && navigator.language) || "";
+  } catch (error) {
+    return "";
+  }
+}
+
 Pebble.addEventListener("ready", function (event) {
   moddableProxy.readyReceived(event);
 });
@@ -26,7 +36,10 @@ Pebble.addEventListener("webviewclosed", function (event) {
     moddableProxy.sendAppMessage(
       {
         API_BASE_URL: "https://daynest.tjor.im",
-        AUTH_TOKEN: result.accessToken
+        AUTH_TOKEN: result.accessToken,
+        // The watch has no locale of its own; pass the phone's along so its
+        // copy matches the language the rest of Daynest is using.
+        LOCALE: phoneLocale()
       },
       function () {
         console.log("Daynest: pairing token relayed to watch");

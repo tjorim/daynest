@@ -81,7 +81,8 @@ constructor(
     fun onEvent(event: SettingsUiEvent) {
         when (event) {
             SettingsUiEvent.RetryClicked -> load()
-            SettingsUiEvent.SignOutClicked -> signOutHandler.signOut()
+            SettingsUiEvent.SignOutClicked,
+            SettingsUiEvent.SignOutFlowFinished -> signOutHandler.onEvent(event)
             SettingsUiEvent.ShowCreateClientForm -> updateContent { it.copy(showCreateForm = true) }
             SettingsUiEvent.DismissCreateClientForm -> updateContent { it.copy(showCreateForm = false) }
             SettingsUiEvent.DismissNewKeyDialog -> updateContent { it.copy(newApiKey = null) }
@@ -269,7 +270,9 @@ constructor(
             pushRegistrationManager.unregisterAllKnownEndpoints()
             settingsRepository.deleteCurrentUser()
                 .onSuccess {
-                    signOutHandler.signOut(unregisterPushEndpoints = false)
+                    // The account is already deleted, so there is no local
+                    // session worth preserving while the provider flow runs.
+                    signOutHandler.signOut(unregisterPushEndpoints = false, awaitProviderFlow = false)
                 }
                 .onFailure { error ->
                     updateContent {
@@ -340,6 +343,9 @@ sealed interface SettingsUiEvent {
     data object RetryClicked : SettingsUiEvent
 
     data object SignOutClicked : SettingsUiEvent
+
+    /** The provider end-session activity returned, whatever its result. */
+    data object SignOutFlowFinished : SettingsUiEvent
 
     data object ShowCreateClientForm : SettingsUiEvent
 

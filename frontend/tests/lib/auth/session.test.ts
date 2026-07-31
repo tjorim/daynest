@@ -1,8 +1,14 @@
-import { afterEach, describe, expect, it } from "vitest";
-import { getOidcAccessToken, setOidcAccessToken } from "@/lib/auth/session";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import {
+  getOidcAccessToken,
+  renewOidcAccessToken,
+  setOidcAccessToken,
+  setSigninSilent,
+} from "@/lib/auth/session";
 
 afterEach(() => {
   setOidcAccessToken(undefined);
+  setSigninSilent(undefined);
 });
 
 describe("setOidcAccessToken / getOidcAccessToken", () => {
@@ -25,5 +31,26 @@ describe("setOidcAccessToken / getOidcAccessToken", () => {
     setOidcAccessToken("first");
     setOidcAccessToken("second");
     expect(getOidcAccessToken()).toBe("second");
+  });
+});
+
+describe("renewOidcAccessToken", () => {
+  it("resolves null when no signinSilent has been registered", async () => {
+    expect(await renewOidcAccessToken()).toBeNull();
+  });
+
+  it("resolves the renewed access token on success", async () => {
+    setSigninSilent(vi.fn().mockResolvedValue({ access_token: "renewed-token" }));
+    expect(await renewOidcAccessToken()).toBe("renewed-token");
+  });
+
+  it("resolves null when signinSilent resolves null", async () => {
+    setSigninSilent(vi.fn().mockResolvedValue(null));
+    expect(await renewOidcAccessToken()).toBeNull();
+  });
+
+  it("resolves null when signinSilent throws", async () => {
+    setSigninSilent(vi.fn().mockRejectedValue(new Error("login_required")));
+    expect(await renewOidcAccessToken()).toBeNull();
   });
 });

@@ -53,30 +53,41 @@ export function PebblePairPage() {
     setPairAttempt((attempt) => attempt + 1);
   };
 
+  // A sign-in failure leaves loginRequested latched, so the auto-login effect
+  // will never fire again on its own. Without this the page is a dead end:
+  // an error message, a watch still unpaired, and nothing to click.
+  const retrySignIn = () => {
+    loginRequested.current = true;
+    login();
+  };
+
+  const signInFailed = Boolean(oidcError || sessionError);
+
   return (
     <section className="mx-auto py-5 text-center" style={{ maxWidth: "32rem" }}>
       <h1 className="h4 mb-3">{m.pebble_pair_title()}</h1>
       <p className="text-body-secondary mb-4">{m.pebble_pair_description()}</p>
 
-      {oidcError || sessionError || pairingError ? (
+      {signInFailed || pairingError ? (
         <div className="alert alert-danger" role="alert">
           <div>{pairingError || oidcError || sessionError}</div>
-          {pairingError ? (
-            <button
-              className="btn btn-sm btn-outline-danger mt-3"
-              type="button"
-              onClick={retryPairing}
-            >
-              {m.pebble_pair_retry()}
-            </button>
-          ) : null}
+          <button
+            className="btn btn-sm btn-outline-danger mt-3"
+            type="button"
+            onClick={pairingError ? retryPairing : retrySignIn}
+          >
+            {pairingError ? m.pebble_pair_retry() : m.pebble_pair_retry_sign_in()}
+          </button>
         </div>
       ) : closed ? (
         <div className="alert alert-success" role="status">
           {m.pebble_pair_close_instruction()}
         </div>
       ) : (
-        <div className="d-flex align-items-center justify-content-center gap-2 text-body-secondary">
+        <div
+          className="d-flex align-items-center justify-content-center gap-2 text-body-secondary"
+          role="status"
+        >
           <span className="spinner-border spinner-border-sm" aria-hidden="true" />
           {m.pebble_pair_connecting()}
         </div>
