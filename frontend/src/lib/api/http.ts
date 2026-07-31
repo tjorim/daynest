@@ -1,5 +1,5 @@
 import { buildApiUrl } from "@/lib/api/serverConfig";
-import { getOidcAccessToken } from "@/lib/auth/session";
+import { getOidcAccessToken, renewOidcAccessToken } from "@/lib/auth/session";
 import { enqueue as enqueueOffline } from "@/lib/offlineQueue";
 import { z } from "zod";
 
@@ -95,7 +95,20 @@ export async function fetchWithAuth(
       false,
     );
   }
-  return fetchWithRetry(url, withAuthHeader(init, token), retries);
+  const response = await fetchWithRetry(url, withAuthHeader(init, token), retries);
+  if (response.status !== 401) {
+    return response;
+  }
+
+  // A 401 usually means the access token aged out while the IdP session is
+  // still valid — automaticSilentRenew's proactive timer isn't the only way a
+  // token goes stale. Try one silent renewal before treating this as a real
+  // auth failure the caller has to handle (e.g. by signing the user out).
+  const renewedToken = await renewOidcAccessToken();
+  if (!renewedToken) {
+    return response;
+  }
+  return fetchWithRetry(url, withAuthHeader(init, renewedToken), retries);
 }
 
 export async function parseJsonResponse<T>(

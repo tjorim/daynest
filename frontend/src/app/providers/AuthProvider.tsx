@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { useAuth as useOidcAuth } from "react-oidc-context";
 import { AuthApiError, fetchMe, type AuthUser } from "@/lib/api/auth";
-import { setOidcAccessToken } from "@/lib/auth/session";
+import { setOidcAccessToken, setSigninSilent } from "@/lib/auth/session";
 import { AUTH_ROUTE_PATHS } from "@/config/oidc";
 
 function getOidcErrorMessage(error: unknown) {
@@ -53,6 +53,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     setOidcAccessToken(oidc.user?.access_token);
   }, [oidc.user?.access_token]);
+
+  useEffect(() => {
+    setSigninSilent(() => oidc.signinSilent());
+    return () => setSigninSilent(undefined);
+  }, [oidc.signinSilent]);
 
   useEffect(() => {
     const accessToken = oidc.user?.access_token;

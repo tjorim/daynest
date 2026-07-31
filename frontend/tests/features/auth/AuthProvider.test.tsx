@@ -11,6 +11,7 @@ const authMock = vi.hoisted(() => ({
     isAuthenticated: false,
     signinRedirect: vi.fn(),
     signoutRedirect: vi.fn(),
+    signinSilent: vi.fn(),
     error: undefined as unknown,
   },
 }));
@@ -25,6 +26,7 @@ vi.mock("@/lib/api/auth", () => ({
 
 vi.mock("@/lib/auth/session", () => ({
   setOidcAccessToken: vi.fn(),
+  setSigninSilent: vi.fn(),
 }));
 
 function LoginButton() {
