@@ -52,6 +52,8 @@ bump on every app release.
   webview, and watch-side authorization and offline-state recovery are more explicit (#708).
 - **HACS:** the dashboard card build is pinned to the TypeScript compiler API supported by
   Rollup and now runs under its declared Node 24 toolchain in both CI and the release workflow.
+- **HACS tests:** the Home Assistant test stack is updated for PyJWT 2.13 and Pillow 12.3,
+  allowing Dependabot security updates to resolve without conflicting transitive pins.
 
 ## [2026.7.3] - 2026-07-28
 
