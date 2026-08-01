@@ -39,6 +39,20 @@ bump on every app release.
 
 ---
 
+## [2026.8.1] - 2026-08-01
+
+### Fixed
+- **Web:** rejected or unlinked accounts now surface an actionable explanation instead of
+  looping through sign-in, and sign-in exposes a pending state that prevents duplicate
+  authorization requests (#708).
+- **Android:** interactive sign-out waits for the Keycloak end-session activity to return
+  before clearing local state, so a cancelled or incomplete provider logout is never
+  reported as already complete (#708).
+- **Pebble:** pairing authentication failures can be retried from inside the configuration
+  webview, and watch-side authorization and offline-state recovery are more explicit (#708).
+- **HACS:** the dashboard card build is pinned to the TypeScript compiler API supported by
+  Rollup and now runs under its declared Node 24 toolchain in both CI and the release workflow.
+
 ## [2026.7.3] - 2026-07-28
 
 ### Added
