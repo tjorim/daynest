@@ -39,6 +39,12 @@ bump on every app release.
 
 ---
 
+## [2026.8.2] - 2026-08-01
+
+### Fixed
+- **Android:** authentication now uses the dedicated `daynest-android` OIDC client, whose
+  allowed redirect URI matches the app's native scheme (#722).
+
 ## [2026.8.1] - 2026-08-01
 
 ### Fixed

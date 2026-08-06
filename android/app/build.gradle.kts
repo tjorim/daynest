@@ -173,7 +173,7 @@ extensions.configure<ApplicationExtension> {
             buildConfigField("String", "API_BASE_URL", "\"$url\"")
             buildConfigField("String[]", "CERTIFICATE_PINS", "new String[]{}")
             buildConfigField("String", "CERTIFICATE_PIN_HOST", "\"\"")
-            buildConfigField("String", "OIDC_CLIENT_ID", "\"daynest\"")
+            buildConfigField("String", "OIDC_CLIENT_ID", "\"daynest-android\"")
         }
         release {
             isMinifyEnabled = true
@@ -228,7 +228,7 @@ extensions.configure<ApplicationExtension> {
             }
             buildConfigField("String[]", "CERTIFICATE_PINS", CertPinning.pinsArrayLiteral(pins))
             buildConfigField("String", "CERTIFICATE_PIN_HOST", "\"$releaseCertificatePinHost\"")
-            buildConfigField("String", "OIDC_CLIENT_ID", "\"daynest\"")
+            buildConfigField("String", "OIDC_CLIENT_ID", "\"daynest-android\"")
         }
     }
 
