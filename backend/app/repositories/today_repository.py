@@ -21,6 +21,7 @@ from app.models.routine_template import RoutineTemplate
 from app.models.shopping_list import ShoppingList
 from app.models.task_instance import TaskInstance
 from app.models.user import User
+from app.services.audit_service import AuditActor, write_audit_entry
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +35,32 @@ except ImportError:
 class TodayRepository:
     def __init__(self, db: Session):
         self.db = db
+
+    def record_audit(
+        self,
+        actor: AuditActor | None,
+        action: str,
+        resource_type: str,
+        resource_id: object,
+        *,
+        details: dict | None = None,
+    ) -> None:
+        """Stage an audit entry (no commit) if ``actor`` is provided.
+
+        Callers must invoke this *before* the commit that persists the
+        mutation it describes, so both land in the same transaction.
+        """
+
+        if actor is None:
+            return
+        write_audit_entry(
+            self.db,
+            actor=actor,
+            action=action,
+            resource_type=resource_type,
+            resource_id=str(resource_id),
+            details=details,
+        )
 
     def get_user_household_ids(self, user_id: int) -> list[int]:
         rows = self.db.execute(
@@ -237,8 +264,10 @@ class TodayRepository:
         stmt = select(RoutineTemplate).where(RoutineTemplate.user_id == user_id).order_by(RoutineTemplate.id.asc())
         return list(self.db.scalars(stmt).all())
 
-    def add_routine_template(self, template: RoutineTemplate) -> RoutineTemplate:
+    def add_routine_template(self, template: RoutineTemplate, *, actor: AuditActor | None = None) -> RoutineTemplate:
         self.db.add(template)
+        self.db.flush()
+        self.record_audit(actor, "routine_template.create", "routine_template", template.id, details={"name": template.name})
         self.db.commit()
         self.db.refresh(template)
         return template
@@ -331,8 +360,10 @@ class TodayRepository:
         stmt = select(RoutineTemplate).where(RoutineTemplate.user_id == user_id).where(RoutineTemplate.id == routine_template_id)
         return self.db.scalar(stmt)
 
-    def delete_routine_template(self, template: RoutineTemplate) -> None:
+    def delete_routine_template(self, template: RoutineTemplate, *, actor: AuditActor | None = None) -> None:
+        template_id = template.id
         self.db.delete(template)
+        self.record_audit(actor, "routine_template.delete", "routine_template", template_id)
         self.db.commit()
 
     def update_routine_template(
@@ -345,6 +376,8 @@ class TodayRepository:
         rrule: str | None,
         due_time: time | None,
         is_active: bool,
+        *,
+        actor: AuditActor | None = None,
     ) -> RoutineTemplate:
         template.name = name
         template.description = description
@@ -353,6 +386,7 @@ class TodayRepository:
         template.rrule = rrule
         template.due_time = due_time
         template.is_active = is_active
+        self.record_audit(actor, "routine_template.update", "routine_template", template.id, details={"name": name})
         self.db.commit()
         self.db.refresh(template)
         return template
@@ -372,8 +406,10 @@ class TodayRepository:
             templates = [t for t in templates if any(tag in (t.tags or []) for tag in tags)]
         return templates
 
-    def add_chore_template(self, template: ChoreTemplate) -> ChoreTemplate:
+    def add_chore_template(self, template: ChoreTemplate, *, actor: AuditActor | None = None) -> ChoreTemplate:
         self.db.add(template)
+        self.db.flush()
+        self.record_audit(actor, "chore_template.create", "chore_template", template.id, details={"name": template.name})
         self.db.commit()
         self.db.refresh(template)
         return template
@@ -394,8 +430,10 @@ class TodayRepository:
         )
         return self.db.scalar(stmt)
 
-    def delete_chore_template(self, template: ChoreTemplate) -> None:
+    def delete_chore_template(self, template: ChoreTemplate, *, actor: AuditActor | None = None) -> None:
+        template_id = template.id
         self.db.delete(template)
+        self.record_audit(actor, "chore_template.delete", "chore_template", template_id)
         self.db.commit()
 
     def update_chore_template(
@@ -410,6 +448,8 @@ class TodayRepository:
         tags: list,
         is_active: bool,
         household_id: int | None = None,
+        *,
+        actor: AuditActor | None = None,
     ) -> ChoreTemplate:
         template.name = name
         template.description = description
@@ -420,12 +460,15 @@ class TodayRepository:
         template.tags = tags
         template.is_active = is_active
         template.household_id = household_id
+        self.record_audit(actor, "chore_template.update", "chore_template", template.id, details={"name": name})
         self.db.commit()
         self.db.refresh(template)
         return template
 
-    def add_medication_plan(self, plan: MedicationPlan) -> MedicationPlan:
+    def add_medication_plan(self, plan: MedicationPlan, *, actor: AuditActor | None = None) -> MedicationPlan:
         self.db.add(plan)
+        self.db.flush()
+        self.record_audit(actor, "medication_plan.create", "medication_plan", plan.id, details={"name": plan.name})
         self.db.commit()
         self.db.refresh(plan)
         return plan
@@ -447,6 +490,8 @@ class TodayRepository:
         schedule_time: time,
         every_n_days: int,
         is_active: bool,
+        *,
+        actor: AuditActor | None = None,
     ) -> MedicationPlan:
         plan.name = name
         plan.instructions = instructions
@@ -454,12 +499,15 @@ class TodayRepository:
         plan.schedule_time = schedule_time
         plan.every_n_days = every_n_days
         plan.is_active = is_active
+        self.record_audit(actor, "medication_plan.update", "medication_plan", plan.id, details={"name": name})
         self.db.commit()
         self.db.refresh(plan)
         return plan
 
-    def delete_medication_plan(self, plan: MedicationPlan) -> None:
+    def delete_medication_plan(self, plan: MedicationPlan, *, actor: AuditActor | None = None) -> None:
+        plan_id = plan.id
         self.db.delete(plan)
+        self.record_audit(actor, "medication_plan.delete", "medication_plan", plan_id)
         self.db.commit()
 
     def get_dose_for_user(self, user_id: int, dose_id: int) -> MedicationDoseInstance | None:
@@ -547,7 +595,22 @@ class TodayRepository:
         )
         return self.db.scalar(stmt)
 
-    def list_planned_items(self, user_id: int, start_date: date | None = None, end_date: date | None = None, is_done: bool | None = None, tags: list[str] | None = None) -> list[PlannedItem]:
+    def list_planned_items(
+        self,
+        user_id: int,
+        start_date: date | None = None,
+        end_date: date | None = None,
+        is_done: bool | None = None,
+        tags: list[str] | None = None,
+        *,
+        limit: int | None = None,
+    ) -> list[PlannedItem]:
+        """List planned items. ``limit`` is intentionally opt-in (None = unbounded):
+        internal callers (today/calendar/month views, materialization) rely on an
+        exhaustive result for a bounded date range. Only the public,
+        REST/MCP-facing entry point (TodayService.list_planned_items) passes a
+        clamped limit — see app.core.pagination.clamp_limit.
+        """
         stmt = (
             select(PlannedItem)
             .options(joinedload(PlannedItem.recurrence_series))
@@ -560,9 +623,15 @@ class TodayRepository:
         if is_done is not None:
             stmt = stmt.where(PlannedItem.is_done.is_(is_done))
         stmt = stmt.order_by(PlannedItem.planned_for.asc(), PlannedItem.id.asc())
+        if limit is not None and not tags:
+            # Tag filtering happens in Python after the query, so pushing LIMIT
+            # into SQL would truncate before tags are applied — skip it there.
+            stmt = stmt.limit(limit)
         items = list(self.db.scalars(stmt).unique().all())
         if tags:
             items = [item for item in items if any(tag in (item.tags or []) for tag in tags)]
+            if limit is not None:
+                items = items[:limit]
         return items
 
     def list_recurrence_series_overlapping(
@@ -606,12 +675,15 @@ class TodayRepository:
         *,
         series: RecurrenceSeries,
         item: PlannedItem,
+        actor: AuditActor | None = None,
     ) -> tuple[RecurrenceSeries, PlannedItem]:
         self.db.add(series)
         self.db.flush()
         item.recurrence_series_id = series.id
         self.db.add(item)
         try:
+            self.db.flush()
+            self.record_audit(actor, "planned_item.create", "planned_item", item.id, details={"title": item.title, "recurrence_series_id": str(series.id)})
             self.db.commit()
         except SQLAlchemyError:
             self.db.rollback()
@@ -674,8 +746,10 @@ class TodayRepository:
         )
         self.db.commit()
 
-    def add_planned_item(self, item: PlannedItem) -> PlannedItem:
+    def add_planned_item(self, item: PlannedItem, *, actor: AuditActor | None = None) -> PlannedItem:
         self.db.add(item)
+        self.db.flush()
+        self.record_audit(actor, "planned_item.create", "planned_item", item.id, details={"title": item.title})
         self.db.commit()
         self.db.refresh(item)
         return item
@@ -780,8 +854,10 @@ class TodayRepository:
             .where(ShoppingList.user_id == user_id)
         ) is not None
 
-    def delete_planned_item(self, item: PlannedItem) -> None:
+    def delete_planned_item(self, item: PlannedItem, *, actor: AuditActor | None = None) -> None:
+        item_id = item.id
         self.db.delete(item)
+        self.record_audit(actor, "planned_item.delete", "planned_item", item_id)
         self.db.commit()
 
     def delete_materialized_planned_items_for_series(
@@ -802,7 +878,7 @@ class TodayRepository:
             conditions.append(PlannedItem.id != exclude_item_id)
         self.db.execute(delete(PlannedItem).where(*conditions))
 
-    def delete_planned_item_series(self, *, user_id: int, recurrence_series_id: UUID) -> int:
+    def delete_planned_item_series(self, *, user_id: int, recurrence_series_id: UUID, actor: AuditActor | None = None) -> int:
         delete_count = self.db.scalar(
             select(func.count())
             .select_from(PlannedItem)
@@ -821,6 +897,13 @@ class TodayRepository:
                 RecurrenceSeries.id == recurrence_series_id,
             )
         )
+        self.record_audit(
+            actor,
+            "recurrence_series.delete",
+            "recurrence_series",
+            recurrence_series_id,
+            details={"deleted_count": int(delete_count)},
+        )
         self.db.commit()
         return int(delete_count)
 
@@ -833,6 +916,7 @@ class TodayRepository:
         start_date: date,
         series_rrule: str,
         materialized_through: date,
+        actor: AuditActor | None = None,
     ) -> None:
         self.db.execute(
             delete(PlannedItem).where(
@@ -847,6 +931,7 @@ class TodayRepository:
             .where(RecurrenceSeries.id == recurrence_series_id)
             .values(rrule=series_rrule, materialized_through=materialized_through)
         )
+        self.record_audit(actor, "recurrence_series.delete_future", "recurrence_series", recurrence_series_id)
         self.db.commit()
 
     def get_day_chores(self, user_id: int, target_date: date) -> list[ChoreInstance]:

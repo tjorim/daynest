@@ -1,3 +1,18 @@
+"""Daynest MCP server: a thin assembler over app.mcp.* domain modules.
+
+Domain logic (identity/integrations, today/calendar/planned items,
+routines/chores, medications, shopping/meal planning, and audit reads) lives
+in ``app/mcp/<domain>.py``. This module only:
+
+- wires FastMCP authentication (Keycloak OIDC + hashed integration keys);
+- defines ``DaynestMcpBackend``, whose methods are one-line delegations into
+  the domain modules (kept for backward compatibility — tests and any other
+  in-process callers use this class directly rather than the ``@mcp.tool()``
+  wrappers, which run domain calls off the event loop via ``to_thread``);
+- registers ``@mcp.tool()`` / ``@mcp.resource()`` / ``@mcp.prompt()`` and the
+  process entry point.
+"""
+
 from __future__ import annotations
 
 import json
@@ -5,49 +20,30 @@ import logging
 import os
 import sys
 from collections.abc import Callable
-from contextlib import contextmanager
-from datetime import UTC, date, datetime, time
-from secrets import token_urlsafe
-from typing import Any, Literal, TypeVar, cast
+from typing import Any, Literal
 
 from anyio import to_thread
 from fastapi import HTTPException
 from fastmcp import Context, FastMCP
 from fastmcp.server.auth import AccessToken, MultiAuth, TokenVerifier
 from fastmcp.server.auth.providers.keycloak import KeycloakAuthProvider
-from fastmcp.server.dependencies import get_access_token
-from pydantic import BaseModel
-from sqlalchemy import select
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session
 
 from app.api.dependencies.integration_auth import (
     enforce_integration_rate_limit,
     get_integration_client_by_token_hash,
-    has_required_scopes,
     hash_integration_key,
 )
 from app.core.config import settings
-from app.core.enums import Priority
-from app.core.oidc import get_or_create_local_user
 from app.db.session import SessionLocal
-from app.models.integration_client import IntegrationClient
-from app.models.user import User
-from app.repositories.analytics_repository import (
-    get_scheduling_suggestions as build_scheduling_suggestions,
-)
-from app.repositories.meal_plan_repository import MealPlanRepository
-from app.repositories.shopping_list_repository import ShoppingListRepository
-from app.repositories.today_repository import TodayRepository
-from app.schemas.meal_plan import MealSlotUpdate
-from app.schemas.shopping_list import ShoppingListCreateRequest, ShoppingListStatus
-from app.schemas.today import (
-    PlannedItemCreateRequest,
-    PlannedItemModuleKey,
-    PlannedItemUpdateRequest,
-)
-from app.services.meal_plan_service import MealPlanService
-from app.services.shopping_list_service import ShoppingListService
-from app.services.today_service import TodayService
+from app.mcp import audit as mcp_audit
+from app.mcp import identity as mcp_identity
+from app.mcp import medications as mcp_medications
+from app.mcp import planning as mcp_planning
+from app.mcp import routines as mcp_routines
+from app.mcp import shopping as mcp_shopping
+from app.schemas.shopping_list import ShoppingListStatus
+from app.schemas.today import PlannedItemModuleKey
 
 logger = logging.getLogger(__name__)
 
@@ -102,6 +98,7 @@ MCP_TOOL_NAMES = (
     "delete_medication",
     "get_medication_history",
     "get_scheduling_suggestions",
+    "list_audit_entries",
 )
 
 MCP_RESOURCE_URIS = (
@@ -111,93 +108,17 @@ MCP_RESOURCE_URIS = (
 
 MCP_PROMPT_NAMES = ("daily_briefing",)
 
-T = TypeVar("T")
-
-
-def _parse_date(value: str | None) -> date:
-    if not value or value == "today":
-        return datetime.now(UTC).date()
-    try:
-        return date.fromisoformat(value)
-    except ValueError:
-        raise ValueError(f"Invalid date '{value}'. Expected YYYY-MM-DD format or 'today'.")
-
-
-def _parse_time(value: str | None) -> time | None:
-    if not value:
-        return None
-    for fmt in ("%H:%M", "%H:%M:%S"):
-        try:
-            return datetime.strptime(value, fmt).replace(tzinfo=UTC).time()
-        except ValueError:
-            continue
-    raise ValueError(f"Invalid time '{value}'. Expected HH:MM or HH:MM:SS format.")
-
-
-def _jsonable(value: Any) -> Any:
-    if isinstance(value, BaseModel):
-        return value.model_dump(mode="json")
-    if isinstance(value, (date, datetime)):
-        return value.isoformat()
-    if isinstance(value, list):
-        return [_jsonable(item) for item in value]
-    if isinstance(value, dict):
-        return {key: _jsonable(item) for key, item in value.items()}
-    return value
-
-
-
-
-def _routine_template_to_dict(t: Any) -> dict[str, Any]:
-    return {
-        "id": t.id,
-        "name": t.name,
-        "description": t.description,
-        "start_date": t.start_date.isoformat(),
-        "every_n_days": t.every_n_days,
-        "rrule": t.rrule,
-        "due_time": t.due_time.isoformat() if t.due_time else None,
-        "is_active": t.is_active,
-    }
-
-
-def _chore_template_to_dict(t: Any) -> dict[str, Any]:
-    return {
-        "id": t.id,
-        "name": t.name,
-        "description": t.description,
-        "start_date": t.start_date.isoformat(),
-        "every_n_days": t.every_n_days,
-        "rrule": t.rrule,
-        "priority": t.priority,
-        "tags": t.tags or [],
-        "is_active": t.is_active,
-    }
-
-
-def _medication_plan_to_dict(plan: Any) -> dict[str, Any]:
-    return {
-        "id": plan.id,
-        "name": plan.name,
-        "instructions": plan.instructions,
-        "start_date": plan.start_date.isoformat(),
-        "schedule_time": plan.schedule_time.isoformat(),
-        "every_n_days": plan.every_n_days,
-        "is_active": plan.is_active,
-    }
-
-
-def _integration_client_to_dict(client: IntegrationClient) -> dict[str, Any]:
-    return {
-        "id": client.id,
-        "name": client.name,
-        "rate_limit_per_minute": client.rate_limit_per_minute,
-        "scopes": client.scopes,
-        "is_active": client.is_active,
-    }
-
 
 class DaynestMcpBackend:
+    """Thin facade over app.mcp.* domain modules.
+
+    Each method resolves the session factory + configured user email once
+    and delegates straight into the corresponding domain module function —
+    see app/mcp/context.py for the shared session-scoping/service-building
+    helpers those functions use, and app/mcp/principal.py for how the
+    authenticated user is resolved.
+    """
+
     def __init__(
         self,
         session_factory: Callable[[], Session],
@@ -207,260 +128,37 @@ class DaynestMcpBackend:
         self.session_factory = session_factory
         self.user_email = user_email
 
-    @contextmanager
-    def _session_scope(self) -> Any:
-        session = self.session_factory()
-        try:
-            yield session
-        finally:
-            session.close()
-
-    def resolve_user(self, db: Session) -> User:
-        access_token = get_access_token()
-        if access_token is not None:
-            auth_source = access_token.claims.get("auth_source")
-
-            if auth_source == "integration":
-                integration_client_id = access_token.claims.get("integration_client_id")
-                if integration_client_id is None:
-                    raise ValueError("Authenticated MCP integration token is missing a client ID")
-                # verify_token stores only an AccessToken in request context — re-query with joinedload.
-                stmt = select(IntegrationClient).where(IntegrationClient.id == integration_client_id).options(joinedload(IntegrationClient.user))
-                client = db.scalar(stmt)
-                if client is None or not client.is_active:
-                    raise ValueError("Authenticated MCP integration client is inactive or missing")
-                if client.user is None or not client.user.is_active:
-                    raise ValueError("Authenticated integration owner not found or inactive")
-                if not has_required_scopes(set(client.scopes), frozenset({"mcp:*"})):
-                    raise PermissionError("Integration client is not authorized to use MCP")
-                return client.user
-
-            # OIDC path: KeycloakAuthProvider sets standard JWT claims including sub
-            oidc_subject = access_token.claims.get("sub")
-            if not oidc_subject:
-                raise ValueError("Authenticated MCP OIDC token is missing a subject")
-            preferred_username = access_token.claims.get("preferred_username")
-            if (
-                isinstance(preferred_username, str)
-                and preferred_username.startswith("service-account-")
-            ):
-                raw_user_id = access_token.claims.get("daynest_user_id")
-                if raw_user_id is None:
-                    raise PermissionError(
-                        "Keycloak service accounts require a daynest_user_id protocol mapper"
-                    )
-                try:
-                    mapped_user_id = int(raw_user_id)
-                except (TypeError, ValueError) as exc:
-                    raise PermissionError(
-                        "Keycloak service accounts require a daynest_user_id protocol mapper"
-                    ) from exc
-                user = db.get(User, mapped_user_id)
-                if user is None or not user.is_active:
-                    raise ValueError("Mapped Daynest service-account user is inactive or missing")
-                return user
-            user = get_or_create_local_user(oidc_subject, access_token.claims, db)
-            if not user.is_active:
-                raise ValueError(f"User for OIDC subject {oidc_subject} is inactive")
-            return user
-
-        configured_email = self.user_email or os.getenv(DAYNEST_USER_EMAIL_ENV)
-        if configured_email:
-            user = db.scalar(select(User).where(User.email == configured_email.lower()).where(User.is_active.is_(True)))
-            if user is None:
-                raise ValueError(f"Active user not found for {DAYNEST_USER_EMAIL_ENV}={configured_email}")
-            return user
-
-        active_users = list(db.scalars(select(User).where(User.is_active.is_(True)).order_by(User.id.asc())).all())
-        if not active_users:
-            raise ValueError(
-                "No active Daynest user found. Create an account first or set "
-                f"{DAYNEST_USER_EMAIL_ENV}=you@example.com."
-            )
-        if len(active_users) > 1:
-            logger.debug(
-                "Multiple active users: %s",
-                ", ".join(user.email for user in active_users),
-            )
-            raise ValueError(
-                f"Multiple active Daynest users found ({len(active_users)} matches). "
-                f"Set {DAYNEST_USER_EMAIL_ENV} to the correct account or inspect active users locally."
-            )
-        return active_users[0]
-
-    def _with_service(self, operation: Callable[[Session, User, TodayService], T]) -> T:
-        with self._session_scope() as db:
-            user = self.resolve_user(db)
-            service = TodayService(TodayRepository(db), app_settings=settings)
-            return operation(db, user, service)
-
-    def _with_meal_plan_service(self, operation: Callable[[Session, User, MealPlanService], T]) -> T:
-        with self._session_scope() as db:
-            user = self.resolve_user(db)
-            service = MealPlanService(MealPlanRepository(db))
-            return operation(db, user, service)
-
-    def _with_shopping_service(self, operation: Callable[[Session, User, ShoppingListService], T]) -> T:
-        with self._session_scope() as db:
-            user = self.resolve_user(db)
-            today_service = TodayService(TodayRepository(db), app_settings=settings)
-            service = ShoppingListService(ShoppingListRepository(db), today_service)
-            return operation(db, user, service)
+    # --- Identity / integrations -----------------------------------------
 
     def whoami(self) -> dict[str, Any]:
-        return self._with_service(
-            lambda _db, user, _service: {
-                "id": user.id,
-                "email": user.email,
-                "full_name": user.full_name,
-                "is_active": user.is_active,
-            }
-        )
+        return mcp_identity.whoami(self.session_factory, self.user_email)
 
     def list_users(self) -> list[dict[str, Any]]:
-        with self._session_scope() as db:
-            users = list(db.scalars(select(User).order_by(User.id.asc())).all())
-            return [
-                {
-                    "id": user.id,
-                    "email": user.email,
-                    "full_name": user.full_name,
-                    "is_active": user.is_active,
-                }
-                for user in users
-            ]
+        return mcp_identity.list_users(self.session_factory)
 
     def list_integration_clients(self) -> list[dict[str, Any]]:
-        with self._session_scope() as db:
-            user = self.resolve_user(db)
-            clients = list(
-                db.scalars(
-                    select(IntegrationClient)
-                    .where(IntegrationClient.user_id == user.id)
-                    .order_by(IntegrationClient.id.asc())
-                ).all()
-            )
-            return [_integration_client_to_dict(client) for client in clients]
+        return mcp_identity.list_integration_clients(self.session_factory, self.user_email)
 
-    def create_integration_client(
-        self,
-        name: str,
-        rate_limit_per_minute: int = 120,
-    ) -> dict[str, Any]:
-        access_token = get_access_token()
-        if access_token is not None and access_token.claims.get("auth_source") == "integration":
-            raise PermissionError("Integration tokens cannot create new integration clients")
+    def create_integration_client(self, name: str, rate_limit_per_minute: int = 120) -> dict[str, Any]:
+        return mcp_identity.create_integration_client(
+            self.session_factory, self.user_email, name=name, rate_limit_per_minute=rate_limit_per_minute
+        )
 
-        if not isinstance(rate_limit_per_minute, int) or rate_limit_per_minute <= 0:
-            raise ValueError("rate_limit_per_minute must be a positive integer")
-        if rate_limit_per_minute > 600:
-            raise ValueError("rate_limit_per_minute must be 600 or less")
-
-        raw_key = f"daynest_{token_urlsafe(30)}"
-        with self._session_scope() as db:
-            user = self.resolve_user(db)
-            client = IntegrationClient(
-                user_id=user.id,
-                name=name,
-                key_hash=hash_integration_key(raw_key),
-                rate_limit_per_minute=rate_limit_per_minute,
-                scopes=["mcp:*"],
-                is_active=True,
-            )
-            db.add(client)
-            db.commit()
-            db.refresh(client)
-            return {**_integration_client_to_dict(client), "api_key": raw_key}
+    # --- Today / calendar / planned items ----------------------------------
 
     def get_today(self, for_date: str | None = None) -> dict[str, Any]:
-        target_date = _parse_date(for_date)
-        return self._with_service(lambda _db, user, service: _jsonable(service.get_today(user.id, target_date)))
+        return mcp_planning.get_today(self.session_factory, self.user_email, for_date)
 
     def get_calendar_day(self, for_date: str | None = None) -> dict[str, Any]:
-        target_date = _parse_date(for_date)
-        return self._with_service(lambda _db, user, service: _jsonable(service.get_day_items(user.id, target_date)))
+        return mcp_planning.get_calendar_day(self.session_factory, self.user_email, for_date)
 
     def get_calendar_month(self, year: int, month: int) -> dict[str, Any]:
-        return self._with_service(lambda _db, user, service: _jsonable(service.get_month(user.id, year, month)))
+        return mcp_planning.get_calendar_month(self.session_factory, self.user_email, year, month)
 
-    def list_meal_plans(self) -> list[dict[str, Any]]:
-        return self._with_meal_plan_service(lambda _db, user, service: _jsonable(service.list_meal_plans(user.id)))
-
-    def get_week_plan(self, meal_plan_id: int) -> dict[str, Any]:
-        return self._with_meal_plan_service(lambda _db, user, service: _jsonable(service.get_week_plan(user.id, meal_plan_id)))
-
-    def set_meal_slot(
-        self,
-        meal_plan_id: int,
-        slot_id: int,
-        title: str | None = None,
-        recipe_url: str | None = None,
-        ingredients_json: list[str] | None = None,
-        planned_item_id: int | None = None,
-    ) -> dict[str, Any]:
-        payload: dict[str, Any] = {}
-        if title is not None:
-            payload["title"] = title
-        if recipe_url is not None:
-            payload["recipe_url"] = None if recipe_url == "" else recipe_url
-        if ingredients_json is not None:
-            payload["ingredients_json"] = ingredients_json
-        if planned_item_id is not None:
-            payload["planned_item_id"] = None if planned_item_id == 0 else planned_item_id
-        request = MealSlotUpdate(**payload)
-        return self._with_meal_plan_service(
-            lambda _db, user, service: _jsonable(service.update_slot(user.id, meal_plan_id, slot_id, request))
-        )
-
-    def generate_shopping_list_from_plan(self, meal_plan_id: int) -> dict[str, Any]:
-        return self._with_meal_plan_service(
-            lambda _db, user, service: _jsonable(service.generate_shopping_list(plan_id=meal_plan_id, user_id=user.id))
-        )
-
-    def list_shopping_lists(self, status: ShoppingListStatus | Literal["all"] = "active") -> list[dict[str, Any]]:
-        status_filter = None if status == "all" else status
-        return self._with_shopping_service(lambda _db, user, service: _jsonable(service.list_shopping_lists(user.id, status_filter)))
-
-    def create_shopping_list(self, name: str, store: str | None = None, notes: str | None = None) -> dict[str, Any]:
-        request = ShoppingListCreateRequest(name=name, store=store, notes=notes)
-        return self._with_shopping_service(lambda _db, user, service: _jsonable(service.create_shopping_list(user.id, request)))
-
-    def add_shopping_item(
-        self,
-        shopping_list_id: int,
-        title: str,
-        planned_for: str = "today",
-        notes: str | None = None,
-        priority: str = "normal",
-        tags: list[str] | None = None,
-    ) -> dict[str, Any]:
-        return self._with_shopping_service(
-            lambda _db, user, service: service.add_shopping_item(
-                user_id=user.id,
-                shopping_list_id=shopping_list_id,
-                title=title,
-                planned_for=_parse_date(planned_for),
-                notes=notes,
-                priority=Priority(priority),
-                tags=tags or [],
-            )
-        )
-
-    def check_off_shopping_item(self, shopping_list_id: int, planned_item_id: int) -> dict[str, Any]:
-        return self._with_shopping_service(
-            lambda _db, user, service: service.check_off_shopping_item(
-                user_id=user.id,
-                shopping_list_id=shopping_list_id,
-                planned_item_id=planned_item_id,
-            )
-        )
-
-    def list_planned_items(self, start_date: str | None = None, end_date: str | None = None) -> list[dict[str, Any]]:
-        parsed_start = _parse_date(start_date) if start_date else None
-        parsed_end = _parse_date(end_date) if end_date else None
-        return self._with_service(
-            lambda _db, user, service: _jsonable(service.list_planned_items(user.id, start_date=parsed_start, end_date=parsed_end))
-        )
+    def list_planned_items(
+        self, start_date: str | None = None, end_date: str | None = None, limit: int | None = None
+    ) -> list[dict[str, Any]]:
+        return mcp_planning.list_planned_items(self.session_factory, self.user_email, start_date, end_date, limit)
 
     def create_planned_item(
         self,
@@ -477,10 +175,12 @@ class DaynestMcpBackend:
         priority: str = "normal",
         tags: list[str] | None = None,
     ) -> dict[str, Any]:
-        request = PlannedItemCreateRequest(
+        return mcp_planning.create_planned_item(
+            self.session_factory,
+            self.user_email,
             title=title,
-            planned_for=_parse_date(planned_for),
-            time_of_day=_parse_time(time_of_day),
+            planned_for=planned_for,
+            time_of_day=time_of_day,
             duration_minutes=duration_minutes,
             notes=notes,
             module_key=module_key,
@@ -488,10 +188,9 @@ class DaynestMcpBackend:
             rrule=rrule,
             linked_source=linked_source,
             linked_ref=linked_ref,
-            priority=Priority(priority),
-            tags=tags or [],
+            priority=priority,
+            tags=tags,
         )
-        return self._with_service(lambda _db, user, service: _jsonable(service.create_planned_item(user.id, request)))
 
     def update_planned_item(
         self,
@@ -511,64 +210,60 @@ class DaynestMcpBackend:
         tags: list[str] | None = None,
         scope: Literal["this", "future", "all"] = "this",
     ) -> dict[str, Any]:
-        def _operation(_db: Session, user: User, service: TodayService) -> dict[str, Any]:
-            existing = service.repository.get_planned_item_for_user(user_id=user.id, planned_item_id=planned_item_id)
-            if existing is None:
-                raise HTTPException(status_code=404, detail="Planned item not found")
-            request = PlannedItemUpdateRequest(
-                title=title if title is not None else existing.title,
-                planned_for=_parse_date(planned_for) if planned_for is not None else existing.planned_for,
-                time_of_day=_parse_time(time_of_day) if time_of_day is not None else existing.time_of_day,
-                duration_minutes=None if duration_minutes == 0 else (duration_minutes if duration_minutes is not None else existing.duration_minutes),
-                is_done=is_done if is_done is not None else existing.is_done,
-                notes=notes if notes is not None else existing.notes,
-                module_key=module_key if module_key is not None else cast(PlannedItemModuleKey | None, existing.module_key),
-                recurrence_hint=recurrence_hint if recurrence_hint is not None else existing.recurrence_hint,
-                rrule=rrule if rrule is not None else existing.rrule,
-                linked_source=linked_source if linked_source is not None else existing.linked_source,
-                linked_ref=linked_ref if linked_ref is not None else existing.linked_ref,
-                priority=Priority(priority) if priority is not None else existing.priority,
-                tags=tags if tags is not None else (existing.tags or []),
-            )
-            return _jsonable(service.update_planned_item(user.id, planned_item_id, request, scope=scope))
-
-        return self._with_service(_operation)
+        return mcp_planning.update_planned_item(
+            self.session_factory,
+            self.user_email,
+            planned_item_id=planned_item_id,
+            title=title,
+            planned_for=planned_for,
+            time_of_day=time_of_day,
+            duration_minutes=duration_minutes,
+            is_done=is_done,
+            notes=notes,
+            module_key=module_key,
+            recurrence_hint=recurrence_hint,
+            rrule=rrule,
+            linked_source=linked_source,
+            linked_ref=linked_ref,
+            priority=priority,
+            tags=tags,
+            scope=scope,
+        )
 
     def defer_planned_item(self, planned_item_id: int, days: int = 1) -> dict[str, Any]:
-        return self._with_service(lambda _db, user, service: _jsonable(service.defer_planned_item(user.id, planned_item_id, days)))
+        return mcp_planning.defer_planned_item(self.session_factory, self.user_email, planned_item_id, days)
 
     def delete_planned_item(self, planned_item_id: int, scope: Literal["this", "future"] = "this") -> dict[str, Any]:
-        self._with_service(lambda _db, user, service: service.delete_planned_item(user.id, planned_item_id, scope=scope))
-        return {"deleted": True, "planned_item_id": planned_item_id, "scope": scope}
+        return mcp_planning.delete_planned_item(self.session_factory, self.user_email, planned_item_id, scope)
 
     def delete_planned_item_series(self, recurrence_series_id: str) -> dict[str, Any]:
-        count = self._with_service(lambda _db, user, service: service.delete_planned_item_series(user.id, recurrence_series_id))
-        return {"deleted": True, "recurrence_series_id": recurrence_series_id, "deleted_count": count}
+        return mcp_planning.delete_planned_item_series(self.session_factory, self.user_email, recurrence_series_id)
+
+    def get_scheduling_suggestions(self, for_date: str | None = None) -> dict[str, Any]:
+        return mcp_planning.get_scheduling_suggestions(self.session_factory, self.user_email, for_date)
+
+    # --- Routines / chores ---------------------------------------------------
 
     def complete_chore(self, chore_instance_id: int) -> dict[str, Any]:
-        return self._with_service(lambda _db, user, service: _jsonable(service.complete_chore(user.id, chore_instance_id)))
+        return mcp_routines.complete_chore(self.session_factory, self.user_email, chore_instance_id)
 
     def skip_chore(self, chore_instance_id: int) -> dict[str, Any]:
-        return self._with_service(lambda _db, user, service: _jsonable(service.skip_chore(user.id, chore_instance_id)))
+        return mcp_routines.skip_chore(self.session_factory, self.user_email, chore_instance_id)
 
     def reschedule_chore(self, chore_instance_id: int, scheduled_date: str) -> dict[str, Any]:
-        return self._with_service(
-            lambda _db, user, service: _jsonable(service.reschedule_chore(user.id, chore_instance_id, _parse_date(scheduled_date)))
-        )
+        return mcp_routines.reschedule_chore(self.session_factory, self.user_email, chore_instance_id, scheduled_date)
 
     def start_routine_task(self, task_instance_id: int) -> dict[str, Any]:
-        return self._with_service(lambda _db, user, service: _jsonable(service.start_routine_task(user.id, task_instance_id)))
+        return mcp_routines.start_routine_task(self.session_factory, self.user_email, task_instance_id)
 
     def complete_routine_task(self, task_instance_id: int) -> dict[str, Any]:
-        return self._with_service(lambda _db, user, service: _jsonable(service.complete_routine_task(user.id, task_instance_id)))
+        return mcp_routines.complete_routine_task(self.session_factory, self.user_email, task_instance_id)
 
     def skip_routine_task(self, task_instance_id: int) -> dict[str, Any]:
-        return self._with_service(lambda _db, user, service: _jsonable(service.skip_routine_task(user.id, task_instance_id)))
+        return mcp_routines.skip_routine_task(self.session_factory, self.user_email, task_instance_id)
 
     def list_routines(self) -> list[dict[str, Any]]:
-        return self._with_service(
-            lambda _db, user, service: [_routine_template_to_dict(t) for t in service.list_routine_templates(user.id)]
-        )
+        return mcp_routines.list_routines(self.session_factory, self.user_email)
 
     def create_routine(
         self,
@@ -579,20 +274,15 @@ class DaynestMcpBackend:
         due_time: str | None = None,
         is_active: bool = True,
     ) -> dict[str, Any]:
-        parsed_start = _parse_date(start_date)
-        parsed_due_time = time.fromisoformat(due_time) if due_time and due_time.strip() else None
-        return self._with_service(
-            lambda _db, user, service: _routine_template_to_dict(
-                service.create_routine_template(
-                    user.id,
-                    name=name,
-                    start_date=parsed_start,
-                    every_n_days=every_n_days,
-                    description=description,
-                    due_time=parsed_due_time,
-                    is_active=is_active,
-                )
-            )
+        return mcp_routines.create_routine(
+            self.session_factory,
+            self.user_email,
+            name=name,
+            start_date=start_date,
+            every_n_days=every_n_days,
+            description=description,
+            due_time=due_time,
+            is_active=is_active,
         )
 
     def update_routine(
@@ -605,35 +295,23 @@ class DaynestMcpBackend:
         due_time: str | None = None,
         is_active: bool | None = None,
     ) -> dict[str, Any]:
-        parsed_start = _parse_date(start_date)
-        parsed_due_time = time.fromisoformat(due_time) if due_time and due_time.strip() else None
-
-        def _do(_db: Any, user: Any, service: Any) -> dict[str, Any]:
-            existing = service.repository.get_routine_template_for_user(user.id, routine_template_id)
-            return _routine_template_to_dict(
-                service.update_routine_template(
-                    user.id,
-                    routine_template_id,
-                    name=name,
-                    start_date=parsed_start,
-                    every_n_days=every_n_days,
-                    rrule=existing.rrule if existing else None,
-                    description=description,
-                    due_time=parsed_due_time,
-                    is_active=is_active,
-                )
-            )
-
-        return self._with_service(_do)
+        return mcp_routines.update_routine(
+            self.session_factory,
+            self.user_email,
+            routine_template_id=routine_template_id,
+            name=name,
+            start_date=start_date,
+            every_n_days=every_n_days,
+            description=description,
+            due_time=due_time,
+            is_active=is_active,
+        )
 
     def delete_routine(self, routine_template_id: int) -> dict[str, Any]:
-        self._with_service(lambda _db, user, service: service.delete_routine_template(user.id, routine_template_id))
-        return {"deleted": True, "routine_template_id": routine_template_id}
+        return mcp_routines.delete_routine(self.session_factory, self.user_email, routine_template_id)
 
     def list_chore_templates(self) -> list[dict[str, Any]]:
-        return self._with_service(
-            lambda _db, user, service: [_chore_template_to_dict(t) for t in service.list_chore_templates(user.id)]
-        )
+        return mcp_routines.list_chore_templates(self.session_factory, self.user_email)
 
     def create_chore_template(
         self,
@@ -643,18 +321,14 @@ class DaynestMcpBackend:
         description: str | None = None,
         is_active: bool = True,
     ) -> dict[str, Any]:
-        parsed_start = _parse_date(start_date)
-        return self._with_service(
-            lambda _db, user, service: _chore_template_to_dict(
-                service.create_chore_template(
-                    user.id,
-                    name=name,
-                    start_date=parsed_start,
-                    every_n_days=every_n_days,
-                    description=description,
-                    is_active=is_active,
-                )
-            )
+        return mcp_routines.create_chore_template(
+            self.session_factory,
+            self.user_email,
+            name=name,
+            start_date=start_date,
+            every_n_days=every_n_days,
+            description=description,
+            is_active=is_active,
         )
 
     def update_chore_template(
@@ -666,47 +340,33 @@ class DaynestMcpBackend:
         description: str | None = None,
         is_active: bool | None = None,
     ) -> dict[str, Any]:
-        parsed_start = _parse_date(start_date)
-
-        def _do(_db: Any, user: Any, service: Any) -> dict[str, Any]:
-            existing = service.repository.get_chore_template_for_user(user.id, chore_template_id)
-            return _chore_template_to_dict(
-                service.update_chore_template(
-                    user.id,
-                    chore_template_id,
-                    name=name,
-                    start_date=parsed_start,
-                    every_n_days=every_n_days,
-                    rrule=existing.rrule if existing else None,
-                    priority=existing.priority if existing else Priority.normal,
-                    tags=existing.tags if existing else [],
-                    description=description,
-                    is_active=is_active,
-                )
-            )
-
-        return self._with_service(_do)
+        return mcp_routines.update_chore_template(
+            self.session_factory,
+            self.user_email,
+            chore_template_id=chore_template_id,
+            name=name,
+            start_date=start_date,
+            every_n_days=every_n_days,
+            description=description,
+            is_active=is_active,
+        )
 
     def delete_chore_template(self, chore_template_id: int) -> dict[str, Any]:
-        self._with_service(lambda _db, user, service: service.delete_chore_template(user.id, chore_template_id))
-        return {"deleted": True, "chore_template_id": chore_template_id}
+        return mcp_routines.delete_chore_template(self.session_factory, self.user_email, chore_template_id)
+
+    # --- Medications -----------------------------------------------------
 
     def take_medication_dose(self, medication_dose_instance_id: int, taken_at: str | None = None) -> dict[str, Any]:
-        parsed_taken_at: datetime | None = None
-        if taken_at is not None:
-            try:
-                parsed_taken_at = datetime.fromisoformat(taken_at)
-            except ValueError:
-                raise ValueError(f"Invalid taken_at format: '{taken_at}'. Expected ISO 8601 datetime.")
-        return self._mutate_medication(medication_dose_instance_id, "take", taken_at=parsed_taken_at)
+        return mcp_medications.take_medication_dose(self.session_factory, self.user_email, medication_dose_instance_id, taken_at)
 
     def skip_medication_dose(self, medication_dose_instance_id: int) -> dict[str, Any]:
-        return self._mutate_medication(medication_dose_instance_id, "skip")
+        return mcp_medications.skip_medication_dose(self.session_factory, self.user_email, medication_dose_instance_id)
+
+    def skip_missed_medication_doses(self, before_date: str | None = None) -> dict[str, Any]:
+        return mcp_medications.skip_missed_medication_doses(self.session_factory, self.user_email, before_date)
 
     def list_medications(self) -> list[dict[str, Any]]:
-        return self._with_service(
-            lambda _db, user, service: [_medication_plan_to_dict(p) for p in service.list_medication_plans(user.id)]
-        )
+        return mcp_medications.list_medications(self.session_factory, self.user_email)
 
     def create_medication(
         self,
@@ -716,19 +376,14 @@ class DaynestMcpBackend:
         schedule_time: str,
         every_n_days: int = 1,
     ) -> dict[str, Any]:
-        parsed_start = date.fromisoformat(start_date)
-        parsed_time = time.fromisoformat(schedule_time)
-        return self._with_service(
-            lambda _db, user, service: _medication_plan_to_dict(
-                service.create_medication_plan(
-                    user.id,
-                    name=name,
-                    instructions=instructions,
-                    start_date=parsed_start,
-                    schedule_time=parsed_time,
-                    every_n_days=every_n_days,
-                )
-            )
+        return mcp_medications.create_medication(
+            self.session_factory,
+            self.user_email,
+            name=name,
+            instructions=instructions,
+            start_date=start_date,
+            schedule_time=schedule_time,
+            every_n_days=every_n_days,
         )
 
     def update_medication(
@@ -741,83 +396,98 @@ class DaynestMcpBackend:
         every_n_days: int | None = None,
         is_active: bool | None = None,
     ) -> dict[str, Any]:
-        parsed_start = date.fromisoformat(start_date)
-        parsed_time = time.fromisoformat(schedule_time)
-        return self._with_service(
-            lambda _db, user, service: _medication_plan_to_dict(
-                service.update_medication_plan(
-                    user.id,
-                    medication_plan_id,
-                    name=name,
-                    instructions=instructions,
-                    start_date=parsed_start,
-                    schedule_time=parsed_time,
-                    every_n_days=every_n_days,
-                    is_active=is_active,
-                )
-            )
+        return mcp_medications.update_medication(
+            self.session_factory,
+            self.user_email,
+            medication_plan_id=medication_plan_id,
+            name=name,
+            instructions=instructions,
+            start_date=start_date,
+            schedule_time=schedule_time,
+            every_n_days=every_n_days,
+            is_active=is_active,
         )
 
     def delete_medication(self, medication_plan_id: int) -> dict[str, Any]:
-        self._with_service(lambda _db, user, service: service.delete_medication_plan(user.id, medication_plan_id))
-        return {"deleted": True, "medication_plan_id": medication_plan_id}
+        return mcp_medications.delete_medication(self.session_factory, self.user_email, medication_plan_id)
 
     def get_medication_history(self, limit: int = 20, medication_plan_id: int | None = None) -> dict[str, Any]:
-        capped_limit = min(max(1, limit), 365)
-        return self._with_service(
-            lambda _db, user, service: {
-                "history": [
-                    {
-                        "medication_dose_instance_id": item.id,
-                        "medication_plan_id": item.medication_plan_id,
-                        "name": item.name,
-                        "instructions": item.instructions,
-                        "scheduled_at": item.scheduled_at.isoformat(),
-                        "status": item.status.value,
-                    }
-                    for item in service.repository.get_medication_history(
-                        user_id=user.id,
-                        before_date=datetime.now(UTC).date(),
-                        limit=capped_limit,
-                        medication_plan_id=medication_plan_id,
-                    )
-                ]
-            }
+        return mcp_medications.get_medication_history(self.session_factory, self.user_email, limit, medication_plan_id)
+
+    # --- Shopping / meal planning ------------------------------------------
+
+    def list_meal_plans(self) -> list[dict[str, Any]]:
+        return mcp_shopping.list_meal_plans(self.session_factory, self.user_email)
+
+    def get_week_plan(self, meal_plan_id: int) -> dict[str, Any]:
+        return mcp_shopping.get_week_plan(self.session_factory, self.user_email, meal_plan_id)
+
+    def set_meal_slot(
+        self,
+        meal_plan_id: int,
+        slot_id: int,
+        title: str | None = None,
+        recipe_url: str | None = None,
+        ingredients_json: list[str] | None = None,
+        planned_item_id: int | None = None,
+    ) -> dict[str, Any]:
+        return mcp_shopping.set_meal_slot(
+            self.session_factory,
+            self.user_email,
+            meal_plan_id,
+            slot_id,
+            title,
+            recipe_url,
+            ingredients_json,
+            planned_item_id,
         )
 
-    def skip_missed_medication_doses(self, before_date: str | None = None) -> dict[str, Any]:
-        parsed = _parse_date(before_date) if before_date else None
-        def _operation(_db: Session, user: User, service: TodayService) -> dict[str, Any]:
-            count, cutoff = service.skip_missed_medication_doses(user_id=user.id, before_date=parsed)
-            return {"skipped_count": count, "before_date": cutoff.isoformat()}
-        return self._with_service(_operation)
+    def generate_shopping_list_from_plan(self, meal_plan_id: int) -> dict[str, Any]:
+        return mcp_shopping.generate_shopping_list_from_plan(self.session_factory, self.user_email, meal_plan_id)
 
-    def get_scheduling_suggestions(self, for_date: str | None = None) -> dict[str, Any]:
-        parsed_date = _parse_date(for_date) if for_date else datetime.now(UTC).date()
-        with self._session_scope() as db:
-            user = self.resolve_user(db)
-            suggestions = build_scheduling_suggestions(db, user.id, parsed_date)
-            return {
-                "for_date": parsed_date.isoformat(),
-                "suggestions": [item.model_dump(mode="json") for item in suggestions],
-            }
+    def list_shopping_lists(self, status: ShoppingListStatus | Literal["all"] = "active") -> list[dict[str, Any]]:
+        return mcp_shopping.list_shopping_lists(self.session_factory, self.user_email, status)
 
-    def _mutate_medication(self, medication_dose_instance_id: int, action: str, *, taken_at: datetime | None = None) -> dict[str, Any]:
-        def _operation(_db: Session, user: User, service: TodayService) -> dict[str, Any]:
-            instance = service.mutate_medication_status(user.id, medication_dose_instance_id, action, taken_at=taken_at)
-            return {
-                "medication_dose_instance_id": instance.id,
-                "medication_plan_id": instance.medication_plan_id,
-                "name": instance.name,
-                "status": instance.status.value,
-                "scheduled_date": instance.scheduled_date.isoformat(),
-                "scheduled_at": instance.scheduled_at.isoformat(),
-                "taken_at": instance.taken_at.isoformat() if instance.taken_at else None,
-                "skipped_at": instance.skipped_at.isoformat() if instance.skipped_at else None,
-                "missed_at": instance.missed_at.isoformat() if instance.missed_at else None,
-            }
+    def create_shopping_list(self, name: str, store: str | None = None, notes: str | None = None) -> dict[str, Any]:
+        return mcp_shopping.create_shopping_list(self.session_factory, self.user_email, name, store, notes)
 
-        return self._with_service(_operation)
+    def add_shopping_item(
+        self,
+        shopping_list_id: int,
+        title: str,
+        planned_for: str = "today",
+        notes: str | None = None,
+        priority: str = "normal",
+        tags: list[str] | None = None,
+    ) -> dict[str, Any]:
+        return mcp_shopping.add_shopping_item(
+            self.session_factory, self.user_email, shopping_list_id, title, planned_for, notes, priority, tags
+        )
+
+    def check_off_shopping_item(self, shopping_list_id: int, planned_item_id: int) -> dict[str, Any]:
+        return mcp_shopping.check_off_shopping_item(self.session_factory, self.user_email, shopping_list_id, planned_item_id)
+
+    # --- Audit ---------------------------------------------------------
+
+    def list_audit_entries(
+        self,
+        resource_type: str | None = None,
+        resource_id: str | None = None,
+        action: str | None = None,
+        since: str | None = None,
+        until: str | None = None,
+        limit: int = 100,
+    ) -> dict[str, Any]:
+        return mcp_audit.list_audit_entries(
+            self.session_factory,
+            self.user_email,
+            resource_type=resource_type,
+            resource_id=resource_id,
+            action=action,
+            since=since,
+            until=until,
+            limit=limit,
+        )
 
 
 class IntegrationKeyTokenVerifier(TokenVerifier):
@@ -999,10 +669,21 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
         return await to_thread.run_sync(daynest.check_off_shopping_item, shopping_list_id, planned_item_id)
 
     @mcp.tool()
-    async def list_planned_items(start_date: str | None = None, end_date: str | None = None) -> list[dict[str, Any]]:
-        """List planned items, optionally filtered by inclusive start and end dates in YYYY-MM-DD format."""
+    async def list_planned_items(
+        start_date: str | None = None, end_date: str | None = None, limit: int | None = None
+    ) -> list[dict[str, Any]]:
+        """List planned items, optionally filtered by inclusive start and end dates in YYYY-MM-DD format.
 
-        return await to_thread.run_sync(daynest.list_planned_items, start_date, end_date)
+        Args:
+            start_date: Optional inclusive start date in YYYY-MM-DD format.
+            end_date: Optional inclusive end date in YYYY-MM-DD format.
+            limit: Maximum items to return. Defaults to 100; capped at 1000
+                regardless of what is requested. When neither start_date nor
+                end_date is given, defaults to the 100 most recent items
+                instead of the user's entire all-time history.
+        """
+
+        return await to_thread.run_sync(daynest.list_planned_items, start_date, end_date, limit)
 
     @mcp.tool()
     async def create_planned_item(
@@ -1457,6 +1138,36 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
         """Generate non-intrusive scheduling suggestions based on recent habits."""
 
         return await to_thread.run_sync(daynest.get_scheduling_suggestions, for_date)
+
+    @mcp.tool()
+    async def list_audit_entries(
+        resource_type: str | None = None,
+        resource_id: str | None = None,
+        action: str | None = None,
+        since: str | None = None,
+        until: str | None = None,
+        limit: int = 100,
+    ) -> dict[str, Any]:
+        """Return the active Daynest user's own audit-trail entries, newest first.
+
+        Scoped strictly to the authenticated user's own actions — there is no
+        cross-user or household-wide visibility. Every REST and MCP mutation
+        that writes to Daynest data records a matching entry here in the same
+        database transaction as the mutation itself.
+
+        Args:
+            resource_type: Optional filter, e.g. "planned_item", "chore_instance",
+                "medication_plan", "shopping_list", "routine_template".
+            resource_id: Optional filter to a single resource's id.
+            action: Optional filter to a specific action, e.g. "planned_item.create".
+            since: Optional ISO 8601 datetime (or YYYY-MM-DD) lower bound, inclusive.
+            until: Optional ISO 8601 datetime (or YYYY-MM-DD) upper bound, inclusive.
+            limit: Maximum entries to return. Default 100; capped at 1000.
+        """
+
+        return await to_thread.run_sync(
+            daynest.list_audit_entries, resource_type, resource_id, action, since, until, limit
+        )
 
     @mcp.resource("daynest://today/{for_date}")
     async def today_resource(for_date: str) -> str:

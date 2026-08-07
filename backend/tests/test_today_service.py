@@ -57,6 +57,12 @@ class StubTodayRepository:
     def save(self) -> None:
         self.saved = True
 
+    def record_audit(self, actor, action: str, resource_type: str, resource_id, *, details: dict | None = None) -> None:
+        # No-op: this stub isn't backed by a real session, so audit writes
+        # have nowhere to land. Individual audit-write behavior is covered by
+        # test_audit_service.py and the TodayRepository-level tests.
+        pass
+
     def get_today_medication(self, user_id: int, for_date: date) -> list[SimpleNamespace]:
         return self._medication
 

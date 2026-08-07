@@ -39,12 +39,7 @@ from app.core.observability import (
     observability_middleware,
 )
 from app.db.session import SessionLocal
-from app.mcp_server import (
-    MCP_PROMPT_NAMES,
-    MCP_RESOURCE_URIS,
-    MCP_TOOL_NAMES,
-    create_mcp_server,
-)
+from app.mcp_server import create_mcp_server
 from app.middleware.rate_limit import handle_rate_limit_exceeded, limiter
 from app.models.user import User
 from app.services.event_bus import EventBus
@@ -238,15 +233,33 @@ if _mcp_app is not None:
 
 
 @app.get(f"{settings.api_prefix}/mcp/capabilities")
-def mcp_capabilities() -> dict[str, object]:
+async def mcp_capabilities() -> dict[str, object]:
+    """Report MCP capabilities derived live from the running FastMCP server.
+
+    Deliberately queries ``_mcp`` (the actual registration) rather than the
+    hand-maintained MCP_TOOL_NAMES/MCP_RESOURCE_URIS/MCP_PROMPT_NAMES tuples,
+    so this endpoint can never drift from what's really registered — those
+    tuples remain as a documented contract, guarded by
+    test_mcp_capability_tool_names_match_registered_tools (and its
+    resource/prompt counterparts) in test_mcp_server.py.
+    """
+
     enabled = _mcp_app is not None
+    if not enabled or _mcp is None:
+        return {"enabled": False, "mount_path": "/mcp", "version": None, "tools": [], "resources": [], "prompts": []}
+
+    tools = await _mcp.list_tools()
+    resource_templates = await _mcp.list_resource_templates()
+    resources = await _mcp.list_resources()
+    prompts = await _mcp.list_prompts()
     return {
-        "enabled": enabled,
+        "enabled": True,
         "mount_path": "/mcp",
-        "version": _mcp.version if _mcp is not None else None,
-        "tools": [{"name": name} for name in MCP_TOOL_NAMES] if enabled else [],
-        "resources": [{"uri": uri} for uri in MCP_RESOURCE_URIS] if enabled else [],
-        "prompts": [{"name": name} for name in MCP_PROMPT_NAMES] if enabled else [],
+        "version": _mcp.version,
+        "tools": [{"name": tool.name} for tool in tools],
+        "resources": [{"uri": template.uri_template} for template in resource_templates]
+        + [{"uri": str(resource.uri)} for resource in resources],
+        "prompts": [{"name": prompt.name} for prompt in prompts],
     }
 
 

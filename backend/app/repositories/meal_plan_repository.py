@@ -5,11 +5,35 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.models.meal_plan import MealPlan, MealSlot
 from app.schemas.meal_plan import MEAL_SLOT_TYPES
+from app.services.audit_service import AuditActor, write_audit_entry
 
 
 class MealPlanRepository:
     def __init__(self, db: Session):
         self.db = db
+
+    def record_audit(
+        self,
+        actor: AuditActor | None,
+        action: str,
+        resource_type: str,
+        resource_id: object,
+        *,
+        details: dict | None = None,
+    ) -> None:
+        """Stage an audit entry (no commit) if ``actor`` is provided — see
+        TodayRepository.record_audit for the same pattern and rationale."""
+
+        if actor is None:
+            return
+        write_audit_entry(
+            self.db,
+            actor=actor,
+            action=action,
+            resource_type=resource_type,
+            resource_id=str(resource_id),
+            details=details,
+        )
 
     def list_by_user(self, user_id: int) -> list[MealPlan]:
         stmt = (
@@ -51,7 +75,8 @@ class MealPlanRepository:
         )
         return self.db.scalar(stmt)
 
-    def save_slot(self, slot: MealSlot) -> MealSlot:
+    def save_slot(self, slot: MealSlot, *, actor: AuditActor | None = None) -> MealSlot:
+        self.record_audit(actor, "meal_slot.update", "meal_slot", slot.id, details={"meal_plan_id": slot.meal_plan_id})
         self.db.commit()
         self.db.refresh(slot)
         return slot

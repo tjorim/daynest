@@ -4,6 +4,7 @@ from typing import cast
 from fastapi import HTTPException, status
 
 from app.core.enums import Priority
+from app.core.pagination import clamp_limit
 from app.models.shopping_list import ShoppingList
 from app.repositories.shopping_list_repository import ShoppingListRepository
 from app.schemas.shopping_list import (
@@ -18,6 +19,7 @@ from app.schemas.today import (
     PlannedItemUpdateRequest,
     PlannedTodayItem,
 )
+from app.services.audit_service import AuditActor
 from app.services.today_service import TodayService
 
 
@@ -27,12 +29,12 @@ class ShoppingListService:
         self.today_service = today_service
 
     def list_shopping_lists(
-        self, user_id: int, status_filter: ShoppingListStatus | None = "active"
+        self, user_id: int, status_filter: ShoppingListStatus | None = "active", *, limit: int | None = None
     ) -> list[ShoppingListResponse]:
         return [
             self._to_schema(shopping_list)
             for shopping_list in self.repository.list_by_user(
-                user_id, status=status_filter
+                user_id, status=status_filter, limit=clamp_limit(limit)
             )
         ]
 
@@ -43,7 +45,7 @@ class ShoppingListService:
         return self._to_schema(shopping_list)
 
     def create_shopping_list(
-        self, user_id: int, request: ShoppingListCreateRequest
+        self, user_id: int, request: ShoppingListCreateRequest, *, actor: AuditActor | None = None
     ) -> ShoppingListResponse:
         shopping_list = self.repository.create(
             ShoppingList(
@@ -52,12 +54,13 @@ class ShoppingListService:
                 store=request.store,
                 notes=request.notes,
                 status="active",
-            )
+            ),
+            actor=actor,
         )
         return self._to_schema(shopping_list)
 
     def update_shopping_list(
-        self, user_id: int, shopping_list_id: int, request: ShoppingListUpdateRequest
+        self, user_id: int, shopping_list_id: int, request: ShoppingListUpdateRequest, *, actor: AuditActor | None = None
     ) -> ShoppingListResponse:
         shopping_list = self._get_user_shopping_list(user_id, shopping_list_id)
         if "name" in request.model_fields_set and request.name is not None:
@@ -68,15 +71,15 @@ class ShoppingListService:
             shopping_list.notes = request.notes
         if "status" in request.model_fields_set and request.status is not None:
             shopping_list.status = request.status
-        shopping_list = self.repository.update(shopping_list)
+        shopping_list = self.repository.update(shopping_list, actor=actor)
         return self._to_schema(shopping_list)
 
-    def delete_shopping_list(self, user_id: int, shopping_list_id: int) -> None:
+    def delete_shopping_list(self, user_id: int, shopping_list_id: int, *, actor: AuditActor | None = None) -> None:
         shopping_list = self._get_user_shopping_list(user_id, shopping_list_id)
         self.repository.delete_linked_planned_items(
             user_id=user_id, shopping_list_id=shopping_list.id
         )
-        self.repository.delete(shopping_list)
+        self.repository.delete(shopping_list, actor=actor)
 
     def import_recurring_groceries(
         self, user_id: int, shopping_list_id: int
@@ -95,6 +98,8 @@ class ShoppingListService:
         notes: str | None = None,
         priority: Priority = Priority.normal,
         tags: list[str] | None = None,
+        *,
+        actor: AuditActor | None = None,
     ) -> dict:
         shopping_list = self._get_user_shopping_list(user_id, shopping_list_id)
         item = self.today_service.create_planned_item(
@@ -109,11 +114,12 @@ class ShoppingListService:
                 priority=priority,
                 tags=tags or [],
             ),
+            actor=actor,
         )
         return item.model_dump(mode="json")
 
     def check_off_shopping_item(
-        self, user_id: int, shopping_list_id: int, planned_item_id: int
+        self, user_id: int, shopping_list_id: int, planned_item_id: int, *, actor: AuditActor | None = None
     ) -> dict:
         shopping_list = self._get_user_shopping_list(user_id, shopping_list_id)
         existing = self.today_service.repository.get_planned_item_for_user(
@@ -145,6 +151,7 @@ class ShoppingListService:
                 priority=existing.priority,
                 tags=existing.tags or [],
             ),
+            actor=actor,
         )
         return item.model_dump(mode="json")
 

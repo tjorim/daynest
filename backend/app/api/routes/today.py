@@ -6,6 +6,7 @@ from typing import Literal, cast
 from fastapi import APIRouter, Depends, Query, Request, Response, status
 from sse_starlette import EventSourceResponse
 
+from app.api.dependencies.audit import get_audit_actor
 from app.api.dependencies.auth import (
     get_current_user,
     get_current_user_from_query_token,
@@ -25,6 +26,7 @@ from app.schemas.today import (
     TaskInstanceMutationResponse,
     TodayResponse,
 )
+from app.services.audit_service import AuditActor
 from app.services.event_bus import EventBus
 from app.services.today_service import TodayService
 
@@ -111,11 +113,14 @@ def list_planned_items(
     start_date: date | None = Query(default=None),
     end_date: date | None = Query(default=None),
     tags: str | None = Query(default=None, description="Comma-separated tags to filter by (OR match)"),
+    limit: int | None = Query(default=None, ge=1, description="Maximum items to return. Defaults apply per app.core.pagination."),
     service: TodayService = Depends(get_today_service),
     current_user: User = Depends(get_current_user),
 ) -> list[PlannedTodayItem]:
     tag_list = [t.strip() for t in tags.split(",") if t.strip()] if tags else None
-    return service.list_planned_items(user_id=current_user.id, start_date=start_date, end_date=end_date, tags=tag_list or None)
+    return service.list_planned_items(
+        user_id=current_user.id, start_date=start_date, end_date=end_date, tags=tag_list or None, limit=limit
+    )
 
 
 @router.post("/planned-items", response_model=PlannedTodayItem)
@@ -124,8 +129,9 @@ def create_planned_item(
     service: TodayService = Depends(get_today_service),
     event_bus: EventBus = Depends(get_event_bus),
     current_user: User = Depends(get_current_user),
+    audit_actor: AuditActor = Depends(get_audit_actor),
 ) -> PlannedTodayItem:
-    item = service.create_planned_item(user_id=current_user.id, request=request)
+    item = service.create_planned_item(user_id=current_user.id, request=request, actor=audit_actor)
     event_bus.publish(current_user.id, {"type": "today_updated"})
     return item
 
@@ -142,12 +148,14 @@ def update_planned_item(
     service: TodayService = Depends(get_today_service),
     event_bus: EventBus = Depends(get_event_bus),
     current_user: User = Depends(get_current_user),
+    audit_actor: AuditActor = Depends(get_audit_actor),
 ) -> PlannedTodayItem:
     item = service.update_planned_item(
         user_id=current_user.id,
         planned_item_id=planned_item_id,
         request=request,
         scope=cast(Literal["this", "future", "all"], scope),
+        actor=audit_actor,
     )
     event_bus.publish(current_user.id, {"type": "today_updated"})
     return item
@@ -160,8 +168,9 @@ def defer_planned_item(
     service: TodayService = Depends(get_today_service),
     event_bus: EventBus = Depends(get_event_bus),
     current_user: User = Depends(get_current_user),
+    audit_actor: AuditActor = Depends(get_audit_actor),
 ) -> PlannedTodayItem:
-    item = service.defer_planned_item(user_id=current_user.id, planned_item_id=planned_item_id, days=days)
+    item = service.defer_planned_item(user_id=current_user.id, planned_item_id=planned_item_id, days=days, actor=audit_actor)
     event_bus.publish(current_user.id, {"type": "today_updated"})
     return item
 
@@ -177,8 +186,14 @@ def delete_planned_item(
     service: TodayService = Depends(get_today_service),
     event_bus: EventBus = Depends(get_event_bus),
     current_user: User = Depends(get_current_user),
+    audit_actor: AuditActor = Depends(get_audit_actor),
 ) -> Response:
-    service.delete_planned_item(user_id=current_user.id, planned_item_id=planned_item_id, scope=cast(Literal["this", "future"], scope))
+    service.delete_planned_item(
+        user_id=current_user.id,
+        planned_item_id=planned_item_id,
+        scope=cast(Literal["this", "future"], scope),
+        actor=audit_actor,
+    )
     event_bus.publish(current_user.id, {"type": "today_updated"})
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
@@ -208,8 +223,9 @@ def complete_chore(
     service: TodayService = Depends(get_today_service),
     event_bus: EventBus = Depends(get_event_bus),
     current_user: User = Depends(get_current_user),
+    audit_actor: AuditActor = Depends(get_audit_actor),
 ) -> ChoreInstanceMutationResponse:
-    result = service.complete_chore(user_id=current_user.id, chore_instance_id=chore_instance_id)
+    result = service.complete_chore(user_id=current_user.id, chore_instance_id=chore_instance_id, actor=audit_actor)
     event_bus.publish(current_user.id, {"type": "today_updated"})
     return result
 
@@ -220,8 +236,9 @@ def skip_chore(
     service: TodayService = Depends(get_today_service),
     event_bus: EventBus = Depends(get_event_bus),
     current_user: User = Depends(get_current_user),
+    audit_actor: AuditActor = Depends(get_audit_actor),
 ) -> ChoreInstanceMutationResponse:
-    result = service.skip_chore(user_id=current_user.id, chore_instance_id=chore_instance_id)
+    result = service.skip_chore(user_id=current_user.id, chore_instance_id=chore_instance_id, actor=audit_actor)
     event_bus.publish(current_user.id, {"type": "today_updated"})
     return result
 
@@ -233,11 +250,13 @@ def reschedule_chore(
     service: TodayService = Depends(get_today_service),
     event_bus: EventBus = Depends(get_event_bus),
     current_user: User = Depends(get_current_user),
+    audit_actor: AuditActor = Depends(get_audit_actor),
 ) -> ChoreInstanceMutationResponse:
     result = service.reschedule_chore(
         user_id=current_user.id,
         chore_instance_id=chore_instance_id,
         scheduled_date=request.scheduled_date,
+        actor=audit_actor,
     )
     event_bus.publish(current_user.id, {"type": "today_updated"})
     return result
@@ -249,8 +268,9 @@ def start_task(
     service: TodayService = Depends(get_today_service),
     event_bus: EventBus = Depends(get_event_bus),
     current_user: User = Depends(get_current_user),
+    audit_actor: AuditActor = Depends(get_audit_actor),
 ) -> TaskInstanceMutationResponse:
-    result = service.start_routine_task(user_id=current_user.id, task_instance_id=task_instance_id)
+    result = service.start_routine_task(user_id=current_user.id, task_instance_id=task_instance_id, actor=audit_actor)
     event_bus.publish(current_user.id, {"type": "today_updated"})
     return result
 
@@ -261,8 +281,9 @@ def complete_task(
     service: TodayService = Depends(get_today_service),
     event_bus: EventBus = Depends(get_event_bus),
     current_user: User = Depends(get_current_user),
+    audit_actor: AuditActor = Depends(get_audit_actor),
 ) -> TaskInstanceMutationResponse:
-    result = service.complete_routine_task(user_id=current_user.id, task_instance_id=task_instance_id)
+    result = service.complete_routine_task(user_id=current_user.id, task_instance_id=task_instance_id, actor=audit_actor)
     event_bus.publish(current_user.id, {"type": "today_updated"})
     return result
 
@@ -273,7 +294,8 @@ def skip_task(
     service: TodayService = Depends(get_today_service),
     event_bus: EventBus = Depends(get_event_bus),
     current_user: User = Depends(get_current_user),
+    audit_actor: AuditActor = Depends(get_audit_actor),
 ) -> TaskInstanceMutationResponse:
-    result = service.skip_routine_task(user_id=current_user.id, task_instance_id=task_instance_id)
+    result = service.skip_routine_task(user_id=current_user.id, task_instance_id=task_instance_id, actor=audit_actor)
     event_bus.publish(current_user.id, {"type": "today_updated"})
     return result

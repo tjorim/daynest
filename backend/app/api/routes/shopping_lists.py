@@ -3,6 +3,7 @@ from typing import Literal
 from fastapi import APIRouter, Depends, Query, Response, status
 from sqlalchemy.orm import Session
 
+from app.api.dependencies.audit import get_audit_actor
 from app.api.dependencies.auth import get_current_user
 from app.core.config import settings
 from app.db.session import get_db
@@ -16,6 +17,7 @@ from app.schemas.shopping_list import (
     ShoppingListUpdateRequest,
 )
 from app.schemas.today import PlannedTodayItem
+from app.services.audit_service import AuditActor
 from app.services.shopping_list_service import ShoppingListService
 from app.services.today_service import TodayService
 
@@ -50,8 +52,9 @@ def create_shopping_list(
     request: ShoppingListCreateRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    audit_actor: AuditActor = Depends(get_audit_actor),
 ) -> ShoppingListResponse:
-    return _service(db).create_shopping_list(user_id=current_user.id, request=request)
+    return _service(db).create_shopping_list(user_id=current_user.id, request=request, actor=audit_actor)
 
 
 @router.get("/{shopping_list_id}", response_model=ShoppingListResponse)
@@ -71,9 +74,10 @@ def update_shopping_list(
     request: ShoppingListUpdateRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    audit_actor: AuditActor = Depends(get_audit_actor),
 ) -> ShoppingListResponse:
     return _service(db).update_shopping_list(
-        user_id=current_user.id, shopping_list_id=shopping_list_id, request=request
+        user_id=current_user.id, shopping_list_id=shopping_list_id, request=request, actor=audit_actor
     )
 
 
@@ -93,8 +97,9 @@ def delete_shopping_list(
     shopping_list_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    audit_actor: AuditActor = Depends(get_audit_actor),
 ) -> Response:
     _service(db).delete_shopping_list(
-        user_id=current_user.id, shopping_list_id=shopping_list_id
+        user_id=current_user.id, shopping_list_id=shopping_list_id, actor=audit_actor
     )
     return Response(status_code=status.HTTP_204_NO_CONTENT)
