@@ -3,6 +3,10 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { SettingsPage } from "@/features/settings/SettingsPage";
+import type {
+  IntegrationClient,
+  IntegrationClientCreateResponse,
+} from "@/lib/api/integrationClients";
 import { QueryTestProvider } from "../../utils/queryTestProvider";
 
 vi.mock("@/paraglide/messages", async (importOriginal) => {
@@ -12,9 +16,11 @@ vi.mock("@/paraglide/messages", async (importOriginal) => {
 
 const apiMock = vi.hoisted(() => ({
   createIntegrationClient: vi.fn(),
-  listIntegrationClients: vi.fn(),
-  revokeIntegrationClient: vi.fn(),
-  rotateIntegrationClient: vi.fn(),
+  listIntegrationClients: vi.fn<(signal?: AbortSignal) => Promise<IntegrationClient[]>>(),
+  revokeIntegrationClient: vi.fn<(clientId: number) => Promise<void>>(),
+  rotateIntegrationClient: vi.fn<
+    (clientId: number) => Promise<IntegrationClientCreateResponse>
+  >(),
   fetchUserSettings: vi.fn(),
   updateUserSettings: vi.fn(),
   deleteAccount: vi.fn(),
@@ -63,6 +69,8 @@ vi.mock("@/lib/api/serverConfig", () => ({
 describe("SettingsPage integration clients table", () => {
   beforeEach(() => {
     apiMock.listIntegrationClients.mockReset();
+    apiMock.revokeIntegrationClient.mockReset();
+    apiMock.rotateIntegrationClient.mockReset();
     apiMock.fetchUserSettings.mockReset();
     authMock.listOAuthSessions.mockReset();
     installPromptMock.getDeferredInstallPrompt.mockReset();
@@ -110,7 +118,7 @@ describe("SettingsPage integration clients table", () => {
     expect(await clientsTable.findByText("Node-RED")).toBeInTheDocument();
     expect(clientsTable.getByText("Home Assistant")).toBeInTheDocument();
 
-    await user.type(screen.getByLabelText("Search clients"), "Node");
+    await user.type(screen.getByLabelText("Search clients"), "nOdE");
 
     await waitFor(() => {
       expect(clientsTable.getByText("Node-RED")).toBeInTheDocument();
@@ -119,5 +127,118 @@ describe("SettingsPage integration clients table", () => {
 
     await user.click(screen.getByRole("checkbox", { name: /rate limit per minute/i }));
     expect(screen.queryByText("80/min")).not.toBeInTheDocument();
+  });
+
+  it("sorts client names in alphanumeric table body order", async () => {
+    apiMock.listIntegrationClients.mockResolvedValue([
+      {
+        id: 1,
+        name: "Client 10",
+        rate_limit_per_minute: 120,
+        scopes: ["home_assistant:*"],
+        is_active: true,
+      },
+      {
+        id: 2,
+        name: "Client 2",
+        rate_limit_per_minute: 80,
+        scopes: ["home_assistant:*"],
+        is_active: true,
+      },
+      {
+        id: 3,
+        name: "Client 1",
+        rate_limit_per_minute: 60,
+        scopes: ["home_assistant:*"],
+        is_active: false,
+      },
+    ]);
+    const user = userEvent.setup();
+    render(
+      <QueryTestProvider>
+        <SettingsPage />
+      </QueryTestProvider>,
+    );
+
+    const clientsTable = await screen.findByRole("table");
+    expect(await within(clientsTable).findByText("Client 10")).toBeInTheDocument();
+
+    await user.click(within(clientsTable).getByRole("button", { name: "Client" }));
+
+    await waitFor(() => {
+      const tableBody = clientsTable.querySelector("tbody");
+      expect(tableBody).not.toBeNull();
+      const clientNames = within(tableBody as HTMLTableSectionElement)
+        .getAllByRole("row")
+        .map((row) => {
+          const [clientNameCell] = within(row).getAllByRole("cell");
+          return clientNameCell?.textContent;
+        });
+      expect(clientNames).toEqual(["Client 1", "Client 2", "Client 10"]);
+    });
+  });
+
+  it("keeps row actions bound to the sorted client", async () => {
+    const client2: IntegrationClient = {
+      id: 2,
+      name: "Client 2",
+      rate_limit_per_minute: 80,
+      scopes: ["home_assistant:*"],
+      is_active: true,
+    };
+    const clients: IntegrationClient[] = [
+      {
+        id: 10,
+        name: "Client 10",
+        rate_limit_per_minute: 120,
+        scopes: ["home_assistant:*"],
+        is_active: true,
+      },
+      client2,
+    ];
+    const rotatedClient: IntegrationClientCreateResponse = {
+      ...client2,
+      api_key: "daynest_rotated_key",
+      client_id: "2",
+      client_secret: "daynest_rotated_key",
+      token_url: "http://localhost/api/integrations/clients/token",
+    };
+    apiMock.listIntegrationClients.mockResolvedValue(clients);
+    apiMock.rotateIntegrationClient.mockResolvedValue(rotatedClient);
+    apiMock.revokeIntegrationClient.mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    render(
+      <QueryTestProvider>
+        <SettingsPage />
+      </QueryTestProvider>,
+    );
+
+    const clientsTable = await screen.findByRole("table");
+    expect(await within(clientsTable).findByText("Client 10")).toBeInTheDocument();
+    await user.click(within(clientsTable).getByRole("button", { name: "Client" }));
+
+    const clientRow = within(clientsTable)
+      .getAllByRole("row")
+      .find((row) => within(row).queryByText("Client 2"));
+    expect(clientRow).toBeDefined();
+    await user.click(within(clientRow!).getByRole("button", { name: /rotate secret/i }));
+    await waitFor(() => expect(apiMock.rotateIntegrationClient).toHaveBeenCalledWith(2));
+
+    await waitFor(() => {
+      const refreshedClientRow = within(clientsTable)
+        .getAllByRole("row")
+        .find((row) => within(row).queryByText("Client 2"));
+      expect(refreshedClientRow).toBeDefined();
+      expect(
+        within(refreshedClientRow!).getByRole("button", { name: /^revoke$/i }),
+      ).toBeEnabled();
+    });
+
+    const refreshedClientRow = within(clientsTable)
+      .getAllByRole("row")
+      .find((row) => within(row).queryByText("Client 2"));
+    expect(refreshedClientRow).toBeDefined();
+    await user.click(within(refreshedClientRow!).getByRole("button", { name: /^revoke$/i }));
+    await waitFor(() => expect(apiMock.revokeIntegrationClient).toHaveBeenCalledWith(2));
   });
 });

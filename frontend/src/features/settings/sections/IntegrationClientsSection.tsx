@@ -1,14 +1,21 @@
 import { useMemo, useState } from "react";
 import {
+  columnFilteringFeature,
+  columnVisibilityFeature,
   createColumnHelper,
+  createFilteredRowModel,
+  createSortedRowModel,
+  filterFn_includesString,
   flexRender,
-  getCoreRowModel,
-  getFilteredRowModel,
-  getSortedRowModel,
+  rowSortingFeature,
+  sortFn_alphanumeric,
+  sortFn_basic,
+  sortFn_text,
   type ColumnFiltersState,
+  type ColumnVisibilityState,
   type SortingState,
-  type VisibilityState,
-  useReactTable,
+  tableFeatures,
+  useTable,
 } from "@tanstack/react-table";
 import * as m from "@/paraglide/messages";
 import { FeedbackBanner } from "@/components/common/FeedbackBanner";
@@ -35,7 +42,25 @@ const HA_ENDPOINTS = [
 ];
 
 const HOME_ASSISTANT_REDIRECT_URI = "https://my.home-assistant.io/redirect/oauth";
-const integrationClientColumnHelper = createColumnHelper<IntegrationClient>();
+const integrationClientTableFeatures = tableFeatures({
+  columnVisibilityFeature,
+  columnFilteringFeature,
+  rowSortingFeature,
+  filteredRowModel: createFilteredRowModel(),
+  sortedRowModel: createSortedRowModel(),
+  filterFns: {
+    includesString: filterFn_includesString,
+  },
+  sortFns: {
+    alphanumeric: sortFn_alphanumeric,
+    basic: sortFn_basic,
+    text: sortFn_text,
+  },
+});
+const integrationClientColumnHelper = createColumnHelper<
+  typeof integrationClientTableFeatures,
+  IntegrationClient
+>();
 
 interface IntegrationClientsSectionProps {
   backendBaseUrl: string;
@@ -56,7 +81,7 @@ export function IntegrationClientsSection({ backendBaseUrl }: IntegrationClients
   const [rotateClientError, setRotateClientError] = useState<string | null>(null);
   const [clientSorting, setClientSorting] = useState<SortingState>([]);
   const [clientColumnFilters, setClientColumnFilters] = useState<ColumnFiltersState>([]);
-  const [clientColumnVisibility, setClientColumnVisibility] = useState<VisibilityState>({
+  const [clientColumnVisibility, setClientColumnVisibility] = useState<ColumnVisibilityState>({
     rateLimit: true,
     status: true,
   });
@@ -155,7 +180,7 @@ export function IntegrationClientsSection({ backendBaseUrl }: IntegrationClients
   };
 
   const clientColumns = useMemo(
-    () => [
+    () => integrationClientColumnHelper.columns([
       integrationClientColumnHelper.accessor("name", {
         id: "name",
         header: m.settings_client_column_name(),
@@ -164,11 +189,13 @@ export function IntegrationClientsSection({ backendBaseUrl }: IntegrationClients
       integrationClientColumnHelper.accessor("rate_limit_per_minute", {
         id: "rateLimit",
         header: m.settings_rate_limit_label(),
+        enableColumnFilter: false,
         cell: (info) => <small className="text-muted d-block">{info.getValue()}/min</small>,
       }),
       integrationClientColumnHelper.accessor("is_active", {
         id: "status",
         header: m.status_active(),
+        enableColumnFilter: false,
         cell: (info) => (
           <span className={`badge ${info.getValue() ? "text-bg-success" : "text-bg-secondary"}`}>
             {info.getValue() ? m.status_active() : m.status_inactive()}
@@ -178,6 +205,8 @@ export function IntegrationClientsSection({ backendBaseUrl }: IntegrationClients
       integrationClientColumnHelper.display({
         id: "actions",
         header: m.settings_client_column_actions(),
+        enableSorting: false,
+        enableColumnFilter: false,
         cell: (info) => {
           const client = info.row.original;
           return (
@@ -202,11 +231,12 @@ export function IntegrationClientsSection({ backendBaseUrl }: IntegrationClients
           );
         },
       }),
-    ],
+    ]),
     [revokingClient, rotatingClient],
   );
 
-  const clientsTable = useReactTable({
+  const clientsTable = useTable({
+    features: integrationClientTableFeatures,
     data: clients,
     columns: clientColumns,
     state: {
@@ -217,9 +247,6 @@ export function IntegrationClientsSection({ backendBaseUrl }: IntegrationClients
     onSortingChange: setClientSorting,
     onColumnFiltersChange: setClientColumnFilters,
     onColumnVisibilityChange: setClientColumnVisibility,
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
   });
 
   return (
