@@ -2,7 +2,7 @@ import { LitElement, PropertyValues, html, unsafeCSS } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { HomeAssistant } from "custom-card-helpers";
 import { CalendarApp, CalendarEvent, createCalendar, createViewMonthAgenda } from "@schedule-x/calendar";
-import scheduleXTheme from "@schedule-x/theme-default/dist/index.css";
+import scheduleXTheme from "@schedule-x/theme-default/dist/index.css?inline";
 import { DaynestCardConfig, sensorNum, sensorStr } from "./types";
 import { cardStyles } from "./styles";
 

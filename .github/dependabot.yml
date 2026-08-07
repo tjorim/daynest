@@ -72,17 +72,6 @@ updates:
       schedule-x:
         patterns:
           - "@schedule-x/*"
-      rollup:
-        patterns:
-          - "rollup"
-          - "@rollup/*"
-          - "rollup-plugin-*"
-    ignore:
-      # TypeScript 7 dropped the classic synchronous compiler API
-      # (ts.ModuleKind, ts.ScriptTarget, etc.) that @rollup/plugin-typescript
-      # relies on, breaking the build. Unignore once the plugin adds support.
-      - dependency-name: "typescript"
-        update-types: ["version-update:semver-major"]
 
   # Monitor Android Gradle dependencies and wrapper versions
   - package-ecosystem: "gradle"
