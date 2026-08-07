@@ -12,6 +12,8 @@ from app.api.dependencies.integration_auth import hash_integration_key
 from app.core.config import settings
 from app.core.enums import ChoreStatus, MedicationDoseStatus
 from app.mcp_server import (
+    MCP_PROMPT_NAMES,
+    MCP_RESOURCE_URIS,
     MCP_TOOL_NAMES,
     DaynestMcpBackend,
     IntegrationKeyTokenVerifier,
@@ -99,6 +101,38 @@ async def test_mcp_capability_tool_names_match_registered_tools(db_session: Sess
     registered_tools = await mcp.list_tools()
 
     assert {tool.name for tool in registered_tools} == set(MCP_TOOL_NAMES)
+
+
+@pytest.mark.anyio
+async def test_mcp_capability_resource_uris_match_registered_resources(db_session: Session) -> None:
+    """Mandatory drift guard for MCP_RESOURCE_URIS — see app.main.mcp_capabilities,
+    which derives the live HTTP response straight from FastMCP registration
+    rather than from this tuple, but MCP_RESOURCE_URIS is still used as a
+    documented contract (e.g. by clients/tests), so it must never drift from
+    what's actually registered.
+    """
+    backend = DaynestMcpBackend(_session_factory(db_session))
+    mcp = create_mcp_server(backend)
+
+    registered_templates = await mcp.list_resource_templates()
+    registered_resources = await mcp.list_resources()
+
+    registered_uris = {template.uri_template for template in registered_templates} | {
+        str(resource.uri) for resource in registered_resources
+    }
+    assert registered_uris == set(MCP_RESOURCE_URIS)
+
+
+@pytest.mark.anyio
+async def test_mcp_capability_prompt_names_match_registered_prompts(db_session: Session) -> None:
+    """Mandatory drift guard for MCP_PROMPT_NAMES — see
+    test_mcp_capability_resource_uris_match_registered_resources."""
+    backend = DaynestMcpBackend(_session_factory(db_session))
+    mcp = create_mcp_server(backend)
+
+    registered_prompts = await mcp.list_prompts()
+
+    assert {prompt.name for prompt in registered_prompts} == set(MCP_PROMPT_NAMES)
 
 
 def test_mcp_backend_resolves_single_active_user_and_returns_today(db_session: Session) -> None:
@@ -421,7 +455,7 @@ def test_integration_token_cannot_create_integration_client(db_session: Session,
         claims={"auth_source": "integration", "integration_client_id": client.id},
     )
 
-    monkeypatch.setattr("app.mcp_server.get_access_token", lambda: access_token)
+    monkeypatch.setattr("app.mcp.principal.get_access_token", lambda: access_token)
 
     with pytest.raises(PermissionError, match="Integration tokens cannot create new integration clients"):
         backend.create_integration_client(name="Sneaky client")
@@ -454,7 +488,7 @@ def test_mcp_backend_uses_authenticated_integration_owner(db_session: Session, m
         },
     )
 
-    monkeypatch.setattr("app.mcp_server.get_access_token", lambda: access_token)
+    monkeypatch.setattr("app.mcp.principal.get_access_token", lambda: access_token)
 
     whoami = backend.whoami()
 
@@ -473,7 +507,7 @@ def test_mcp_backend_resolves_oidc_numeric_subject(db_session: Session, monkeypa
         claims={"sub": "123456"},
     )
 
-    monkeypatch.setattr("app.mcp_server.get_access_token", lambda: access_token)
+    monkeypatch.setattr("app.mcp.principal.get_access_token", lambda: access_token)
 
     whoami = backend.whoami()
 
@@ -495,7 +529,7 @@ def test_mcp_backend_requires_user_mapping_for_keycloak_service_account(
             "azp": "daynest-mcp",
         },
     )
-    monkeypatch.setattr("app.mcp_server.get_access_token", lambda: access_token)
+    monkeypatch.setattr("app.mcp.principal.get_access_token", lambda: access_token)
 
     with pytest.raises(PermissionError, match="daynest_user_id protocol mapper"):
         backend.whoami()
@@ -518,7 +552,7 @@ def test_mcp_backend_maps_keycloak_service_account_to_local_user(
             "daynest_user_id": user.id,
         },
     )
-    monkeypatch.setattr("app.mcp_server.get_access_token", lambda: access_token)
+    monkeypatch.setattr("app.mcp.principal.get_access_token", lambda: access_token)
 
     whoami = backend.whoami()
 
@@ -531,7 +565,7 @@ def test_mcp_backend_rejects_authenticated_token_without_client_id(db_session: S
 
     access_token = AccessToken(token="token", client_id="", scopes=[], claims={})
 
-    monkeypatch.setattr("app.mcp_server.get_access_token", lambda: access_token)
+    monkeypatch.setattr("app.mcp.principal.get_access_token", lambda: access_token)
 
     with pytest.raises(ValueError, match="missing a subject"):
         backend.whoami()
@@ -910,8 +944,6 @@ def test_mcp_backend_take_medication_dose_with_custom_taken_at(db_session: Sessi
 
 
 def test_mcp_backend_take_medication_dose_rejects_future_taken_at(db_session: Session) -> None:
-    from fastapi import HTTPException
-
     utc_today = datetime.now(UTC).date()
     user = _create_user(db_session, "med-take-future@example.com")
     plan = MedicationPlan(
@@ -943,9 +975,11 @@ def test_mcp_backend_take_medication_dose_rejects_future_taken_at(db_session: Se
     future_time = (datetime.now(UTC) + timedelta(hours=2)).isoformat()
     backend = DaynestMcpBackend(_session_factory(db_session), user_email=user.email)
 
-    with pytest.raises(HTTPException) as exc_info:
+    # HTTPException(422) from TodayService.mutate_medication_status is
+    # translated into a stable, actionable ValueError for MCP callers — see
+    # app.mcp.errors.map_domain_errors.
+    with pytest.raises(ValueError, match="taken_at must not be in the future"):
         backend.take_medication_dose(dose.id, taken_at=future_time)
-    assert exc_info.value.status_code == 422
 
 
 def test_mcp_backend_skip_missed_medication_doses(db_session: Session) -> None:

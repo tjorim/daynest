@@ -23,6 +23,7 @@ from app.schemas.meal_plan import (
 )
 from app.schemas.shopping_list import ShoppingListCreateRequest
 from app.schemas.today import PlannedTodayItem
+from app.services.audit_service import AuditActor
 from app.services.shopping_list_service import ShoppingListService
 from app.services.today_service import TodayService
 
@@ -60,7 +61,9 @@ class MealPlanService:
         plan = self._get_user_plan(user_id, meal_plan_id, include_slots=True)
         return self._week_grid_to_schema(plan)
 
-    def update_slot(self, user_id: int, meal_plan_id: int, slot_id: int, request: MealSlotUpdate) -> MealSlotResponse:
+    def update_slot(
+        self, user_id: int, meal_plan_id: int, slot_id: int, request: MealSlotUpdate, *, actor: AuditActor | None = None
+    ) -> MealSlotResponse:
         self._get_user_plan(user_id, meal_plan_id)
         slot = self.repository.get_slot(user_id=user_id, meal_plan_id=meal_plan_id, slot_id=slot_id)
         if slot is None:
@@ -83,9 +86,9 @@ class MealPlanService:
                 if not self.repository.db.scalar(stmt):
                     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Planned item not found")
             slot.planned_item_id = request.planned_item_id
-        return self._slot_to_schema(self.repository.save_slot(slot))
+        return self._slot_to_schema(self.repository.save_slot(slot, actor=actor))
 
-    def generate_shopping_list(self, plan_id: int, user_id: int) -> GenerateShoppingListResponse:
+    def generate_shopping_list(self, plan_id: int, user_id: int, *, actor: AuditActor | None = None) -> GenerateShoppingListResponse:
         plan = self._get_user_plan(user_id, plan_id, include_slots=True)
         ingredients: list[str] = []
         seen: set[str] = set()
@@ -108,6 +111,7 @@ class MealPlanService:
         shopping_list = shopping_service.create_shopping_list(
             user_id=user_id,
             request=ShoppingListCreateRequest(name=f"Meal plan: {plan.name}", notes=f"Generated from meal plan #{plan.id}"),
+            actor=actor,
         )
         items: list[PlannedTodayItem] = []
         for ingredient in ingredients:
@@ -119,6 +123,7 @@ class MealPlanService:
                 notes=f"Generated from meal plan '{plan.name}'",
                 priority=Priority.normal,
                 tags=["meal-planning"],
+                actor=actor,
             )
             items.append(PlannedTodayItem.model_validate(item))
 

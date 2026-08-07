@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.orm import Session
 
+from app.api.dependencies.audit import get_audit_actor
 from app.api.dependencies.auth import get_current_user
 from app.db.session import get_db
 from app.models.chore_template import ChoreTemplate
@@ -16,6 +17,7 @@ from app.schemas.templates import (
     RoutineTemplateResponse,
     RoutineTemplateUpdateRequest,
 )
+from app.services.audit_service import AuditActor
 
 router = APIRouter(tags=["templates"])
 
@@ -89,6 +91,7 @@ def create_routine(
     request: RoutineTemplateCreateRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    audit_actor: AuditActor = Depends(get_audit_actor),
 ) -> RoutineTemplateResponse:
     repository = TodayRepository(db)
     template = repository.add_routine_template(
@@ -101,7 +104,8 @@ def create_routine(
             rrule=request.rrule,
             due_time=request.due_time,
             is_active=request.is_active,
-        )
+        ),
+        actor=audit_actor,
     )
     return _routine_to_response(template)
 
@@ -112,6 +116,7 @@ def update_routine(
     request: RoutineTemplateUpdateRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    audit_actor: AuditActor = Depends(get_audit_actor),
 ) -> RoutineTemplateResponse:
     repository = TodayRepository(db)
     template = _get_user_routine_template(repository, current_user.id, routine_template_id)
@@ -124,6 +129,7 @@ def update_routine(
         rrule=request.rrule,
         due_time=request.due_time,
         is_active=request.is_active,
+        actor=audit_actor,
     )
     return _routine_to_response(updated)
 
@@ -133,10 +139,11 @@ def delete_routine(
     routine_template_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    audit_actor: AuditActor = Depends(get_audit_actor),
 ) -> Response:
     repository = TodayRepository(db)
     template = _get_user_routine_template(repository, current_user.id, routine_template_id)
-    repository.delete_routine_template(template)
+    repository.delete_routine_template(template, actor=audit_actor)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
@@ -156,6 +163,7 @@ def create_chore_template(
     request: ChoreTemplateCreateRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    audit_actor: AuditActor = Depends(get_audit_actor),
 ) -> ChoreTemplateResponse:
     if request.household_id is not None:
         _validate_household_membership(db, current_user.id, request.household_id)
@@ -172,7 +180,8 @@ def create_chore_template(
             tags=request.tags,
             is_active=request.is_active,
             household_id=request.household_id,
-        )
+        ),
+        actor=audit_actor,
     )
     return _chore_to_response(template)
 
@@ -183,6 +192,7 @@ def update_chore_template(
     request: ChoreTemplateUpdateRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    audit_actor: AuditActor = Depends(get_audit_actor),
 ) -> ChoreTemplateResponse:
     if request.household_id is not None:
         _validate_household_membership(db, current_user.id, request.household_id)
@@ -204,6 +214,7 @@ def update_chore_template(
         tags=request.tags,
         is_active=request.is_active,
         household_id=request.household_id,
+        actor=audit_actor,
     )
     return _chore_to_response(updated)
 
@@ -213,6 +224,7 @@ def delete_chore_template(
     chore_template_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    audit_actor: AuditActor = Depends(get_audit_actor),
 ) -> Response:
     repository = TodayRepository(db)
     template = _get_user_chore_template(repository, current_user.id, chore_template_id)
@@ -221,5 +233,5 @@ def delete_chore_template(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only the template owner can delete this chore template",
         )
-    repository.delete_chore_template(template)
+    repository.delete_chore_template(template, actor=audit_actor)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

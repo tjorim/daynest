@@ -3,6 +3,7 @@ from datetime import UTC, datetime
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
+from app.api.dependencies.audit import get_audit_actor
 from app.api.dependencies.auth import get_current_user
 from app.core.config import settings
 from app.db.session import get_db
@@ -20,6 +21,7 @@ from app.schemas.medication import (
     SkipMissedDosesRequest,
     SkipMissedDosesResponse,
 )
+from app.services.audit_service import AuditActor
 from app.services.today_service import TodayService
 
 router = APIRouter(tags=["medications"])
@@ -49,6 +51,7 @@ def _mutate_medication_dose_action(
     action: str,
     db: Session,
     current_user: User,
+    audit_actor: AuditActor,
     taken_at: datetime | None = None,
 ) -> MedicationDoseMutationResponse:
     repository = TodayRepository(db)
@@ -58,6 +61,7 @@ def _mutate_medication_dose_action(
         medication_dose_instance_id=medication_dose_instance_id,
         action=action,
         taken_at=taken_at,
+        actor=audit_actor,
     )
     return MedicationDoseMutationResponse(
         medication_dose_instance_id=dose.id,
@@ -81,6 +85,7 @@ def create_medication(
     request: MedicationPlanCreateRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    audit_actor: AuditActor = Depends(get_audit_actor),
 ) -> MedicationPlanResponse:
     repository = TodayRepository(db)
     plan = repository.add_medication_plan(
@@ -92,7 +97,8 @@ def create_medication(
             schedule_time=request.schedule_time,
             every_n_days=request.every_n_days,
             is_active=True,
-        )
+        ),
+        actor=audit_actor,
     )
     return _plan_to_response(plan)
 
@@ -103,6 +109,7 @@ def update_medication(
     request: MedicationPlanUpdateRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    audit_actor: AuditActor = Depends(get_audit_actor),
 ) -> MedicationPlanResponse:
     repository = TodayRepository(db)
     plan = _get_user_medication_plan(repository, current_user.id, medication_plan_id)
@@ -114,6 +121,7 @@ def update_medication(
         schedule_time=request.schedule_time,
         every_n_days=request.every_n_days,
         is_active=request.is_active,
+        actor=audit_actor,
     )
     return _plan_to_response(updated)
 
@@ -123,10 +131,11 @@ def delete_medication(
     medication_plan_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    audit_actor: AuditActor = Depends(get_audit_actor),
 ) -> Response:
     repository = TodayRepository(db)
     plan = _get_user_medication_plan(repository, current_user.id, medication_plan_id)
-    repository.delete_medication_plan(plan)
+    repository.delete_medication_plan(plan, actor=audit_actor)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
@@ -136,9 +145,10 @@ def take_medication_dose(
     request: MedicationDoseTakeRequest | None = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    audit_actor: AuditActor = Depends(get_audit_actor),
 ) -> MedicationDoseMutationResponse:
     taken_at = request.taken_at if request is not None else None
-    return _mutate_medication_dose_action(medication_dose_instance_id, "take", db, current_user, taken_at=taken_at)
+    return _mutate_medication_dose_action(medication_dose_instance_id, "take", db, current_user, audit_actor, taken_at=taken_at)
 
 
 @router.post("/medication-doses/{medication_dose_instance_id}/skip", response_model=MedicationDoseMutationResponse)
@@ -146,8 +156,9 @@ def skip_medication_dose(
     medication_dose_instance_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    audit_actor: AuditActor = Depends(get_audit_actor),
 ) -> MedicationDoseMutationResponse:
-    return _mutate_medication_dose_action(medication_dose_instance_id, "skip", db, current_user)
+    return _mutate_medication_dose_action(medication_dose_instance_id, "skip", db, current_user, audit_actor)
 
 
 @router.post("/medication-doses/{medication_dose_instance_id}/miss", response_model=MedicationDoseMutationResponse)
@@ -155,8 +166,9 @@ def miss_medication_dose(
     medication_dose_instance_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    audit_actor: AuditActor = Depends(get_audit_actor),
 ) -> MedicationDoseMutationResponse:
-    return _mutate_medication_dose_action(medication_dose_instance_id, "miss", db, current_user)
+    return _mutate_medication_dose_action(medication_dose_instance_id, "miss", db, current_user, audit_actor)
 
 
 @router.post("/medication-doses/skip-missed", response_model=SkipMissedDosesResponse)
@@ -164,11 +176,12 @@ def skip_missed_medication_doses(
     request: SkipMissedDosesRequest | None = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    audit_actor: AuditActor = Depends(get_audit_actor),
 ) -> SkipMissedDosesResponse:
     before_date = request.before_date if request is not None else None
     repository = TodayRepository(db)
     service = TodayService(repository, app_settings=settings)
-    count, cutoff = service.skip_missed_medication_doses(user_id=current_user.id, before_date=before_date)
+    count, cutoff = service.skip_missed_medication_doses(user_id=current_user.id, before_date=before_date, actor=audit_actor)
     return SkipMissedDosesResponse(skipped_count=count, before_date=cutoff)
 
 

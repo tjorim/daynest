@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, Response, status
 from sqlalchemy.orm import Session
 
+from app.api.dependencies.audit import get_audit_actor
 from app.api.dependencies.auth import get_current_user
 from app.db.session import get_db
 from app.models.user import User
@@ -14,6 +15,7 @@ from app.schemas.meal_plan import (
     MealSlotUpdate,
     WeekGridResponse,
 )
+from app.services.audit_service import AuditActor
 from app.services.meal_plan_service import MealPlanService
 
 router = APIRouter(tags=["meal-plans"])
@@ -85,8 +87,9 @@ def update_meal_slot(
     request: MealSlotUpdate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    audit_actor: AuditActor = Depends(get_audit_actor),
 ) -> MealSlotResponse:
-    return _service(db).update_slot(current_user.id, meal_plan_id, slot_id, request)
+    return _service(db).update_slot(current_user.id, meal_plan_id, slot_id, request, actor=audit_actor)
 
 
 @router.post("/{meal_plan_id}/generate-shopping-list", response_model=GenerateShoppingListResponse)
@@ -94,5 +97,6 @@ def generate_shopping_list(
     meal_plan_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    audit_actor: AuditActor = Depends(get_audit_actor),
 ) -> GenerateShoppingListResponse:
-    return _service(db).generate_shopping_list(plan_id=meal_plan_id, user_id=current_user.id)
+    return _service(db).generate_shopping_list(plan_id=meal_plan_id, user_id=current_user.id, actor=audit_actor)

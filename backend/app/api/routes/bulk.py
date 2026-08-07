@@ -2,6 +2,7 @@ import logging
 
 from fastapi import APIRouter, Depends, HTTPException
 
+from app.api.dependencies.audit import get_audit_actor
 from app.api.dependencies.auth import get_current_user
 from app.api.dependencies.events import get_event_bus
 from app.api.dependencies.today import get_today_service
@@ -13,6 +14,7 @@ from app.schemas.bulk import (
     BulkMutationResult,
     MutationType,
 )
+from app.services.audit_service import AuditActor
 from app.services.event_bus import EventBus
 from app.services.today_service import TodayService
 
@@ -20,11 +22,11 @@ router = APIRouter(tags=["bulk"])
 logger = logging.getLogger(__name__)
 
 
-def _apply_mutation(service: TodayService, user_id: int, mutation: BulkMutationItem) -> None:
+def _apply_mutation(service: TodayService, user_id: int, mutation: BulkMutationItem, actor: AuditActor) -> None:
     if mutation.type == MutationType.complete_chore:
-        service.complete_chore(user_id=user_id, chore_instance_id=mutation.id, persist=False)
+        service.complete_chore(user_id=user_id, chore_instance_id=mutation.id, persist=False, actor=actor)
     elif mutation.type == MutationType.skip_chore:
-        service.skip_chore(user_id=user_id, chore_instance_id=mutation.id, persist=False)
+        service.skip_chore(user_id=user_id, chore_instance_id=mutation.id, persist=False, actor=actor)
     elif mutation.type == MutationType.mark_planned_done:
         service.mark_planned_done(user_id=user_id, planned_item_id=mutation.id, persist=False)
 
@@ -35,12 +37,13 @@ def bulk_mutate(
     service: TodayService = Depends(get_today_service),
     event_bus: EventBus = Depends(get_event_bus),
     current_user: User = Depends(get_current_user),
+    audit_actor: AuditActor = Depends(get_audit_actor),
 ) -> BulkMutationResponse:
     results: list[BulkMutationResult] = []
     has_success = False
     for mutation in request.mutations:
         try:
-            _apply_mutation(service, current_user.id, mutation)
+            _apply_mutation(service, current_user.id, mutation, audit_actor)
             results.append(BulkMutationResult(type=mutation.type, id=mutation.id, success=True))
             has_success = True
         except HTTPException as exc:

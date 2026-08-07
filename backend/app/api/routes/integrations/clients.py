@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, Form, HTTPException, Request, Response, 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.api.dependencies.audit import get_audit_actor
 from app.api.dependencies.auth import get_current_user
 from app.api.dependencies.integration_auth import (
     get_integration_client_by_token_hash,
@@ -21,6 +22,7 @@ from app.schemas.integrations import (
     IntegrationClientResponse,
     IntegrationClientTokenResponse,
 )
+from app.services.audit_service import AuditActor, write_audit_entry
 
 router = APIRouter(prefix="/integrations/clients", tags=["integrations"])
 LEGACY_HOME_ASSISTANT_CLIENT_ID = "home-assistant"
@@ -96,6 +98,7 @@ def create_integration_client(
     payload: IntegrationClientCreateRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    audit_actor: AuditActor = Depends(get_audit_actor),
 ) -> IntegrationClientCreateResponse:
     response.headers["Cache-Control"] = "no-store"
     raw_key = f"daynest_{token_urlsafe(30)}"
@@ -107,6 +110,15 @@ def create_integration_client(
         scopes=list(dict.fromkeys(payload.scopes)),
     )
     db.add(client)
+    db.flush()
+    write_audit_entry(
+        db,
+        actor=audit_actor,
+        action="integration_client.create",
+        resource_type="integration_client",
+        resource_id=str(client.id),
+        details={"name": client.name, "scopes": client.scopes},
+    )
     db.commit()
     db.refresh(client)
     return _create_response(request, client, raw_key)
@@ -118,6 +130,7 @@ def pair_pebble_client(
     response: Response,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    audit_actor: AuditActor = Depends(get_audit_actor),
 ) -> IntegrationClientCreateResponse:
     """Create or rotate the user's narrowly scoped Pebble integration client."""
     response.headers["Cache-Control"] = "no-store"
@@ -132,6 +145,7 @@ def pair_pebble_client(
             IntegrationClient.name == PEBBLE_PAIR_CLIENT_NAME,
         )
     )
+    audit_action = "integration_client.create"
     if client is None:
         client = IntegrationClient(
             user_id=current_user.id,
@@ -145,6 +159,16 @@ def pair_pebble_client(
         client.key_hash = hash_integration_key(raw_key)
         client.scopes = PEBBLE_PAIR_SCOPES
         client.is_active = True
+        audit_action = "integration_client.rotate"
+    db.flush()
+    write_audit_entry(
+        db,
+        actor=audit_actor,
+        action=audit_action,
+        resource_type="integration_client",
+        resource_id=str(client.id),
+        details={"name": client.name},
+    )
     db.commit()
     db.refresh(client)
     return _create_response(request, client, raw_key)
@@ -157,6 +181,7 @@ def rotate_integration_client(
     response: Response,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    audit_actor: AuditActor = Depends(get_audit_actor),
 ) -> IntegrationClientCreateResponse:
     response.headers["Cache-Control"] = "no-store"
     client = db.scalar(
@@ -169,6 +194,13 @@ def rotate_integration_client(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Integration client not found")
     raw_key = f"daynest_{token_urlsafe(30)}"
     client.key_hash = hash_integration_key(raw_key)
+    write_audit_entry(
+        db,
+        actor=audit_actor,
+        action="integration_client.rotate",
+        resource_type="integration_client",
+        resource_id=str(client.id),
+    )
     db.commit()
     db.refresh(client)
     return _create_response(request, client, raw_key)
@@ -217,6 +249,7 @@ def revoke_integration_client(
     client_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    audit_actor: AuditActor = Depends(get_audit_actor),
 ) -> None:
     client = db.scalar(
         select(IntegrationClient).where(
@@ -227,4 +260,11 @@ def revoke_integration_client(
     if client is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Integration client not found")
     db.delete(client)
+    write_audit_entry(
+        db,
+        actor=audit_actor,
+        action="integration_client.revoke",
+        resource_type="integration_client",
+        resource_id=str(client_id),
+    )
     db.commit()
