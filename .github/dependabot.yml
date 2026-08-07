@@ -72,11 +72,6 @@ updates:
       schedule-x:
         patterns:
           - "@schedule-x/*"
-      rollup:
-        patterns:
-          - "rollup"
-          - "@rollup/*"
-          - "rollup-plugin-*"
 
   # Monitor Android Gradle dependencies and wrapper versions
   - package-ecosystem: "gradle"
