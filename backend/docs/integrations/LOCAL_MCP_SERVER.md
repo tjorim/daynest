@@ -36,7 +36,7 @@ automatically.
 If you have multiple active users and `DAYNEST_USER_EMAIL` is not set, the
 server will refuse to start and raise an error:
 
-```
+```text
 ValueError: Multiple active Daynest users found (N matches). Set DAYNEST_USER_EMAIL to the correct account or inspect active users locally.
 ```
 
@@ -58,7 +58,7 @@ uv run python -m app.mcp_server
 The provided email must match an **active** user account. Inactive users are
 not considered, and a mismatch will produce:
 
-```
+```text
 ValueError: Active user not found for DAYNEST_USER_EMAIL=you@example.com
 ```
 

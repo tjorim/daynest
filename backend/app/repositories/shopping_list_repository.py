@@ -73,6 +73,16 @@ class ShoppingListRepository:
         self.record_audit(actor, "shopping_list.delete", "shopping_list", shopping_list_id)
         self.db.commit()
 
+    def count_linked_planned_items(self, user_id: int, shopping_list_id: int) -> int:
+        from sqlalchemy import func
+        return self.db.scalar(
+            select(func.count()).select_from(PlannedItem).where(
+                PlannedItem.user_id == user_id,
+                PlannedItem.module_key == "shopping_list",
+                PlannedItem.linked_ref == str(shopping_list_id),
+            )
+        ) or 0
+
     def delete_linked_planned_items(self, user_id: int, shopping_list_id: int) -> None:
         self.db.execute(
             delete(PlannedItem).where(

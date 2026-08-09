@@ -38,8 +38,9 @@ def create_meal_plan(
     request: MealPlanCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    audit_actor: AuditActor = Depends(get_audit_actor),
 ) -> MealPlanResponse:
-    return _service(db).create_meal_plan(current_user.id, request)
+    return _service(db).create_meal_plan(current_user.id, request, actor=audit_actor)
 
 
 @router.get("/{meal_plan_id}", response_model=MealPlanResponse)
@@ -57,8 +58,9 @@ def update_meal_plan(
     request: MealPlanUpdate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    audit_actor: AuditActor = Depends(get_audit_actor),
 ) -> MealPlanResponse:
-    return _service(db).update_meal_plan(current_user.id, meal_plan_id, request)
+    return _service(db).update_meal_plan(current_user.id, meal_plan_id, request, actor=audit_actor)
 
 
 @router.delete("/{meal_plan_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -66,8 +68,9 @@ def delete_meal_plan(
     meal_plan_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    audit_actor: AuditActor = Depends(get_audit_actor),
 ) -> Response:
-    _service(db).delete_meal_plan(current_user.id, meal_plan_id)
+    _service(db).delete_meal_plan(current_user.id, meal_plan_id, actor=audit_actor)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 

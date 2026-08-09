@@ -446,7 +446,7 @@ def test_mcp_backend_can_create_integration_client(db_session: Session) -> None:
 
 def test_integration_token_cannot_create_integration_client(db_session: Session, monkeypatch) -> None:
     user = _create_user(db_session, "integration-blocked@example.com")
-    client = _create_integration_client(db_session, user, raw_key="daynest_blocked_key")
+    client = _create_integration_client(db_session, user, raw_key="daynest_blocked_key", scopes=["mcp:*"])
     backend = DaynestMcpBackend(_session_factory(db_session))
     access_token = AccessToken(
         token="daynest_blocked_key",

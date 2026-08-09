@@ -45,8 +45,11 @@ def whoami(
         }
 
 
-def list_users(session_factory: Callable[[], Session]) -> list[dict[str, Any]]:
+def list_users(
+    session_factory: Callable[[], Session], user_email: str | None = None
+) -> list[dict[str, Any]]:
     with session_scope(session_factory) as db:
+        principal_module.resolve_principal(db, user_email=user_email)
         users = list(db.scalars(select(User).order_by(User.id.asc())).all())
         return [
             {
@@ -81,15 +84,6 @@ def create_integration_client(
     name: str,
     rate_limit_per_minute: int = 120,
 ) -> dict[str, Any]:
-    access_token = principal_module.get_access_token()
-    if (
-        access_token is not None
-        and access_token.claims.get("auth_source") == "integration"
-    ):
-        raise PermissionError(
-            "Integration tokens cannot create new integration clients"
-        )
-
     if not isinstance(rate_limit_per_minute, int) or rate_limit_per_minute <= 0:
         raise ValueError("rate_limit_per_minute must be a positive integer")
     if rate_limit_per_minute > 600:
@@ -98,6 +92,10 @@ def create_integration_client(
     raw_key = f"daynest_{token_urlsafe(30)}"
     with session_scope(session_factory) as db:
         principal = principal_module.resolve_principal(db, user_email=user_email)
+        if principal.auth_source == "integration":
+            raise PermissionError(
+                "Integration tokens cannot create new integration clients"
+            )
         client = IntegrationClient(
             user_id=principal.user.id,
             name=name,

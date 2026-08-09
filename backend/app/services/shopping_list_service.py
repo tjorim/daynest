@@ -29,7 +29,11 @@ class ShoppingListService:
         self.today_service = today_service
 
     def list_shopping_lists(
-        self, user_id: int, status_filter: ShoppingListStatus | None = "active", *, limit: int | None = None
+        self,
+        user_id: int,
+        status_filter: ShoppingListStatus | None = "active",
+        *,
+        limit: int | None = None,
     ) -> list[ShoppingListResponse]:
         return [
             self._to_schema(shopping_list)
@@ -45,7 +49,11 @@ class ShoppingListService:
         return self._to_schema(shopping_list)
 
     def create_shopping_list(
-        self, user_id: int, request: ShoppingListCreateRequest, *, actor: AuditActor | None = None
+        self,
+        user_id: int,
+        request: ShoppingListCreateRequest,
+        *,
+        actor: AuditActor | None = None,
     ) -> ShoppingListResponse:
         shopping_list = self.repository.create(
             ShoppingList(
@@ -60,7 +68,12 @@ class ShoppingListService:
         return self._to_schema(shopping_list)
 
     def update_shopping_list(
-        self, user_id: int, shopping_list_id: int, request: ShoppingListUpdateRequest, *, actor: AuditActor | None = None
+        self,
+        user_id: int,
+        shopping_list_id: int,
+        request: ShoppingListUpdateRequest,
+        *,
+        actor: AuditActor | None = None,
     ) -> ShoppingListResponse:
         shopping_list = self._get_user_shopping_list(user_id, shopping_list_id)
         if "name" in request.model_fields_set and request.name is not None:
@@ -74,8 +87,25 @@ class ShoppingListService:
         shopping_list = self.repository.update(shopping_list, actor=actor)
         return self._to_schema(shopping_list)
 
-    def delete_shopping_list(self, user_id: int, shopping_list_id: int, *, actor: AuditActor | None = None) -> None:
+    def delete_shopping_list(
+        self, user_id: int, shopping_list_id: int, *, actor: AuditActor | None = None
+    ) -> None:
         shopping_list = self._get_user_shopping_list(user_id, shopping_list_id)
+        # Count linked items before deletion for audit, then delete with audit
+        linked_count = self.repository.count_linked_planned_items(
+            user_id=user_id, shopping_list_id=shopping_list.id
+        )
+        if linked_count:
+            self.repository.record_audit(
+                actor,
+                "planned_item.delete",
+                "planned_item",
+                shopping_list.id,
+                details={
+                    "deleted_count": linked_count,
+                    "shopping_list_id": shopping_list.id,
+                },
+            )
         self.repository.delete_linked_planned_items(
             user_id=user_id, shopping_list_id=shopping_list.id
         )
@@ -119,7 +149,12 @@ class ShoppingListService:
         return item.model_dump(mode="json")
 
     def check_off_shopping_item(
-        self, user_id: int, shopping_list_id: int, planned_item_id: int, *, actor: AuditActor | None = None
+        self,
+        user_id: int,
+        shopping_list_id: int,
+        planned_item_id: int,
+        *,
+        actor: AuditActor | None = None,
     ) -> dict:
         shopping_list = self._get_user_shopping_list(user_id, shopping_list_id)
         existing = self.today_service.repository.get_planned_item_for_user(

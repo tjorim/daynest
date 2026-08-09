@@ -880,11 +880,12 @@ class TodayService:
     def save(self) -> None:
         self.repository.save()
 
-    def mark_planned_done(self, user_id: int, planned_item_id: int, *, persist: bool = True) -> None:
+    def mark_planned_done(self, user_id: int, planned_item_id: int, *, persist: bool = True, actor: AuditActor | None = None) -> None:
         item = self._get_user_planned_item(user_id=user_id, planned_item_id=planned_item_id)
         if not item.is_done:
             item.is_done = True
             item.completed_at = self.repository.utcnow()
+            self.repository.record_audit(actor, "planned_item.update", "planned_item", item.id, details={"is_done": True})
             if persist:
                 self.repository.save()
 

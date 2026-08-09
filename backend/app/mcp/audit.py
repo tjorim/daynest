@@ -9,7 +9,7 @@ list/read tool in this codebase is already scoped to the authenticated user.
 from __future__ import annotations
 
 from collections.abc import Callable
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy.orm import Session
@@ -23,15 +23,24 @@ from app.services.audit_service import list_audit_entries as query_audit_entries
 SessionFactory = Callable[[], Session]
 
 
-def _parse_datetime_boundary(value: str | None) -> datetime | None:
+def _parse_datetime_boundary(
+    value: str | None, *, is_until: bool = False
+) -> datetime | None:
     if not value:
         return None
     try:
-        return datetime.fromisoformat(value)
+        dt = datetime.fromisoformat(value)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=UTC)
+        else:
+            dt = dt.astimezone(UTC)
+        return dt
     except ValueError:
         # Fall back to date-only input (e.g. "2026-05-01") for convenience.
         parsed_date = parse_date(value)
-        return datetime.combine(parsed_date, datetime.min.time())
+        if is_until:
+            return datetime.combine(parsed_date, datetime.max.time(), tzinfo=UTC)
+        return datetime.combine(parsed_date, datetime.min.time(), tzinfo=UTC)
 
 
 @map_domain_errors
@@ -56,7 +65,7 @@ def list_audit_entries(
             resource_id=resource_id,
             action=action,
             since=_parse_datetime_boundary(since),
-            until=_parse_datetime_boundary(until),
+            until=_parse_datetime_boundary(until, is_until=True),
             limit=limit,
         )
         return {
