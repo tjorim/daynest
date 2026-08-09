@@ -1,4 +1,5 @@
 from app.core.enums import ChoreStatus, MedicationDoseStatus, TaskStatus
+from app.models.audit_entry import AuditEntry
 from app.models.chore_instance import ChoreInstance
 from app.models.chore_template import ChoreTemplate
 from app.models.household import Household
@@ -18,6 +19,7 @@ from app.models.task_instance import TaskInstance
 from app.models.user import User
 
 __all__ = [
+    "AuditEntry",
     "ChoreInstance",
     "ChoreStatus",
     "ChoreTemplate",

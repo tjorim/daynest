@@ -1,8 +1,11 @@
+from datetime import UTC, datetime
+
 import jwt
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
+from app.api.dependencies import integration_auth
 from app.api.dependencies.auth import get_current_user
 from app.api.dependencies.integration_auth import hash_integration_key
 from app.core.config import settings
@@ -30,7 +33,9 @@ def _create_user(db_session: Session, email: str) -> User:
     return user
 
 
-def _create_client(db_session: Session, user_id: int, *, name: str = "Test") -> IntegrationClient:
+def _create_client(
+    db_session: Session, user_id: int, *, name: str = "Test"
+) -> IntegrationClient:
     ic = IntegrationClient(
         user_id=user_id,
         name=name,
@@ -61,8 +66,13 @@ class TestListIntegrationClients:
         assert response.status_code == 200
         names = [c["name"] for c in response.json()]
         assert names == ["Client A", "Client B"]
+        assert response.json()[0]["created_at"] is not None
+        assert response.json()[0]["last_used_at"] is None
+        assert response.json()[0]["revoked_at"] is None
 
-    def test_does_not_return_other_users_clients(self, client: TestClient, db_session: Session) -> None:
+    def test_does_not_return_other_users_clients(
+        self, client: TestClient, db_session: Session
+    ) -> None:
         owner = _create_user(db_session, "owner@example.com")
         other = _create_user(db_session, "other@example.com")
         _create_client(db_session, other.id, name="Other's Client")
@@ -75,7 +85,9 @@ class TestListIntegrationClients:
 
 
 class TestCreateIntegrationClient:
-    def test_creates_and_returns_oauth_bundle(self, client: TestClient, db_session: Session) -> None:
+    def test_creates_and_returns_oauth_bundle(
+        self, client: TestClient, db_session: Session
+    ) -> None:
         user = _create_user(db_session, "create@example.com")
         _auth_as(user)
 
@@ -93,7 +105,9 @@ class TestCreateIntegrationClient:
         assert body["client_secret"] == body["api_key"]
         assert body["token_url"].endswith("/api/integrations/clients/token")
 
-    def test_api_key_is_hashed_in_db(self, client: TestClient, db_session: Session) -> None:
+    def test_api_key_is_hashed_in_db(
+        self, client: TestClient, db_session: Session
+    ) -> None:
         user = _create_user(db_session, "hash@example.com")
         _auth_as(user)
 
@@ -103,14 +117,18 @@ class TestCreateIntegrationClient:
         )
 
         raw_key = response.json()["api_key"]
-        db_client = db_session.query(IntegrationClient).filter_by(user_id=user.id).first()
+        db_client = (
+            db_session.query(IntegrationClient).filter_by(user_id=user.id).first()
+        )
         assert db_client is not None
         assert db_client.key_hash != raw_key
         assert db_client.key_hash == hash_integration_key(raw_key)
 
 
 class TestRotateIntegrationClient:
-    def test_rotate_returns_new_api_key(self, client: TestClient, db_session: Session) -> None:
+    def test_rotate_returns_new_api_key(
+        self, client: TestClient, db_session: Session
+    ) -> None:
         user = _create_user(db_session, "rotate@example.com")
         ic = _create_client(db_session, user.id, name="Rotatable")
         original_hash = ic.key_hash
@@ -131,7 +149,9 @@ class TestRotateIntegrationClient:
         assert ic.key_hash != original_hash
         assert ic.key_hash == hash_integration_key(body["api_key"])
 
-    def test_rotate_other_users_client_returns_404(self, client: TestClient, db_session: Session) -> None:
+    def test_rotate_other_users_client_returns_404(
+        self, client: TestClient, db_session: Session
+    ) -> None:
         owner = _create_user(db_session, "rotateowner@example.com")
         attacker = _create_user(db_session, "rotateattacker@example.com")
         ic = _create_client(db_session, owner.id)
@@ -141,13 +161,29 @@ class TestRotateIntegrationClient:
 
         assert response.status_code == 404
 
-    def test_rotate_nonexistent_client_returns_404(self, client: TestClient, db_session: Session) -> None:
+    def test_rotate_nonexistent_client_returns_404(
+        self, client: TestClient, db_session: Session
+    ) -> None:
         user = _create_user(db_session, "rotate404@example.com")
         _auth_as(user)
 
         response = client.post("/api/integrations/clients/99999/rotate")
 
         assert response.status_code == 404
+
+    def test_rotate_revoked_client_returns_conflict(
+        self, client: TestClient, db_session: Session
+    ) -> None:
+        user = _create_user(db_session, "rotate-revoked@example.com")
+        ic = _create_client(db_session, user.id)
+        ic.is_active = False
+        ic.revoked_at = datetime.now(UTC)
+        db_session.commit()
+        _auth_as(user)
+
+        response = client.post(f"/api/integrations/clients/{ic.id}/rotate")
+
+        assert response.status_code == 409
 
 
 class TestPairPebbleClient:
@@ -200,7 +236,9 @@ class TestPairPebbleClient:
 
 
 class TestRevokeIntegrationClient:
-    def test_revoke_deletes_client(self, client: TestClient, db_session: Session) -> None:
+    def test_revoke_preserves_lifecycle_record(
+        self, client: TestClient, db_session: Session
+    ) -> None:
         user = _create_user(db_session, "revoke@example.com")
         ic = _create_client(db_session, user.id, name="To Delete")
         _auth_as(user)
@@ -208,9 +246,13 @@ class TestRevokeIntegrationClient:
         response = client.delete(f"/api/integrations/clients/{ic.id}")
 
         assert response.status_code == 204
-        assert db_session.get(IntegrationClient, ic.id) is None
+        db_session.refresh(ic)
+        assert ic.is_active is False
+        assert ic.revoked_at is not None
 
-    def test_revoke_other_users_client_returns_404(self, client: TestClient, db_session: Session) -> None:
+    def test_revoke_other_users_client_returns_404(
+        self, client: TestClient, db_session: Session
+    ) -> None:
         owner = _create_user(db_session, "revokeowner@example.com")
         attacker = _create_user(db_session, "revokeattacker@example.com")
         ic = _create_client(db_session, owner.id)
@@ -221,7 +263,9 @@ class TestRevokeIntegrationClient:
         assert response.status_code == 404
         assert db_session.get(IntegrationClient, ic.id) is not None
 
-    def test_revoke_nonexistent_client_returns_404(self, client: TestClient, db_session: Session) -> None:
+    def test_revoke_nonexistent_client_returns_404(
+        self, client: TestClient, db_session: Session
+    ) -> None:
         user = _create_user(db_session, "revoke404@example.com")
         _auth_as(user)
 
@@ -231,6 +275,35 @@ class TestRevokeIntegrationClient:
 
 
 class TestExchangeIntegrationClientToken:
+    def test_previous_hash_secret_is_upgraded_on_use(
+        self, client: TestClient, db_session: Session, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        user = _create_user(db_session, "rotate-secret@example.com")
+        raw_key = "daynest_previous_secret_key"
+        monkeypatch.setattr(
+            settings, "_cached_integration_key_hash_secret", "current-secret"
+        )
+        monkeypatch.setattr(
+            settings, "integration_key_hash_secret_previous", "previous-secret"
+        )
+        record = IntegrationClient(
+            user_id=user.id,
+            name="Old secret",
+            key_hash=integration_auth._hash_integration_key_with_secret(
+                raw_key, "previous-secret"
+            ),
+            rate_limit_per_minute=60,
+        )
+        db_session.add(record)
+        db_session.commit()
+
+        authenticated = integration_auth.get_integration_client_by_raw_key(
+            db_session, raw_key
+        )
+
+        assert authenticated is not None
+        assert authenticated.key_hash == hash_integration_key(raw_key)
+
     def test_returns_bearer_token_for_valid_client_credentials(
         self,
         client: TestClient,
@@ -271,7 +344,9 @@ class TestExchangeIntegrationClientToken:
         )
         assert claims["sub"] == created["client_id"]
 
-    def test_rejects_invalid_client_secret(self, client: TestClient, db_session: Session) -> None:
+    def test_rejects_invalid_client_secret(
+        self, client: TestClient, db_session: Session
+    ) -> None:
         user = _create_user(db_session, "oauth-invalid@example.com")
         _auth_as(user)
         created = client.post(
@@ -290,7 +365,9 @@ class TestExchangeIntegrationClientToken:
 
         assert token_response.status_code == 401
 
-    def test_rejects_mismatched_client_id(self, client: TestClient, db_session: Session) -> None:
+    def test_rejects_mismatched_client_id(
+        self, client: TestClient, db_session: Session
+    ) -> None:
         user = _create_user(db_session, "oauth-mismatch@example.com")
         _auth_as(user)
         created = client.post(
@@ -309,7 +386,9 @@ class TestExchangeIntegrationClientToken:
 
         assert token_response.status_code == 401
 
-    def test_rejects_unsupported_grant_type(self, client: TestClient, db_session: Session) -> None:
+    def test_rejects_unsupported_grant_type(
+        self, client: TestClient, db_session: Session
+    ) -> None:
         user = _create_user(db_session, "oauth-grant@example.com")
         _auth_as(user)
         created = client.post(

@@ -23,6 +23,7 @@ from app.schemas.meal_plan import (
 )
 from app.schemas.shopping_list import ShoppingListCreateRequest
 from app.schemas.today import PlannedTodayItem
+from app.services.audit_service import AuditActor
 from app.services.shopping_list_service import ShoppingListService
 from app.services.today_service import TodayService
 
@@ -32,18 +33,35 @@ class MealPlanService:
         self.repository = repository
 
     def list_meal_plans(self, user_id: int) -> list[MealPlanResponse]:
-        return [self._plan_to_schema(plan) for plan in self.repository.list_by_user(user_id)]
+        return [
+            self._plan_to_schema(plan) for plan in self.repository.list_by_user(user_id)
+        ]
 
     def get_meal_plan(self, user_id: int, meal_plan_id: int) -> MealPlanResponse:
         return self._plan_to_schema(self._get_user_plan(user_id, meal_plan_id))
 
-    def create_meal_plan(self, user_id: int, request: MealPlanCreate) -> MealPlanResponse:
+    def create_meal_plan(
+        self, user_id: int, request: MealPlanCreate, *, actor: AuditActor | None = None
+    ) -> MealPlanResponse:
         plan = self.repository.create(
-            MealPlan(user_id=user_id, name=request.name, week_start=request.week_start, notes=request.notes)
+            MealPlan(
+                user_id=user_id,
+                name=request.name,
+                week_start=request.week_start,
+                notes=request.notes,
+            ),
+            actor=actor,
         )
         return self._plan_to_schema(plan)
 
-    def update_meal_plan(self, user_id: int, meal_plan_id: int, request: MealPlanUpdate) -> MealPlanResponse:
+    def update_meal_plan(
+        self,
+        user_id: int,
+        meal_plan_id: int,
+        request: MealPlanUpdate,
+        *,
+        actor: AuditActor | None = None,
+    ) -> MealPlanResponse:
         plan = self._get_user_plan(user_id, meal_plan_id, include_slots=True)
         if "name" in request.model_fields_set and request.name is not None:
             plan.name = request.name
@@ -51,25 +69,42 @@ class MealPlanService:
             plan.week_start = request.week_start
         if "notes" in request.model_fields_set:
             plan.notes = request.notes
-        return self._plan_to_schema(self.repository.update(plan))
+        return self._plan_to_schema(self.repository.update(plan, actor=actor))
 
-    def delete_meal_plan(self, user_id: int, meal_plan_id: int) -> None:
-        self.repository.delete(self._get_user_plan(user_id, meal_plan_id))
+    def delete_meal_plan(
+        self, user_id: int, meal_plan_id: int, *, actor: AuditActor | None = None
+    ) -> None:
+        self.repository.delete(self._get_user_plan(user_id, meal_plan_id), actor=actor)
 
     def get_week_plan(self, user_id: int, meal_plan_id: int) -> WeekGridResponse:
         plan = self._get_user_plan(user_id, meal_plan_id, include_slots=True)
         return self._week_grid_to_schema(plan)
 
-    def update_slot(self, user_id: int, meal_plan_id: int, slot_id: int, request: MealSlotUpdate) -> MealSlotResponse:
+    def update_slot(
+        self,
+        user_id: int,
+        meal_plan_id: int,
+        slot_id: int,
+        request: MealSlotUpdate,
+        *,
+        actor: AuditActor | None = None,
+    ) -> MealSlotResponse:
         self._get_user_plan(user_id, meal_plan_id)
-        slot = self.repository.get_slot(user_id=user_id, meal_plan_id=meal_plan_id, slot_id=slot_id)
+        slot = self.repository.get_slot(
+            user_id=user_id, meal_plan_id=meal_plan_id, slot_id=slot_id
+        )
         if slot is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Meal slot not found")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Meal slot not found"
+            )
         if "title" in request.model_fields_set and request.title is not None:
             slot.title = request.title
         if "recipe_url" in request.model_fields_set:
             slot.recipe_url = request.recipe_url
-        if "ingredients_json" in request.model_fields_set and request.ingredients_json is not None:
+        if (
+            "ingredients_json" in request.model_fields_set
+            and request.ingredients_json is not None
+        ):
             slot.ingredients_json = request.ingredients_json
         if "planned_item_id" in request.model_fields_set:
             if request.planned_item_id is not None:
@@ -78,18 +113,26 @@ class MealPlanService:
                 from app.models.planned_item import PlannedItem
 
                 stmt = sa_select(PlannedItem).where(
-                    PlannedItem.id == request.planned_item_id, PlannedItem.user_id == user_id
+                    PlannedItem.id == request.planned_item_id,
+                    PlannedItem.user_id == user_id,
                 )
                 if not self.repository.db.scalar(stmt):
-                    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Planned item not found")
+                    raise HTTPException(
+                        status_code=status.HTTP_404_NOT_FOUND,
+                        detail="Planned item not found",
+                    )
             slot.planned_item_id = request.planned_item_id
-        return self._slot_to_schema(self.repository.save_slot(slot))
+        return self._slot_to_schema(self.repository.save_slot(slot, actor=actor))
 
-    def generate_shopping_list(self, plan_id: int, user_id: int) -> GenerateShoppingListResponse:
+    def generate_shopping_list(
+        self, plan_id: int, user_id: int, *, actor: AuditActor | None = None
+    ) -> GenerateShoppingListResponse:
         plan = self._get_user_plan(user_id, plan_id, include_slots=True)
         ingredients: list[str] = []
         seen: set[str] = set()
-        for slot in sorted(plan.slots, key=lambda item: (item.slot_date, item.slot_type, item.id)):
+        for slot in sorted(
+            plan.slots, key=lambda item: (item.slot_date, item.slot_type, item.id)
+        ):
             for ingredient in slot.ingredients_json or []:
                 normalized = ingredient.strip()
                 if not normalized:
@@ -101,13 +144,24 @@ class MealPlanService:
                 ingredients.append(normalized)
 
         if not ingredients:
-            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Meal plan has no ingredients")
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail="Meal plan has no ingredients",
+            )
 
-        today_service = TodayService(TodayRepository(self.repository.db), app_settings=settings)
-        shopping_service = ShoppingListService(ShoppingListRepository(self.repository.db), today_service)
+        today_service = TodayService(
+            TodayRepository(self.repository.db), app_settings=settings
+        )
+        shopping_service = ShoppingListService(
+            ShoppingListRepository(self.repository.db), today_service
+        )
         shopping_list = shopping_service.create_shopping_list(
             user_id=user_id,
-            request=ShoppingListCreateRequest(name=f"Meal plan: {plan.name}", notes=f"Generated from meal plan #{plan.id}"),
+            request=ShoppingListCreateRequest(
+                name=f"Meal plan: {plan.name}",
+                notes=f"Generated from meal plan #{plan.id}",
+            ),
+            actor=actor,
         )
         items: list[PlannedTodayItem] = []
         for ingredient in ingredients:
@@ -119,15 +173,22 @@ class MealPlanService:
                 notes=f"Generated from meal plan '{plan.name}'",
                 priority=Priority.normal,
                 tags=["meal-planning"],
+                actor=actor,
             )
             items.append(PlannedTodayItem.model_validate(item))
 
         return GenerateShoppingListResponse(shopping_list=shopping_list, items=items)
 
-    def _get_user_plan(self, user_id: int, meal_plan_id: int, *, include_slots: bool = False) -> MealPlan:
-        plan = self.repository.get_by_id(user_id=user_id, meal_plan_id=meal_plan_id, include_slots=include_slots)
+    def _get_user_plan(
+        self, user_id: int, meal_plan_id: int, *, include_slots: bool = False
+    ) -> MealPlan:
+        plan = self.repository.get_by_id(
+            user_id=user_id, meal_plan_id=meal_plan_id, include_slots=include_slots
+        )
         if plan is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Meal plan not found")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Meal plan not found"
+            )
         return plan
 
     @staticmethod
