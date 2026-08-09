@@ -3,15 +3,16 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from datetime import UTC, date, datetime, time
+from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy.orm import Session
 
 from app.core.pagination import clamp_limit
-from app.mcp.context import parse_date, with_today_service
+from app.mcp.context import parse_date, parse_time, with_today_service
 from app.mcp.errors import map_domain_errors
 from app.mcp.principal import McpPrincipal
+from app.models.medication_plan import MedicationPlan
 from app.services.today_service import TodayService
 
 SessionFactory = Callable[[], Session]
@@ -23,7 +24,7 @@ DEFAULT_MEDICATION_HISTORY_LIMIT = 20
 MAX_MEDICATION_HISTORY_LIMIT = 365
 
 
-def _medication_plan_to_dict(plan: Any) -> dict[str, Any]:
+def _medication_plan_to_dict(plan: MedicationPlan) -> dict[str, Any]:
     return {
         "id": plan.id,
         "name": plan.name,
@@ -37,20 +38,37 @@ def _medication_plan_to_dict(plan: Any) -> dict[str, Any]:
 
 @map_domain_errors
 def take_medication_dose(
-    session_factory: SessionFactory, user_email: str | None, medication_dose_instance_id: int, taken_at: str | None = None
+    session_factory: SessionFactory,
+    user_email: str | None,
+    medication_dose_instance_id: int,
+    taken_at: str | None = None,
 ) -> dict[str, Any]:
     parsed_taken_at: datetime | None = None
     if taken_at is not None:
         try:
             parsed_taken_at = datetime.fromisoformat(taken_at)
-        except ValueError:
-            raise ValueError(f"Invalid taken_at format: '{taken_at}'. Expected ISO 8601 datetime.")
-    return _mutate_medication(session_factory, user_email, medication_dose_instance_id, "take", taken_at=parsed_taken_at)
+        except ValueError as exc:
+            raise ValueError(
+                f"Invalid taken_at format: '{taken_at}'. Expected ISO 8601 datetime."
+            ) from exc
+    return _mutate_medication(
+        session_factory,
+        user_email,
+        medication_dose_instance_id,
+        "take",
+        taken_at=parsed_taken_at,
+    )
 
 
 @map_domain_errors
-def skip_medication_dose(session_factory: SessionFactory, user_email: str | None, medication_dose_instance_id: int) -> dict[str, Any]:
-    return _mutate_medication(session_factory, user_email, medication_dose_instance_id, "skip")
+def skip_medication_dose(
+    session_factory: SessionFactory,
+    user_email: str | None,
+    medication_dose_instance_id: int,
+) -> dict[str, Any]:
+    return _mutate_medication(
+        session_factory, user_email, medication_dose_instance_id, "skip"
+    )
 
 
 def _mutate_medication(
@@ -61,9 +79,15 @@ def _mutate_medication(
     *,
     taken_at: datetime | None = None,
 ) -> dict[str, Any]:
-    def _op(_db: Session, principal: McpPrincipal, service: TodayService) -> dict[str, Any]:
+    def _op(
+        _db: Session, principal: McpPrincipal, service: TodayService
+    ) -> dict[str, Any]:
         instance = service.mutate_medication_status(
-            principal.user.id, medication_dose_instance_id, action, taken_at=taken_at, actor=principal.to_audit_actor()
+            principal.user.id,
+            medication_dose_instance_id,
+            action,
+            taken_at=taken_at,
+            actor=principal.to_audit_actor(),
         )
         return {
             "medication_dose_instance_id": instance.id,
@@ -73,7 +97,9 @@ def _mutate_medication(
             "scheduled_date": instance.scheduled_date.isoformat(),
             "scheduled_at": instance.scheduled_at.isoformat(),
             "taken_at": instance.taken_at.isoformat() if instance.taken_at else None,
-            "skipped_at": instance.skipped_at.isoformat() if instance.skipped_at else None,
+            "skipped_at": instance.skipped_at.isoformat()
+            if instance.skipped_at
+            else None,
             "missed_at": instance.missed_at.isoformat() if instance.missed_at else None,
         }
 
@@ -81,22 +107,37 @@ def _mutate_medication(
 
 
 @map_domain_errors
-def skip_missed_medication_doses(session_factory: SessionFactory, user_email: str | None, before_date: str | None = None) -> dict[str, Any]:
+def skip_missed_medication_doses(
+    session_factory: SessionFactory,
+    user_email: str | None,
+    before_date: str | None = None,
+) -> dict[str, Any]:
     parsed = parse_date(before_date) if before_date else None
 
-    def _op(_db: Session, principal: McpPrincipal, service: TodayService) -> dict[str, Any]:
-        count, cutoff = service.skip_missed_medication_doses(user_id=principal.user.id, before_date=parsed, actor=principal.to_audit_actor())
+    def _op(
+        _db: Session, principal: McpPrincipal, service: TodayService
+    ) -> dict[str, Any]:
+        count, cutoff = service.skip_missed_medication_doses(
+            user_id=principal.user.id,
+            before_date=parsed,
+            actor=principal.to_audit_actor(),
+        )
         return {"skipped_count": count, "before_date": cutoff.isoformat()}
 
     return with_today_service(session_factory, user_email, _op)
 
 
 @map_domain_errors
-def list_medications(session_factory: SessionFactory, user_email: str | None) -> list[dict[str, Any]]:
+def list_medications(
+    session_factory: SessionFactory, user_email: str | None
+) -> list[dict[str, Any]]:
     return with_today_service(
         session_factory,
         user_email,
-        lambda _db, principal, service: [_medication_plan_to_dict(p) for p in service.list_medication_plans(principal.user.id)],
+        lambda _db, principal, service: [
+            _medication_plan_to_dict(p)
+            for p in service.list_medication_plans(principal.user.id)
+        ],
     )
 
 
@@ -111,10 +152,17 @@ def create_medication(
     schedule_time: str,
     every_n_days: int = 1,
 ) -> dict[str, Any]:
-    parsed_start = date.fromisoformat(start_date)
-    parsed_time = time.fromisoformat(schedule_time)
+    parsed_start = parse_date(start_date)
+    parsed_time_val = parse_time(schedule_time)
+    if parsed_time_val is None:
+        raise ValueError(
+            f"Invalid schedule_time '{schedule_time}'. Expected HH:MM or HH:MM:SS format."
+        )
+    parsed_time = parsed_time_val
 
-    def _op(_db: Session, principal: McpPrincipal, service: TodayService) -> dict[str, Any]:
+    def _op(
+        _db: Session, principal: McpPrincipal, service: TodayService
+    ) -> dict[str, Any]:
         return _medication_plan_to_dict(
             service.create_medication_plan(
                 principal.user.id,
@@ -143,10 +191,17 @@ def update_medication(
     every_n_days: int | None = None,
     is_active: bool | None = None,
 ) -> dict[str, Any]:
-    parsed_start = date.fromisoformat(start_date)
-    parsed_time = time.fromisoformat(schedule_time)
+    parsed_start = parse_date(start_date)
+    parsed_time_val = parse_time(schedule_time)
+    if parsed_time_val is None:
+        raise ValueError(
+            f"Invalid schedule_time '{schedule_time}'. Expected HH:MM or HH:MM:SS format."
+        )
+    parsed_time = parsed_time_val
 
-    def _op(_db: Session, principal: McpPrincipal, service: TodayService) -> dict[str, Any]:
+    def _op(
+        _db: Session, principal: McpPrincipal, service: TodayService
+    ) -> dict[str, Any]:
         return _medication_plan_to_dict(
             service.update_medication_plan(
                 principal.user.id,
@@ -165,7 +220,9 @@ def update_medication(
 
 
 @map_domain_errors
-def delete_medication(session_factory: SessionFactory, user_email: str | None, medication_plan_id: int) -> dict[str, Any]:
+def delete_medication(
+    session_factory: SessionFactory, user_email: str | None, medication_plan_id: int
+) -> dict[str, Any]:
     with_today_service(
         session_factory,
         user_email,
@@ -178,11 +235,20 @@ def delete_medication(session_factory: SessionFactory, user_email: str | None, m
 
 @map_domain_errors
 def get_medication_history(
-    session_factory: SessionFactory, user_email: str | None, limit: int = DEFAULT_MEDICATION_HISTORY_LIMIT, medication_plan_id: int | None = None
+    session_factory: SessionFactory,
+    user_email: str | None,
+    limit: int = DEFAULT_MEDICATION_HISTORY_LIMIT,
+    medication_plan_id: int | None = None,
 ) -> dict[str, Any]:
-    capped_limit = clamp_limit(limit, default=DEFAULT_MEDICATION_HISTORY_LIMIT, maximum=MAX_MEDICATION_HISTORY_LIMIT)
+    capped_limit = clamp_limit(
+        limit,
+        default=DEFAULT_MEDICATION_HISTORY_LIMIT,
+        maximum=MAX_MEDICATION_HISTORY_LIMIT,
+    )
 
-    def _op(_db: Session, principal: McpPrincipal, service: TodayService) -> dict[str, Any]:
+    def _op(
+        _db: Session, principal: McpPrincipal, service: TodayService
+    ) -> dict[str, Any]:
         return {
             "history": [
                 {
