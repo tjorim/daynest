@@ -6,6 +6,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from fastapi.testclient import TestClient
 from fastmcp.server.auth import AccessToken
+from mcp.types import CompletionArgument, PromptReference, ResourceTemplateReference
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.api.dependencies.integration_auth import hash_integration_key
@@ -22,6 +23,7 @@ from app.mcp_server import (
     MCP_TOOL_NAMES,
     DaynestMcpBackend,
     IntegrationKeyTokenVerifier,
+    complete_for_date,
     create_mcp_server,
 )
 from app.models.chore_instance import ChoreInstance
@@ -187,6 +189,44 @@ async def test_mcp_capability_prompt_names_match_registered_prompts(
     registered_prompts = await mcp.list_prompts()
 
     assert {prompt.name for prompt in registered_prompts} == set(MCP_PROMPT_NAMES)
+
+
+def test_mcp_completes_dates_for_prompt_and_resource_templates() -> None:
+    assert create_mcp_server()._completion_handler is complete_for_date
+
+    with patch("app.mcp_server.datetime") as mocked_datetime:
+        mocked_datetime.now.return_value = datetime(2026, 8, 9, tzinfo=UTC)
+        prompt_completion = complete_for_date(
+            PromptReference(name="daily_briefing"),
+            CompletionArgument(name="for_date", value=""),
+            None,
+        )
+        resource_completion = complete_for_date(
+            ResourceTemplateReference(uri="daynest://today/{for_date}"),
+            CompletionArgument(name="for_date", value="2026-08-1"),
+            None,
+        )
+
+    assert prompt_completion == [
+        "today",
+        "2026-08-09",
+        "2026-08-10",
+        "2026-08-11",
+        "2026-08-12",
+        "2026-08-13",
+        "2026-08-14",
+        "2026-08-15",
+        "2026-08-16",
+    ]
+    assert resource_completion == [
+        "2026-08-10",
+        "2026-08-11",
+        "2026-08-12",
+        "2026-08-13",
+        "2026-08-14",
+        "2026-08-15",
+        "2026-08-16",
+    ]
 
 
 def test_mcp_backend_resolves_single_active_user_and_returns_today(

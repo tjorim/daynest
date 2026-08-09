@@ -20,12 +20,19 @@ import logging
 import os
 import sys
 from collections.abc import Callable
+from datetime import UTC, datetime, timedelta
 from typing import Any, Literal, cast
 
 from anyio import to_thread
 from fastmcp import Context, FastMCP
 from fastmcp.server.auth import MultiAuth
 from fastmcp.server.auth.providers.keycloak import KeycloakAuthProvider
+from mcp.types import (
+    CompletionArgument,
+    CompletionContext,
+    PromptReference,
+    ResourceTemplateReference,
+)
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -105,6 +112,35 @@ MCP_RESOURCE_URIS = (
 )
 
 MCP_PROMPT_NAMES = ("daily_briefing",)
+
+
+def complete_for_date(
+    ref: PromptReference | ResourceTemplateReference,
+    argument: CompletionArgument,
+    context: CompletionContext | None,
+) -> list[str] | None:
+    """Suggest valid dates for Daynest's dated prompt and resources."""
+    del context
+    if argument.name != "for_date":
+        return None
+
+    is_daily_briefing = (
+        isinstance(ref, PromptReference) and ref.name == "daily_briefing"
+    )
+    is_dated_resource = (
+        isinstance(ref, ResourceTemplateReference) and ref.uri in MCP_RESOURCE_URIS
+    )
+    if not (is_daily_briefing or is_dated_resource):
+        return None
+
+    today = datetime.now(UTC).date()
+    candidates = [
+        "today",
+        *[(today + timedelta(days=offset)).isoformat() for offset in range(8)],
+    ]
+    return [
+        candidate for candidate in candidates if candidate.startswith(argument.value)
+    ]
 
 
 class DaynestMcpBackend:
@@ -1344,6 +1380,8 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
             f"{for_date}. Summarize the priorities, flag overdue chores, "
             "note due medications, and propose a concise execution order."
         )
+
+    mcp.completion(complete_for_date)
 
     return mcp
 
