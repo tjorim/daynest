@@ -21,6 +21,7 @@ from app.models.integration_client import IntegrationClient
 from app.models.user import User
 
 _INTEGRATION_JWT_ISSUER = "daynest-integration"
+INTEGRATION_KEY_PREFIX = "daynest_"
 
 
 def _hash_integration_key_with_secret(raw_key: str, secret: str) -> str:

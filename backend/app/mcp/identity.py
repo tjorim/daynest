@@ -13,7 +13,10 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.api.dependencies.integration_auth import hash_integration_key
+from app.api.dependencies.integration_auth import (
+    INTEGRATION_KEY_PREFIX,
+    hash_integration_key,
+)
 from app.mcp import principal as principal_module
 from app.mcp.context import session_scope
 from app.models.integration_client import IntegrationClient
@@ -89,7 +92,7 @@ def create_integration_client(
     if rate_limit_per_minute > 600:
         raise ValueError("rate_limit_per_minute must be 600 or less")
 
-    raw_key = f"daynest_{token_urlsafe(30)}"
+    raw_key = f"{INTEGRATION_KEY_PREFIX}{token_urlsafe(30)}"
     with session_scope(session_factory) as db:
         principal = principal_module.resolve_principal(db, user_email=user_email)
         if principal.auth_source == "integration":

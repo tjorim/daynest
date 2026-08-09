@@ -5,18 +5,26 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from fastapi.testclient import TestClient
-from fastmcp.server.auth import AccessToken
+from fastmcp.server.auth import AccessToken, AuthContext, run_auth_checks
+from mcp.types import CompletionArgument, PromptReference, ResourceTemplateReference
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.api.dependencies.integration_auth import hash_integration_key
 from app.core.config import settings
 from app.core.enums import ChoreStatus, MedicationDoseStatus
+from app.mcp.capabilities import (
+    TOOL_EFFECT_READ,
+    tool_annotations,
+    tool_auth,
+    tool_effect,
+)
 from app.mcp_server import (
     MCP_PROMPT_NAMES,
     MCP_RESOURCE_URIS,
     MCP_TOOL_NAMES,
     DaynestMcpBackend,
     IntegrationKeyTokenVerifier,
+    complete_for_date,
     create_mcp_server,
 )
 from app.models.chore_instance import ChoreInstance
@@ -74,7 +82,9 @@ def test_mcp_capabilities_endpoint_lists_growth_tools(
 ) -> None:
     mock_mcp = create_mcp_server()
     monkeypatch.setattr("app.main._mcp", mock_mcp)
-    monkeypatch.setattr("app.main._mcp_app", mock_mcp.http_app(path="/"))
+    monkeypatch.setattr(
+        "app.main._mcp_app", mock_mcp.http_app(path="/", stateless_http=True)
+    )
 
     response = client.get("/api/mcp/capabilities")
 
@@ -117,9 +127,72 @@ async def test_mcp_capability_tool_names_match_registered_tools(
     backend = DaynestMcpBackend(_session_factory(db_session))
     mcp = create_mcp_server(backend)
 
-    registered_tools = await mcp.list_tools()
+    registered_tools = await mcp.local_provider.list_tools()
 
     assert {tool.name for tool in registered_tools} == set(MCP_TOOL_NAMES)
+
+
+@pytest.mark.anyio
+async def test_registered_tools_advertise_explicit_safety_annotations(
+    db_session: Session,
+) -> None:
+    backend = DaynestMcpBackend(_session_factory(db_session))
+    tools = await create_mcp_server(backend).local_provider.list_tools()
+
+    for tool in tools:
+        annotations = tool.annotations
+        expected_read_only = tool_effect(tool.name) == TOOL_EFFECT_READ
+        assert annotations is not None
+        assert annotations.read_only_hint is expected_read_only
+        assert annotations.open_world_hint is False
+        if expected_read_only:
+            assert annotations.destructive_hint is False
+            assert annotations.idempotent_hint is True
+
+
+def test_write_annotations_distinguish_creation_from_destructive_changes() -> None:
+    assert tool_annotations("create_planned_item").destructive_hint is False
+    assert tool_annotations("add_shopping_item").destructive_hint is False
+    assert tool_annotations("update_planned_item").destructive_hint is True
+    assert tool_annotations("delete_planned_item").destructive_hint is True
+    assert tool_annotations("future_tool_without_policy").destructive_hint is True
+
+
+@pytest.mark.anyio
+async def test_interactive_tools_reject_managed_integration_credentials(
+    db_session: Session,
+) -> None:
+    mcp = create_mcp_server(DaynestMcpBackend(_session_factory(db_session)))
+    tools = {tool.name: tool for tool in await mcp.local_provider.list_tools()}
+
+    def context(tool_name: str, auth_source: str | None) -> AuthContext:
+        claims = {"sub": "test-user"}
+        if auth_source is not None:
+            claims["auth_source"] = auth_source
+        return AuthContext(
+            token=AccessToken(
+                token="test-token", client_id="test-client", scopes=[], claims=claims
+            ),
+            component=tools[tool_name],
+        )
+
+    assert tools["whoami"].auth is None
+    for tool_name in (
+        "create_integration_client",
+        "list_integration_clients",
+        "list_users",
+    ):
+        auth = tools[tool_name].auth
+        assert auth is not None
+        assert await run_auth_checks(auth, context(tool_name, None))
+        assert not await run_auth_checks(auth, context(tool_name, "integration"))
+
+        local_stdio_context = AuthContext(token=None, component=tools[tool_name])
+        assert await run_auth_checks(auth, local_stdio_context)
+
+
+def test_unknown_tools_do_not_gain_interactive_only_restrictions() -> None:
+    assert tool_auth("future_tool_without_policy") is None
 
 
 @pytest.mark.anyio
@@ -156,6 +229,44 @@ async def test_mcp_capability_prompt_names_match_registered_prompts(
     registered_prompts = await mcp.list_prompts()
 
     assert {prompt.name for prompt in registered_prompts} == set(MCP_PROMPT_NAMES)
+
+
+def test_mcp_completes_dates_for_prompt_and_resource_templates() -> None:
+    assert create_mcp_server()._completion_handler is complete_for_date
+
+    with patch("app.mcp_server.datetime") as mocked_datetime:
+        mocked_datetime.now.return_value = datetime(2026, 8, 9, tzinfo=UTC)
+        prompt_completion = complete_for_date(
+            PromptReference(name="daily_briefing"),
+            CompletionArgument(name="for_date", value=""),
+            None,
+        )
+        resource_completion = complete_for_date(
+            ResourceTemplateReference(uri="daynest://today/{for_date}"),
+            CompletionArgument(name="for_date", value="2026-08-1"),
+            None,
+        )
+
+    assert prompt_completion == [
+        "today",
+        "2026-08-09",
+        "2026-08-10",
+        "2026-08-11",
+        "2026-08-12",
+        "2026-08-13",
+        "2026-08-14",
+        "2026-08-15",
+        "2026-08-16",
+    ]
+    assert resource_completion == [
+        "2026-08-10",
+        "2026-08-11",
+        "2026-08-12",
+        "2026-08-13",
+        "2026-08-14",
+        "2026-08-15",
+        "2026-08-16",
+    ]
 
 
 def test_mcp_backend_resolves_single_active_user_and_returns_today(
@@ -517,8 +628,20 @@ def test_integration_key_token_verifier_accepts_valid_key(db_session: Session) -
 
     assert token is not None
     assert token.client_id == str(client.id)
+    assert token.scopes == client.scopes
+    assert token.claims.get("sub") == f"integration-client:{client.id}"
     assert token.claims.get("auth_source") == "integration"
     assert token.claims.get("integration_client_id") == client.id
+
+
+def test_integration_key_token_verifier_rejects_other_bearer_tokens_without_db_lookup(
+    db_session: Session,
+) -> None:
+    factory = MagicMock(wraps=_session_factory(db_session))
+    verifier = IntegrationKeyTokenVerifier(factory)
+
+    assert asyncio.run(verifier.verify_token("not-a-daynest-key")) is None
+    factory.assert_not_called()
 
 
 def test_mcp_backend_uses_authenticated_integration_owner(

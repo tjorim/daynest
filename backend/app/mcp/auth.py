@@ -9,6 +9,7 @@ from fastmcp.server.auth import AccessToken, TokenVerifier
 from sqlalchemy.orm import Session
 
 from app.api.dependencies.integration_auth import (
+    INTEGRATION_KEY_PREFIX,
     enforce_integration_rate_limit,
     get_integration_client_by_raw_key,
     record_integration_client_use,
@@ -26,6 +27,9 @@ class IntegrationKeyTokenVerifier(TokenVerifier):
         self.session_factory = session_factory
 
     async def verify_token(self, token: str) -> AccessToken | None:
+        if not token.startswith(INTEGRATION_KEY_PREFIX):
+            return None
+
         session = self.session_factory()
         try:
             client = get_integration_client_by_raw_key(session, token)
@@ -45,8 +49,9 @@ class IntegrationKeyTokenVerifier(TokenVerifier):
             return AccessToken(
                 token=token,
                 client_id=str(client.id),
-                scopes=[],
+                scopes=list(client.scopes),
                 claims={
+                    "sub": f"integration-client:{client.id}",
                     "auth_source": "integration",
                     "integration_client_id": client.id,
                 },
