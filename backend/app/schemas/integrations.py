@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field
@@ -9,16 +9,24 @@ from app.schemas.today import DueTodayItem, MedicationTodayItem, PlannedTodayIte
 
 
 class CompleteTaskRequest(BaseModel):
-    chore_instance_id: int = Field(gt=0, description="The chore instance ID to mark as complete")
+    chore_instance_id: int = Field(
+        gt=0, description="The chore instance ID to mark as complete"
+    )
 
 
 class SnoozeTaskRequest(BaseModel):
-    chore_instance_id: int = Field(gt=0, description="The chore instance ID to reschedule")
-    days: int = Field(default=1, ge=1, le=30, description="Number of days to snooze the task")
+    chore_instance_id: int = Field(
+        gt=0, description="The chore instance ID to reschedule"
+    )
+    days: int = Field(
+        default=1, ge=1, le=30, description="Number of days to snooze the task"
+    )
 
 
 class MarkMedicationTakenRequest(BaseModel):
-    medication_dose_id: int = Field(gt=0, description="The medication dose instance ID to mark as taken")
+    medication_dose_id: int = Field(
+        gt=0, description="The medication dose instance ID to mark as taken"
+    )
 
 
 class SkipTaskRequest(BaseModel):
@@ -26,14 +34,20 @@ class SkipTaskRequest(BaseModel):
 
 
 class SkipMedicationRequest(BaseModel):
-    medication_dose_id: int = Field(gt=0, description="The medication dose instance ID to skip")
+    medication_dose_id: int = Field(
+        gt=0, description="The medication dose instance ID to skip"
+    )
 
 
 class MarkPlannedDoneRequest(BaseModel):
-    planned_item_id: int = Field(gt=0, description="The planned item ID to mark as done")
+    planned_item_id: int = Field(
+        gt=0, description="The planned item ID to mark as done"
+    )
 
 
-PlannedItemModuleKey = Literal["shopping_list", "meal_planning", "recurring_grocery", "shared_calendar"]
+PlannedItemModuleKey = Literal[
+    "shopping_list", "meal_planning", "recurring_grocery", "shared_calendar"
+]
 
 
 class PlannedItemCreateRequest(BaseModel):
@@ -53,7 +67,6 @@ class PlannedItemUpdateRequest(PlannedItemCreateRequest):
 class HAActionResult(BaseModel):
     success: bool
     detail: str
-
 
 
 IntegrationScope = Literal["home_assistant:*", "pebble:read", "pebble:write"]
@@ -95,6 +108,10 @@ class IntegrationClientResponse(BaseModel):
     rate_limit_per_minute: int
     scopes: list[str]
     is_active: bool
+    key_preview: str | None
+    created_at: datetime
+    last_used_at: datetime | None
+    revoked_at: datetime | None
 
 
 class HomeAssistantEntity(BaseModel):

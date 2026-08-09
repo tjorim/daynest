@@ -25,6 +25,7 @@ class AuditEntry(Base):
     )
     actor_user_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
     auth_source: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
+    subject: Mapped[str | None] = mapped_column(String(255), nullable=True)
     integration_client_id: Mapped[int | None] = mapped_column(
         Integer, nullable=True, index=True
     )

@@ -27,7 +27,9 @@ from app.models.audit_entry import AuditEntry
 # principal resolution (app.mcp.principal.McpPrincipal) and REST's
 # AuthorizationPrincipal (app.api.dependencies.auth.AuthType), normalized to a
 # single string vocabulary so audit rows are comparable across both surfaces.
-AuditAuthSource = Literal["oidc", "keycloak_service", "integration", "local", "delegated"]
+AuditAuthSource = Literal[
+    "oidc", "keycloak_service", "integration", "local", "delegated"
+]
 
 DEFAULT_AUDIT_LIMIT = 100
 MAX_AUDIT_LIMIT = 1000
@@ -43,6 +45,7 @@ class AuditActor:
 
     user_id: int
     auth_source: AuditAuthSource
+    subject: str | None = None
     integration_client_id: int | None = None
 
 
@@ -67,6 +70,7 @@ def write_audit_entry(
         AuditEntry(
             actor_user_id=actor.user_id,
             auth_source=actor.auth_source,
+            subject=actor.subject,
             integration_client_id=actor.integration_client_id,
             action=action,
             resource_type=resource_type,
@@ -87,16 +91,17 @@ def list_audit_entries(
     since: datetime | None = None,
     until: datetime | None = None,
     limit: int = DEFAULT_AUDIT_LIMIT,
+    before_id: int | None = None,
 ) -> list[AuditEntry]:
     """Return audit entries for a single user, newest first.
 
     Always scoped to ``actor_user_id`` — callers must pass the authenticated
     user's own id. Ordered by ``(timestamp desc, id desc)`` for stable
-    pagination even when multiple entries share a timestamp. ``limit`` is
-    clamped to ``[1, MAX_AUDIT_LIMIT]``.
+    pagination even when multiple entries share a timestamp. ``before_id`` is
+    an exclusive cursor resolved inside the same user boundary.
     """
-
-    clamped_limit = min(max(1, limit), MAX_AUDIT_LIMIT)
+    if limit < 1 or limit > MAX_AUDIT_LIMIT:
+        raise ValueError(f"limit must be between 1 and {MAX_AUDIT_LIMIT}")
 
     stmt = select(AuditEntry).where(AuditEntry.actor_user_id == actor_user_id)
     if resource_type is not None:
@@ -109,6 +114,19 @@ def list_audit_entries(
         stmt = stmt.where(AuditEntry.timestamp >= since)
     if until is not None:
         stmt = stmt.where(AuditEntry.timestamp <= until)
-    stmt = stmt.order_by(AuditEntry.timestamp.desc(), AuditEntry.id.desc()).limit(clamped_limit)
+    if before_id is not None:
+        cursor = db.scalar(
+            select(AuditEntry).where(
+                AuditEntry.id == before_id,
+                AuditEntry.actor_user_id == actor_user_id,
+            )
+        )
+        if cursor is None:
+            raise ValueError("audit cursor does not exist for this user")
+        stmt = stmt.where(
+            (AuditEntry.timestamp < cursor.timestamp)
+            | ((AuditEntry.timestamp == cursor.timestamp) & (AuditEntry.id < cursor.id))
+        )
+    stmt = stmt.order_by(AuditEntry.timestamp.desc(), AuditEntry.id.desc()).limit(limit)
 
     return list(db.scalars(stmt).all())

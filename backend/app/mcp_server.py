@@ -23,17 +23,11 @@ from collections.abc import Callable
 from typing import Any, Literal
 
 from anyio import to_thread
-from fastapi import HTTPException
 from fastmcp import Context, FastMCP
-from fastmcp.server.auth import AccessToken, MultiAuth, TokenVerifier
+from fastmcp.server.auth import MultiAuth
 from fastmcp.server.auth.providers.keycloak import KeycloakAuthProvider
 from sqlalchemy.orm import Session
 
-from app.api.dependencies.integration_auth import (
-    enforce_integration_rate_limit,
-    get_integration_client_by_token_hash,
-    hash_integration_key,
-)
 from app.core.config import settings
 from app.db.session import SessionLocal
 from app.mcp import audit as mcp_audit
@@ -42,6 +36,7 @@ from app.mcp import medications as mcp_medications
 from app.mcp import planning as mcp_planning
 from app.mcp import routines as mcp_routines
 from app.mcp import shopping as mcp_shopping
+from app.mcp.auth import IntegrationKeyTokenVerifier
 from app.mcp.medications import DEFAULT_MEDICATION_HISTORY_LIMIT
 from app.schemas.shopping_list import ShoppingListStatus
 from app.schemas.today import PlannedItemModuleKey
@@ -564,6 +559,7 @@ class DaynestMcpBackend:
         since: str | None = None,
         until: str | None = None,
         limit: int = DEFAULT_AUDIT_LIMIT,
+        before_id: int | None = None,
     ) -> dict[str, Any]:
         return mcp_audit.list_audit_entries(
             self.session_factory,
@@ -574,49 +570,8 @@ class DaynestMcpBackend:
             since=since,
             until=until,
             limit=limit,
+            before_id=before_id,
         )
-
-
-class IntegrationKeyTokenVerifier(TokenVerifier):
-    def __init__(
-        self,
-        session_factory: Callable[[], Session],
-        *,
-        resource_server_url: str | None = None,
-    ) -> None:
-        super().__init__(resource_base_url=resource_server_url)
-        self.session_factory = session_factory
-        self.resource_server_url = resource_server_url
-
-    async def verify_token(self, token: str) -> AccessToken | None:
-        session = self.session_factory()
-        try:
-            token_hash = hash_integration_key(token)
-            client = get_integration_client_by_token_hash(session, token_hash)
-            if (
-                client is None
-                or not client.is_active
-                or client.user is None
-                or not client.user.is_active
-            ):
-                return None
-
-            try:
-                enforce_integration_rate_limit(client)
-            except HTTPException:
-                return None
-
-            return AccessToken(
-                token=token,
-                client_id=str(client.id),
-                scopes=[],
-                claims={
-                    "auth_source": "integration",
-                    "integration_client_id": client.id,
-                },
-            )
-        finally:
-            session.close()
 
 
 def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
@@ -1328,6 +1283,7 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
         since: str | None = None,
         until: str | None = None,
         limit: int = DEFAULT_AUDIT_LIMIT,
+        before_id: int | None = None,
     ) -> dict[str, Any]:
         """Return the active Daynest user's own audit-trail entries, newest first.
 
@@ -1343,7 +1299,8 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
             action: Optional filter to a specific action, e.g. "planned_item.create".
             since: Optional ISO 8601 datetime (or YYYY-MM-DD) lower bound, inclusive.
             until: Optional ISO 8601 datetime (or YYYY-MM-DD) upper bound, inclusive.
-            limit: Maximum entries to return. Default 100; capped at 1000.
+            limit: Maximum entries to return. Must be between 1 and 1000.
+            before_id: Exclusive cursor returned by the previous page.
         """
 
         return await to_thread.run_sync(
@@ -1354,6 +1311,7 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
             since,
             until,
             limit,
+            before_id,
         )
 
     @mcp.resource("daynest://today/{for_date}")

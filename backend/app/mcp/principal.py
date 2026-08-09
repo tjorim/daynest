@@ -43,6 +43,7 @@ class McpPrincipal:
         return AuditActor(
             user_id=self.user.id,
             auth_source=self.auth_source,
+            subject=self.subject,
             integration_client_id=self.integration_client_id,
         )
 
@@ -66,19 +67,30 @@ def resolve_principal(db: Session, *, user_email: str | None = None) -> McpPrinc
         if auth_source == "integration":
             integration_client_id = access_token.claims.get("integration_client_id")
             if integration_client_id is None:
-                raise ValueError("Authenticated MCP integration token is missing a client ID")
+                raise ValueError(
+                    "Authenticated MCP integration token is missing a client ID"
+                )
             # verify_token stores only an AccessToken in request context — re-query with joinedload.
-            stmt = select(IntegrationClient).where(IntegrationClient.id == integration_client_id).options(joinedload(IntegrationClient.user))
+            stmt = (
+                select(IntegrationClient)
+                .where(IntegrationClient.id == integration_client_id)
+                .options(joinedload(IntegrationClient.user))
+            )
             client = db.scalar(stmt)
             if client is None or not client.is_active:
-                raise ValueError("Authenticated MCP integration client is inactive or missing")
+                raise ValueError(
+                    "Authenticated MCP integration client is inactive or missing"
+                )
             if client.user is None or not client.user.is_active:
-                raise ValueError("Authenticated integration owner not found or inactive")
+                raise ValueError(
+                    "Authenticated integration owner not found or inactive"
+                )
             if not has_required_scopes(set(client.scopes), frozenset({"mcp:*"})):
                 raise PermissionError("Integration client is not authorized to use MCP")
             return McpPrincipal(
                 user=client.user,
                 auth_source="integration",
+                subject=f"integration:{client.id}",
                 integration_client_id=client.id,
                 scopes=tuple(client.scopes),
             )
@@ -88,18 +100,28 @@ def resolve_principal(db: Session, *, user_email: str | None = None) -> McpPrinc
         if not oidc_subject:
             raise ValueError("Authenticated MCP OIDC token is missing a subject")
         preferred_username = access_token.claims.get("preferred_username")
-        if isinstance(preferred_username, str) and preferred_username.startswith("service-account-"):
+        if isinstance(preferred_username, str) and preferred_username.startswith(
+            "service-account-"
+        ):
             raw_user_id = access_token.claims.get("daynest_user_id")
             if raw_user_id is None:
-                raise PermissionError("Keycloak service accounts require a daynest_user_id protocol mapper")
+                raise PermissionError(
+                    "Keycloak service accounts require a daynest_user_id protocol mapper"
+                )
             try:
                 mapped_user_id = int(raw_user_id)
             except (TypeError, ValueError) as exc:
-                raise PermissionError("Keycloak service accounts require a daynest_user_id protocol mapper") from exc
+                raise PermissionError(
+                    "Keycloak service accounts require a daynest_user_id protocol mapper"
+                ) from exc
             user = db.get(User, mapped_user_id)
             if user is None or not user.is_active:
-                raise ValueError("Mapped Daynest service-account user is inactive or missing")
-            return McpPrincipal(user=user, auth_source="keycloak_service", subject=str(oidc_subject))
+                raise ValueError(
+                    "Mapped Daynest service-account user is inactive or missing"
+                )
+            return McpPrincipal(
+                user=user, auth_source="keycloak_service", subject=str(oidc_subject)
+            )
 
         user = get_or_create_local_user(oidc_subject, access_token.claims, db)
         if not user.is_active:
@@ -108,12 +130,22 @@ def resolve_principal(db: Session, *, user_email: str | None = None) -> McpPrinc
 
     configured_email = user_email or os.getenv(DAYNEST_USER_EMAIL_ENV)
     if configured_email:
-        user = db.scalar(select(User).where(User.email == configured_email.lower()).where(User.is_active.is_(True)))
+        user = db.scalar(
+            select(User)
+            .where(User.email == configured_email.lower())
+            .where(User.is_active.is_(True))
+        )
         if user is None:
-            raise ValueError(f"Active user not found for {DAYNEST_USER_EMAIL_ENV}={configured_email}")
-        return McpPrincipal(user=user, auth_source="local")
+            raise ValueError(
+                f"Active user not found for {DAYNEST_USER_EMAIL_ENV}={configured_email}"
+            )
+        return McpPrincipal(user=user, auth_source="local", subject=user.email)
 
-    active_users = list(db.scalars(select(User).where(User.is_active.is_(True)).order_by(User.id.asc())).all())
+    active_users = list(
+        db.scalars(
+            select(User).where(User.is_active.is_(True)).order_by(User.id.asc())
+        ).all()
+    )
     if not active_users:
         raise ValueError(
             "No active Daynest user found. Create an account first or set "
@@ -128,4 +160,6 @@ def resolve_principal(db: Session, *, user_email: str | None = None) -> McpPrinc
             f"Multiple active Daynest users found ({len(active_users)} matches). "
             f"Set {DAYNEST_USER_EMAIL_ENV} to the correct account or inspect active users locally."
         )
-    return McpPrincipal(user=active_users[0], auth_source="local")
+    return McpPrincipal(
+        user=active_users[0], auth_source="local", subject=active_users[0].email
+    )

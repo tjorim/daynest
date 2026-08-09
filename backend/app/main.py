@@ -39,6 +39,7 @@ from app.core.observability import (
     observability_middleware,
 )
 from app.db.session import SessionLocal
+from app.mcp.capabilities import tool_capability
 from app.mcp_server import create_mcp_server
 from app.middleware.rate_limit import handle_rate_limit_exceeded, limiter
 from app.models.user import User
@@ -132,7 +133,12 @@ def _publish_today_rollovers(
     if not subscribed_user_ids:
         return
 
-    users = db.query(User).where(User.id.in_(subscribed_user_ids)).where(User.is_active.is_(True)).all()
+    users = (
+        db.query(User)
+        .where(User.id.in_(subscribed_user_ids))
+        .where(User.is_active.is_(True))
+        .all()
+    )
     for user in users:
         local_date = _user_local_date(user, now)
         previous_date = known_local_dates.get(user.id)
@@ -144,11 +150,15 @@ def _publish_today_rollovers(
 async def _today_rollover_loop(event_bus: EventBus) -> None:
     known_local_dates: dict[int, date] = {}
     while True:
-        await asyncio.to_thread(_run_today_rollover_iteration, event_bus, known_local_dates)
+        await asyncio.to_thread(
+            _run_today_rollover_iteration, event_bus, known_local_dates
+        )
         await asyncio.sleep(60)
 
 
-def _run_today_rollover_iteration(event_bus: EventBus, known_local_dates: dict[int, date]) -> None:
+def _run_today_rollover_iteration(
+    event_bus: EventBus, known_local_dates: dict[int, date]
+) -> None:
     db = None
     try:
         db = SessionLocal()
@@ -183,7 +193,11 @@ async def app_lifespan(app: Starlette):
         await close_auth_http_client()
 
 
-lifespan = combine_lifespans(app_lifespan, _mcp_app.lifespan) if _mcp_app is not None else app_lifespan
+lifespan = (
+    combine_lifespans(app_lifespan, _mcp_app.lifespan)
+    if _mcp_app is not None
+    else app_lifespan
+)
 
 app = FastAPI(title=settings.app_name, version=settings.version, lifespan=lifespan)
 app.middleware("http")(observability_middleware)
@@ -216,7 +230,9 @@ app.include_router(auth_router, prefix=settings.api_prefix)
 app.include_router(users_router, prefix=settings.api_prefix)
 app.include_router(analytics_router, prefix=settings.api_prefix)
 app.include_router(households_router, prefix=f"{settings.api_prefix}/households")
-app.include_router(shopping_lists_router, prefix=f"{settings.api_prefix}/shopping-lists")
+app.include_router(
+    shopping_lists_router, prefix=f"{settings.api_prefix}/shopping-lists"
+)
 app.include_router(meal_plans_router, prefix=f"{settings.api_prefix}/meal-plans")
 app.include_router(integration_clients_router, prefix=settings.api_prefix)
 app.include_router(home_assistant_router, prefix=settings.api_prefix)
@@ -246,7 +262,14 @@ async def mcp_capabilities() -> dict[str, object]:
 
     enabled = _mcp_app is not None
     if not enabled or _mcp is None:
-        return {"enabled": False, "mount_path": "/mcp", "version": None, "tools": [], "resources": [], "prompts": []}
+        return {
+            "enabled": False,
+            "mount_path": "/mcp",
+            "version": None,
+            "tools": [],
+            "resources": [],
+            "prompts": [],
+        }
 
     tools = await _mcp.list_tools()
     resource_templates = await _mcp.list_resource_templates()
@@ -256,7 +279,7 @@ async def mcp_capabilities() -> dict[str, object]:
         "enabled": True,
         "mount_path": "/mcp",
         "version": _mcp.version,
-        "tools": [{"name": tool.name} for tool in tools],
+        "tools": [tool_capability(tool.name) for tool in tools],
         "resources": [{"uri": template.uri_template} for template in resource_templates]
         + [{"uri": str(resource.uri)} for resource in resources],
         "prompts": [{"name": prompt.name} for prompt in prompts],

@@ -54,6 +54,7 @@ def list_audit_entries(
     since: str | None = None,
     until: str | None = None,
     limit: int = DEFAULT_AUDIT_LIMIT,
+    before_id: int | None = None,
 ) -> dict[str, Any]:
     """Return the authenticated user's own audit-trail entries, newest first."""
 
@@ -67,6 +68,7 @@ def list_audit_entries(
             since=_parse_datetime_boundary(since),
             until=_parse_datetime_boundary(until, is_until=True),
             limit=limit,
+            before_id=before_id,
         )
         return {
             "entries": [
@@ -75,6 +77,7 @@ def list_audit_entries(
                     "timestamp": entry.timestamp.isoformat(),
                     "actor_user_id": entry.actor_user_id,
                     "auth_source": entry.auth_source,
+                    "subject": entry.subject,
                     "integration_client_id": entry.integration_client_id,
                     "action": entry.action,
                     "resource_type": entry.resource_type,
@@ -83,7 +86,8 @@ def list_audit_entries(
                     "details": entry.details,
                 }
                 for entry in entries
-            ]
+            ],
+            "next_before_id": entries[-1].id if len(entries) == limit else None,
         }
 
     return with_principal(session_factory, user_email, _op)

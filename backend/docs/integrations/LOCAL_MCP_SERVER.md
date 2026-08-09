@@ -106,6 +106,22 @@ Two authentication methods are accepted on this mount, matching how
 Create an integration client in the Daynest app (or via the
 `create_integration_client` MCP tool) to obtain a key.
 
+### Rotating the integration-key hash secret
+
+Managed keys are HMAC-hashed with `INTEGRATION_KEY_HASH_SECRET`. To rotate
+that secret without invalidating every issued key at once:
+
+1. Move the old value to `INTEGRATION_KEY_HASH_SECRET_PREVIOUS` and install
+   the new value as `INTEGRATION_KEY_HASH_SECRET` in one deployment.
+2. Keep both values configured while active clients authenticate. A key
+   matched with the previous secret is transparently rehashed with the current
+   secret on successful authentication.
+3. Remove `INTEGRATION_KEY_HASH_SECRET_PREVIOUS` after the chosen migration
+   window. Keys that were not used during that window must then be rotated.
+
+Only one previous secret is accepted, deliberately bounding the fallback
+window. Never swap the values or retain a chain of historical secrets.
+
 Check whether this mount is active, and what it currently exposes, via:
 
 ```http

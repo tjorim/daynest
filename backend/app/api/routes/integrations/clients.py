@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from app.api.dependencies.audit import get_audit_actor
 from app.api.dependencies.auth import get_current_user
 from app.api.dependencies.integration_auth import (
-    get_integration_client_by_token_hash,
+    get_integration_client_by_raw_key,
     hash_integration_key,
 )
 from app.core.config import settings
@@ -40,7 +40,9 @@ def _create_integration_token(client: IntegrationClient) -> str:
         "iat": now,
         "exp": now + timedelta(seconds=TOKEN_EXPIRES_IN_SECONDS),
     }
-    return jwt.encode(payload, settings.resolved_integration_key_hash_secret, algorithm="HS256")
+    return jwt.encode(
+        payload, settings.resolved_integration_key_hash_secret, algorithm="HS256"
+    )
 
 
 def _integration_client_id(client: IntegrationClient) -> str:
@@ -77,7 +79,11 @@ def list_integration_clients(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> list[IntegrationClientResponse]:
-    stmt = select(IntegrationClient).where(IntegrationClient.user_id == current_user.id).order_by(IntegrationClient.id.asc())
+    stmt = (
+        select(IntegrationClient)
+        .where(IntegrationClient.user_id == current_user.id)
+        .order_by(IntegrationClient.id.asc())
+    )
     clients = list(db.scalars(stmt).all())
     return [
         IntegrationClientResponse(
@@ -86,6 +92,10 @@ def list_integration_clients(
             rate_limit_per_minute=client.rate_limit_per_minute,
             scopes=client.scopes,
             is_active=client.is_active,
+            key_preview=client.key_preview,
+            created_at=client.created_at,
+            last_used_at=client.last_used_at,
+            revoked_at=client.revoked_at,
         )
         for client in clients
     ]
@@ -106,6 +116,7 @@ def create_integration_client(
         user_id=current_user.id,
         name=payload.name,
         key_hash=hash_integration_key(raw_key),
+        key_preview=raw_key[-8:],
         rate_limit_per_minute=payload.rate_limit_per_minute,
         scopes=list(dict.fromkeys(payload.scopes)),
     )
@@ -143,6 +154,7 @@ def pair_pebble_client(
         select(IntegrationClient).where(
             IntegrationClient.user_id == current_user.id,
             IntegrationClient.name == PEBBLE_PAIR_CLIENT_NAME,
+            IntegrationClient.is_active.is_(True),
         )
     )
     audit_action = "integration_client.create"
@@ -151,14 +163,15 @@ def pair_pebble_client(
             user_id=current_user.id,
             name=PEBBLE_PAIR_CLIENT_NAME,
             key_hash=hash_integration_key(raw_key),
+            key_preview=raw_key[-8:],
             rate_limit_per_minute=120,
             scopes=PEBBLE_PAIR_SCOPES,
         )
         db.add(client)
     else:
         client.key_hash = hash_integration_key(raw_key)
+        client.key_preview = raw_key[-8:]
         client.scopes = PEBBLE_PAIR_SCOPES
-        client.is_active = True
         audit_action = "integration_client.rotate"
     db.flush()
     write_audit_entry(
@@ -191,9 +204,17 @@ def rotate_integration_client(
         )
     )
     if client is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Integration client not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Integration client not found"
+        )
+    if not client.is_active or client.revoked_at is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Revoked integration clients cannot be rotated",
+        )
     raw_key = f"daynest_{token_urlsafe(30)}"
     client.key_hash = hash_integration_key(raw_key)
+    client.key_preview = raw_key[-8:]
     write_audit_entry(
         db,
         actor=audit_actor,
@@ -206,7 +227,11 @@ def rotate_integration_client(
     return _create_response(request, client, raw_key)
 
 
-@router.post("/token", response_model=IntegrationClientTokenResponse, name="exchange_integration_client_token")
+@router.post(
+    "/token",
+    response_model=IntegrationClientTokenResponse,
+    name="exchange_integration_client_token",
+)
 def exchange_integration_client_token(
     response: Response,
     grant_type: str = Form(...),
@@ -226,7 +251,7 @@ def exchange_integration_client_token(
             detail="Invalid OAuth client credentials",
         )
 
-    client = get_integration_client_by_token_hash(db, hash_integration_key(client_secret))
+    client = get_integration_client_by_raw_key(db, client_secret)
     if client is None or not client.is_active:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -237,6 +262,9 @@ def exchange_integration_client_token(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid OAuth client credentials",
         )
+
+    client.last_used_at = datetime.now(UTC)
+    db.commit()
 
     return IntegrationClientTokenResponse(
         access_token=_create_integration_token(client),
@@ -258,8 +286,11 @@ def revoke_integration_client(
         )
     )
     if client is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Integration client not found")
-    db.delete(client)
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Integration client not found"
+        )
+    client.is_active = False
+    client.revoked_at = datetime.now(UTC)
     write_audit_entry(
         db,
         actor=audit_actor,

@@ -17,17 +17,40 @@ class IntegrationClient(Base):
     __tablename__ = "integration_clients"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
     name: Mapped[str] = mapped_column(String(120), nullable=False)
-    key_hash: Mapped[str] = mapped_column(String(128), nullable=False, unique=True, index=True)
-    rate_limit_per_minute: Mapped[int] = mapped_column(Integer, nullable=False, default=120, server_default="120")
+    key_hash: Mapped[str] = mapped_column(
+        String(128), nullable=False, unique=True, index=True
+    )
+    key_preview: Mapped[str | None] = mapped_column(String(8), nullable=True)
+    rate_limit_per_minute: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=120, server_default="120"
+    )
     scopes: Mapped[list[str]] = mapped_column(
         JSON,
         nullable=False,
         default=lambda: ["home_assistant:*"],
         server_default='["home_assistant:*"]',
     )
-    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default=sa.text("true"))
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    is_active: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default=sa.text("true")
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    last_used_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    revoked_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    rate_limit_window_started_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    rate_limit_window_count: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, server_default="0"
+    )
 
     user: Mapped[User] = relationship(back_populates="integration_clients")

@@ -40,6 +40,7 @@ def get_audit_actor(
         return AuditActor(
             user_id=current_user.id,
             auth_source=_AUTH_TYPE_TO_AUDIT_SOURCE.get(principal.auth_type, "oidc"),
+            subject=principal.subject,
             integration_client_id=_integration_client_id(principal),
         )
     # get_current_user always authenticates via Keycloak-issued OIDC tokens for
