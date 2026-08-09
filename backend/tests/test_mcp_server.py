@@ -11,6 +11,11 @@ from sqlalchemy.orm import Session, sessionmaker
 from app.api.dependencies.integration_auth import hash_integration_key
 from app.core.config import settings
 from app.core.enums import ChoreStatus, MedicationDoseStatus
+from app.mcp.capabilities import (
+    TOOL_EFFECT_READ,
+    tool_annotations,
+    tool_effect,
+)
 from app.mcp_server import (
     MCP_PROMPT_NAMES,
     MCP_RESOURCE_URIS,
@@ -120,6 +125,32 @@ async def test_mcp_capability_tool_names_match_registered_tools(
     registered_tools = await mcp.list_tools()
 
     assert {tool.name for tool in registered_tools} == set(MCP_TOOL_NAMES)
+
+
+@pytest.mark.anyio
+async def test_registered_tools_advertise_explicit_safety_annotations(
+    db_session: Session,
+) -> None:
+    backend = DaynestMcpBackend(_session_factory(db_session))
+    tools = await create_mcp_server(backend).list_tools()
+
+    for tool in tools:
+        annotations = tool.annotations
+        expected_read_only = tool_effect(tool.name) == TOOL_EFFECT_READ
+        assert annotations is not None
+        assert annotations.read_only_hint is expected_read_only
+        assert annotations.open_world_hint is False
+        if expected_read_only:
+            assert annotations.destructive_hint is False
+            assert annotations.idempotent_hint is True
+
+
+def test_write_annotations_distinguish_creation_from_destructive_changes() -> None:
+    assert tool_annotations("create_planned_item").destructive_hint is False
+    assert tool_annotations("add_shopping_item").destructive_hint is False
+    assert tool_annotations("update_planned_item").destructive_hint is True
+    assert tool_annotations("delete_planned_item").destructive_hint is True
+    assert tool_annotations("future_tool_without_policy").destructive_hint is True
 
 
 @pytest.mark.anyio
