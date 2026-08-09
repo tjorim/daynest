@@ -77,7 +77,7 @@ class _MCPAwareCORSMiddleware:
 
 
 _mcp = create_mcp_server() if settings.feature_mcp else None
-_mcp_app = _mcp.http_app(path="/") if _mcp is not None else None
+_mcp_app = _mcp.http_app(path="/", stateless_http=True) if _mcp is not None else None
 logger = logging.getLogger(__name__)
 
 
@@ -271,18 +271,27 @@ async def mcp_capabilities() -> dict[str, object]:
             "prompts": [],
         }
 
-    tools = await _mcp.list_tools()
-    resource_templates = await _mcp.list_resource_templates()
-    resources = await _mcp.list_resources()
-    prompts = await _mcp.list_prompts()
+    tools = await _mcp.local_provider.list_tools()
+    resource_templates = await _mcp.local_provider.list_resource_templates()
+    resources = await _mcp.local_provider.list_resources()
+    prompts = await _mcp.local_provider.list_prompts()
     return {
         "enabled": True,
         "mount_path": "/mcp",
         "version": _mcp.version,
-        "tools": [tool_capability(tool.name) for tool in tools],
-        "resources": [{"uri": template.uri_template} for template in resource_templates]
-        + [{"uri": str(resource.uri)} for resource in resources],
-        "prompts": [{"name": prompt.name} for prompt in prompts],
+        "tools": [
+            tool_capability(tool.name)
+            for tool in sorted(tools, key=lambda tool: tool.name)
+        ],
+        "resources": sorted(
+            [{"uri": template.uri_template} for template in resource_templates]
+            + [{"uri": str(resource.uri)} for resource in resources],
+            key=lambda resource: resource["uri"],
+        ),
+        "prompts": [
+            {"name": prompt.name}
+            for prompt in sorted(prompts, key=lambda prompt: prompt.name)
+        ],
     }
 
 
