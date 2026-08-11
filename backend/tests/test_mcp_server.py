@@ -102,7 +102,9 @@ def test_mcp_capabilities_endpoint_lists_growth_tools(
         capability_by_name["create_integration_client"]["required_auth"]
         == "interactive"
     )
-    assert all(tool["required_tier"] == "owner" for tool in payload["tools"])
+    assert capability_by_name["list_households"]["required_tier"] == "household_member"
+    assert capability_by_name["get_household"]["required_tier"] == "household_member"
+    assert capability_by_name["get_today"]["required_tier"] == "owner"
     assert {resource["uri"] for resource in payload["resources"]} == {
         "daynest://today/{for_date}",
         "daynest://calendar/day/{for_date}",
@@ -206,10 +208,16 @@ async def test_interactive_tools_reject_managed_integration_credentials(
     mcp = create_mcp_server(DaynestMcpBackend(_session_factory(db_session)))
     tools = {tool.name: tool for tool in await mcp.local_provider.list_tools()}
 
-    def context(tool_name: str, auth_source: str | None) -> AuthContext:
+    def context(
+        tool_name: str,
+        auth_source: str | None,
+        preferred_username: str | None = None,
+    ) -> AuthContext:
         claims = {"sub": "test-user"}
         if auth_source is not None:
             claims["auth_source"] = auth_source
+        if preferred_username is not None:
+            claims["preferred_username"] = preferred_username
         return AuthContext(
             token=AccessToken(
                 token="test-token", client_id="test-client", scopes=[], claims=claims
@@ -229,6 +237,11 @@ async def test_interactive_tools_reject_managed_integration_credentials(
         assert auth is not None
         assert await run_auth_checks(auth, context(tool_name, None))
         assert not await run_auth_checks(auth, context(tool_name, "integration"))
+        assert not await run_auth_checks(auth, context(tool_name, "keycloak_service"))
+        assert not await run_auth_checks(
+            auth,
+            context(tool_name, None, "service-account-daynest-mcp"),
+        )
 
         local_stdio_context = AuthContext(token=None, component=tools[tool_name])
         assert await run_auth_checks(auth, local_stdio_context)

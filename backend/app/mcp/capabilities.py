@@ -20,6 +20,7 @@ _INTERACTIVE_ONLY_TOOLS = frozenset(
         "list_users",
     }
 )
+_HOUSEHOLD_MEMBER_TOOLS = frozenset({"list_households", "get_household"})
 
 
 def tool_effect(tool_name: str) -> str:
@@ -34,7 +35,9 @@ def tool_capability(tool_name: str) -> dict[str, str]:
     return {
         "name": tool_name,
         "effect": tool_effect(tool_name),
-        "required_tier": "owner",
+        "required_tier": (
+            "household_member" if tool_name in _HOUSEHOLD_MEMBER_TOOLS else "owner"
+        ),
         "required_auth": "interactive"
         if tool_name in _INTERACTIVE_ONLY_TOOLS
         else "user_or_integration",
@@ -49,7 +52,13 @@ def _require_interactive_auth(ctx: AuthContext) -> bool:
     explicitly local stdio transport, where ``DAYNEST_USER_EMAIL`` supplies the
     principal.
     """
-    return ctx.token is None or ctx.token.claims.get("auth_source") != "integration"
+    if ctx.token is None:
+        return True
+    claims = ctx.token.claims
+    if claims.get("auth_source") in {"integration", "keycloak_service"}:
+        return False
+    username = claims.get("preferred_username")
+    return not (isinstance(username, str) and username.startswith("service-account-"))
 
 
 def tool_auth(tool_name: str) -> AuthCheck | None:
