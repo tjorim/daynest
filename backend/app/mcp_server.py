@@ -19,7 +19,7 @@ import json
 import logging
 import os
 import sys
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from datetime import UTC, datetime, timedelta
 from typing import Any, Literal, cast
 
@@ -27,6 +27,8 @@ from anyio import to_thread
 from fastmcp import Context, FastMCP
 from fastmcp.server.auth import MultiAuth
 from fastmcp.server.auth.providers.keycloak import KeycloakAuthProvider
+from fastmcp.server.transforms.search import BM25SearchTransform
+from fastmcp.tools.base import Tool
 from mcp.types import (
     CompletionArgument,
     CompletionContext,
@@ -51,6 +53,21 @@ from app.schemas.today import PlannedItemModuleKey
 from app.services.audit_service import DEFAULT_AUDIT_LIMIT
 
 logger = logging.getLogger(__name__)
+
+
+def _search_serializer(tools: Sequence[Tool]) -> list[dict[str, Any]]:
+    """Preserve callable schemas and Daynest safety metadata in search results."""
+    from app.mcp.capabilities import tool_capability
+
+    return [
+        {
+            "name": tool.name,
+            "description": tool.description or "",
+            "input_schema": tool.parameters,
+            **tool_capability(tool.name),
+        }
+        for tool in tools
+    ]
 
 if not logger.handlers:
     logging.basicConfig(stream=sys.stderr, level=logging.INFO)
@@ -646,6 +663,15 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
         version=_build_version,
         instructions="Daynest personal planning tools scoped to the authenticated owner.",
         auth=auth,
+        transforms=[
+            BM25SearchTransform(
+                max_results=10,
+                always_visible=["whoami"],
+                search_tool_name="search_tools",
+                call_tool_name="call_tool",
+                search_result_serializer=_search_serializer,
+            )
+        ],
     )
 
     def register_tool(fn: Callable[..., Any]) -> Any:

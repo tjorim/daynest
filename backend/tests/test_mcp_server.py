@@ -133,6 +133,46 @@ async def test_mcp_capability_tool_names_match_registered_tools(
 
 
 @pytest.mark.anyio
+async def test_search_transform_replaces_large_initial_catalog() -> None:
+    mcp = create_mcp_server(DaynestMcpBackend(MagicMock()))
+
+    assert {tool.name for tool in await mcp.list_tools()} == {
+        "whoami",
+        "search_tools",
+        "call_tool",
+    }
+
+
+@pytest.mark.anyio
+async def test_search_tools_finds_today_tool_for_chore_query() -> None:
+    mcp = create_mcp_server(DaynestMcpBackend(MagicMock()))
+    result = await mcp.call_tool("search_tools", {"query": "today chores"})
+
+    assert result.structured_content is not None
+    assert result.structured_content["result"][0]["name"] == "get_today"
+
+
+def test_search_serializer_preserves_schema_and_capabilities() -> None:
+    from app.mcp_server import _search_serializer
+
+    tool = MagicMock(name="tool")
+    tool.name = "get_today"
+    tool.description = "Get today's plan"
+    tool.parameters = {"type": "object", "properties": {}}
+
+    assert _search_serializer([tool]) == [
+        {
+            "name": "get_today",
+            "description": "Get today's plan",
+            "input_schema": tool.parameters,
+            "effect": "read",
+            "required_tier": "owner",
+            "required_auth": "user_or_integration",
+        }
+    ]
+
+
+@pytest.mark.anyio
 async def test_registered_tools_advertise_explicit_safety_annotations(
     db_session: Session,
 ) -> None:
