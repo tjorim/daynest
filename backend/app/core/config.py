@@ -50,6 +50,7 @@ class AppSettings(BaseSettings):
 
     oidc_issuer_url: str | None = None
     oidc_audience: str | None = None
+    mcp_interactive_client_ids: str = "daynest,daynest-android"
     oidc_jwks_uri: str | None = None
     oidc_algorithms: str = "RS256"
 

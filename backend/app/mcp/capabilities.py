@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from fastmcp.server.auth import AuthCheck, AuthContext
 
+from app.core.config import settings
 from mcp.types import ToolAnnotations
 
 TOOL_EFFECT_READ = "read"
@@ -57,8 +58,12 @@ def _require_interactive_auth(ctx: AuthContext) -> bool:
     claims = ctx.token.claims
     if claims.get("auth_source") in {"integration", "keycloak_service"}:
         return False
-    username = claims.get("preferred_username")
-    return not (isinstance(username, str) and username.startswith("service-account-"))
+    interactive_client_ids = {
+        client_id.strip()
+        for client_id in settings.mcp_interactive_client_ids.split(",")
+        if client_id.strip()
+    }
+    return claims.get("azp") in interactive_client_ids
 
 
 def tool_auth(tool_name: str) -> AuthCheck | None:

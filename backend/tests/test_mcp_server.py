@@ -212,8 +212,9 @@ async def test_interactive_tools_reject_managed_integration_credentials(
         tool_name: str,
         auth_source: str | None,
         preferred_username: str | None = None,
+        azp: str = "daynest",
     ) -> AuthContext:
-        claims = {"sub": "test-user"}
+        claims = {"sub": "test-user", "azp": azp}
         if auth_source is not None:
             claims["auth_source"] = auth_source
         if preferred_username is not None:
@@ -240,7 +241,16 @@ async def test_interactive_tools_reject_managed_integration_credentials(
         assert not await run_auth_checks(auth, context(tool_name, "keycloak_service"))
         assert not await run_auth_checks(
             auth,
-            context(tool_name, None, "service-account-daynest-mcp"),
+            context(
+                tool_name,
+                None,
+                "service-account-daynest-mcp",
+                "daynest-mcp",
+            ),
+        )
+        assert not await run_auth_checks(
+            auth,
+            context(tool_name, None, azp="daynest-mcp"),
         )
 
         local_stdio_context = AuthContext(token=None, component=tools[tool_name])
