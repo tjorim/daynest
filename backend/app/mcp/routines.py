@@ -48,34 +48,52 @@ def _chore_template_to_dict(t: Any) -> dict[str, Any]:
 
 
 @map_domain_errors
-def complete_chore(session_factory: SessionFactory, user_email: str | None, chore_instance_id: int) -> dict[str, Any]:
+def complete_chore(
+    session_factory: SessionFactory, user_email: str | None, chore_instance_id: int
+) -> dict[str, Any]:
     return with_today_service(
         session_factory,
         user_email,
         lambda _db, principal, service: jsonable(
-            service.complete_chore(principal.user.id, chore_instance_id, actor=principal.to_audit_actor())
+            service.complete_chore(
+                principal.user.id, chore_instance_id, actor=principal.to_audit_actor()
+            )
         ),
     )
 
 
 @map_domain_errors
-def skip_chore(session_factory: SessionFactory, user_email: str | None, chore_instance_id: int) -> dict[str, Any]:
+def skip_chore(
+    session_factory: SessionFactory, user_email: str | None, chore_instance_id: int
+) -> dict[str, Any]:
     return with_today_service(
         session_factory,
         user_email,
         lambda _db, principal, service: jsonable(
-            service.skip_chore(principal.user.id, chore_instance_id, actor=principal.to_audit_actor())
+            service.skip_chore(
+                principal.user.id, chore_instance_id, actor=principal.to_audit_actor()
+            )
         ),
     )
 
 
 @map_domain_errors
-def reschedule_chore(session_factory: SessionFactory, user_email: str | None, chore_instance_id: int, scheduled_date: str) -> dict[str, Any]:
+def reschedule_chore(
+    session_factory: SessionFactory,
+    user_email: str | None,
+    chore_instance_id: int,
+    scheduled_date: str,
+) -> dict[str, Any]:
     return with_today_service(
         session_factory,
         user_email,
         lambda _db, principal, service: jsonable(
-            service.reschedule_chore(principal.user.id, chore_instance_id, parse_date(scheduled_date), actor=principal.to_audit_actor())
+            service.reschedule_chore(
+                principal.user.id,
+                chore_instance_id,
+                parse_date(scheduled_date),
+                actor=principal.to_audit_actor(),
+            )
         ),
     )
 
@@ -84,34 +102,46 @@ def reschedule_chore(session_factory: SessionFactory, user_email: str | None, ch
 
 
 @map_domain_errors
-def start_routine_task(session_factory: SessionFactory, user_email: str | None, task_instance_id: int) -> dict[str, Any]:
+def start_routine_task(
+    session_factory: SessionFactory, user_email: str | None, task_instance_id: int
+) -> dict[str, Any]:
     return with_today_service(
         session_factory,
         user_email,
         lambda _db, principal, service: jsonable(
-            service.start_routine_task(principal.user.id, task_instance_id, actor=principal.to_audit_actor())
+            service.start_routine_task(
+                principal.user.id, task_instance_id, actor=principal.to_audit_actor()
+            )
         ),
     )
 
 
 @map_domain_errors
-def complete_routine_task(session_factory: SessionFactory, user_email: str | None, task_instance_id: int) -> dict[str, Any]:
+def complete_routine_task(
+    session_factory: SessionFactory, user_email: str | None, task_instance_id: int
+) -> dict[str, Any]:
     return with_today_service(
         session_factory,
         user_email,
         lambda _db, principal, service: jsonable(
-            service.complete_routine_task(principal.user.id, task_instance_id, actor=principal.to_audit_actor())
+            service.complete_routine_task(
+                principal.user.id, task_instance_id, actor=principal.to_audit_actor()
+            )
         ),
     )
 
 
 @map_domain_errors
-def skip_routine_task(session_factory: SessionFactory, user_email: str | None, task_instance_id: int) -> dict[str, Any]:
+def skip_routine_task(
+    session_factory: SessionFactory, user_email: str | None, task_instance_id: int
+) -> dict[str, Any]:
     return with_today_service(
         session_factory,
         user_email,
         lambda _db, principal, service: jsonable(
-            service.skip_routine_task(principal.user.id, task_instance_id, actor=principal.to_audit_actor())
+            service.skip_routine_task(
+                principal.user.id, task_instance_id, actor=principal.to_audit_actor()
+            )
         ),
     )
 
@@ -120,11 +150,16 @@ def skip_routine_task(session_factory: SessionFactory, user_email: str | None, t
 
 
 @map_domain_errors
-def list_routines(session_factory: SessionFactory, user_email: str | None) -> list[dict[str, Any]]:
+def list_routines(
+    session_factory: SessionFactory, user_email: str | None
+) -> list[dict[str, Any]]:
     return with_today_service(
         session_factory,
         user_email,
-        lambda _db, principal, service: [_routine_template_to_dict(t) for t in service.list_routine_templates(principal.user.id)],
+        lambda _db, principal, service: [
+            _routine_template_to_dict(t)
+            for t in service.list_routine_templates(principal.user.id)
+        ],
     )
 
 
@@ -141,9 +176,13 @@ def create_routine(
     is_active: bool = True,
 ) -> dict[str, Any]:
     parsed_start = parse_date(start_date)
-    parsed_due_time = time.fromisoformat(due_time) if due_time and due_time.strip() else None
+    parsed_due_time = (
+        time.fromisoformat(due_time) if due_time and due_time.strip() else None
+    )
 
-    def _op(_db: Session, principal: McpPrincipal, service: TodayService) -> dict[str, Any]:
+    def _op(
+        _db: Session, principal: McpPrincipal, service: TodayService
+    ) -> dict[str, Any]:
         return _routine_template_to_dict(
             service.create_routine_template(
                 principal.user.id,
@@ -174,10 +213,16 @@ def update_routine(
     is_active: bool | None = None,
 ) -> dict[str, Any]:
     parsed_start = parse_date(start_date)
-    parsed_due_time = time.fromisoformat(due_time) if due_time and due_time.strip() else None
+    parsed_due_time = (
+        time.fromisoformat(due_time) if due_time and due_time.strip() else None
+    )
 
-    def _op(_db: Session, principal: McpPrincipal, service: TodayService) -> dict[str, Any]:
-        existing = service.repository.get_routine_template_for_user(principal.user.id, routine_template_id)
+    def _op(
+        _db: Session, principal: McpPrincipal, service: TodayService
+    ) -> dict[str, Any]:
+        existing = service.repository.get_routine_template_for_user(
+            principal.user.id, routine_template_id
+        )
         return _routine_template_to_dict(
             service.update_routine_template(
                 principal.user.id,
@@ -197,7 +242,9 @@ def update_routine(
 
 
 @map_domain_errors
-def delete_routine(session_factory: SessionFactory, user_email: str | None, routine_template_id: int) -> dict[str, Any]:
+def delete_routine(
+    session_factory: SessionFactory, user_email: str | None, routine_template_id: int
+) -> dict[str, Any]:
     with_today_service(
         session_factory,
         user_email,
@@ -212,11 +259,16 @@ def delete_routine(session_factory: SessionFactory, user_email: str | None, rout
 
 
 @map_domain_errors
-def list_chore_templates(session_factory: SessionFactory, user_email: str | None) -> list[dict[str, Any]]:
+def list_chore_templates(
+    session_factory: SessionFactory, user_email: str | None
+) -> list[dict[str, Any]]:
     return with_today_service(
         session_factory,
         user_email,
-        lambda _db, principal, service: [_chore_template_to_dict(t) for t in service.list_chore_templates(principal.user.id)],
+        lambda _db, principal, service: [
+            _chore_template_to_dict(t)
+            for t in service.list_chore_templates(principal.user.id)
+        ],
     )
 
 
@@ -233,7 +285,9 @@ def create_chore_template(
 ) -> dict[str, Any]:
     parsed_start = parse_date(start_date)
 
-    def _op(_db: Session, principal: McpPrincipal, service: TodayService) -> dict[str, Any]:
+    def _op(
+        _db: Session, principal: McpPrincipal, service: TodayService
+    ) -> dict[str, Any]:
         return _chore_template_to_dict(
             service.create_chore_template(
                 principal.user.id,
@@ -263,8 +317,12 @@ def update_chore_template(
 ) -> dict[str, Any]:
     parsed_start = parse_date(start_date)
 
-    def _op(_db: Session, principal: McpPrincipal, service: TodayService) -> dict[str, Any]:
-        existing = service.repository.get_chore_template_for_user(principal.user.id, chore_template_id)
+    def _op(
+        _db: Session, principal: McpPrincipal, service: TodayService
+    ) -> dict[str, Any]:
+        existing = service.repository.get_chore_template_for_user(
+            principal.user.id, chore_template_id
+        )
         return _chore_template_to_dict(
             service.update_chore_template(
                 principal.user.id,
@@ -285,7 +343,9 @@ def update_chore_template(
 
 
 @map_domain_errors
-def delete_chore_template(session_factory: SessionFactory, user_email: str | None, chore_template_id: int) -> dict[str, Any]:
+def delete_chore_template(
+    session_factory: SessionFactory, user_email: str | None, chore_template_id: int
+) -> dict[str, Any]:
     with_today_service(
         session_factory,
         user_email,

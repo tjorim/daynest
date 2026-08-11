@@ -102,7 +102,9 @@ def test_mcp_capabilities_endpoint_lists_growth_tools(
         capability_by_name["create_integration_client"]["required_auth"]
         == "interactive"
     )
-    assert all(tool["required_tier"] == "owner" for tool in payload["tools"])
+    assert capability_by_name["list_households"]["required_tier"] == "household_member"
+    assert capability_by_name["get_household"]["required_tier"] == "household_member"
+    assert capability_by_name["get_today"]["required_tier"] == "owner"
     assert {resource["uri"] for resource in payload["resources"]} == {
         "daynest://today/{for_date}",
         "daynest://calendar/day/{for_date}",
@@ -130,6 +132,47 @@ async def test_mcp_capability_tool_names_match_registered_tools(
     registered_tools = await mcp.local_provider.list_tools()
 
     assert {tool.name for tool in registered_tools} == set(MCP_TOOL_NAMES)
+
+
+@pytest.mark.anyio
+async def test_search_transform_replaces_large_initial_catalog() -> None:
+    mcp = create_mcp_server(DaynestMcpBackend(MagicMock()))
+
+    assert {tool.name for tool in await mcp.list_tools()} == {
+        "whoami",
+        "search_tools",
+        "call_tool",
+    }
+
+
+@pytest.mark.anyio
+async def test_search_tools_finds_today_tool_for_chore_query() -> None:
+    mcp = create_mcp_server(DaynestMcpBackend(MagicMock()))
+    result = await mcp.call_tool("search_tools", {"query": "today chores"})
+
+    assert result.structured_content is not None
+    names = [item["name"] for item in result.structured_content["result"][:3]]
+    assert "get_today" in names
+
+
+def test_search_serializer_preserves_schema_and_capabilities() -> None:
+    from app.mcp_server import _search_serializer
+
+    tool = MagicMock(name="tool")
+    tool.name = "get_today"
+    tool.description = "Get today's plan"
+    tool.parameters = {"type": "object", "properties": {}}
+
+    assert _search_serializer([tool]) == [
+        {
+            "name": "get_today",
+            "description": "Get today's plan",
+            "input_schema": tool.parameters,
+            "effect": "read",
+            "required_tier": "owner",
+            "required_auth": "user_or_integration",
+        }
+    ]
 
 
 @pytest.mark.anyio
@@ -165,10 +208,17 @@ async def test_interactive_tools_reject_managed_integration_credentials(
     mcp = create_mcp_server(DaynestMcpBackend(_session_factory(db_session)))
     tools = {tool.name: tool for tool in await mcp.local_provider.list_tools()}
 
-    def context(tool_name: str, auth_source: str | None) -> AuthContext:
-        claims = {"sub": "test-user"}
+    def context(
+        tool_name: str,
+        auth_source: str | None,
+        preferred_username: str | None = None,
+        azp: str = "daynest",
+    ) -> AuthContext:
+        claims = {"sub": "test-user", "azp": azp}
         if auth_source is not None:
             claims["auth_source"] = auth_source
+        if preferred_username is not None:
+            claims["preferred_username"] = preferred_username
         return AuthContext(
             token=AccessToken(
                 token="test-token", client_id="test-client", scopes=[], claims=claims
@@ -180,12 +230,32 @@ async def test_interactive_tools_reject_managed_integration_credentials(
     for tool_name in (
         "create_integration_client",
         "list_integration_clients",
+        "rotate_integration_client",
+        "revoke_integration_client",
         "list_users",
     ):
         auth = tools[tool_name].auth
         assert auth is not None
         assert await run_auth_checks(auth, context(tool_name, None))
         assert not await run_auth_checks(auth, context(tool_name, "integration"))
+        assert not await run_auth_checks(auth, context(tool_name, "keycloak_service"))
+        assert not await run_auth_checks(
+            auth,
+            context(
+                tool_name,
+                None,
+                "service-account-daynest-mcp",
+                "daynest-mcp",
+            ),
+        )
+        assert not await run_auth_checks(
+            auth,
+            context(tool_name, None, "service-account-daynest", "daynest"),
+        )
+        assert not await run_auth_checks(
+            auth,
+            context(tool_name, None, azp="daynest-mcp"),
+        )
 
         local_stdio_context = AuthContext(token=None, component=tools[tool_name])
         assert await run_auth_checks(auth, local_stdio_context)
