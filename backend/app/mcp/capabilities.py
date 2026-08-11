@@ -58,6 +58,9 @@ def _require_interactive_auth(ctx: AuthContext) -> bool:
     claims = ctx.token.claims
     if claims.get("auth_source") in {"integration", "keycloak_service"}:
         return False
+    username = claims.get("preferred_username")
+    if isinstance(username, str) and username.startswith("service-account-"):
+        return False
     interactive_client_ids = {
         client_id.strip()
         for client_id in settings.mcp_interactive_client_ids.split(",")

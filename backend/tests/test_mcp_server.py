@@ -250,6 +250,10 @@ async def test_interactive_tools_reject_managed_integration_credentials(
         )
         assert not await run_auth_checks(
             auth,
+            context(tool_name, None, "service-account-daynest", "daynest"),
+        )
+        assert not await run_auth_checks(
+            auth,
             context(tool_name, None, azp="daynest-mcp"),
         )
 
