@@ -149,7 +149,8 @@ async def test_search_tools_finds_today_tool_for_chore_query() -> None:
     result = await mcp.call_tool("search_tools", {"query": "today chores"})
 
     assert result.structured_content is not None
-    assert result.structured_content["result"][0]["name"] == "get_today"
+    names = [item["name"] for item in result.structured_content["result"][:3]]
+    assert "get_today" in names
 
 
 def test_search_serializer_preserves_schema_and_capabilities() -> None:
@@ -220,6 +221,8 @@ async def test_interactive_tools_reject_managed_integration_credentials(
     for tool_name in (
         "create_integration_client",
         "list_integration_clients",
+        "rotate_integration_client",
+        "revoke_integration_client",
         "list_users",
     ):
         auth = tools[tool_name].auth

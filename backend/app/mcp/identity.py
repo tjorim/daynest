@@ -7,6 +7,7 @@ credentials MCP clients themselves authenticate with.
 from __future__ import annotations
 
 from collections.abc import Callable
+from datetime import UTC, datetime
 from secrets import token_urlsafe
 from typing import Any
 
@@ -120,3 +121,67 @@ def create_integration_client(
         db.commit()
         db.refresh(client)
         return {**_integration_client_to_dict(client), "api_key": raw_key}
+
+
+def rotate_integration_client(
+    session_factory: Callable[[], Session], user_email: str | None, client_id: int
+) -> dict[str, Any]:
+    raw_key = f"{INTEGRATION_KEY_PREFIX}{token_urlsafe(30)}"
+    with session_scope(session_factory) as db:
+        principal = principal_module.resolve_principal(db, user_email=user_email)
+        if principal.auth_source == "integration":
+            raise PermissionError(
+                "Integration tokens cannot rotate integration clients"
+            )
+        client = db.scalar(
+            select(IntegrationClient).where(
+                IntegrationClient.id == client_id,
+                IntegrationClient.user_id == principal.user.id,
+            )
+        )
+        if client is None:
+            raise ValueError("Integration client not found")
+        if not client.is_active or client.revoked_at is not None:
+            raise ValueError("Revoked integration clients cannot be rotated")
+        client.key_hash = hash_integration_key(raw_key)
+        client.key_preview = raw_key[-8:]
+        write_audit_entry(
+            db,
+            actor=principal.to_audit_actor(),
+            action="integration_client.rotate",
+            resource_type="integration_client",
+            resource_id=str(client.id),
+        )
+        db.commit()
+        db.refresh(client)
+        return {**_integration_client_to_dict(client), "api_key": raw_key}
+
+
+def revoke_integration_client(
+    session_factory: Callable[[], Session], user_email: str | None, client_id: int
+) -> dict[str, Any]:
+    with session_scope(session_factory) as db:
+        principal = principal_module.resolve_principal(db, user_email=user_email)
+        if principal.auth_source == "integration":
+            raise PermissionError(
+                "Integration tokens cannot revoke integration clients"
+            )
+        client = db.scalar(
+            select(IntegrationClient).where(
+                IntegrationClient.id == client_id,
+                IntegrationClient.user_id == principal.user.id,
+            )
+        )
+        if client is None:
+            raise ValueError("Integration client not found")
+        client.is_active = False
+        client.revoked_at = datetime.now(UTC)
+        write_audit_entry(
+            db,
+            actor=principal.to_audit_actor(),
+            action="integration_client.revoke",
+            resource_type="integration_client",
+            resource_id=str(client.id),
+        )
+        db.commit()
+        return {"revoked": True, "client_id": client_id}

@@ -17,7 +17,11 @@ from app.mcp.context import (
 from app.mcp.errors import map_domain_errors
 from app.mcp.principal import McpPrincipal
 from app.schemas.meal_plan import MealSlotUpdate
-from app.schemas.shopping_list import ShoppingListCreateRequest, ShoppingListStatus
+from app.schemas.shopping_list import (
+    ShoppingListCreateRequest,
+    ShoppingListStatus,
+    ShoppingListUpdateRequest,
+)
 from app.services.meal_plan_service import MealPlanService
 from app.services.shopping_list_service import ShoppingListService
 
@@ -28,16 +32,28 @@ SessionFactory = Callable[[], Session]
 
 
 @map_domain_errors
-def list_meal_plans(session_factory: SessionFactory, user_email: str | None) -> list[dict[str, Any]]:
+def list_meal_plans(
+    session_factory: SessionFactory, user_email: str | None
+) -> list[dict[str, Any]]:
     return with_meal_plan_service(
-        session_factory, user_email, lambda _db, principal, service: jsonable(service.list_meal_plans(principal.user.id))
+        session_factory,
+        user_email,
+        lambda _db, principal, service: jsonable(
+            service.list_meal_plans(principal.user.id)
+        ),
     )
 
 
 @map_domain_errors
-def get_week_plan(session_factory: SessionFactory, user_email: str | None, meal_plan_id: int) -> dict[str, Any]:
+def get_week_plan(
+    session_factory: SessionFactory, user_email: str | None, meal_plan_id: int
+) -> dict[str, Any]:
     return with_meal_plan_service(
-        session_factory, user_email, lambda _db, principal, service: jsonable(service.get_week_plan(principal.user.id, meal_plan_id))
+        session_factory,
+        user_email,
+        lambda _db, principal, service: jsonable(
+            service.get_week_plan(principal.user.id, meal_plan_id)
+        ),
     )
 
 
@@ -63,16 +79,36 @@ def set_meal_slot(
         payload["planned_item_id"] = None if planned_item_id == 0 else planned_item_id
     request = MealSlotUpdate(**payload)
 
-    def _op(_db: Session, principal: McpPrincipal, service: MealPlanService) -> dict[str, Any]:
-        return jsonable(service.update_slot(principal.user.id, meal_plan_id, slot_id, request, actor=principal.to_audit_actor()))
+    def _op(
+        _db: Session, principal: McpPrincipal, service: MealPlanService
+    ) -> dict[str, Any]:
+        return jsonable(
+            service.update_slot(
+                principal.user.id,
+                meal_plan_id,
+                slot_id,
+                request,
+                actor=principal.to_audit_actor(),
+            )
+        )
 
     return with_meal_plan_service(session_factory, user_email, _op)
 
 
 @map_domain_errors
-def generate_shopping_list_from_plan(session_factory: SessionFactory, user_email: str | None, meal_plan_id: int) -> dict[str, Any]:
-    def _op(_db: Session, principal: McpPrincipal, service: MealPlanService) -> dict[str, Any]:
-        return jsonable(service.generate_shopping_list(plan_id=meal_plan_id, user_id=principal.user.id, actor=principal.to_audit_actor()))
+def generate_shopping_list_from_plan(
+    session_factory: SessionFactory, user_email: str | None, meal_plan_id: int
+) -> dict[str, Any]:
+    def _op(
+        _db: Session, principal: McpPrincipal, service: MealPlanService
+    ) -> dict[str, Any]:
+        return jsonable(
+            service.generate_shopping_list(
+                plan_id=meal_plan_id,
+                user_id=principal.user.id,
+                actor=principal.to_audit_actor(),
+            )
+        )
 
     return with_meal_plan_service(session_factory, user_email, _op)
 
@@ -82,24 +118,103 @@ def generate_shopping_list_from_plan(session_factory: SessionFactory, user_email
 
 @map_domain_errors
 def list_shopping_lists(
-    session_factory: SessionFactory, user_email: str | None, status: ShoppingListStatus | Literal["all"] = "active"
+    session_factory: SessionFactory,
+    user_email: str | None,
+    status: ShoppingListStatus | Literal["all"] = "active",
 ) -> list[dict[str, Any]]:
     status_filter = None if status == "all" else status
     return with_shopping_service(
         session_factory,
         user_email,
-        lambda _db, principal, service: jsonable(service.list_shopping_lists(principal.user.id, status_filter)),
+        lambda _db, principal, service: jsonable(
+            service.list_shopping_lists(principal.user.id, status_filter)
+        ),
     )
 
 
 @map_domain_errors
 def create_shopping_list(
-    session_factory: SessionFactory, user_email: str | None, name: str, store: str | None = None, notes: str | None = None
+    session_factory: SessionFactory,
+    user_email: str | None,
+    name: str,
+    store: str | None = None,
+    notes: str | None = None,
 ) -> dict[str, Any]:
     request = ShoppingListCreateRequest(name=name, store=store, notes=notes)
 
-    def _op(_db: Session, principal: McpPrincipal, service: ShoppingListService) -> dict[str, Any]:
-        return jsonable(service.create_shopping_list(principal.user.id, request, actor=principal.to_audit_actor()))
+    def _op(
+        _db: Session, principal: McpPrincipal, service: ShoppingListService
+    ) -> dict[str, Any]:
+        return jsonable(
+            service.create_shopping_list(
+                principal.user.id, request, actor=principal.to_audit_actor()
+            )
+        )
+
+    return with_shopping_service(session_factory, user_email, _op)
+
+
+@map_domain_errors
+def get_shopping_list(
+    session_factory: SessionFactory, user_email: str | None, shopping_list_id: int
+) -> dict[str, Any]:
+    return with_shopping_service(
+        session_factory,
+        user_email,
+        lambda _db, principal, service: jsonable(
+            service.get_shopping_list(principal.user.id, shopping_list_id)
+        ),
+    )
+
+
+@map_domain_errors
+def update_shopping_list(
+    session_factory: SessionFactory,
+    user_email: str | None,
+    shopping_list_id: int,
+    name: str | None = None,
+    store: str | None = None,
+    notes: str | None = None,
+    status: ShoppingListStatus | None = None,
+) -> dict[str, Any]:
+    payload = {
+        key: value
+        for key, value in {
+            "name": name,
+            "store": store,
+            "notes": notes,
+            "status": status,
+        }.items()
+        if value is not None
+    }
+    request = ShoppingListUpdateRequest.model_validate(payload)
+
+    def _op(
+        _db: Session, principal: McpPrincipal, service: ShoppingListService
+    ) -> dict[str, Any]:
+        return jsonable(
+            service.update_shopping_list(
+                principal.user.id,
+                shopping_list_id,
+                request,
+                actor=principal.to_audit_actor(),
+            )
+        )
+
+    return with_shopping_service(session_factory, user_email, _op)
+
+
+@map_domain_errors
+def delete_shopping_list(
+    session_factory: SessionFactory, user_email: str | None, shopping_list_id: int
+) -> dict[str, Any]:
+    def _op(
+        _db: Session, principal: McpPrincipal, service: ShoppingListService
+    ) -> dict[str, Any]:
+        service.delete_shopping_list(
+            principal.user.id, shopping_list_id, actor=principal.to_audit_actor()
+        )
+        return {"deleted": True, "shopping_list_id": shopping_list_id}
 
     return with_shopping_service(session_factory, user_email, _op)
 
@@ -115,7 +230,9 @@ def add_shopping_item(
     priority: str = "normal",
     tags: list[str] | None = None,
 ) -> dict[str, Any]:
-    def _op(_db: Session, principal: McpPrincipal, service: ShoppingListService) -> dict[str, Any]:
+    def _op(
+        _db: Session, principal: McpPrincipal, service: ShoppingListService
+    ) -> dict[str, Any]:
         return service.add_shopping_item(
             user_id=principal.user.id,
             shopping_list_id=shopping_list_id,
@@ -131,8 +248,15 @@ def add_shopping_item(
 
 
 @map_domain_errors
-def check_off_shopping_item(session_factory: SessionFactory, user_email: str | None, shopping_list_id: int, planned_item_id: int) -> dict[str, Any]:
-    def _op(_db: Session, principal: McpPrincipal, service: ShoppingListService) -> dict[str, Any]:
+def check_off_shopping_item(
+    session_factory: SessionFactory,
+    user_email: str | None,
+    shopping_list_id: int,
+    planned_item_id: int,
+) -> dict[str, Any]:
+    def _op(
+        _db: Session, principal: McpPrincipal, service: ShoppingListService
+    ) -> dict[str, Any]:
         return service.check_off_shopping_item(
             user_id=principal.user.id,
             shopping_list_id=shopping_list_id,

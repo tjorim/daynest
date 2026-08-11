@@ -12,7 +12,13 @@ TOOL_EFFECT_WRITE = "write"
 _READ_PREFIXES = ("get_", "list_")
 _NON_DESTRUCTIVE_WRITE_PREFIXES = ("add_", "create_", "generate_")
 _INTERACTIVE_ONLY_TOOLS = frozenset(
-    {"create_integration_client", "list_integration_clients", "list_users"}
+    {
+        "create_integration_client",
+        "list_integration_clients",
+        "rotate_integration_client",
+        "revoke_integration_client",
+        "list_users",
+    }
 )
 
 

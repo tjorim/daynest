@@ -40,7 +40,9 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.db.session import SessionLocal
 from app.mcp import audit as mcp_audit
+from app.mcp import households as mcp_households
 from app.mcp import identity as mcp_identity
+from app.mcp import insights as mcp_insights
 from app.mcp import medications as mcp_medications
 from app.mcp import planning as mcp_planning
 from app.mcp import routines as mcp_routines
@@ -69,6 +71,7 @@ def _search_serializer(tools: Sequence[Tool]) -> list[dict[str, Any]]:
         for tool in tools
     ]
 
+
 if not logger.handlers:
     logging.basicConfig(stream=sys.stderr, level=logging.INFO)
 
@@ -80,6 +83,10 @@ MCP_TOOL_NAMES = (
     "list_users",
     "list_integration_clients",
     "create_integration_client",
+    "rotate_integration_client",
+    "revoke_integration_client",
+    "list_households",
+    "get_household",
     "get_today",
     "get_calendar_day",
     "get_calendar_month",
@@ -91,6 +98,9 @@ MCP_TOOL_NAMES = (
     "create_shopping_list",
     "add_shopping_item",
     "check_off_shopping_item",
+    "get_shopping_list",
+    "update_shopping_list",
+    "delete_shopping_list",
     "list_planned_items",
     "create_planned_item",
     "update_planned_item",
@@ -120,6 +130,8 @@ MCP_TOOL_NAMES = (
     "delete_medication",
     "get_medication_history",
     "get_scheduling_suggestions",
+    "get_analytics_summary",
+    "search_daynest",
     "list_audit_entries",
 )
 
@@ -200,6 +212,24 @@ class DaynestMcpBackend:
             self.user_email,
             name=name,
             rate_limit_per_minute=rate_limit_per_minute,
+        )
+
+    def rotate_integration_client(self, client_id: int) -> dict[str, Any]:
+        return mcp_identity.rotate_integration_client(
+            self.session_factory, self.user_email, client_id
+        )
+
+    def revoke_integration_client(self, client_id: int) -> dict[str, Any]:
+        return mcp_identity.revoke_integration_client(
+            self.session_factory, self.user_email, client_id
+        )
+
+    def list_households(self) -> list[dict[str, Any]]:
+        return mcp_households.list_households(self.session_factory, self.user_email)
+
+    def get_household(self, household_id: int) -> dict[str, Any]:
+        return mcp_households.get_household(
+            self.session_factory, self.user_email, household_id
         )
 
     # --- Today / calendar / planned items ----------------------------------
@@ -576,6 +606,34 @@ class DaynestMcpBackend:
             self.session_factory, self.user_email, name, store, notes
         )
 
+    def get_shopping_list(self, shopping_list_id: int) -> dict[str, Any]:
+        return mcp_shopping.get_shopping_list(
+            self.session_factory, self.user_email, shopping_list_id
+        )
+
+    def update_shopping_list(
+        self,
+        shopping_list_id: int,
+        name: str | None = None,
+        store: str | None = None,
+        notes: str | None = None,
+        status: ShoppingListStatus | None = None,
+    ) -> dict[str, Any]:
+        return mcp_shopping.update_shopping_list(
+            self.session_factory,
+            self.user_email,
+            shopping_list_id,
+            name,
+            store,
+            notes,
+            status,
+        )
+
+    def delete_shopping_list(self, shopping_list_id: int) -> dict[str, Any]:
+        return mcp_shopping.delete_shopping_list(
+            self.session_factory, self.user_email, shopping_list_id
+        )
+
     def add_shopping_item(
         self,
         shopping_list_id: int,
@@ -601,6 +659,20 @@ class DaynestMcpBackend:
     ) -> dict[str, Any]:
         return mcp_shopping.check_off_shopping_item(
             self.session_factory, self.user_email, shopping_list_id, planned_item_id
+        )
+
+    # --- Insights ------------------------------------------------------
+
+    def get_analytics_summary(
+        self, period: Literal["week", "month", "year"] = "week"
+    ) -> dict[str, Any]:
+        return mcp_insights.get_analytics_summary(
+            self.session_factory, self.user_email, period
+        )
+
+    def search_daynest(self, query: str, limit: int = 20) -> dict[str, Any]:
+        return mcp_insights.search_daynest(
+            self.session_factory, self.user_email, query, limit
         )
 
     # --- Audit ---------------------------------------------------------
@@ -713,6 +785,26 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
         )
 
     @register_tool
+    async def rotate_integration_client(client_id: int) -> dict[str, Any]:
+        """Rotate an integration client's key and return the new key once."""
+        return await to_thread.run_sync(daynest.rotate_integration_client, client_id)
+
+    @register_tool
+    async def revoke_integration_client(client_id: int) -> dict[str, Any]:
+        """Revoke an integration client owned by the active user."""
+        return await to_thread.run_sync(daynest.revoke_integration_client, client_id)
+
+    @register_tool
+    async def list_households() -> list[dict[str, Any]]:
+        """List households containing the active user and their members."""
+        return await to_thread.run_sync(daynest.list_households)
+
+    @register_tool
+    async def get_household(household_id: int) -> dict[str, Any]:
+        """Get a household when the active user is a member."""
+        return await to_thread.run_sync(daynest.get_household, household_id)
+
+    @register_tool
     async def get_today(for_date: str = "today") -> dict[str, Any]:
         """Return the Daynest Today payload for a given date in YYYY-MM-DD format or 'today'."""
 
@@ -788,6 +880,29 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
         return await to_thread.run_sync(
             daynest.create_shopping_list, name, store, notes
         )
+
+    @register_tool
+    async def get_shopping_list(shopping_list_id: int) -> dict[str, Any]:
+        """Get one owner-scoped shopping list and its items."""
+        return await to_thread.run_sync(daynest.get_shopping_list, shopping_list_id)
+
+    @register_tool
+    async def update_shopping_list(
+        shopping_list_id: int,
+        name: str | None = None,
+        store: str | None = None,
+        notes: str | None = None,
+        status: ShoppingListStatus | None = None,
+    ) -> dict[str, Any]:
+        """Update or archive an owner-scoped shopping list."""
+        return await to_thread.run_sync(
+            daynest.update_shopping_list, shopping_list_id, name, store, notes, status
+        )
+
+    @register_tool
+    async def delete_shopping_list(shopping_list_id: int) -> dict[str, Any]:
+        """Delete an owner-scoped shopping list."""
+        return await to_thread.run_sync(daynest.delete_shopping_list, shopping_list_id)
 
     @register_tool
     async def add_shopping_item(
@@ -1346,6 +1461,18 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
         """Generate non-intrusive scheduling suggestions based on recent habits."""
 
         return await to_thread.run_sync(daynest.get_scheduling_suggestions, for_date)
+
+    @register_tool
+    async def get_analytics_summary(
+        period: Literal["week", "month", "year"] = "week",
+    ) -> dict[str, Any]:
+        """Summarize chore, routine, medication, and planned-item outcomes."""
+        return await to_thread.run_sync(daynest.get_analytics_summary, period)
+
+    @register_tool
+    async def search_daynest(query: str, limit: int = 20) -> dict[str, Any]:
+        """Search routines, chores, medications, and planned items owned by the caller."""
+        return await to_thread.run_sync(daynest.search_daynest, query, limit)
 
     @register_tool
     async def list_audit_entries(
