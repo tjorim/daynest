@@ -64,16 +64,10 @@ class TodayRepository:
         )
 
     def get_user_household_ids(self, user_id: int) -> list[int]:
-        rows = self.db.execute(
-            select(HouseholdMember.household_id).where(
-                HouseholdMember.user_id == user_id
-            )
-        ).all()
+        rows = self.db.execute(select(HouseholdMember.household_id).where(HouseholdMember.user_id == user_id)).all()
         return [row[0] for row in rows]
 
-    def ensure_chore_instances_generated(
-        self, user_id: int, through_date: date
-    ) -> None:
+    def ensure_chore_instances_generated(self, user_id: int, through_date: date) -> None:
         household_ids = self.get_user_household_ids(user_id)
         # Personal templates owned by user
         personal_condition = and_(
@@ -91,9 +85,7 @@ class TodayRepository:
 
         templates = list(
             self.db.scalars(
-                select(ChoreTemplate)
-                .where(template_condition)
-                .where(ChoreTemplate.is_active.is_(True))
+                select(ChoreTemplate).where(template_condition).where(ChoreTemplate.is_active.is_(True))
             ).all()
         )
         if not templates:
@@ -101,15 +93,11 @@ class TodayRepository:
 
         template_ids = [t.id for t in templates]
         last_generated_rows = self.db.execute(
-            select(
-                ChoreInstance.chore_template_id, func.max(ChoreInstance.scheduled_date)
-            )
+            select(ChoreInstance.chore_template_id, func.max(ChoreInstance.scheduled_date))
             .where(ChoreInstance.chore_template_id.in_(template_ids))
             .group_by(ChoreInstance.chore_template_id)
         ).all()
-        last_generated_map: dict[int, date] = {
-            row[0]: row[1] for row in last_generated_rows
-        }
+        last_generated_map: dict[int, date] = {row[0]: row[1] for row in last_generated_rows}
 
         rows = []
         for template in templates:
@@ -127,11 +115,7 @@ class TodayRepository:
                 try:
                     dtstart = datetime.combine(template.start_date, time.min)
                     rule = _rrulestr(template.rrule, dtstart=dtstart, ignoretz=True)
-                    start_search = (
-                        datetime.combine(last, time.max)
-                        if last
-                        else dtstart - timedelta(seconds=1)
-                    )
+                    start_search = datetime.combine(last, time.max) if last else dtstart - timedelta(seconds=1)
                     occurrences = rule.between(
                         start_search,
                         datetime.combine(through_date, time.max),
@@ -163,11 +147,7 @@ class TodayRepository:
 
             if not template.rrule or not _DATEUTIL_AVAILABLE or rrule_failed:
                 step = max(template.every_n_days, 1)
-                cursor = (
-                    template.start_date
-                    if last is None
-                    else date.fromordinal(last.toordinal() + step)
-                )
+                cursor = template.start_date if last is None else date.fromordinal(last.toordinal() + step)
                 while cursor <= through_date:
                     rows.append(
                         {
@@ -188,14 +168,10 @@ class TodayRepository:
                 self.db.execute(
                     pg_insert(ChoreInstance)
                     .values(rows)
-                    .on_conflict_do_nothing(
-                        index_elements=["chore_template_id", "scheduled_date"]
-                    )
+                    .on_conflict_do_nothing(index_elements=["chore_template_id", "scheduled_date"])
                 )
             else:
-                self.db.execute(
-                    insert(ChoreInstance).prefix_with("OR IGNORE").values(rows)
-                )
+                self.db.execute(insert(ChoreInstance).prefix_with("OR IGNORE").values(rows))
 
         self.db.commit()
 
@@ -225,9 +201,7 @@ class TodayRepository:
             .where(MedicationDoseInstance.medication_plan_id.in_(template_ids))
             .group_by(MedicationDoseInstance.medication_plan_id)
         ).all()
-        last_generated_map: dict[int, date] = {
-            row[0]: row[1] for row in last_generated_rows
-        }
+        last_generated_map: dict[int, date] = {row[0]: row[1] for row in last_generated_rows}
 
         new_instances = []
         for template in templates:
@@ -236,17 +210,11 @@ class TodayRepository:
 
             step = max(template.every_n_days, 1)
             last = last_generated_map.get(template.id)
-            cursor = (
-                template.start_date
-                if last is None
-                else date.fromordinal(last.toordinal() + step)
-            )
+            cursor = template.start_date if last is None else date.fromordinal(last.toordinal() + step)
 
             tz = ZoneInfo(user_timezone)
             while cursor <= through_date:
-                scheduled_at = datetime.combine(
-                    cursor, template.schedule_time, tzinfo=tz
-                ).astimezone(UTC)
+                scheduled_at = datetime.combine(cursor, template.schedule_time, tzinfo=tz).astimezone(UTC)
                 new_instances.append(
                     MedicationDoseInstance(
                         user_id=user_id,
@@ -264,9 +232,7 @@ class TodayRepository:
             self.db.add_all(new_instances)
         self.db.commit()
 
-    def mark_due_medications_missed(
-        self, user_id: int, now: datetime, grace_minutes: int = 30
-    ) -> None:
+    def mark_due_medications_missed(self, user_id: int, now: datetime, grace_minutes: int = 30) -> None:
         cutoff = now - timedelta(minutes=grace_minutes)
         stmt = (
             update(MedicationDoseInstance)
@@ -284,9 +250,7 @@ class TodayRepository:
         self.db.execute(stmt)
         self.db.commit()
 
-    def get_today_medication(
-        self, user_id: int, for_date: date
-    ) -> list[MedicationDoseInstance]:
+    def get_today_medication(self, user_id: int, for_date: date) -> list[MedicationDoseInstance]:
         stmt = (
             select(MedicationDoseInstance)
             .where(MedicationDoseInstance.user_id == user_id)
@@ -311,33 +275,19 @@ class TodayRepository:
             .where(MedicationDoseInstance.scheduled_date < before_date)
         )
         if medication_plan_id is not None:
-            stmt = stmt.where(
-                MedicationDoseInstance.medication_plan_id == medication_plan_id
-            )
-        stmt = stmt.order_by(
-            MedicationDoseInstance.scheduled_at.desc(), MedicationDoseInstance.id.desc()
-        ).limit(limit)
+            stmt = stmt.where(MedicationDoseInstance.medication_plan_id == medication_plan_id)
+        stmt = stmt.order_by(MedicationDoseInstance.scheduled_at.desc(), MedicationDoseInstance.id.desc()).limit(limit)
         return list(self.db.scalars(stmt).all())
 
     def list_medication_plans(self, user_id: int) -> list[MedicationPlan]:
-        stmt = (
-            select(MedicationPlan)
-            .where(MedicationPlan.user_id == user_id)
-            .order_by(MedicationPlan.id.asc())
-        )
+        stmt = select(MedicationPlan).where(MedicationPlan.user_id == user_id).order_by(MedicationPlan.id.asc())
         return list(self.db.scalars(stmt).all())
 
     def list_routine_templates(self, user_id: int) -> list[RoutineTemplate]:
-        stmt = (
-            select(RoutineTemplate)
-            .where(RoutineTemplate.user_id == user_id)
-            .order_by(RoutineTemplate.id.asc())
-        )
+        stmt = select(RoutineTemplate).where(RoutineTemplate.user_id == user_id).order_by(RoutineTemplate.id.asc())
         return list(self.db.scalars(stmt).all())
 
-    def add_routine_template(
-        self, template: RoutineTemplate, *, actor: AuditActor | None = None
-    ) -> RoutineTemplate:
+    def add_routine_template(self, template: RoutineTemplate, *, actor: AuditActor | None = None) -> RoutineTemplate:
         self.db.add(template)
         self.db.flush()
         self.record_audit(
@@ -364,15 +314,11 @@ class TodayRepository:
 
         template_ids = [t.id for t in templates]
         last_generated_rows = self.db.execute(
-            select(
-                TaskInstance.routine_template_id, func.max(TaskInstance.scheduled_date)
-            )
+            select(TaskInstance.routine_template_id, func.max(TaskInstance.scheduled_date))
             .where(TaskInstance.routine_template_id.in_(template_ids))
             .group_by(TaskInstance.routine_template_id)
         ).all()
-        last_generated_map: dict[int, date] = {
-            row[0]: row[1] for row in last_generated_rows
-        }
+        last_generated_map: dict[int, date] = {row[0]: row[1] for row in last_generated_rows}
 
         rows = []
         for template in templates:
@@ -387,11 +333,7 @@ class TodayRepository:
                 try:
                     dtstart = datetime.combine(template.start_date, time.min)
                     rule = _rrulestr(template.rrule, dtstart=dtstart, ignoretz=True)
-                    start_search = (
-                        datetime.combine(last, time.max)
-                        if last
-                        else dtstart - timedelta(seconds=1)
-                    )
+                    start_search = datetime.combine(last, time.max) if last else dtstart - timedelta(seconds=1)
                     occurrences = rule.between(
                         start_search,
                         datetime.combine(through_date, time.max),
@@ -412,11 +354,7 @@ class TodayRepository:
                     rrule_generated = True
                     for dt in occurrences:
                         cursor = dt.date()
-                        due_at = (
-                            datetime.combine(cursor, template.due_time, tzinfo=UTC)
-                            if template.due_time
-                            else None
-                        )
+                        due_at = datetime.combine(cursor, template.due_time, tzinfo=UTC) if template.due_time else None
                         rows.append(
                             {
                                 "user_id": user_id,
@@ -430,17 +368,9 @@ class TodayRepository:
 
             if not template.rrule or not _DATEUTIL_AVAILABLE or rrule_failed:
                 step = max(template.every_n_days, 1)
-                cursor = (
-                    template.start_date
-                    if last is None
-                    else date.fromordinal(last.toordinal() + step)
-                )
+                cursor = template.start_date if last is None else date.fromordinal(last.toordinal() + step)
                 while cursor <= through_date:
-                    due_at = (
-                        datetime.combine(cursor, template.due_time, tzinfo=UTC)
-                        if template.due_time
-                        else None
-                    )
+                    due_at = datetime.combine(cursor, template.due_time, tzinfo=UTC) if template.due_time else None
                     rows.append(
                         {
                             "user_id": user_id,
@@ -461,20 +391,14 @@ class TodayRepository:
                 self.db.execute(
                     pg_insert(TaskInstance)
                     .values(rows)
-                    .on_conflict_do_nothing(
-                        index_elements=["routine_template_id", "scheduled_date"]
-                    )
+                    .on_conflict_do_nothing(index_elements=["routine_template_id", "scheduled_date"])
                 )
             else:
-                self.db.execute(
-                    insert(TaskInstance).prefix_with("OR IGNORE").values(rows)
-                )
+                self.db.execute(insert(TaskInstance).prefix_with("OR IGNORE").values(rows))
 
         self.db.commit()
 
-    def get_routine_template_for_user(
-        self, user_id: int, routine_template_id: int
-    ) -> RoutineTemplate | None:
+    def get_routine_template_for_user(self, user_id: int, routine_template_id: int) -> RoutineTemplate | None:
         stmt = (
             select(RoutineTemplate)
             .where(RoutineTemplate.user_id == user_id)
@@ -482,14 +406,10 @@ class TodayRepository:
         )
         return self.db.scalar(stmt)
 
-    def delete_routine_template(
-        self, template: RoutineTemplate, *, actor: AuditActor | None = None
-    ) -> None:
+    def delete_routine_template(self, template: RoutineTemplate, *, actor: AuditActor | None = None) -> None:
         template_id = template.id
         self.db.delete(template)
-        self.record_audit(
-            actor, "routine_template.delete", "routine_template", template_id
-        )
+        self.record_audit(actor, "routine_template.delete", "routine_template", template_id)
         self.db.commit()
 
     def update_routine_template(
@@ -523,9 +443,7 @@ class TodayRepository:
         self.db.refresh(template)
         return template
 
-    def list_chore_templates(
-        self, user_id: int, tags: list[str] | None = None
-    ) -> list[ChoreTemplate]:
+    def list_chore_templates(self, user_id: int, tags: list[str] | None = None) -> list[ChoreTemplate]:
         household_ids = self.get_user_household_ids(user_id)
         if household_ids:
             condition = or_(
@@ -537,14 +455,10 @@ class TodayRepository:
         stmt = select(ChoreTemplate).where(condition).order_by(ChoreTemplate.id.asc())
         templates = list(self.db.scalars(stmt).all())
         if tags:
-            templates = [
-                t for t in templates if any(tag in (t.tags or []) for tag in tags)
-            ]
+            templates = [t for t in templates if any(tag in (t.tags or []) for tag in tags)]
         return templates
 
-    def add_chore_template(
-        self, template: ChoreTemplate, *, actor: AuditActor | None = None
-    ) -> ChoreTemplate:
+    def add_chore_template(self, template: ChoreTemplate, *, actor: AuditActor | None = None) -> ChoreTemplate:
         self.db.add(template)
         self.db.flush()
         self.record_audit(
@@ -558,9 +472,7 @@ class TodayRepository:
         self.db.refresh(template)
         return template
 
-    def get_chore_template_for_user(
-        self, user_id: int, chore_template_id: int
-    ) -> ChoreTemplate | None:
+    def get_chore_template_for_user(self, user_id: int, chore_template_id: int) -> ChoreTemplate | None:
         household_ids = self.get_user_household_ids(user_id)
         if household_ids:
             condition = or_(
@@ -569,16 +481,10 @@ class TodayRepository:
             )
         else:
             condition = ChoreTemplate.user_id == user_id
-        stmt = (
-            select(ChoreTemplate)
-            .where(condition)
-            .where(ChoreTemplate.id == chore_template_id)
-        )
+        stmt = select(ChoreTemplate).where(condition).where(ChoreTemplate.id == chore_template_id)
         return self.db.scalar(stmt)
 
-    def delete_chore_template(
-        self, template: ChoreTemplate, *, actor: AuditActor | None = None
-    ) -> None:
+    def delete_chore_template(self, template: ChoreTemplate, *, actor: AuditActor | None = None) -> None:
         template_id = template.id
         self.db.delete(template)
         self.record_audit(actor, "chore_template.delete", "chore_template", template_id)
@@ -619,9 +525,7 @@ class TodayRepository:
         self.db.refresh(template)
         return template
 
-    def add_medication_plan(
-        self, plan: MedicationPlan, *, actor: AuditActor | None = None
-    ) -> MedicationPlan:
+    def add_medication_plan(self, plan: MedicationPlan, *, actor: AuditActor | None = None) -> MedicationPlan:
         self.db.add(plan)
         self.db.flush()
         self.record_audit(
@@ -635,9 +539,7 @@ class TodayRepository:
         self.db.refresh(plan)
         return plan
 
-    def get_medication_plan_for_user(
-        self, user_id: int, medication_plan_id: int
-    ) -> MedicationPlan | None:
+    def get_medication_plan_for_user(self, user_id: int, medication_plan_id: int) -> MedicationPlan | None:
         stmt = (
             select(MedicationPlan)
             .where(MedicationPlan.user_id == user_id)
@@ -674,17 +576,13 @@ class TodayRepository:
         self.db.refresh(plan)
         return plan
 
-    def delete_medication_plan(
-        self, plan: MedicationPlan, *, actor: AuditActor | None = None
-    ) -> None:
+    def delete_medication_plan(self, plan: MedicationPlan, *, actor: AuditActor | None = None) -> None:
         plan_id = plan.id
         self.db.delete(plan)
         self.record_audit(actor, "medication_plan.delete", "medication_plan", plan_id)
         self.db.commit()
 
-    def get_dose_for_user(
-        self, user_id: int, dose_id: int
-    ) -> MedicationDoseInstance | None:
+    def get_dose_for_user(self, user_id: int, dose_id: int) -> MedicationDoseInstance | None:
         stmt = (
             select(MedicationDoseInstance)
             .where(MedicationDoseInstance.user_id == user_id)
@@ -692,19 +590,11 @@ class TodayRepository:
         )
         return self.db.scalar(stmt)
 
-    def get_task_instance_for_user(
-        self, user_id: int, task_instance_id: int
-    ) -> TaskInstance | None:
-        stmt = (
-            select(TaskInstance)
-            .where(TaskInstance.user_id == user_id)
-            .where(TaskInstance.id == task_instance_id)
-        )
+    def get_task_instance_for_user(self, user_id: int, task_instance_id: int) -> TaskInstance | None:
+        stmt = select(TaskInstance).where(TaskInstance.user_id == user_id).where(TaskInstance.id == task_instance_id)
         return self.db.scalar(stmt)
 
-    def _chore_access_condition(
-        self, user_id: int, household_ids: list[int] | None = None
-    ):
+    def _chore_access_condition(self, user_id: int, household_ids: list[int] | None = None):
         """Build a SQLAlchemy filter condition for chore instances accessible to user.
 
         Includes personal chores (owned by user, no household) and household chores
@@ -724,9 +614,7 @@ class TodayRepository:
             select(TaskInstance)
             .where(TaskInstance.scheduled_date == for_date)
             .where(TaskInstance.user_id == user_id)
-            .join(
-                RoutineTemplate, TaskInstance.routine_template_id == RoutineTemplate.id
-            )
+            .join(RoutineTemplate, TaskInstance.routine_template_id == RoutineTemplate.id)
             .where(RoutineTemplate.is_active.is_(True))
             .order_by(TaskInstance.due_at.asc().nulls_last(), TaskInstance.id.asc())
         )
@@ -758,9 +646,7 @@ class TodayRepository:
         )
         return list(self.db.scalars(stmt).all())
 
-    def get_upcoming_chores(
-        self, user_id: int, for_date: date, horizon_days: int = 7
-    ) -> list[ChoreInstance]:
+    def get_upcoming_chores(self, user_id: int, for_date: date, horizon_days: int = 7) -> list[ChoreInstance]:
         end_date = date.fromordinal(for_date.toordinal() + horizon_days)
         household_ids = self.get_user_household_ids(user_id)
         stmt = (
@@ -779,9 +665,7 @@ class TodayRepository:
         )
         return list(self.db.scalars(stmt).all())
 
-    def get_chore_instance_for_user(
-        self, user_id: int, chore_instance_id: int
-    ) -> ChoreInstance | None:
+    def get_chore_instance_for_user(self, user_id: int, chore_instance_id: int) -> ChoreInstance | None:
         household_ids = self.get_user_household_ids(user_id)
         stmt = (
             select(ChoreInstance)
@@ -809,9 +693,7 @@ class TodayRepository:
         clamped limit — see app.core.pagination.clamp_limit.
         """
         stmt = (
-            select(PlannedItem)
-            .options(joinedload(PlannedItem.recurrence_series))
-            .where(PlannedItem.user_id == user_id)
+            select(PlannedItem).options(joinedload(PlannedItem.recurrence_series)).where(PlannedItem.user_id == user_id)
         )
         if start_date is not None:
             stmt = stmt.where(PlannedItem.planned_for >= start_date)
@@ -825,17 +707,13 @@ class TodayRepository:
             # PlannedItem.tags is a JSON array; use a SQL filter that matches any of the requested tags.
             from sqlalchemy import String, cast, or_
 
-            tag_filters = [
-                cast(PlannedItem.tags, String).like(f'%"{tag}"%') for tag in tags
-            ]
+            tag_filters = [cast(PlannedItem.tags, String).like(f'%"{tag}"%') for tag in tags]
             stmt = stmt.where(or_(*tag_filters))
             if limit is not None:
                 stmt = stmt.limit(limit)
             items = list(self.db.scalars(stmt).unique().all())
             # Python-side refinement ensures exact tag match (avoids substring false positives).
-            items = [
-                item for item in items if any(tag in (item.tags or []) for tag in tags)
-            ]
+            items = [item for item in items if any(tag in (item.tags or []) for tag in tags)]
             if limit is not None and len(items) > limit:
                 items = items[:limit]
             return items
@@ -860,23 +738,17 @@ class TodayRepository:
                     RecurrenceSeries.materialized_through < through_date,
                 )
             )
-            .order_by(
-                RecurrenceSeries.start_date.asc(), RecurrenceSeries.created_at.asc()
-            )
+            .order_by(RecurrenceSeries.start_date.asc(), RecurrenceSeries.created_at.asc())
         )
         return list(self.db.scalars(stmt).all())
 
-    def list_recurring_grocery_series(
-        self, *, user_id: int, through_date: date
-    ) -> list[RecurrenceSeries]:
+    def list_recurring_grocery_series(self, *, user_id: int, through_date: date) -> list[RecurrenceSeries]:
         stmt = (
             select(RecurrenceSeries)
             .where(RecurrenceSeries.user_id == user_id)
             .where(RecurrenceSeries.module_key == "recurring_grocery")
             .where(RecurrenceSeries.start_date <= through_date)
-            .order_by(
-                RecurrenceSeries.start_date.asc(), RecurrenceSeries.created_at.asc()
-            )
+            .order_by(RecurrenceSeries.start_date.asc(), RecurrenceSeries.created_at.asc())
         )
         return list(self.db.scalars(stmt).all())
 
@@ -924,10 +796,7 @@ class TodayRepository:
         item_module_key = series.module_key
         item_linked_source = series.linked_source
         item_linked_ref = series.linked_ref
-        if (
-            series.module_key == "recurring_grocery"
-            and series.auto_add_to_list_id is not None
-        ):
+        if series.module_key == "recurring_grocery" and series.auto_add_to_list_id is not None:
             item_module_key = "shopping_list"
             item_linked_source = "shopping_list"
             item_linked_ref = str(series.auto_add_to_list_id)
@@ -959,25 +828,17 @@ class TodayRepository:
                 self.db.execute(
                     pg_insert(PlannedItem)
                     .values(rows)
-                    .on_conflict_do_nothing(
-                        index_elements=["recurrence_series_id", "planned_for"]
-                    )
+                    .on_conflict_do_nothing(index_elements=["recurrence_series_id", "planned_for"])
                 )
             else:
-                self.db.execute(
-                    insert(PlannedItem).prefix_with("OR IGNORE").values(rows)
-                )
+                self.db.execute(insert(PlannedItem).prefix_with("OR IGNORE").values(rows))
 
         self.db.execute(
-            update(RecurrenceSeries)
-            .where(RecurrenceSeries.id == series.id)
-            .values(materialized_through=through_date)
+            update(RecurrenceSeries).where(RecurrenceSeries.id == series.id).values(materialized_through=through_date)
         )
         self.db.commit()
 
-    def add_planned_item(
-        self, item: PlannedItem, *, actor: AuditActor | None = None
-    ) -> PlannedItem:
+    def add_planned_item(self, item: PlannedItem, *, actor: AuditActor | None = None) -> PlannedItem:
         self.db.add(item)
         self.db.flush()
         self.record_audit(
@@ -1012,10 +873,7 @@ class TodayRepository:
         all_dates = [d for dates in series_dates.values() for d in dates]
 
         series_map = {
-            s.id: s
-            for s in self.db.scalars(
-                select(RecurrenceSeries).where(RecurrenceSeries.id.in_(series_ids))
-            ).all()
+            s.id: s for s in self.db.scalars(select(RecurrenceSeries).where(RecurrenceSeries.id.in_(series_ids))).all()
         }
 
         existing_by_series: dict[UUID, list[PlannedItem]] = {}
@@ -1026,9 +884,7 @@ class TodayRepository:
             .where(PlannedItem.planned_for.in_(all_dates))
         ).all():
             if item.recurrence_series_id is not None:
-                existing_by_series.setdefault(item.recurrence_series_id, []).append(
-                    item
-                )
+                existing_by_series.setdefault(item.recurrence_series_id, []).append(item)
 
         imported: list[PlannedItem] = []
         for series_id, planned_dates in series_dates.items():
@@ -1040,9 +896,7 @@ class TodayRepository:
 
             planned_dates_set = set(planned_dates)
             existing_items = [
-                item
-                for item in existing_by_series.get(series_id, [])
-                if item.planned_for in planned_dates_set
+                item for item in existing_by_series.get(series_id, []) if item.planned_for in planned_dates_set
             ]
             existing_dates = {item.planned_for for item in existing_items}
             for item in existing_items:
@@ -1077,9 +931,7 @@ class TodayRepository:
         self.db.commit()
         return sorted(imported, key=lambda item: (item.planned_for, item.id))
 
-    def get_planned_item_for_user(
-        self, user_id: int, planned_item_id: int
-    ) -> PlannedItem | None:
+    def get_planned_item_for_user(self, user_id: int, planned_item_id: int) -> PlannedItem | None:
         stmt = (
             select(PlannedItem)
             .options(joinedload(PlannedItem.recurrence_series))
@@ -1088,9 +940,7 @@ class TodayRepository:
         )
         return self.db.scalar(stmt)
 
-    def get_recurrence_series_for_user(
-        self, user_id: int, recurrence_series_id: UUID
-    ) -> RecurrenceSeries | None:
+    def get_recurrence_series_for_user(self, user_id: int, recurrence_series_id: UUID) -> RecurrenceSeries | None:
         stmt = (
             select(RecurrenceSeries)
             .where(RecurrenceSeries.user_id == user_id)
@@ -1098,9 +948,7 @@ class TodayRepository:
         )
         return self.db.scalar(stmt)
 
-    def shopping_list_belongs_to_user(
-        self, user_id: int, shopping_list_id: int
-    ) -> bool:
+    def shopping_list_belongs_to_user(self, user_id: int, shopping_list_id: int) -> bool:
         return (
             self.db.scalar(
                 select(ShoppingList.id)
@@ -1110,9 +958,7 @@ class TodayRepository:
             is not None
         )
 
-    def delete_planned_item(
-        self, item: PlannedItem, *, actor: AuditActor | None = None
-    ) -> None:
+    def delete_planned_item(self, item: PlannedItem, *, actor: AuditActor | None = None) -> None:
         item_id = item.id
         self.db.delete(item)
         self.record_audit(actor, "planned_item.delete", "planned_item", item_id)
@@ -1219,9 +1065,7 @@ class TodayRepository:
         )
         return list(self.db.scalars(stmt).all())
 
-    def get_month_chores(
-        self, user_id: int, start_date: date, end_date: date
-    ) -> list[ChoreInstance]:
+    def get_month_chores(self, user_id: int, start_date: date, end_date: date) -> list[ChoreInstance]:
         household_ids = self.get_user_household_ids(user_id)
         stmt = (
             select(ChoreInstance)
@@ -1234,24 +1078,18 @@ class TodayRepository:
         )
         return list(self.db.scalars(stmt).all())
 
-    def get_month_routines(
-        self, user_id: int, start_date: date, end_date: date
-    ) -> list[TaskInstance]:
+    def get_month_routines(self, user_id: int, start_date: date, end_date: date) -> list[TaskInstance]:
         stmt = (
             select(TaskInstance)
             .where(TaskInstance.user_id == user_id)
             .where(TaskInstance.scheduled_date >= start_date)
             .where(TaskInstance.scheduled_date <= end_date)
-            .join(
-                RoutineTemplate, TaskInstance.routine_template_id == RoutineTemplate.id
-            )
+            .join(RoutineTemplate, TaskInstance.routine_template_id == RoutineTemplate.id)
             .where(RoutineTemplate.is_active.is_(True))
         )
         return list(self.db.scalars(stmt).all())
 
-    def get_month_medications(
-        self, user_id: int, start_date: date, end_date: date
-    ) -> list[MedicationDoseInstance]:
+    def get_month_medications(self, user_id: int, start_date: date, end_date: date) -> list[MedicationDoseInstance]:
         stmt = (
             select(MedicationDoseInstance)
             .where(MedicationDoseInstance.user_id == user_id)
@@ -1265,9 +1103,7 @@ class TodayRepository:
         )
         return list(self.db.scalars(stmt).all())
 
-    def get_missed_doses_before(
-        self, user_id: int, before_date: date
-    ) -> list[MedicationDoseInstance]:
+    def get_missed_doses_before(self, user_id: int, before_date: date) -> list[MedicationDoseInstance]:
         """Return all missed doses with scheduled_date strictly before before_date."""
         stmt = (
             select(MedicationDoseInstance)

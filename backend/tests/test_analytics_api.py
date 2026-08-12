@@ -339,7 +339,9 @@ def test_analytics_summary_response_includes_routines_key(client: TestClient, db
     assert "daily_completions" in payload["routines"]
 
 
-def test_analytics_suggestions_include_chore_medication_and_load_balancing(client: TestClient, db_session: Session) -> None:
+def test_analytics_suggestions_include_chore_medication_and_load_balancing(
+    client: TestClient, db_session: Session
+) -> None:
     user = _create_user(db_session, email="analytics-suggestions@example.com")
     today = datetime.now(UTC).date()
 

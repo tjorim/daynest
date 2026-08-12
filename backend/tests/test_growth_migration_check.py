@@ -17,25 +17,17 @@ def test_growth_migration_check_accepts_model_schema(
     main()
 
 
-def test_growth_migration_check_reports_missing_growth_table(
-    monkeypatch, tmp_path
-) -> None:
+def test_growth_migration_check_reports_missing_growth_table(monkeypatch, tmp_path) -> None:
     engine = create_engine(f"sqlite:///{tmp_path / 'missing.db'}")
     Base.metadata.create_all(
         bind=engine,
-        tables=[
-            table for table in Base.metadata.sorted_tables if table.name != "meal_slots"
-        ],
+        tables=[table for table in Base.metadata.sorted_tables if table.name != "meal_slots"],
     )
-    monkeypatch.setattr(
-        "scripts.check_growth_migrations.create_engine", lambda _: engine
-    )
+    monkeypatch.setattr("scripts.check_growth_migrations.create_engine", lambda _: engine)
 
     try:
         main()
     except SystemExit as exc:
         assert "meal_slots" in str(exc)
     else:
-        raise AssertionError(
-            "Expected missing meal_slots to fail growth migration check"
-        )
+        raise AssertionError("Expected missing meal_slots to fail growth migration check")

@@ -47,19 +47,13 @@ class MealPlanRepository:
         )
         return list(self.db.scalars(stmt).all())
 
-    def get_by_id(
-        self, user_id: int, meal_plan_id: int, *, include_slots: bool = False
-    ) -> MealPlan | None:
-        stmt = select(MealPlan).where(
-            MealPlan.user_id == user_id, MealPlan.id == meal_plan_id
-        )
+    def get_by_id(self, user_id: int, meal_plan_id: int, *, include_slots: bool = False) -> MealPlan | None:
+        stmt = select(MealPlan).where(MealPlan.user_id == user_id, MealPlan.id == meal_plan_id)
         if include_slots:
             stmt = stmt.options(selectinload(MealPlan.slots))
         return self.db.scalar(stmt)
 
-    def create(
-        self, meal_plan: MealPlan, *, actor: AuditActor | None = None
-    ) -> MealPlan:
+    def create(self, meal_plan: MealPlan, *, actor: AuditActor | None = None) -> MealPlan:
         self.db.add(meal_plan)
         self.db.flush()
         self._ensure_week_slots(meal_plan)
@@ -74,9 +68,7 @@ class MealPlanRepository:
         self.db.refresh(meal_plan)
         return meal_plan
 
-    def update(
-        self, meal_plan: MealPlan, *, actor: AuditActor | None = None
-    ) -> MealPlan:
+    def update(self, meal_plan: MealPlan, *, actor: AuditActor | None = None) -> MealPlan:
         self._ensure_week_slots(meal_plan)
         self.record_audit(
             actor,
@@ -95,9 +87,7 @@ class MealPlanRepository:
         self.record_audit(actor, "meal_plan.delete", "meal_plan", plan_id)
         self.db.commit()
 
-    def get_slot(
-        self, user_id: int, meal_plan_id: int, slot_id: int
-    ) -> MealSlot | None:
+    def get_slot(self, user_id: int, meal_plan_id: int, slot_id: int) -> MealSlot | None:
         stmt = (
             select(MealSlot)
             .join(MealPlan)
@@ -123,17 +113,11 @@ class MealPlanRepository:
 
     def _ensure_week_slots(self, meal_plan: MealPlan) -> None:
         self.db.flush()
-        valid_dates = {
-            meal_plan.week_start + timedelta(days=offset) for offset in range(7)
-        }
+        valid_dates = {meal_plan.week_start + timedelta(days=offset) for offset in range(7)}
         # Reassigning slots drops out-of-range entries; delete-orphan cascade removes them from DB
-        meal_plan.slots = [
-            slot for slot in meal_plan.slots if slot.slot_date in valid_dates
-        ]
+        meal_plan.slots = [slot for slot in meal_plan.slots if slot.slot_date in valid_dates]
         existing = {(slot.slot_date, slot.slot_type) for slot in meal_plan.slots}
         for slot_date in sorted(valid_dates):
             for slot_type in MEAL_SLOT_TYPES:
                 if (slot_date, slot_type) not in existing:
-                    meal_plan.slots.append(
-                        MealSlot(slot_date=slot_date, slot_type=slot_type, title="")
-                    )
+                    meal_plan.slots.append(MealSlot(slot_date=slot_date, slot_type=slot_type, title=""))

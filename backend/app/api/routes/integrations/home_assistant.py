@@ -38,7 +38,9 @@ router = APIRouter(prefix="/integrations/home-assistant", tags=["integrations"])
 
 
 def _set_ha_contract_header(response: Response) -> None:
-    response.headers[INTEGRATION_CONTRACT_HEADER] = integration_contract_header(HOME_ASSISTANT_ADAPTER, HOME_ASSISTANT_CONTRACT_VERSION)
+    response.headers[INTEGRATION_CONTRACT_HEADER] = integration_contract_header(
+        HOME_ASSISTANT_ADAPTER, HOME_ASSISTANT_CONTRACT_VERSION
+    )
 
 
 @router.get("/oidc-config", response_model=HomeAssistantOIDCConfig)
@@ -165,7 +167,9 @@ def home_assistant_snooze_task(
 ) -> HAActionResult:
     """Reschedule a chore instance N days into the future via Home Assistant automation."""
     new_date = datetime.now(UTC).date() + timedelta(days=request.days)
-    service.reschedule_chore(user_id=integration_user.id, chore_instance_id=request.chore_instance_id, scheduled_date=new_date)
+    service.reschedule_chore(
+        user_id=integration_user.id, chore_instance_id=request.chore_instance_id, scheduled_date=new_date
+    )
     return HAActionResult(success=True, detail=f"Task {request.chore_instance_id} rescheduled by {request.days} day(s)")
 
 

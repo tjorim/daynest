@@ -105,9 +105,7 @@ def parse_date(value: str | None) -> date:
     try:
         return date.fromisoformat(value)
     except ValueError:
-        raise ValueError(
-            f"Invalid date '{value}'. Expected YYYY-MM-DD format or 'today'."
-        )
+        raise ValueError(f"Invalid date '{value}'. Expected YYYY-MM-DD format or 'today'.")
 
 
 def parse_time(value: str | None) -> time | None:

@@ -46,23 +46,23 @@ class ShoppingListRepository:
         return list(self.db.scalars(stmt).all())
 
     def get_by_id(self, user_id: int, shopping_list_id: int) -> ShoppingList | None:
-        stmt = (
-            select(ShoppingList)
-            .where(ShoppingList.user_id == user_id)
-            .where(ShoppingList.id == shopping_list_id)
-        )
+        stmt = select(ShoppingList).where(ShoppingList.user_id == user_id).where(ShoppingList.id == shopping_list_id)
         return self.db.scalar(stmt)
 
     def create(self, shopping_list: ShoppingList, *, actor: AuditActor | None = None) -> ShoppingList:
         self.db.add(shopping_list)
         self.db.flush()
-        self.record_audit(actor, "shopping_list.create", "shopping_list", shopping_list.id, details={"name": shopping_list.name})
+        self.record_audit(
+            actor, "shopping_list.create", "shopping_list", shopping_list.id, details={"name": shopping_list.name}
+        )
         self.db.commit()
         self.db.refresh(shopping_list)
         return shopping_list
 
     def update(self, shopping_list: ShoppingList, *, actor: AuditActor | None = None) -> ShoppingList:
-        self.record_audit(actor, "shopping_list.update", "shopping_list", shopping_list.id, details={"name": shopping_list.name})
+        self.record_audit(
+            actor, "shopping_list.update", "shopping_list", shopping_list.id, details={"name": shopping_list.name}
+        )
         self.db.commit()
         self.db.refresh(shopping_list)
         return shopping_list
@@ -75,13 +75,19 @@ class ShoppingListRepository:
 
     def count_linked_planned_items(self, user_id: int, shopping_list_id: int) -> int:
         from sqlalchemy import func
-        return self.db.scalar(
-            select(func.count()).select_from(PlannedItem).where(
-                PlannedItem.user_id == user_id,
-                PlannedItem.module_key == "shopping_list",
-                PlannedItem.linked_ref == str(shopping_list_id),
+
+        return (
+            self.db.scalar(
+                select(func.count())
+                .select_from(PlannedItem)
+                .where(
+                    PlannedItem.user_id == user_id,
+                    PlannedItem.module_key == "shopping_list",
+                    PlannedItem.linked_ref == str(shopping_list_id),
+                )
             )
-        ) or 0
+            or 0
+        )
 
     def delete_linked_planned_items(self, user_id: int, shopping_list_id: int) -> None:
         self.db.execute(

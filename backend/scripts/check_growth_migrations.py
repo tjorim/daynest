@@ -25,15 +25,9 @@ def main() -> None:
             "recurrence_series": "recurring grocery auto-add support",
             "users": "calendar subscription token support",
         }
-        missing_tables = [
-            f"{table} ({label})"
-            for table, label in expected_tables.items()
-            if table not in tables
-        ]
+        missing_tables = [f"{table} ({label})" for table, label in expected_tables.items() if table not in tables]
         if missing_tables:
-            raise SystemExit(
-                f"Missing growth migration tables: {', '.join(missing_tables)}"
-            )
+            raise SystemExit(f"Missing growth migration tables: {', '.join(missing_tables)}")
 
         expected_columns = {
             "shopping_lists": ("id", "user_id", "name", "store", "status", "notes"),
@@ -53,14 +47,10 @@ def main() -> None:
         missing_columns: list[str] = []
         for table, columns in expected_columns.items():
             found = [column["name"] for column in inspector.get_columns(table)]
-            missing_columns.extend(
-                f"{table}.{column}" for column in _missing_columns(found, columns)
-            )
+            missing_columns.extend(f"{table}.{column}" for column in _missing_columns(found, columns))
 
         if missing_columns:
-            raise SystemExit(
-                f"Missing growth migration columns: {', '.join(missing_columns)}"
-            )
+            raise SystemExit(f"Missing growth migration columns: {', '.join(missing_columns)}")
 
         print("Growth migration schema check passed")
     finally:

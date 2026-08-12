@@ -1,9 +1,10 @@
 import logging
 from calendar import monthrange
 from collections import defaultdict
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, time, timedelta
-from typing import Literal, cast
+from typing import Literal, Protocol, cast
 from uuid import UUID
 from zoneinfo import ZoneInfo
 
@@ -20,7 +21,6 @@ from app.models.planned_item import PlannedItem
 from app.models.recurrence_series import RecurrenceSeries
 from app.models.routine_template import RoutineTemplate
 from app.models.task_instance import TaskInstance
-from app.repositories.today_repository import TodayRepository
 from app.schemas.integrations import DashboardReadModel, HACalendarEvent
 from app.schemas.today import (
     CalendarDayResponse,
@@ -75,10 +75,160 @@ class _TodayData:
     medication: list[MedicationDoseInstance]
 
 
+class TodayRepositoryProtocol(Protocol):
+    """The subset of TodayRepository's interface TodayService actually calls.
+
+    Typing against this instead of the concrete TodayRepository class lets
+    tests substitute a lightweight, non-database-backed stub without either
+    inheriting from TodayRepository (which would require overriding all of
+    its DB-touching internals) or losing type-checking on the real
+    production wiring — TodayRepository already satisfies this structurally,
+    no inheritance declaration needed.
+    """
+
+    def add_chore_template(self, template: ChoreTemplate, *, actor: AuditActor | None = None) -> ChoreTemplate: ...
+    def add_medication_plan(self, plan: MedicationPlan, *, actor: AuditActor | None = None) -> MedicationPlan: ...
+    def add_planned_item(self, item: PlannedItem, *, actor: AuditActor | None = None) -> PlannedItem: ...
+    def add_recurrence_series_with_first_planned_item(
+        self, *, series: RecurrenceSeries, item: PlannedItem, actor: AuditActor | None = None
+    ) -> tuple[RecurrenceSeries, PlannedItem]: ...
+    def add_routine_template(
+        self, template: RoutineTemplate, *, actor: AuditActor | None = None
+    ) -> RoutineTemplate: ...
+    def delete_chore_template(self, template: ChoreTemplate, *, actor: AuditActor | None = None) -> None: ...
+    def delete_materialized_planned_items_for_series(
+        self,
+        *,
+        user_id: int,
+        recurrence_series_id: UUID,
+        from_date: date | None = None,
+        exclude_item_id: int | None = None,
+    ) -> None: ...
+    def delete_medication_plan(self, plan: MedicationPlan, *, actor: AuditActor | None = None) -> None: ...
+    def delete_planned_item(self, item: PlannedItem, *, actor: AuditActor | None = None) -> None: ...
+    def delete_planned_item_scope_future(
+        self,
+        *,
+        user_id: int,
+        item_id: int,
+        recurrence_series_id: UUID,
+        start_date: date,
+        series_rrule: str,
+        materialized_through: date,
+        actor: AuditActor | None = None,
+    ) -> None: ...
+    def delete_planned_item_series(
+        self, *, user_id: int, recurrence_series_id: UUID, actor: AuditActor | None = None
+    ) -> int: ...
+    def delete_routine_template(self, template: RoutineTemplate, *, actor: AuditActor | None = None) -> None: ...
+    def ensure_chore_instances_generated(self, user_id: int, through_date: date) -> None: ...
+    def ensure_medication_dose_instances_generated(
+        self, user_id: int, through_date: date, user_timezone: str = "UTC"
+    ) -> None: ...
+    def ensure_task_instances_generated(self, user_id: int, through_date: date) -> None: ...
+    def get_chore_instance_for_user(self, user_id: int, chore_instance_id: int) -> ChoreInstance | None: ...
+    def get_chore_template_for_user(self, user_id: int, chore_template_id: int) -> ChoreTemplate | None: ...
+    def get_day_chores(self, user_id: int, target_date: date) -> list[ChoreInstance]: ...
+    def get_dose_for_user(self, user_id: int, dose_id: int) -> MedicationDoseInstance | None: ...
+    def get_due_today_chores(self, user_id: int, for_date: date) -> list[ChoreInstance]: ...
+    def get_medication_history(
+        self, user_id: int, before_date: date, limit: int = 20, medication_plan_id: int | None = None
+    ) -> list[MedicationDoseInstance]: ...
+    def get_medication_plan_for_user(self, user_id: int, medication_plan_id: int) -> MedicationPlan | None: ...
+    def get_missed_doses_before(self, user_id: int, before_date: date) -> list[MedicationDoseInstance]: ...
+    def get_month_chores(self, user_id: int, start_date: date, end_date: date) -> list[ChoreInstance]: ...
+    def get_month_medications(self, user_id: int, start_date: date, end_date: date) -> list[MedicationDoseInstance]: ...
+    def get_month_routines(self, user_id: int, start_date: date, end_date: date) -> list[TaskInstance]: ...
+    def get_overdue_chores(self, user_id: int, for_date: date) -> list[ChoreInstance]: ...
+    def get_planned_item_for_user(self, user_id: int, planned_item_id: int) -> PlannedItem | None: ...
+    def get_recurrence_series_for_user(self, user_id: int, recurrence_series_id: UUID) -> RecurrenceSeries | None: ...
+    def get_routine_template_for_user(self, user_id: int, routine_template_id: int) -> RoutineTemplate | None: ...
+    def get_task_instance_for_user(self, user_id: int, task_instance_id: int) -> TaskInstance | None: ...
+    def get_today_medication(self, user_id: int, for_date: date) -> list[MedicationDoseInstance]: ...
+    def get_today_routines(self, user_id: int, for_date: date) -> list[TaskInstance]: ...
+    def get_upcoming_chores(self, user_id: int, for_date: date, horizon_days: int = 7) -> list[ChoreInstance]: ...
+    def get_user_household_ids(self, user_id: int) -> list[int]: ...
+    def get_user_timezone(self, user_id: int) -> str: ...
+    def import_recurring_grocery_items_to_list(
+        self, *, user_id: int, shopping_list_id: int, series_dates: Mapping[UUID, Sequence[date]]
+    ) -> list[PlannedItem]: ...
+    def list_chore_templates(self, user_id: int, tags: list[str] | None = None) -> list[ChoreTemplate]: ...
+    def list_medication_plans(self, user_id: int) -> list[MedicationPlan]: ...
+    def list_planned_items(
+        self,
+        user_id: int,
+        start_date: date | None = None,
+        end_date: date | None = None,
+        is_done: bool | None = None,
+        tags: list[str] | None = None,
+        *,
+        limit: int | None = None,
+    ) -> list[PlannedItem]: ...
+    def list_recurrence_series_overlapping(self, *, user_id: int, through_date: date) -> list[RecurrenceSeries]: ...
+    def list_recurring_grocery_series(self, *, user_id: int, through_date: date) -> list[RecurrenceSeries]: ...
+    def list_routine_templates(self, user_id: int) -> list[RoutineTemplate]: ...
+    def mark_due_medications_missed(self, user_id: int, now: datetime, grace_minutes: int = 30) -> None: ...
+    def materialize_planned_items_for_series(
+        self, *, series: RecurrenceSeries, through_date: date, materialized_dates: Sequence[date]
+    ) -> None: ...
+    def record_audit(
+        self,
+        actor: AuditActor | None,
+        action: str,
+        resource_type: str,
+        resource_id: object,
+        *,
+        details: dict | None = None,
+    ) -> None: ...
+    def save(self) -> None: ...
+    def shopping_list_belongs_to_user(self, user_id: int, shopping_list_id: int) -> bool: ...
+    def update_chore_template(
+        self,
+        template: ChoreTemplate,
+        name: str,
+        description: str | None,
+        start_date: date,
+        every_n_days: int,
+        rrule: str | None,
+        priority: Priority,
+        tags: list,
+        is_active: bool,
+        household_id: int | None = None,
+        *,
+        actor: AuditActor | None = None,
+    ) -> ChoreTemplate: ...
+    def update_medication_plan(
+        self,
+        plan: MedicationPlan,
+        name: str,
+        instructions: str,
+        start_date: date,
+        schedule_time: time,
+        every_n_days: int,
+        is_active: bool,
+        *,
+        actor: AuditActor | None = None,
+    ) -> MedicationPlan: ...
+    def update_routine_template(
+        self,
+        template: RoutineTemplate,
+        name: str,
+        description: str | None,
+        start_date: date,
+        every_n_days: int,
+        rrule: str | None,
+        due_time: time | None,
+        is_active: bool,
+        *,
+        actor: AuditActor | None = None,
+    ) -> RoutineTemplate: ...
+    def utcnow(self) -> datetime: ...
+
+
 class TodayService:
     """Read/write service for today's dashboard."""
 
-    def __init__(self, repository: TodayRepository, app_settings: AppSettings):
+    def __init__(self, repository: TodayRepositoryProtocol, app_settings: AppSettings):
         self.repository = repository
         self._upcoming_horizon_days = app_settings.upcoming_horizon_days
         self._medication_missed_grace_minutes = app_settings.medication_missed_grace_minutes
@@ -90,7 +240,9 @@ class TodayService:
             through_date=for_date + timedelta(days=self._upcoming_horizon_days),
         )
         self.repository.ensure_task_instances_generated(user_id=user_id, through_date=for_date)
-        self.repository.ensure_medication_dose_instances_generated(user_id=user_id, through_date=for_date, user_timezone=user_tz_str)
+        self.repository.ensure_medication_dose_instances_generated(
+            user_id=user_id, through_date=for_date, user_timezone=user_tz_str
+        )
         self.repository.mark_due_medications_missed(
             user_id=user_id,
             now=self.repository.utcnow(),
@@ -122,7 +274,11 @@ class TodayService:
     def _materialize_series(self, *, series: RecurrenceSeries, through_date: date) -> None:
         if series.materialized_through is not None and series.materialized_through >= through_date:
             return
-        from_date = series.start_date if series.materialized_through is None else (series.materialized_through + timedelta(days=1))
+        from_date = (
+            series.start_date
+            if series.materialized_through is None
+            else (series.materialized_through + timedelta(days=1))
+        )
         if from_date > through_date:
             return
         generation = generate_recurrence(from_date, series.rrule, dtstart=series.start_date, through_date=through_date)
@@ -193,10 +349,14 @@ class TodayService:
             due_today_count=len(data.due_today),
             planned_count=len(data.planned),
             planned_remaining_count=len([item for item in data.planned if not item.is_done]),
-            medication_due_count=len([item for item in data.medication if item.status == MedicationDoseStatus.scheduled]),
+            medication_due_count=len(
+                [item for item in data.medication if item.status == MedicationDoseStatus.scheduled]
+            ),
             completion_ratio=round(completed_count / total if total else 0.0, 3),
             next_medication=self._format_next_medication(data.medication, user_tz),
-            routines_open_count=len([item for item in data.routines if item.status in (TaskStatus.pending, TaskStatus.in_progress)]),
+            routines_open_count=len(
+                [item for item in data.routines if item.status in (TaskStatus.pending, TaskStatus.in_progress)]
+            ),
             due_today=chores,
             planned=todo_planned,
             chores=chores,
@@ -336,7 +496,9 @@ class TodayService:
         user_tz_str = self.repository.get_user_timezone(user_id)
         self.repository.ensure_chore_instances_generated(user_id=user_id, through_date=for_date)
         self.repository.ensure_task_instances_generated(user_id=user_id, through_date=for_date)
-        self.repository.ensure_medication_dose_instances_generated(user_id=user_id, through_date=for_date, user_timezone=user_tz_str)
+        self.repository.ensure_medication_dose_instances_generated(
+            user_id=user_id, through_date=for_date, user_timezone=user_tz_str
+        )
         self.repository.mark_due_medications_missed(
             user_id=user_id,
             now=self.repository.utcnow(),
@@ -436,7 +598,9 @@ class TodayService:
         user_tz_str = self.repository.get_user_timezone(user_id)
         self.repository.ensure_chore_instances_generated(user_id=user_id, through_date=end_date)
         self.repository.ensure_task_instances_generated(user_id=user_id, through_date=end_date)
-        self.repository.ensure_medication_dose_instances_generated(user_id=user_id, through_date=end_date, user_timezone=user_tz_str)
+        self.repository.ensure_medication_dose_instances_generated(
+            user_id=user_id, through_date=end_date, user_timezone=user_tz_str
+        )
         self.repository.mark_due_medications_missed(
             user_id=user_id,
             now=self.repository.utcnow(),
@@ -444,13 +608,17 @@ class TodayService:
         )
         self._materialize_planned_items_through(user_id=user_id, through_date=end_date)
 
-        by_day: dict[date, dict[str, int]] = defaultdict(lambda: {"routine": 0, "chore": 0, "medication": 0, "planned": 0})
+        by_day: dict[date, dict[str, int]] = defaultdict(
+            lambda: {"routine": 0, "chore": 0, "medication": 0, "planned": 0}
+        )
 
         for routine in self.repository.get_month_routines(user_id=user_id, start_date=start_date, end_date=end_date):
             by_day[routine.scheduled_date]["routine"] += 1
         for chore in self.repository.get_month_chores(user_id=user_id, start_date=start_date, end_date=end_date):
             by_day[chore.scheduled_date]["chore"] += 1
-        for medication in self.repository.get_month_medications(user_id=user_id, start_date=start_date, end_date=end_date):
+        for medication in self.repository.get_month_medications(
+            user_id=user_id, start_date=start_date, end_date=end_date
+        ):
             by_day[medication.scheduled_date]["medication"] += 1
         for planned in self.repository.list_planned_items(user_id=user_id, start_date=start_date, end_date=end_date):
             by_day[planned.planned_for]["planned"] += 1
@@ -475,12 +643,16 @@ class TodayService:
         if end_date < start_date:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="end must not be before start")
         if (end_date - start_date).days >= MAX_CALENDAR_QUERY_RANGE_DAYS:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Calendar range must not exceed 90 days")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="Calendar range must not exceed 90 days"
+            )
 
         user_tz_str = self.repository.get_user_timezone(user_id)
         self.repository.ensure_chore_instances_generated(user_id=user_id, through_date=end_date)
         self.repository.ensure_task_instances_generated(user_id=user_id, through_date=end_date)
-        self.repository.ensure_medication_dose_instances_generated(user_id=user_id, through_date=end_date, user_timezone=user_tz_str)
+        self.repository.ensure_medication_dose_instances_generated(
+            user_id=user_id, through_date=end_date, user_timezone=user_tz_str
+        )
         self.repository.mark_due_medications_missed(
             user_id=user_id,
             now=self.repository.utcnow(),
@@ -530,14 +702,20 @@ class TodayService:
         event_types: set[str] | None = None,
     ) -> list[HACalendarEvent]:
         if end_date < start_date:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="end_date must not be before start_date")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="end_date must not be before start_date"
+            )
         if (end_date - start_date).days > MAX_CALENDAR_RANGE_DAYS:
-            logger.warning("Calendar range clamped: %s..%s exceeds %d days", start_date, end_date, MAX_CALENDAR_RANGE_DAYS)
+            logger.warning(
+                "Calendar range clamped: %s..%s exceeds %d days", start_date, end_date, MAX_CALENDAR_RANGE_DAYS
+            )
             end_date = start_date + timedelta(days=MAX_CALENDAR_RANGE_DAYS)
         user_tz_str = self.repository.get_user_timezone(user_id)
         self.repository.ensure_chore_instances_generated(user_id=user_id, through_date=end_date)
         self.repository.ensure_task_instances_generated(user_id=user_id, through_date=end_date)
-        self.repository.ensure_medication_dose_instances_generated(user_id=user_id, through_date=end_date, user_timezone=user_tz_str)
+        self.repository.ensure_medication_dose_instances_generated(
+            user_id=user_id, through_date=end_date, user_timezone=user_tz_str
+        )
         self._materialize_planned_items_through(user_id=user_id, through_date=end_date)
 
         events: list[HACalendarEvent] = []
@@ -550,53 +728,69 @@ class TodayService:
 
         if include_chores:
             for chore in self.repository.get_month_chores(user_id=user_id, start_date=start_date, end_date=end_date):
-                events.append(HACalendarEvent(
-                    uid=f"daynest_chore_{chore.id}",
-                    summary=chore.title,
-                    start={"date": chore.scheduled_date.isoformat()},
-                    end={"date": (chore.scheduled_date + timedelta(days=1)).isoformat()},
-                ))
+                events.append(
+                    HACalendarEvent(
+                        uid=f"daynest_chore_{chore.id}",
+                        summary=chore.title,
+                        start={"date": chore.scheduled_date.isoformat()},
+                        end={"date": (chore.scheduled_date + timedelta(days=1)).isoformat()},
+                    )
+                )
 
-            for routine in self.repository.get_month_routines(user_id=user_id, start_date=start_date, end_date=end_date):
+            for routine in self.repository.get_month_routines(
+                user_id=user_id, start_date=start_date, end_date=end_date
+            ):
                 if routine.due_at:
-                    events.append(HACalendarEvent(
-                        uid=f"daynest_routine_{routine.id}",
-                        summary=routine.title,
-                        start={"dateTime": routine.due_at.isoformat()},
-                        end={"dateTime": (routine.due_at + timedelta(hours=1)).isoformat()},
-                    ))
+                    events.append(
+                        HACalendarEvent(
+                            uid=f"daynest_routine_{routine.id}",
+                            summary=routine.title,
+                            start={"dateTime": routine.due_at.isoformat()},
+                            end={"dateTime": (routine.due_at + timedelta(hours=1)).isoformat()},
+                        )
+                    )
                 else:
-                    events.append(HACalendarEvent(
-                        uid=f"daynest_routine_{routine.id}",
-                        summary=routine.title,
-                        start={"date": routine.scheduled_date.isoformat()},
-                        end={"date": (routine.scheduled_date + timedelta(days=1)).isoformat()},
-                    ))
+                    events.append(
+                        HACalendarEvent(
+                            uid=f"daynest_routine_{routine.id}",
+                            summary=routine.title,
+                            start={"date": routine.scheduled_date.isoformat()},
+                            end={"date": (routine.scheduled_date + timedelta(days=1)).isoformat()},
+                        )
+                    )
 
         if include_medications:
             for med in self.repository.get_month_medications(user_id=user_id, start_date=start_date, end_date=end_date):
-                events.append(HACalendarEvent(
-                    uid=f"daynest_medication_{med.id}",
-                    summary=med.name,
-                    start={"dateTime": med.scheduled_at.isoformat()},
-                    end={"dateTime": (med.scheduled_at + timedelta(minutes=15)).isoformat()},
-                    description=med.instructions,
-                ))
+                events.append(
+                    HACalendarEvent(
+                        uid=f"daynest_medication_{med.id}",
+                        summary=med.name,
+                        start={"dateTime": med.scheduled_at.isoformat()},
+                        end={"dateTime": (med.scheduled_at + timedelta(minutes=15)).isoformat()},
+                        description=med.instructions,
+                    )
+                )
 
         if include_planned_items:
-            for planned in self.repository.list_planned_items(user_id=user_id, start_date=start_date, end_date=end_date):
-                events.append(HACalendarEvent(
-                    uid=f"daynest_planned_{planned.id}",
-                    summary=planned.title,
-                    start={"date": planned.planned_for.isoformat()},
-                    end={"date": (planned.planned_for + timedelta(days=1)).isoformat()},
-                    description=planned.notes,
-                ))
+            for planned in self.repository.list_planned_items(
+                user_id=user_id, start_date=start_date, end_date=end_date
+            ):
+                events.append(
+                    HACalendarEvent(
+                        uid=f"daynest_planned_{planned.id}",
+                        summary=planned.title,
+                        start={"date": planned.planned_for.isoformat()},
+                        end={"date": (planned.planned_for + timedelta(days=1)).isoformat()},
+                        description=planned.notes,
+                    )
+                )
 
         events.sort(key=lambda e: e.start.get("date") or e.start.get("dateTime", ""))
         return events
 
-    def create_planned_item(self, user_id: int, request: PlannedItemCreateRequest, *, actor: AuditActor | None = None) -> PlannedTodayItem:
+    def create_planned_item(
+        self, user_id: int, request: PlannedItemCreateRequest, *, actor: AuditActor | None = None
+    ) -> PlannedTodayItem:
         if request.rrule:
             self._validate_rrule_start_or_422(start_date=request.planned_for, rrule=request.rrule)
 
@@ -704,7 +898,9 @@ class TodayService:
         patch: PlannedItemUpdateRequest,
         actor: AuditActor | None = None,
     ) -> None:
-        recurrence_series = self.repository.get_recurrence_series_for_user(user_id=user_id, recurrence_series_id=series_id)
+        recurrence_series = self.repository.get_recurrence_series_for_user(
+            user_id=user_id, recurrence_series_id=series_id
+        )
         if recurrence_series is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Recurrence series not found")
         if patch.rrule:
@@ -733,7 +929,9 @@ class TodayService:
         )
         item = self._get_user_planned_item(user_id=user_id, planned_item_id=item_id)
         self._apply_planned_item_patch(item, patch)
-        self.repository.record_audit(actor, "recurrence_series.update_future", "recurrence_series", series_id, details={"title": patch.title})
+        self.repository.record_audit(
+            actor, "recurrence_series.update_future", "recurrence_series", series_id, details={"title": patch.title}
+        )
         self.repository.save()
 
     def update_planned_item_series(
@@ -746,7 +944,9 @@ class TodayService:
         item_id: int | None = None,
         actor: AuditActor | None = None,
     ) -> None:
-        recurrence_series = self.repository.get_recurrence_series_for_user(user_id=user_id, recurrence_series_id=series_id)
+        recurrence_series = self.repository.get_recurrence_series_for_user(
+            user_id=user_id, recurrence_series_id=series_id
+        )
         if recurrence_series is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Recurrence series not found")
         new_start_date = recurrence_series.start_date
@@ -778,7 +978,9 @@ class TodayService:
         if item_id is not None:
             item = self._get_user_planned_item(user_id=user_id, planned_item_id=item_id)
             self._apply_planned_item_patch(item, patch)
-        self.repository.record_audit(actor, "recurrence_series.update_all", "recurrence_series", series_id, details={"title": patch.title})
+        self.repository.record_audit(
+            actor, "recurrence_series.update_all", "recurrence_series", series_id, details={"title": patch.title}
+        )
         self.repository.save()
 
     def update_planned_item(
@@ -812,7 +1014,9 @@ class TodayService:
             )
             return self._planned_item_to_schema(item)
         self._apply_planned_item_patch(item, request)
-        self.repository.record_audit(actor, "planned_item.update", "planned_item", item.id, details={"title": item.title})
+        self.repository.record_audit(
+            actor, "planned_item.update", "planned_item", item.id, details={"title": item.title}
+        )
         self.repository.save()
         return self._planned_item_to_schema(item)
 
@@ -825,7 +1029,9 @@ class TodayService:
         *,
         limit: int | None = None,
     ) -> list[PlannedTodayItem]:
-        materialize_through = end_date or (start_date + timedelta(days=DEFAULT_PLANNED_ITEMS_LOOKAHEAD_DAYS) if start_date else None)
+        materialize_through = end_date or (
+            start_date + timedelta(days=DEFAULT_PLANNED_ITEMS_LOOKAHEAD_DAYS) if start_date else None
+        )
         if materialize_through is not None:
             self._materialize_planned_items_through(user_id=user_id, through_date=materialize_through)
         if limit is not None:
@@ -880,16 +1086,22 @@ class TodayService:
     def save(self) -> None:
         self.repository.save()
 
-    def mark_planned_done(self, user_id: int, planned_item_id: int, *, persist: bool = True, actor: AuditActor | None = None) -> None:
+    def mark_planned_done(
+        self, user_id: int, planned_item_id: int, *, persist: bool = True, actor: AuditActor | None = None
+    ) -> None:
         item = self._get_user_planned_item(user_id=user_id, planned_item_id=planned_item_id)
         if not item.is_done:
             item.is_done = True
             item.completed_at = self.repository.utcnow()
-            self.repository.record_audit(actor, "planned_item.update", "planned_item", item.id, details={"is_done": True})
+            self.repository.record_audit(
+                actor, "planned_item.update", "planned_item", item.id, details={"is_done": True}
+            )
             if persist:
                 self.repository.save()
 
-    def defer_planned_item(self, user_id: int, planned_item_id: int, days: int = 1, *, actor: AuditActor | None = None) -> PlannedTodayItem:
+    def defer_planned_item(
+        self, user_id: int, planned_item_id: int, days: int = 1, *, actor: AuditActor | None = None
+    ) -> PlannedTodayItem:
         if days < 1:
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="days must be >= 1")
         item = self._get_user_planned_item(user_id=user_id, planned_item_id=planned_item_id)
@@ -914,13 +1126,20 @@ class TodayService:
             actor=actor,
         )
 
-    def delete_planned_item_series(self, user_id: int, recurrence_series_id: str, *, actor: AuditActor | None = None) -> int:
+    def delete_planned_item_series(
+        self, user_id: int, recurrence_series_id: str, *, actor: AuditActor | None = None
+    ) -> int:
         from uuid import UUID as _UUID
+
         try:
             series_uuid = _UUID(recurrence_series_id)
         except ValueError as exc:
-            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Invalid recurrence_series_id format") from exc
-        return self.repository.delete_planned_item_series(user_id=user_id, recurrence_series_id=series_uuid, actor=actor)
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Invalid recurrence_series_id format"
+            ) from exc
+        return self.repository.delete_planned_item_series(
+            user_id=user_id, recurrence_series_id=series_uuid, actor=actor
+        )
 
     def delete_planned_item(
         self,
@@ -984,7 +1203,9 @@ class TodayService:
             completed_by=instance.completed_by,
         )
 
-    def start_routine_task(self, user_id: int, task_instance_id: int, *, actor: AuditActor | None = None) -> TaskInstanceMutationResponse:
+    def start_routine_task(
+        self, user_id: int, task_instance_id: int, *, actor: AuditActor | None = None
+    ) -> TaskInstanceMutationResponse:
         instance = self._get_user_task(user_id, task_instance_id)
         if instance.status == TaskStatus.completed:
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Completed tasks cannot be started again")
@@ -995,7 +1216,9 @@ class TodayService:
         self.repository.save()
         return self._task_instance_to_response(instance)
 
-    def complete_routine_task(self, user_id: int, task_instance_id: int, *, actor: AuditActor | None = None) -> TaskInstanceMutationResponse:
+    def complete_routine_task(
+        self, user_id: int, task_instance_id: int, *, actor: AuditActor | None = None
+    ) -> TaskInstanceMutationResponse:
         instance = self._get_user_task(user_id, task_instance_id)
         if instance.status == TaskStatus.completed:
             return self._task_instance_to_response(instance)
@@ -1007,7 +1230,9 @@ class TodayService:
         self.repository.save()
         return self._task_instance_to_response(instance)
 
-    def skip_routine_task(self, user_id: int, task_instance_id: int, *, actor: AuditActor | None = None) -> TaskInstanceMutationResponse:
+    def skip_routine_task(
+        self, user_id: int, task_instance_id: int, *, actor: AuditActor | None = None
+    ) -> TaskInstanceMutationResponse:
         instance = self._get_user_task(user_id, task_instance_id)
         if instance.status == TaskStatus.skipped:
             return self._task_instance_to_response(instance)
@@ -1044,13 +1269,21 @@ class TodayService:
     ) -> ChoreInstanceMutationResponse:
         instance = self._get_user_chore(user_id, chore_instance_id)
         if instance.status in (ChoreStatus.completed, ChoreStatus.skipped):
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Completed or skipped chores cannot be rescheduled")
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT, detail="Completed or skipped chores cannot be rescheduled"
+            )
         instance.scheduled_date = scheduled_date
         instance.status = ChoreStatus.pending
         instance.completed_at = None
         instance.skipped_at = None
         instance.completed_by = None
-        self.repository.record_audit(actor, "chore_instance.reschedule", "chore_instance", instance.id, details={"scheduled_date": scheduled_date.isoformat()})
+        self.repository.record_audit(
+            actor,
+            "chore_instance.reschedule",
+            "chore_instance",
+            instance.id,
+            details={"scheduled_date": scheduled_date.isoformat()},
+        )
         self.repository.save()
         return ChoreInstanceMutationResponse(
             chore_instance_id=instance.id,
@@ -1067,7 +1300,9 @@ class TodayService:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chore instance not found")
         return instance
 
-    def assign_chore(self, user_id: int, chore_instance_id: int, assigned_to: int | None) -> ChoreInstanceMutationResponse:
+    def assign_chore(
+        self, user_id: int, chore_instance_id: int, assigned_to: int | None
+    ) -> ChoreInstanceMutationResponse:
         instance = self._get_user_chore(user_id, chore_instance_id)
         if assigned_to is not None:
             household_id = instance.chore_template.household_id
@@ -1189,7 +1424,9 @@ class TodayService:
         is_active: bool | None,
         actor: AuditActor | None = None,
     ) -> RoutineTemplate:
-        template = self.repository.get_routine_template_for_user(user_id=user_id, routine_template_id=routine_template_id)
+        template = self.repository.get_routine_template_for_user(
+            user_id=user_id, routine_template_id=routine_template_id
+        )
         if template is None:
             raise ValueError(f"Routine template {routine_template_id} not found")
         if every_n_days is not None and every_n_days < 1:
@@ -1206,8 +1443,12 @@ class TodayService:
             actor=actor,
         )
 
-    def delete_routine_template(self, user_id: int, routine_template_id: int, *, actor: AuditActor | None = None) -> None:
-        template = self.repository.get_routine_template_for_user(user_id=user_id, routine_template_id=routine_template_id)
+    def delete_routine_template(
+        self, user_id: int, routine_template_id: int, *, actor: AuditActor | None = None
+    ) -> None:
+        template = self.repository.get_routine_template_for_user(
+            user_id=user_id, routine_template_id=routine_template_id
+        )
         if template is None:
             raise ValueError(f"Routine template {routine_template_id} not found")
         self.repository.delete_routine_template(template, actor=actor)
@@ -1359,12 +1600,17 @@ class TodayService:
         now = self.repository.utcnow()
         if action == "take":
             if instance.status not in {MedicationDoseStatus.scheduled, MedicationDoseStatus.missed}:
-                raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Medication dose can only be taken from scheduled or missed")
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="Medication dose can only be taken from scheduled or missed",
+                )
             if taken_at is not None:
                 # Ensure timezone-aware for comparison
                 ta = taken_at if taken_at.tzinfo is not None else taken_at.replace(tzinfo=UTC)
                 if ta > now:
-                    raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="taken_at must not be in the future")
+                    raise HTTPException(
+                        status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="taken_at must not be in the future"
+                    )
                 resolved_taken_at = ta
             else:
                 resolved_taken_at = now
@@ -1374,14 +1620,20 @@ class TodayService:
             instance.missed_at = None
         elif action == "skip":
             if instance.status not in {MedicationDoseStatus.scheduled, MedicationDoseStatus.missed}:
-                raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Medication dose can only be skipped from scheduled or missed")
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="Medication dose can only be skipped from scheduled or missed",
+                )
             instance.status = MedicationDoseStatus.skipped
             instance.skipped_at = now
             instance.taken_at = None
             instance.missed_at = None
         elif action == "miss":
             if instance.status != MedicationDoseStatus.scheduled:
-                raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Medication dose can only be marked missed from scheduled")
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="Medication dose can only be marked missed from scheduled",
+                )
             instance.status = MedicationDoseStatus.missed
             instance.missed_at = now
             instance.taken_at = None

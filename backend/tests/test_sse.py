@@ -1,10 +1,11 @@
 import asyncio
-from collections.abc import Coroutine
+from collections.abc import AsyncGenerator, Coroutine
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, cast
 from unittest.mock import MagicMock
 
 import pytest
+from fastapi import Request
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
@@ -25,6 +26,13 @@ def _create_user(db: Session, email: str) -> User:
 
 
 class _FakeRequest:
+    """Deliberately minimal: stream_today_updates only calls is_disconnected()
+    on the request, so this stands in for a real fastapi.Request without
+    implementing its full interface. Passed to stream_today_updates() via
+    cast(Request, ...) below rather than a Protocol, since Request is a large
+    third-party class not worth extracting an interface from just for this.
+    """
+
     def __init__(self) -> None:
         self._calls = 0
 
@@ -33,16 +41,25 @@ class _FakeRequest:
         return self._calls > 1
 
 
+def _body_iterator(response: Any) -> AsyncGenerator[Any]:
+    """response.body_iterator is typed as a plain AsyncIterable by Starlette,
+    which doesn't guarantee __anext__/aclose() at the type level even though
+    stream_today_updates always builds it from an async generator at runtime.
+    """
+    return cast(AsyncGenerator[Any], response.body_iterator)
+
+
 @pytest.mark.anyio
 async def test_today_stream_emits_today_updated_event() -> None:
     user = User(id=1001, email="sse-updated@example.com", is_active=True, timezone="UTC")
     request = _FakeRequest()
     event_bus = get_event_bus()
-    response = await stream_today_updates(request=request, event_bus=event_bus, current_user=user)
+    response = await stream_today_updates(request=cast(Request, request), event_bus=event_bus, current_user=user)
     event_bus.publish(user.id, {"type": "today_updated"})
-    chunk = await anext(response.body_iterator)
+    body_iterator = _body_iterator(response)
+    chunk = await anext(body_iterator)
     assert chunk["event"] == "today_updated"
-    await response.body_iterator.aclose()
+    await body_iterator.aclose()
 
 
 @pytest.mark.anyio
@@ -57,10 +74,11 @@ async def test_today_stream_emits_ping(monkeypatch) -> None:
         raise TimeoutError
 
     monkeypatch.setattr(asyncio, "wait_for", _simulate_timeout)
-    response = await stream_today_updates(request=request, event_bus=event_bus, current_user=user)
-    chunk = await anext(response.body_iterator)
+    response = await stream_today_updates(request=cast(Request, request), event_bus=event_bus, current_user=user)
+    body_iterator = _body_iterator(response)
+    chunk = await anext(body_iterator)
     assert chunk["event"] == "ping"
-    await response.body_iterator.aclose()
+    await body_iterator.aclose()
 
 
 @pytest.mark.anyio
@@ -118,11 +136,11 @@ async def test_today_stream_response_headers() -> None:
     user = User(id=2001, email="sse-headers@example.com", is_active=True, timezone="UTC")
     request = _FakeRequest()
     event_bus = get_event_bus()
-    response = await stream_today_updates(request=request, event_bus=event_bus, current_user=user)
+    response = await stream_today_updates(request=cast(Request, request), event_bus=event_bus, current_user=user)
     assert "text/event-stream" in response.headers.get("content-type", "")
     assert response.headers.get("cache-control") in ("no-cache", "no-store")
     assert response.headers.get("x-accel-buffering") == "no"
-    await response.body_iterator.aclose()
+    await _body_iterator(response).aclose()
 
 
 def test_today_mutation_publishes_today_updated(client: TestClient, db_session: Session) -> None:

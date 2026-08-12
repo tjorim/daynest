@@ -30,20 +30,14 @@ def upgrade() -> None:
         "integration_clients",
         sa.Column("revoked_at", sa.DateTime(timezone=True), nullable=True),
     )
+    op.add_column("audit_entries", sa.Column("subject", sa.String(length=255), nullable=True))
     op.add_column(
-        "audit_entries", sa.Column("subject", sa.String(length=255), nullable=True)
+        "integration_clients",
+        sa.Column("rate_limit_window_started_at", sa.DateTime(timezone=True), nullable=True),
     )
     op.add_column(
         "integration_clients",
-        sa.Column(
-            "rate_limit_window_started_at", sa.DateTime(timezone=True), nullable=True
-        ),
-    )
-    op.add_column(
-        "integration_clients",
-        sa.Column(
-            "rate_limit_window_count", sa.Integer(), nullable=False, server_default="0"
-        ),
+        sa.Column("rate_limit_window_count", sa.Integer(), nullable=False, server_default="0"),
     )
 
 

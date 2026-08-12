@@ -24,6 +24,7 @@ _EXPORT_FUTURE_DAYS = 365
 
 # --- iCal formatting helpers ---
 
+
 def _ical_escape(text: str) -> str:
     return text.replace("\\", "\\\\").replace(";", "\\;").replace(",", "\\,").replace("\n", "\\n")
 
@@ -102,6 +103,7 @@ def _format_event(
 
 # --- Calendar token endpoints ---
 
+
 @router.post("/users/me/calendar-token", response_model=CalendarTokenResponse, status_code=status.HTTP_201_CREATED)
 def generate_calendar_token(
     db: Session = Depends(get_db),
@@ -117,7 +119,9 @@ def generate_calendar_token(
 @router.get("/users/me/calendar-token", response_model=CalendarTokenResponse)
 def get_calendar_token(current_user: User = Depends(get_current_user)) -> CalendarTokenResponse:
     if not current_user.calendar_token:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No calendar token exists; POST to generate one")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="No calendar token exists; POST to generate one"
+        )
     return CalendarTokenResponse(token=current_user.calendar_token)
 
 
@@ -142,7 +146,9 @@ def _new_calendar_feed_token(db: Session) -> str:
         exists = db.scalar(select(User.id).where(User.calendar_feed_token == token))
         if exists is None:
             return token
-    raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Could not generate calendar feed token")
+    raise HTTPException(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Could not generate calendar feed token"
+    )
 
 
 def _calendar_feed_response(request: Request, user: User) -> CalendarFeedResponse:
@@ -256,7 +262,9 @@ def get_calendar_feed_ics(token: str, db: Session = Depends(get_db)) -> Response
         },
     )
 
+
 # --- Calendar range ---
+
 
 @router.get("/calendar/range", response_model=CalendarRangeResponse)
 def get_calendar_range(
@@ -269,6 +277,7 @@ def get_calendar_range(
 
 
 # --- iCal export ---
+
 
 def _resolve_user(
     token: str | None,
@@ -308,15 +317,17 @@ def export_ical(
     event_lines: list[str] = []
     for event in events:
         is_medication = event.uid.startswith("daynest_medication_")
-        event_lines.extend(_format_event(
-            uid=event.uid,
-            dtstamp=dtstamp,
-            summary=event.summary,
-            start=event.start,
-            end=event.end,
-            description=event.description,
-            reminder_minutes=reminder_minutes if is_medication else None,
-        ))
+        event_lines.extend(
+            _format_event(
+                uid=event.uid,
+                dtstamp=dtstamp,
+                summary=event.summary,
+                start=event.start,
+                end=event.end,
+                description=event.description,
+                reminder_minutes=reminder_minutes if is_medication else None,
+            )
+        )
 
     return Response(
         content=_build_ical(event_lines),

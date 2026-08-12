@@ -1,19 +1,39 @@
+from collections.abc import Sequence
 from datetime import UTC, date, datetime, time, timedelta
 from types import SimpleNamespace
 from typing import Any, cast
+from uuid import UUID
 
 import pytest
 from fastapi import HTTPException
 
 from app.core.config import AppSettings
 from app.core.enums import ChoreStatus, MedicationDoseStatus, TaskStatus
+from app.models.chore_instance import ChoreInstance
+from app.models.medication_dose_instance import MedicationDoseInstance
+from app.models.planned_item import PlannedItem
+from app.models.recurrence_series import RecurrenceSeries
+from app.models.task_instance import TaskInstance
 from app.services.today_service import TodayService
 
 _FIXED_NOW = datetime(2026, 4, 23, 10, 0, tzinfo=UTC)
 
 
 class StubTodayRepository:
-    def __init__(self, tasks: list[SimpleNamespace], overdue: list[SimpleNamespace], due: list[SimpleNamespace], upcoming: list[SimpleNamespace], medication: list[SimpleNamespace], medication_history: list[SimpleNamespace], planned: list[SimpleNamespace], overdue_planned: list[SimpleNamespace] | None = None, dose: SimpleNamespace | None = None, timezone: str = "UTC", missed_doses: list[SimpleNamespace] | None = None):
+    def __init__(
+        self,
+        tasks: list[SimpleNamespace],
+        overdue: list[SimpleNamespace],
+        due: list[SimpleNamespace],
+        upcoming: list[SimpleNamespace],
+        medication: list[SimpleNamespace],
+        medication_history: list[SimpleNamespace],
+        planned: list[SimpleNamespace],
+        overdue_planned: list[SimpleNamespace] | None = None,
+        dose: SimpleNamespace | None = None,
+        timezone: str = "UTC",
+        missed_doses: list[SimpleNamespace] | None = None,
+    ):
         self._tasks = tasks
         self._overdue = overdue
         self._due = due
@@ -39,7 +59,9 @@ class StubTodayRepository:
     def get_user_timezone(self, user_id: int) -> str:
         return self._timezone
 
-    def ensure_medication_dose_instances_generated(self, user_id: int, through_date: date, user_timezone: str = "UTC") -> None:
+    def ensure_medication_dose_instances_generated(
+        self, user_id: int, through_date: date, user_timezone: str = "UTC"
+    ) -> None:
         self.captured_user_timezone = user_timezone
 
     def ensure_task_instances_generated(self, user_id: int, through_date: date) -> None:
@@ -51,8 +73,11 @@ class StubTodayRepository:
     def utcnow(self):
         return _FIXED_NOW
 
-    def get_dose_for_user(self, user_id: int, dose_id: int) -> SimpleNamespace | None:
-        return self._dose
+    def get_dose_for_user(self, user_id: int, dose_id: int) -> MedicationDoseInstance | None:
+        # Actual value is a SimpleNamespace stand-in — cast() only affects the
+        # declared type (satisfying TodayRepositoryProtocol structurally), not
+        # runtime behavior; TodayService only touches the attributes tests set.
+        return cast("MedicationDoseInstance | None", self._dose)
 
     def save(self) -> None:
         self.saved = True
@@ -63,54 +88,219 @@ class StubTodayRepository:
         # test_audit_service.py and the TodayRepository-level tests.
         pass
 
-    def get_today_medication(self, user_id: int, for_date: date) -> list[SimpleNamespace]:
-        return self._medication
+    def get_today_medication(self, user_id: int, for_date: date) -> list[MedicationDoseInstance]:
+        return cast("list[MedicationDoseInstance]", self._medication)
 
-    def get_medication_history(self, user_id: int, before_date: date, limit: int = 20) -> list[SimpleNamespace]:
-        return self._medication_history
+    def get_medication_history(
+        self, user_id: int, before_date: date, limit: int = 20, medication_plan_id: int | None = None
+    ) -> list[MedicationDoseInstance]:
+        return cast("list[MedicationDoseInstance]", self._medication_history)
 
-    def get_today_routines(self, user_id: int, for_date: date) -> list[SimpleNamespace]:
-        return self._tasks
+    def get_today_routines(self, user_id: int, for_date: date) -> list[TaskInstance]:
+        return cast("list[TaskInstance]", self._tasks)
 
-    def get_month_routines(self, user_id: int, start_date: date, end_date: date) -> list[SimpleNamespace]:
-        return self._tasks
+    def get_month_routines(self, user_id: int, start_date: date, end_date: date) -> list[TaskInstance]:
+        return cast("list[TaskInstance]", self._tasks)
 
-    def get_month_chores(self, user_id: int, start_date: date, end_date: date) -> list[SimpleNamespace]:
-        return self._due
+    def get_month_chores(self, user_id: int, start_date: date, end_date: date) -> list[ChoreInstance]:
+        return cast("list[ChoreInstance]", self._due)
 
-    def get_month_medications(self, user_id: int, start_date: date, end_date: date) -> list[SimpleNamespace]:
-        return self._medication
+    def get_month_medications(self, user_id: int, start_date: date, end_date: date) -> list[MedicationDoseInstance]:
+        return cast("list[MedicationDoseInstance]", self._medication)
 
-    def get_overdue_chores(self, user_id: int, for_date: date) -> list[SimpleNamespace]:
-        return self._overdue
+    def get_overdue_chores(self, user_id: int, for_date: date) -> list[ChoreInstance]:
+        return cast("list[ChoreInstance]", self._overdue)
 
-    def get_due_today_chores(self, user_id: int, for_date: date) -> list[SimpleNamespace]:
-        return self._due
+    def get_due_today_chores(self, user_id: int, for_date: date) -> list[ChoreInstance]:
+        return cast("list[ChoreInstance]", self._due)
 
-    def get_upcoming_chores(self, user_id: int, for_date: date, horizon_days: int = 7) -> list[SimpleNamespace]:
+    def get_upcoming_chores(self, user_id: int, for_date: date, horizon_days: int = 7) -> list[ChoreInstance]:
         self.upcoming_horizon_days = horizon_days
-        return self._upcoming
+        return cast("list[ChoreInstance]", self._upcoming)
 
-    def get_day_chores(self, user_id: int, target_date: date) -> list[SimpleNamespace]:
-        return self._due
+    def get_day_chores(self, user_id: int, target_date: date) -> list[ChoreInstance]:
+        return cast("list[ChoreInstance]", self._due)
 
-    def list_planned_items(self, user_id: int, start_date: date | None = None, end_date: date | None = None, is_done: bool | None = None) -> list[SimpleNamespace]:
+    def list_planned_items(
+        self,
+        user_id: int,
+        start_date: date | None = None,
+        end_date: date | None = None,
+        is_done: bool | None = None,
+        tags: list[str] | None = None,
+        *,
+        limit: int | None = None,
+    ) -> list[PlannedItem]:
         if is_done is False and start_date is None and end_date is not None:
-            return self._overdue_planned
-        return self._planned
+            return cast("list[PlannedItem]", self._overdue_planned)
+        return cast("list[PlannedItem]", self._planned)
 
-    def list_recurrence_series_overlapping(self, *, user_id: int, through_date: date) -> list[SimpleNamespace]:
-        return self._recurrence_series
+    def list_recurrence_series_overlapping(self, *, user_id: int, through_date: date) -> list[RecurrenceSeries]:
+        return cast("list[RecurrenceSeries]", self._recurrence_series)
 
-    def materialize_planned_items_for_series(self, *, series, through_date: date, materialized_dates: list[date]) -> None:
+    def materialize_planned_items_for_series(
+        self, *, series: Any, through_date: date, materialized_dates: Sequence[date]
+    ) -> None:
         return None
 
-    def get_missed_doses_before(self, user_id: int, before_date: date) -> list[SimpleNamespace]:
-        return [
-            dose
-            for dose in self._missed_doses
-            if dose.status == MedicationDoseStatus.missed and dose.scheduled_date < before_date
-        ]
+    def get_missed_doses_before(self, user_id: int, before_date: date) -> list[MedicationDoseInstance]:
+        return cast(
+            "list[MedicationDoseInstance]",
+            [
+                dose
+                for dose in self._missed_doses
+                if dose.status == MedicationDoseStatus.missed and dose.scheduled_date < before_date
+            ],
+        )
+
+    # --- Everything below is unused by the read/aggregation-focused tests in
+    # this file (get_today, calendar views) — present only so this stub
+    # structurally satisfies TodayRepositoryProtocol in full. If a test ever
+    # needs one of these for real, replace the NotImplementedError with
+    # actual stub behavior at that point.
+
+    def add_chore_template(self, template: Any, *, actor: Any = None) -> Any:
+        raise NotImplementedError
+
+    def add_medication_plan(self, plan: Any, *, actor: Any = None) -> Any:
+        raise NotImplementedError
+
+    def add_planned_item(self, item: Any, *, actor: Any = None) -> Any:
+        raise NotImplementedError
+
+    def add_recurrence_series_with_first_planned_item(self, *, series: Any, item: Any, actor: Any = None) -> Any:
+        raise NotImplementedError
+
+    def add_routine_template(self, template: Any, *, actor: Any = None) -> Any:
+        raise NotImplementedError
+
+    def delete_chore_template(self, template: Any, *, actor: Any = None) -> None:
+        raise NotImplementedError
+
+    def delete_materialized_planned_items_for_series(
+        self,
+        *,
+        user_id: int,
+        recurrence_series_id: UUID,
+        from_date: date | None = None,
+        exclude_item_id: int | None = None,
+    ) -> None:
+        raise NotImplementedError
+
+    def delete_medication_plan(self, plan: Any, *, actor: Any = None) -> None:
+        raise NotImplementedError
+
+    def delete_planned_item(self, item: Any, *, actor: Any = None) -> None:
+        raise NotImplementedError
+
+    def delete_planned_item_scope_future(
+        self,
+        *,
+        user_id: int,
+        item_id: int,
+        recurrence_series_id: UUID,
+        start_date: date,
+        series_rrule: str,
+        materialized_through: date,
+        actor: Any = None,
+    ) -> None:
+        raise NotImplementedError
+
+    def delete_planned_item_series(self, *, user_id: int, recurrence_series_id: UUID, actor: Any = None) -> int:
+        raise NotImplementedError
+
+    def delete_routine_template(self, template: Any, *, actor: Any = None) -> None:
+        raise NotImplementedError
+
+    def get_chore_instance_for_user(self, user_id: int, chore_instance_id: int) -> Any:
+        raise NotImplementedError
+
+    def get_chore_template_for_user(self, user_id: int, chore_template_id: int) -> Any:
+        raise NotImplementedError
+
+    def get_medication_plan_for_user(self, user_id: int, medication_plan_id: int) -> Any:
+        raise NotImplementedError
+
+    def get_planned_item_for_user(self, user_id: int, planned_item_id: int) -> Any:
+        raise NotImplementedError
+
+    def get_recurrence_series_for_user(self, user_id: int, recurrence_series_id: UUID) -> Any:
+        raise NotImplementedError
+
+    def get_routine_template_for_user(self, user_id: int, routine_template_id: int) -> Any:
+        raise NotImplementedError
+
+    def get_task_instance_for_user(self, user_id: int, task_instance_id: int) -> Any:
+        raise NotImplementedError
+
+    def get_user_household_ids(self, user_id: int) -> list[int]:
+        raise NotImplementedError
+
+    def import_recurring_grocery_items_to_list(
+        self, *, user_id: int, shopping_list_id: int, series_dates: Any
+    ) -> list[Any]:
+        raise NotImplementedError
+
+    def list_chore_templates(self, user_id: int, tags: list[str] | None = None) -> list[Any]:
+        raise NotImplementedError
+
+    def list_medication_plans(self, user_id: int) -> list[Any]:
+        raise NotImplementedError
+
+    def list_recurring_grocery_series(self, *, user_id: int, through_date: date) -> list[Any]:
+        raise NotImplementedError
+
+    def list_routine_templates(self, user_id: int) -> list[Any]:
+        raise NotImplementedError
+
+    def shopping_list_belongs_to_user(self, user_id: int, shopping_list_id: int) -> bool:
+        raise NotImplementedError
+
+    def update_chore_template(
+        self,
+        template: Any,
+        name: str,
+        description: str | None,
+        start_date: date,
+        every_n_days: int,
+        rrule: str | None,
+        priority: Any,
+        tags: list,
+        is_active: bool,
+        household_id: int | None = None,
+        *,
+        actor: Any = None,
+    ) -> Any:
+        raise NotImplementedError
+
+    def update_medication_plan(
+        self,
+        plan: Any,
+        name: str,
+        instructions: str,
+        start_date: date,
+        schedule_time: time,
+        every_n_days: int,
+        is_active: bool,
+        *,
+        actor: Any = None,
+    ) -> Any:
+        raise NotImplementedError
+
+    def update_routine_template(
+        self,
+        template: Any,
+        name: str,
+        description: str | None,
+        start_date: date,
+        every_n_days: int,
+        rrule: str | None,
+        due_time: time | None,
+        is_active: bool,
+        *,
+        actor: Any = None,
+    ) -> Any:
+        raise NotImplementedError
 
 
 def test_get_today_shapes_chore_sections() -> None:
@@ -136,8 +326,14 @@ def test_get_today_shapes_chore_sections() -> None:
             status=MedicationDoseStatus.scheduled,
         )
     ]
-    overdue = [SimpleNamespace(id=1, chore_template_id=11, title="Laundry", status=ChoreStatus.pending, scheduled_date=date(2026, 4, 20))]
-    due = [SimpleNamespace(id=2, chore_template_id=12, title="Trash", status=ChoreStatus.pending, scheduled_date=for_date)]
+    overdue = [
+        SimpleNamespace(
+            id=1, chore_template_id=11, title="Laundry", status=ChoreStatus.pending, scheduled_date=date(2026, 4, 20)
+        )
+    ]
+    due = [
+        SimpleNamespace(id=2, chore_template_id=12, title="Trash", status=ChoreStatus.pending, scheduled_date=for_date)
+    ]
     upcoming = [SimpleNamespace(id=3, chore_template_id=13, title="Vacuum", scheduled_date=date(2026, 4, 24))]
     planned = [
         SimpleNamespace(
@@ -159,7 +355,15 @@ def test_get_today_shapes_chore_sections() -> None:
         )
     ]
 
-    repo = StubTodayRepository(tasks=routine_tasks, overdue=overdue, due=due, upcoming=upcoming, medication=medication, medication_history=[], planned=planned)
+    repo = StubTodayRepository(
+        tasks=routine_tasks,
+        overdue=overdue,
+        due=due,
+        upcoming=upcoming,
+        medication=medication,
+        medication_history=[],
+        planned=planned,
+    )
     service = TodayService(
         repository=repo,
         app_settings=AppSettings(upcoming_horizon_days=3, medication_missed_grace_minutes=45),
@@ -277,7 +481,13 @@ def test_get_dashboard_due_today_includes_overdue_chores() -> None:
         id=2, chore_template_id=12, title="Today chore", status=ChoreStatus.pending, scheduled_date=for_date
     )
     repo = StubTodayRepository(
-        tasks=[], overdue=[overdue_chore], due=[today_chore], upcoming=[], medication=[], medication_history=[], planned=[]
+        tasks=[],
+        overdue=[overdue_chore],
+        due=[today_chore],
+        upcoming=[],
+        medication=[],
+        medication_history=[],
+        planned=[],
     )
     service = TodayService(repository=repo, app_settings=AppSettings())
 
@@ -425,7 +635,13 @@ def test_mutate_medication_not_found_raises_404() -> None:
 
 def test_get_today_threads_user_timezone_to_medication_generation() -> None:
     repo = StubTodayRepository(
-        tasks=[], overdue=[], due=[], upcoming=[], medication=[], medication_history=[], planned=[],
+        tasks=[],
+        overdue=[],
+        due=[],
+        upcoming=[],
+        medication=[],
+        medication_history=[],
+        planned=[],
         timezone="America/New_York",
     )
     service = TodayService(repository=repo, app_settings=AppSettings())
@@ -480,7 +696,9 @@ def test_get_calendar_range_merges_days_and_populates_planned_timing() -> None:
             is_done=False,
         )
     ]
-    repo = StubTodayRepository(tasks=[], overdue=[], due=[], upcoming=[], medication=[], medication_history=[], planned=planned)
+    repo = StubTodayRepository(
+        tasks=[], overdue=[], due=[], upcoming=[], medication=[], medication_history=[], planned=planned
+    )
     service = TodayService(repository=cast(Any, repo), app_settings=AppSettings())
 
     response = service.get_calendar_range(user_id=7, start_date=start_date, end_date=end_date)
@@ -500,7 +718,9 @@ def test_get_calendar_range_merges_days_and_populates_planned_timing() -> None:
     ],
 )
 def test_get_calendar_range_rejects_invalid_spans(start_date: date, end_date: date) -> None:
-    repo = StubTodayRepository(tasks=[], overdue=[], due=[], upcoming=[], medication=[], medication_history=[], planned=[])
+    repo = StubTodayRepository(
+        tasks=[], overdue=[], due=[], upcoming=[], medication=[], medication_history=[], planned=[]
+    )
     service = TodayService(repository=cast(Any, repo), app_settings=AppSettings())
 
     with pytest.raises(HTTPException) as exc_info:

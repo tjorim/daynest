@@ -75,17 +75,16 @@ def get_chore_stats(db: Session, user_id: int, start_date: date, end_date: date)
     for d in dates:
         total = by_date.get(d, {}).get("total", 0)
         completed = by_date.get(d, {}).get("completed", 0)
-        daily_completions.append(DailyCount(date=d, completed=completed, total=total, completion_rate=_rate(completed, total)))
+        daily_completions.append(
+            DailyCount(date=d, completed=completed, total=total, completion_rate=_rate(completed, total))
+        )
 
     total_completed = sum(day["completed"] for day in by_date.values())
     total_scheduled = sum(day["total"] for day in by_date.values())
     completion_rate = _rate(total_completed, total_scheduled)
 
     streak_start_date = _streak_lookback_start(start_date, end_date)
-    templates = {
-        t.id: t.name
-        for t in db.scalars(select(ChoreTemplate).where(ChoreTemplate.user_id == user_id)).all()
-    }
+    templates = {t.id: t.name for t in db.scalars(select(ChoreTemplate).where(ChoreTemplate.user_id == user_id)).all()}
 
     all_resolved = db.scalars(
         select(ChoreInstance)
@@ -121,12 +120,14 @@ def get_chore_stats(db: Session, user_id: int, start_date: date, end_date: date)
             else:
                 run = 0
 
-        streaks.append(ChoreStreak(
-            chore_id=template_id,
-            name=name,
-            current_streak=current,
-            longest_streak=longest,
-        ))
+        streaks.append(
+            ChoreStreak(
+                chore_id=template_id,
+                name=name,
+                current_streak=current,
+                longest_streak=longest,
+            )
+        )
 
     skipped_rows = db.execute(
         select(ChoreInstance.chore_template_id, func.count(ChoreInstance.id))
@@ -212,7 +213,9 @@ def get_planned_item_stats(db: Session, user_id: int, start_date: date, end_date
     for d in dates:
         total = by_date.get(d, {}).get("total", 0)
         completed = by_date.get(d, {}).get("completed", 0)
-        daily_completions.append(DailyCount(date=d, completed=completed, total=total, completion_rate=_rate(completed, total)))
+        daily_completions.append(
+            DailyCount(date=d, completed=completed, total=total, completion_rate=_rate(completed, total))
+        )
 
     total_completed = sum(day["completed"] for day in by_date.values())
     total_scheduled = sum(day["total"] for day in by_date.values())
@@ -246,7 +249,9 @@ def get_routine_stats(db: Session, user_id: int, start_date: date, end_date: dat
     for d in dates:
         total = by_date.get(d, {}).get("total", 0)
         completed = by_date.get(d, {}).get("completed", 0)
-        daily_completions.append(DailyCount(date=d, completed=completed, total=total, completion_rate=_rate(completed, total)))
+        daily_completions.append(
+            DailyCount(date=d, completed=completed, total=total, completion_rate=_rate(completed, total))
+        )
 
     total_completed = sum(day["completed"] for day in by_date.values())
     total_scheduled = sum(day["total"] for day in by_date.values())
@@ -254,8 +259,7 @@ def get_routine_stats(db: Session, user_id: int, start_date: date, end_date: dat
 
     streak_start_date = _streak_lookback_start(start_date, end_date)
     templates = {
-        t.id: t.name
-        for t in db.scalars(select(RoutineTemplate).where(RoutineTemplate.user_id == user_id)).all()
+        t.id: t.name for t in db.scalars(select(RoutineTemplate).where(RoutineTemplate.user_id == user_id)).all()
     }
 
     all_resolved = db.scalars(
@@ -290,12 +294,14 @@ def get_routine_stats(db: Session, user_id: int, start_date: date, end_date: dat
             else:
                 run = 0
 
-        streaks.append(RoutineStreak(
-            routine_id=template_id,
-            name=name,
-            current_streak=current,
-            longest_streak=longest,
-        ))
+        streaks.append(
+            RoutineStreak(
+                routine_id=template_id,
+                name=name,
+                current_streak=current,
+                longest_streak=longest,
+            )
+        )
 
     streaks.sort(key=lambda x: x.current_streak, reverse=True)
 
@@ -467,9 +473,7 @@ def get_scheduling_suggestions(db: Session, user_id: int, for_date: date) -> lis
     if day_totals:
         overloaded_day, overloaded_count = max(day_totals.items(), key=lambda item: item[1])
         candidate_days = [
-            (day, count)
-            for day, count in day_totals.items()
-            if day != overloaded_day and count <= overloaded_count - 3
+            (day, count) for day, count in day_totals.items() if day != overloaded_day and count <= overloaded_count - 3
         ]
         if overloaded_count >= _OVERLOAD_THRESHOLD and candidate_days:
             target_day, target_count = min(candidate_days, key=lambda item: item[1])

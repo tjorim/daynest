@@ -275,7 +275,9 @@ def import_user_export(db: Session, user: User, payload: Mapping[str, Any], *, r
     for row in _rows(payload, "task_instances"):
         item = TaskInstance(
             user_id=user.id,
-            routine_template_id=_mapped_id(routine_id_map, row.get("routine_template_id"), "task_instances.routine_template_id"),
+            routine_template_id=_mapped_id(
+                routine_id_map, row.get("routine_template_id"), "task_instances.routine_template_id"
+            ),
             title=_str(row.get("title"), "task_instances.title"),
             scheduled_date=_date(row.get("scheduled_date"), "task_instances.scheduled_date"),
             due_at=_nullable_datetime(row.get("due_at"), "task_instances.due_at"),
@@ -289,7 +291,9 @@ def import_user_export(db: Session, user: User, payload: Mapping[str, Any], *, r
     for row in _rows(payload, "chore_instances"):
         item = ChoreInstance(
             user_id=user.id,
-            chore_template_id=_mapped_id(chore_id_map, row.get("chore_template_id"), "chore_instances.chore_template_id"),
+            chore_template_id=_mapped_id(
+                chore_id_map, row.get("chore_template_id"), "chore_instances.chore_template_id"
+            ),
             title=_str(row.get("title"), "chore_instances.title"),
             scheduled_date=_date(row.get("scheduled_date"), "chore_instances.scheduled_date"),
             status=_enum(ChoreStatus, row.get("status"), "chore_instances.status"),

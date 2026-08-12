@@ -35,9 +35,7 @@ def _integration_client_to_dict(client: IntegrationClient) -> dict[str, Any]:
     }
 
 
-def whoami(
-    session_factory: Callable[[], Session], user_email: str | None
-) -> dict[str, Any]:
+def whoami(session_factory: Callable[[], Session], user_email: str | None) -> dict[str, Any]:
     with session_scope(session_factory) as db:
         principal = principal_module.resolve_principal(db, user_email=user_email)
         user = principal.user
@@ -49,9 +47,7 @@ def whoami(
         }
 
 
-def list_users(
-    session_factory: Callable[[], Session], user_email: str | None = None
-) -> list[dict[str, Any]]:
+def list_users(session_factory: Callable[[], Session], user_email: str | None = None) -> list[dict[str, Any]]:
     with session_scope(session_factory) as db:
         principal_module.resolve_principal(db, user_email=user_email)
         users = list(db.scalars(select(User).order_by(User.id.asc())).all())
@@ -66,9 +62,7 @@ def list_users(
         ]
 
 
-def list_integration_clients(
-    session_factory: Callable[[], Session], user_email: str | None
-) -> list[dict[str, Any]]:
+def list_integration_clients(session_factory: Callable[[], Session], user_email: str | None) -> list[dict[str, Any]]:
     with session_scope(session_factory) as db:
         principal = principal_module.resolve_principal(db, user_email=user_email)
         clients = list(
@@ -97,9 +91,7 @@ def create_integration_client(
     with session_scope(session_factory) as db:
         principal = principal_module.resolve_principal(db, user_email=user_email)
         if principal.auth_source == "integration":
-            raise PermissionError(
-                "Integration tokens cannot create new integration clients"
-            )
+            raise PermissionError("Integration tokens cannot create new integration clients")
         client = IntegrationClient(
             user_id=principal.user.id,
             name=name,
@@ -130,9 +122,7 @@ def rotate_integration_client(
     with session_scope(session_factory) as db:
         principal = principal_module.resolve_principal(db, user_email=user_email)
         if principal.auth_source == "integration":
-            raise PermissionError(
-                "Integration tokens cannot rotate integration clients"
-            )
+            raise PermissionError("Integration tokens cannot rotate integration clients")
         client = db.scalar(
             select(IntegrationClient).where(
                 IntegrationClient.id == client_id,
@@ -163,9 +153,7 @@ def revoke_integration_client(
     with session_scope(session_factory) as db:
         principal = principal_module.resolve_principal(db, user_email=user_email)
         if principal.auth_source == "integration":
-            raise PermissionError(
-                "Integration tokens cannot revoke integration clients"
-            )
+            raise PermissionError("Integration tokens cannot revoke integration clients")
         client = db.scalar(
             select(IntegrationClient).where(
                 IntegrationClient.id == client_id,

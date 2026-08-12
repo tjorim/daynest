@@ -9,7 +9,9 @@ class RecurrenceValidationError(ValueError):
 
 
 def truncate_rrule_until(rrule: str, until_date: date) -> str:
-    parts = [part for part in rrule.split(";") if part and not part.startswith("UNTIL=") and not part.startswith("COUNT=")]
+    parts = [
+        part for part in rrule.split(";") if part and not part.startswith("UNTIL=") and not part.startswith("COUNT=")
+    ]
     until_value = f"{until_date.strftime('%Y%m%d')}T235959"
     parts.append(f"UNTIL={until_value}")
     return ";".join(parts)
@@ -55,7 +57,11 @@ def generate_recurrence(
     except ValueError as exc:
         raise RecurrenceValidationError("Invalid recurrence rule") from exc
 
-    horizon = (through_date + timedelta(days=1)) if through_date is not None else (start_date + timedelta(days=max_horizon_days))
+    horizon = (
+        (through_date + timedelta(days=1))
+        if through_date is not None
+        else (start_date + timedelta(days=max_horizon_days))
+    )
 
     dates: list[date] = []
     cursor = datetime.combine(start_date, time.min)

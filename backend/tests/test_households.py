@@ -24,6 +24,7 @@ def _create_user(db_session: Session, email: str) -> User:
 def _auth_as(user: User) -> None:
     async def _dep() -> User:
         return user
+
     app.dependency_overrides[get_current_user] = _dep
 
 

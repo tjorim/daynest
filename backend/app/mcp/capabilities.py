@@ -36,12 +36,8 @@ def tool_capability(tool_name: str) -> dict[str, str]:
     return {
         "name": tool_name,
         "effect": tool_effect(tool_name),
-        "required_tier": (
-            "household_member" if tool_name in _HOUSEHOLD_MEMBER_TOOLS else "owner"
-        ),
-        "required_auth": "interactive"
-        if tool_name in _INTERACTIVE_ONLY_TOOLS
-        else "user_or_integration",
+        "required_tier": ("household_member" if tool_name in _HOUSEHOLD_MEMBER_TOOLS else "owner"),
+        "required_auth": "interactive" if tool_name in _INTERACTIVE_ONLY_TOOLS else "user_or_integration",
     }
 
 
@@ -62,9 +58,7 @@ def _require_interactive_auth(ctx: AuthContext) -> bool:
     if isinstance(username, str) and username.startswith("service-account-"):
         return False
     interactive_client_ids = {
-        client_id.strip()
-        for client_id in settings.mcp_interactive_client_ids.split(",")
-        if client_id.strip()
+        client_id.strip() for client_id in settings.mcp_interactive_client_ids.split(",") if client_id.strip()
     }
     return claims.get("azp") in interactive_client_ids
 

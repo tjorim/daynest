@@ -16,18 +16,14 @@ def _read_secret_file(path: str | None) -> str | None:
     try:
         value = secret_path.read_text(encoding="utf-8").strip()
     except OSError as exc:
-        raise ValueError(
-            f"Secret file configured but could not be read: {path}"
-        ) from exc
+        raise ValueError(f"Secret file configured but could not be read: {path}") from exc
     if not value:
         raise ValueError(f"Secret file configured but empty: {path}")
     return value
 
 
 class AppSettings(BaseSettings):
-    model_config = SettingsConfigDict(
-        env_file=".env", env_file_encoding="utf-8", extra="ignore"
-    )
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
     _cached_db_password: str | None = PrivateAttr(default=None)
     _cached_integration_key_hash_secret: str | None = PrivateAttr(default=None)
 
@@ -65,9 +61,7 @@ class AppSettings(BaseSettings):
     medication_missed_grace_minutes: int = 30
 
     cors_origins: Annotated[list[str], NoDecode] = Field(default_factory=list)
-    trusted_hosts: Annotated[list[str], NoDecode] = Field(
-        default_factory=lambda: ["localhost", "127.0.0.1"]
-    )
+    trusted_hosts: Annotated[list[str], NoDecode] = Field(default_factory=lambda: ["localhost", "127.0.0.1"])
 
     metrics_hmac_secret: str | None = None
     integration_key_hash_secret: str | None = None
@@ -105,52 +99,31 @@ class AppSettings(BaseSettings):
 
     @model_validator(mode="after")
     def _validate_secrets(self) -> "AppSettings":
-        self._cached_db_password = self.db_password or _read_secret_file(
-            self.db_password_file
+        self._cached_db_password = self.db_password or _read_secret_file(self.db_password_file)
+        self._cached_integration_key_hash_secret = self.integration_key_hash_secret or _read_secret_file(
+            self.integration_key_hash_secret_file
         )
-        self._cached_integration_key_hash_secret = (
-            self.integration_key_hash_secret
-            or _read_secret_file(self.integration_key_hash_secret_file)
-        )
-        if (
-            not self.database_url
-            and not self._cached_db_password
-            and self.environment != "dev"
-        ):
+        if not self.database_url and not self._cached_db_password and self.environment != "dev":
             raise ValueError(
                 "Database password must be provided via DB_PASSWORD or DB_PASSWORD_FILE in non-dev environments"
             )
         if not self.oidc_issuer_url and self.environment != "dev":
             raise ValueError("OIDC_ISSUER_URL must be set in non-dev environments")
-        if (
-            not self.oidc_audience
-            and self.oidc_algorithms != "none"
-            and self.environment != "dev"
-        ):
-            raise ValueError(
-                "OIDC_AUDIENCE must be set in non-dev environments when using token verification"
-            )
+        if not self.oidc_audience and self.oidc_algorithms != "none" and self.environment != "dev":
+            raise ValueError("OIDC_AUDIENCE must be set in non-dev environments when using token verification")
         if not self._cached_integration_key_hash_secret and self.environment != "dev":
             raise ValueError(
                 "INTEGRATION_KEY_HASH_SECRET or INTEGRATION_KEY_HASH_SECRET_FILE must be set in non-dev environments"
             )
-        if (
-            self.trusted_hosts == ["localhost", "127.0.0.1"]
-            and self.environment != "dev"
-        ):
+        if self.trusted_hosts == ["localhost", "127.0.0.1"] and self.environment != "dev":
             raise ValueError("TRUSTED_HOSTS must be set in non-dev environments")
         if self.dev_auth_bypass_token and self.environment != "dev":
-            raise ValueError(
-                "DEV_AUTH_BYPASS_TOKEN must not be set outside environment=dev"
-            )
+            raise ValueError("DEV_AUTH_BYPASS_TOKEN must not be set outside environment=dev")
         return self
 
     @property
     def resolved_integration_key_hash_secret(self) -> str:
-        return (
-            self._cached_integration_key_hash_secret
-            or "daynest-dev-integration-key-hash-secret"
-        )
+        return self._cached_integration_key_hash_secret or "daynest-dev-integration-key-hash-secret"
 
     @property
     def resolved_db_password(self) -> str | None:

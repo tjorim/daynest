@@ -35,6 +35,7 @@ def _create_user(db_session: Session, email: str) -> User:
 def _auth_as(user: User) -> None:
     async def _dep() -> User:
         return user
+
     app.dependency_overrides[get_current_user] = _dep
 
 
@@ -90,7 +91,16 @@ def test_get_today_includes_generated_chore_sections(client: TestClient, db_sess
     assert response.status_code == 200
     payload = response.json()
 
-    required_keys = {"medication", "medication_history", "routines", "overdue", "due_today", "upcoming", "planned", "day_items"}
+    required_keys = {
+        "medication",
+        "medication_history",
+        "routines",
+        "overdue",
+        "due_today",
+        "upcoming",
+        "planned",
+        "day_items",
+    }
     assert set(payload.keys()) == required_keys
     assert payload["due_today"][0]["title"] == "Take out trash"
     assert payload["due_today"][0]["status"] == "pending"
@@ -229,7 +239,7 @@ def test_get_today_allows_today_service_dependency_override(client: TestClient, 
         def __init__(self) -> None:
             super().__init__(MagicMock(spec=TodayRepository), app_settings=settings)
 
-        def get_today(self, *, user_id: int, for_date: date) -> TodayResponse:
+        def get_today(self, user_id: int, for_date: date) -> TodayResponse:
             assert user_id == user.id
             assert for_date == datetime.now(UTC).date()
             return TodayResponse(

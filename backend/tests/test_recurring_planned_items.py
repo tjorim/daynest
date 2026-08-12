@@ -30,7 +30,9 @@ def _clear_auth() -> None:
     app.dependency_overrides.pop(get_current_user, None)
 
 
-def test_create_planned_item_with_rrule_creates_series_and_first_instance_only(client: TestClient, db_session: Session) -> None:
+def test_create_planned_item_with_rrule_creates_series_and_first_instance_only(
+    client: TestClient, db_session: Session
+) -> None:
     user = _create_user(db_session, "planned-rrule@example.com")
     _auth_as(user)
     try:
@@ -213,7 +215,9 @@ def test_create_planned_item_with_invalid_rrule_returns_422(client: TestClient, 
     assert response.status_code == 422
 
 
-def test_create_planned_item_with_rrule_not_matching_planned_for_returns_422(client: TestClient, db_session: Session) -> None:
+def test_create_planned_item_with_rrule_not_matching_planned_for_returns_422(
+    client: TestClient, db_session: Session
+) -> None:
     user = _create_user(db_session, "planned-invalid-first-occurrence@example.com")
     _auth_as(user)
     try:
@@ -267,7 +271,9 @@ def test_delete_planned_item_scope_future_deletes_series_from_today(client: Test
     assert db_session.query(RecurrenceSeries).filter(RecurrenceSeries.user_id == user.id).count() == 0
 
 
-def test_delete_planned_item_scope_future_from_middle_truncates_series_rule(client: TestClient, db_session: Session) -> None:
+def test_delete_planned_item_scope_future_from_middle_truncates_series_rule(
+    client: TestClient, db_session: Session
+) -> None:
     user = _create_user(db_session, "planned-delete-future-middle@example.com")
     _auth_as(user)
     start = datetime.now(UTC).date()
@@ -282,9 +288,7 @@ def test_delete_planned_item_scope_future_from_middle_truncates_series_rule(clie
             },
         )
         assert create.status_code == 200
-        listed = client.get(
-            f"/api/planned-items?start_date={start.isoformat()}&end_date={end.isoformat()}"
-        )
+        listed = client.get(f"/api/planned-items?start_date={start.isoformat()}&end_date={end.isoformat()}")
         assert listed.status_code == 200
         middle_date = start + (date.resolution * 3)
         middle_id = next(item["id"] for item in listed.json() if item["planned_for"] == middle_date.isoformat())
@@ -292,9 +296,7 @@ def test_delete_planned_item_scope_future_from_middle_truncates_series_rule(clie
         delete = client.delete(f"/api/planned-items/{middle_id}?scope=future")
         assert delete.status_code == 204
 
-        refreshed = client.get(
-            f"/api/planned-items?start_date={start.isoformat()}&end_date={end.isoformat()}"
-        )
+        refreshed = client.get(f"/api/planned-items?start_date={start.isoformat()}&end_date={end.isoformat()}")
     finally:
         _clear_auth()
 
@@ -328,9 +330,7 @@ def test_update_planned_item_scope_future_updates_template_and_clears_materializ
         )
         assert create.status_code == 200
         planned_id = create.json()["id"]
-        listed = client.get(
-            f"/api/planned-items?start_date={start.isoformat()}&end_date={end.isoformat()}"
-        )
+        listed = client.get(f"/api/planned-items?start_date={start.isoformat()}&end_date={end.isoformat()}")
         assert listed.status_code == 200
 
         update = client.put(
@@ -379,9 +379,7 @@ def test_update_planned_item_scope_all_updates_template_and_clears_materialized_
         )
         assert create.status_code == 200
         planned_id = create.json()["id"]
-        listed = client.get(
-            f"/api/planned-items?start_date={start.isoformat()}&end_date={end.isoformat()}"
-        )
+        listed = client.get(f"/api/planned-items?start_date={start.isoformat()}&end_date={end.isoformat()}")
         assert listed.status_code == 200
 
         update = client.put(
@@ -430,9 +428,7 @@ def test_update_planned_item_scope_all_from_later_instance_preserves_series_star
             },
         )
         assert create.status_code == 200
-        listed = client.get(
-            f"/api/planned-items?start_date={start.isoformat()}&end_date={end.isoformat()}"
-        )
+        listed = client.get(f"/api/planned-items?start_date={start.isoformat()}&end_date={end.isoformat()}")
         assert listed.status_code == 200
         planned_id = next(item["id"] for item in listed.json() if item["planned_for"] == edit_date.isoformat())
 
@@ -445,9 +441,7 @@ def test_update_planned_item_scope_all_from_later_instance_preserves_series_star
                 "rrule": "FREQ=DAILY;COUNT=4",
             },
         )
-        refreshed = client.get(
-            f"/api/planned-items?start_date={start.isoformat()}&end_date={end.isoformat()}"
-        )
+        refreshed = client.get(f"/api/planned-items?start_date={start.isoformat()}&end_date={end.isoformat()}")
     finally:
         _clear_auth()
 
@@ -486,9 +480,7 @@ def test_update_planned_item_scope_all_shifts_series_start_when_date_changes(
             },
         )
         assert create.status_code == 200
-        listed = client.get(
-            f"/api/planned-items?start_date={start.isoformat()}&end_date={end.isoformat()}"
-        )
+        listed = client.get(f"/api/planned-items?start_date={start.isoformat()}&end_date={end.isoformat()}")
         assert listed.status_code == 200
         second_date = start + date.resolution
         second_id = next(item["id"] for item in listed.json() if item["planned_for"] == second_date.isoformat())
@@ -573,9 +565,7 @@ def test_update_planned_item_scope_all_rejects_invalid_rrule(client: TestClient,
     assert update.json()["detail"] == "Invalid rrule"
 
 
-def test_recurring_grocery_auto_add_materializes_as_shopping_list_item(
-    client: TestClient, db_session: Session
-) -> None:
+def test_recurring_grocery_auto_add_materializes_as_shopping_list_item(client: TestClient, db_session: Session) -> None:
     from app.models.shopping_list import ShoppingList
 
     user = _create_user(db_session, "planned-auto-grocery@example.com")
@@ -599,9 +589,7 @@ def test_recurring_grocery_auto_add_materializes_as_shopping_list_item(
         assert create.status_code == 200
         assert create.json()["auto_add_to_list_id"] == shopping_list.id
 
-        response = client.get(
-            "/api/planned-items?start_date=2026-06-06&end_date=2026-06-13"
-        )
+        response = client.get("/api/planned-items?start_date=2026-06-06&end_date=2026-06-13")
     finally:
         _clear_auth()
 

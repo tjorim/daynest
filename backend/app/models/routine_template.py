@@ -27,9 +27,7 @@ if TYPE_CHECKING:
 
 class RoutineTemplate(Base):
     __tablename__ = "routine_templates"
-    __table_args__ = (
-        CheckConstraint("every_n_days >= 1", name="ck_routine_templates_every_n_days_positive"),
-    )
+    __table_args__ = (CheckConstraint("every_n_days >= 1", name="ck_routine_templates_every_n_days_positive"),)
 
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)

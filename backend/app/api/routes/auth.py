@@ -52,7 +52,9 @@ async def discover_oidc_endpoints() -> OidcDiscoveryConfig:
     paths. Raises HTTPException 503 when OIDC is unconfigured or discovery fails.
     """
     if not settings.oidc_issuer_url:
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="OIDC not configured on this server")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="OIDC not configured on this server"
+        )
     issuer = settings.oidc_issuer_url.rstrip("/")
     cached = _oidc_config_cache.get(issuer)
     if cached is not None:

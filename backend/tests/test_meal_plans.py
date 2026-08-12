@@ -88,9 +88,7 @@ def test_meal_plans_are_user_scoped(client: TestClient, db_session: Session) -> 
     owner = _create_user(db_session, "meal-owner@example.com")
     other = _create_user(db_session, "meal-other@example.com")
     _auth_as(owner)
-    resp = client.post(
-        "/api/meal-plans", json={"name": "Private", "week_start": "2026-06-08"}
-    )
+    resp = client.post("/api/meal-plans", json={"name": "Private", "week_start": "2026-06-08"})
     assert resp.status_code == 201
     meal_plan_id = resp.json()["id"]
 
@@ -104,9 +102,7 @@ def test_generate_shopping_list_from_meal_plan(client: TestClient, db_session: S
     user = _create_user(db_session, "meal-shopping@example.com")
     _auth_as(user)
 
-    resp = client.post(
-        "/api/meal-plans", json={"name": "Dinner plan", "week_start": "2026-06-08"}
-    )
+    resp = client.post("/api/meal-plans", json={"name": "Dinner plan", "week_start": "2026-06-08"})
     assert resp.status_code == 201
     meal_plan_id = resp.json()["id"]
     grid = client.get(f"/api/meal-plans/{meal_plan_id}/slots").json()

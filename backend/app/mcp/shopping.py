@@ -32,28 +32,20 @@ SessionFactory = Callable[[], Session]
 
 
 @map_domain_errors
-def list_meal_plans(
-    session_factory: SessionFactory, user_email: str | None
-) -> list[dict[str, Any]]:
+def list_meal_plans(session_factory: SessionFactory, user_email: str | None) -> list[dict[str, Any]]:
     return with_meal_plan_service(
         session_factory,
         user_email,
-        lambda _db, principal, service: jsonable(
-            service.list_meal_plans(principal.user.id)
-        ),
+        lambda _db, principal, service: jsonable(service.list_meal_plans(principal.user.id)),
     )
 
 
 @map_domain_errors
-def get_week_plan(
-    session_factory: SessionFactory, user_email: str | None, meal_plan_id: int
-) -> dict[str, Any]:
+def get_week_plan(session_factory: SessionFactory, user_email: str | None, meal_plan_id: int) -> dict[str, Any]:
     return with_meal_plan_service(
         session_factory,
         user_email,
-        lambda _db, principal, service: jsonable(
-            service.get_week_plan(principal.user.id, meal_plan_id)
-        ),
+        lambda _db, principal, service: jsonable(service.get_week_plan(principal.user.id, meal_plan_id)),
     )
 
 
@@ -79,9 +71,7 @@ def set_meal_slot(
         payload["planned_item_id"] = None if planned_item_id == 0 else planned_item_id
     request = MealSlotUpdate(**payload)
 
-    def _op(
-        _db: Session, principal: McpPrincipal, service: MealPlanService
-    ) -> dict[str, Any]:
+    def _op(_db: Session, principal: McpPrincipal, service: MealPlanService) -> dict[str, Any]:
         return jsonable(
             service.update_slot(
                 principal.user.id,
@@ -99,9 +89,7 @@ def set_meal_slot(
 def generate_shopping_list_from_plan(
     session_factory: SessionFactory, user_email: str | None, meal_plan_id: int
 ) -> dict[str, Any]:
-    def _op(
-        _db: Session, principal: McpPrincipal, service: MealPlanService
-    ) -> dict[str, Any]:
+    def _op(_db: Session, principal: McpPrincipal, service: MealPlanService) -> dict[str, Any]:
         return jsonable(
             service.generate_shopping_list(
                 plan_id=meal_plan_id,
@@ -126,9 +114,7 @@ def list_shopping_lists(
     return with_shopping_service(
         session_factory,
         user_email,
-        lambda _db, principal, service: jsonable(
-            service.list_shopping_lists(principal.user.id, status_filter)
-        ),
+        lambda _db, principal, service: jsonable(service.list_shopping_lists(principal.user.id, status_filter)),
     )
 
 
@@ -142,28 +128,18 @@ def create_shopping_list(
 ) -> dict[str, Any]:
     request = ShoppingListCreateRequest(name=name, store=store, notes=notes)
 
-    def _op(
-        _db: Session, principal: McpPrincipal, service: ShoppingListService
-    ) -> dict[str, Any]:
-        return jsonable(
-            service.create_shopping_list(
-                principal.user.id, request, actor=principal.to_audit_actor()
-            )
-        )
+    def _op(_db: Session, principal: McpPrincipal, service: ShoppingListService) -> dict[str, Any]:
+        return jsonable(service.create_shopping_list(principal.user.id, request, actor=principal.to_audit_actor()))
 
     return with_shopping_service(session_factory, user_email, _op)
 
 
 @map_domain_errors
-def get_shopping_list(
-    session_factory: SessionFactory, user_email: str | None, shopping_list_id: int
-) -> dict[str, Any]:
+def get_shopping_list(session_factory: SessionFactory, user_email: str | None, shopping_list_id: int) -> dict[str, Any]:
     return with_shopping_service(
         session_factory,
         user_email,
-        lambda _db, principal, service: jsonable(
-            service.get_shopping_list(principal.user.id, shopping_list_id)
-        ),
+        lambda _db, principal, service: jsonable(service.get_shopping_list(principal.user.id, shopping_list_id)),
     )
 
 
@@ -189,9 +165,7 @@ def update_shopping_list(
     }
     request = ShoppingListUpdateRequest.model_validate(payload)
 
-    def _op(
-        _db: Session, principal: McpPrincipal, service: ShoppingListService
-    ) -> dict[str, Any]:
+    def _op(_db: Session, principal: McpPrincipal, service: ShoppingListService) -> dict[str, Any]:
         return jsonable(
             service.update_shopping_list(
                 principal.user.id,
@@ -208,12 +182,8 @@ def update_shopping_list(
 def delete_shopping_list(
     session_factory: SessionFactory, user_email: str | None, shopping_list_id: int
 ) -> dict[str, Any]:
-    def _op(
-        _db: Session, principal: McpPrincipal, service: ShoppingListService
-    ) -> dict[str, Any]:
-        service.delete_shopping_list(
-            principal.user.id, shopping_list_id, actor=principal.to_audit_actor()
-        )
+    def _op(_db: Session, principal: McpPrincipal, service: ShoppingListService) -> dict[str, Any]:
+        service.delete_shopping_list(principal.user.id, shopping_list_id, actor=principal.to_audit_actor())
         return {"deleted": True, "shopping_list_id": shopping_list_id}
 
     return with_shopping_service(session_factory, user_email, _op)
@@ -230,9 +200,7 @@ def add_shopping_item(
     priority: str = "normal",
     tags: list[str] | None = None,
 ) -> dict[str, Any]:
-    def _op(
-        _db: Session, principal: McpPrincipal, service: ShoppingListService
-    ) -> dict[str, Any]:
+    def _op(_db: Session, principal: McpPrincipal, service: ShoppingListService) -> dict[str, Any]:
         return service.add_shopping_item(
             user_id=principal.user.id,
             shopping_list_id=shopping_list_id,
@@ -254,9 +222,7 @@ def check_off_shopping_item(
     shopping_list_id: int,
     planned_item_id: int,
 ) -> dict[str, Any]:
-    def _op(
-        _db: Session, principal: McpPrincipal, service: ShoppingListService
-    ) -> dict[str, Any]:
+    def _op(_db: Session, principal: McpPrincipal, service: ShoppingListService) -> dict[str, Any]:
         return service.check_off_shopping_item(
             user_id=principal.user.id,
             shopping_list_id=shopping_list_id,

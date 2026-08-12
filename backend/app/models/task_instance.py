@@ -16,7 +16,9 @@ if TYPE_CHECKING:
 
 class TaskInstance(Base):
     __tablename__ = "task_instances"
-    __table_args__ = (UniqueConstraint("routine_template_id", "scheduled_date", name="uq_task_instance_template_scheduled_date"),)
+    __table_args__ = (
+        UniqueConstraint("routine_template_id", "scheduled_date", name="uq_task_instance_template_scheduled_date"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
