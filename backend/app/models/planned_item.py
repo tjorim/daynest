@@ -8,6 +8,7 @@ import sqlalchemy as sa
 from sqlalchemy import (
     JSON,
     Boolean,
+    CheckConstraint,
     Date,
     DateTime,
     ForeignKey,
@@ -30,6 +31,7 @@ class PlannedItem(Base):
     __tablename__ = "planned_items"
     __table_args__ = (
         UniqueConstraint("recurrence_series_id", "planned_for", name="uq_planned_items_series_planned_for"),
+        CheckConstraint("priority IN ('low', 'normal', 'high', 'urgent')", name="ck_planned_items_priority"),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
