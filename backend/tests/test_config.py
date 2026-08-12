@@ -31,7 +31,9 @@ def test_trusted_hosts_default_allowed_in_dev():
 
 def test_dev_auth_bypass_token_rejected_in_non_dev():
     with pytest.raises(ValidationError, match="DEV_AUTH_BYPASS_TOKEN must not be set outside environment=dev"):
-        AppSettings(_env_file=None, trusted_hosts="daynest.example", dev_auth_bypass_token="some-token", **_base_kwargs())
+        AppSettings(
+            _env_file=None, trusted_hosts="daynest.example", dev_auth_bypass_token="some-token", **_base_kwargs()
+        )
 
 
 def test_dev_auth_bypass_token_allowed_in_dev():

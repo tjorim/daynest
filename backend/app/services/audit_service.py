@@ -27,9 +27,7 @@ from app.models.audit_entry import AuditEntry
 # principal resolution (app.mcp.principal.McpPrincipal) and REST's
 # AuthorizationPrincipal (app.api.dependencies.auth.AuthType), normalized to a
 # single string vocabulary so audit rows are comparable across both surfaces.
-AuditAuthSource = Literal[
-    "oidc", "keycloak_service", "integration", "local", "delegated"
-]
+AuditAuthSource = Literal["oidc", "keycloak_service", "integration", "local", "delegated"]
 
 DEFAULT_AUDIT_LIMIT = 100
 MAX_AUDIT_LIMIT = 1000

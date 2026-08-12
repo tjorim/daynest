@@ -47,12 +47,8 @@ def get_analytics_summary(
                 start_date=start_date,
                 end_date=end_date,
                 chores=get_chore_stats(db, principal.user.id, start_date, end_date),
-                medications=get_medication_stats(
-                    db, principal.user.id, start_date, end_date
-                ),
-                planned_items=get_planned_item_stats(
-                    db, principal.user.id, start_date, end_date
-                ),
+                medications=get_medication_stats(db, principal.user.id, start_date, end_date),
+                planned_items=get_planned_item_stats(db, principal.user.id, start_date, end_date),
                 routines=get_routine_stats(db, principal.user.id, start_date, end_date),
             )
         )
@@ -69,11 +65,7 @@ def search_daynest(
     if not 2 <= len(query) <= 100:
         raise ValueError("query must contain between 2 and 100 characters")
     limit = max(1, min(limit, 100))
-    escaped = (
-        query.replace(_ESCAPE_CHAR, _ESCAPE_CHAR * 2)
-        .replace("%", "\\%")
-        .replace("_", "\\_")
-    )
+    escaped = query.replace(_ESCAPE_CHAR, _ESCAPE_CHAR * 2).replace("%", "\\%").replace("_", "\\_")
     pattern = f"%{escaped}%"
 
     def _op(db: Session, principal: McpPrincipal) -> dict[str, Any]:
@@ -105,8 +97,7 @@ def search_daynest(
                 select(model)
                 .where(
                     model.user_id == uid,
-                    title.ilike(pattern, escape=_ESCAPE_CHAR)
-                    | detail.ilike(pattern, escape=_ESCAPE_CHAR),
+                    title.ilike(pattern, escape=_ESCAPE_CHAR) | detail.ilike(pattern, escape=_ESCAPE_CHAR),
                 )
                 .order_by(title)
                 .limit(limit)

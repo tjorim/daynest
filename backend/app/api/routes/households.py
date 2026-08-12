@@ -90,7 +90,9 @@ def update_household(
     if membership is None:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not a member of this household")
     if membership.role != HouseholdMemberRole.owner:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only the household owner can update household settings")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="Only the household owner can update household settings"
+        )
     household = repo.update_household_name(household, request.name)
     members = repo.list_members(household_id)
     return _household_to_response(household, members)
@@ -157,7 +159,9 @@ def remove_member(
 
     # Owner can remove anyone; non-owners can only remove themselves
     if current_user.id != user_id and current_membership.role != HouseholdMemberRole.owner:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only the household owner can remove other members")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="Only the household owner can remove other members"
+        )
 
     # Prevent removing the last owner
     if target_membership.role == HouseholdMemberRole.owner:
@@ -187,6 +191,8 @@ def delete_household(
     if membership is None:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not a member of this household")
     if membership.role != HouseholdMemberRole.owner:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only the household owner can delete the household")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="Only the household owner can delete the household"
+        )
     repo.delete_household(household)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

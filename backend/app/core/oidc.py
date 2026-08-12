@@ -202,11 +202,7 @@ def get_or_create_local_user(subject: str, claims: dict[str, Any], db: Session) 
                 logger.info("Linked existing user %s to OIDC subject %s", email, subject)
             return existing
 
-    full_name = (
-        (claims.get("name") or "").strip()
-        or (claims.get("preferred_username") or "").strip()
-        or None
-    )
+    full_name = (claims.get("name") or "").strip() or (claims.get("preferred_username") or "").strip() or None
 
     new_user = User(
         email=email or f"user-{subject[:8]}@oidc.local",

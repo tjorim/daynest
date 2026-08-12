@@ -78,7 +78,9 @@ class User(Base):
     )
     planned_items: Mapped[list[PlannedItem]] = relationship(back_populates="user", cascade="all, delete-orphan")
     shopping_lists: Mapped[list[ShoppingList]] = relationship(back_populates="user", cascade="all, delete-orphan")
-    recurrence_series: Mapped[list[RecurrenceSeries]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    recurrence_series: Mapped[list[RecurrenceSeries]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )
     integration_clients: Mapped[list[IntegrationClient]] = relationship(
         back_populates="user",
         cascade="all, delete-orphan",

@@ -27,6 +27,7 @@ FIXED_TODAY = date(2026, 1, 15)
 def _auth_as(user: User) -> None:
     async def _dep() -> User:
         return user
+
     app.dependency_overrides[get_current_user] = _dep
 
 

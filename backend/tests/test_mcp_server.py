@@ -37,9 +37,7 @@ from app.models.user import User
 
 
 def _session_factory(db_session: Session) -> sessionmaker[Session]:
-    return sessionmaker(
-        bind=db_session.bind, autoflush=False, autocommit=False, expire_on_commit=False
-    )
+    return sessionmaker(bind=db_session.bind, autoflush=False, autocommit=False, expire_on_commit=False)
 
 
 def _create_user(db_session: Session, email: str) -> User:
@@ -77,14 +75,10 @@ def _create_integration_client(
     return client
 
 
-def test_mcp_capabilities_endpoint_lists_growth_tools(
-    client: TestClient, monkeypatch
-) -> None:
+def test_mcp_capabilities_endpoint_lists_growth_tools(client: TestClient, monkeypatch) -> None:
     mock_mcp = create_mcp_server()
     monkeypatch.setattr("app.main._mcp", mock_mcp)
-    monkeypatch.setattr(
-        "app.main._mcp_app", mock_mcp.http_app(path="/", stateless_http=True)
-    )
+    monkeypatch.setattr("app.main._mcp_app", mock_mcp.http_app(path="/", stateless_http=True))
 
     response = client.get("/api/mcp/capabilities")
 
@@ -98,10 +92,7 @@ def test_mcp_capabilities_endpoint_lists_growth_tools(
     capability_by_name = {tool["name"]: tool for tool in payload["tools"]}
     assert capability_by_name["get_today"]["effect"] == "read"
     assert capability_by_name["create_planned_item"]["effect"] == "write"
-    assert (
-        capability_by_name["create_integration_client"]["required_auth"]
-        == "interactive"
-    )
+    assert capability_by_name["create_integration_client"]["required_auth"] == "interactive"
     assert capability_by_name["list_households"]["required_tier"] == "household_member"
     assert capability_by_name["get_household"]["required_tier"] == "household_member"
     assert capability_by_name["get_today"]["required_tier"] == "owner"
@@ -220,9 +211,7 @@ async def test_interactive_tools_reject_managed_integration_credentials(
         if preferred_username is not None:
             claims["preferred_username"] = preferred_username
         return AuthContext(
-            token=AccessToken(
-                token="test-token", client_id="test-client", scopes=[], claims=claims
-            ),
+            token=AccessToken(token="test-token", client_id="test-client", scopes=[], claims=claims),
             component=tools[tool_name],
         )
 
@@ -397,9 +386,7 @@ def test_mcp_backend_requires_explicit_user_when_multiple_accounts_exist(
 
     backend = DaynestMcpBackend(_session_factory(db_session))
 
-    with pytest.raises(
-        ValueError, match=r"Multiple active Daynest users found.*DAYNEST_USER_EMAIL"
-    ):
+    with pytest.raises(ValueError, match=r"Multiple active Daynest users found.*DAYNEST_USER_EMAIL"):
         backend.whoami()
 
 
@@ -532,9 +519,7 @@ def test_mcp_backend_can_get_scheduling_suggestions(db_session: Session) -> None
     payload = backend.get_scheduling_suggestions(utc_today.isoformat())
 
     assert payload["for_date"] == utc_today.isoformat()
-    assert any(
-        item["suggestion_type"] == "chore_reschedule" for item in payload["suggestions"]
-    )
+    assert any(item["suggestion_type"] == "chore_reschedule" for item in payload["suggestions"])
 
 
 def test_mcp_backend_can_create_medication(db_session: Session) -> None:
@@ -649,9 +634,7 @@ def test_mcp_backend_can_create_integration_client(db_session: Session) -> None:
     user = _create_user(db_session, "integration-create@example.com")
     backend = DaynestMcpBackend(_session_factory(db_session), user_email=user.email)
 
-    created = backend.create_integration_client(
-        name="Mobile automation", rate_limit_per_minute=120
-    )
+    created = backend.create_integration_client(name="Mobile automation", rate_limit_per_minute=120)
     clients = backend.list_integration_clients()
     verifier = IntegrationKeyTokenVerifier(_session_factory(db_session))
     token = asyncio.run(verifier.verify_token(created["api_key"]))
@@ -662,13 +645,9 @@ def test_mcp_backend_can_create_integration_client(db_session: Session) -> None:
     assert token is not None
 
 
-def test_integration_token_cannot_create_integration_client(
-    db_session: Session, monkeypatch
-) -> None:
+def test_integration_token_cannot_create_integration_client(db_session: Session, monkeypatch) -> None:
     user = _create_user(db_session, "integration-blocked@example.com")
-    client = _create_integration_client(
-        db_session, user, raw_key="daynest_blocked_key", scopes=["mcp:*"]
-    )
+    client = _create_integration_client(db_session, user, raw_key="daynest_blocked_key", scopes=["mcp:*"])
     backend = DaynestMcpBackend(_session_factory(db_session))
     access_token = AccessToken(
         token="daynest_blocked_key",
@@ -714,13 +693,9 @@ def test_integration_key_token_verifier_rejects_other_bearer_tokens_without_db_l
     factory.assert_not_called()
 
 
-def test_mcp_backend_uses_authenticated_integration_owner(
-    db_session: Session, monkeypatch
-) -> None:
+def test_mcp_backend_uses_authenticated_integration_owner(db_session: Session, monkeypatch) -> None:
     user = _create_user(db_session, "auth-owner@example.com")
-    client = _create_integration_client(
-        db_session, user, raw_key="daynest_auth_owner", scopes=["mcp:*"]
-    )
+    client = _create_integration_client(db_session, user, raw_key="daynest_auth_owner", scopes=["mcp:*"])
     backend = DaynestMcpBackend(_session_factory(db_session))
     access_token = AccessToken(
         token="token",
@@ -739,9 +714,7 @@ def test_mcp_backend_uses_authenticated_integration_owner(
     assert whoami["email"] == "auth-owner@example.com"
 
 
-def test_mcp_backend_resolves_oidc_numeric_subject(
-    db_session: Session, monkeypatch
-) -> None:
+def test_mcp_backend_resolves_oidc_numeric_subject(db_session: Session, monkeypatch) -> None:
     user = _create_user(db_session, "numeric-oidc@example.com")
     user.oidc_subject = "123456"
     db_session.commit()
@@ -805,9 +778,7 @@ def test_mcp_backend_maps_keycloak_service_account_to_local_user(
     assert whoami["email"] == user.email
 
 
-def test_mcp_backend_rejects_authenticated_token_without_client_id(
-    db_session: Session, monkeypatch
-) -> None:
+def test_mcp_backend_rejects_authenticated_token_without_client_id(db_session: Session, monkeypatch) -> None:
     _create_user(db_session, "missing-subject@example.com")
     backend = DaynestMcpBackend(_session_factory(db_session))
 
@@ -895,9 +866,7 @@ def test_mcp_backend_update_routine_raises_for_missing_template(
     backend = DaynestMcpBackend(_session_factory(db_session), user_email=user.email)
 
     with pytest.raises(ValueError, match="not found"):
-        backend.update_routine(
-            routine_template_id=9999, name="Ghost", start_date="2026-01-01"
-        )
+        backend.update_routine(routine_template_id=9999, name="Ghost", start_date="2026-01-01")
 
 
 def test_mcp_backend_can_delete_routine(db_session: Session) -> None:
@@ -995,18 +964,14 @@ def test_mcp_backend_update_chore_template_raises_for_missing(
     backend = DaynestMcpBackend(_session_factory(db_session), user_email=user.email)
 
     with pytest.raises(ValueError, match="not found"):
-        backend.update_chore_template(
-            chore_template_id=9999, name="Ghost", start_date="2026-01-01"
-        )
+        backend.update_chore_template(chore_template_id=9999, name="Ghost", start_date="2026-01-01")
 
 
 def test_mcp_backend_can_delete_chore_template(db_session: Session) -> None:
     user = _create_user(db_session, "chore-delete@example.com")
     backend = DaynestMcpBackend(_session_factory(db_session), user_email=user.email)
 
-    created = backend.create_chore_template(
-        name="Take out recycling", start_date="2026-01-01"
-    )
+    created = backend.create_chore_template(name="Take out recycling", start_date="2026-01-01")
     result = backend.delete_chore_template(created["id"])
     remaining = backend.list_chore_templates()
 
@@ -1025,9 +990,7 @@ def test_mcp_backend_delete_chore_template_raises_for_missing(
         backend.delete_chore_template(9999)
 
 
-def test_create_mcp_server_uses_backend_session_factory(
-    db_session: Session, monkeypatch
-) -> None:
+def test_create_mcp_server_uses_backend_session_factory(db_session: Session, monkeypatch) -> None:
     monkeypatch.setattr(settings, "oidc_issuer_url", None)
     session_factory = _session_factory(db_session)
     backend = DaynestMcpBackend(session_factory)
@@ -1041,9 +1004,7 @@ def test_create_mcp_server_uses_backend_session_factory(
 def test_create_mcp_server_accepts_client_credentials_without_user_scopes(
     monkeypatch,
 ) -> None:
-    monkeypatch.setattr(
-        settings, "oidc_issuer_url", "https://auth.example/realms/daynest"
-    )
+    monkeypatch.setattr(settings, "oidc_issuer_url", "https://auth.example/realms/daynest")
     monkeypatch.setattr(settings, "oidc_audience", "daynest")
     monkeypatch.setenv("DAYNEST_MCP_RESOURCE_SERVER_URL", "https://api.example/mcp")
     backend = DaynestMcpBackend(MagicMock())
@@ -1060,9 +1021,7 @@ def test_create_mcp_server_accepts_client_credentials_without_user_scopes(
 
 
 def test_create_mcp_server_propagates_keycloak_provider_failure(monkeypatch) -> None:
-    monkeypatch.setattr(
-        settings, "oidc_issuer_url", "https://auth.example/realms/daynest"
-    )
+    monkeypatch.setattr(settings, "oidc_issuer_url", "https://auth.example/realms/daynest")
     backend = DaynestMcpBackend(MagicMock())
 
     with (
@@ -1075,9 +1034,7 @@ def test_create_mcp_server_propagates_keycloak_provider_failure(monkeypatch) -> 
         create_mcp_server(backend)
 
 
-def test_mcp_server_version_uses_build_version_env(
-    db_session: Session, monkeypatch
-) -> None:
+def test_mcp_server_version_uses_build_version_env(db_session: Session, monkeypatch) -> None:
     monkeypatch.setattr(settings, "oidc_issuer_url", None)
     backend = DaynestMcpBackend(_session_factory(db_session))
     monkeypatch.setenv("BUILD_VERSION", "abc1234")
@@ -1087,9 +1044,7 @@ def test_mcp_server_version_uses_build_version_env(
     assert mcp.version == "abc1234"
 
 
-def test_mcp_server_version_defaults_to_dev_when_build_version_missing(
-    db_session: Session, monkeypatch
-) -> None:
+def test_mcp_server_version_defaults_to_dev_when_build_version_missing(db_session: Session, monkeypatch) -> None:
     monkeypatch.setattr(settings, "oidc_issuer_url", None)
     backend = DaynestMcpBackend(_session_factory(db_session))
     monkeypatch.delenv("BUILD_VERSION", raising=False)
@@ -1209,9 +1164,7 @@ def test_mcp_backend_take_medication_dose_with_custom_taken_at(
         name=plan.name,
         instructions=plan.instructions,
         scheduled_date=utc_today,
-        scheduled_at=datetime(
-            utc_today.year, utc_today.month, utc_today.day, 8, 0, tzinfo=UTC
-        ),
+        scheduled_at=datetime(utc_today.year, utc_today.month, utc_today.day, 8, 0, tzinfo=UTC),
         status=MedicationDoseStatus.missed,
     )
     db_session.add(dose)
@@ -1249,9 +1202,7 @@ def test_mcp_backend_take_medication_dose_rejects_future_taken_at(
         name=plan.name,
         instructions=plan.instructions,
         scheduled_date=utc_today,
-        scheduled_at=datetime(
-            utc_today.year, utc_today.month, utc_today.day, 9, 0, tzinfo=UTC
-        ),
+        scheduled_at=datetime(utc_today.year, utc_today.month, utc_today.day, 9, 0, tzinfo=UTC),
         status=MedicationDoseStatus.scheduled,
     )
     db_session.add(dose)
@@ -1306,9 +1257,7 @@ def test_mcp_backend_skip_missed_medication_doses(db_session: Session) -> None:
             name=plan.name,
             instructions=plan.instructions,
             scheduled_date=utc_today,
-            scheduled_at=datetime(
-                utc_today.year, utc_today.month, utc_today.day, 8, 0, tzinfo=UTC
-            ),
+            scheduled_at=datetime(utc_today.year, utc_today.month, utc_today.day, 8, 0, tzinfo=UTC),
             status=MedicationDoseStatus.scheduled,
         )
     )
@@ -1347,9 +1296,7 @@ def test_mcp_backend_skip_missed_doses_does_not_touch_today(
             name=plan.name,
             instructions=plan.instructions,
             scheduled_date=utc_today,
-            scheduled_at=datetime(
-                utc_today.year, utc_today.month, utc_today.day, 22, 0, tzinfo=UTC
-            ),
+            scheduled_at=datetime(utc_today.year, utc_today.month, utc_today.day, 22, 0, tzinfo=UTC),
             status=MedicationDoseStatus.missed,
         )
     )
@@ -1365,9 +1312,7 @@ def test_mcp_backend_manages_shopping_lists_and_items(db_session: Session) -> No
     user = _create_user(db_session, "shopping-mcp@example.com")
     backend = DaynestMcpBackend(_session_factory(db_session), user_email=user.email)
 
-    shopping_list = backend.create_shopping_list(
-        "Groceries", store="Market", notes="Weekend shop"
-    )
+    shopping_list = backend.create_shopping_list("Groceries", store="Market", notes="Weekend shop")
     assert shopping_list["name"] == "Groceries"
     assert shopping_list["store"] == "Market"
 
@@ -1384,7 +1329,5 @@ def test_mcp_backend_manages_shopping_lists_and_items(db_session: Session) -> No
     assert item["linked_ref"] == str(shopping_list["id"])
     assert item["is_done"] is False
 
-    checked = backend.check_off_shopping_item(
-        shopping_list_id=shopping_list["id"], planned_item_id=item["id"]
-    )
+    checked = backend.check_off_shopping_item(shopping_list_id=shopping_list["id"], planned_item_id=item["id"])
     assert checked["is_done"] is True

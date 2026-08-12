@@ -23,9 +23,7 @@ from app.services.audit_service import list_audit_entries as query_audit_entries
 SessionFactory = Callable[[], Session]
 
 
-def _parse_datetime_boundary(
-    value: str | None, *, is_until: bool = False
-) -> datetime | None:
+def _parse_datetime_boundary(value: str | None, *, is_until: bool = False) -> datetime | None:
     if not value:
         return None
     try:

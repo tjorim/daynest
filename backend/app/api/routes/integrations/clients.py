@@ -40,9 +40,7 @@ def _create_integration_token(client: IntegrationClient) -> str:
         "iat": now,
         "exp": now + timedelta(seconds=TOKEN_EXPIRES_IN_SECONDS),
     }
-    return jwt.encode(
-        payload, settings.resolved_integration_key_hash_secret, algorithm="HS256"
-    )
+    return jwt.encode(payload, settings.resolved_integration_key_hash_secret, algorithm="HS256")
 
 
 def _integration_client_id(client: IntegrationClient) -> str:
@@ -204,9 +202,7 @@ def rotate_integration_client(
         )
     )
     if client is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Integration client not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Integration client not found")
     if not client.is_active or client.revoked_at is not None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -286,9 +282,7 @@ def revoke_integration_client(
         )
     )
     if client is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Integration client not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Integration client not found")
     client.is_active = False
     client.revoked_at = datetime.now(UTC)
     write_audit_entry(

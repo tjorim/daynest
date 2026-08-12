@@ -33,9 +33,7 @@ def _service(db: Session) -> ShoppingListService:
 
 @router.get("", response_model=list[ShoppingListResponse])
 def list_shopping_lists(
-    status_filter: ShoppingListStatus | Literal["all"] = Query(
-        default="active", alias="status"
-    ),
+    status_filter: ShoppingListStatus | Literal["all"] = Query(default="active", alias="status"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> list[ShoppingListResponse]:
@@ -45,9 +43,7 @@ def list_shopping_lists(
     )
 
 
-@router.post(
-    "", response_model=ShoppingListResponse, status_code=status.HTTP_201_CREATED
-)
+@router.post("", response_model=ShoppingListResponse, status_code=status.HTTP_201_CREATED)
 def create_shopping_list(
     request: ShoppingListCreateRequest,
     db: Session = Depends(get_db),
@@ -63,9 +59,7 @@ def get_shopping_list(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> ShoppingListResponse:
-    return _service(db).get_shopping_list(
-        user_id=current_user.id, shopping_list_id=shopping_list_id
-    )
+    return _service(db).get_shopping_list(user_id=current_user.id, shopping_list_id=shopping_list_id)
 
 
 @router.put("/{shopping_list_id}", response_model=ShoppingListResponse)
@@ -87,9 +81,7 @@ def import_recurring_groceries(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> list[PlannedTodayItem]:
-    return _service(db).import_recurring_groceries(
-        user_id=current_user.id, shopping_list_id=shopping_list_id
-    )
+    return _service(db).import_recurring_groceries(user_id=current_user.id, shopping_list_id=shopping_list_id)
 
 
 @router.delete("/{shopping_list_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -99,7 +91,5 @@ def delete_shopping_list(
     current_user: User = Depends(get_current_user),
     audit_actor: AuditActor = Depends(get_audit_actor),
 ) -> Response:
-    _service(db).delete_shopping_list(
-        user_id=current_user.id, shopping_list_id=shopping_list_id, actor=audit_actor
-    )
+    _service(db).delete_shopping_list(user_id=current_user.id, shopping_list_id=shopping_list_id, actor=audit_actor)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

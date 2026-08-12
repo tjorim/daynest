@@ -36,23 +36,16 @@ def _serialize(repo: HouseholdRepository, household: Any) -> dict[str, Any]:
 
 
 @map_domain_errors
-def list_households(
-    session_factory: SessionFactory, user_email: str | None
-) -> list[dict[str, Any]]:
+def list_households(session_factory: SessionFactory, user_email: str | None) -> list[dict[str, Any]]:
     def _op(db: Session, principal: McpPrincipal) -> list[dict[str, Any]]:
         repo = HouseholdRepository(db)
-        return [
-            _serialize(repo, household)
-            for household in repo.list_user_households(principal.user.id)
-        ]
+        return [_serialize(repo, household) for household in repo.list_user_households(principal.user.id)]
 
     return with_principal(session_factory, user_email, _op)
 
 
 @map_domain_errors
-def get_household(
-    session_factory: SessionFactory, user_email: str | None, household_id: int
-) -> dict[str, Any]:
+def get_household(session_factory: SessionFactory, user_email: str | None, household_id: int) -> dict[str, Any]:
     def _op(db: Session, principal: McpPrincipal) -> dict[str, Any]:
         repo = HouseholdRepository(db)
         household = repo.get_household(household_id)

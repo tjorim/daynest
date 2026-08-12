@@ -37,14 +37,10 @@ class ShoppingListService:
     ) -> list[ShoppingListResponse]:
         return [
             self._to_schema(shopping_list)
-            for shopping_list in self.repository.list_by_user(
-                user_id, status=status_filter, limit=clamp_limit(limit)
-            )
+            for shopping_list in self.repository.list_by_user(user_id, status=status_filter, limit=clamp_limit(limit))
         ]
 
-    def get_shopping_list(
-        self, user_id: int, shopping_list_id: int
-    ) -> ShoppingListResponse:
+    def get_shopping_list(self, user_id: int, shopping_list_id: int) -> ShoppingListResponse:
         shopping_list = self._get_user_shopping_list(user_id, shopping_list_id)
         return self._to_schema(shopping_list)
 
@@ -87,14 +83,10 @@ class ShoppingListService:
         shopping_list = self.repository.update(shopping_list, actor=actor)
         return self._to_schema(shopping_list)
 
-    def delete_shopping_list(
-        self, user_id: int, shopping_list_id: int, *, actor: AuditActor | None = None
-    ) -> None:
+    def delete_shopping_list(self, user_id: int, shopping_list_id: int, *, actor: AuditActor | None = None) -> None:
         shopping_list = self._get_user_shopping_list(user_id, shopping_list_id)
         # Count linked items before deletion for audit, then delete with audit
-        linked_count = self.repository.count_linked_planned_items(
-            user_id=user_id, shopping_list_id=shopping_list.id
-        )
+        linked_count = self.repository.count_linked_planned_items(user_id=user_id, shopping_list_id=shopping_list.id)
         if linked_count:
             self.repository.record_audit(
                 actor,
@@ -106,14 +98,10 @@ class ShoppingListService:
                     "shopping_list_id": shopping_list.id,
                 },
             )
-        self.repository.delete_linked_planned_items(
-            user_id=user_id, shopping_list_id=shopping_list.id
-        )
+        self.repository.delete_linked_planned_items(user_id=user_id, shopping_list_id=shopping_list.id)
         self.repository.delete(shopping_list, actor=actor)
 
-    def import_recurring_groceries(
-        self, user_id: int, shopping_list_id: int
-    ) -> list[PlannedTodayItem]:
+    def import_recurring_groceries(self, user_id: int, shopping_list_id: int) -> list[PlannedTodayItem]:
         shopping_list = self._get_user_shopping_list(user_id, shopping_list_id)
         return self.today_service.import_recurring_groceries_to_shopping_list(
             user_id=user_id, shopping_list_id=shopping_list.id
@@ -160,14 +148,8 @@ class ShoppingListService:
         existing = self.today_service.repository.get_planned_item_for_user(
             user_id=user_id, planned_item_id=planned_item_id
         )
-        if (
-            existing is None
-            or existing.module_key != "shopping_list"
-            or existing.linked_ref != str(shopping_list.id)
-        ):
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Shopping item not found"
-            )
+        if existing is None or existing.module_key != "shopping_list" or existing.linked_ref != str(shopping_list.id):
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Shopping item not found")
         item = self.today_service.update_planned_item(
             user_id=user_id,
             planned_item_id=planned_item_id,
@@ -190,16 +172,10 @@ class ShoppingListService:
         )
         return item.model_dump(mode="json")
 
-    def _get_user_shopping_list(
-        self, user_id: int, shopping_list_id: int
-    ) -> ShoppingList:
-        shopping_list = self.repository.get_by_id(
-            user_id=user_id, shopping_list_id=shopping_list_id
-        )
+    def _get_user_shopping_list(self, user_id: int, shopping_list_id: int) -> ShoppingList:
+        shopping_list = self.repository.get_by_id(user_id=user_id, shopping_list_id=shopping_list_id)
         if shopping_list is None:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Shopping list not found"
-            )
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Shopping list not found")
         return shopping_list
 
     @staticmethod

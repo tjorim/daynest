@@ -37,14 +37,10 @@ def _hash_integration_key_with_secret(raw_key: str, secret: str) -> str:
 
 
 def hash_integration_key(raw_key: str) -> str:
-    return _hash_integration_key_with_secret(
-        raw_key, settings.resolved_integration_key_hash_secret
-    )
+    return _hash_integration_key_with_secret(raw_key, settings.resolved_integration_key_hash_secret)
 
 
-def get_integration_client_by_raw_key(
-    db: Session, raw_key: str
-) -> IntegrationClient | None:
+def get_integration_client_by_raw_key(db: Session, raw_key: str) -> IntegrationClient | None:
     current_hash = hash_integration_key(raw_key)
     hashes = [current_hash]
     previous = (settings.integration_key_hash_secret_previous or "").strip()
@@ -69,9 +65,7 @@ def get_integration_client_by_raw_key(
     return client
 
 
-def get_integration_client_by_token_hash(
-    db: Session, token_hash: str
-) -> IntegrationClient | None:
+def get_integration_client_by_token_hash(db: Session, token_hash: str) -> IntegrationClient | None:
     stmt = (
         select(IntegrationClient)
         .where(IntegrationClient.key_hash == token_hash)
@@ -82,11 +76,7 @@ def get_integration_client_by_token_hash(
 
 def enforce_integration_rate_limit(db: Session, client: IntegrationClient) -> None:
     """Enforce one fixed window transactionally across every app worker."""
-    locked = db.scalar(
-        select(IntegrationClient)
-        .where(IntegrationClient.id == client.id)
-        .with_for_update()
-    )
+    locked = db.scalar(select(IntegrationClient).where(IntegrationClient.id == client.id).with_for_update())
     if locked is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -166,11 +156,7 @@ def require_integration_auth(*required_scopes: str) -> Callable:
                         .where(IntegrationClient.id == client_id_int)
                         .options(joinedload(IntegrationClient.user))
                     )
-                    if (
-                        int_client is None
-                        or not int_client.is_active
-                        or int_client.revoked_at is not None
-                    ):
+                    if int_client is None or not int_client.is_active or int_client.revoked_at is not None:
                         raise HTTPException(
                             status_code=status.HTTP_401_UNAUTHORIZED,
                             detail="Integration client not found or inactive",
@@ -240,9 +226,7 @@ def require_integration_auth(*required_scopes: str) -> Callable:
                 request.state.principal = AuthorizationPrincipal(
                     subject=str(subject),
                     user_id=user.id,
-                    client_id=claims.get("azp")
-                    if isinstance(claims.get("azp"), str)
-                    else None,
+                    client_id=claims.get("azp") if isinstance(claims.get("azp"), str) else None,
                     auth_type=AuthType.KEYCLOAK_USER,
                     roles=frozenset(_extract_roles(claims)),
                     scopes=frozenset(granted),

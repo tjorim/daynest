@@ -67,9 +67,7 @@ def test_shopping_list_service_crud_and_status_filter(db_session: Session) -> No
 
     created = service.create_shopping_list(
         user.id,
-        ShoppingListCreateRequest(
-            name="Groceries", store="Corner Market", notes="Use coupons"
-        ),
+        ShoppingListCreateRequest(name="Groceries", store="Corner Market", notes="Use coupons"),
     )
     assert created.name == "Groceries"
     assert created.status == "active"
@@ -77,25 +75,18 @@ def test_shopping_list_service_crud_and_status_filter(db_session: Session) -> No
     updated = service.update_shopping_list(
         user.id,
         created.id,
-        ShoppingListUpdateRequest(
-            name="Weekly groceries", store=None, status="archived"
-        ),
+        ShoppingListUpdateRequest(name="Weekly groceries", store=None, status="archived"),
     )
     assert updated.name == "Weekly groceries"
     assert updated.store is None
     assert service.list_shopping_lists(user.id) == []
-    assert (
-        service.list_shopping_lists(user.id, status_filter="archived")[0].id
-        == created.id
-    )
+    assert service.list_shopping_lists(user.id, status_filter="archived")[0].id == created.id
 
 
 def test_delete_shopping_list_deletes_linked_planned_items(db_session: Session) -> None:
     user = _create_user(db_session, "delete-shopping@example.com")
     service = _service(db_session)
-    shopping_list = service.create_shopping_list(
-        user.id, ShoppingListCreateRequest(name="Hardware")
-    )
+    shopping_list = service.create_shopping_list(user.id, ShoppingListCreateRequest(name="Hardware"))
 
     linked = PlannedItem(
         user_id=user.id,
@@ -120,9 +111,7 @@ def test_create_list_and_filter_routes(client: TestClient, db_session: Session) 
     user = _create_user(db_session, "route-shopping@example.com")
     _auth_as(user)
 
-    response = client.post(
-        "/api/shopping-lists", json={"name": "Groceries", "store": "Market"}
-    )
+    response = client.post("/api/shopping-lists", json={"name": "Groceries", "store": "Market"})
     assert response.status_code == 201
     created = response.json()
     assert created["name"] == "Groceries"
@@ -133,63 +122,43 @@ def test_create_list_and_filter_routes(client: TestClient, db_session: Session) 
     assert response.status_code == 200
     assert [item["id"] for item in response.json()] == [created["id"]]
 
-    response = client.put(
-        f"/api/shopping-lists/{created['id']}", json={"status": "archived"}
-    )
+    response = client.put(f"/api/shopping-lists/{created['id']}", json={"status": "archived"})
     assert response.status_code == 200
     assert response.json()["status"] == "archived"
 
     assert client.get("/api/shopping-lists").json() == []
-    assert (
-        client.get("/api/shopping-lists?status=archived").json()[0]["id"]
-        == created["id"]
-    )
+    assert client.get("/api/shopping-lists?status=archived").json()[0]["id"] == created["id"]
     assert client.get("/api/shopping-lists?status=all").json()[0]["id"] == created["id"]
 
 
-def test_shopping_lists_are_user_scoped(
-    client: TestClient, db_session: Session
-) -> None:
+def test_shopping_lists_are_user_scoped(client: TestClient, db_session: Session) -> None:
     owner = _create_user(db_session, "owner-shopping@example.com")
     other = _create_user(db_session, "other-shopping@example.com")
     _auth_as(owner)
-    shopping_list_id = client.post(
-        "/api/shopping-lists", json={"name": "Private"}
-    ).json()["id"]
+    shopping_list_id = client.post("/api/shopping-lists", json={"name": "Private"}).json()["id"]
 
     _auth_as(other)
     assert client.get(f"/api/shopping-lists/{shopping_list_id}").status_code == 404
-    assert (
-        client.put(
-            f"/api/shopping-lists/{shopping_list_id}", json={"name": "Nope"}
-        ).status_code
-        == 404
-    )
+    assert client.put(f"/api/shopping-lists/{shopping_list_id}", json={"name": "Nope"}).status_code == 404
     assert client.delete(f"/api/shopping-lists/{shopping_list_id}").status_code == 404
 
 
 def test_delete_shopping_list_route(client: TestClient, db_session: Session) -> None:
     user = _create_user(db_session, "delete-route-shopping@example.com")
     _auth_as(user)
-    shopping_list_id = client.post(
-        "/api/shopping-lists", json={"name": "Delete me"}
-    ).json()["id"]
+    shopping_list_id = client.post("/api/shopping-lists", json={"name": "Delete me"}).json()["id"]
 
     response = client.delete(f"/api/shopping-lists/{shopping_list_id}")
     assert response.status_code == 204
     assert client.get(f"/api/shopping-lists/{shopping_list_id}").status_code == 404
 
 
-def test_import_recurring_groceries_route_links_upcoming_items(
-    client: TestClient, db_session: Session
-) -> None:
+def test_import_recurring_groceries_route_links_upcoming_items(client: TestClient, db_session: Session) -> None:
     from app.models.recurrence_series import RecurrenceSeries
 
     user = _create_user(db_session, "import-recurring-shopping@example.com")
     _auth_as(user)
-    shopping_list_id = client.post(
-        "/api/shopping-lists", json={"name": "Groceries"}
-    ).json()["id"]
+    shopping_list_id = client.post("/api/shopping-lists", json={"name": "Groceries"}).json()["id"]
 
     today = datetime.now(UTC).date()
     next_week = today + timedelta(weeks=1)

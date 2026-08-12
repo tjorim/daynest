@@ -115,7 +115,9 @@ def send_notification(subscription: PushSubscription, title: str, body: str, dat
 def _active_subscriptions(db: Session, user_id: int) -> list[PushSubscription]:
     return list(
         db.scalars(
-            select(PushSubscription).where(PushSubscription.user_id == user_id).where(PushSubscription.is_active.is_(True))
+            select(PushSubscription)
+            .where(PushSubscription.user_id == user_id)
+            .where(PushSubscription.is_active.is_(True))
         ).all()
     )
 
@@ -136,8 +138,7 @@ def _unnotified_item_ids(db: Session, user_id: int, notification_type: str, item
 
 def _record_notifications(db: Session, user_id: int, notification_type: str, item_ids: list[int]) -> None:
     db.add_all(
-        NotificationSent(user_id=user_id, notification_type=notification_type, item_id=item_id)
-        for item_id in item_ids
+        NotificationSent(user_id=user_id, notification_type=notification_type, item_id=item_id) for item_id in item_ids
     )
     db.commit()
 
@@ -188,7 +189,11 @@ def pending_push_user_ids(db: Session, *, now: datetime | None = None) -> list[i
             .where(MedicationDoseInstance.scheduled_at >= now)
             .where(MedicationDoseInstance.scheduled_at <= now + timedelta(days=1))
             .where(_active_subscription_exists(MedicationDoseInstance.user_id))
-            .where(~_notification_sent_exists(MedicationDoseInstance.user_id, "medication_reminder", MedicationDoseInstance.id))
+            .where(
+                ~_notification_sent_exists(
+                    MedicationDoseInstance.user_id, "medication_reminder", MedicationDoseInstance.id
+                )
+            )
             .distinct()
         ).all()
     )
@@ -201,7 +206,11 @@ def pending_push_user_ids(db: Session, *, now: datetime | None = None) -> list[i
             .where(MedicationDoseInstance.status == MedicationDoseStatus.missed)
             .where(MedicationDoseInstance.scheduled_at <= now)
             .where(_active_subscription_exists(MedicationDoseInstance.user_id))
-            .where(~_notification_sent_exists(MedicationDoseInstance.user_id, "missed_medication", MedicationDoseInstance.id))
+            .where(
+                ~_notification_sent_exists(
+                    MedicationDoseInstance.user_id, "missed_medication", MedicationDoseInstance.id
+                )
+            )
             .distinct()
         ).all()
     )

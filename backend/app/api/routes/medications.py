@@ -148,7 +148,9 @@ def take_medication_dose(
     audit_actor: AuditActor = Depends(get_audit_actor),
 ) -> MedicationDoseMutationResponse:
     taken_at = request.taken_at if request is not None else None
-    return _mutate_medication_dose_action(medication_dose_instance_id, "take", db, current_user, audit_actor, taken_at=taken_at)
+    return _mutate_medication_dose_action(
+        medication_dose_instance_id, "take", db, current_user, audit_actor, taken_at=taken_at
+    )
 
 
 @router.post("/medication-doses/{medication_dose_instance_id}/skip", response_model=MedicationDoseMutationResponse)
@@ -181,7 +183,9 @@ def skip_missed_medication_doses(
     before_date = request.before_date if request is not None else None
     repository = TodayRepository(db)
     service = TodayService(repository, app_settings=settings)
-    count, cutoff = service.skip_missed_medication_doses(user_id=current_user.id, before_date=before_date, actor=audit_actor)
+    count, cutoff = service.skip_missed_medication_doses(
+        user_id=current_user.id, before_date=before_date, actor=audit_actor
+    )
     return SkipMissedDosesResponse(skipped_count=count, before_date=cutoff)
 
 

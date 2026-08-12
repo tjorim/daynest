@@ -153,12 +153,8 @@ def complete_for_date(
     if argument.name != "for_date":
         return None
 
-    is_daily_briefing = (
-        isinstance(ref, PromptReference) and ref.name == "daily_briefing"
-    )
-    is_dated_resource = (
-        isinstance(ref, ResourceTemplateReference) and ref.uri in MCP_RESOURCE_URIS
-    )
+    is_daily_briefing = isinstance(ref, PromptReference) and ref.name == "daily_briefing"
+    is_dated_resource = isinstance(ref, ResourceTemplateReference) and ref.uri in MCP_RESOURCE_URIS
     if not (is_daily_briefing or is_dated_resource):
         return None
 
@@ -167,9 +163,7 @@ def complete_for_date(
         "today",
         *[(today + timedelta(days=offset)).isoformat() for offset in range(8)],
     ]
-    return [
-        candidate for candidate in candidates if candidate.startswith(argument.value)
-    ]
+    return [candidate for candidate in candidates if candidate.startswith(argument.value)]
 
 
 class DaynestMcpBackend:
@@ -200,13 +194,9 @@ class DaynestMcpBackend:
         return mcp_identity.list_users(self.session_factory, self.user_email)
 
     def list_integration_clients(self) -> list[dict[str, Any]]:
-        return mcp_identity.list_integration_clients(
-            self.session_factory, self.user_email
-        )
+        return mcp_identity.list_integration_clients(self.session_factory, self.user_email)
 
-    def create_integration_client(
-        self, name: str, rate_limit_per_minute: int = 120
-    ) -> dict[str, Any]:
+    def create_integration_client(self, name: str, rate_limit_per_minute: int = 120) -> dict[str, Any]:
         return mcp_identity.create_integration_client(
             self.session_factory,
             self.user_email,
@@ -215,22 +205,16 @@ class DaynestMcpBackend:
         )
 
     def rotate_integration_client(self, client_id: int) -> dict[str, Any]:
-        return mcp_identity.rotate_integration_client(
-            self.session_factory, self.user_email, client_id
-        )
+        return mcp_identity.rotate_integration_client(self.session_factory, self.user_email, client_id)
 
     def revoke_integration_client(self, client_id: int) -> dict[str, Any]:
-        return mcp_identity.revoke_integration_client(
-            self.session_factory, self.user_email, client_id
-        )
+        return mcp_identity.revoke_integration_client(self.session_factory, self.user_email, client_id)
 
     def list_households(self) -> list[dict[str, Any]]:
         return mcp_households.list_households(self.session_factory, self.user_email)
 
     def get_household(self, household_id: int) -> dict[str, Any]:
-        return mcp_households.get_household(
-            self.session_factory, self.user_email, household_id
-        )
+        return mcp_households.get_household(self.session_factory, self.user_email, household_id)
 
     # --- Today / calendar / planned items ----------------------------------
 
@@ -238,14 +222,10 @@ class DaynestMcpBackend:
         return mcp_planning.get_today(self.session_factory, self.user_email, for_date)
 
     def get_calendar_day(self, for_date: str | None = None) -> dict[str, Any]:
-        return mcp_planning.get_calendar_day(
-            self.session_factory, self.user_email, for_date
-        )
+        return mcp_planning.get_calendar_day(self.session_factory, self.user_email, for_date)
 
     def get_calendar_month(self, year: int, month: int) -> dict[str, Any]:
-        return mcp_planning.get_calendar_month(
-            self.session_factory, self.user_email, year, month
-        )
+        return mcp_planning.get_calendar_month(self.session_factory, self.user_email, year, month)
 
     def list_planned_items(
         self,
@@ -253,9 +233,7 @@ class DaynestMcpBackend:
         end_date: str | None = None,
         limit: int | None = None,
     ) -> list[dict[str, Any]]:
-        return mcp_planning.list_planned_items(
-            self.session_factory, self.user_email, start_date, end_date, limit
-        )
+        return mcp_planning.list_planned_items(self.session_factory, self.user_email, start_date, end_date, limit)
 
     def create_planned_item(
         self,
@@ -328,60 +306,36 @@ class DaynestMcpBackend:
         )
 
     def defer_planned_item(self, planned_item_id: int, days: int = 1) -> dict[str, Any]:
-        return mcp_planning.defer_planned_item(
-            self.session_factory, self.user_email, planned_item_id, days
-        )
+        return mcp_planning.defer_planned_item(self.session_factory, self.user_email, planned_item_id, days)
 
-    def delete_planned_item(
-        self, planned_item_id: int, scope: Literal["this", "future"] = "this"
-    ) -> dict[str, Any]:
-        return mcp_planning.delete_planned_item(
-            self.session_factory, self.user_email, planned_item_id, scope
-        )
+    def delete_planned_item(self, planned_item_id: int, scope: Literal["this", "future"] = "this") -> dict[str, Any]:
+        return mcp_planning.delete_planned_item(self.session_factory, self.user_email, planned_item_id, scope)
 
     def delete_planned_item_series(self, recurrence_series_id: str) -> dict[str, Any]:
-        return mcp_planning.delete_planned_item_series(
-            self.session_factory, self.user_email, recurrence_series_id
-        )
+        return mcp_planning.delete_planned_item_series(self.session_factory, self.user_email, recurrence_series_id)
 
     def get_scheduling_suggestions(self, for_date: str | None = None) -> dict[str, Any]:
-        return mcp_planning.get_scheduling_suggestions(
-            self.session_factory, self.user_email, for_date
-        )
+        return mcp_planning.get_scheduling_suggestions(self.session_factory, self.user_email, for_date)
 
     # --- Routines / chores ---------------------------------------------------
 
     def complete_chore(self, chore_instance_id: int) -> dict[str, Any]:
-        return mcp_routines.complete_chore(
-            self.session_factory, self.user_email, chore_instance_id
-        )
+        return mcp_routines.complete_chore(self.session_factory, self.user_email, chore_instance_id)
 
     def skip_chore(self, chore_instance_id: int) -> dict[str, Any]:
-        return mcp_routines.skip_chore(
-            self.session_factory, self.user_email, chore_instance_id
-        )
+        return mcp_routines.skip_chore(self.session_factory, self.user_email, chore_instance_id)
 
-    def reschedule_chore(
-        self, chore_instance_id: int, scheduled_date: str
-    ) -> dict[str, Any]:
-        return mcp_routines.reschedule_chore(
-            self.session_factory, self.user_email, chore_instance_id, scheduled_date
-        )
+    def reschedule_chore(self, chore_instance_id: int, scheduled_date: str) -> dict[str, Any]:
+        return mcp_routines.reschedule_chore(self.session_factory, self.user_email, chore_instance_id, scheduled_date)
 
     def start_routine_task(self, task_instance_id: int) -> dict[str, Any]:
-        return mcp_routines.start_routine_task(
-            self.session_factory, self.user_email, task_instance_id
-        )
+        return mcp_routines.start_routine_task(self.session_factory, self.user_email, task_instance_id)
 
     def complete_routine_task(self, task_instance_id: int) -> dict[str, Any]:
-        return mcp_routines.complete_routine_task(
-            self.session_factory, self.user_email, task_instance_id
-        )
+        return mcp_routines.complete_routine_task(self.session_factory, self.user_email, task_instance_id)
 
     def skip_routine_task(self, task_instance_id: int) -> dict[str, Any]:
-        return mcp_routines.skip_routine_task(
-            self.session_factory, self.user_email, task_instance_id
-        )
+        return mcp_routines.skip_routine_task(self.session_factory, self.user_email, task_instance_id)
 
     def list_routines(self) -> list[dict[str, Any]]:
         return mcp_routines.list_routines(self.session_factory, self.user_email)
@@ -429,9 +383,7 @@ class DaynestMcpBackend:
         )
 
     def delete_routine(self, routine_template_id: int) -> dict[str, Any]:
-        return mcp_routines.delete_routine(
-            self.session_factory, self.user_email, routine_template_id
-        )
+        return mcp_routines.delete_routine(self.session_factory, self.user_email, routine_template_id)
 
     def list_chore_templates(self) -> list[dict[str, Any]]:
         return mcp_routines.list_chore_templates(self.session_factory, self.user_email)
@@ -475,30 +427,20 @@ class DaynestMcpBackend:
         )
 
     def delete_chore_template(self, chore_template_id: int) -> dict[str, Any]:
-        return mcp_routines.delete_chore_template(
-            self.session_factory, self.user_email, chore_template_id
-        )
+        return mcp_routines.delete_chore_template(self.session_factory, self.user_email, chore_template_id)
 
     # --- Medications -----------------------------------------------------
 
-    def take_medication_dose(
-        self, medication_dose_instance_id: int, taken_at: str | None = None
-    ) -> dict[str, Any]:
+    def take_medication_dose(self, medication_dose_instance_id: int, taken_at: str | None = None) -> dict[str, Any]:
         return mcp_medications.take_medication_dose(
             self.session_factory, self.user_email, medication_dose_instance_id, taken_at
         )
 
     def skip_medication_dose(self, medication_dose_instance_id: int) -> dict[str, Any]:
-        return mcp_medications.skip_medication_dose(
-            self.session_factory, self.user_email, medication_dose_instance_id
-        )
+        return mcp_medications.skip_medication_dose(self.session_factory, self.user_email, medication_dose_instance_id)
 
-    def skip_missed_medication_doses(
-        self, before_date: str | None = None
-    ) -> dict[str, Any]:
-        return mcp_medications.skip_missed_medication_doses(
-            self.session_factory, self.user_email, before_date
-        )
+    def skip_missed_medication_doses(self, before_date: str | None = None) -> dict[str, Any]:
+        return mcp_medications.skip_missed_medication_doses(self.session_factory, self.user_email, before_date)
 
     def list_medications(self) -> list[dict[str, Any]]:
         return mcp_medications.list_medications(self.session_factory, self.user_email)
@@ -544,18 +486,14 @@ class DaynestMcpBackend:
         )
 
     def delete_medication(self, medication_plan_id: int) -> dict[str, Any]:
-        return mcp_medications.delete_medication(
-            self.session_factory, self.user_email, medication_plan_id
-        )
+        return mcp_medications.delete_medication(self.session_factory, self.user_email, medication_plan_id)
 
     def get_medication_history(
         self,
         limit: int = DEFAULT_MEDICATION_HISTORY_LIMIT,
         medication_plan_id: int | None = None,
     ) -> dict[str, Any]:
-        return mcp_medications.get_medication_history(
-            self.session_factory, self.user_email, limit, medication_plan_id
-        )
+        return mcp_medications.get_medication_history(self.session_factory, self.user_email, limit, medication_plan_id)
 
     # --- Shopping / meal planning ------------------------------------------
 
@@ -563,9 +501,7 @@ class DaynestMcpBackend:
         return mcp_shopping.list_meal_plans(self.session_factory, self.user_email)
 
     def get_week_plan(self, meal_plan_id: int) -> dict[str, Any]:
-        return mcp_shopping.get_week_plan(
-            self.session_factory, self.user_email, meal_plan_id
-        )
+        return mcp_shopping.get_week_plan(self.session_factory, self.user_email, meal_plan_id)
 
     def set_meal_slot(
         self,
@@ -588,28 +524,16 @@ class DaynestMcpBackend:
         )
 
     def generate_shopping_list_from_plan(self, meal_plan_id: int) -> dict[str, Any]:
-        return mcp_shopping.generate_shopping_list_from_plan(
-            self.session_factory, self.user_email, meal_plan_id
-        )
+        return mcp_shopping.generate_shopping_list_from_plan(self.session_factory, self.user_email, meal_plan_id)
 
-    def list_shopping_lists(
-        self, status: ShoppingListStatus | Literal["all"] = "active"
-    ) -> list[dict[str, Any]]:
-        return mcp_shopping.list_shopping_lists(
-            self.session_factory, self.user_email, status
-        )
+    def list_shopping_lists(self, status: ShoppingListStatus | Literal["all"] = "active") -> list[dict[str, Any]]:
+        return mcp_shopping.list_shopping_lists(self.session_factory, self.user_email, status)
 
-    def create_shopping_list(
-        self, name: str, store: str | None = None, notes: str | None = None
-    ) -> dict[str, Any]:
-        return mcp_shopping.create_shopping_list(
-            self.session_factory, self.user_email, name, store, notes
-        )
+    def create_shopping_list(self, name: str, store: str | None = None, notes: str | None = None) -> dict[str, Any]:
+        return mcp_shopping.create_shopping_list(self.session_factory, self.user_email, name, store, notes)
 
     def get_shopping_list(self, shopping_list_id: int) -> dict[str, Any]:
-        return mcp_shopping.get_shopping_list(
-            self.session_factory, self.user_email, shopping_list_id
-        )
+        return mcp_shopping.get_shopping_list(self.session_factory, self.user_email, shopping_list_id)
 
     def update_shopping_list(
         self,
@@ -630,9 +554,7 @@ class DaynestMcpBackend:
         )
 
     def delete_shopping_list(self, shopping_list_id: int) -> dict[str, Any]:
-        return mcp_shopping.delete_shopping_list(
-            self.session_factory, self.user_email, shopping_list_id
-        )
+        return mcp_shopping.delete_shopping_list(self.session_factory, self.user_email, shopping_list_id)
 
     def add_shopping_item(
         self,
@@ -654,26 +576,18 @@ class DaynestMcpBackend:
             tags,
         )
 
-    def check_off_shopping_item(
-        self, shopping_list_id: int, planned_item_id: int
-    ) -> dict[str, Any]:
+    def check_off_shopping_item(self, shopping_list_id: int, planned_item_id: int) -> dict[str, Any]:
         return mcp_shopping.check_off_shopping_item(
             self.session_factory, self.user_email, shopping_list_id, planned_item_id
         )
 
     # --- Insights ------------------------------------------------------
 
-    def get_analytics_summary(
-        self, period: Literal["week", "month", "year"] = "week"
-    ) -> dict[str, Any]:
-        return mcp_insights.get_analytics_summary(
-            self.session_factory, self.user_email, period
-        )
+    def get_analytics_summary(self, period: Literal["week", "month", "year"] = "week") -> dict[str, Any]:
+        return mcp_insights.get_analytics_summary(self.session_factory, self.user_email, period)
 
     def search_daynest(self, query: str, limit: int = 20) -> dict[str, Any]:
-        return mcp_insights.search_daynest(
-            self.session_factory, self.user_email, query, limit
-        )
+        return mcp_insights.search_daynest(self.session_factory, self.user_email, query, limit)
 
     # --- Audit ---------------------------------------------------------
 
@@ -702,12 +616,8 @@ class DaynestMcpBackend:
 
 def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
     daynest = backend or DaynestMcpBackend(SessionLocal)
-    resource_server_url = os.getenv(
-        DAYNEST_MCP_RESOURCE_SERVER_URL_ENV, "http://127.0.0.1:8000/mcp"
-    )
-    integration_verifier = IntegrationKeyTokenVerifier(
-        daynest.session_factory, resource_server_url=resource_server_url
-    )
+    resource_server_url = os.getenv(DAYNEST_MCP_RESOURCE_SERVER_URL_ENV, "http://127.0.0.1:8000/mcp")
+    integration_verifier = IntegrationKeyTokenVerifier(daynest.session_factory, resource_server_url=resource_server_url)
 
     if settings.oidc_issuer_url:
         # Requires Keycloak >= 26.6.0. When audience is set, a matching audience
@@ -780,9 +690,7 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
     ) -> dict[str, Any]:
         """Create a personal access token (integration client) and return its one-time API key."""
 
-        return await to_thread.run_sync(
-            daynest.create_integration_client, name, rate_limit_per_minute
-        )
+        return await to_thread.run_sync(daynest.create_integration_client, name, rate_limit_per_minute)
 
     @register_tool
     async def rotate_integration_client(client_id: int) -> dict[str, Any]:
@@ -859,9 +767,7 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
     async def generate_shopping_list_from_plan(meal_plan_id: int) -> dict[str, Any]:
         """Generate a shopping list from all ingredients in a meal plan."""
 
-        return await to_thread.run_sync(
-            daynest.generate_shopping_list_from_plan, meal_plan_id
-        )
+        return await to_thread.run_sync(daynest.generate_shopping_list_from_plan, meal_plan_id)
 
     @register_tool
     async def list_shopping_lists(
@@ -872,14 +778,10 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
         return await to_thread.run_sync(daynest.list_shopping_lists, status)
 
     @register_tool
-    async def create_shopping_list(
-        name: str, store: str | None = None, notes: str | None = None
-    ) -> dict[str, Any]:
+    async def create_shopping_list(name: str, store: str | None = None, notes: str | None = None) -> dict[str, Any]:
         """Create a shopping list for the active user."""
 
-        return await to_thread.run_sync(
-            daynest.create_shopping_list, name, store, notes
-        )
+        return await to_thread.run_sync(daynest.create_shopping_list, name, store, notes)
 
     @register_tool
     async def get_shopping_list(shopping_list_id: int) -> dict[str, Any]:
@@ -895,9 +797,7 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
         status: ShoppingListStatus | None = None,
     ) -> dict[str, Any]:
         """Update or archive an owner-scoped shopping list."""
-        return await to_thread.run_sync(
-            daynest.update_shopping_list, shopping_list_id, name, store, notes, status
-        )
+        return await to_thread.run_sync(daynest.update_shopping_list, shopping_list_id, name, store, notes, status)
 
     @register_tool
     async def delete_shopping_list(shopping_list_id: int) -> dict[str, Any]:
@@ -926,14 +826,10 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
         )
 
     @register_tool
-    async def check_off_shopping_item(
-        shopping_list_id: int, planned_item_id: int
-    ) -> dict[str, Any]:
+    async def check_off_shopping_item(shopping_list_id: int, planned_item_id: int) -> dict[str, Any]:
         """Mark a shopping-list planned item as in cart / purchased."""
 
-        return await to_thread.run_sync(
-            daynest.check_off_shopping_item, shopping_list_id, planned_item_id
-        )
+        return await to_thread.run_sync(daynest.check_off_shopping_item, shopping_list_id, planned_item_id)
 
     @register_tool
     async def list_planned_items(
@@ -952,9 +848,7 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
                 instead of the user's entire all-time history.
         """
 
-        return await to_thread.run_sync(
-            daynest.list_planned_items, start_date, end_date, limit
-        )
+        return await to_thread.run_sync(daynest.list_planned_items, start_date, end_date, limit)
 
     @register_tool
     async def create_planned_item(
@@ -1087,14 +981,10 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
             days: Number of days to defer by. Use 1 for tomorrow, 7 for next week.
         """
 
-        return await to_thread.run_sync(
-            daynest.defer_planned_item, planned_item_id, days
-        )
+        return await to_thread.run_sync(daynest.defer_planned_item, planned_item_id, days)
 
     @register_tool
-    async def delete_planned_item(
-        planned_item_id: int, scope: Literal["this", "future"] = "this"
-    ) -> dict[str, Any]:
+    async def delete_planned_item(planned_item_id: int, scope: Literal["this", "future"] = "this") -> dict[str, Any]:
         """Delete a planned item by id.
 
         Args:
@@ -1105,9 +995,7 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
                            same recurrence series. Has no effect for non-recurring items.
         """
 
-        return await to_thread.run_sync(
-            daynest.delete_planned_item, planned_item_id, scope
-        )
+        return await to_thread.run_sync(daynest.delete_planned_item, planned_item_id, scope)
 
     @register_tool
     async def delete_planned_item_series(recurrence_series_id: str) -> dict[str, Any]:
@@ -1120,9 +1008,7 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
         Returns the number of deleted instances in deleted_count.
         """
 
-        return await to_thread.run_sync(
-            daynest.delete_planned_item_series, recurrence_series_id
-        )
+        return await to_thread.run_sync(daynest.delete_planned_item_series, recurrence_series_id)
 
     @register_tool
     async def complete_chore(chore_instance_id: int) -> dict[str, Any]:
@@ -1137,14 +1023,10 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
         return await to_thread.run_sync(daynest.skip_chore, chore_instance_id)
 
     @register_tool
-    async def reschedule_chore(
-        chore_instance_id: int, scheduled_date: str
-    ) -> dict[str, Any]:
+    async def reschedule_chore(chore_instance_id: int, scheduled_date: str) -> dict[str, Any]:
         """Reschedule a Daynest chore instance to a new YYYY-MM-DD date."""
 
-        return await to_thread.run_sync(
-            daynest.reschedule_chore, chore_instance_id, scheduled_date
-        )
+        return await to_thread.run_sync(daynest.reschedule_chore, chore_instance_id, scheduled_date)
 
     @register_tool
     async def start_routine_task(task_instance_id: int) -> dict[str, Any]:
@@ -1306,9 +1188,7 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
     async def delete_chore_template(chore_template_id: int) -> dict[str, Any]:
         """Delete a Daynest chore template by id."""
 
-        return await to_thread.run_sync(
-            daynest.delete_chore_template, chore_template_id
-        )
+        return await to_thread.run_sync(daynest.delete_chore_template, chore_template_id)
 
     @register_tool
     async def take_medication_dose(
@@ -1324,17 +1204,13 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
                 Defaults to the current time when omitted.
         """
 
-        return await to_thread.run_sync(
-            daynest.take_medication_dose, medication_dose_instance_id, taken_at
-        )
+        return await to_thread.run_sync(daynest.take_medication_dose, medication_dose_instance_id, taken_at)
 
     @register_tool
     async def skip_medication_dose(medication_dose_instance_id: int) -> dict[str, Any]:
         """Mark a Daynest medication dose as skipped. Accepts doses in scheduled or missed status."""
 
-        return await to_thread.run_sync(
-            daynest.skip_medication_dose, medication_dose_instance_id
-        )
+        return await to_thread.run_sync(daynest.skip_medication_dose, medication_dose_instance_id)
 
     @register_tool
     async def skip_missed_medication_doses(
@@ -1356,9 +1232,7 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
             before_date: The cutoff date that was used.
         """
 
-        return await to_thread.run_sync(
-            daynest.skip_missed_medication_doses, before_date
-        )
+        return await to_thread.run_sync(daynest.skip_missed_medication_doses, before_date)
 
     @register_tool
     async def list_medications() -> list[dict[str, Any]]:
@@ -1452,9 +1326,7 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
                 medications.
         """
 
-        return await to_thread.run_sync(
-            daynest.get_medication_history, limit, medication_plan_id
-        )
+        return await to_thread.run_sync(daynest.get_medication_history, limit, medication_plan_id)
 
     @register_tool
     async def get_scheduling_suggestions(for_date: str = "today") -> dict[str, Any]:
@@ -1517,17 +1389,13 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
     async def today_resource(for_date: str) -> str:
         """Read the Daynest Today payload as a JSON resource."""
 
-        return json.dumps(
-            await to_thread.run_sync(daynest.get_today, for_date), indent=2
-        )
+        return json.dumps(await to_thread.run_sync(daynest.get_today, for_date), indent=2)
 
     @mcp.resource("daynest://calendar/day/{for_date}")
     async def calendar_day_resource(for_date: str) -> str:
         """Read the Daynest day view as a JSON resource."""
 
-        return json.dumps(
-            await to_thread.run_sync(daynest.get_calendar_day, for_date), indent=2
-        )
+        return json.dumps(await to_thread.run_sync(daynest.get_calendar_day, for_date), indent=2)
 
     @mcp.prompt()
     def daily_briefing(for_date: str = "today") -> str:

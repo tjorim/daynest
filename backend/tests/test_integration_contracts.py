@@ -71,7 +71,9 @@ def test_home_assistant_contract_header_and_summary_shape(client: TestClient, db
     response = client.get("/api/integrations/home-assistant/summary", headers={"X-Integration-Key": key})
 
     assert response.status_code == 200
-    assert response.headers[INTEGRATION_CONTRACT_HEADER] == integration_contract_header(HOME_ASSISTANT_ADAPTER, HOME_ASSISTANT_CONTRACT_VERSION)
+    assert response.headers[INTEGRATION_CONTRACT_HEADER] == integration_contract_header(
+        HOME_ASSISTANT_ADAPTER, HOME_ASSISTANT_CONTRACT_VERSION
+    )
     payload = response.json()
     assert set(payload.keys()) == {
         "sensor_daynest_chores_due",
@@ -91,7 +93,9 @@ def test_home_assistant_contract_dashboard_shape(client: TestClient, db_session:
     response = client.get("/api/integrations/home-assistant/dashboard", headers={"X-Integration-Key": key})
 
     assert response.status_code == 200
-    assert response.headers[INTEGRATION_CONTRACT_HEADER] == integration_contract_header(HOME_ASSISTANT_ADAPTER, HOME_ASSISTANT_CONTRACT_VERSION)
+    assert response.headers[INTEGRATION_CONTRACT_HEADER] == integration_contract_header(
+        HOME_ASSISTANT_ADAPTER, HOME_ASSISTANT_CONTRACT_VERSION
+    )
     payload = response.json()
     assert set(payload.keys()) == {
         "for_date",
@@ -119,7 +123,9 @@ def test_home_assistant_contract_entities_shape(client: TestClient, db_session: 
     response = client.get("/api/integrations/home-assistant/entities", headers={"X-Integration-Key": key})
 
     assert response.status_code == 200
-    assert response.headers[INTEGRATION_CONTRACT_HEADER] == integration_contract_header(HOME_ASSISTANT_ADAPTER, HOME_ASSISTANT_CONTRACT_VERSION)
+    assert response.headers[INTEGRATION_CONTRACT_HEADER] == integration_contract_header(
+        HOME_ASSISTANT_ADAPTER, HOME_ASSISTANT_CONTRACT_VERSION
+    )
     payload = response.json()
     assert isinstance(payload, list)
     assert {entity["entity_id"] for entity in payload} == {
@@ -149,7 +155,9 @@ def test_home_assistant_contract_calendar_shape(client: TestClient, db_session: 
     )
 
     assert response.status_code == 200
-    assert response.headers[INTEGRATION_CONTRACT_HEADER] == integration_contract_header(HOME_ASSISTANT_ADAPTER, HOME_ASSISTANT_CONTRACT_VERSION)
+    assert response.headers[INTEGRATION_CONTRACT_HEADER] == integration_contract_header(
+        HOME_ASSISTANT_ADAPTER, HOME_ASSISTANT_CONTRACT_VERSION
+    )
     payload = response.json()
     assert isinstance(payload, list)
     assert len(payload) >= 1

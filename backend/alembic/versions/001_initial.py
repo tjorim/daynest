@@ -23,9 +23,7 @@ def upgrade() -> None:
         sa.Column("email", sa.String(length=255), nullable=False),
         sa.Column("full_name", sa.String(length=255), nullable=True),
         sa.Column("password_hash", sa.String(length=512), nullable=True),
-        sa.Column(
-            "is_active", sa.Boolean(), server_default=sa.text("true"), nullable=False
-        ),
+        sa.Column("is_active", sa.Boolean(), server_default=sa.text("true"), nullable=False),
         sa.Column(
             "created_at",
             sa.DateTime(timezone=True),
@@ -33,12 +31,8 @@ def upgrade() -> None:
             nullable=False,
         ),
         sa.Column("oidc_subject", sa.String(length=255), nullable=True),
-        sa.Column(
-            "timezone", sa.String(length=100), server_default="UTC", nullable=False
-        ),
-        sa.Column(
-            "default_snooze_days", sa.Integer(), server_default="1", nullable=False
-        ),
+        sa.Column("timezone", sa.String(length=100), server_default="UTC", nullable=False),
+        sa.Column("default_snooze_days", sa.Integer(), server_default="1", nullable=False),
         sa.Column(
             "medication_reminder_minutes",
             sa.Integer(),
@@ -72,9 +66,7 @@ def upgrade() -> None:
     op.create_index(op.f("ix_users_email"), "users", ["email"], unique=True)
     op.create_index("ix_users_oidc_subject", "users", ["oidc_subject"], unique=True)
     op.create_index("ix_users_calendar_token", "users", ["calendar_token"], unique=True)
-    op.create_index(
-        "ix_users_calendar_feed_token", "users", ["calendar_feed_token"], unique=True
-    )
+    op.create_index("ix_users_calendar_feed_token", "users", ["calendar_feed_token"], unique=True)
 
     op.create_table(
         "households",
@@ -94,23 +86,17 @@ def upgrade() -> None:
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("household_id", sa.Integer(), nullable=False),
         sa.Column("user_id", sa.Integer(), nullable=False),
-        sa.Column(
-            "role", sa.String(length=20), server_default="member", nullable=False
-        ),
+        sa.Column("role", sa.String(length=20), server_default="member", nullable=False),
         sa.Column(
             "created_at",
             sa.DateTime(timezone=True),
             server_default=sa.func.now(),
             nullable=False,
         ),
-        sa.ForeignKeyConstraint(
-            ["household_id"], ["households.id"], ondelete="CASCADE"
-        ),
+        sa.ForeignKeyConstraint(["household_id"], ["households.id"], ondelete="CASCADE"),
         sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint(
-            "household_id", "user_id", name="uq_household_members_household_user"
-        ),
+        sa.UniqueConstraint("household_id", "user_id", name="uq_household_members_household_user"),
     )
     op.create_index(
         "ix_household_members_household_id",
@@ -118,9 +104,7 @@ def upgrade() -> None:
         ["household_id"],
         unique=False,
     )
-    op.create_index(
-        "ix_household_members_user_id", "household_members", ["user_id"], unique=False
-    )
+    op.create_index("ix_household_members_user_id", "household_members", ["user_id"], unique=False)
 
     op.create_table(
         "integration_clients",
@@ -128,12 +112,8 @@ def upgrade() -> None:
         sa.Column("user_id", sa.Integer(), nullable=False),
         sa.Column("name", sa.String(length=120), nullable=False),
         sa.Column("key_hash", sa.String(length=128), nullable=False),
-        sa.Column(
-            "rate_limit_per_minute", sa.Integer(), nullable=False, server_default="120"
-        ),
-        sa.Column(
-            "is_active", sa.Boolean(), nullable=False, server_default=sa.text("true")
-        ),
+        sa.Column("rate_limit_per_minute", sa.Integer(), nullable=False, server_default="120"),
+        sa.Column("is_active", sa.Boolean(), nullable=False, server_default=sa.text("true")),
         sa.Column(
             "created_at",
             sa.DateTime(timezone=True),
@@ -165,9 +145,7 @@ def upgrade() -> None:
         sa.Column("start_date", sa.Date(), nullable=False),
         sa.Column("every_n_days", sa.Integer(), server_default="1", nullable=False),
         sa.Column("due_time", sa.Time(), nullable=True),
-        sa.Column(
-            "is_active", sa.Boolean(), server_default=sa.text("true"), nullable=False
-        ),
+        sa.Column("is_active", sa.Boolean(), server_default=sa.text("true"), nullable=False),
         sa.Column(
             "created_at",
             sa.DateTime(timezone=True),
@@ -175,9 +153,7 @@ def upgrade() -> None:
             nullable=False,
         ),
         sa.Column("rrule", sa.String(length=500), nullable=True),
-        sa.CheckConstraint(
-            "every_n_days >= 1", name="ck_routine_templates_every_n_days_positive"
-        ),
+        sa.CheckConstraint("every_n_days >= 1", name="ck_routine_templates_every_n_days_positive"),
         sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
     )
@@ -188,9 +164,7 @@ def upgrade() -> None:
         unique=False,
     )
 
-    task_status = sa.Enum(
-        "pending", "in_progress", "completed", "skipped", name="task_status"
-    )
+    task_status = sa.Enum("pending", "in_progress", "completed", "skipped", name="task_status")
 
     op.create_table(
         "task_instances",
@@ -208,9 +182,7 @@ def upgrade() -> None:
             server_default=sa.func.now(),
             nullable=False,
         ),
-        sa.ForeignKeyConstraint(
-            ["routine_template_id"], ["routine_templates.id"], ondelete="CASCADE"
-        ),
+        sa.ForeignKeyConstraint(["routine_template_id"], ["routine_templates.id"], ondelete="CASCADE"),
         sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint(
@@ -231,9 +203,7 @@ def upgrade() -> None:
         ["scheduled_date"],
         unique=False,
     )
-    op.create_index(
-        op.f("ix_task_instances_user_id"), "task_instances", ["user_id"], unique=False
-    )
+    op.create_index(op.f("ix_task_instances_user_id"), "task_instances", ["user_id"], unique=False)
 
     op.create_table(
         "chore_templates",
@@ -243,18 +213,14 @@ def upgrade() -> None:
         sa.Column("description", sa.Text(), nullable=True),
         sa.Column("start_date", sa.Date(), nullable=False),
         sa.Column("every_n_days", sa.Integer(), server_default="1", nullable=False),
-        sa.Column(
-            "is_active", sa.Boolean(), server_default=sa.text("true"), nullable=False
-        ),
+        sa.Column("is_active", sa.Boolean(), server_default=sa.text("true"), nullable=False),
         sa.Column(
             "created_at",
             sa.DateTime(timezone=True),
             server_default=sa.func.now(),
             nullable=False,
         ),
-        sa.Column(
-            "priority", sa.String(length=20), server_default="normal", nullable=False
-        ),
+        sa.Column("priority", sa.String(length=20), server_default="normal", nullable=False),
         sa.Column("tags", sa.JSON(), server_default="[]", nullable=False),
         sa.Column("rrule", sa.String(length=500), nullable=True),
         sa.Column("household_id", sa.Integer(), nullable=True),
@@ -271,9 +237,7 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_index(
-        op.f("ix_chore_templates_user_id"), "chore_templates", ["user_id"], unique=False
-    )
+    op.create_index(op.f("ix_chore_templates_user_id"), "chore_templates", ["user_id"], unique=False)
     op.create_index(
         "ix_chore_templates_household_id",
         "chore_templates",
@@ -301,9 +265,7 @@ def upgrade() -> None:
         ),
         sa.Column("assigned_to", sa.Integer(), nullable=True),
         sa.Column("completed_by", sa.Integer(), nullable=True),
-        sa.ForeignKeyConstraint(
-            ["chore_template_id"], ["chore_templates.id"], ondelete="CASCADE"
-        ),
+        sa.ForeignKeyConstraint(["chore_template_id"], ["chore_templates.id"], ondelete="CASCADE"),
         sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
         sa.ForeignKeyConstraint(
             ["assigned_to"],
@@ -336,9 +298,7 @@ def upgrade() -> None:
         ["scheduled_date"],
         unique=False,
     )
-    op.create_index(
-        op.f("ix_chore_instances_user_id"), "chore_instances", ["user_id"], unique=False
-    )
+    op.create_index(op.f("ix_chore_instances_user_id"), "chore_instances", ["user_id"], unique=False)
 
     op.create_table(
         "medication_plans",
@@ -349,9 +309,7 @@ def upgrade() -> None:
         sa.Column("start_date", sa.Date(), nullable=False),
         sa.Column("schedule_time", sa.Time(), nullable=False),
         sa.Column("every_n_days", sa.Integer(), server_default="1", nullable=False),
-        sa.Column(
-            "is_active", sa.Boolean(), server_default=sa.text("true"), nullable=False
-        ),
+        sa.Column("is_active", sa.Boolean(), server_default=sa.text("true"), nullable=False),
         sa.Column(
             "created_at",
             sa.DateTime(timezone=True),
@@ -369,9 +327,7 @@ def upgrade() -> None:
         unique=False,
     )
 
-    dose_status = sa.Enum(
-        "scheduled", "taken", "skipped", "missed", name="medication_dose_status"
-    )
+    dose_status = sa.Enum("scheduled", "taken", "skipped", "missed", name="medication_dose_status")
 
     op.create_table(
         "medication_dose_instances",
@@ -392,9 +348,7 @@ def upgrade() -> None:
             server_default=sa.func.now(),
             nullable=False,
         ),
-        sa.ForeignKeyConstraint(
-            ["medication_plan_id"], ["medication_plans.id"], ondelete="CASCADE"
-        ),
+        sa.ForeignKeyConstraint(["medication_plan_id"], ["medication_plans.id"], ondelete="CASCADE"),
         sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint(
@@ -435,9 +389,7 @@ def upgrade() -> None:
         sa.Column("name", sa.String(length=255), nullable=False),
         sa.Column("store", sa.String(length=255), nullable=True),
         sa.Column("notes", sa.Text(), nullable=True),
-        sa.Column(
-            "status", sa.String(length=20), server_default="active", nullable=False
-        ),
+        sa.Column("status", sa.String(length=20), server_default="active", nullable=False),
         sa.Column(
             "created_at",
             sa.DateTime(timezone=True),
@@ -468,9 +420,7 @@ def upgrade() -> None:
         sa.Column("recurrence_hint", sa.String(length=255), nullable=True),
         sa.Column("linked_source", sa.String(length=120), nullable=True),
         sa.Column("linked_ref", sa.String(length=255), nullable=True),
-        sa.Column(
-            "priority", sa.String(length=20), server_default="normal", nullable=False
-        ),
+        sa.Column("priority", sa.String(length=20), server_default="normal", nullable=False),
         sa.Column("tags", sa.JSON(), server_default="[]", nullable=False),
         sa.Column("materialized_through", sa.Date(), nullable=True),
         sa.Column(
@@ -489,9 +439,7 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_index(
-        "ix_recurrence_series_user_id", "recurrence_series", ["user_id"], unique=False
-    )
+    op.create_index("ix_recurrence_series_user_id", "recurrence_series", ["user_id"], unique=False)
     op.create_index(
         "ix_recurrence_series_module_key",
         "recurrence_series",
@@ -512,9 +460,7 @@ def upgrade() -> None:
         sa.Column("title", sa.String(length=255), nullable=False),
         sa.Column("notes", sa.Text(), nullable=True),
         sa.Column("planned_for", sa.Date(), nullable=False),
-        sa.Column(
-            "is_done", sa.Boolean(), server_default=sa.text("false"), nullable=False
-        ),
+        sa.Column("is_done", sa.Boolean(), server_default=sa.text("false"), nullable=False),
         sa.Column("completed_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("module_key", sa.String(length=50), nullable=True),
         sa.Column("recurrence_hint", sa.String(length=255), nullable=True),
@@ -526,9 +472,7 @@ def upgrade() -> None:
             server_default=sa.func.now(),
             nullable=False,
         ),
-        sa.Column(
-            "priority", sa.String(length=20), server_default="normal", nullable=False
-        ),
+        sa.Column("priority", sa.String(length=20), server_default="normal", nullable=False),
         sa.Column("tags", sa.JSON(), server_default="[]", nullable=False),
         sa.Column("rrule", sa.String(length=500), nullable=True),
         sa.Column("recurrence_series_id", sa.Uuid(), nullable=True),
@@ -564,9 +508,7 @@ def upgrade() -> None:
         ["planned_for"],
         unique=False,
     )
-    op.create_index(
-        op.f("ix_planned_items_user_id"), "planned_items", ["user_id"], unique=False
-    )
+    op.create_index(op.f("ix_planned_items_user_id"), "planned_items", ["user_id"], unique=False)
     op.create_index(
         "ix_planned_items_recurrence_series_id",
         "planned_items",
@@ -590,12 +532,8 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_index(
-        op.f("ix_refresh_tokens_jti"), "refresh_tokens", ["jti"], unique=True
-    )
-    op.create_index(
-        op.f("ix_refresh_tokens_user_id"), "refresh_tokens", ["user_id"], unique=False
-    )
+    op.create_index(op.f("ix_refresh_tokens_jti"), "refresh_tokens", ["jti"], unique=True)
+    op.create_index(op.f("ix_refresh_tokens_user_id"), "refresh_tokens", ["user_id"], unique=False)
 
     op.create_table(
         "push_subscriptions",
@@ -611,19 +549,13 @@ def upgrade() -> None:
             server_default=sa.func.now(),
             nullable=False,
         ),
-        sa.Column(
-            "is_active", sa.Boolean(), server_default=sa.text("true"), nullable=False
-        ),
-        sa.CheckConstraint(
-            "platform IN ('fcm', 'webpush')", name="ck_push_subscriptions_platform"
-        ),
+        sa.Column("is_active", sa.Boolean(), server_default=sa.text("true"), nullable=False),
+        sa.CheckConstraint("platform IN ('fcm', 'webpush')", name="ck_push_subscriptions_platform"),
         sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("endpoint"),
     )
-    op.create_index(
-        "ix_push_subscriptions_user_id", "push_subscriptions", ["user_id"], unique=False
-    )
+    op.create_index("ix_push_subscriptions_user_id", "push_subscriptions", ["user_id"], unique=False)
 
     op.create_table(
         "notifications_sent",
@@ -664,12 +596,8 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_index(
-        op.f("ix_meal_plans_user_id"), "meal_plans", ["user_id"], unique=False
-    )
-    op.create_index(
-        op.f("ix_meal_plans_week_start"), "meal_plans", ["week_start"], unique=False
-    )
+    op.create_index(op.f("ix_meal_plans_user_id"), "meal_plans", ["user_id"], unique=False)
+    op.create_index(op.f("ix_meal_plans_week_start"), "meal_plans", ["week_start"], unique=False)
 
     op.create_table(
         "meal_slots",
@@ -685,12 +613,8 @@ def upgrade() -> None:
             "slot_type IN ('breakfast', 'lunch', 'dinner', 'snack')",
             name="ck_meal_slots_slot_type",
         ),
-        sa.ForeignKeyConstraint(
-            ["meal_plan_id"], ["meal_plans.id"], ondelete="CASCADE"
-        ),
-        sa.ForeignKeyConstraint(
-            ["planned_item_id"], ["planned_items.id"], ondelete="SET NULL"
-        ),
+        sa.ForeignKeyConstraint(["meal_plan_id"], ["meal_plans.id"], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(["planned_item_id"], ["planned_items.id"], ondelete="SET NULL"),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index(
@@ -716,9 +640,7 @@ def downgrade() -> None:
     op.drop_index(op.f("ix_meal_plans_user_id"), table_name="meal_plans")
     op.drop_table("meal_plans")
 
-    op.drop_index(
-        op.f("ix_notifications_sent_user_id"), table_name="notifications_sent"
-    )
+    op.drop_index(op.f("ix_notifications_sent_user_id"), table_name="notifications_sent")
     op.drop_table("notifications_sent")
 
     op.drop_index("ix_push_subscriptions_user_id", table_name="push_subscriptions")
@@ -734,9 +656,7 @@ def downgrade() -> None:
     op.drop_index(op.f("ix_planned_items_module_key"), table_name="planned_items")
     op.drop_table("planned_items")
 
-    op.drop_index(
-        "ix_recurrence_series_auto_add_to_list_id", table_name="recurrence_series"
-    )
+    op.drop_index("ix_recurrence_series_auto_add_to_list_id", table_name="recurrence_series")
     op.drop_index("ix_recurrence_series_module_key", table_name="recurrence_series")
     op.drop_index("ix_recurrence_series_user_id", table_name="recurrence_series")
     op.drop_table("recurrence_series")
@@ -767,12 +687,8 @@ def downgrade() -> None:
     op.drop_table("medication_plans")
 
     op.drop_index(op.f("ix_chore_instances_user_id"), table_name="chore_instances")
-    op.drop_index(
-        op.f("ix_chore_instances_scheduled_date"), table_name="chore_instances"
-    )
-    op.drop_index(
-        op.f("ix_chore_instances_chore_template_id"), table_name="chore_instances"
-    )
+    op.drop_index(op.f("ix_chore_instances_scheduled_date"), table_name="chore_instances")
+    op.drop_index(op.f("ix_chore_instances_chore_template_id"), table_name="chore_instances")
     op.drop_table("chore_instances")
     sa.Enum(name="chore_status").drop(op.get_bind(), checkfirst=True)
 
@@ -782,21 +698,15 @@ def downgrade() -> None:
 
     op.drop_index(op.f("ix_task_instances_user_id"), table_name="task_instances")
     op.drop_index(op.f("ix_task_instances_scheduled_date"), table_name="task_instances")
-    op.drop_index(
-        op.f("ix_task_instances_routine_template_id"), table_name="task_instances"
-    )
+    op.drop_index(op.f("ix_task_instances_routine_template_id"), table_name="task_instances")
     op.drop_table("task_instances")
     sa.Enum(name="task_status").drop(op.get_bind(), checkfirst=True)
 
     op.drop_index(op.f("ix_routine_templates_user_id"), table_name="routine_templates")
     op.drop_table("routine_templates")
 
-    op.drop_index(
-        op.f("ix_integration_clients_user_id"), table_name="integration_clients"
-    )
-    op.drop_index(
-        op.f("ix_integration_clients_key_hash"), table_name="integration_clients"
-    )
+    op.drop_index(op.f("ix_integration_clients_user_id"), table_name="integration_clients")
+    op.drop_index(op.f("ix_integration_clients_key_hash"), table_name="integration_clients")
     op.drop_table("integration_clients")
 
     op.drop_index("ix_household_members_user_id", table_name="household_members")

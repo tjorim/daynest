@@ -48,9 +48,7 @@ def take_medication_dose(
         try:
             parsed_taken_at = datetime.fromisoformat(taken_at)
         except ValueError as exc:
-            raise ValueError(
-                f"Invalid taken_at format: '{taken_at}'. Expected ISO 8601 datetime."
-            ) from exc
+            raise ValueError(f"Invalid taken_at format: '{taken_at}'. Expected ISO 8601 datetime.") from exc
     return _mutate_medication(
         session_factory,
         user_email,
@@ -66,9 +64,7 @@ def skip_medication_dose(
     user_email: str | None,
     medication_dose_instance_id: int,
 ) -> dict[str, Any]:
-    return _mutate_medication(
-        session_factory, user_email, medication_dose_instance_id, "skip"
-    )
+    return _mutate_medication(session_factory, user_email, medication_dose_instance_id, "skip")
 
 
 def _mutate_medication(
@@ -79,9 +75,7 @@ def _mutate_medication(
     *,
     taken_at: datetime | None = None,
 ) -> dict[str, Any]:
-    def _op(
-        _db: Session, principal: McpPrincipal, service: TodayService
-    ) -> dict[str, Any]:
+    def _op(_db: Session, principal: McpPrincipal, service: TodayService) -> dict[str, Any]:
         instance = service.mutate_medication_status(
             principal.user.id,
             medication_dose_instance_id,
@@ -97,9 +91,7 @@ def _mutate_medication(
             "scheduled_date": instance.scheduled_date.isoformat(),
             "scheduled_at": instance.scheduled_at.isoformat(),
             "taken_at": instance.taken_at.isoformat() if instance.taken_at else None,
-            "skipped_at": instance.skipped_at.isoformat()
-            if instance.skipped_at
-            else None,
+            "skipped_at": instance.skipped_at.isoformat() if instance.skipped_at else None,
             "missed_at": instance.missed_at.isoformat() if instance.missed_at else None,
         }
 
@@ -114,9 +106,7 @@ def skip_missed_medication_doses(
 ) -> dict[str, Any]:
     parsed = parse_date(before_date) if before_date else None
 
-    def _op(
-        _db: Session, principal: McpPrincipal, service: TodayService
-    ) -> dict[str, Any]:
+    def _op(_db: Session, principal: McpPrincipal, service: TodayService) -> dict[str, Any]:
         count, cutoff = service.skip_missed_medication_doses(
             user_id=principal.user.id,
             before_date=parsed,
@@ -128,15 +118,12 @@ def skip_missed_medication_doses(
 
 
 @map_domain_errors
-def list_medications(
-    session_factory: SessionFactory, user_email: str | None
-) -> list[dict[str, Any]]:
+def list_medications(session_factory: SessionFactory, user_email: str | None) -> list[dict[str, Any]]:
     return with_today_service(
         session_factory,
         user_email,
         lambda _db, principal, service: [
-            _medication_plan_to_dict(p)
-            for p in service.list_medication_plans(principal.user.id)
+            _medication_plan_to_dict(p) for p in service.list_medication_plans(principal.user.id)
         ],
     )
 
@@ -155,14 +142,10 @@ def create_medication(
     parsed_start = parse_date(start_date)
     parsed_time_val = parse_time(schedule_time)
     if parsed_time_val is None:
-        raise ValueError(
-            f"Invalid schedule_time '{schedule_time}'. Expected HH:MM or HH:MM:SS format."
-        )
+        raise ValueError(f"Invalid schedule_time '{schedule_time}'. Expected HH:MM or HH:MM:SS format.")
     parsed_time = parsed_time_val
 
-    def _op(
-        _db: Session, principal: McpPrincipal, service: TodayService
-    ) -> dict[str, Any]:
+    def _op(_db: Session, principal: McpPrincipal, service: TodayService) -> dict[str, Any]:
         return _medication_plan_to_dict(
             service.create_medication_plan(
                 principal.user.id,
@@ -194,14 +177,10 @@ def update_medication(
     parsed_start = parse_date(start_date)
     parsed_time_val = parse_time(schedule_time)
     if parsed_time_val is None:
-        raise ValueError(
-            f"Invalid schedule_time '{schedule_time}'. Expected HH:MM or HH:MM:SS format."
-        )
+        raise ValueError(f"Invalid schedule_time '{schedule_time}'. Expected HH:MM or HH:MM:SS format.")
     parsed_time = parsed_time_val
 
-    def _op(
-        _db: Session, principal: McpPrincipal, service: TodayService
-    ) -> dict[str, Any]:
+    def _op(_db: Session, principal: McpPrincipal, service: TodayService) -> dict[str, Any]:
         return _medication_plan_to_dict(
             service.update_medication_plan(
                 principal.user.id,
@@ -246,9 +225,7 @@ def get_medication_history(
         maximum=MAX_MEDICATION_HISTORY_LIMIT,
     )
 
-    def _op(
-        _db: Session, principal: McpPrincipal, service: TodayService
-    ) -> dict[str, Any]:
+    def _op(_db: Session, principal: McpPrincipal, service: TodayService) -> dict[str, Any]:
         return {
             "history": [
                 {

@@ -113,7 +113,9 @@ def list_planned_items(
     start_date: date | None = Query(default=None),
     end_date: date | None = Query(default=None),
     tags: str | None = Query(default=None, description="Comma-separated tags to filter by (OR match)"),
-    limit: int | None = Query(default=None, ge=1, description="Maximum items to return. Defaults apply per app.core.pagination."),
+    limit: int | None = Query(
+        default=None, ge=1, description="Maximum items to return. Defaults apply per app.core.pagination."
+    ),
     service: TodayService = Depends(get_today_service),
     current_user: User = Depends(get_current_user),
 ) -> list[PlannedTodayItem]:
@@ -170,7 +172,9 @@ def defer_planned_item(
     current_user: User = Depends(get_current_user),
     audit_actor: AuditActor = Depends(get_audit_actor),
 ) -> PlannedTodayItem:
-    item = service.defer_planned_item(user_id=current_user.id, planned_item_id=planned_item_id, days=days, actor=audit_actor)
+    item = service.defer_planned_item(
+        user_id=current_user.id, planned_item_id=planned_item_id, days=days, actor=audit_actor
+    )
     event_bus.publish(current_user.id, {"type": "today_updated"})
     return item
 
@@ -283,7 +287,9 @@ def complete_task(
     current_user: User = Depends(get_current_user),
     audit_actor: AuditActor = Depends(get_audit_actor),
 ) -> TaskInstanceMutationResponse:
-    result = service.complete_routine_task(user_id=current_user.id, task_instance_id=task_instance_id, actor=audit_actor)
+    result = service.complete_routine_task(
+        user_id=current_user.id, task_instance_id=task_instance_id, actor=audit_actor
+    )
     event_bus.publish(current_user.id, {"type": "today_updated"})
     return result
 

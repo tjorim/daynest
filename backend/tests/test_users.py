@@ -42,7 +42,13 @@ def clear_auth_override():
 
 def test_delete_current_user_removes_personal_data(client: TestClient, db_session: Session) -> None:
     user = _create_user(db_session, "delete-me@example.com")
-    plan = MedicationPlan(user_id=user.id, name="Vitamin D", instructions="Take daily", start_date=datetime.now(UTC).date(), schedule_time=time(8, 0))
+    plan = MedicationPlan(
+        user_id=user.id,
+        name="Vitamin D",
+        instructions="Take daily",
+        start_date=datetime.now(UTC).date(),
+        schedule_time=time(8, 0),
+    )
     db_session.add(plan)
     db_session.commit()
     _auth_as(user)
@@ -60,10 +66,12 @@ def test_delete_current_user_blocks_household_shared_chores(client: TestClient, 
     household = Household(name="Shared home")
     db_session.add(household)
     db_session.flush()
-    db_session.add_all([
-        HouseholdMember(household_id=household.id, user_id=owner.id, role="owner"),
-        HouseholdMember(household_id=household.id, user_id=member.id, role="member"),
-    ])
+    db_session.add_all(
+        [
+            HouseholdMember(household_id=household.id, user_id=owner.id, role="owner"),
+            HouseholdMember(household_id=household.id, user_id=member.id, role="member"),
+        ]
+    )
     db_session.add(
         ChoreTemplate(
             user_id=owner.id,
@@ -89,10 +97,12 @@ def test_delete_current_user_blocks_sole_owner_of_shared_household(client: TestC
     household = Household(name="Shared home")
     db_session.add(household)
     db_session.flush()
-    db_session.add_all([
-        HouseholdMember(household_id=household.id, user_id=owner.id, role="owner"),
-        HouseholdMember(household_id=household.id, user_id=member.id, role="member"),
-    ])
+    db_session.add_all(
+        [
+            HouseholdMember(household_id=household.id, user_id=owner.id, role="owner"),
+            HouseholdMember(household_id=household.id, user_id=member.id, role="member"),
+        ]
+    )
     db_session.commit()
     _auth_as(owner)
 

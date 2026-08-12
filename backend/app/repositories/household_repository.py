@@ -58,7 +58,9 @@ class HouseholdRepository:
     def get_user_by_email(self, email: str) -> User | None:
         return self.db.scalar(select(User).where(User.email == email))
 
-    def add_member(self, household: Household, user: User, role: HouseholdMemberRole = HouseholdMemberRole.member) -> HouseholdMember:
+    def add_member(
+        self, household: Household, user: User, role: HouseholdMemberRole = HouseholdMemberRole.member
+    ) -> HouseholdMember:
         membership = HouseholdMember(
             household_id=household.id,
             user_id=user.id,
@@ -83,7 +85,5 @@ class HouseholdRepository:
         return list(self.db.scalars(stmt).all())
 
     def get_user_household_ids(self, user_id: int) -> list[int]:
-        rows = self.db.execute(
-            select(HouseholdMember.household_id).where(HouseholdMember.user_id == user_id)
-        ).all()
+        rows = self.db.execute(select(HouseholdMember.household_id).where(HouseholdMember.user_id == user_id)).all()
         return [row[0] for row in rows]

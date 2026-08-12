@@ -22,7 +22,9 @@ _ESCAPE_CHAR = "\\"
 
 
 def _like_pattern(q: str) -> str:
-    escaped = q.replace(_ESCAPE_CHAR, _ESCAPE_CHAR * 2).replace("%", f"{_ESCAPE_CHAR}%").replace("_", f"{_ESCAPE_CHAR}_")
+    escaped = (
+        q.replace(_ESCAPE_CHAR, _ESCAPE_CHAR * 2).replace("%", f"{_ESCAPE_CHAR}%").replace("_", f"{_ESCAPE_CHAR}_")
+    )
     return f"%{escaped}%"
 
 

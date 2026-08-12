@@ -237,11 +237,14 @@ def test_dispatch_overdue_chores_respects_user_preference(db_session: Session, m
     sent: list[dict] = []
     monkeypatch.setattr("app.services.push_service.send_notification", lambda *args: sent.append({}) or True)
 
-    assert dispatch_overdue_chores(
-        db_session,
-        user.id,
-        now=datetime(2026, 5, 21, 10, 0, tzinfo=UTC),
-    ) == 0
+    assert (
+        dispatch_overdue_chores(
+            db_session,
+            user.id,
+            now=datetime(2026, 5, 21, 10, 0, tzinfo=UTC),
+        )
+        == 0
+    )
     assert sent == []
 
 
