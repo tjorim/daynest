@@ -7,6 +7,7 @@ import sqlalchemy as sa
 from sqlalchemy import (
     JSON,
     Boolean,
+    CheckConstraint,
     Date,
     DateTime,
     ForeignKey,
@@ -28,6 +29,9 @@ if TYPE_CHECKING:
 
 class ChoreTemplate(Base):
     __tablename__ = "chore_templates"
+    __table_args__ = (
+        CheckConstraint("priority IN ('low', 'normal', 'high', 'urgent')", name="ck_chore_templates_priority"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)

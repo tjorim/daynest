@@ -4,7 +4,15 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
-from sqlalchemy import Boolean, DateTime, ForeignKey, String, Text, func
+from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    String,
+    Text,
+    func,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.enums import PushPlatform
@@ -16,6 +24,7 @@ if TYPE_CHECKING:
 
 class PushSubscription(Base):
     __tablename__ = "push_subscriptions"
+    __table_args__ = (CheckConstraint("platform IN ('fcm', 'webpush')", name="ck_push_subscriptions_platform"),)
 
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
