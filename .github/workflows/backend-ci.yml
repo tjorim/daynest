@@ -43,10 +43,10 @@ jobs:
         run: uv sync --frozen --group dev
 
       - name: Lint backend
-        run: uv run ruff check app tests
+        run: uv run ruff check app tests alembic
 
       - name: Format backend
-        run: uv run ruff format --check app tests
+        run: uv run ruff format --check app tests alembic
 
       - name: Type-check backend
         run: uv run ty check app tests
