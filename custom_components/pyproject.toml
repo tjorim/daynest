@@ -15,7 +15,7 @@ packages = ["daynest"]
 
 [dependency-groups]
 test = [
-    "pytest-homeassistant-custom-component==0.13.355",
+    "pytest-homeassistant-custom-component==0.13.356",
     "python-daynest",
     "ruff==0.16.2",
 ]
