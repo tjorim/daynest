@@ -1,23 +1,23 @@
-"""Initial schema — all tables at final cumulative state, including households, shopping lists, and meal planning.
+"""Create the complete schema baseline.
 
-Revision ID: 001
-Revises:
-Create Date: 2026-04-23 00:00:00.000000
+Revision ID: 000
+Revises: None
 """
 
-from collections.abc import Sequence
+from __future__ import annotations
 
 import sqlalchemy as sa
 
 from alembic import op
 
-revision: str = "001"
+revision: str = "000"
 down_revision: str | None = None
-branch_labels: str | Sequence[str] | None = None
-depends_on: str | Sequence[str] | None = None
+branch_labels = None
+depends_on = None
 
 
 def upgrade() -> None:
+    # Legacy revision 001.
     op.create_table(
         "users",
         sa.Column("id", sa.Integer(), nullable=False),
@@ -630,9 +630,102 @@ def upgrade() -> None:
         ["planned_item_id"],
         unique=False,
     )
+    # Legacy revision 002.
+    # Backfill existing rows with the migration-only compatibility scope so
+    # credentials created before explicit scopes existed keep working.
+    op.add_column(
+        "integration_clients",
+        sa.Column(
+            "scopes",
+            sa.JSON(),
+            nullable=False,
+            server_default='["integration:*"]',
+        ),
+    )
+    # New rows (including any raw insert that omits scopes) should default to
+    # least-privilege, not the unrestricted legacy compatibility scope.
+    op.alter_column(
+        "integration_clients",
+        "scopes",
+        server_default='["home_assistant:*"]',
+    )
+    # Legacy revision 003.
+    op.create_table(
+        "audit_entries",
+        sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("timestamp", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.Column("actor_user_id", sa.Integer(), nullable=False),
+        sa.Column("auth_source", sa.String(length=32), nullable=False),
+        sa.Column("integration_client_id", sa.Integer(), nullable=True),
+        sa.Column("action", sa.String(length=64), nullable=False),
+        sa.Column("resource_type", sa.String(length=64), nullable=False),
+        sa.Column("resource_id", sa.String(length=64), nullable=False),
+        sa.Column("request_id", sa.String(length=64), nullable=True),
+        sa.Column("details", sa.JSON(), nullable=False),
+        sa.PrimaryKeyConstraint("id"),
+    )
+    # No FK to users/integration_clients: audit rows must outlive the actor
+    # they describe (account deletion, integration-client revocation) so the
+    # trail stays intact — deliberately deviates from cascade-on-delete.
+    op.create_index("ix_audit_entries_timestamp", "audit_entries", ["timestamp"])
+    op.create_index("ix_audit_entries_actor_user_id", "audit_entries", ["actor_user_id"])
+    op.create_index("ix_audit_entries_auth_source", "audit_entries", ["auth_source"])
+    op.create_index("ix_audit_entries_integration_client_id", "audit_entries", ["integration_client_id"])
+    op.create_index("ix_audit_entries_action", "audit_entries", ["action"])
+    op.create_index("ix_audit_entries_resource_type", "audit_entries", ["resource_type"])
+    op.create_index("ix_audit_entries_resource_id", "audit_entries", ["resource_id"])
+    # Composite index matching list_audit_entries' primary access pattern:
+    # scoped by actor, ordered by (timestamp desc, id desc).
+    op.create_index(
+        "ix_audit_entries_actor_timestamp_id",
+        "audit_entries",
+        ["actor_user_id", sa.text("timestamp DESC"), sa.text("id DESC")],
+    )
+    # Legacy revision 004.
+    op.add_column(
+        "integration_clients",
+        sa.Column("key_preview", sa.String(length=8), nullable=True),
+    )
+    op.add_column(
+        "integration_clients",
+        sa.Column("last_used_at", sa.DateTime(timezone=True), nullable=True),
+    )
+    op.add_column(
+        "integration_clients",
+        sa.Column("revoked_at", sa.DateTime(timezone=True), nullable=True),
+    )
+    op.add_column("audit_entries", sa.Column("subject", sa.String(length=255), nullable=True))
+    op.add_column(
+        "integration_clients",
+        sa.Column("rate_limit_window_started_at", sa.DateTime(timezone=True), nullable=True),
+    )
+    op.add_column(
+        "integration_clients",
+        sa.Column("rate_limit_window_count", sa.Integer(), nullable=False, server_default="0"),
+    )
 
 
 def downgrade() -> None:
+    # Legacy revision 004.
+    op.drop_column("integration_clients", "rate_limit_window_count")
+    op.drop_column("integration_clients", "rate_limit_window_started_at")
+    op.drop_column("audit_entries", "subject")
+    op.drop_column("integration_clients", "revoked_at")
+    op.drop_column("integration_clients", "last_used_at")
+    op.drop_column("integration_clients", "key_preview")
+    # Legacy revision 003.
+    op.drop_index("ix_audit_entries_actor_timestamp_id", table_name="audit_entries")
+    op.drop_index("ix_audit_entries_resource_id", table_name="audit_entries")
+    op.drop_index("ix_audit_entries_resource_type", table_name="audit_entries")
+    op.drop_index("ix_audit_entries_action", table_name="audit_entries")
+    op.drop_index("ix_audit_entries_integration_client_id", table_name="audit_entries")
+    op.drop_index("ix_audit_entries_auth_source", table_name="audit_entries")
+    op.drop_index("ix_audit_entries_actor_user_id", table_name="audit_entries")
+    op.drop_index("ix_audit_entries_timestamp", table_name="audit_entries")
+    op.drop_table("audit_entries")
+    # Legacy revision 002.
+    op.drop_column("integration_clients", "scopes")
+    # Legacy revision 001.
     op.drop_index(op.f("ix_meal_slots_planned_item_id"), table_name="meal_slots")
     op.drop_index("uq_meal_slots_plan_date_type", table_name="meal_slots")
     op.drop_table("meal_slots")
