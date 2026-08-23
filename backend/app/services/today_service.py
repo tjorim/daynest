@@ -1187,6 +1187,12 @@ class TodayService:
         self, user_id: int, chore_instance_id: int, *, persist: bool = True, actor: AuditActor | None = None
     ) -> ChoreInstanceMutationResponse:
         instance = self._get_user_chore(user_id, chore_instance_id)
+        if instance.status == ChoreStatus.completed:
+            if persist:
+                self.repository.save()
+            return self._chore_instance_to_response(instance)
+        if instance.status == ChoreStatus.skipped:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Skipped chores cannot be completed")
         instance.status = ChoreStatus.completed
         instance.completed_at = self.repository.utcnow()
         instance.completed_by = user_id
@@ -1248,6 +1254,12 @@ class TodayService:
         self, user_id: int, chore_instance_id: int, *, persist: bool = True, actor: AuditActor | None = None
     ) -> ChoreInstanceMutationResponse:
         instance = self._get_user_chore(user_id, chore_instance_id)
+        if instance.status == ChoreStatus.skipped:
+            if persist:
+                self.repository.save()
+            return self._chore_instance_to_response(instance)
+        if instance.status == ChoreStatus.completed:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Completed chores cannot be skipped")
         instance.status = ChoreStatus.skipped
         instance.skipped_at = self.repository.utcnow()
         instance.completed_at = None
@@ -1272,6 +1284,9 @@ class TodayService:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT, detail="Completed or skipped chores cannot be rescheduled"
             )
+        if instance.scheduled_date == scheduled_date:
+            self.repository.save()
+            return self._chore_instance_to_response(instance)
         instance.scheduled_date = scheduled_date
         instance.status = ChoreStatus.pending
         instance.completed_at = None
@@ -1295,7 +1310,9 @@ class TodayService:
         )
 
     def _get_user_chore(self, user_id: int, chore_instance_id: int):
-        instance = self.repository.get_chore_instance_for_user(user_id=user_id, chore_instance_id=chore_instance_id)
+        instance = self.repository.get_chore_instance_for_user(
+            user_id=user_id, chore_instance_id=chore_instance_id, for_update=True
+        )
         if instance is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chore instance not found")
         return instance
@@ -1378,6 +1395,18 @@ class TodayService:
             scheduled_date=instance.scheduled_date,
             due_at=instance.due_at,
             completed_at=instance.completed_at,
+        )
+
+    @staticmethod
+    def _chore_instance_to_response(instance: ChoreInstance) -> ChoreInstanceMutationResponse:
+        return ChoreInstanceMutationResponse(
+            chore_instance_id=instance.id,
+            status=instance.status,
+            scheduled_date=instance.scheduled_date,
+            completed_at=instance.completed_at,
+            skipped_at=instance.skipped_at,
+            assigned_to=instance.assigned_to,
+            completed_by=instance.completed_by,
         )
 
     def list_routine_templates(self, user_id: int) -> list[RoutineTemplate]:
