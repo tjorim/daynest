@@ -665,7 +665,9 @@ class TodayRepository:
         )
         return list(self.db.scalars(stmt).all())
 
-    def get_chore_instance_for_user(self, user_id: int, chore_instance_id: int) -> ChoreInstance | None:
+    def get_chore_instance_for_user(
+        self, user_id: int, chore_instance_id: int, *, for_update: bool = False
+    ) -> ChoreInstance | None:
         household_ids = self.get_user_household_ids(user_id)
         stmt = (
             select(ChoreInstance)
@@ -674,6 +676,11 @@ class TodayRepository:
             .where(self._chore_access_condition(user_id, household_ids))
             .where(ChoreInstance.id == chore_instance_id)
         )
+        # SQLite (used by the in-memory test suite) has no row-level locks;
+        # emitting FOR UPDATE there also interacts poorly with the shared
+        # StaticPool connection. Production PostgreSQL gets the real lock.
+        if for_update and self.db.get_bind().dialect.name != "sqlite":
+            stmt = stmt.with_for_update(of=ChoreInstance)
         return self.db.scalar(stmt)
 
     def list_planned_items(

@@ -357,3 +357,7 @@ Run type-checking locally:
 cd backend
 uv run ty check app
 ```
+
+## Retry safety
+
+See [docs/retry-safety.md](docs/retry-safety.md) for the write-operation inventory, retry/idempotency contracts across REST and integrations, and the checklist for new externally callable writes.

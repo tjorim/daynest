@@ -303,11 +303,19 @@ def test_chore_mutation_endpoints_complete_skip_and_reschedule(client: TestClien
         scheduled_date=date(2026, 4, 24),
         status=ChoreStatus.pending,
     )
-    db_session.add(instance)
-    db_session.add(pending_instance)
+    skipped_instance = ChoreInstance(
+        user_id=user.id,
+        chore_template_id=template.id,
+        title=template.name,
+        scheduled_date=date(2026, 4, 27),
+        status=ChoreStatus.pending,
+    )
+    db_session.add_all([instance, pending_instance, skipped_instance])
     db_session.commit()
     db_session.refresh(instance)
     db_session.refresh(pending_instance)
+    db_session.refresh(skipped_instance)
+    db_session.commit()
 
     try:
         complete_resp = client.post(f"/api/chores/{instance.id}/complete")
@@ -316,19 +324,38 @@ def test_chore_mutation_endpoints_complete_skip_and_reschedule(client: TestClien
         assert complete_resp.json()["completed_at"] is not None
         assert complete_resp.json()["skipped_at"] is None
 
+        complete_replay = client.post(f"/api/chores/{instance.id}/complete")
+        assert complete_replay.status_code == 200
+        assert complete_replay.json() == complete_resp.json()
+
         skip_resp = client.post(f"/api/chores/{instance.id}/skip")
+        assert skip_resp.status_code == 409
+        db_session.rollback()
+
+        skip_resp = client.post(f"/api/chores/{skipped_instance.id}/skip")
         assert skip_resp.status_code == 200
         assert skip_resp.json()["status"] == "skipped"
         assert skip_resp.json()["skipped_at"] is not None
         assert skip_resp.json()["completed_at"] is None
 
+        skip_replay = client.post(f"/api/chores/{skipped_instance.id}/skip")
+        assert skip_replay.status_code == 200
+        assert skip_replay.json() == skip_resp.json()
+
         blocked = client.post(f"/api/chores/{instance.id}/reschedule", json={"scheduled_date": "2026-04-25"})
         assert blocked.status_code == 409
+        db_session.rollback()
 
         reschedule = client.post(f"/api/chores/{pending_instance.id}/reschedule", json={"scheduled_date": "2026-04-25"})
         assert reschedule.status_code == 200
         assert reschedule.json()["status"] == "pending"
         assert reschedule.json()["scheduled_date"] == "2026-04-25"
+
+        reschedule_replay = client.post(
+            f"/api/chores/{pending_instance.id}/reschedule", json={"scheduled_date": "2026-04-25"}
+        )
+        assert reschedule_replay.status_code == 200
+        assert reschedule_replay.json() == reschedule.json()
     finally:
         _clear_auth()
 

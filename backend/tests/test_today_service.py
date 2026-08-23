@@ -212,7 +212,8 @@ class StubTodayRepository:
     def delete_routine_template(self, template: Any, *, actor: Any = None) -> None:
         raise NotImplementedError
 
-    def get_chore_instance_for_user(self, user_id: int, chore_instance_id: int) -> Any:
+    def get_chore_instance_for_user(self, user_id: int, chore_instance_id: int, *, for_update: bool = False) -> Any:
+        del for_update
         raise NotImplementedError
 
     def get_chore_template_for_user(self, user_id: int, chore_template_id: int) -> Any:
