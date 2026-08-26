@@ -63,7 +63,12 @@ export async function fetchOidcConfig(): Promise<AuthProviderProps> {
     monitorSession: true,
     revokeTokensOnSignout: true,
     post_logout_redirect_uri: window.location.origin,
-    userStore: new WebStorageStateStore({ store: window.sessionStorage }),
+    // The Keycloak SSO session (and the refresh token backing it) now
+    // outlives a browser restart (7d idle / 30d max — see keycloak.yml).
+    // sessionStorage would still throw that away on tab close, forcing a
+    // re-login even though the session is still valid server-side, so
+    // persist the OIDC user in localStorage instead.
+    userStore: new WebStorageStateStore({ store: window.localStorage }),
     onSigninCallback,
   };
 }
