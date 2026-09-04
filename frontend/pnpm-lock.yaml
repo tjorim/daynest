@@ -9,14 +9,14 @@ importers:
   .:
     dependencies:
       '@inlang/paraglide-js':
-        specifier: ^2.24.1
-        version: 2.24.1(typescript@7.0.2)(vite@8.2.2(@types/node@26.1.1))
+        specifier: ^2.25.0
+        version: 2.25.0(typescript@7.0.2)(vite@8.2.2(@types/node@26.1.1)(jiti@2.7.0))
       '@inlang/plugin-m-function-matcher':
-        specifier: ^2.2.12
-        version: 2.2.12
+        specifier: ^2.2.13
+        version: 2.2.13
       '@inlang/plugin-message-format':
-        specifier: ^4.4.3
-        version: 4.4.3
+        specifier: ^4.4.4
+        version: 4.4.4
       '@schedule-x/calendar':
         specifier: ^4.6.1
         version: 4.6.1(@preact/signals@2.9.1(preact@10.29.2))(preact@10.29.2)(temporal-polyfill@1.0.4)
@@ -110,7 +110,7 @@ importers:
         version: 19.2.5(@types/react@19.2.18)
       '@vitejs/plugin-react':
         specifier: ^6.1.1
-        version: 6.1.1(vite@8.2.2(@types/node@26.1.1))
+        version: 6.1.1(vite@8.2.2(@types/node@26.1.1)(jiti@2.7.0))
       '@vitest/coverage-v8':
         specifier: ^4.1.11
         version: 4.1.11(vitest@4.1.11)
@@ -134,10 +134,10 @@ importers:
         version: 7.0.2
       vite:
         specifier: ^8.2.2
-        version: 8.2.2(@types/node@26.1.1)
+        version: 8.2.2(@types/node@26.1.1)(jiti@2.7.0)
       vitest:
         specifier: ^4.1.11
-        version: 4.1.11(@types/node@26.1.1)(@vitest/coverage-v8@4.1.11)(jsdom@30.0.1)(msw@2.15.0(@types/node@26.1.1)(typescript@7.0.2))(vite@8.2.2(@types/node@26.1.1))
+        version: 4.1.11(@types/node@26.1.1)(@vitest/coverage-v8@4.1.11)(jsdom@30.0.1)(msw@2.15.0(@types/node@26.1.1)(typescript@7.0.2))(vite@8.2.2(@types/node@26.1.1)(jiti@2.7.0))
 
 packages:
 
@@ -246,8 +246,8 @@ packages:
       '@noble/hashes':
         optional: true
 
-  '@inlang/paraglide-js@2.24.1':
-    resolution: {integrity: sha512-r/gak0kY2yuqgz0RFxccb7A89fgcLpiqoEbYfv3nxlqyhdW2v8NajE1A2xiXrv/iAo7WCX4zk8EJAhL69rcp0g==}
+  '@inlang/paraglide-js@2.25.0':
+    resolution: {integrity: sha512-a3Gw3md1S3WyJK1rFAP/FwDCsFKnu1b98rJ3k5bUl6nc3cmbglaSYpuK9qq9aLLlUlZhuCtB/Pb1LeKDUaLycg==}
     hasBin: true
     peerDependencies:
       typescript: '>=5.6'
@@ -258,21 +258,17 @@ packages:
       vite:
         optional: true
 
-  '@inlang/plugin-m-function-matcher@2.2.12':
-    resolution: {integrity: sha512-iIF0bPoDlStI736ERkrx985MM7+WtYGYWm6Yomyu/VyYWO/WJTESkxrv9p9bEsYdEELDnctntAPYe5qAdESGDg==}
+  '@inlang/plugin-m-function-matcher@2.2.13':
+    resolution: {integrity: sha512-TO6v+nty8ntoeL/3rJ1wGazyfkOHnshmSy+biHdD5mJubopKIxG5Zrl563aEkXjAm/S4jMvenIrVJUPvMDlJfg==}
 
-  '@inlang/plugin-message-format@4.4.3':
-    resolution: {integrity: sha512-jBOT0CKgG49mctJZZ3Ltz4o9xkxbCYM1xXhKXl+1dIRV+IedpS93q1jAdMKGSfexgGxcagFopdNbnLb7wq/OZg==}
+  '@inlang/plugin-message-format@4.4.4':
+    resolution: {integrity: sha512-50tkyH/qMFudcIOZSCRdi+BeCVuJQo3BWbvfRTVKr8pEslBiRaZDTKBC1NkCI3ivmkyqzK8k+ktBci3NtDu3Lg==}
 
   '@inlang/recommend-sherlock@0.2.1':
     resolution: {integrity: sha512-ckv8HvHy/iTqaVAEKrr+gnl+p3XFNwe5D2+6w6wJk2ORV2XkcRkKOJ/XsTUJbPSiyi4PI+p+T3bqbmNx/rDUlg==}
 
-  '@inlang/sdk@3.0.1':
-    resolution: {integrity: sha512-QvyMYjCqF7CnrTp8ZaPiuwpmxsoQPIDgfqGeWfqi4FDxBREye4QdyaZS4DGwIlCZXybF/YMj0TtL2uBfbmajug==}
-    engines: {node: '>=20.0.0'}
-
-  '@inlang/sdk@3.0.2':
-    resolution: {integrity: sha512-qBAzkOLRQ42hZBl2/AZFZD+/JkdjBAvwxWphdTs9UbikMsuLathOBOIl+rC/mzaq48ylD3zE8Je2nrx7tbm0pw==}
+  '@inlang/sdk@3.0.3':
+    resolution: {integrity: sha512-11aQcOw58oAcCtIOJ17XhQxfxaiGsg6XJi7coMul8wNJiW+Rzv2OfJU42NLwSuWXUNSASjegp5Z3uklTkY5GJw==}
     engines: {node: '>=20.0.0'}
 
   '@inquirer/ansi@2.0.7':
@@ -332,32 +328,20 @@ packages:
   '@jridgewell/sourcemap-codec@1.5.5':
     resolution: {integrity: sha512-cYQ9310grqxueWbl+WuIUIaiUaDcj7WOq5fVhEljNVgRfOUhY9fy2zTvfoqWsnebh8Sl70VScFbICvJnLKB0Og==}
 
+  '@jridgewell/sourcemap-codec@1.6.0':
+    resolution: {integrity: sha512-T7jf+5zgsZHwNJ4lvQ7/aezbyk0nNX+zJVWpmHA7VYsEx7a7qr5Rg5IbtJFqkgze5Y2sruq1RUY8Q837Od7iFw==}
+
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
-
-  '@lix-js/sdk-darwin-arm64@0.12.2':
-    resolution: {integrity: sha512-0mBRIfgZfaey1/d0mijv7fBIGPeaTIMCDOPr3s4RUlHy/j+llNmAyDS2iNlalFh9nQGys7JNzo2Hv3FQbdKmug==}
-    cpu: [arm64]
-    os: [darwin]
 
   '@lix-js/sdk-darwin-arm64@0.12.3':
     resolution: {integrity: sha512-YeMJyYGk+QwvQe8O4AAcBMgfNm68IjAGDvuvZHr1U1rIb3GC2kYFStajqf4mT4BGc+cN65/P/2kkqEo+Igu/sA==}
     cpu: [arm64]
     os: [darwin]
 
-  '@lix-js/sdk-linux-arm64@0.12.2':
-    resolution: {integrity: sha512-817uJlC2KTIKDaqQvALTu03hEJpNxEA+9d33FNs8sOm9pAguOWiAK1zGA2SD0IgS9Q8NqQeABLb84OesW5/NCA==}
-    cpu: [arm64]
-    os: [linux]
-
   '@lix-js/sdk-linux-arm64@0.12.3':
     resolution: {integrity: sha512-jtmfNg6jLW61l1QvsU3W184l3hGtYUyPGzZrQyekk0vsMF1hxsP++7ONEGNI19PE7ldwSnGCB8Q6OzRKX87abQ==}
     cpu: [arm64]
-    os: [linux]
-
-  '@lix-js/sdk-linux-x64@0.12.2':
-    resolution: {integrity: sha512-rA7lw1jBr6azBHR5Sh/RzOKSAlRcmVea7VeI4VQqpy0PZs+5tWoK9iVC41V4oCIKssRv2wrkbvyP3CqInhoknQ==}
-    cpu: [x64]
     os: [linux]
 
   '@lix-js/sdk-linux-x64@0.12.3':
@@ -365,18 +349,10 @@ packages:
     cpu: [x64]
     os: [linux]
 
-  '@lix-js/sdk-win32-x64@0.12.2':
-    resolution: {integrity: sha512-y9IikCdrYx6cFnfqeUvYKPw6KBY016U2F2wYDILYZDZndccK2xw7lJChX163w9PewMwY3GsC/UqRBi5yqFAJ2w==}
-    cpu: [x64]
-    os: [win32]
-
   '@lix-js/sdk-win32-x64@0.12.3':
     resolution: {integrity: sha512-hnxMI7kPS4ngXs0ZVnOve5CmtC4+vaNIyNDi/yWU0rSvxj7mqw/1RCegTrCB7LjxlX4DG+eg9HruXurk9NDjGg==}
     cpu: [x64]
     os: [win32]
-
-  '@lix-js/sdk@0.12.2':
-    resolution: {integrity: sha512-sKGOPdVKdChS5q60F4VQE4ZTcf0B7ZJM3KGCVQFN2suVNKhHcllbsCiwRYuM5WL7Yu1ql7YexltJ2FCsDqKePg==}
 
   '@lix-js/sdk@0.12.3':
     resolution: {integrity: sha512-T2194yoZsM2S9kyRmI8UtEJL0fgXYAkeY9jZ/PVyC0K78/wmBvrqOSt9SdvgYxM5qnZ57re3NLOjVlV+X5hWxQ==}
@@ -826,10 +802,6 @@ packages:
 
   '@sinclair/typebox@0.31.30':
     resolution: {integrity: sha512-MGsM7bVmHg3sUKCphlu3SGQ+T+5JTbygZWYArfKQCW5anJeACHeqLhcnf+R7XlCWZ+QR3C8JTBx3kCKJTN69ow==}
-
-  '@sqlite.org/sqlite-wasm@3.48.0-build4':
-    resolution: {integrity: sha512-hI6twvUkzOmyGZhQMza1gpfqErZxXRw6JEsiVjUbo7tFanVD+8Oil0Ih3l2nGzHdxPI41zFmfUQG7GHqhciKZQ==}
-    hasBin: true
 
   '@standard-schema/spec@1.1.0':
     resolution: {integrity: sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w==}
@@ -1524,6 +1496,10 @@ packages:
     resolution: {integrity: sha512-HGYWWS/ehqTV3xN10i23tkPkpH46MLCIMFNCaaKNavAXTF1RkqxawEPtnjnGZ6XKSInBKkiOA5BKS+aZiY3AvA==}
     engines: {node: '>=8'}
 
+  jiti@2.7.0:
+    resolution: {integrity: sha512-AC/7JofJvZGrrneWNaEnJeOLUx+JlGt7tNa0wZiRPT4MY1wmfKjt2+6O2p2uz2+skll8OZZmJMNqeke7kKbNgQ==}
+    hasBin: true
+
   js-tokens@10.0.0:
     resolution: {integrity: sha512-lM/UBzQmfJRo9ABXbPWemivdCW8V2G8FHaHdypQaIy523snUjog0W71ayWXTjiR+ixeMyVHN2XcpnTd/liPg/Q==}
 
@@ -1919,11 +1895,6 @@ packages:
     resolution: {integrity: sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA==}
     engines: {node: '>=0.10.0'}
 
-  sqlite-wasm-kysely@0.3.0:
-    resolution: {integrity: sha512-TzjBNv7KwRw6E3pdKdlRyZiTmUIE0UttT/Sl56MVwVARl/u5gp978KepazCJZewFUnlWHz9i3NQd4kOtP/Afdg==}
-    peerDependencies:
-      kysely: '*'
-
   stackback@0.0.2:
     resolution: {integrity: sha512-1XMJE5fQo1jGH6Y/7ebnwPOBEkIEnT4QF32d5R1+VXdXveM0IBMJt8zfaxX1P3QhVwrYe+576+jkANtSS2mBbw==}
 
@@ -2050,13 +2021,17 @@ packages:
     peerDependencies:
       react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
 
-  uuid@14.0.1:
-    resolution: {integrity: sha512-6ZxzVpzDXDa3bJWaHilVayA+BH/1zmxCJoVgvmqJnid/gPoKHxUrS/aC/T6LGQtNHT+XHG9fXPJB4d+IrU30Ew==}
-    hasBin: true
-
   uuid@14.0.2:
     resolution: {integrity: sha512-xZe/16rV4aa+HGSOCiY2YeLT1OybRLrrkL/Rqaq7p7GMVXjFh+6wN4oMYgjFmnSnhY8t6Xpdl2l9qmnHYuMHwQ==}
     hasBin: true
+
+  valibot@1.4.2:
+    resolution: {integrity: sha512-gjdCvJ6d3RyHAneqxMYMW9QMCwYMb3jpOO0IyHZV1bnRHFBHrX3VkIILt5XYR0WhwHiH7Mty8ovuPZ/O3gamrg==}
+    peerDependencies:
+      typescript: '>=5'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
 
   victory-vendor@37.3.6:
     resolution: {integrity: sha512-SbPDPdDBYp+5MJHhBCAyI7wKM3d5ivekigc2Dk2s7pgbZ9wIgIBYGVw4zGHBml/qTFbexrofXW6Gu4noGxrOwQ==}
@@ -2290,24 +2265,26 @@ snapshots:
 
   '@exodus/bytes@1.15.1': {}
 
-  '@inlang/paraglide-js@2.24.1(typescript@7.0.2)(vite@8.2.2(@types/node@26.1.1))':
+  '@inlang/paraglide-js@2.25.0(typescript@7.0.2)(vite@8.2.2(@types/node@26.1.1)(jiti@2.7.0))':
     dependencies:
       '@inlang/recommend-sherlock': 0.2.1
-      '@inlang/sdk': 3.0.1
+      '@inlang/sdk': 3.0.3
       commander: 11.1.0
       consola: 3.4.0
+      jiti: 2.7.0
       json5: 2.2.3
       unplugin: 2.3.11
       urlpattern-polyfill: 10.1.0
+      valibot: 1.4.2(typescript@7.0.2)
     optionalDependencies:
       typescript: 7.0.2
-      vite: 8.2.2(@types/node@26.1.1)
+      vite: 8.2.2(@types/node@26.1.1)(jiti@2.7.0)
 
-  '@inlang/plugin-m-function-matcher@2.2.12':
+  '@inlang/plugin-m-function-matcher@2.2.13':
     dependencies:
-      '@inlang/sdk': 3.0.2
+      '@inlang/sdk': 3.0.3
 
-  '@inlang/plugin-message-format@4.4.3':
+  '@inlang/plugin-message-format@4.4.4':
     dependencies:
       flat: 6.0.1
 
@@ -2315,20 +2292,11 @@ snapshots:
     dependencies:
       comment-json: 4.6.2
 
-  '@inlang/sdk@3.0.1':
-    dependencies:
-      '@lix-js/sdk': 0.12.2
-      '@sinclair/typebox': 0.31.30
-      kysely: 0.28.17
-      sqlite-wasm-kysely: 0.3.0(kysely@0.28.17)
-      uuid: 14.0.1
-
-  '@inlang/sdk@3.0.2':
+  '@inlang/sdk@3.0.3':
     dependencies:
       '@lix-js/sdk': 0.12.3
       '@sinclair/typebox': 0.31.30
       kysely: 0.28.17
-      sqlite-wasm-kysely: 0.3.0(kysely@0.28.17)
       uuid: 14.0.2
 
   '@inquirer/ansi@2.0.7': {}
@@ -2372,7 +2340,7 @@ snapshots:
 
   '@jridgewell/gen-mapping@0.3.13':
     dependencies:
-      '@jridgewell/sourcemap-codec': 1.5.5
+      '@jridgewell/sourcemap-codec': 1.6.0
       '@jridgewell/trace-mapping': 0.3.31
 
   '@jridgewell/remapping@2.3.5':
@@ -2384,43 +2352,24 @@ snapshots:
 
   '@jridgewell/sourcemap-codec@1.5.5': {}
 
+  '@jridgewell/sourcemap-codec@1.6.0': {}
+
   '@jridgewell/trace-mapping@0.3.31':
     dependencies:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
 
-  '@lix-js/sdk-darwin-arm64@0.12.2':
-    optional: true
-
   '@lix-js/sdk-darwin-arm64@0.12.3':
-    optional: true
-
-  '@lix-js/sdk-linux-arm64@0.12.2':
     optional: true
 
   '@lix-js/sdk-linux-arm64@0.12.3':
     optional: true
 
-  '@lix-js/sdk-linux-x64@0.12.2':
-    optional: true
-
   '@lix-js/sdk-linux-x64@0.12.3':
-    optional: true
-
-  '@lix-js/sdk-win32-x64@0.12.2':
     optional: true
 
   '@lix-js/sdk-win32-x64@0.12.3':
     optional: true
-
-  '@lix-js/sdk@0.12.2':
-    dependencies:
-      fflate: 0.8.3
-    optionalDependencies:
-      '@lix-js/sdk-darwin-arm64': 0.12.2
-      '@lix-js/sdk-linux-arm64': 0.12.2
-      '@lix-js/sdk-linux-x64': 0.12.2
-      '@lix-js/sdk-win32-x64': 0.12.2
 
   '@lix-js/sdk@0.12.3':
     dependencies:
@@ -2697,8 +2646,6 @@ snapshots:
 
   '@sinclair/typebox@0.31.30': {}
 
-  '@sqlite.org/sqlite-wasm@3.48.0-build4': {}
-
   '@standard-schema/spec@1.1.0': {}
 
   '@standard-schema/utils@0.3.0': {}
@@ -2801,7 +2748,7 @@ snapshots:
       picocolors: 1.1.1
       redent: 3.0.0
     optionalDependencies:
-      vitest: 4.1.11(@types/node@26.1.1)(@vitest/coverage-v8@4.1.11)(jsdom@30.0.1)(msw@2.15.0(@types/node@26.1.1)(typescript@7.0.2))(vite@8.2.2(@types/node@26.1.1))
+      vitest: 4.1.11(@types/node@26.1.1)(@vitest/coverage-v8@4.1.11)(jsdom@30.0.1)(msw@2.15.0(@types/node@26.1.1)(typescript@7.0.2))(vite@8.2.2(@types/node@26.1.1)(jiti@2.7.0))
 
   '@testing-library/react@16.3.3(@testing-library/dom@10.4.1)(@types/react-dom@19.2.5(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)':
     dependencies:
@@ -2942,10 +2889,10 @@ snapshots:
   '@typescript/typescript-win32-x64@7.0.2':
     optional: true
 
-  '@vitejs/plugin-react@6.1.1(vite@8.2.2(@types/node@26.1.1))':
+  '@vitejs/plugin-react@6.1.1(vite@8.2.2(@types/node@26.1.1)(jiti@2.7.0))':
     dependencies:
       '@rolldown/pluginutils': 1.0.1
-      vite: 8.2.2(@types/node@26.1.1)
+      vite: 8.2.2(@types/node@26.1.1)(jiti@2.7.0)
 
   '@vitest/coverage-v8@4.1.11(vitest@4.1.11)':
     dependencies:
@@ -2959,7 +2906,7 @@ snapshots:
       obug: 2.1.4
       std-env: 4.2.0
       tinyrainbow: 3.1.1
-      vitest: 4.1.11(@types/node@26.1.1)(@vitest/coverage-v8@4.1.11)(jsdom@30.0.1)(msw@2.15.0(@types/node@26.1.1)(typescript@7.0.2))(vite@8.2.2(@types/node@26.1.1))
+      vitest: 4.1.11(@types/node@26.1.1)(@vitest/coverage-v8@4.1.11)(jsdom@30.0.1)(msw@2.15.0(@types/node@26.1.1)(typescript@7.0.2))(vite@8.2.2(@types/node@26.1.1)(jiti@2.7.0))
 
   '@vitest/expect@4.1.11':
     dependencies:
@@ -2970,14 +2917,14 @@ snapshots:
       chai: 6.2.2
       tinyrainbow: 3.1.1
 
-  '@vitest/mocker@4.1.11(msw@2.15.0(@types/node@26.1.1)(typescript@7.0.2))(vite@8.2.2(@types/node@26.1.1))':
+  '@vitest/mocker@4.1.11(msw@2.15.0(@types/node@26.1.1)(typescript@7.0.2))(vite@8.2.2(@types/node@26.1.1)(jiti@2.7.0))':
     dependencies:
       '@vitest/spy': 4.1.11
       estree-walker: 3.0.3
       magic-string: 0.30.21
     optionalDependencies:
       msw: 2.15.0(@types/node@26.1.1)(typescript@7.0.2)
-      vite: 8.2.2(@types/node@26.1.1)
+      vite: 8.2.2(@types/node@26.1.1)(jiti@2.7.0)
 
   '@vitest/pretty-format@4.1.11':
     dependencies:
@@ -3261,6 +3208,8 @@ snapshots:
     dependencies:
       html-escaper: 2.0.2
       istanbul-lib-report: 3.0.1
+
+  jiti@2.7.0: {}
 
   js-tokens@10.0.0: {}
 
@@ -3678,11 +3627,6 @@ snapshots:
 
   source-map-js@1.2.1: {}
 
-  sqlite-wasm-kysely@0.3.0(kysely@0.28.17):
-    dependencies:
-      '@sqlite.org/sqlite-wasm': 3.48.0-build4
-      kysely: 0.28.17
-
   stackback@0.0.2: {}
 
   statuses@2.0.2: {}
@@ -3811,9 +3755,11 @@ snapshots:
     dependencies:
       react: 19.2.8
 
-  uuid@14.0.1: {}
-
   uuid@14.0.2: {}
+
+  valibot@1.4.2(typescript@7.0.2):
+    optionalDependencies:
+      typescript: 7.0.2
 
   victory-vendor@37.3.6:
     dependencies:
@@ -3832,7 +3778,7 @@ snapshots:
       d3-time: 3.1.0
       d3-timer: 3.0.1
 
-  vite@8.2.2(@types/node@26.1.1):
+  vite@8.2.2(@types/node@26.1.1)(jiti@2.7.0):
     dependencies:
       lightningcss: 1.33.0
       picomatch: 4.0.7
@@ -3842,11 +3788,12 @@ snapshots:
     optionalDependencies:
       '@types/node': 26.1.1
       fsevents: 2.3.3
+      jiti: 2.7.0
 
-  vitest@4.1.11(@types/node@26.1.1)(@vitest/coverage-v8@4.1.11)(jsdom@30.0.1)(msw@2.15.0(@types/node@26.1.1)(typescript@7.0.2))(vite@8.2.2(@types/node@26.1.1)):
+  vitest@4.1.11(@types/node@26.1.1)(@vitest/coverage-v8@4.1.11)(jsdom@30.0.1)(msw@2.15.0(@types/node@26.1.1)(typescript@7.0.2))(vite@8.2.2(@types/node@26.1.1)(jiti@2.7.0)):
     dependencies:
       '@vitest/expect': 4.1.11
-      '@vitest/mocker': 4.1.11(msw@2.15.0(@types/node@26.1.1)(typescript@7.0.2))(vite@8.2.2(@types/node@26.1.1))
+      '@vitest/mocker': 4.1.11(msw@2.15.0(@types/node@26.1.1)(typescript@7.0.2))(vite@8.2.2(@types/node@26.1.1)(jiti@2.7.0))
       '@vitest/pretty-format': 4.1.11
       '@vitest/runner': 4.1.11
       '@vitest/snapshot': 4.1.11
@@ -3863,7 +3810,7 @@ snapshots:
       tinyexec: 1.3.0
       tinyglobby: 0.2.17
       tinyrainbow: 3.1.1
-      vite: 8.2.2(@types/node@26.1.1)
+      vite: 8.2.2(@types/node@26.1.1)(jiti@2.7.0)
       why-is-node-running: 2.3.0
     optionalDependencies:
       '@types/node': 26.1.1
