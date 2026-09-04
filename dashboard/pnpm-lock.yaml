@@ -9,11 +9,11 @@ importers:
   .:
     dependencies:
       '@schedule-x/calendar':
-        specifier: ^4.6.1
-        version: 4.6.1(@preact/signals@2.9.1(preact@10.29.2))(preact@10.29.2)(temporal-polyfill@0.3.0)
+        specifier: ^4.7.0
+        version: 4.7.0(@preact/signals@2.9.1(preact@10.29.2))(preact@10.29.2)(temporal-polyfill@0.3.0)
       '@schedule-x/theme-default':
-        specifier: ^4.6.1
-        version: 4.6.1
+        specifier: ^4.7.0
+        version: 4.7.0
     devDependencies:
       custom-card-helpers:
         specifier: ^2.0.0
@@ -178,15 +178,15 @@ packages:
   '@rolldown/pluginutils@1.0.1':
     resolution: {integrity: sha512-2j9bGt5Jh8hj+vPtgzPtl72j0yRxHAyumoo6TNfAjsLB04UtpSvPbPcDcBMxz7n+9CYB0c1GxQFxYRg2jimqGw==}
 
-  '@schedule-x/calendar@4.6.1':
-    resolution: {integrity: sha512-qJ1CPtflvTycsBREGt8jYEeeCYPekZS1w32GAgp7SDw/NoRk1qiY6vmE2++d2KwefZoSCsETw7A6tQorCwg+SA==}
+  '@schedule-x/calendar@4.7.0':
+    resolution: {integrity: sha512-9m7j5t35inOeuswlKIlJ+St9Tlk3FA1AxGz1BRN4P/Oj90eTDIW/IzIQIzQmBTGzpp5idN/jW4aS5uZrKRlLIg==}
     peerDependencies:
       '@preact/signals': ^2.0.2
       preact: ^10.19.2
       temporal-polyfill: 0.3.0
 
-  '@schedule-x/theme-default@4.6.1':
-    resolution: {integrity: sha512-kjdMDRc3y+45NpNqHDhd0flfepyCbBKooYiDPI1eRC+1medBYJLQPBtR8mcnVL63MzN6NqwEuWY+YJPdIj+gUA==}
+  '@schedule-x/theme-default@4.7.0':
+    resolution: {integrity: sha512-NdpcAdVM72piHVDlA9Yz1BW6XzuXO6ja3W8EM+2S7d541PoS44FMp2ZQm2CWTWvr+B87eainh0xh3DsZAgM2sw==}
 
   '@types/trusted-types@2.0.7':
     resolution: {integrity: sha512-ScaPdn1dQczgbl0QFTeTOmVHFULt394XJgOQNoyVhZ6r2vLnMLJfBPd53SB52T/3G36VI1/g2MZaX0cwDuXsfw==}
@@ -644,13 +644,13 @@ snapshots:
 
   '@rolldown/pluginutils@1.0.1': {}
 
-  '@schedule-x/calendar@4.6.1(@preact/signals@2.9.1(preact@10.29.2))(preact@10.29.2)(temporal-polyfill@0.3.0)':
+  '@schedule-x/calendar@4.7.0(@preact/signals@2.9.1(preact@10.29.2))(preact@10.29.2)(temporal-polyfill@0.3.0)':
     dependencies:
       '@preact/signals': 2.9.1(preact@10.29.2)
       preact: 10.29.2
       temporal-polyfill: 0.3.0
 
-  '@schedule-x/theme-default@4.6.1': {}
+  '@schedule-x/theme-default@4.7.0': {}
 
   '@types/trusted-types@2.0.7': {}
 
