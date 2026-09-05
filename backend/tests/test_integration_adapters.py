@@ -1,4 +1,5 @@
-from datetime import UTC, date, datetime, time, timedelta
+from datetime import UTC, date, datetime, time, timedelta, tzinfo
+from typing import Self
 
 from fastapi.testclient import TestClient
 from pytest import MonkeyPatch
@@ -37,8 +38,8 @@ def _clear_auth() -> None:
 
 class FrozenDatetime(datetime):
     @classmethod
-    def now(cls, tz=None) -> datetime:
-        return datetime.combine(FIXED_TODAY, time(0, 0), tzinfo=tz)
+    def now(cls, tz: tzinfo | None = None) -> Self:
+        return cls.combine(FIXED_TODAY, time(0, 0), tzinfo=tz)
 
 
 def _freeze_route_today(monkeypatch: MonkeyPatch, route_module: str) -> None:
