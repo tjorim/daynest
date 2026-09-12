@@ -76,8 +76,6 @@ if not logger.handlers:
     logging.basicConfig(stream=sys.stderr, level=logging.INFO)
 
 DAYNEST_USER_EMAIL_ENV = "DAYNEST_USER_EMAIL"
-DAYNEST_MCP_RESOURCE_SERVER_URL_ENV = "DAYNEST_MCP_RESOURCE_SERVER_URL"
-
 MCP_TOOL_NAMES = (
     "whoami",
     "list_users",
@@ -616,7 +614,7 @@ class DaynestMcpBackend:
 
 def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
     daynest = backend or DaynestMcpBackend(SessionLocal)
-    resource_server_url = os.getenv(DAYNEST_MCP_RESOURCE_SERVER_URL_ENV, "http://127.0.0.1:8000/mcp")
+    resource_server_url = os.getenv("MCP_BASE_URL", "http://127.0.0.1:8000/mcp")
     integration_verifier = IntegrationKeyTokenVerifier(daynest.session_factory, resource_server_url=resource_server_url)
 
     if settings.oidc_issuer_url:

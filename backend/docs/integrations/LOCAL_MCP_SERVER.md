@@ -73,19 +73,19 @@ you opt into by running `app.mcp_server` differently; it happens
 automatically as part of `app.main`, alongside the REST API, in the same
 process.
 
-Set `DAYNEST_MCP_RESOURCE_SERVER_URL` to the externally reachable URL of
+Set `MCP_BASE_URL` to the externally reachable URL of
 this mount (used for OAuth resource-server metadata) before starting the
 app:
 
 **PowerShell:**
 ```powershell
-$env:DAYNEST_MCP_RESOURCE_SERVER_URL = "https://your-domain.example/mcp"
+$env:MCP_BASE_URL = "https://your-domain.example/mcp"
 uv run uvicorn app.main:app
 ```
 
 **bash/zsh:**
 ```bash
-export DAYNEST_MCP_RESOURCE_SERVER_URL="https://your-domain.example/mcp"
+export MCP_BASE_URL="https://your-domain.example/mcp"
 uv run uvicorn app.main:app
 ```
 
