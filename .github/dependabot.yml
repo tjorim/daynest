@@ -49,6 +49,9 @@ updates:
       schedule-x:
         patterns:
           - "@schedule-x/*"
+      dayjs:
+        patterns:
+          - "dayjs"
 
   # Monitor npm dependencies for the Lovelace card
   - package-ecosystem: "npm"
