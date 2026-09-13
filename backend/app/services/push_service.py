@@ -1,7 +1,9 @@
 import json
 import logging
+from collections.abc import Callable
 from datetime import UTC, datetime, time, timedelta
 from typing import Any
+from uuid import uuid4
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import httpx
@@ -9,19 +11,22 @@ from google.auth.exceptions import GoogleAuthError
 from google.auth.transport.requests import Request
 from google.oauth2 import service_account
 from pywebpush import WebPushException, webpush
-from sqlalchemy import select
+from sqlalchemy import delete, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.core.enums import ChoreStatus, MedicationDoseStatus, PushPlatform
 from app.models.chore_instance import ChoreInstance
 from app.models.medication_dose_instance import MedicationDoseInstance
+from app.models.notification_claim import NotificationClaim
 from app.models.notification_sent import NotificationSent
 from app.models.push_subscription import PushSubscription
 from app.models.user import User
 
 logger = logging.getLogger(__name__)
 _FCM_SCOPES = ("https://www.googleapis.com/auth/firebase.messaging",)
+_NOTIFICATION_CLAIM_LEASE = timedelta(minutes=5)
 _http_client = httpx.Client(timeout=10.0)
 
 
@@ -136,11 +141,125 @@ def _unnotified_item_ids(db: Session, user_id: int, notification_type: str, item
     return [item_id for item_id in item_ids if item_id not in notified_ids]
 
 
-def _record_notifications(db: Session, user_id: int, notification_type: str, item_ids: list[int]) -> None:
+def _claim_item_ids(
+    db: Session,
+    user_id: int,
+    notification_type: str,
+    item_ids: list[int],
+    *,
+    claim_token: str,
+    now: datetime,
+) -> list[int]:
+    """Atomically claim unnotified items, reclaiming expired leases first.
+
+    Guards against two overlapping processes (e.g. briefly during a
+    redeploy) both dispatching the same item — a concurrent claim on the
+    same (user_id, notification_type, item_id) loses the IntegrityError race
+    and simply doesn't appear in the returned list.
+    """
+    db.execute(
+        delete(NotificationClaim)
+        .where(NotificationClaim.user_id == user_id)
+        .where(NotificationClaim.notification_type == notification_type)
+        .where(NotificationClaim.item_id.in_(item_ids))
+        .where(NotificationClaim.expires_at <= now)
+    )
+    db.commit()
+
+    claimed: list[int] = []
+    for item_id in item_ids:
+        db.add(
+            NotificationClaim(
+                user_id=user_id,
+                notification_type=notification_type,
+                item_id=item_id,
+                claim_token=claim_token,
+                expires_at=now + _NOTIFICATION_CLAIM_LEASE,
+            )
+        )
+        try:
+            db.commit()
+        except IntegrityError:
+            db.rollback()
+        else:
+            claimed.append(item_id)
+    return claimed
+
+
+def _release_claimed_item_ids(
+    db: Session, user_id: int, notification_type: str, item_ids: list[int], *, claim_token: str
+) -> None:
+    """Undo a claim after every send attempt for it failed, so the next tick retries.
+
+    The claim token ensures an expired lease reclaimed by another dispatcher
+    is never released by the previous owner.
+    """
+    db.execute(
+        delete(NotificationClaim)
+        .where(NotificationClaim.user_id == user_id)
+        .where(NotificationClaim.notification_type == notification_type)
+        .where(NotificationClaim.item_id.in_(item_ids))
+        .where(NotificationClaim.claim_token == claim_token)
+    )
+    db.commit()
+
+
+def _mark_claimed_item_ids_sent(
+    db: Session, user_id: int, notification_type: str, item_ids: list[int], *, claim_token: str
+) -> None:
     db.add_all(
         NotificationSent(user_id=user_id, notification_type=notification_type, item_id=item_id) for item_id in item_ids
     )
+    db.execute(
+        delete(NotificationClaim)
+        .where(NotificationClaim.user_id == user_id)
+        .where(NotificationClaim.notification_type == notification_type)
+        .where(NotificationClaim.item_id.in_(item_ids))
+        .where(NotificationClaim.claim_token == claim_token)
+    )
     db.commit()
+
+
+def _dispatch(
+    db: Session,
+    user_id: int,
+    notification_type: str,
+    item_ids: list[int],
+    build_message: Callable[[int], tuple[str, str, dict[str, Any]]],
+    *,
+    now: datetime,
+) -> int:
+    """Claim, send, and release-on-total-failure for one notification type.
+
+    A successful provider call is recorded separately from the lease. Leases
+    left by an interrupted dispatcher expire after one scheduler interval and
+    are retried; this intentionally favors a possible duplicate over a
+    permanently suppressed reminder after an uncertain provider response.
+    """
+    item_ids = _unnotified_item_ids(db, user_id, notification_type, item_ids)
+    if not item_ids:
+        return 0
+    claim_token = str(uuid4())
+    claimed_ids = _claim_item_ids(
+        db,
+        user_id,
+        notification_type,
+        item_ids,
+        claim_token=claim_token,
+        now=now,
+    )
+    if not claimed_ids:
+        return 0
+    title, body, data = build_message(len(claimed_ids))
+    sent = 0
+    for subscription in _active_subscriptions(db, user_id):
+        if send_notification(subscription, title, body, data):
+            sent += 1
+    if sent == 0:
+        _release_claimed_item_ids(db, user_id, notification_type, claimed_ids, claim_token=claim_token)
+        return 0
+    _mark_claimed_item_ids_sent(db, user_id, notification_type, claimed_ids, claim_token=claim_token)
+    return len(claimed_ids)
 
 
 def _active_subscription_exists(user_id_column):
@@ -230,21 +349,18 @@ def dispatch_overdue_chores(db: Session, user_id: int, *, now: datetime | None =
             .where(ChoreInstance.scheduled_date < now.date())
         ).all()
     )
-    overdue_ids = _unnotified_item_ids(db, user_id, "overdue_chores", overdue_ids)
-    if not overdue_ids:
-        return 0
-    sent = 0
-    for subscription in _active_subscriptions(db, user_id):
-        if send_notification(
-            subscription,
+    return _dispatch(
+        db,
+        user_id,
+        "overdue_chores",
+        overdue_ids,
+        lambda count: (
             "Overdue chores",
-            f"You have {len(overdue_ids)} overdue chores",
-            {"type": "overdue_chores", "count": len(overdue_ids)},
-        ):
-            sent += 1
-    if sent:
-        _record_notifications(db, user_id, "overdue_chores", overdue_ids)
-    return sent
+            f"You have {count} overdue chores",
+            {"type": "overdue_chores", "count": count},
+        ),
+        now=now,
+    )
 
 
 def dispatch_medication_reminders(db: Session, user_id: int, *, now: datetime | None = None) -> int:
@@ -262,21 +378,18 @@ def dispatch_medication_reminders(db: Session, user_id: int, *, now: datetime | 
             .where(MedicationDoseInstance.scheduled_at <= window_end)
         ).all()
     )
-    dose_ids = _unnotified_item_ids(db, user_id, "medication_reminder", dose_ids)
-    if not dose_ids:
-        return 0
-    sent = 0
-    for subscription in _active_subscriptions(db, user_id):
-        if send_notification(
-            subscription,
+    return _dispatch(
+        db,
+        user_id,
+        "medication_reminder",
+        dose_ids,
+        lambda count: (
             "Medication reminder",
-            f"You have {len(dose_ids)} medication doses coming up",
-            {"type": "medication_reminder", "count": len(dose_ids)},
-        ):
-            sent += 1
-    if sent:
-        _record_notifications(db, user_id, "medication_reminder", dose_ids)
-    return sent
+            f"You have {count} medication doses coming up",
+            {"type": "medication_reminder", "count": count},
+        ),
+        now=now,
+    )
 
 
 def dispatch_missed_medications(db: Session, user_id: int, *, now: datetime | None = None) -> int:
@@ -292,18 +405,15 @@ def dispatch_missed_medications(db: Session, user_id: int, *, now: datetime | No
             .where(MedicationDoseInstance.scheduled_at <= now)
         ).all()
     )
-    missed_ids = _unnotified_item_ids(db, user_id, "missed_medication", missed_ids)
-    if not missed_ids:
-        return 0
-    sent = 0
-    for subscription in _active_subscriptions(db, user_id):
-        if send_notification(
-            subscription,
+    return _dispatch(
+        db,
+        user_id,
+        "missed_medication",
+        missed_ids,
+        lambda count: (
             "Missed medication",
-            f"You have {len(missed_ids)} missed medication doses",
-            {"type": "missed_medication", "count": len(missed_ids)},
-        ):
-            sent += 1
-    if sent:
-        _record_notifications(db, user_id, "missed_medication", missed_ids)
-    return sent
+            f"You have {count} missed medication doses",
+            {"type": "missed_medication", "count": count},
+        ),
+        now=now,
+    )

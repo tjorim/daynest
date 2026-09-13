@@ -9,10 +9,12 @@ from app.models.chore_instance import ChoreInstance
 from app.models.chore_template import ChoreTemplate
 from app.models.medication_dose_instance import MedicationDoseInstance
 from app.models.medication_plan import MedicationPlan
+from app.models.notification_claim import NotificationClaim
 from app.models.notification_sent import NotificationSent
 from app.models.push_subscription import PushSubscription
 from app.models.user import User
 from app.services.push_service import (
+    _claim_item_ids,
     dispatch_medication_reminders,
     dispatch_overdue_chores,
     pending_push_user_ids,
@@ -246,6 +248,84 @@ def test_dispatch_overdue_chores_respects_user_preference(db_session: Session, m
         == 0
     )
     assert sent == []
+
+
+def test_dispatch_retries_after_total_send_failure(db_session: Session, monkeypatch) -> None:
+    user = _create_user(db_session, "push-retry@example.com")
+    chore_template = ChoreTemplate(
+        user_id=user.id,
+        name="Dishes",
+        description=None,
+        start_date=date(2026, 5, 1),
+        every_n_days=1,
+        is_active=True,
+    )
+    db_session.add(chore_template)
+    db_session.commit()
+    overdue = ChoreInstance(
+        user_id=user.id,
+        chore_template_id=chore_template.id,
+        title="Dishes",
+        scheduled_date=date(2026, 5, 20),
+        status="pending",
+    )
+    db_session.add_all(
+        [PushSubscription(user_id=user.id, platform="fcm", endpoint="retry-token", is_active=True), overdue]
+    )
+    db_session.commit()
+
+    now = datetime(2026, 5, 21, 10, 0, tzinfo=UTC)
+
+    monkeypatch.setattr("app.services.push_service.send_notification", lambda *args: False)
+    assert dispatch_overdue_chores(db_session, user.id, now=now) == 0
+    assert db_session.query(NotificationSent).filter(NotificationSent.item_id == overdue.id).count() == 0
+    assert db_session.query(NotificationClaim).filter(NotificationClaim.item_id == overdue.id).count() == 0
+
+    monkeypatch.setattr("app.services.push_service.send_notification", lambda *args: True)
+    assert dispatch_overdue_chores(db_session, user.id, now=now) == 1
+    assert db_session.query(NotificationSent).filter(NotificationSent.item_id == overdue.id).count() == 1
+    assert db_session.query(NotificationClaim).filter(NotificationClaim.item_id == overdue.id).count() == 0
+
+
+def test_claim_item_ids_skips_active_claims_and_reclaims_expired_ones(db_session: Session) -> None:
+    user = _create_user(db_session, "push-claim@example.com")
+    now = datetime(2026, 5, 21, 10, 0, tzinfo=UTC)
+
+    claimed = _claim_item_ids(
+        db_session,
+        user.id,
+        "overdue_chores",
+        [1, 2],
+        claim_token="first-claim",
+        now=now,
+    )
+
+    assert claimed == [1, 2]
+    assert db_session.query(NotificationSent).filter(NotificationSent.user_id == user.id).count() == 0
+    assert db_session.query(NotificationClaim).filter(NotificationClaim.user_id == user.id).count() == 2
+    assert (
+        _claim_item_ids(
+            db_session,
+            user.id,
+            "overdue_chores",
+            [1, 2],
+            claim_token="second-claim",
+            now=now + timedelta(minutes=4),
+        )
+        == []
+    )
+    assert _claim_item_ids(
+        db_session,
+        user.id,
+        "overdue_chores",
+        [1, 2],
+        claim_token="second-claim",
+        now=now + timedelta(minutes=5),
+    ) == [1, 2]
+    assert {
+        claim.claim_token
+        for claim in db_session.query(NotificationClaim).filter(NotificationClaim.user_id == user.id).all()
+    } == {"second-claim"}
 
 
 def test_pending_push_user_ids_only_returns_users_with_unnotified_candidates(db_session: Session) -> None:
