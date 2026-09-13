@@ -3,6 +3,7 @@ import logging
 from collections.abc import Callable
 from datetime import UTC, datetime, time, timedelta
 from typing import Any
+from uuid import uuid4
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import httpx
@@ -18,12 +19,14 @@ from app.core.config import settings
 from app.core.enums import ChoreStatus, MedicationDoseStatus, PushPlatform
 from app.models.chore_instance import ChoreInstance
 from app.models.medication_dose_instance import MedicationDoseInstance
+from app.models.notification_claim import NotificationClaim
 from app.models.notification_sent import NotificationSent
 from app.models.push_subscription import PushSubscription
 from app.models.user import User
 
 logger = logging.getLogger(__name__)
 _FCM_SCOPES = ("https://www.googleapis.com/auth/firebase.messaging",)
+_NOTIFICATION_CLAIM_LEASE = timedelta(minutes=5)
 _http_client = httpx.Client(timeout=10.0)
 
 
@@ -138,17 +141,42 @@ def _unnotified_item_ids(db: Session, user_id: int, notification_type: str, item
     return [item_id for item_id in item_ids if item_id not in notified_ids]
 
 
-def _claim_item_ids(db: Session, user_id: int, notification_type: str, item_ids: list[int]) -> list[int]:
-    """Atomically claim each item via the table's unique constraint.
+def _claim_item_ids(
+    db: Session,
+    user_id: int,
+    notification_type: str,
+    item_ids: list[int],
+    *,
+    claim_token: str,
+    now: datetime,
+) -> list[int]:
+    """Atomically claim unnotified items, reclaiming expired leases first.
 
     Guards against two overlapping processes (e.g. briefly during a
     redeploy) both dispatching the same item — a concurrent claim on the
     same (user_id, notification_type, item_id) loses the IntegrityError race
     and simply doesn't appear in the returned list.
     """
+    db.execute(
+        delete(NotificationClaim)
+        .where(NotificationClaim.user_id == user_id)
+        .where(NotificationClaim.notification_type == notification_type)
+        .where(NotificationClaim.item_id.in_(item_ids))
+        .where(NotificationClaim.expires_at <= now)
+    )
+    db.commit()
+
     claimed: list[int] = []
     for item_id in item_ids:
-        db.add(NotificationSent(user_id=user_id, notification_type=notification_type, item_id=item_id))
+        db.add(
+            NotificationClaim(
+                user_id=user_id,
+                notification_type=notification_type,
+                item_id=item_id,
+                claim_token=claim_token,
+                expires_at=now + _NOTIFICATION_CLAIM_LEASE,
+            )
+        )
         try:
             db.commit()
         except IntegrityError:
@@ -158,18 +186,36 @@ def _claim_item_ids(db: Session, user_id: int, notification_type: str, item_ids:
     return claimed
 
 
-def _release_claimed_item_ids(db: Session, user_id: int, notification_type: str, item_ids: list[int]) -> None:
+def _release_claimed_item_ids(
+    db: Session, user_id: int, notification_type: str, item_ids: list[int], *, claim_token: str
+) -> None:
     """Undo a claim after every send attempt for it failed, so the next tick retries.
 
-    Safe without extra locking: the unique constraint means no other process
-    could have claimed these same rows while we held them, so we're only
-    ever deleting rows we ourselves just inserted.
+    The claim token ensures an expired lease reclaimed by another dispatcher
+    is never released by the previous owner.
     """
     db.execute(
-        delete(NotificationSent)
-        .where(NotificationSent.user_id == user_id)
-        .where(NotificationSent.notification_type == notification_type)
-        .where(NotificationSent.item_id.in_(item_ids))
+        delete(NotificationClaim)
+        .where(NotificationClaim.user_id == user_id)
+        .where(NotificationClaim.notification_type == notification_type)
+        .where(NotificationClaim.item_id.in_(item_ids))
+        .where(NotificationClaim.claim_token == claim_token)
+    )
+    db.commit()
+
+
+def _mark_claimed_item_ids_sent(
+    db: Session, user_id: int, notification_type: str, item_ids: list[int], *, claim_token: str
+) -> None:
+    db.add_all(
+        NotificationSent(user_id=user_id, notification_type=notification_type, item_id=item_id) for item_id in item_ids
+    )
+    db.execute(
+        delete(NotificationClaim)
+        .where(NotificationClaim.user_id == user_id)
+        .where(NotificationClaim.notification_type == notification_type)
+        .where(NotificationClaim.item_id.in_(item_ids))
+        .where(NotificationClaim.claim_token == claim_token)
     )
     db.commit()
 
@@ -180,19 +226,28 @@ def _dispatch(
     notification_type: str,
     item_ids: list[int],
     build_message: Callable[[int], tuple[str, str, dict[str, Any]]],
+    *,
+    now: datetime,
 ) -> int:
     """Claim, send, and release-on-total-failure for one notification type.
 
-    Only released when *every* active subscription's send fails — matching
-    worktime's planned_task_reminder_scheduler precedent — so a user's
-    already-failing device doesn't permanently block a reminder that other
-    devices are receiving fine, while a fully offline user still gets a
-    retry next tick instead of the notification being silently dropped.
+    A successful provider call is recorded separately from the lease. Leases
+    left by an interrupted dispatcher expire after one scheduler interval and
+    are retried; this intentionally favors a possible duplicate over a
+    permanently suppressed reminder after an uncertain provider response.
     """
     item_ids = _unnotified_item_ids(db, user_id, notification_type, item_ids)
     if not item_ids:
         return 0
-    claimed_ids = _claim_item_ids(db, user_id, notification_type, item_ids)
+    claim_token = str(uuid4())
+    claimed_ids = _claim_item_ids(
+        db,
+        user_id,
+        notification_type,
+        item_ids,
+        claim_token=claim_token,
+        now=now,
+    )
     if not claimed_ids:
         return 0
     title, body, data = build_message(len(claimed_ids))
@@ -201,8 +256,9 @@ def _dispatch(
         if send_notification(subscription, title, body, data):
             sent += 1
     if sent == 0:
-        _release_claimed_item_ids(db, user_id, notification_type, claimed_ids)
+        _release_claimed_item_ids(db, user_id, notification_type, claimed_ids, claim_token=claim_token)
         return 0
+    _mark_claimed_item_ids_sent(db, user_id, notification_type, claimed_ids, claim_token=claim_token)
     return len(claimed_ids)
 
 
@@ -303,6 +359,7 @@ def dispatch_overdue_chores(db: Session, user_id: int, *, now: datetime | None =
             f"You have {count} overdue chores",
             {"type": "overdue_chores", "count": count},
         ),
+        now=now,
     )
 
 
@@ -331,6 +388,7 @@ def dispatch_medication_reminders(db: Session, user_id: int, *, now: datetime | 
             f"You have {count} medication doses coming up",
             {"type": "medication_reminder", "count": count},
         ),
+        now=now,
     )
 
 
@@ -357,4 +415,5 @@ def dispatch_missed_medications(db: Session, user_id: int, *, now: datetime | No
             f"You have {count} missed medication doses",
             {"type": "missed_medication", "count": count},
         ),
+        now=now,
     )

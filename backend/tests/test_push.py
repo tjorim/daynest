@@ -9,6 +9,7 @@ from app.models.chore_instance import ChoreInstance
 from app.models.chore_template import ChoreTemplate
 from app.models.medication_dose_instance import MedicationDoseInstance
 from app.models.medication_plan import MedicationPlan
+from app.models.notification_claim import NotificationClaim
 from app.models.notification_sent import NotificationSent
 from app.models.push_subscription import PushSubscription
 from app.models.user import User
@@ -278,21 +279,53 @@ def test_dispatch_retries_after_total_send_failure(db_session: Session, monkeypa
     monkeypatch.setattr("app.services.push_service.send_notification", lambda *args: False)
     assert dispatch_overdue_chores(db_session, user.id, now=now) == 0
     assert db_session.query(NotificationSent).filter(NotificationSent.item_id == overdue.id).count() == 0
+    assert db_session.query(NotificationClaim).filter(NotificationClaim.item_id == overdue.id).count() == 0
 
     monkeypatch.setattr("app.services.push_service.send_notification", lambda *args: True)
     assert dispatch_overdue_chores(db_session, user.id, now=now) == 1
     assert db_session.query(NotificationSent).filter(NotificationSent.item_id == overdue.id).count() == 1
+    assert db_session.query(NotificationClaim).filter(NotificationClaim.item_id == overdue.id).count() == 0
 
 
-def test_claim_item_ids_skips_already_claimed_items(db_session: Session) -> None:
+def test_claim_item_ids_skips_active_claims_and_reclaims_expired_ones(db_session: Session) -> None:
     user = _create_user(db_session, "push-claim@example.com")
-    db_session.add(NotificationSent(user_id=user.id, notification_type="overdue_chores", item_id=1))
-    db_session.commit()
+    now = datetime(2026, 5, 21, 10, 0, tzinfo=UTC)
 
-    claimed = _claim_item_ids(db_session, user.id, "overdue_chores", [1, 2])
+    claimed = _claim_item_ids(
+        db_session,
+        user.id,
+        "overdue_chores",
+        [1, 2],
+        claim_token="first-claim",
+        now=now,
+    )
 
-    assert claimed == [2]
-    assert db_session.query(NotificationSent).filter(NotificationSent.user_id == user.id).count() == 2
+    assert claimed == [1, 2]
+    assert db_session.query(NotificationSent).filter(NotificationSent.user_id == user.id).count() == 0
+    assert db_session.query(NotificationClaim).filter(NotificationClaim.user_id == user.id).count() == 2
+    assert (
+        _claim_item_ids(
+            db_session,
+            user.id,
+            "overdue_chores",
+            [1, 2],
+            claim_token="second-claim",
+            now=now + timedelta(minutes=4),
+        )
+        == []
+    )
+    assert _claim_item_ids(
+        db_session,
+        user.id,
+        "overdue_chores",
+        [1, 2],
+        claim_token="second-claim",
+        now=now + timedelta(minutes=5),
+    ) == [1, 2]
+    assert {
+        claim.claim_token
+        for claim in db_session.query(NotificationClaim).filter(NotificationClaim.user_id == user.id).all()
+    } == {"second-claim"}
 
 
 def test_pending_push_user_ids_only_returns_users_with_unnotified_candidates(db_session: Session) -> None:
