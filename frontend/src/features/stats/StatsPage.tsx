@@ -1,7 +1,10 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { areaY, defineChart } from "@tanstack/charts";
 import { d3Curve } from "@tanstack/charts/d3/shape";
-import { Chart } from "@tanstack/charts/react";
+import { brushX, type BrushRange, type BrushXChange } from "@tanstack/charts/interaction/brush";
+import { controlledSignal } from "@tanstack/charts/interaction/signal";
+import { motion } from "@tanstack/charts/motion";
+import { Chart } from "@tanstack/charts/react/core";
 import { scaleLinear } from "@tanstack/charts/scales/linear";
 import { scalePoint } from "@tanstack/charts/scales/point";
 import { tooltip } from "@tanstack/charts/tooltip";
@@ -21,6 +24,11 @@ function pct(rate: number): string {
 function shortDate(date: string): string {
   return date.slice(5);
 }
+
+// Spring transition for area/line redraws as data or the brush selection changes.
+const chartRenderer = motion({
+  transition: { type: "spring", stiffness: 170, damping: 22, mass: 1 },
+});
 
 interface AdherenceEntry {
   date: string;
@@ -289,6 +297,24 @@ interface TrendAreaChartProps {
 }
 
 function TrendAreaChart({ rows, stroke, fill, ariaLabel, tooltipLabel }: TrendAreaChartProps) {
+  const dates = useMemo(() => rows.map((r) => r.date), [rows]);
+  const firstDate = dates[0];
+  const lastDate = dates[dates.length - 1];
+  const canBrush = dates.length > 1;
+
+  const fullRange: BrushRange<string> | null =
+    firstDate !== undefined && lastDate !== undefined ? { start: firstDate, end: lastDate } : null;
+
+  const [range, setRange] = useState<BrushRange<string> | null>(fullRange);
+
+  // A brush selection only makes sense for the series it was drawn over — reset
+  // to the full span whenever the underlying period/data changes rather than
+  // silently keeping a stale sub-range selected against new data.
+  useEffect(() => {
+    setRange(fullRange);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [firstDate, lastDate]);
+
   const definition = useMemo(
     () =>
       defineChart({
@@ -319,6 +345,23 @@ function TrendAreaChart({ rows, stroke, fill, ariaLabel, tooltipLabel }: TrendAr
             },
           },
         },
+        ...(canBrush && range
+          ? {
+              controls: [
+                brushX({
+                  range: controlledSignal<BrushRange<string>, BrushXChange<string>>(
+                    range,
+                    (next, { reason }) => {
+                      if (reason.type === "commit") setRange(next);
+                    },
+                  ),
+                  values: dates,
+                  format: (value: string) => shortDate(value),
+                  ariaLabel: `${ariaLabel} range`,
+                }),
+              ],
+            }
+          : {}),
         tooltip: {
           use: tooltip,
           items: [
@@ -331,8 +374,45 @@ function TrendAreaChart({ rows, stroke, fill, ariaLabel, tooltipLabel }: TrendAr
           ],
         },
       }),
-    [rows, stroke, fill, tooltipLabel],
+    [rows, stroke, fill, tooltipLabel, canBrush, range, dates, ariaLabel],
   );
 
-  return <Chart definition={definition} height={140} ariaLabel={ariaLabel} />;
+  // A brush selection narrows attention to a sub-range without re-scaling the
+  // chart — surface what that sub-range actually means (its average) rather
+  // than letting the drag be purely visual.
+  const selection = useMemo(() => {
+    if (!range) return null;
+    const inRange = rows.filter((r) => r.date >= range.start && r.date <= range.end);
+    if (inRange.length === 0) return null;
+    const avg = inRange.reduce((sum, r) => sum + r.value, 0) / inRange.length;
+    return { avg };
+  }, [rows, range]);
+
+  const isFullRange = range !== null && fullRange !== null && range.start === fullRange.start && range.end === fullRange.end;
+
+  return (
+    <div>
+      <Chart definition={definition} renderer={chartRenderer} height={140} ariaLabel={ariaLabel} />
+      {canBrush && range && selection ? (
+        <div className="d-flex justify-content-between align-items-center small text-muted mt-1">
+          <span>
+            {m.stats_trend_selection({
+              start: shortDate(range.start),
+              end: shortDate(range.end),
+              avg: pct(selection.avg),
+            })}
+          </span>
+          {!isFullRange ? (
+            <button
+              type="button"
+              className="btn btn-link btn-sm p-0"
+              onClick={() => setRange(fullRange)}
+            >
+              {m.stats_trend_reset()}
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
+  );
 }

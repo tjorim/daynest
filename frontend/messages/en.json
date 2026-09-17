@@ -272,6 +272,8 @@
   "stats_medication_adherence_header": "Medication adherence",
   "stats_completion_tooltip": "Completion",
   "stats_adherence_tooltip": "Adherence",
+  "stats_trend_selection": "{start} – {end} · avg {avg}",
+  "stats_trend_reset": "Reset",
   "search_placeholder": "Search routines, chores, medications, plans…",
   "search_min_chars": "Type at least {min} characters to search.",
   "search_no_results": "No results for \"{query}\".",
