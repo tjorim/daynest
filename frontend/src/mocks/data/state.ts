@@ -65,13 +65,20 @@ export function resetMockState(): void {
 }
 
 export function getTodayPayload() {
-  const { scenario } = _state;
-  if (scenario === "empty") return emptyTodayPayload(MOCK_TODAY);
-  if (scenario === "busy-today") return busyTodayPayload(MOCK_TODAY);
-  if (scenario === "overdue") return overdueTodayPayload(MOCK_TODAY);
-  if (scenario === "medication-refill") return medicationRefillTodayPayload(MOCK_TODAY);
-  if (scenario === "template-crud") return emptyTodayPayload(MOCK_TODAY);
-  return busyTodayPayload(MOCK_TODAY);
+  const { scenario, plannedItems } = _state;
+  const payload = (() => {
+    if (scenario === "empty") return emptyTodayPayload(MOCK_TODAY);
+    if (scenario === "busy-today") return busyTodayPayload(MOCK_TODAY);
+    if (scenario === "overdue") return overdueTodayPayload(MOCK_TODAY);
+    if (scenario === "medication-refill") return medicationRefillTodayPayload(MOCK_TODAY);
+    if (scenario === "template-crud") return emptyTodayPayload(MOCK_TODAY);
+    return busyTodayPayload(MOCK_TODAY);
+  })();
+  // Each scenario builder above bakes in its own static `planned` seed, which
+  // drifts from the live, mutable `plannedItems` store the CRUD handlers in
+  // plannedItems.ts actually read and write — so a POST/PUT/DELETE against
+  // /api/planned-items never showed up here. Serve the live store instead.
+  return { ...payload, planned: plannedItems };
 }
 
 export function mutatePlannedItems(

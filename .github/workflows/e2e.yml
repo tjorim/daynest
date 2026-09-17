@@ -32,28 +32,16 @@ jobs:
         run: corepack pnpm install --frozen-lockfile
         working-directory: frontend
 
-      - name: Build frontend
-        run: corepack pnpm build
-        working-directory: frontend
-
-      - name: Start frontend preview server
-        run: corepack pnpm preview &
-        working-directory: frontend
-
-      - name: Wait for frontend to be ready
-        run: npx wait-on http://localhost:4173 --timeout 30000
-
       - name: Install Playwright browser
         run: corepack pnpm exec playwright install --with-deps chromium
         working-directory: frontend
 
+      # Self-contained: playwright.config.ts's webServer builds the app with
+      # the MSW mock service worker baked in (no real backend, database, or
+      # credentials needed) and starts already authenticated as a mock user.
       - name: Run Playwright tests
-        run: corepack pnpm exec playwright test
+        run: corepack pnpm run test:e2e
         working-directory: frontend
-        env:
-          E2E_BASE_URL: http://localhost:4173
-          E2E_EMAIL: ${{ secrets.E2E_EMAIL }}
-          E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
 
       - name: Upload Playwright artifacts on failure
         if: failure()

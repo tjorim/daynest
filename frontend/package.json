@@ -9,9 +9,11 @@
     "dev:mock": "cross-env VITE_MSW=true vite",
     "paraglide:compile": "paraglide-js compile --project ./project.inlang --outdir ./src/paraglide --emit-ts-declarations",
     "build": "pnpm paraglide:compile && tsc -b && vite build",
+    "build:mock": "cross-env VITE_MSW=true pnpm build",
     "preview": "vite preview",
     "postinstall": "msw init public --save",
     "test": "vitest run",
+    "test:e2e": "playwright test",
     "lint": "oxlint",
     "format": "oxfmt ."
   },
