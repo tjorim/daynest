@@ -1,13 +1,11 @@
-import { useState } from "react";
-import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
+import { useMemo, useState } from "react";
+import { areaY, defineChart } from "@tanstack/charts";
+import { d3Curve } from "@tanstack/charts/d3/shape";
+import { Chart } from "@tanstack/charts/react";
+import { scaleLinear } from "@tanstack/charts/scales/linear";
+import { scalePoint } from "@tanstack/charts/scales/point";
+import { tooltip } from "@tanstack/charts/tooltip";
+import { curveMonotoneX } from "d3-shape";
 import * as m from "@/paraglide/messages";
 import {
   type AnalyticsPeriod,
@@ -29,6 +27,14 @@ interface AdherenceEntry {
   taken: number;
   total: number;
   adherence_rate: number;
+}
+
+function toCompletionTrend(entries: readonly DailyCount[]): TrendPoint[] {
+  return entries.map((e) => ({ date: e.date, value: e.completion_rate }));
+}
+
+function toAdherenceTrend(entries: readonly AdherenceEntry[]): TrendPoint[] {
+  return entries.map((e) => ({ date: e.date, value: e.adherence_rate }));
 }
 
 export function StatsPage() {
@@ -218,7 +224,13 @@ export function StatsPage() {
               <div className="card">
                 <div className="card-header fw-semibold py-2">{m.stats_chores_daily_header()}</div>
                 <div className="card-body pb-2">
-                  <CompletionChart entries={summary.chores.daily_completions} color="var(--bs-primary)" fillColor="rgba(var(--bs-primary-rgb), 0.2)" />
+                  <TrendAreaChart
+                    rows={toCompletionTrend(summary.chores.daily_completions)}
+                    stroke="var(--bs-primary)"
+                    fill="rgba(var(--bs-primary-rgb), 0.2)"
+                    ariaLabel={m.stats_chores_daily_header()}
+                    tooltipLabel={m.stats_completion_tooltip()}
+                  />
                 </div>
               </div>
             </div>
@@ -229,7 +241,13 @@ export function StatsPage() {
               <div className="card">
                 <div className="card-header fw-semibold py-2">{m.stats_routines_daily_header()}</div>
                 <div className="card-body pb-2">
-                  <CompletionChart entries={summary.routines.daily_completions} color="var(--bs-success)" fillColor="rgba(var(--bs-success-rgb), 0.2)" />
+                  <TrendAreaChart
+                    rows={toCompletionTrend(summary.routines.daily_completions)}
+                    stroke="var(--bs-success)"
+                    fill="rgba(var(--bs-success-rgb), 0.2)"
+                    ariaLabel={m.stats_routines_daily_header()}
+                    tooltipLabel={m.stats_completion_tooltip()}
+                  />
                 </div>
               </div>
             </div>
@@ -240,7 +258,13 @@ export function StatsPage() {
               <div className="card">
                 <div className="card-header fw-semibold py-2">{m.stats_medication_adherence_header()}</div>
                 <div className="card-body pb-2">
-                  <AdherenceChart entries={summary.medications.daily_adherence} />
+                  <TrendAreaChart
+                    rows={toAdherenceTrend(summary.medications.daily_adherence)}
+                    stroke="var(--bs-info)"
+                    fill="rgba(var(--bs-info-rgb), 0.2)"
+                    ariaLabel={m.stats_medication_adherence_header()}
+                    tooltipLabel={m.stats_adherence_tooltip()}
+                  />
                 </div>
               </div>
             </div>
@@ -251,84 +275,64 @@ export function StatsPage() {
   );
 }
 
-function CompletionChart({ entries, color, fillColor }: { entries: DailyCount[]; color: string; fillColor: string }) {
-  return (
-    <ResponsiveContainer width="100%" height={140}>
-      <AreaChart data={entries} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="var(--bs-border-color)" />
-        <XAxis
-          dataKey="date"
-          tickFormatter={shortDate}
-          tick={{ fontSize: 10, fill: "var(--bs-secondary-color)" }}
-          tickLine={false}
-        />
-        <YAxis
-          tickFormatter={(v: number) => `${Math.round(v * 100)}%`}
-          domain={[0, 1]}
-          width={38}
-          tick={{ fontSize: 10, fill: "var(--bs-secondary-color)" }}
-          tickLine={false}
-        />
-        <Tooltip
-          formatter={(v: unknown) => [`${Math.round((v as number) * 100)}%`, m.stats_completion_tooltip()]}
-          labelFormatter={(l: unknown) => String(l)}
-          contentStyle={{
-            background: "var(--bs-body-bg)",
-            border: "1px solid var(--bs-border-color)",
-            fontSize: 12,
-          }}
-        />
-        <Area
-          type="monotone"
-          dataKey="completion_rate"
-          stroke={color}
-          fill={fillColor}
-          strokeWidth={2}
-          dot={false}
-          activeDot={{ r: 3 }}
-        />
-      </AreaChart>
-    </ResponsiveContainer>
-  );
+interface TrendPoint {
+  date: string;
+  value: number;
 }
 
-function AdherenceChart({ entries }: { entries: AdherenceEntry[] }) {
-  return (
-    <ResponsiveContainer width="100%" height={140}>
-      <AreaChart data={entries} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="var(--bs-border-color)" />
-        <XAxis
-          dataKey="date"
-          tickFormatter={shortDate}
-          tick={{ fontSize: 10, fill: "var(--bs-secondary-color)" }}
-          tickLine={false}
-        />
-        <YAxis
-          tickFormatter={(v: number) => `${Math.round(v * 100)}%`}
-          domain={[0, 1]}
-          width={38}
-          tick={{ fontSize: 10, fill: "var(--bs-secondary-color)" }}
-          tickLine={false}
-        />
-        <Tooltip
-          formatter={(v: unknown) => [`${Math.round((v as number) * 100)}%`, m.stats_adherence_tooltip()]}
-          labelFormatter={(l: unknown) => String(l)}
-          contentStyle={{
-            background: "var(--bs-body-bg)",
-            border: "1px solid var(--bs-border-color)",
-            fontSize: 12,
-          }}
-        />
-        <Area
-          type="monotone"
-          dataKey="adherence_rate"
-          stroke="var(--bs-info)"
-          fill="rgba(var(--bs-info-rgb), 0.2)"
-          strokeWidth={2}
-          dot={false}
-          activeDot={{ r: 3 }}
-        />
-      </AreaChart>
-    </ResponsiveContainer>
+interface TrendAreaChartProps {
+  rows: readonly TrendPoint[];
+  stroke: string;
+  fill: string;
+  ariaLabel: string;
+  tooltipLabel: string;
+}
+
+function TrendAreaChart({ rows, stroke, fill, ariaLabel, tooltipLabel }: TrendAreaChartProps) {
+  const definition = useMemo(
+    () =>
+      defineChart({
+        marks: [
+          areaY(rows, {
+            x: "date",
+            y: "value",
+            curve: d3Curve(curveMonotoneX),
+            stroke,
+            strokeWidth: 2,
+            fill,
+            fillOpacity: 1,
+          }),
+        ],
+        scales: {
+          x: {
+            scale: () => scalePoint<string>().padding(0.05),
+            axis: {
+              line: false,
+              ticks: { format: (value: string) => shortDate(value) },
+            },
+          },
+          y: {
+            scale: scaleLinear().domain([0, 1]),
+            grid: true,
+            axis: {
+              ticks: { format: (value: number) => `${Math.round(value * 100)}%` },
+            },
+          },
+        },
+        tooltip: {
+          use: tooltip,
+          items: [
+            {
+              channel: "y",
+              label: tooltipLabel,
+              text: (point: { yValue?: unknown }) =>
+                `${Math.round(Number(point.yValue ?? 0) * 100)}%`,
+            },
+          ],
+        },
+      }),
+    [rows, stroke, fill, tooltipLabel],
   );
+
+  return <Chart definition={definition} height={140} ariaLabel={ariaLabel} />;
 }
