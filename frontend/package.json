@@ -16,8 +16,8 @@
     "format": "oxfmt ."
   },
   "dependencies": {
-    "@inlang/paraglide-js": "^2.25.1",
-    "@inlang/plugin-m-function-matcher": "^2.2.14",
+    "@inlang/paraglide-js": "^2.25.2",
+    "@inlang/plugin-m-function-matcher": "^2.2.15",
     "@inlang/plugin-message-format": "^4.4.4",
     "@schedule-x/calendar": "^4.8.0",
     "@schedule-x/drag-and-drop": "^3.7.3",
