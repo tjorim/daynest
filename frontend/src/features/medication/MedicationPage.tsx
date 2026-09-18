@@ -210,7 +210,7 @@ export function MedicationPage() {
                 children={(field) => (
                   <input
                     className="form-control"
-                    value={field.state.value}
+                    value={field.value}
                     onChange={(event) => {
                       field.handleChange(event.target.value);
                       setSubmitError(null);
@@ -227,7 +227,7 @@ export function MedicationPage() {
                   <textarea
                     className="form-control"
                     rows={3}
-                    value={field.state.value}
+                    value={field.value}
                     onChange={(event) => {
                       field.handleChange(event.target.value);
                       setSubmitError(null);
@@ -247,7 +247,7 @@ export function MedicationPage() {
                       <input
                         className="form-control"
                         type="date"
-                        value={field.state.value}
+                        value={field.value}
                         onChange={(event) => field.handleChange(event.target.value)}
                       />
                     )}
@@ -261,7 +261,7 @@ export function MedicationPage() {
                       <input
                         className="form-control"
                         type="time"
-                        value={field.state.value}
+                        value={field.value}
                         onChange={(event) => field.handleChange(event.target.value)}
                       />
                     )}
@@ -277,7 +277,7 @@ export function MedicationPage() {
                       className="form-control"
                       type="number"
                       min={1}
-                      value={field.state.value}
+                      value={field.value}
                       onChange={(event) => {
                         field.handleChange(event.target.value);
                         setSubmitError(null);
@@ -447,7 +447,7 @@ function EditMedicationPlanDialog({
               children={(field) => (
                 <input
                   className="form-control"
-                  value={field.state.value}
+                  value={field.value}
                   onChange={(event) => field.handleChange(event.target.value)}
                   aria-label={m.medication_name_placeholder()}
                 />
@@ -459,7 +459,7 @@ function EditMedicationPlanDialog({
                 <textarea
                   className="form-control"
                   rows={3}
-                  value={field.state.value}
+                  value={field.value}
                   onChange={(event) => field.handleChange(event.target.value)}
                   aria-label={m.medication_instructions_placeholder()}
                 />
@@ -474,7 +474,7 @@ function EditMedicationPlanDialog({
                     <input
                       className="form-control"
                       type="date"
-                      value={field.state.value}
+                      value={field.value}
                       onChange={(event) => field.handleChange(event.target.value)}
                     />
                   )}
@@ -488,7 +488,7 @@ function EditMedicationPlanDialog({
                     <input
                       className="form-control"
                       type="time"
-                      value={field.state.value}
+                      value={field.value}
                       onChange={(event) => field.handleChange(event.target.value)}
                     />
                   )}
@@ -504,7 +504,7 @@ function EditMedicationPlanDialog({
                     className="form-control"
                     type="number"
                     min={1}
-                    value={field.state.value}
+                    value={field.value}
                     onChange={(event) => field.handleChange(event.target.value)}
                   />
                 )}
@@ -517,7 +517,7 @@ function EditMedicationPlanDialog({
                   <input
                     className="form-check-input"
                     type="checkbox"
-                    checked={field.state.value}
+                    checked={field.value}
                     onChange={(event) => field.handleChange(event.target.checked)}
                   />
                 )}
