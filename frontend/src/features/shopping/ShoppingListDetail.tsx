@@ -110,7 +110,11 @@ export function ShoppingListDetail() {
         </div>
       ) : null}
       <FeedbackBanner message={actions.actionError} tone="danger" />
-      <FeedbackBanner message={successMessage} tone="success" onDismiss={() => setSuccessMessage(null)} />
+      <FeedbackBanner
+        message={successMessage}
+        tone="success"
+        onDismiss={() => setSuccessMessage(null)}
+      />
 
       <AddItemForm
         isSubmitting={actions.isSubmitting}

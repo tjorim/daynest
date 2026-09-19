@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   completeChore,
   completeRoutineTask,
@@ -11,6 +11,36 @@ import {
   startRoutineTask,
 } from "@/lib/api/today";
 import { queryKeys } from "@/lib/query/queryKeys";
+import { dayjs, toIsoDate } from "@/lib/dateUtils";
+
+/**
+ * Single source of truth for resolving the calendar's selected date from the
+ * `date` search param — shared by the route loader (to prefetch the right
+ * day) and CalendarPage (to render it), so the two can never diverge.
+ */
+export function resolveCalendarSelectedDate(searchDate?: string): string {
+  if (searchDate) {
+    const parsed = dayjs(searchDate);
+    if (parsed.isValid() && parsed.format("YYYY-MM-DD") === searchDate) {
+      return toIsoDate(parsed);
+    }
+  }
+  return toIsoDate(dayjs());
+}
+
+export function calendarDayQueryOptions(date: string) {
+  return queryOptions({
+    queryKey: queryKeys.calendar.day(date),
+    queryFn: ({ signal }) => fetchCalendarDay(date, signal),
+  });
+}
+
+export function calendarPlannedItemsQueryOptions(date: string) {
+  return queryOptions({
+    queryKey: queryKeys.plannedItems.range(date, date),
+    queryFn: ({ signal }) => listPlannedItems(date, date, signal),
+  });
+}
 
 function useInvalidateCalendarQueries() {
   const queryClient = useQueryClient();
@@ -30,17 +60,11 @@ export function useCalendarMonthQuery(year: number, month: number) {
 }
 
 export function useCalendarDayQuery(date: string) {
-  return useQuery({
-    queryKey: queryKeys.calendar.day(date),
-    queryFn: ({ signal }) => fetchCalendarDay(date, signal),
-  });
+  return useQuery(calendarDayQueryOptions(date));
 }
 
 export function useCalendarPlannedItemsQuery(date: string) {
-  return useQuery({
-    queryKey: queryKeys.plannedItems.range(date, date),
-    queryFn: ({ signal }) => listPlannedItems(date, date, signal),
-  });
+  return useQuery(calendarPlannedItemsQueryOptions(date));
 }
 
 export function useStartRoutineTaskMutation() {
@@ -86,8 +110,13 @@ export function useSkipChoreMutation() {
 export function useRescheduleChoreMutation() {
   const invalidate = useInvalidateCalendarQueries();
   return useMutation({
-    mutationFn: ({ choreInstanceId, scheduledDate }: { choreInstanceId: number; scheduledDate: string }) =>
-      rescheduleChore(choreInstanceId, scheduledDate),
+    mutationFn: ({
+      choreInstanceId,
+      scheduledDate,
+    }: {
+      choreInstanceId: number;
+      scheduledDate: string;
+    }) => rescheduleChore(choreInstanceId, scheduledDate),
     onSuccess: invalidate,
   });
 }

@@ -20,6 +20,7 @@ import { PlannedItemsSidebar } from "@/features/calendar/CalendarPageSections";
 import { CALENDAR_COLORS, mapToScheduleXEvents } from "@/features/calendar/mapToScheduleXEvents";
 import { useCalendarPlannedItems } from "@/features/calendar/useCalendarPlannedItems";
 import {
+  resolveCalendarSelectedDate,
   useCalendarDayQuery,
   useCalendarPlannedItemsQuery,
   useCompleteChoreMutation,
@@ -56,7 +57,9 @@ const calendarDefinitions = Object.fromEntries(
 export function CalendarPage() {
   const navigate = useNavigate();
   const search = useSearch({ from: "/protected/calendar" });
-  const selectedDate = useMemo(() => toIsoDate(parseDate(search.date) ?? dayjs()), [search.date]);
+  // Resolved the same way the route loader resolves it, so the two can
+  // never fetch different dates for the same navigation.
+  const selectedDate = useMemo(() => resolveCalendarSelectedDate(search.date), [search.date]);
   const initialMonth = useMemo(
     () => parseDate(search.month ? `${search.month}-01` : undefined) ?? dayjs(),
     [search.month],

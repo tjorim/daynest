@@ -7,6 +7,7 @@ import {
   redirect,
   useLocation,
 } from "@tanstack/react-router";
+import { QueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/app/providers/AuthProvider";
 import { z } from "zod";
 import * as m from "@/paraglide/messages";
@@ -14,12 +15,21 @@ import { AppLayout } from "@/app/layout/AppLayout";
 import { AuthPage } from "@/features/auth/AuthPage";
 import { TodayPage } from "@/features/today/TodayPage";
 import { CalendarPage } from "@/features/calendar/CalendarPage";
+import {
+  calendarDayQueryOptions,
+  calendarPlannedItemsQueryOptions,
+  resolveCalendarSelectedDate,
+} from "@/features/calendar/useCalendarQueries";
 import { MedicationPage } from "@/features/medication/MedicationPage";
 import { SettingsPage } from "@/features/settings/SettingsPage";
 import { TemplatesPage } from "@/features/templates/TemplatesPage";
 import { StatsPage } from "@/features/stats/StatsPage";
 import { ShoppingListDetail } from "@/features/shopping/ShoppingListDetail";
 import { ShoppingListsPage } from "@/features/shopping/ShoppingListsPage";
+import {
+  shoppingItemsQueryOptions,
+  shoppingListQueryOptions,
+} from "@/features/shopping/useShoppingLists";
 import { RecurringGroceriesPage } from "@/features/shopping/RecurringGroceriesPage";
 import { MealPlannerPage } from "@/features/meal-planning/MealPlannerPage";
 import { PrivacyPolicyPage } from "@/features/legal/PrivacyPolicyPage";
@@ -30,6 +40,7 @@ type RouterContext = {
     isAuthenticated: boolean;
     isLoading: boolean;
   };
+  queryClient: QueryClient;
 };
 
 function ProtectedRouteBoundary() {
@@ -124,6 +135,25 @@ const calendarRoute = createRoute({
   getParentRoute: () => protectedRoute,
   path: "/calendar",
   validateSearch: calendarSearchSchema,
+  loaderDeps: ({ search }) => ({ date: search.date }),
+  context: ({ deps }) => {
+    const date = resolveCalendarSelectedDate(deps.date);
+    return {
+      calendarDayQueryOptions: calendarDayQueryOptions(date),
+      calendarPlannedItemsQueryOptions: calendarPlannedItemsQueryOptions(date),
+    };
+  },
+  loader: async ({ context }) => {
+    await Promise.all([
+      context.queryClient.ensureQueryData(context.calendarDayQueryOptions),
+      context.queryClient.ensureQueryData(context.calendarPlannedItemsQueryOptions),
+    ]);
+  },
+  // Shown if the loader's prefetch above is still in flight when the router
+  // would otherwise navigate (e.g. a slow first visit) — CalendarPage itself
+  // still owns its own loading/error UI via plain useQuery, unaffected by
+  // this; the two loading states just cover different windows.
+  pendingComponent: () => <div className="alert alert-info py-2">{m.calendar_loading()}</div>,
   component: CalendarPage,
 });
 
@@ -148,6 +178,22 @@ const shoppingRoute = createRoute({
 const shoppingListRoute = createRoute({
   getParentRoute: () => protectedRoute,
   path: "/shopping/$listId",
+  context: ({ params }) => {
+    const listId = Number(params.listId);
+    return {
+      shoppingListQueryOptions: shoppingListQueryOptions(listId),
+      shoppingItemsQueryOptions: shoppingItemsQueryOptions(listId),
+    };
+  },
+  loader: async ({ context }) => {
+    await Promise.all([
+      context.queryClient.ensureQueryData(context.shoppingListQueryOptions),
+      context.queryClient.ensureQueryData(context.shoppingItemsQueryOptions),
+    ]);
+  },
+  // See the equivalent comment on calendarRoute above — covers the loader's
+  // in-flight window, not the component's own (unaffected) loading UI.
+  pendingComponent: () => <div className="alert alert-info py-2">{m.shopping_loading()}</div>,
   component: ShoppingListDetail,
 });
 
@@ -215,6 +261,10 @@ export function createAppRouter() {
         isAuthenticated: false,
         isLoading: true,
       },
+      // Placeholder only — RouterProvider's `context` prop supplies the real,
+      // shared QueryClient instance before any loader actually runs (same
+      // bootstrapping pattern as the `auth` defaults above).
+      queryClient: new QueryClient(),
     },
   });
 }

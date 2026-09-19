@@ -1,6 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { RouterProvider } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
 import { AuthProvider as OidcProvider } from "react-oidc-context";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.min.css";
@@ -8,10 +9,7 @@ import "./app.css";
 
 import * as m from "@/paraglide/messages";
 import { LanguageProvider } from "@/i18n/LanguageProvider";
-import {
-  setDeferredInstallPrompt,
-  type BeforeInstallPromptEvent,
-} from "@/app/pwa/installPrompt";
+import { setDeferredInstallPrompt, type BeforeInstallPromptEvent } from "@/app/pwa/installPrompt";
 import { appRouter } from "@/app/router/AppRouter";
 import { AuthProvider, useAuth } from "@/app/providers/AuthProvider";
 import { QueryProvider } from "@/app/providers/QueryProvider";
@@ -20,6 +18,10 @@ import { ThemeProvider } from "@/app/theme/ThemeContext";
 
 function App() {
   const { isAuthenticated, isLoading } = useAuth();
+  // Same QueryClient instance QueryProvider created — App is always rendered
+  // as its descendant, so this reads the real client rather than creating a
+  // second one, letting route loaders and page components share one cache.
+  const queryClient = useQueryClient();
   return (
     <main id="main-content" className="container py-3 py-md-4" tabIndex={-1}>
       <RouterProvider
@@ -29,6 +31,7 @@ function App() {
             isAuthenticated,
             isLoading,
           },
+          queryClient,
         }}
       />
     </main>

@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { queryOptions, useQuery } from "@tanstack/react-query";
 import {
   getShoppingList,
   listShoppingItems,
@@ -14,18 +14,28 @@ export function useShoppingListsQuery(status: ShoppingListStatusFilter = "all") 
   });
 }
 
-export function useShoppingListQuery(listId: number) {
-  return useQuery({
+// Shared by the /shopping/$listId route loader (to prefetch) and
+// ShoppingListDetail (to read the cached result) so both stay in sync.
+export function shoppingListQueryOptions(listId: number) {
+  return queryOptions({
     queryKey: queryKeys.shoppingLists.detail(listId),
     queryFn: ({ signal }) => getShoppingList(listId, signal),
     enabled: Number.isFinite(listId),
   });
 }
 
-export function useShoppingItemsQuery(listId: number) {
-  return useQuery({
+export function shoppingItemsQueryOptions(listId: number) {
+  return queryOptions({
     queryKey: queryKeys.shoppingLists.items(listId),
     queryFn: ({ signal }) => listShoppingItems(listId, signal),
     enabled: Number.isFinite(listId),
   });
+}
+
+export function useShoppingListQuery(listId: number) {
+  return useQuery(shoppingListQueryOptions(listId));
+}
+
+export function useShoppingItemsQuery(listId: number) {
+  return useQuery(shoppingItemsQueryOptions(listId));
 }
