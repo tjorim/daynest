@@ -24,8 +24,7 @@ function groupItemsByTag(items: PlannedTodayItem[]) {
 }
 
 export function ShoppingListDetail() {
-  const params = useParams({ from: "/protected/shopping/$listId" });
-  const listId = Number(params.listId);
+  const { listId } = useParams({ from: "/protected/shopping/$listId" });
   const listQuery = useShoppingListQuery(listId);
   const itemsQuery = useShoppingItemsQuery(listId);
   const actions = useShoppingActions(async () => {

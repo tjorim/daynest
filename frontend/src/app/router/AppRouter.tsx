@@ -175,16 +175,22 @@ const shoppingRoute = createRoute({
   component: ShoppingListsPage,
 });
 
+const shoppingListParamsSchema = z.object({
+  listId: z
+    .string()
+    .regex(/^\d+$/)
+    .transform(Number)
+    .refine((value) => Number.isSafeInteger(value) && value > 0),
+});
+
 const shoppingListRoute = createRoute({
   getParentRoute: () => protectedRoute,
   path: "/shopping/$listId",
-  context: ({ params }) => {
-    const listId = Number(params.listId);
-    return {
-      shoppingListQueryOptions: shoppingListQueryOptions(listId),
-      shoppingItemsQueryOptions: shoppingItemsQueryOptions(listId),
-    };
-  },
+  parseParams: (params) => shoppingListParamsSchema.parse(params),
+  context: ({ params }) => ({
+    shoppingListQueryOptions: shoppingListQueryOptions(params.listId),
+    shoppingItemsQueryOptions: shoppingItemsQueryOptions(params.listId),
+  }),
   loader: async ({ context }) => {
     await Promise.all([
       context.queryClient.ensureQueryData(context.shoppingListQueryOptions),

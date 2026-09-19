@@ -48,6 +48,12 @@ function startDateFor(period: string): string {
   return start.toISOString().slice(0, 10);
 }
 
+function sumSeries(series: ReturnType<typeof dailySeries>, key: "completed" | "taken") {
+  const completed = series.reduce((sum, day) => sum + day[key], 0);
+  const total = series.reduce((sum, day) => sum + day.total, 0);
+  return { completed, total, rate: total > 0 ? completed / total : 0 };
+}
+
 export const analyticsHandlers = [
   http.get("/api/analytics/summary", ({ request }) => {
     const url = new URL(request.url);
@@ -55,22 +61,25 @@ export const analyticsHandlers = [
     const chores = dailySeries(period, 1);
     const routines = dailySeries(period, 2);
     const medications = dailySeries(period, 3);
+    const choresSum = sumSeries(chores, "completed");
+    const routinesSum = sumSeries(routines, "completed");
+    const medicationsSum = sumSeries(medications, "taken");
     return HttpResponse.json({
       period,
       start_date: startDateFor(period),
       end_date: MOCK_TODAY,
       chores: {
-        completion_rate: 0.78,
-        total_completed: 14,
-        total_scheduled: 18,
+        completion_rate: choresSum.rate,
+        total_completed: choresSum.completed,
+        total_scheduled: choresSum.total,
         daily_completions: chores,
         streaks: [{ chore_id: 30, name: "Water plants", current_streak: 5, longest_streak: 12 }],
         most_skipped: [],
       },
       medications: {
-        adherence_rate: 0.93,
-        total_taken: 13,
-        total_scheduled: 14,
+        adherence_rate: medicationsSum.rate,
+        total_taken: medicationsSum.completed,
+        total_scheduled: medicationsSum.total,
         daily_adherence: medications,
       },
       planned_items: {
@@ -80,9 +89,9 @@ export const analyticsHandlers = [
         daily_completions: [],
       },
       routines: {
-        completion_rate: 0.85,
-        total_completed: 17,
-        total_scheduled: 20,
+        completion_rate: routinesSum.rate,
+        total_completed: routinesSum.completed,
+        total_scheduled: routinesSum.total,
         daily_completions: routines,
         streaks: [{ routine_id: 20, name: "Morning routine", current_streak: 7, longest_streak: 21 }],
       },

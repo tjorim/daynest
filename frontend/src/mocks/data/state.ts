@@ -39,7 +39,13 @@ interface MockState {
 function buildInitialState(scenario: MockScenario): MockState {
   return {
     scenario,
-    plannedItems: scenario === "empty" || scenario === "template-crud" ? [] : seedPlannedItems(MOCK_TODAY),
+    plannedItems:
+      scenario === "empty" ||
+      scenario === "template-crud" ||
+      scenario === "overdue" ||
+      scenario === "medication-refill"
+        ? []
+        : seedPlannedItems(MOCK_TODAY),
     medications: seedMedications(),
     routineTemplates: scenario === "template-crud" ? seedRoutineTemplatesCrud() : seedRoutineTemplates(),
     choreTemplates: scenario === "template-crud" ? seedChoreTemplatesCrud() : seedChoreTemplates(),

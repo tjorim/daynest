@@ -32,6 +32,7 @@ export function calendarDayQueryOptions(date: string) {
   return queryOptions({
     queryKey: queryKeys.calendar.day(date),
     queryFn: ({ signal }) => fetchCalendarDay(date, signal),
+    staleTime: 30_000,
   });
 }
 
