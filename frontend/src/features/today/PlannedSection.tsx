@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { FormEvent } from "react";
+import { useForm } from "@tanstack/react-form";
 import * as m from "@/paraglide/messages";
 import { dayjs, toIsoDate } from "@/lib/dateUtils";
 import { type PlannedTodayItem } from "@/lib/api/today";
@@ -8,21 +8,22 @@ import { useTodayActions } from "@/features/today/useTodayActions";
 
 function QuickAddPlanned({ onRefresh }: { onRefresh: () => Promise<void> }) {
   const [isOpen, setIsOpen] = useState(false);
-  const [title, setTitle] = useState("");
   const actions = useTodayActions(onRefresh);
   const todayDate = toIsoDate(dayjs());
 
-  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!title.trim()) return;
-    try {
-      await actions.createPlannedItem(title.trim(), todayDate);
-      setTitle("");
-      setIsOpen(false);
-    } catch {
-      // handled by hook state
-    }
-  };
+  const form = useForm({
+    defaultValues: { title: "" },
+    onSubmit: async ({ value, formApi }) => {
+      if (!value.title.trim()) return;
+      try {
+        await actions.createPlannedItem(value.title.trim(), todayDate);
+        formApi.reset();
+        setIsOpen(false);
+      } catch {
+        // handled by hook state
+      }
+    },
+  });
 
   if (!isOpen) {
     return (
@@ -37,33 +38,47 @@ function QuickAddPlanned({ onRefresh }: { onRefresh: () => Promise<void> }) {
   }
 
   return (
-    <form className="d-flex gap-2 align-items-start flex-wrap" onSubmit={(e) => void onSubmit(e)}>
-      <input
-        className="form-control form-control-sm flex-grow-1"
-        style={{ minWidth: "12rem" }}
-        value={title}
-        autoFocus
-        placeholder={m.today_quick_add_placeholder()}
-        disabled={actions.isSubmitting}
-        onChange={(event) => {
-          setTitle(event.target.value);
-          actions.clearActionError();
-        }}
+    <form
+      className="d-flex gap-2 align-items-start flex-wrap"
+      onSubmit={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        void form.handleSubmit();
+      }}
+    >
+      <form.Field
+        name="title"
+        children={(field) => (
+          <>
+            <input
+              className="form-control form-control-sm flex-grow-1"
+              style={{ minWidth: "12rem" }}
+              value={field.value}
+              autoFocus
+              placeholder={m.today_quick_add_placeholder()}
+              disabled={actions.isSubmitting}
+              onChange={(event) => {
+                field.handleChange(event.target.value);
+                actions.clearActionError();
+              }}
+            />
+            <button
+              type="submit"
+              className="btn btn-primary btn-sm"
+              disabled={actions.isSubmitting || !field.value.trim()}
+            >
+              {actions.isSubmitting ? m.action_adding() : m.action_add()}
+            </button>
+          </>
+        )}
       />
-      <button
-        type="submit"
-        className="btn btn-primary btn-sm"
-        disabled={actions.isSubmitting || !title.trim()}
-      >
-        {actions.isSubmitting ? m.action_adding() : m.action_add()}
-      </button>
       <button
         type="button"
         className="btn btn-outline-secondary btn-sm"
         disabled={actions.isSubmitting}
         onClick={() => {
           setIsOpen(false);
-          setTitle("");
+          form.reset();
           actions.clearActionError();
         }}
       >
