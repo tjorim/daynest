@@ -24,8 +24,7 @@ function groupItemsByTag(items: PlannedTodayItem[]) {
 }
 
 export function ShoppingListDetail() {
-  const params = useParams({ from: "/protected/shopping/$listId" });
-  const listId = Number(params.listId);
+  const { listId } = useParams({ from: "/protected/shopping/$listId" });
   const listQuery = useShoppingListQuery(listId);
   const itemsQuery = useShoppingItemsQuery(listId);
   const actions = useShoppingActions(async () => {
@@ -110,7 +109,11 @@ export function ShoppingListDetail() {
         </div>
       ) : null}
       <FeedbackBanner message={actions.actionError} tone="danger" />
-      <FeedbackBanner message={successMessage} tone="success" onDismiss={() => setSuccessMessage(null)} />
+      <FeedbackBanner
+        message={successMessage}
+        tone="success"
+        onDismiss={() => setSuccessMessage(null)}
+      />
 
       <AddItemForm
         isSubmitting={actions.isSubmitting}

@@ -272,6 +272,8 @@
   "stats_medication_adherence_header": "Medicatietrouw",
   "stats_completion_tooltip": "Voltooiing",
   "stats_adherence_tooltip": "Trouw",
+  "stats_trend_selection": "{start} – {end} · gem. {avg}",
+  "stats_trend_reset": "Resetten",
   "search_placeholder": "Zoek routines, klusjes, medicatie, plannen…",
   "search_min_chars": "Typ minimaal {min} tekens om te zoeken.",
   "search_no_results": "Geen resultaten voor \"{query}\".",
