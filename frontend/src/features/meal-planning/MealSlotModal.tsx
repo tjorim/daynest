@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useForm } from "@tanstack/react-form";
 import * as m from "@/paraglide/messages";
 import type { MealSlot, MealSlotUpdateInput } from "@/lib/api/mealPlans";
 import { useFocusTrap } from "@/lib/useFocusTrap";
@@ -20,44 +21,45 @@ export function MealSlotModal({
   onSave,
   onClose,
 }: MealSlotModalProps) {
-  const [title, setTitle] = useState("");
-  const [recipeUrl, setRecipeUrl] = useState("");
-  const [ingredientsText, setIngredientsText] = useState("");
   const [error, setError] = useState<string | null>(null);
   const modalRef = useRef<HTMLFormElement>(null);
   useFocusTrap(modalRef, Boolean(slot));
 
-  useEffect(() => {
-    setTitle(slot?.title ?? "");
-    setRecipeUrl(slot?.recipe_url ?? "");
-    setIngredientsText(slot?.ingredients_json.join(", ") ?? "");
-    setError(null);
-  }, [slot]);
-
-  const ingredients = useMemo(
-    () =>
-      ingredientsText
+  const form = useForm({
+    defaultValues: { title: "", recipeUrl: "", ingredientsText: "" },
+    onSubmit: async ({ value }) => {
+      if (!slot) return;
+      setError(null);
+      const ingredients = value.ingredientsText
         .split(",")
         .map((ingredient) => ingredient.trim())
-        .filter(Boolean),
-    [ingredientsText],
-  );
+        .filter(Boolean);
+      try {
+        await onSave(slot.id, {
+          title: value.title.trim(),
+          recipe_url: value.recipeUrl.trim() || null,
+          ingredients_json: ingredients,
+        });
+        onClose();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : m.meal_plan_save_error());
+      }
+    },
+  });
+
+  useEffect(() => {
+    form.reset({
+      title: slot?.title ?? "",
+      recipeUrl: slot?.recipe_url ?? "",
+      ingredientsText: slot?.ingredients_json.join(", ") ?? "",
+    });
+    setError(null);
+    // form.reset is stable across renders (form identity doesn't change); only
+    // re-run this sync when the slot prop itself changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slot]);
 
   if (!slot) return null;
-
-  const save = async () => {
-    setError(null);
-    try {
-      await onSave(slot.id, {
-        title: title.trim(),
-        recipe_url: recipeUrl.trim() || null,
-        ingredients_json: ingredients,
-      });
-      onClose();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : m.meal_plan_save_error());
-    }
-  };
 
   return (
     <div className="modal d-block meal-plan-modal" tabIndex={-1} role="dialog" aria-modal="true">
@@ -65,9 +67,10 @@ export function MealSlotModal({
         <form
           ref={modalRef}
           className="modal-content"
-          onSubmit={(e) => {
-            e.preventDefault();
-            void save();
+          onSubmit={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            void form.handleSubmit();
           }}
         >
           <div className="modal-header">
@@ -90,38 +93,53 @@ export function MealSlotModal({
               <label className="form-label" htmlFor="meal-slot-title">
                 {m.meal_plan_slot_title()}
               </label>
-              <input
-                id="meal-slot-title"
-                className="form-control"
-                value={title}
-                onChange={(event) => setTitle(event.target.value)}
-                placeholder={m.meal_plan_slot_title_placeholder()}
+              <form.Field
+                name="title"
+                children={(field) => (
+                  <input
+                    id="meal-slot-title"
+                    className="form-control"
+                    value={field.value}
+                    onChange={(event) => field.handleChange(event.target.value)}
+                    placeholder={m.meal_plan_slot_title_placeholder()}
+                  />
+                )}
               />
             </div>
             <div className="mb-3">
               <label className="form-label" htmlFor="meal-slot-recipe">
                 {m.meal_plan_recipe_url()}
               </label>
-              <input
-                id="meal-slot-recipe"
-                className="form-control"
-                type="url"
-                value={recipeUrl}
-                onChange={(event) => setRecipeUrl(event.target.value)}
-                placeholder="https://"
+              <form.Field
+                name="recipeUrl"
+                children={(field) => (
+                  <input
+                    id="meal-slot-recipe"
+                    className="form-control"
+                    type="url"
+                    value={field.value}
+                    onChange={(event) => field.handleChange(event.target.value)}
+                    placeholder="https://"
+                  />
+                )}
               />
             </div>
             <div>
               <label className="form-label" htmlFor="meal-slot-ingredients">
                 {m.meal_plan_ingredients()}
               </label>
-              <textarea
-                id="meal-slot-ingredients"
-                className="form-control"
-                rows={4}
-                value={ingredientsText}
-                onChange={(event) => setIngredientsText(event.target.value)}
-                placeholder={m.meal_plan_ingredients_placeholder()}
+              <form.Field
+                name="ingredientsText"
+                children={(field) => (
+                  <textarea
+                    id="meal-slot-ingredients"
+                    className="form-control"
+                    rows={4}
+                    value={field.value}
+                    onChange={(event) => field.handleChange(event.target.value)}
+                    placeholder={m.meal_plan_ingredients_placeholder()}
+                  />
+                )}
               />
               <div className="form-text">{m.meal_plan_ingredients_help()}</div>
             </div>

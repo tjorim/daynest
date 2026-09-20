@@ -100,7 +100,7 @@ export function MealPlannerPage() {
       setStatusMessage(m.meal_plan_shopping_list_created({ name: response.shopping_list.name }));
       await navigate({
         to: "/shopping/$listId",
-        params: { listId: String(response.shopping_list.id) },
+        params: { listId: response.shopping_list.id },
       });
     } catch {
       // error is tracked in actions.error

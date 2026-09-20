@@ -166,7 +166,7 @@ export function ShoppingListsPage() {
                 <div className="d-flex flex-wrap gap-2 mt-auto">
                   <Link
                     to="/shopping/$listId"
-                    params={{ listId: String(list.id) }}
+                    params={{ listId: list.id }}
                     className="btn btn-outline-primary btn-sm"
                   >
                     {m.shopping_open_list()}
