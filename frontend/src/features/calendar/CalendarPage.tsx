@@ -176,6 +176,11 @@ export function CalendarPage() {
     [views, events, selectedDate, calendarDefinitions, setRange, updateSearch],
   );
   const calendar = useCalendarApp(calendarConfig, plugins);
+  // Stable reference: ScheduleXCalendar destroys and re-renders its entire
+  // DOM tree whenever this object's identity changes, so an inline literal
+  // here would tear down the calendar (including its toolbar) on every
+  // CalendarPage re-render.
+  const customComponents = useMemo(() => ({ eventModal: () => null }), []);
 
   useEffect(() => {
     calendar?.events.set(events);
@@ -224,15 +229,20 @@ export function CalendarPage() {
         <div className="alert alert-danger py-2">{planned.addError}</div>
       ) : null}
       <div className="row g-3">
-        <div className="col-xl-8">
+        {/*
+          schedule-x switches to its compact "small calendar" layout (hiding
+          the Today/Previous/Next toolbar) once its container drops below
+          700px. At the xl breakpoint the app's 1080px-capped .container
+          leaves an 8/4 split just under that threshold, so the toolbar was
+          permanently hidden on desktop. col-xl-9/col-xl-3 keeps it above
+          700px.
+        */}
+        <div className="col-xl-9">
           <div className="daynest-calendar card p-2" role="region" aria-label={m.calendar_title()}>
-            <ScheduleXCalendar
-              calendarApp={calendar}
-              customComponents={{ eventModal: () => null }}
-            />
+            <ScheduleXCalendar calendarApp={calendar} customComponents={customComponents} />
           </div>
         </div>
-        <div className="col-xl-4">
+        <div className="col-xl-3">
           <PlannedItemsSidebar
             selectedDate={selectedDate}
             plannedItems={planned.plannedItems}

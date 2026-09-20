@@ -6,21 +6,17 @@ test("calendar page opens from navigation", async ({ page }) => {
   await expect(page.getByRole("heading", { level: 2, name: /calendar|kalender/i })).toBeVisible();
 });
 
-// FIXME: schedule-x (a Lit/web-components calendar library) doesn't reliably
-// expose its "Next period"/"Previous period" toolbar buttons to Playwright's
-// accessibility snapshot in this build — the locator times out waiting for
-// the button to appear at all, not just to become clickable. This is a
-// pre-existing schedule-x integration issue independent of the e2e-auth
-// alignment done in this change; needs its own investigation (e.g. whether
-// the buttons live in a shadow root Playwright isn't piercing, or only
-// render after an event this test doesn't wait for) rather than a quick fix
-// here.
-test.fixme("month navigation moves forward and back", async ({ page }) => {
-  test.slow(); // schedule-x toolbar can attach slowly under parallel-worker CPU contention
+test("month navigation moves forward and back", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("link", { name: /calendar|kalender/i }).click();
   await expect(page.getByRole("heading", { level: 2, name: /calendar|kalender/i })).toBeVisible();
   await page.waitForLoadState("networkidle"); // schedule-x attaches its toolbar slightly after paint
+
+  // Calendar defaults to week view, where a single "Next period" click
+  // doesn't necessarily cross a month boundary, so the range heading below
+  // wouldn't reliably change. Switch to month view first.
+  await page.getByRole("button", { name: "Select View" }).click();
+  await page.getByRole("button", { name: "Select View Month" }).click();
 
   const periodLabel = page.getByText(/20\d\d/).first();
   const initialHeading = await periodLabel.textContent();
