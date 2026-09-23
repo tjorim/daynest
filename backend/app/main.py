@@ -39,7 +39,7 @@ from app.core.observability import (
     observability_middleware,
 )
 from app.db.session import SessionLocal
-from app.mcp.capabilities import tool_capability
+from app.mcp.capabilities import CONTRACT_VERSION, tool_capability
 from app.mcp_server import create_mcp_server
 from app.middleware.rate_limit import handle_rate_limit_exceeded, limiter
 from app.models.user import User
@@ -248,6 +248,7 @@ async def mcp_capabilities() -> dict[str, object]:
     enabled = _mcp_app is not None
     if not enabled or _mcp is None:
         return {
+            "contract_version": CONTRACT_VERSION,
             "enabled": False,
             "mount_path": "/mcp",
             "version": None,
@@ -261,6 +262,7 @@ async def mcp_capabilities() -> dict[str, object]:
     resources = await _mcp.local_provider.list_resources()
     prompts = await _mcp.local_provider.list_prompts()
     return {
+        "contract_version": CONTRACT_VERSION,
         "enabled": True,
         "mount_path": "/mcp",
         "version": _mcp.version,

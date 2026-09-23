@@ -1,6 +1,7 @@
 import asyncio
 from datetime import UTC, datetime, time, timedelta
 from hashlib import sha256
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -86,6 +87,7 @@ def test_mcp_capabilities_endpoint_lists_growth_tools(client: TestClient, monkey
     payload = response.json()
     tool_names = {tool["name"] for tool in payload["tools"]}
 
+    assert payload["contract_version"] == 1
     assert payload["enabled"] is True
     assert payload["mount_path"] == "/mcp"
     assert tool_names == set(MCP_TOOL_NAMES)
@@ -96,6 +98,11 @@ def test_mcp_capabilities_endpoint_lists_growth_tools(client: TestClient, monkey
     assert capability_by_name["list_households"]["required_tier"] == "household_member"
     assert capability_by_name["get_household"]["required_tier"] == "household_member"
     assert capability_by_name["get_today"]["required_tier"] == "owner"
+    for tool in payload["tools"]:
+        assert set(tool) == {"name", "effect", "requires_confirmation", "access", "required_tier", "required_auth"}
+        assert tool["effect"] in {"read", "write"}
+        assert tool["requires_confirmation"] is False
+        assert tool["access"] == {"auth": tool["required_auth"], "tier": tool["required_tier"]}
     assert {resource["uri"] for resource in payload["resources"]} == {
         "daynest://today/{for_date}",
         "daynest://calendar/day/{for_date}",
@@ -160,6 +167,8 @@ def test_search_serializer_preserves_schema_and_capabilities() -> None:
             "description": "Get today's plan",
             "input_schema": tool.parameters,
             "effect": "read",
+            "requires_confirmation": False,
+            "access": {"auth": "user_or_integration", "tier": "owner"},
             "required_tier": "owner",
             "required_auth": "user_or_integration",
         }
@@ -182,6 +191,71 @@ async def test_registered_tools_advertise_explicit_safety_annotations(
         if expected_read_only:
             assert annotations.destructive_hint is False
             assert annotations.idempotent_hint is True
+
+
+@pytest.mark.anyio
+async def test_registered_tool_annotations_and_manifest_share_the_capability_policy(
+    client: TestClient,
+    db_session: Session,
+    monkeypatch,
+) -> None:
+    mcp = create_mcp_server(DaynestMcpBackend(_session_factory(db_session)))
+    monkeypatch.setattr("app.main._mcp", mcp)
+    monkeypatch.setattr("app.main._mcp_app", mcp.http_app(path="/", stateless_http=True))
+    manifest = {tool["name"]: tool for tool in client.get("/api/mcp/capabilities").json()["tools"]}
+    registered = {tool.name: tool for tool in await mcp.local_provider.list_tools()}
+
+    assert set(manifest) == set(registered)
+    for name, tool in registered.items():
+        annotations = tool.annotations
+        assert annotations is not None
+        is_read = manifest[name]["effect"] == "read"
+        assert annotations.read_only_hint is is_read
+        assert annotations.open_world_hint is False
+        assert annotations.idempotent_hint is (True if is_read else tool_annotations(name).idempotent_hint)
+        if is_read:
+            assert annotations.destructive_hint is False
+
+
+def test_write_idempotency_follows_the_retry_safety_inventory() -> None:
+    for name in (
+        "update_planned_item",
+        "delete_routine",
+        "complete_chore",
+        "set_meal_slot",
+        "revoke_integration_client",
+    ):
+        assert tool_annotations(name).idempotent_hint is True, name
+    for name in (
+        "create_planned_item",
+        "add_shopping_item",
+        "generate_shopping_list_from_plan",
+        "defer_planned_item",
+        "rotate_integration_client",
+        "future_tool_without_policy",
+    ):
+        assert tool_annotations(name).idempotent_hint is False, name
+
+
+def test_docs_and_routes_use_the_live_capabilities_path(client: TestClient) -> None:
+    assert client.get("/api/v1/mcp/capabilities").status_code == 404
+
+    repo_root = Path(__file__).resolve().parents[2]
+    for doc in ("README.md", "backend/docs/integrations/LOCAL_MCP_SERVER.md"):
+        doc_path = repo_root / doc
+        if doc_path.exists():
+            assert "/api/v1/mcp" not in doc_path.read_text(encoding="utf-8"), doc
+
+
+def test_mcp_capabilities_reports_contract_version_when_disabled(client: TestClient, monkeypatch) -> None:
+    monkeypatch.setattr("app.main._mcp", None)
+    monkeypatch.setattr("app.main._mcp_app", None)
+
+    payload = client.get("/api/mcp/capabilities").json()
+
+    assert payload["contract_version"] == 1
+    assert payload["enabled"] is False
+    assert payload["tools"] == []
 
 
 def test_write_annotations_distinguish_creation_from_destructive_changes() -> None:

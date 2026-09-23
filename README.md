@@ -152,10 +152,9 @@ with integration keys and per-client rate limits:
   - `GET /api/v1/integrations/home-assistant/summary`
   - `GET /api/v1/integrations/home-assistant/entities`
   - `GET /api/v1/integrations/home-assistant/dashboard`
-- MCP adapter (requires valid integration key or OIDC token):
-  - `GET /api/v1/mcp/capabilities`
-  - `GET /api/v1/mcp/today`
-  - `GET /api/v1/mcp/calendar/day?date=YYYY-MM-DD`
+- MCP server (mounted at `/mcp`; requires valid integration key or OIDC token):
+  - `GET /api/mcp/capabilities` (unauthenticated manifest of the live tools, resources and prompts;
+    see `backend/docs/integrations/LOCAL_MCP_SERVER.md` for the contract)
 
 The adapters intentionally avoid duplicate business logic and call shared services/repositories.
 
