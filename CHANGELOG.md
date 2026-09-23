@@ -39,6 +39,19 @@ bump on every app release.
 
 ---
 
+## [Unreleased]
+
+### Changed
+- **MCP:** `GET /api/mcp/capabilities` now follows the shared capability contract v1
+  (tjorim/apps#229): adds `contract_version`, and per tool `requires_confirmation` and an
+  `access` object mirroring the legacy `required_auth` / `required_tier` keys, which are
+  deprecated and will be removed after one release. Write tools now also report an explicit
+  `idempotent_hint` derived from `docs/retry-safety.md`.
+
+### Fixed
+- **Docs:** the README pointed at a non-existent `/api/v1/mcp/*` adapter; it now lists the live
+  `GET /api/mcp/capabilities` endpoint (#914).
+
 ## [2026.8.2] - 2026-08-01
 
 ### Fixed

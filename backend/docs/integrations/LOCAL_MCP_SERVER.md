@@ -132,6 +132,32 @@ This endpoint derives its response live from the running FastMCP server's
 actual tool/resource/prompt registration — it cannot drift from what's really
 mounted.
 
+The manifest follows capability contract v1, shared by the Travel, Worktime,
+Champagnefestival and Daynest MCP servers (tjorim/apps#229):
+
+- Top level: `contract_version` (`1`, also present when MCP is disabled),
+  `enabled`, `mount_path`, `version`, `tools`, `resources`, `prompts`.
+- Per tool: `name`; `effect` (`read` or `write`); `requires_confirmation`
+  (boolean, always `false` for Daynest — it has no confirmation step); and
+  `access`, the app-specific policy object. Daynest's `access` holds `auth`
+  (`interactive` or `user_or_integration`) and `tier` (`owner` or
+  `household_member`). The flat `required_auth` / `required_tier` keys mirror
+  it and are deprecated; they will be removed after one release.
+
+The same capability policy sets each tool's standard MCP `ToolAnnotations`
+(these are advisory hints for clients, not enforcement):
+
+- `read_only_hint` is true exactly for `read` tools, which are also
+  `idempotent_hint: true` and `destructive_hint: false`.
+- Writes are `destructive_hint: false` only for `create_`, `add_` and
+  `generate_` tools; every other write, and any unknown tool, is treated as
+  destructive.
+- Writes are `idempotent_hint: true` only for resource-state or delete-to-absent
+  operations listed in `docs/retry-safety.md` (`update_`, `delete_`, `revoke_`,
+  `set_`, `complete_`, `skip_`, `start_`, `take_`, `reschedule_`, `check_off_`).
+  Creates, generation, rotation and relative changes such as `defer_` are not.
+- `open_world_hint` is always false.
+
 ## Exposed capabilities
 
 Both entry points register the same tools, resources, and prompt — the only

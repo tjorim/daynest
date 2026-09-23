@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from fastmcp.server.auth import AuthCheck, AuthContext
 
 from app.core.config import settings
@@ -12,6 +14,22 @@ TOOL_EFFECT_WRITE = "write"
 
 _READ_PREFIXES = ("get_", "list_")
 _NON_DESTRUCTIVE_WRITE_PREFIXES = ("add_", "create_", "generate_")
+# Writes whose repeat leaves the same final state (docs/retry-safety.md). Creates,
+# generation, credential rotation and relative changes such as ``defer_`` are
+# deliberately absent, and unknown tool names default to non-idempotent.
+_IDEMPOTENT_WRITE_PREFIXES = (
+    "check_off_",
+    "complete_",
+    "delete_",
+    "reschedule_",
+    "revoke_",
+    "set_",
+    "skip_",
+    "start_",
+    "take_",
+    "update_",
+)
+CONTRACT_VERSION = 1
 _INTERACTIVE_ONLY_TOOLS = frozenset(
     {
         "create_integration_client",
@@ -31,13 +49,21 @@ def tool_effect(tool_name: str) -> str:
     return TOOL_EFFECT_WRITE
 
 
-def tool_capability(tool_name: str) -> dict[str, str]:
-    """Return authorization and side-effect metadata for a registered tool."""
+def tool_capability(tool_name: str) -> dict[str, Any]:
+    """Return authorization and side-effect metadata for a registered tool.
+
+    ``required_tier``/``required_auth`` are legacy flat keys kept for one
+    release; ``access`` carries the same policy in the shared contract shape.
+    """
+    tier = "household_member" if tool_name in _HOUSEHOLD_MEMBER_TOOLS else "owner"
+    auth = "interactive" if tool_name in _INTERACTIVE_ONLY_TOOLS else "user_or_integration"
     return {
         "name": tool_name,
         "effect": tool_effect(tool_name),
-        "required_tier": ("household_member" if tool_name in _HOUSEHOLD_MEMBER_TOOLS else "owner"),
-        "required_auth": "interactive" if tool_name in _INTERACTIVE_ONLY_TOOLS else "user_or_integration",
+        "requires_confirmation": False,
+        "access": {"auth": auth, "tier": tier},
+        "required_tier": tier,
+        "required_auth": auth,
     }
 
 
@@ -81,5 +107,6 @@ def tool_annotations(tool_name: str) -> ToolAnnotations:
     return ToolAnnotations(
         read_only_hint=False,
         destructive_hint=not tool_name.startswith(_NON_DESTRUCTIVE_WRITE_PREFIXES),
+        idempotent_hint=tool_name.startswith(_IDEMPOTENT_WRITE_PREFIXES),
         open_world_hint=False,
     )
