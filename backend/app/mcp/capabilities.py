@@ -13,6 +13,8 @@ TOOL_EFFECT_READ = "read"
 TOOL_EFFECT_WRITE = "write"
 
 _READ_PREFIXES = ("get_", "list_")
+# Read-only tools whose names do not carry a read prefix.
+_READ_TOOLS = frozenset({"whoami", "search_daynest"})
 # Write tools that only add data and never overwrite or remove existing data.
 # A tool absent from this set is treated as destructive, which is also the
 # fallback for any future tool that has not been classified yet.
@@ -77,7 +79,7 @@ _HOUSEHOLD_MEMBER_TOOLS = frozenset({"list_households", "get_household"})
 
 def tool_effect(tool_name: str) -> str:
     """Classify unknown tool names conservatively as writes."""
-    if tool_name == "whoami" or tool_name.startswith(_READ_PREFIXES):
+    if tool_name in _READ_TOOLS or tool_name.startswith(_READ_PREFIXES):
         return TOOL_EFFECT_READ
     return TOOL_EFFECT_WRITE
 

@@ -277,6 +277,14 @@ def test_write_annotations_distinguish_creation_from_destructive_changes() -> No
     assert tool_annotations("future_tool_without_policy").destructive_hint is True
 
 
+def test_search_daynest_is_a_read_tool() -> None:
+    assert tool_capability("search_daynest")["effect"] == "read"
+    annotations = tool_annotations("search_daynest")
+    assert annotations.read_only_hint is True
+    assert annotations.destructive_hint is False
+    assert annotations.idempotent_hint is True
+
+
 @pytest.mark.anyio
 async def test_interactive_tools_reject_managed_integration_credentials(
     db_session: Session,
