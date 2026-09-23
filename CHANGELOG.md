@@ -42,6 +42,9 @@ bump on every app release.
 ## [Unreleased]
 
 ### Changed
+- **MCP (breaking):** `GET /api/mcp/capabilities` and the tool-search results no longer include
+  the flat `required_auth` / `required_tier` keys; read `access.auth` / `access.tier` instead
+  (tjorim/apps#229).
 - **MCP:** `GET /api/mcp/capabilities` now follows the shared capability contract v1
   (tjorim/apps#229): adds `contract_version`, and per tool `requires_confirmation` and an
   `access` object mirroring the legacy `required_auth` / `required_tier` keys, which are

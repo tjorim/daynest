@@ -141,8 +141,8 @@ Champagnefestival and Daynest MCP servers (tjorim/apps#229):
   (boolean, always `false` for Daynest — it has no confirmation step); and
   `access`, the app-specific policy object. Daynest's `access` holds `auth`
   (`interactive` or `user_or_integration`) and `tier` (`owner` or
-  `household_member`). The flat `required_auth` / `required_tier` keys mirror
-  it and are deprecated; they will be removed after one release.
+  `household_member`). The former flat `required_auth` / `required_tier` keys
+  were removed; read `access` instead.
 
 The same capability policy sets each tool's standard MCP `ToolAnnotations`
 (these are advisory hints for clients, not enforcement):
