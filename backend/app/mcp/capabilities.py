@@ -85,11 +85,7 @@ def tool_effect(tool_name: str) -> str:
 
 
 def tool_capability(tool_name: str) -> dict[str, Any]:
-    """Return authorization and side-effect metadata for a registered tool.
-
-    ``required_tier``/``required_auth`` are legacy flat keys kept for one
-    release; ``access`` carries the same policy in the shared contract shape.
-    """
+    """Return authorization and side-effect metadata for a registered tool."""
     tier = "household_member" if tool_name in _HOUSEHOLD_MEMBER_TOOLS else "owner"
     auth = "interactive" if tool_name in _INTERACTIVE_ONLY_TOOLS else "user_or_integration"
     return {
@@ -97,8 +93,6 @@ def tool_capability(tool_name: str) -> dict[str, Any]:
         "effect": tool_effect(tool_name),
         "requires_confirmation": False,
         "access": {"auth": auth, "tier": tier},
-        "required_tier": tier,
-        "required_auth": auth,
     }
 
 

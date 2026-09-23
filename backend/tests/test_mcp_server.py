@@ -97,15 +97,15 @@ def test_mcp_capabilities_endpoint_lists_growth_tools(client: TestClient, monkey
     capability_by_name = {tool["name"]: tool for tool in payload["tools"]}
     assert capability_by_name["get_today"]["effect"] == "read"
     assert capability_by_name["create_planned_item"]["effect"] == "write"
-    assert capability_by_name["create_integration_client"]["required_auth"] == "interactive"
-    assert capability_by_name["list_households"]["required_tier"] == "household_member"
-    assert capability_by_name["get_household"]["required_tier"] == "household_member"
-    assert capability_by_name["get_today"]["required_tier"] == "owner"
+    assert capability_by_name["create_integration_client"]["access"]["auth"] == "interactive"
+    assert capability_by_name["list_households"]["access"]["tier"] == "household_member"
+    assert capability_by_name["get_household"]["access"]["tier"] == "household_member"
+    assert capability_by_name["get_today"]["access"]["tier"] == "owner"
     for tool in payload["tools"]:
-        assert set(tool) == {"name", "effect", "requires_confirmation", "access", "required_tier", "required_auth"}
+        assert set(tool) == {"name", "effect", "requires_confirmation", "access"}
         assert tool["effect"] in {"read", "write"}
         assert tool["requires_confirmation"] is False
-        assert tool["access"] == {"auth": tool["required_auth"], "tier": tool["required_tier"]}
+        assert set(tool["access"]) == {"auth", "tier"}
     assert {resource["uri"] for resource in payload["resources"]} == {
         "daynest://today/{for_date}",
         "daynest://calendar/day/{for_date}",
@@ -172,8 +172,6 @@ def test_search_serializer_preserves_schema_and_capabilities() -> None:
             "effect": "read",
             "requires_confirmation": False,
             "access": {"auth": "user_or_integration", "tier": "owner"},
-            "required_tier": "owner",
-            "required_auth": "user_or_integration",
         }
     ]
 
