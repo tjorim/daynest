@@ -14,9 +14,12 @@ from app.api.dependencies.integration_auth import hash_integration_key
 from app.core.config import settings
 from app.core.enums import ChoreStatus, MedicationDoseStatus
 from app.mcp.capabilities import (
+    _ADDITIVE_WRITE_TOOLS,
+    _IDEMPOTENT_WRITE_TOOLS,
     TOOL_EFFECT_READ,
     tool_annotations,
     tool_auth,
+    tool_capability,
     tool_effect,
 )
 from app.mcp_server import (
@@ -223,7 +226,6 @@ def test_write_idempotency_follows_the_retry_safety_inventory() -> None:
         "delete_routine",
         "complete_chore",
         "set_meal_slot",
-        "revoke_integration_client",
     ):
         assert tool_annotations(name).idempotent_hint is True, name
     for name in (
@@ -232,9 +234,18 @@ def test_write_idempotency_follows_the_retry_safety_inventory() -> None:
         "generate_shopping_list_from_plan",
         "defer_planned_item",
         "rotate_integration_client",
+        # Every call rewrites revoked_at and appends an audit entry.
+        "revoke_integration_client",
         "future_tool_without_policy",
     ):
         assert tool_annotations(name).idempotent_hint is False, name
+
+
+def test_hint_sets_only_name_registered_write_tools() -> None:
+    write_tools = {name for name in MCP_TOOL_NAMES if tool_capability(name)["effect"] == "write"}
+    assert write_tools >= _ADDITIVE_WRITE_TOOLS
+    assert write_tools >= _IDEMPOTENT_WRITE_TOOLS
+    assert not _ADDITIVE_WRITE_TOOLS & _IDEMPOTENT_WRITE_TOOLS
 
 
 def test_docs_and_routes_use_the_live_capabilities_path(client: TestClient) -> None:

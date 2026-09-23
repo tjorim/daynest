@@ -149,13 +149,16 @@ The same capability policy sets each tool's standard MCP `ToolAnnotations`
 
 - `read_only_hint` is true exactly for `read` tools, which are also
   `idempotent_hint: true` and `destructive_hint: false`.
-- Writes are `destructive_hint: false` only for `create_`, `add_` and
-  `generate_` tools; every other write, and any unknown tool, is treated as
-  destructive.
-- Writes are `idempotent_hint: true` only for resource-state or delete-to-absent
-  operations listed in `docs/retry-safety.md` (`update_`, `delete_`, `revoke_`,
-  `set_`, `complete_`, `skip_`, `start_`, `take_`, `reschedule_`, `check_off_`).
-  Creates, generation, rotation and relative changes such as `defer_` are not.
+- Writes are `destructive_hint: false` only for the explicitly listed additive
+  tools (`create_*`, `add_shopping_item`, `generate_shopping_list_from_plan`);
+  every other write, and any unknown tool, is treated as destructive.
+- Writes are `idempotent_hint: true` only for the explicitly listed
+  resource-state or delete-to-absent operations in `docs/retry-safety.md`
+  (updates, deletes, `set_meal_slot`, chore/routine/dose transitions,
+  `check_off_shopping_item`). Creates, generation, `rotate_integration_client`,
+  relative changes such as `defer_planned_item`, and
+  `revoke_integration_client` (every call rewrites `revoked_at` and appends an
+  audit entry) are not. Unknown tools default to non-idempotent.
 - `open_world_hint` is always false.
 
 ## Exposed capabilities
