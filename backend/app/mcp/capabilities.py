@@ -13,21 +13,54 @@ TOOL_EFFECT_READ = "read"
 TOOL_EFFECT_WRITE = "write"
 
 _READ_PREFIXES = ("get_", "list_")
-_NON_DESTRUCTIVE_WRITE_PREFIXES = ("add_", "create_", "generate_")
-# Writes whose repeat leaves the same final state (docs/retry-safety.md). Creates,
-# generation, credential rotation and relative changes such as ``defer_`` are
-# deliberately absent, and unknown tool names default to non-idempotent.
-_IDEMPOTENT_WRITE_PREFIXES = (
-    "check_off_",
-    "complete_",
-    "delete_",
-    "reschedule_",
-    "revoke_",
-    "set_",
-    "skip_",
-    "start_",
-    "take_",
-    "update_",
+# Write tools that only add data and never overwrite or remove existing data.
+# A tool absent from this set is treated as destructive, which is also the
+# fallback for any future tool that has not been classified yet.
+_ADDITIVE_WRITE_TOOLS = frozenset(
+    {
+        "create_integration_client",
+        "create_shopping_list",
+        "add_shopping_item",
+        "generate_shopping_list_from_plan",
+        "create_planned_item",
+        "create_routine",
+        "create_chore_template",
+        "create_medication",
+    }
+)
+# Writes whose identical repeat leaves state unchanged (docs/retry-safety.md):
+# updates set absolute values, deletes are hard deletes that fail as not-found
+# on repeat, and status transitions either replay as no-ops or fail with 409
+# without writing. Deliberately absent: creates and generation (a new row per
+# call), ``defer_planned_item`` (relative), ``rotate_integration_client`` (a new
+# key per call) and ``revoke_integration_client`` (every call rewrites
+# ``revoked_at`` and appends an audit entry). Unknown tools default to
+# non-idempotent.
+_IDEMPOTENT_WRITE_TOOLS = frozenset(
+    {
+        "set_meal_slot",
+        "check_off_shopping_item",
+        "update_shopping_list",
+        "delete_shopping_list",
+        "update_planned_item",
+        "delete_planned_item",
+        "delete_planned_item_series",
+        "complete_chore",
+        "skip_chore",
+        "reschedule_chore",
+        "start_routine_task",
+        "complete_routine_task",
+        "skip_routine_task",
+        "update_routine",
+        "delete_routine",
+        "update_chore_template",
+        "delete_chore_template",
+        "take_medication_dose",
+        "skip_medication_dose",
+        "skip_missed_medication_doses",
+        "update_medication",
+        "delete_medication",
+    }
 )
 CONTRACT_VERSION = 1
 _INTERACTIVE_ONLY_TOOLS = frozenset(
@@ -106,7 +139,7 @@ def tool_annotations(tool_name: str) -> ToolAnnotations:
 
     return ToolAnnotations(
         read_only_hint=False,
-        destructive_hint=not tool_name.startswith(_NON_DESTRUCTIVE_WRITE_PREFIXES),
-        idempotent_hint=tool_name.startswith(_IDEMPOTENT_WRITE_PREFIXES),
+        destructive_hint=tool_name not in _ADDITIVE_WRITE_TOOLS,
+        idempotent_hint=tool_name in _IDEMPOTENT_WRITE_TOOLS,
         open_world_hint=False,
     )
