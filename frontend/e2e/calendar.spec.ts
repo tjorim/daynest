@@ -22,10 +22,10 @@ test("month navigation moves forward and back", async ({ page }) => {
   const initialHeading = await periodLabel.textContent();
 
   await page.getByRole("button", { name: "Next period" }).click();
-  const nextHeading = await periodLabel.textContent();
-  expect(nextHeading).not.toBe(initialHeading);
+  // Schedule-X applies navigation asynchronously. Waiting for the text change
+  // prevents us from reading the old label while the view transition is pending.
+  await expect(periodLabel).not.toHaveText(initialHeading ?? "");
 
   await page.getByRole("button", { name: "Previous period" }).click();
-  const backHeading = await periodLabel.textContent();
-  expect(backHeading).toBe(initialHeading);
+  await expect(periodLabel).toHaveText(initialHeading ?? "");
 });
