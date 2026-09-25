@@ -21,7 +21,7 @@ dependencies = [
     "sentry-sdk[fastapi]==2.70.0",
     "slowapi==0.1.10",
     "sse-starlette==3.4.11",
-    "sqlalchemy==2.0.53",
+    "sqlalchemy==2.0.54",
     "uvicorn[standard]==0.53.0",
 ]
 
