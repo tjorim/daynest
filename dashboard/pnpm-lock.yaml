@@ -9,11 +9,11 @@ importers:
   .:
     dependencies:
       '@schedule-x/calendar':
-        specifier: ^4.8.0
-        version: 4.8.0(@preact/signals@2.9.1(preact@10.29.2))(preact@10.29.2)(temporal-polyfill@0.3.0)
+        specifier: ^4.9.1
+        version: 4.9.1(@preact/signals@2.9.1(preact@10.29.2))(preact@10.29.2)(temporal-polyfill@0.3.2)
       '@schedule-x/theme-default':
-        specifier: ^4.8.0
-        version: 4.8.0
+        specifier: ^4.9.1
+        version: 4.9.1
     devDependencies:
       custom-card-helpers:
         specifier: ^2.0.0
@@ -178,15 +178,15 @@ packages:
   '@rolldown/pluginutils@1.0.1':
     resolution: {integrity: sha512-2j9bGt5Jh8hj+vPtgzPtl72j0yRxHAyumoo6TNfAjsLB04UtpSvPbPcDcBMxz7n+9CYB0c1GxQFxYRg2jimqGw==}
 
-  '@schedule-x/calendar@4.8.0':
-    resolution: {integrity: sha512-OuIQCmxe4p1XHkfNkmJTNeblOiNioUdBPs1tNd1NySj1PpDFtODFL9FsCfmtvSXbAQCfFYKrw8DyAGv2BbYS9w==}
+  '@schedule-x/calendar@4.9.1':
+    resolution: {integrity: sha512-/Zsn49BqOklOZmftsh2B5QyqF/hMf8tUqpcBbg+W0xv7FFrYd1qsYeJfdEVPVKTa42hybyswLJvtglnKgaqC+Q==}
     peerDependencies:
       '@preact/signals': ^2.0.2
       preact: ^10.19.2
-      temporal-polyfill: 0.3.0
+      temporal-polyfill: 0.3.2
 
-  '@schedule-x/theme-default@4.8.0':
-    resolution: {integrity: sha512-wXTqnVyfXXq0GVnllW0GHRWB3TsN+J6L9wj7zqmH+SOcVKVcSVyONRSlRmAI0n3ZZ5LRe4aS1BHeb3JRdTMe4A==}
+  '@schedule-x/theme-default@4.9.1':
+    resolution: {integrity: sha512-mCe0Ly9ZEBc1nsEDq2vTVvASSmM6oO5a4Nt+ogeYBnsZIBk3w9pk2IcaJHcXqHIS0uA1b8TzmjlpgvorvMtZ7w==}
 
   '@types/trusted-types@2.0.7':
     resolution: {integrity: sha512-ScaPdn1dQczgbl0QFTeTOmVHFULt394XJgOQNoyVhZ6r2vLnMLJfBPd53SB52T/3G36VI1/g2MZaX0cwDuXsfw==}
@@ -478,11 +478,11 @@ packages:
     resolution: {integrity: sha512-uV+TFRZdXsqXTL2pRvujROjdZQ4RAlBUS5BTh9IGm+jTqQntYThciG/qu57Gs69yjnVUSqdxF9YLmSnpupBW9A==}
     engines: {node: '>=14.0.0'}
 
-  temporal-polyfill@0.3.0:
-    resolution: {integrity: sha512-qNsTkX9K8hi+FHDfHmf22e/OGuXmfBm9RqNismxBrnSmZVJKegQ+HYYXT+R7Ha8F/YSm2Y34vmzD4cxMu2u95g==}
+  temporal-polyfill@0.3.2:
+    resolution: {integrity: sha512-TzHthD/heRK947GNiSu3Y5gSPpeUDH34+LESnfsq8bqpFhsB79HFBX8+Z834IVX68P3EUyRPZK5bL/1fh437Eg==}
 
-  temporal-spec@0.3.0:
-    resolution: {integrity: sha512-n+noVpIqz4hYgFSMOSiINNOUOMFtV5cZQNCmmszA6GiVFVRt3G7AqVyhXjhCSmowvQn+NsGn+jMDMKJYHd3bSQ==}
+  temporal-spec@0.3.1:
+    resolution: {integrity: sha512-B4TUhezh9knfSIMwt7RVggApDRJZo73uZdj8AacL2mZ8RP5KtLianh2MXxL06GN9ESYiIsiuoLQhgVfwe55Yhw==}
 
   terser@5.48.0:
     resolution: {integrity: sha512-J/9An6vs9Us6wKRriSFXBWdRZapREHqFzdNUKk0pmu804EMR6dr6winwo7e5JDxN4xahxQsuysyYFwlwj4XN/Q==}
@@ -644,13 +644,13 @@ snapshots:
 
   '@rolldown/pluginutils@1.0.1': {}
 
-  '@schedule-x/calendar@4.8.0(@preact/signals@2.9.1(preact@10.29.2))(preact@10.29.2)(temporal-polyfill@0.3.0)':
+  '@schedule-x/calendar@4.9.1(@preact/signals@2.9.1(preact@10.29.2))(preact@10.29.2)(temporal-polyfill@0.3.2)':
     dependencies:
       '@preact/signals': 2.9.1(preact@10.29.2)
       preact: 10.29.2
-      temporal-polyfill: 0.3.0
+      temporal-polyfill: 0.3.2
 
-  '@schedule-x/theme-default@4.8.0': {}
+  '@schedule-x/theme-default@4.9.1': {}
 
   '@types/trusted-types@2.0.7': {}
 
@@ -862,11 +862,11 @@ snapshots:
 
   superstruct@2.0.2: {}
 
-  temporal-polyfill@0.3.0:
+  temporal-polyfill@0.3.2:
     dependencies:
-      temporal-spec: 0.3.0
+      temporal-spec: 0.3.1
 
-  temporal-spec@0.3.0: {}
+  temporal-spec@0.3.1: {}
 
   terser@5.48.0:
     dependencies:
