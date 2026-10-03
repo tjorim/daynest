@@ -9,7 +9,7 @@ foojay = "1.0.0"
 appauth = "0.11.1"
 
 compose-bom = "2026.09.00"
-androidx-core = "1.19.0"
+androidx-core = "1.19.1"
 androidx-lifecycle = "2.11.0"
 androidx-activity = "1.13.0"
 androidx-navigation = "2.10.1"
