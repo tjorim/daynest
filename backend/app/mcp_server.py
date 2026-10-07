@@ -641,7 +641,11 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
     mcp = FastMCP(
         "Daynest",
         version=_build_version,
-        instructions="Daynest personal planning tools scoped to the authenticated owner.",
+        instructions=(
+            "Daynest personal planning tools scoped to the authenticated owner. Most tools are "
+            "hidden: describe what you need to search_tools, then run the tool it returns with "
+            "call_tool (name plus arguments)."
+        ),
         auth=auth,
         transforms=[
             BM25SearchTransform(

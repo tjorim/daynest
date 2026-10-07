@@ -147,6 +147,15 @@ async def test_search_transform_replaces_large_initial_catalog() -> None:
 
 
 @pytest.mark.anyio
+async def test_server_instructions_explain_search_then_call_flow() -> None:
+    mcp = create_mcp_server(DaynestMcpBackend(MagicMock()))
+
+    assert mcp.instructions is not None
+    assert "search_tools" in mcp.instructions
+    assert "call_tool" in mcp.instructions
+
+
+@pytest.mark.anyio
 async def test_search_tools_finds_today_tool_for_chore_query() -> None:
     mcp = create_mcp_server(DaynestMcpBackend(MagicMock()))
     result = await mcp.call_tool("search_tools", {"query": "today chores"})
