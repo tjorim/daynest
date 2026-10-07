@@ -561,7 +561,9 @@ class TestDaynestClientWriteMethods:
         session.post = MagicMock(return_value=response)
         client = DaynestClient(base_url="https://api.example", integration_key="key", session=session)
 
-        result = await client.async_create_planned_item(title="Plan dinner", planned_for="2026-01-15", notes="With rice")
+        result = await client.async_create_planned_item(
+            title="Plan dinner", planned_for="2026-01-15", notes="With rice"
+        )
 
         call_kwargs = session.post.call_args[1]
         assert call_kwargs["json"] == {
@@ -787,11 +789,20 @@ class TestDaynestClientTypedMethods:
     async def test_calendar_day_month_and_export_methods(self) -> None:
         month_response = _make_mock_response(
             200,
-            {"year": 2026, "month": 1, "days": [{"date": "2026-01-01", "total": 1, "routines": 0, "chores": 1, "medications": 0, "planned": 0}]},
+            {
+                "year": 2026,
+                "month": 1,
+                "days": [
+                    {"date": "2026-01-01", "total": 1, "routines": 0, "chores": 1, "medications": 0, "planned": 0}
+                ],
+            },
         )
         day_response = _make_mock_response(
             200,
-            {"date": "2026-01-01", "items": [{"item_type": "chore", "item_id": 1, "title": "Clean", "status": "pending"}]},
+            {
+                "date": "2026-01-01",
+                "items": [{"item_type": "chore", "item_id": 1, "title": "Clean", "status": "pending"}],
+            },
         )
         ics_response = _make_mock_response(200, {})
         ics_response.read = AsyncMock(return_value=b"BEGIN:VCALENDAR")
@@ -867,8 +878,9 @@ class TestDaynestClientCacheAndSSE:
             def __aiter__(self):
                 async def _gen():
                     yield b"event: ping\n"
-                    yield b"data: {\"alive\": true}\n"
+                    yield b'data: {"alive": true}\n'
                     yield b"\n"
+
                 return _gen()
 
         response = _make_mock_response(200, {})
@@ -896,10 +908,11 @@ class TestDaynestClientCacheAndSSE:
                 async def _gen():
                     for line in self._lines:
                         yield line
+
                 return _gen()
 
         response = _make_mock_response(200, {})
-        response.content = _Stream([b"event: today_updated\n", b"data: {\"ping\": true}\n", b"\n"])
+        response.content = _Stream([b"event: today_updated\n", b'data: {"ping": true}\n', b"\n"])
         session = MagicMock(spec=aiohttp.ClientSession)
         session.get = MagicMock(return_value=response)
         callback_called = asyncio.Event()

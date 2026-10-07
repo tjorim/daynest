@@ -225,7 +225,9 @@ class TestDaynestCalendarEntityGetEvents:
         entity = _make_entity(DaynestPlannedCalendar, client)
         hass = MagicMock()
         await entity.async_get_events(hass, datetime(2026, 5, 1, 0, 0), datetime(2026, 5, 31, 23, 59))
-        client.async_get_calendar.assert_called_once_with(date(2026, 5, 1), date(2026, 5, 31), event_type="planned_items")
+        client.async_get_calendar.assert_called_once_with(
+            date(2026, 5, 1), date(2026, 5, 31), event_type="planned_items"
+        )
 
 
 @pytest.mark.unit

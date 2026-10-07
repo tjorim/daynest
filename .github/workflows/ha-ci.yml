@@ -47,6 +47,10 @@ jobs:
         working-directory: custom_components
         run: ruff check daynest/ tests/
 
+      - name: Format
+        working-directory: custom_components
+        run: ruff format --check daynest/ tests/
+
       - name: Run tests
         working-directory: custom_components
         run: pytest -q

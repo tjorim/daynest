@@ -34,7 +34,7 @@ def _safe_int(value: Any, default: int = 0) -> int:
     """Convert a value to int with fallback."""
     try:
         return int(value)
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
         return default
 
 
@@ -42,7 +42,7 @@ def _safe_float(value: Any, default: float = 0.0) -> float:
     """Convert a value to float with fallback."""
     try:
         return float(value)
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
         return default
 
 
@@ -167,7 +167,12 @@ class DaynestDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             chore_id = _safe_int(chore.get("chore_instance_id"), default=0)
             status = str(chore.get("status") or "").lower()
             scheduled_date = _safe_date(chore.get("scheduled_date"))
-            if chore_id > 0 and scheduled_date and scheduled_date < today and status not in {"completed", "done", "skipped"}:
+            if (
+                chore_id > 0
+                and scheduled_date
+                and scheduled_date < today
+                and status not in {"completed", "done", "skipped"}
+            ):
                 overdue_ids.add(chore_id)
         return overdue_ids
 

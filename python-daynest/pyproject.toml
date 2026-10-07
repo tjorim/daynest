@@ -33,5 +33,9 @@ include = ["src"]
 pythonVersion = "3.14"
 typeCheckingMode = "standard"
 
+[tool.ruff]
+target-version = "py314"
+line-length = 120
+
 [tool.ruff.lint]
 per-file-ignores = { "__init__.py" = ["F401"] }

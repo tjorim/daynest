@@ -45,12 +45,14 @@ async def async_setup_entry(
     """Set up Daynest to-do entities for a config entry."""
     coordinator = entry.runtime_data.coordinator
 
-    async_add_entities([
-        DaynestTodoListEntity(
-            coordinator=coordinator,
-            entity_description=ENTITY_DESCRIPTION,
-        )
-    ])
+    async_add_entities(
+        [
+            DaynestTodoListEntity(
+                coordinator=coordinator,
+                entity_description=ENTITY_DESCRIPTION,
+            )
+        ]
+    )
 
     known_entities: dict[int, DaynestShoppingListTodoEntity] = {}
 
@@ -95,7 +97,7 @@ def _coerce_positive_int(value: Any) -> int | None:
     """Return value as a positive integer, or None when invalid."""
     try:
         parsed = int(value)
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
         return None
     return parsed if parsed > 0 else None
 

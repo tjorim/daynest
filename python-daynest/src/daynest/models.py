@@ -340,8 +340,12 @@ class CalendarEvent:
             item_id=int(_require(payload, "item_id", context="calendar event")),
             title=str(_require(payload, "title", context="calendar event")),
             status=str(payload.get("status", "")),
-            scheduled_at=_parse_datetime(scheduled_at_raw, field="scheduled_at") if scheduled_at_raw is not None else None,
-            scheduled_date=_parse_date(scheduled_date_raw, field="scheduled_date") if scheduled_date_raw is not None else None,
+            scheduled_at=_parse_datetime(scheduled_at_raw, field="scheduled_at")
+            if scheduled_at_raw is not None
+            else None,
+            scheduled_date=_parse_date(scheduled_date_raw, field="scheduled_date")
+            if scheduled_date_raw is not None
+            else None,
             detail=payload.get("detail") if isinstance(payload.get("detail"), str) else None,
             module_key=payload.get("module_key") if isinstance(payload.get("module_key"), str) else None,
             recurrence_hint=payload.get("recurrence_hint") if isinstance(payload.get("recurrence_hint"), str) else None,

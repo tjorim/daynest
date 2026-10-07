@@ -46,7 +46,9 @@ class TestDaynestBinarySensor:
         due_soon = now + timedelta(minutes=10)
         data = {
             "medication_reminder_minutes": 30,
-            "medications": [{"medication_dose_instance_id": 7, "status": "scheduled", "scheduled_at": due_soon.isoformat()}],
+            "medications": [
+                {"medication_dose_instance_id": 7, "status": "scheduled", "scheduled_at": due_soon.isoformat()}
+            ],
         }
         with patch("custom_components.daynest.binary_sensor.dt_util.utcnow", return_value=now):
             sensor = _make_sensor("daynest_medication_due_soon", data)

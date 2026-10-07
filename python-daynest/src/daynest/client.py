@@ -169,7 +169,7 @@ class DaynestClient:
                         raise ValueError(msg)
                     try:
                         expires_in = int(body.get("expires_in", 300))
-                    except (TypeError, ValueError):
+                    except TypeError, ValueError:
                         expires_in = 300
                 except (TypeError, ValueError) as err:
                     msg = f"Token endpoint returned malformed payload: {err}"
@@ -443,8 +443,7 @@ class DaynestClient:
         return [
             item
             for item in payload
-            if item.get("module_key") == "shopping_list"
-            and str(item.get("linked_ref", "")) == str(shopping_list_id)
+            if item.get("module_key") == "shopping_list" and str(item.get("linked_ref", "")) == str(shopping_list_id)
         ]
 
     async def async_create_shopping_item(
@@ -523,7 +522,9 @@ class DaynestClient:
 
     async def async_list_routine_templates(self) -> list[RoutineTemplate]:
         """List routine templates."""
-        payload = await self._cached_call("async_list_routine_templates", lambda: self._request_list("/api/templates/routines"))
+        payload = await self._cached_call(
+            "async_list_routine_templates", lambda: self._request_list("/api/templates/routines")
+        )
         return [RoutineTemplate.from_dict(item) for item in payload]
 
     async def async_create_routine_template(
@@ -651,7 +652,9 @@ class DaynestClient:
 
     async def async_export_calendar_ics(self) -> bytes:
         """Export calendar iCalendar bytes."""
-        return await self._cached_call("async_export_calendar_ics", lambda: self._request_bytes("/api/calendar/export.ics"))
+        return await self._cached_call(
+            "async_export_calendar_ics", lambda: self._request_bytes("/api/calendar/export.ics")
+        )
 
     async def async_listen(
         self,
@@ -732,6 +735,7 @@ class DaynestClient:
         callback: Callable[[dict[str, Any]], Awaitable[None]],
     ) -> Callable[[], None]:
         """Subscribe to today SSE updates and return an unsubscribe callable."""
+
         async def _today_callback(event_name: str, payload: dict[str, Any]) -> None:
             if event_name == "today_updated":
                 await callback(payload)

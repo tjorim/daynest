@@ -63,11 +63,7 @@ async def async_get_config_entry_diagnostics(
                         "original_name": entity.original_name,
                         "disabled": entity.disabled,
                         "disabled_by": entity.disabled_by.value if entity.disabled_by else None,
-                        "state": (
-                            state.state
-                            if (state := hass.states.get(entity.entity_id)) is not None
-                            else None
-                        ),
+                        "state": (state.state if (state := hass.states.get(entity.entity_id)) is not None else None),
                     }
                     for entity in entities
                 ],
@@ -81,7 +77,9 @@ async def async_get_config_entry_diagnostics(
         "last_exception": str(coordinator.last_exception) if coordinator.last_exception else None,
         "last_exception_type": type(coordinator.last_exception).__name__ if coordinator.last_exception else None,
         "update_interval": str(coordinator.update_interval),
-        "contract_version": coordinator.data.get("integration_contract") if isinstance(coordinator.data, dict) else None,
+        "contract_version": coordinator.data.get("integration_contract")
+        if isinstance(coordinator.data, dict)
+        else None,
         "data_keys": list(coordinator.data.keys()) if isinstance(coordinator.data, dict) else None,
     }
 

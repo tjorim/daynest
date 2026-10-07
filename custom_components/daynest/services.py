@@ -221,7 +221,9 @@ async def _handle_complete_task(hass: HomeAssistant, call: ServiceCall) -> None:
     if entry is None:
         return
     await _call_client(
-        entry, SERVICE_COMPLETE_TASK, chore_instance_id,
+        entry,
+        SERVICE_COMPLETE_TASK,
+        chore_instance_id,
         entry.runtime_data.client.async_complete_task(chore_instance_id=chore_instance_id),
     )
 
@@ -234,7 +236,9 @@ async def _handle_snooze_task(hass: HomeAssistant, call: ServiceCall) -> None:
     if entry is None:
         return
     await _call_client(
-        entry, SERVICE_SNOOZE_TASK, chore_instance_id,
+        entry,
+        SERVICE_SNOOZE_TASK,
+        chore_instance_id,
         entry.runtime_data.client.async_snooze_task(chore_instance_id=chore_instance_id, days=days),
     )
 
@@ -246,7 +250,9 @@ async def _handle_mark_medication_taken(hass: HomeAssistant, call: ServiceCall) 
     if entry is None:
         return
     await _call_client(
-        entry, SERVICE_MARK_MEDICATION_TAKEN, medication_dose_id,
+        entry,
+        SERVICE_MARK_MEDICATION_TAKEN,
+        medication_dose_id,
         entry.runtime_data.client.async_mark_medication_taken(medication_dose_id=medication_dose_id),
     )
 
@@ -258,7 +264,9 @@ async def _handle_skip_task(hass: HomeAssistant, call: ServiceCall) -> None:
     if entry is None:
         return
     await _call_client(
-        entry, SERVICE_SKIP_TASK, chore_instance_id,
+        entry,
+        SERVICE_SKIP_TASK,
+        chore_instance_id,
         entry.runtime_data.client.async_skip_task(chore_instance_id=chore_instance_id),
     )
 
@@ -270,7 +278,9 @@ async def _handle_skip_medication(hass: HomeAssistant, call: ServiceCall) -> Non
     if entry is None:
         return
     await _call_client(
-        entry, SERVICE_SKIP_MEDICATION, medication_dose_id,
+        entry,
+        SERVICE_SKIP_MEDICATION,
+        medication_dose_id,
         entry.runtime_data.client.async_skip_medication(medication_dose_id=medication_dose_id),
     )
 
@@ -282,7 +292,9 @@ async def _handle_mark_planned_done(hass: HomeAssistant, call: ServiceCall) -> N
     if entry is None:
         return
     await _call_client(
-        entry, SERVICE_MARK_PLANNED_DONE, planned_item_id,
+        entry,
+        SERVICE_MARK_PLANNED_DONE,
+        planned_item_id,
         entry.runtime_data.client.async_mark_planned_done(planned_item_id=planned_item_id),
     )
 
@@ -315,9 +327,7 @@ async def _handle_update_planned_item(hass: HomeAssistant, call: ServiceCall) ->
     if entry is None:
         return
     patch_fields = {
-        key: value
-        for key, value in call.data.items()
-        if key not in {ATTR_PLANNED_ITEM_ID, ATTR_SCOPE, ATTR_ENTRY_ID}
+        key: value for key, value in call.data.items() if key not in {ATTR_PLANNED_ITEM_ID, ATTR_SCOPE, ATTR_ENTRY_ID}
     }
     await _call_client(
         entry,
@@ -337,7 +347,10 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         DOMAIN, SERVICE_SNOOZE_TASK, partial(_handle_snooze_task, hass), schema=SERVICE_SNOOZE_TASK_SCHEMA
     )
     hass.services.async_register(
-        DOMAIN, SERVICE_MARK_MEDICATION_TAKEN, partial(_handle_mark_medication_taken, hass), schema=SERVICE_MARK_MEDICATION_TAKEN_SCHEMA
+        DOMAIN,
+        SERVICE_MARK_MEDICATION_TAKEN,
+        partial(_handle_mark_medication_taken, hass),
+        schema=SERVICE_MARK_MEDICATION_TAKEN_SCHEMA,
     )
     hass.services.async_register(
         DOMAIN, SERVICE_SKIP_TASK, partial(_handle_skip_task, hass), schema=SERVICE_SKIP_TASK_SCHEMA
@@ -346,13 +359,22 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         DOMAIN, SERVICE_SKIP_MEDICATION, partial(_handle_skip_medication, hass), schema=SERVICE_SKIP_MEDICATION_SCHEMA
     )
     hass.services.async_register(
-        DOMAIN, SERVICE_MARK_PLANNED_DONE, partial(_handle_mark_planned_done, hass), schema=SERVICE_MARK_PLANNED_DONE_SCHEMA
+        DOMAIN,
+        SERVICE_MARK_PLANNED_DONE,
+        partial(_handle_mark_planned_done, hass),
+        schema=SERVICE_MARK_PLANNED_DONE_SCHEMA,
     )
     hass.services.async_register(
-        DOMAIN, SERVICE_CREATE_PLANNED_ITEM, partial(_handle_create_planned_item, hass), schema=SERVICE_CREATE_PLANNED_ITEM_SCHEMA
+        DOMAIN,
+        SERVICE_CREATE_PLANNED_ITEM,
+        partial(_handle_create_planned_item, hass),
+        schema=SERVICE_CREATE_PLANNED_ITEM_SCHEMA,
     )
     hass.services.async_register(
-        DOMAIN, SERVICE_UPDATE_PLANNED_ITEM, partial(_handle_update_planned_item, hass), schema=SERVICE_UPDATE_PLANNED_ITEM_SCHEMA
+        DOMAIN,
+        SERVICE_UPDATE_PLANNED_ITEM,
+        partial(_handle_update_planned_item, hass),
+        schema=SERVICE_UPDATE_PLANNED_ITEM_SCHEMA,
     )
 
 
