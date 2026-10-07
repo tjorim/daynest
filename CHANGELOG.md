@@ -42,6 +42,11 @@ bump on every app release.
 ## [Unreleased]
 
 ### Changed
+- **MCP:** the server instructions now explain the `search_tools` → `call_tool` flow, so agents
+  know most tools are hidden until discovered.
+- **Backend:** dropped the `fastmcp` prerelease workaround (`prerelease = "explicit"` and the
+  `fastmcp-slim>=4.0.0a1` constraint) from the uv config now that fastmcp 4.0.10 is stable.
+  Resolved package versions are unchanged.
 - **MCP (breaking):** `GET /api/mcp/capabilities` and the tool-search results no longer include
   the flat `required_auth` / `required_tier` keys; read `access.auth` / `access.tier` instead
   (tjorim/apps#229).
