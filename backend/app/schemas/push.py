@@ -10,7 +10,7 @@ class PushSubscribeRequest(BaseModel):
     auth: str | None = None
 
     @model_validator(mode="after")
-    def _validate_webpush_keys(self) -> "PushSubscribeRequest":
+    def _validate_webpush_keys(self) -> PushSubscribeRequest:
         if self.platform == PushPlatform.webpush and (not self.p256dh or not self.auth):
             raise ValueError("webpush subscriptions require p256dh and auth")
         return self
