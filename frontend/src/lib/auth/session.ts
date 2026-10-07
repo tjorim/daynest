@@ -5,6 +5,19 @@ import { useSyncExternalStore } from "react";
  * AuthProvider writes the current token here so non-React modules can read it.
  */
 let _oidcAccessToken: string | undefined;
+let _offlineOwner: string | undefined;
+let _sessionGeneration = 0;
+
+export function setOfflineOwner(owner: string | undefined): void {
+  if (_offlineOwner !== owner) {
+    _offlineOwner = owner;
+    _sessionGeneration++;
+  }
+}
+
+export function getOfflineSession() {
+  return { owner: _offlineOwner, generation: _sessionGeneration, token: _oidcAccessToken };
+}
 const listeners = new Set<() => void>();
 
 /**

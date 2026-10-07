@@ -87,3 +87,23 @@ Every new externally callable write must update this inventory and state:
 5. the sequential-retry and concurrent-duplicate tests that prove the claim.
 
 Do not label a create operation idempotent merely because it is non-destructive, and do not enable an SDK/offline-queue retry until the server contract supports it.
+
+## Cross-app persistence alignment
+
+See [Browser persistence contract](browser-persistence-contract.md) for the shared
+ownership, schema, restore, logout and pending-edit policies.
+
+The browser queue now deliberately accepts a narrower subset of naturally safe
+writes: POST task start/complete/skip, chore complete/skip, and medication-dose
+take/skip/miss. It validates the current API origin and route before saving and
+replaying. Each action is versioned and scoped to OIDC authority, client and
+subject; the stored URL preserves its API scope. All non-success responses retain
+the action and stop the drain; conflicts require reconciliation. Success removes
+only that action's key, so a concurrent enqueue is preserved. Web Locks serialize
+drains across tabs; session generations stop subsequent sends after sign-out or
+account change. An already submitted request may finish. The legacy unowned
+queue remains untouched and never executes automatically.
+
+`frontend/tests/lib/offlineQueue.test.ts` exercises account isolation, sign-out,
+concurrent enqueue/drain, failed responses, unsafe routes, storage failure and
+legacy retention. No new server retry guarantee is claimed.

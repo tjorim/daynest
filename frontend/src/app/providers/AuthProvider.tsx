@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { useAuth as useOidcAuth } from "react-oidc-context";
 import { AuthApiError, fetchMe, type AuthUser } from "@/lib/api/auth";
-import { setOidcAccessToken, setSigninSilent } from "@/lib/auth/session";
+import { setOidcAccessToken, setSigninSilent, setOfflineOwner } from "@/lib/auth/session";
 import { AUTH_ROUTE_PATHS } from "@/config/oidc";
 
 function getOidcErrorMessage(error: unknown) {
@@ -51,8 +51,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAccountRejected, setIsAccountRejected] = useState(false);
 
   useEffect(() => {
-    setOidcAccessToken(oidc.user?.access_token);
-  }, [oidc.user?.access_token]);
+    const subject = oidc.user?.profile.sub;
+    setOfflineOwner(
+      oidc.isAuthenticated && subject
+        ? JSON.stringify([oidc.settings.authority, oidc.settings.client_id, subject])
+        : undefined,
+    );
+    setOidcAccessToken(oidc.isAuthenticated ? oidc.user?.access_token : undefined);
+    const onStorage = (event: StorageEvent) => {
+      if (
+        event.key === null ||
+        event.key === `oidc.user:${oidc.settings.authority}:${oidc.settings.client_id}`
+      ) {
+        setOfflineOwner(undefined);
+        setOidcAccessToken(undefined);
+      }
+    };
+    window.addEventListener("storage", onStorage);
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      setOfflineOwner(undefined);
+    };
+  }, [
+    oidc.isAuthenticated,
+    oidc.user?.access_token,
+    oidc.user?.profile.sub,
+    oidc.settings.authority,
+    oidc.settings.client_id,
+  ]);
 
   useEffect(() => {
     setSigninSilent(() => oidc.signinSilent());
@@ -85,6 +111,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (cancelled) return;
 
         if (error instanceof AuthApiError && error.status === 401) {
+          setOfflineOwner(undefined);
           setUser(null);
           setSessionError(null);
           setIsAccountRejected(true);
@@ -112,6 +139,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         void oidc.signinRedirect({ state: { returnTo: getLoginReturnTo() } });
       },
       logout: () => {
+        setOfflineOwner(undefined);
+        setOidcAccessToken(undefined);
         void oidc.signoutRedirect();
       },
       refreshUser: async () => {
@@ -124,6 +153,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setIsAccountRejected(false);
         } catch (error: unknown) {
           if (error instanceof AuthApiError && error.status === 401) {
+            setOfflineOwner(undefined);
             setUser(null);
             setSessionError(null);
             setIsAccountRejected(true);

@@ -4,7 +4,7 @@ import * as m from "@/paraglide/messages";
 import { useAuth } from "@/app/providers/AuthProvider";
 import { useTheme } from "@/app/theme/ThemeContext";
 import { useOnlineStatus } from "@/app/pwa/useOnlineStatus";
-import { drain as drainOfflineQueue, getQueuedCount } from "@/lib/offlineQueue";
+import { drain as drainOfflineQueue, getQueuedCount, hasLegacyQueue } from "@/lib/offlineQueue";
 import { SearchOverlay } from "@/features/search/SearchOverlay";
 
 export function AppLayout() {
@@ -25,7 +25,17 @@ export function AppLayout() {
         .catch(() => undefined);
     }
     setQueuedCount(getQueuedCount());
-  }, [isOnline]);
+  }, [isOnline, isAuthenticated, user]);
+
+  React.useEffect(() => {
+    const refreshCount = () => setQueuedCount(getQueuedCount());
+    window.addEventListener("daynest-queue-changed", refreshCount);
+    window.addEventListener("storage", refreshCount);
+    return () => {
+      window.removeEventListener("daynest-queue-changed", refreshCount);
+      window.removeEventListener("storage", refreshCount);
+    };
+  }, []);
 
   React.useEffect(() => {
     const handler = (event: MessageEvent) => {
@@ -114,6 +124,11 @@ export function AppLayout() {
       <a className="skip-link" href="#main-content">
         Skip to main content
       </a>
+      {hasLegacyQueue() ? (
+        <div role="alert" className="alert alert-warning">
+          {m.app_offline_legacy()}
+        </div>
+      ) : null}
       {!isOnline ? (
         <div className="alert alert-warning py-2 mb-3 d-flex align-items-center gap-2">
           <span>⚠️ {m.app_offline_banner()}</span>
@@ -123,7 +138,18 @@ export function AppLayout() {
         </div>
       ) : queuedCount > 0 ? (
         <div className="alert alert-info py-2 mb-3">
-          {m.app_syncing_queued({ count: queuedCount })}
+          {m.app_saved_queued({ count: queuedCount })}
+          <button
+            type="button"
+            className="btn btn-sm btn-outline-primary ms-2"
+            onClick={() => {
+              void drainOfflineQueue()
+                .then(() => setQueuedCount(getQueuedCount()))
+                .catch(() => undefined);
+            }}
+          >
+            {m.action_retry()}
+          </button>
         </div>
       ) : null}
       {sessionError ? (

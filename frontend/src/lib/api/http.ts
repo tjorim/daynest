@@ -88,9 +88,11 @@ export async function fetchWithAuth(
     method !== "GET" &&
     method !== "HEAD"
   ) {
-    enqueueOffline(url.toString(), init);
+    const saved = enqueueOffline(url.toString(), init);
     throw new ApiError(
-      "You are offline. This action will be replayed when you reconnect.",
+      saved
+        ? "You are offline. This action will be replayed when you reconnect."
+        : "You are offline. This action could not be saved; reconnect before trying again.",
       0,
       false,
     );

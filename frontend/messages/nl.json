@@ -27,7 +27,7 @@
   "app_logout": "Afmelden",
   "app_login": "Aanmelden",
   "app_offline_banner": "Je bent offline.",
-  "app_offline_queued": "{count} actie(s) worden gesynchroniseerd zodra de verbinding is hersteld.",
+  "app_offline_queued": "{count} acties op dit apparaat opgeslagen voor je account.",
   "app_syncing_queued": "{count} wachtende actie(s) synchroniseren…",
   "app_server_unavailable": "Kan geen verbinding maken met de Daynest-server. Controleer uw verbinding en probeer het opnieuw.",
   "app_session_retry_banner": "We konden uw accountgegevens niet vernieuwen. Uw sessie is nog actief; probeer opnieuw om opnieuw te verbinden.",
@@ -478,5 +478,7 @@
   "settings_delete_account_email_placeholder": "Voer {email} in",
   "settings_delete_account_mismatch": "Voer je e-mailadres exact in om accountverwijdering in te schakelen.",
   "settings_delete_account_error": "Account verwijderen mislukt.",
-  "nav_menu": "Menu"
+  "nav_menu": "Menu",
+  "app_offline_legacy": "Opgeslagen acties uit een eerdere sessie zijn bewaard. Het bijbehorende account kan niet worden gecontroleerd, dus ze worden niet automatisch verzonden. Controleer de huidige toestand voordat je ze opnieuw uitvoert.",
+  "app_saved_queued": "{count} acties opgeslagen voor dit account."
 }

@@ -27,7 +27,7 @@
   "app_logout": "Sign out",
   "app_login": "Sign in",
   "app_offline_banner": "You are offline.",
-  "app_offline_queued": "{count} action(s) will sync when reconnected.",
+  "app_offline_queued": "{count} actions saved on this device for your account.",
   "app_syncing_queued": "Syncing {count} queued action(s)…",
   "app_server_unavailable": "Cannot connect to Daynest server. Please check your connection and try again.",
   "app_session_retry_banner": "We could not refresh your account details. Your session is still active; try again to reconnect.",
@@ -478,5 +478,7 @@
   "settings_delete_account_email_placeholder": "Enter {email}",
   "settings_delete_account_mismatch": "Enter your email address exactly to enable account deletion.",
   "settings_delete_account_error": "Failed to delete account.",
-  "nav_menu": "Menu"
+  "nav_menu": "Menu",
+  "app_offline_legacy": "Saved actions from an earlier session have been preserved. Their account cannot be verified, so they will not be sent automatically. Check the current state before repeating them.",
+  "app_saved_queued": "{count} actions saved for this account."
 }

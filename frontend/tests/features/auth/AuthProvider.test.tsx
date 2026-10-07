@@ -2,11 +2,13 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { setOfflineOwner, setOidcAccessToken } from "@/lib/auth/session";
 import { AuthProvider, useAuth } from "@/app/providers/AuthProvider";
 
 const authMock = vi.hoisted(() => ({
   oidc: {
-    user: undefined,
+    user: undefined as { access_token: string; profile: { sub: string } } | undefined,
+    settings: { authority: "https://idp.test", client_id: "daynest" },
     isLoading: false,
     isAuthenticated: false,
     signinRedirect: vi.fn(),
@@ -21,11 +23,12 @@ vi.mock("react-oidc-context", () => ({
 }));
 
 vi.mock("@/lib/api/auth", () => ({
-  fetchMe: vi.fn(),
+  fetchMe: vi.fn(async () => null),
 }));
 
 vi.mock("@/lib/auth/session", () => ({
   setOidcAccessToken: vi.fn(),
+  setOfflineOwner: vi.fn(),
   setSigninSilent: vi.fn(),
 }));
 
@@ -41,8 +44,29 @@ function OidcErrorMessage() {
 
 describe("AuthProvider login returnTo", () => {
   beforeEach(() => {
+    vi.clearAllMocks();
+    authMock.oidc.user = undefined;
+    authMock.oidc.isAuthenticated = false;
     authMock.oidc.signinRedirect.mockReset();
     authMock.oidc.error = undefined;
+  });
+
+  it("scopes offline actions and fences a cross-tab session change", () => {
+    authMock.oidc.user = { access_token: "alice-token", profile: { sub: "alice" } };
+    authMock.oidc.isAuthenticated = true;
+    render(
+      <AuthProvider>
+        <LoginButton />
+      </AuthProvider>,
+    );
+    expect(setOfflineOwner).toHaveBeenLastCalledWith(
+      JSON.stringify(["https://idp.test", "daynest", "alice"]),
+    );
+    window.dispatchEvent(
+      new StorageEvent("storage", { key: "oidc.user:https://idp.test:daynest", newValue: null }),
+    );
+    expect(setOfflineOwner).toHaveBeenLastCalledWith(undefined);
+    expect(setOidcAccessToken).toHaveBeenLastCalledWith(undefined);
   });
 
   it("uses /today when login starts on /auth", async () => {
