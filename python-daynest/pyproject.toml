@@ -2,7 +2,7 @@
 name = "python-daynest"
 version = "0.1.11"
 description = "Python client library for the Daynest API"
-requires-python = ">=3.12"
+requires-python = ">=3.14"
 license = { text = "MIT" }
 dependencies = [
     "aiohttp>=3.9",
@@ -30,7 +30,7 @@ markers = ["unit: fast, isolated unit tests"]
 
 [tool.pyright]
 include = ["src"]
-pythonVersion = "3.12"
+pythonVersion = "3.14"
 typeCheckingMode = "standard"
 
 [tool.ruff.lint]
