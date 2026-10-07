@@ -30,7 +30,7 @@ def _verify_metrics_token(token: str, secret: str) -> bool:
     try:
         ts_str, provided_sig = token.split(":", 1)
         ts = int(ts_str)
-    except (ValueError, AttributeError):
+    except ValueError, AttributeError:
         return False
 
     now = int(time.time())
@@ -92,7 +92,7 @@ async def _jwks_reachable() -> bool:
 async def readiness_check(response: Response) -> dict[str, str]:
     try:
         await asyncio.to_thread(_check_db)
-    except (SQLAlchemyError, OSError, RuntimeError):
+    except SQLAlchemyError, OSError, RuntimeError:
         logger.exception("Readiness check failed: database connectivity error")
         response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
         return {"status": "not_ready"}

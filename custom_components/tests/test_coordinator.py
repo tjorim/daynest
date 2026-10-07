@@ -35,12 +35,21 @@ VALID_DASHBOARD_PAYLOAD = {
     "due_today": [{"chore_instance_id": 1, "title": "Task A", "status": "pending"}],
     "planned": [{"id": 2, "title": "Task B", "is_done": False}],
     "chores": [{"chore_instance_id": 1, "title": "Task A", "status": "pending", "scheduled_date": "2026-01-15"}],
-    "medications": [{"medication_dose_instance_id": 4, "name": "Vitamin D", "status": "scheduled", "scheduled_at": "2026-01-15T08:00:00+00:00"}],
+    "medications": [
+        {
+            "medication_dose_instance_id": 4,
+            "name": "Vitamin D",
+            "status": "scheduled",
+            "scheduled_at": "2026-01-15T08:00:00+00:00",
+        }
+    ],
     "planned_items": [{"id": 2, "title": "Task B", "is_done": False}],
 }
 
 
-def _make_dashboard_response(payload: dict | None = None, contract: str | None = "home-assistant; version=ha.v1") -> MagicMock:
+def _make_dashboard_response(
+    payload: dict | None = None, contract: str | None = "home-assistant; version=ha.v1"
+) -> MagicMock:
     response = MagicMock()
     response.integration_contract = contract
     response.data = DaynestDashboard.from_dict(payload or VALID_DASHBOARD_PAYLOAD)
@@ -333,9 +342,7 @@ class TestAsyncUpdateData:
 
     async def test_v2_contract_accepted(self) -> None:
         client = AsyncMock()
-        client.async_get_dashboard.return_value = _make_dashboard_response(
-            contract="home-assistant; version=ha.v2"
-        )
+        client.async_get_dashboard.return_value = _make_dashboard_response(contract="home-assistant; version=ha.v2")
         client.async_get_user_settings.return_value = {}
         coordinator = _make_coordinator(client)
         result = await coordinator._async_update_data()
@@ -348,14 +355,18 @@ class TestAsyncUpdateData:
             "for_date": "2026-01-15",
             "completion_ratio": 0.5,
             "chores": [{"chore_instance_id": 11, "status": "pending", "scheduled_date": "2026-01-15"}],
-            "medications": [{"medication_dose_instance_id": 21, "status": "scheduled", "scheduled_at": "2026-01-15T08:00:00+00:00"}],
+            "medications": [
+                {"medication_dose_instance_id": 21, "status": "scheduled", "scheduled_at": "2026-01-15T08:00:00+00:00"}
+            ],
         }
         second_payload = {
             **VALID_DASHBOARD_PAYLOAD,
             "for_date": "2026-01-16",
             "completion_ratio": 1.0,
             "chores": [{"chore_instance_id": 11, "status": "pending", "scheduled_date": "2026-01-15"}],
-            "medications": [{"medication_dose_instance_id": 21, "status": "missed", "scheduled_at": "2026-01-15T08:00:00+00:00"}],
+            "medications": [
+                {"medication_dose_instance_id": 21, "status": "missed", "scheduled_at": "2026-01-15T08:00:00+00:00"}
+            ],
         }
         client.async_get_dashboard.side_effect = [
             _make_dashboard_response(first_payload),
@@ -377,9 +388,7 @@ class TestAsyncUpdateData:
 
     async def test_unsupported_contract_raises_update_failed(self) -> None:
         client = AsyncMock()
-        client.async_get_dashboard.return_value = _make_dashboard_response(
-            contract="home-assistant; version=ha.v99"
-        )
+        client.async_get_dashboard.return_value = _make_dashboard_response(contract="home-assistant; version=ha.v99")
         coordinator = _make_coordinator(client)
         with pytest.raises(UpdateFailed, match="Unsupported or missing integration contract"):
             await coordinator._async_update_data()

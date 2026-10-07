@@ -142,7 +142,9 @@ class TestConfigFlowValidation:
             patch("custom_components.daynest.config_flow.async_get_clientsession", return_value=MagicMock()),
             patch("custom_components.daynest.config_flow.DaynestClient") as mock_client,
         ):
-            mock_client.return_value.async_get_summary = AsyncMock(side_effect=DaynestMalformedResponseError("bad payload"))
+            mock_client.return_value.async_get_summary = AsyncMock(
+                side_effect=DaynestMalformedResponseError("bad payload")
+            )
             errors = await handler._async_validate_oauth_token(BASE_URL, TOKEN)
         assert errors == {"base": ERROR_UNSUPPORTED_CONTRACT}
 
@@ -213,9 +215,7 @@ class TestConfigFlowValidation:
             CONF_TOKEN_URL: build_oidc_token_url(BASE_URL),
         }
         handler._get_reauth_entry = MagicMock(return_value=existing_entry)
-        handler.async_update_reload_and_abort = MagicMock(
-            return_value={"type": "abort", "reason": "reauth_successful"}
-        )
+        handler.async_update_reload_and_abort = MagicMock(return_value={"type": "abort", "reason": "reauth_successful"})
 
         with patch.object(handler, "_async_validate_oauth_token", AsyncMock(return_value={})):
             result = await handler.async_oauth_create_entry({"token": TOKEN, "auth_implementation": "daynest"})

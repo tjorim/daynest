@@ -98,7 +98,7 @@ class AppSettings(BaseSettings):
         return value
 
     @model_validator(mode="after")
-    def _validate_secrets(self) -> "AppSettings":
+    def _validate_secrets(self) -> AppSettings:
         self._cached_db_password = self.db_password or _read_secret_file(self.db_password_file)
         self._cached_integration_key_hash_secret = self.integration_key_hash_secret or _read_secret_file(
             self.integration_key_hash_secret_file

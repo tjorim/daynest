@@ -22,7 +22,7 @@ class MealPlanUpdate(BaseModel):
     notes: str | None = Field(default=None, max_length=4000)
 
     @model_validator(mode="after")
-    def non_clearable_fields_cannot_be_null(self) -> "MealPlanUpdate":
+    def non_clearable_fields_cannot_be_null(self) -> MealPlanUpdate:
         if "name" in self.model_fields_set and self.name is None:
             raise ValueError("name cannot be set to null")
         if "week_start" in self.model_fields_set and self.week_start is None:
@@ -37,7 +37,7 @@ class MealSlotUpdate(BaseModel):
     planned_item_id: int | None = Field(default=None, ge=1)
 
     @model_validator(mode="after")
-    def normalize_ingredients(self) -> "MealSlotUpdate":
+    def normalize_ingredients(self) -> MealSlotUpdate:
         if self.ingredients_json is not None:
             self.ingredients_json = [ingredient.strip() for ingredient in self.ingredients_json if ingredient.strip()]
         return self

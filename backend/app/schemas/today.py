@@ -103,7 +103,7 @@ class PlannedItemBase(BaseModel):
     tags: list[str] = Field(default_factory=list)
 
     @model_validator(mode="after")
-    def _apply_module_defaults(self) -> "PlannedItemBase":
+    def _apply_module_defaults(self) -> PlannedItemBase:
         if self.module_key == "recurring_grocery" and self.recurrence_hint is None:
             self.recurrence_hint = "weekly"
         return self

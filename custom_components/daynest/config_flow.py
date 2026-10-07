@@ -187,9 +187,7 @@ class DaynestConfigFlowHandler(config_entry_oauth2_flow.AbstractOAuth2FlowHandle
             errors=errors,
         )
 
-    async def async_step_reauth(
-        self, entry_data: Mapping[str, Any]
-    ) -> config_entries.ConfigFlowResult:
+    async def async_step_reauth(self, entry_data: Mapping[str, Any]) -> config_entries.ConfigFlowResult:
         """Handle reauthentication when the OAuth token is no longer valid."""
         return await self.async_step_reauth_confirm()
 
@@ -208,14 +206,10 @@ class DaynestConfigFlowHandler(config_entry_oauth2_flow.AbstractOAuth2FlowHandle
             authorization_url, token_url, client_id = oidc
         else:
             # Fall back to stored values or derived URLs if backend is unreachable.
-            authorization_url = (
-                str(reauth_entry.data.get(CONF_AUTHORIZATION_URL) or "").strip()
-                or build_oidc_authorization_url(base_url)
-            )
-            token_url = (
-                str(reauth_entry.data.get(CONF_TOKEN_URL) or "").strip()
-                or build_oidc_token_url(base_url)
-            )
+            authorization_url = str(
+                reauth_entry.data.get(CONF_AUTHORIZATION_URL) or ""
+            ).strip() or build_oidc_authorization_url(base_url)
+            token_url = str(reauth_entry.data.get(CONF_TOKEN_URL) or "").strip() or build_oidc_token_url(base_url)
             client_id = DEFAULT_OIDC_CLIENT_ID
 
         self.flow_impl = config_entry_oauth2_flow.LocalOAuth2ImplementationWithPkce(

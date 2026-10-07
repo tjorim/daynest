@@ -125,7 +125,7 @@ class DaynestMetricSensor(SensorEntity, DaynestEntity):
         if self.entity_description.scale != 1.0:
             try:
                 return round(float(value) * self.entity_description.scale, 0)
-            except (TypeError, ValueError):
+            except TypeError, ValueError:
                 return None
 
         return value

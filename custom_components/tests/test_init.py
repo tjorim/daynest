@@ -108,7 +108,9 @@ class TestMigrateEntry:
         first_call_kwargs = hass.config_entries.async_update_entry.call_args_list[0][1]
         assert first_call_kwargs["version"] == 4
         assert first_call_kwargs["data"][CONF_AUTH_MODE] == AUTH_MODE_OAUTH_REDIRECT
-        assert first_call_kwargs["data"][CONF_AUTHORIZATION_URL] == build_oidc_authorization_url("https://api.daynest.example")
+        assert first_call_kwargs["data"][CONF_AUTHORIZATION_URL] == build_oidc_authorization_url(
+            "https://api.daynest.example"
+        )
         assert first_call_kwargs["data"][CONF_TOKEN_URL] == build_oidc_token_url("https://api.daynest.example")
 
     async def test_migrates_v4_client_credentials_normalizes_token_url(self) -> None:

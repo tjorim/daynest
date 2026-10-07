@@ -146,7 +146,7 @@ def require_integration_auth(*required_scopes: str) -> Callable:
                     )
                     try:
                         client_id_int = int(int_claims["sub"])
-                    except (ValueError, KeyError):
+                    except ValueError, KeyError:
                         raise HTTPException(
                             status_code=status.HTTP_401_UNAUTHORIZED,
                             detail="Invalid integration token",

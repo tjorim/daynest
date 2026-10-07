@@ -48,6 +48,7 @@ from .services import async_setup_services, async_unload_services
 try:
     from homeassistant.components.frontend import async_register_static_paths
 except ImportError:
+
     async def async_register_static_paths(
         hass: Any,
         static_paths: list[StaticPathConfig],
@@ -56,6 +57,7 @@ except ImportError:
         maybe_awaitable = hass.http.async_register_static_paths(static_paths)
         if inspect.isawaitable(maybe_awaitable):
             await maybe_awaitable
+
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
@@ -227,7 +229,9 @@ async def async_setup_entry(
     auth_mode = _resolve_auth_mode(entry.data)
 
     if auth_mode == AUTH_MODE_OAUTH_REDIRECT:
-        authorization_url = str(entry.data.get(CONF_AUTHORIZATION_URL) or "").strip().rstrip("/") or build_oidc_authorization_url(base_url)
+        authorization_url = str(entry.data.get(CONF_AUTHORIZATION_URL) or "").strip().rstrip(
+            "/"
+        ) or build_oidc_authorization_url(base_url)
         token_url = str(entry.data.get(CONF_TOKEN_URL) or "").strip().rstrip("/") or build_oidc_token_url(base_url)
 
         oauth_impl = config_entry_oauth2_flow.LocalOAuth2ImplementationWithPkce(
@@ -251,11 +255,7 @@ async def async_setup_entry(
             cache_ttl=30,
         )
     else:
-        missing_keys = [
-            key
-            for key in (CONF_CLIENT_ID, CONF_CLIENT_SECRET)
-            if not entry.data.get(key)
-        ]
+        missing_keys = [key for key in (CONF_CLIENT_ID, CONF_CLIENT_SECRET) if not entry.data.get(key)]
         if missing_keys:
             msg = "Daynest entry is missing OAuth credentials; reconfigure the integration"
             raise ConfigEntryAuthFailed(msg)
@@ -318,12 +318,8 @@ async def async_unload_entry(
     """Unload a config entry."""
     entry.runtime_data.coordinator.async_stop_sse()
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
-    remaining = [
-        e for e in hass.config_entries.async_entries(DOMAIN) if e.entry_id != entry.entry_id
-    ]
-    remaining_loaded = [
-        e for e in remaining if e.state is ConfigEntryState.LOADED
-    ]
+    remaining = [e for e in hass.config_entries.async_entries(DOMAIN) if e.entry_id != entry.entry_id]
+    remaining_loaded = [e for e in remaining if e.state is ConfigEntryState.LOADED]
     if unload_ok and not remaining_loaded:
         frontend_data = hass.data.setdefault(DOMAIN, {})
         if frontend_data.get(CARD_REGISTERED):

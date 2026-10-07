@@ -20,7 +20,7 @@ class UserUpdateRequest(BaseModel):
     def validate_timezone(cls, v: str) -> str:
         try:
             ZoneInfo(v)
-        except (ZoneInfoNotFoundError, KeyError):
+        except ZoneInfoNotFoundError, KeyError:
             raise ValueError(f"Unknown timezone: {v!r}. Use an IANA timezone name such as 'Europe/Brussels'.")
         return v
 

@@ -107,7 +107,7 @@ def send_notification(subscription: PushSubscription, title: str, body: str, dat
                 vapid_claims={"sub": f"mailto:{settings.vapid_claims_email}"},
             )
             return True
-    except (GoogleAuthError, OSError, ValueError, httpx.HTTPError, WebPushException):
+    except GoogleAuthError, OSError, ValueError, httpx.HTTPError, WebPushException:
         logger.exception(
             "Failed to send push notification for subscription_id=%s user_id=%s platform=%s",
             subscription.id,

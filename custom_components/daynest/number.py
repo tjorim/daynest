@@ -96,7 +96,7 @@ class DaynestNumberEntity(NumberEntity, DaynestEntity):
             )
         try:
             parsed = int(raw_value)
-        except (TypeError, ValueError):
+        except TypeError, ValueError:
             parsed = int(self.entity_description.native_min_value)
         parsed = max(
             int(self.entity_description.native_min_value),

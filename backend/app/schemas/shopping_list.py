@@ -19,7 +19,7 @@ class ShoppingListUpdateRequest(BaseModel):
     status: ShoppingListStatus | None = None
 
     @model_validator(mode="after")
-    def non_clearable_fields_cannot_be_null(self) -> "ShoppingListUpdateRequest":
+    def non_clearable_fields_cannot_be_null(self) -> ShoppingListUpdateRequest:
         if "name" in self.model_fields_set and self.name is None:
             raise ValueError("name cannot be set to null")
         if "status" in self.model_fields_set and self.status is None:
