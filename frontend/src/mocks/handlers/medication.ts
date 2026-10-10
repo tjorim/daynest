@@ -5,9 +5,7 @@ import { MOCK_TODAY } from "../data/constants";
 import type { MedicationPlanInput, MedicationPlanUpdateInput } from "@/lib/api/medications";
 
 export const medicationHandlers = [
-  http.get("/api/medications", () =>
-    HttpResponse.json(getMockState().medications),
-  ),
+  http.get("/api/medications", () => HttpResponse.json(getMockState().medications)),
 
   http.post("/api/medications", async ({ request }) => {
     const input = (await request.json()) as MedicationPlanInput;

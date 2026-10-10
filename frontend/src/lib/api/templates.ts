@@ -72,7 +72,12 @@ export async function updateRoutineTemplate(
   routineTemplateId: number,
   input: RoutineTemplateInput,
 ): Promise<RoutineTemplate> {
-  return sendJson("PUT", `/api/templates/routines/${routineTemplateId}`, input, routineTemplateSchema);
+  return sendJson(
+    "PUT",
+    `/api/templates/routines/${routineTemplateId}`,
+    input,
+    routineTemplateSchema,
+  );
 }
 
 export async function deleteRoutineTemplate(routineTemplateId: number): Promise<void> {

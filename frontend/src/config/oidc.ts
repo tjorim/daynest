@@ -18,9 +18,7 @@ function resolveReturnTo(raw: unknown): string {
 }
 
 export function onSigninCallback(user: { state?: unknown } | void): void {
-  const returnTo = resolveReturnTo(
-    (user?.state as { returnTo?: string } | undefined)?.returnTo,
-  );
+  const returnTo = resolveReturnTo((user?.state as { returnTo?: string } | undefined)?.returnTo);
   window.history.replaceState({}, document.title, returnTo);
   window.dispatchEvent(new PopStateEvent("popstate"));
 }

@@ -18,9 +18,7 @@ const apiMock = vi.hoisted(() => ({
   createIntegrationClient: vi.fn(),
   listIntegrationClients: vi.fn<(signal?: AbortSignal) => Promise<IntegrationClient[]>>(),
   revokeIntegrationClient: vi.fn<(clientId: number) => Promise<void>>(),
-  rotateIntegrationClient: vi.fn<
-    (clientId: number) => Promise<IntegrationClientCreateResponse>
-  >(),
+  rotateIntegrationClient: vi.fn<(clientId: number) => Promise<IntegrationClientCreateResponse>>(),
   fetchUserSettings: vi.fn(),
   updateUserSettings: vi.fn(),
   deleteAccount: vi.fn(),
@@ -229,9 +227,7 @@ describe("SettingsPage integration clients table", () => {
         .getAllByRole("row")
         .find((row) => within(row).queryByText("Client 2"));
       expect(refreshedClientRow).toBeDefined();
-      expect(
-        within(refreshedClientRow!).getByRole("button", { name: /^revoke$/i }),
-      ).toBeEnabled();
+      expect(within(refreshedClientRow!).getByRole("button", { name: /^revoke$/i })).toBeEnabled();
     });
 
     const refreshedClientRow = within(clientsTable)

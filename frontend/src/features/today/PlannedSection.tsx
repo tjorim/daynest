@@ -84,7 +84,9 @@ function QuickAddPlanned({ onRefresh }: { onRefresh: () => Promise<void> }) {
       >
         {m.action_cancel()}
       </button>
-      {actions.actionError ? <small className="w-100 text-danger">{actions.actionError}</small> : null}
+      {actions.actionError ? (
+        <small className="w-100 text-danger">{actions.actionError}</small>
+      ) : null}
     </form>
   );
 }

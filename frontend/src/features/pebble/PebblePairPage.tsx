@@ -12,13 +12,7 @@ export function PebblePairPage() {
   const pairRequested = useRef(false);
 
   useEffect(() => {
-    if (
-      isLoading ||
-      isAuthenticated ||
-      oidcError ||
-      sessionError ||
-      loginRequested.current
-    ) {
+    if (isLoading || isAuthenticated || oidcError || sessionError || loginRequested.current) {
       return;
     }
     loginRequested.current = true;

@@ -143,7 +143,11 @@ export async function importRecurringGroceries(listId: number): Promise<PlannedT
     method: "POST",
     headers: { Accept: "application/json" },
   });
-  return parseJsonResponse<PlannedTodayItem[]>(response, "Unable to import recurring groceries", false);
+  return parseJsonResponse<PlannedTodayItem[]>(
+    response,
+    "Unable to import recurring groceries",
+    false,
+  );
 }
 
 export async function checkOffShoppingItem(item: PlannedTodayItem): Promise<PlannedTodayItem> {

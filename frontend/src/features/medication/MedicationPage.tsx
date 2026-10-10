@@ -3,10 +3,7 @@ import { useForm } from "@tanstack/react-form";
 import { z } from "zod";
 import * as m from "@/paraglide/messages";
 import { isRetryableApiError } from "@/lib/api/http";
-import {
-  type MedicationPlan,
-  type MedicationPlanUpdateInput,
-} from "@/lib/api/medications";
+import { type MedicationPlan, type MedicationPlanUpdateInput } from "@/lib/api/medications";
 import { formatDate, formatDateTime } from "@/lib/dateUtils";
 import { useFocusTrap } from "@/lib/useFocusTrap";
 import {
@@ -41,12 +38,15 @@ function todayLocalDate(): string {
   return d.toISOString().slice(0, 10);
 }
 
-function toMedicationPlanInput(
-  values: MedicationPlanFormValues,
-): { input: MedicationPlanUpdateInput | null; error: string | null } {
+function toMedicationPlanInput(values: MedicationPlanFormValues): {
+  input: MedicationPlanUpdateInput | null;
+  error: string | null;
+} {
   const parsed = medicationPlanFormSchema.safeParse(values);
   if (!parsed.success) {
-    const hasEveryNDaysIssue = parsed.error.issues.some((issue) => issue.path.includes("everyNDays"));
+    const hasEveryNDaysIssue = parsed.error.issues.some((issue) =>
+      issue.path.includes("everyNDays"),
+    );
     return {
       input: null,
       error: hasEveryNDaysIssue ? m.medication_every_n_error() : m.medication_required_fields(),
@@ -84,7 +84,12 @@ export function MedicationPage() {
   const history = historyQuery.data ?? [];
   const loading = plansQuery.isPending || historyQuery.isPending;
   const queryError = plansQuery.error ?? historyQuery.error;
-  const error = queryError instanceof Error ? queryError.message : queryError ? "Unable to load medication data." : null;
+  const error =
+    queryError instanceof Error
+      ? queryError.message
+      : queryError
+        ? "Unable to load medication data."
+        : null;
   const canRetry = queryError ? isRetryableApiError(queryError) : false;
 
   const createForm = useForm({
@@ -172,9 +177,7 @@ export function MedicationPage() {
           {m.action_refresh()}
         </button>
       </div>
-      <p className="text-muted mb-3">
-        {m.medication_subtitle()}
-      </p>
+      <p className="text-muted mb-3">{m.medication_subtitle()}</p>
 
       {loading ? <div className="alert alert-info py-2">{m.medication_loading()}</div> : null}
       {error ? (
@@ -240,7 +243,9 @@ export function MedicationPage() {
               />
               <div className="row g-2">
                 <div className="col-sm-6">
-                  <label className="form-label small fw-semibold mb-1">{m.medication_start_date_label()}</label>
+                  <label className="form-label small fw-semibold mb-1">
+                    {m.medication_start_date_label()}
+                  </label>
                   <createForm.Field
                     name="startDate"
                     children={(field) => (
@@ -254,7 +259,9 @@ export function MedicationPage() {
                   />
                 </div>
                 <div className="col-sm-6">
-                  <label className="form-label small fw-semibold mb-1">{m.medication_schedule_time_label()}</label>
+                  <label className="form-label small fw-semibold mb-1">
+                    {m.medication_schedule_time_label()}
+                  </label>
                   <createForm.Field
                     name="scheduleTime"
                     children={(field) => (
@@ -269,7 +276,9 @@ export function MedicationPage() {
                 </div>
               </div>
               <div>
-                <label className="form-label small fw-semibold mb-1">{m.medication_every_n_days_label()}</label>
+                <label className="form-label small fw-semibold mb-1">
+                  {m.medication_every_n_days_label()}
+                </label>
                 <createForm.Field
                   name="everyNDays"
                   children={(field) => (
@@ -287,11 +296,7 @@ export function MedicationPage() {
                   )}
                 />
               </div>
-              <button
-                type="submit"
-                className="btn btn-primary"
-                disabled={isSubmitting}
-              >
+              <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
                 {isSubmitting ? m.action_creating() : m.medication_create_button()}
               </button>
             </form>
@@ -312,7 +317,8 @@ export function MedicationPage() {
                       <div>
                         <div className="fw-semibold">{plan.name}</div>
                         <small className="text-muted d-block">
-                          {m.medication_starts({ date: formatDate(plan.start_date) })} • {plan.schedule_time.slice(0, 5)} •{" "}
+                          {m.medication_starts({ date: formatDate(plan.start_date) })} •{" "}
+                          {plan.schedule_time.slice(0, 5)} •{" "}
                           {plan.every_n_days === 1
                             ? m.medication_every_day({ count: plan.every_n_days })
                             : m.medication_every_days({ count: plan.every_n_days })}
@@ -441,89 +447,95 @@ function EditMedicationPlanDialog({
             }}
           >
             <div className="modal-body d-grid gap-2">
-            {error ? <div className="alert alert-danger py-2">{error}</div> : null}
-            <editForm.Field
-              name="name"
-              children={(field) => (
-                <input
-                  className="form-control"
-                  value={field.value}
-                  onChange={(event) => field.handleChange(event.target.value)}
-                  aria-label={m.medication_name_placeholder()}
-                />
-              )}
-            />
-            <editForm.Field
-              name="instructions"
-              children={(field) => (
-                <textarea
-                  className="form-control"
-                  rows={3}
-                  value={field.value}
-                  onChange={(event) => field.handleChange(event.target.value)}
-                  aria-label={m.medication_instructions_placeholder()}
-                />
-              )}
-            />
-            <div className="row g-2">
-              <div className="col-sm-6">
-                <label className="form-label small fw-semibold mb-1">{m.medication_start_date_label()}</label>
-                <editForm.Field
-                  name="startDate"
-                  children={(field) => (
-                    <input
-                      className="form-control"
-                      type="date"
-                      value={field.value}
-                      onChange={(event) => field.handleChange(event.target.value)}
-                    />
-                  )}
-                />
-              </div>
-              <div className="col-sm-6">
-                <label className="form-label small fw-semibold mb-1">{m.medication_schedule_time_label()}</label>
-                <editForm.Field
-                  name="scheduleTime"
-                  children={(field) => (
-                    <input
-                      className="form-control"
-                      type="time"
-                      value={field.value}
-                      onChange={(event) => field.handleChange(event.target.value)}
-                    />
-                  )}
-                />
-              </div>
-            </div>
-            <div>
-              <label className="form-label small fw-semibold mb-1">{m.medication_every_n_days_label()}</label>
+              {error ? <div className="alert alert-danger py-2">{error}</div> : null}
               <editForm.Field
-                name="everyNDays"
+                name="name"
                 children={(field) => (
                   <input
                     className="form-control"
-                    type="number"
-                    min={1}
                     value={field.value}
                     onChange={(event) => field.handleChange(event.target.value)}
+                    aria-label={m.medication_name_placeholder()}
                   />
                 )}
               />
-            </div>
-            <label className="form-check">
               <editForm.Field
-                name="isActive"
+                name="instructions"
                 children={(field) => (
-                  <input
-                    className="form-check-input"
-                    type="checkbox"
-                    checked={field.value}
-                    onChange={(event) => field.handleChange(event.target.checked)}
+                  <textarea
+                    className="form-control"
+                    rows={3}
+                    value={field.value}
+                    onChange={(event) => field.handleChange(event.target.value)}
+                    aria-label={m.medication_instructions_placeholder()}
                   />
                 )}
               />
-              <span className="form-check-label">{m.medication_active_label()}</span>
-            </label>
+              <div className="row g-2">
+                <div className="col-sm-6">
+                  <label className="form-label small fw-semibold mb-1">
+                    {m.medication_start_date_label()}
+                  </label>
+                  <editForm.Field
+                    name="startDate"
+                    children={(field) => (
+                      <input
+                        className="form-control"
+                        type="date"
+                        value={field.value}
+                        onChange={(event) => field.handleChange(event.target.value)}
+                      />
+                    )}
+                  />
+                </div>
+                <div className="col-sm-6">
+                  <label className="form-label small fw-semibold mb-1">
+                    {m.medication_schedule_time_label()}
+                  </label>
+                  <editForm.Field
+                    name="scheduleTime"
+                    children={(field) => (
+                      <input
+                        className="form-control"
+                        type="time"
+                        value={field.value}
+                        onChange={(event) => field.handleChange(event.target.value)}
+                      />
+                    )}
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="form-label small fw-semibold mb-1">
+                  {m.medication_every_n_days_label()}
+                </label>
+                <editForm.Field
+                  name="everyNDays"
+                  children={(field) => (
+                    <input
+                      className="form-control"
+                      type="number"
+                      min={1}
+                      value={field.value}
+                      onChange={(event) => field.handleChange(event.target.value)}
+                    />
+                  )}
+                />
+              </div>
+              <label className="form-check">
+                <editForm.Field
+                  name="isActive"
+                  children={(field) => (
+                    <input
+                      className="form-check-input"
+                      type="checkbox"
+                      checked={field.value}
+                      onChange={(event) => field.handleChange(event.target.checked)}
+                    />
+                  )}
+                />
+                <span className="form-check-label">{m.medication_active_label()}</span>
+              </label>
             </div>
             <div className="modal-footer">
               <button type="button" className="btn btn-outline-secondary" onClick={onCancel}>

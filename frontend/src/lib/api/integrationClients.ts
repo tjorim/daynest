@@ -44,7 +44,12 @@ export async function listIntegrationClients(signal?: AbortSignal): Promise<Inte
 export async function createIntegrationClient(
   input: IntegrationClientInput,
 ): Promise<IntegrationClientCreateResponse> {
-  return sendJson("POST", "/api/integrations/clients", input, integrationClientCreateResponseSchema);
+  return sendJson(
+    "POST",
+    "/api/integrations/clients",
+    input,
+    integrationClientCreateResponseSchema,
+  );
 }
 
 export async function rotateIntegrationClient(

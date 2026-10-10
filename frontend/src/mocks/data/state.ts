@@ -3,7 +3,12 @@ import type { MedicationPlan } from "@/lib/api/medications";
 import type { UserSettings } from "@/lib/api/settings";
 import type { ChoreTemplate, RoutineTemplate } from "@/lib/api/templates";
 import { MOCK_TODAY } from "./constants";
-import { busyTodayPayload, emptyTodayPayload, medicationRefillTodayPayload, overdueTodayPayload } from "./today";
+import {
+  busyTodayPayload,
+  emptyTodayPayload,
+  medicationRefillTodayPayload,
+  overdueTodayPayload,
+} from "./today";
 import { seedMedications, resetMedicationId } from "./medication";
 import {
   seedRoutineTemplates,
@@ -47,7 +52,8 @@ function buildInitialState(scenario: MockScenario): MockState {
         ? []
         : seedPlannedItems(MOCK_TODAY),
     medications: seedMedications(),
-    routineTemplates: scenario === "template-crud" ? seedRoutineTemplatesCrud() : seedRoutineTemplates(),
+    routineTemplates:
+      scenario === "template-crud" ? seedRoutineTemplatesCrud() : seedRoutineTemplates(),
     choreTemplates: scenario === "template-crud" ? seedChoreTemplatesCrud() : seedChoreTemplates(),
     settings: seedUserSettings(),
   };
@@ -93,9 +99,7 @@ export function mutatePlannedItems(
   _state = { ..._state, plannedItems: updater(_state.plannedItems) };
 }
 
-export function mutateMedications(
-  updater: (items: MedicationPlan[]) => MedicationPlan[],
-): void {
+export function mutateMedications(updater: (items: MedicationPlan[]) => MedicationPlan[]): void {
   _state = { ..._state, medications: updater(_state.medications) };
 }
 
@@ -105,15 +109,11 @@ export function mutateRoutineTemplates(
   _state = { ..._state, routineTemplates: updater(_state.routineTemplates) };
 }
 
-export function mutateChoreTemplates(
-  updater: (items: ChoreTemplate[]) => ChoreTemplate[],
-): void {
+export function mutateChoreTemplates(updater: (items: ChoreTemplate[]) => ChoreTemplate[]): void {
   _state = { ..._state, choreTemplates: updater(_state.choreTemplates) };
 }
 
-export function mutateSettings(
-  updater: (s: UserSettings) => UserSettings,
-): void {
+export function mutateSettings(updater: (s: UserSettings) => UserSettings): void {
   _state = { ..._state, settings: updater(_state.settings) };
 }
 

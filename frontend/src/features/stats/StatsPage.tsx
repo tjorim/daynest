@@ -10,10 +10,7 @@ import { scalePoint } from "@tanstack/charts/scales/point";
 import { tooltip } from "@tanstack/charts/tooltip";
 import { curveMonotoneX } from "d3-shape";
 import * as m from "@/paraglide/messages";
-import {
-  type AnalyticsPeriod,
-  type DailyCount,
-} from "@/lib/api/analytics";
+import { type AnalyticsPeriod, type DailyCount } from "@/lib/api/analytics";
 import { isRetryableApiError } from "@/lib/api/http";
 import { useStatsSummaryQuery } from "@/features/stats/useStatsQuery";
 
@@ -50,11 +47,12 @@ export function StatsPage() {
   const summaryQuery = useStatsSummaryQuery(period);
   const summary = summaryQuery.data ?? null;
   const loading = summaryQuery.isPending;
-  const error = summaryQuery.error instanceof Error
-    ? summaryQuery.error.message
-    : summaryQuery.error
-      ? "Unable to load analytics."
-      : null;
+  const error =
+    summaryQuery.error instanceof Error
+      ? summaryQuery.error.message
+      : summaryQuery.error
+        ? "Unable to load analytics."
+        : null;
   const canRetry = summaryQuery.error ? isRetryableApiError(summaryQuery.error) : false;
 
   const periods: { value: AnalyticsPeriod; label: string }[] = [
@@ -119,7 +117,9 @@ export function StatsPage() {
                 <div className="row g-3">
                   <div className="col-sm-3">
                     <div className="text-center p-2">
-                      <div className="fs-4 fw-bold text-primary">{pct(summary.chores.completion_rate)}</div>
+                      <div className="fs-4 fw-bold text-primary">
+                        {pct(summary.chores.completion_rate)}
+                      </div>
                       <div className="small text-muted mt-1">{m.stats_chores()}</div>
                       <div className="small text-muted">
                         {summary.chores.total_completed}/{summary.chores.total_scheduled}
@@ -128,7 +128,9 @@ export function StatsPage() {
                   </div>
                   <div className="col-sm-3">
                     <div className="text-center p-2">
-                      <div className="fs-4 fw-bold text-success">{pct(summary.routines.completion_rate)}</div>
+                      <div className="fs-4 fw-bold text-success">
+                        {pct(summary.routines.completion_rate)}
+                      </div>
                       <div className="small text-muted mt-1">{m.stats_routines()}</div>
                       <div className="small text-muted">
                         {summary.routines.total_completed}/{summary.routines.total_scheduled}
@@ -137,7 +139,9 @@ export function StatsPage() {
                   </div>
                   <div className="col-sm-3">
                     <div className="text-center p-2">
-                      <div className="fs-4 fw-bold text-info">{pct(summary.medications.adherence_rate)}</div>
+                      <div className="fs-4 fw-bold text-info">
+                        {pct(summary.medications.adherence_rate)}
+                      </div>
                       <div className="small text-muted mt-1">{m.stats_medication()}</div>
                       <div className="small text-muted">
                         {summary.medications.total_taken}/{summary.medications.total_scheduled}
@@ -146,10 +150,13 @@ export function StatsPage() {
                   </div>
                   <div className="col-sm-3">
                     <div className="text-center p-2">
-                      <div className="fs-4 fw-bold text-warning">{pct(summary.planned_items.completion_rate)}</div>
+                      <div className="fs-4 fw-bold text-warning">
+                        {pct(summary.planned_items.completion_rate)}
+                      </div>
                       <div className="small text-muted mt-1">{m.stats_planned_items()}</div>
                       <div className="small text-muted">
-                        {summary.planned_items.total_completed}/{summary.planned_items.total_scheduled}
+                        {summary.planned_items.total_completed}/
+                        {summary.planned_items.total_scheduled}
                       </div>
                     </div>
                   </div>
@@ -193,7 +200,9 @@ export function StatsPage() {
                             {item.current > 0 ? (
                               <span className="badge text-bg-warning me-1">🔥 {item.current}</span>
                             ) : null}
-                            <small className="text-muted d-block">{m.stats_best({ count: item.best })}</small>
+                            <small className="text-muted d-block">
+                              {m.stats_best({ count: item.best })}
+                            </small>
                           </div>
                         </div>
                       </li>
@@ -247,7 +256,9 @@ export function StatsPage() {
           {summary.routines.daily_completions.length > 0 ? (
             <div className="col-lg-6">
               <div className="card">
-                <div className="card-header fw-semibold py-2">{m.stats_routines_daily_header()}</div>
+                <div className="card-header fw-semibold py-2">
+                  {m.stats_routines_daily_header()}
+                </div>
                 <div className="card-body pb-2">
                   <TrendAreaChart
                     rows={toCompletionTrend(summary.routines.daily_completions)}
@@ -264,7 +275,9 @@ export function StatsPage() {
           {summary.medications.daily_adherence.length > 0 ? (
             <div className="col-lg-6">
               <div className="card">
-                <div className="card-header fw-semibold py-2">{m.stats_medication_adherence_header()}</div>
+                <div className="card-header fw-semibold py-2">
+                  {m.stats_medication_adherence_header()}
+                </div>
                 <div className="card-body pb-2">
                   <TrendAreaChart
                     rows={toAdherenceTrend(summary.medications.daily_adherence)}
@@ -388,7 +401,11 @@ function TrendAreaChart({ rows, stroke, fill, ariaLabel, tooltipLabel }: TrendAr
     return { avg };
   }, [rows, range]);
 
-  const isFullRange = range !== null && fullRange !== null && range.start === fullRange.start && range.end === fullRange.end;
+  const isFullRange =
+    range !== null &&
+    fullRange !== null &&
+    range.start === fullRange.start &&
+    range.end === fullRange.end;
 
   return (
     <div>

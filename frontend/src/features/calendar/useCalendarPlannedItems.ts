@@ -85,7 +85,9 @@ export function useCalendarPlannedItems({
   const [recurrenceHint, setRecurrenceHint] = useState("");
   const [isRepeating, setIsRepeating] = useState(false);
   const [repeatPreset, setRepeatPreset] = useState<RepeatPreset>("weekly");
-  const [repeatWeekdays, setRepeatWeekdays] = useState<string[]>([selectedDateWeekdayCode(selectedDate)]);
+  const [repeatWeekdays, setRepeatWeekdays] = useState<string[]>([
+    selectedDateWeekdayCode(selectedDate),
+  ]);
   const [customInterval, setCustomInterval] = useState(2);
   const [linkedSource, setLinkedSource] = useState("");
   const [linkedRef, setLinkedRef] = useState("");
@@ -179,10 +181,14 @@ export function useCalendarPlannedItems({
 
       if (editingPlannedItemId !== null) {
         const currentItem = plannedItems.find((item) => item.id === editingPlannedItemId);
-        await updatePlannedItem(editingPlannedItemId, {
-          ...payload,
-          is_done: currentItem?.is_done ?? false,
-        }, editScope);
+        await updatePlannedItem(
+          editingPlannedItemId,
+          {
+            ...payload,
+            is_done: currentItem?.is_done ?? false,
+          },
+          editScope,
+        );
       } else {
         await createPlannedItem(payload);
       }
@@ -251,9 +257,9 @@ export function useCalendarPlannedItems({
   const dragReschedulePlannedItem = async (itemId: number, newDate: string) => {
     const prevItems = [...plannedItems];
     // Optimistic update
-    setPlannedItems(plannedItems.map((item) =>
-      item.id === itemId ? { ...item, planned_for: newDate } : item,
-    ));
+    setPlannedItems(
+      plannedItems.map((item) => (item.id === itemId ? { ...item, planned_for: newDate } : item)),
+    );
     setActionStatus(null);
     setAddError(null);
     try {
@@ -350,7 +356,9 @@ export function useCalendarPlannedItems({
         }
       }
       await loadCalendar();
-      setBackupStatus(`Import complete. ${imported} imported${failed ? `, ${failed} failed` : ""}.`);
+      setBackupStatus(
+        `Import complete. ${imported} imported${failed ? `, ${failed} failed` : ""}.`,
+      );
     } catch (err) {
       setBackupStatus(err instanceof Error ? err.message : "Import failed.");
     } finally {

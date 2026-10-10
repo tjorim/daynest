@@ -11,9 +11,7 @@ import {
   type ChoreTemplateInput,
   type RoutineTemplateInput,
 } from "@/lib/api/templates";
-import {
-  fetchAnalyticsSummary,
-} from "@/lib/api/analytics";
+import { fetchAnalyticsSummary } from "@/lib/api/analytics";
 import { queryKeys } from "@/lib/query/queryKeys";
 
 function useInvalidateTemplateQueries() {
@@ -60,8 +58,13 @@ export function useCreateRoutineTemplateMutation() {
 export function useUpdateRoutineTemplateMutation() {
   const invalidate = useInvalidateTemplateQueries();
   return useMutation({
-    mutationFn: ({ routineTemplateId, input }: { routineTemplateId: number; input: RoutineTemplateInput }) =>
-      updateRoutineTemplate(routineTemplateId, input),
+    mutationFn: ({
+      routineTemplateId,
+      input,
+    }: {
+      routineTemplateId: number;
+      input: RoutineTemplateInput;
+    }) => updateRoutineTemplate(routineTemplateId, input),
     onSuccess: invalidate,
   });
 }
@@ -85,8 +88,13 @@ export function useCreateChoreTemplateMutation() {
 export function useUpdateChoreTemplateMutation() {
   const invalidate = useInvalidateTemplateQueries();
   return useMutation({
-    mutationFn: ({ choreTemplateId, input }: { choreTemplateId: number; input: ChoreTemplateInput }) =>
-      updateChoreTemplate(choreTemplateId, input),
+    mutationFn: ({
+      choreTemplateId,
+      input,
+    }: {
+      choreTemplateId: number;
+      input: ChoreTemplateInput;
+    }) => updateChoreTemplate(choreTemplateId, input),
     onSuccess: invalidate,
   });
 }

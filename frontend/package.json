@@ -3,7 +3,6 @@
   "version": "2026.8.2",
   "private": true,
   "type": "module",
-  "packageManager": "pnpm@10.33.0",
   "scripts": {
     "dev": "vite",
     "dev:mock": "cross-env VITE_MSW=true vite",
@@ -15,7 +14,8 @@
     "test": "vitest run",
     "test:e2e": "playwright test",
     "lint": "oxlint",
-    "format": "oxfmt ."
+    "format": "oxfmt .",
+    "format:check": "oxfmt --check ."
   },
   "dependencies": {
     "@inlang/paraglide-js": "^2.25.4",
@@ -66,6 +66,7 @@
     "vite": "^8.3.3",
     "vitest": "^5.0.1"
   },
+  "packageManager": "pnpm@10.33.0",
   "msw": {
     "workerDirectory": [
       "public"

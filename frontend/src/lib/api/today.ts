@@ -30,7 +30,12 @@ export type PlannedItemModuleKey =
   | "recurring_grocery"
   | "shared_calendar";
 
-export type { MedicationDoseStatus, MedicationHistoryItem, MedicationMutationResponse, MedicationTodayItem };
+export type {
+  MedicationDoseStatus,
+  MedicationHistoryItem,
+  MedicationMutationResponse,
+  MedicationTodayItem,
+};
 
 export interface RoutineTodayItem {
   task_instance_id: number;
@@ -221,8 +226,15 @@ export const plannedTodayItemSchema = z.object({
   linked_source: z.string().nullable(),
   linked_ref: z.string().nullable(),
   auto_add_to_list_id: z.number().int().nullable().optional(),
-  priority: plannedItemPrioritySchema.nullable().transform((v) => v ?? undefined).optional(),
-  tags: z.array(z.string()).nullable().transform((v) => v ?? undefined).optional(),
+  priority: plannedItemPrioritySchema
+    .nullable()
+    .transform((v) => v ?? undefined)
+    .optional(),
+  tags: z
+    .array(z.string())
+    .nullable()
+    .transform((v) => v ?? undefined)
+    .optional(),
   is_done: z.boolean(),
 });
 
@@ -362,7 +374,12 @@ export async function updatePlannedItem(
   input: PlannedItemUpdateInput,
   scope: PlannedItemEditScope = "this",
 ): Promise<PlannedTodayItem> {
-  return sendJson("PUT", `/api/planned-items/${plannedItemId}?scope=${scope}`, input, plannedTodayItemSchema);
+  return sendJson(
+    "PUT",
+    `/api/planned-items/${plannedItemId}?scope=${scope}`,
+    input,
+    plannedTodayItemSchema,
+  );
 }
 
 export async function deletePlannedItem(
@@ -431,13 +448,23 @@ export async function rescheduleChore(
 export async function takeMedicationDose(
   medicationDoseId: number,
 ): Promise<MedicationMutationResponse> {
-  return sendJson("POST", `/api/medication-doses/${medicationDoseId}/take`, undefined, medicationMutationResponseSchema);
+  return sendJson(
+    "POST",
+    `/api/medication-doses/${medicationDoseId}/take`,
+    undefined,
+    medicationMutationResponseSchema,
+  );
 }
 
 export async function skipMedicationDose(
   medicationDoseId: number,
 ): Promise<MedicationMutationResponse> {
-  return sendJson("POST", `/api/medication-doses/${medicationDoseId}/skip`, undefined, medicationMutationResponseSchema);
+  return sendJson(
+    "POST",
+    `/api/medication-doses/${medicationDoseId}/skip`,
+    undefined,
+    medicationMutationResponseSchema,
+  );
 }
 
 export async function startRoutineTask(taskInstanceId: number): Promise<TaskMutationResponse> {

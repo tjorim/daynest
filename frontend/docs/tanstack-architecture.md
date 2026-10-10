@@ -60,4 +60,3 @@ Server-backed feature hooks:
 
 - TanStack Form: use for multi-field workflows where validation and reset state become complex (current anchor example: `src/features/medication/MedicationPage.tsx`).
 - TanStack Table: use for dense management views needing sorting/filtering/column visibility (current anchor example: integration clients table in `src/features/settings/SettingsPage.tsx`).
-
