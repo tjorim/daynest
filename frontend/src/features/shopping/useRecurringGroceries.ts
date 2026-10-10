@@ -9,6 +9,7 @@ import {
   type RecurringGrocerySeries,
 } from "@/lib/api/recurringGroceries";
 import { queryKeys } from "@/lib/query/queryKeys";
+import * as m from "@/paraglide/messages";
 
 export function useRecurringGroceriesQuery() {
   return useQuery({
@@ -61,7 +62,7 @@ export function useRecurringGroceryActions(onRefresh?: () => Promise<unknown>) {
       await mutation.mutateAsync(variables);
       if (onRefresh) await onRefresh();
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : "Action failed");
+      setActionError(err instanceof Error ? err.message : m.ui_action_failed());
       throw err;
     } finally {
       setIsSubmitting(false);

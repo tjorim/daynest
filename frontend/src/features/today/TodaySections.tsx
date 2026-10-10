@@ -297,7 +297,7 @@ function TaskActions({
       {actions.actionError ? (
         <small className="text-danger d-block mb-1">{actions.actionError}</small>
       ) : null}
-      <div className="d-grid gap-2 d-sm-flex" role="group" aria-label="Task actions">
+      <div className="d-grid gap-2 d-sm-flex" role="group" aria-label={m.today_task_actions()}>
         <button
           type="button"
           className="btn btn-success btn-sm"
@@ -350,7 +350,11 @@ function MedicationActions({
       {actions.actionError ? (
         <small className="text-danger d-block mb-1">{actions.actionError}</small>
       ) : null}
-      <div className="d-grid gap-2 d-sm-flex" role="group" aria-label="Medication actions">
+      <div
+        className="d-grid gap-2 d-sm-flex"
+        role="group"
+        aria-label={m.today_medication_actions()}
+      >
         <button
           type="button"
           className="btn btn-success btn-sm"
@@ -392,7 +396,7 @@ function RoutineActions({
       {actions.actionError ? (
         <small className="text-danger d-block mb-1">{actions.actionError}</small>
       ) : null}
-      <div className="d-grid gap-2 d-sm-flex" role="group" aria-label="Routine actions">
+      <div className="d-grid gap-2 d-sm-flex" role="group" aria-label={m.today_routine_actions()}>
         {taskStatus === "pending" ? (
           <button
             type="button"
@@ -540,7 +544,11 @@ function PlannedItemActions({
       {actions.actionError ? (
         <small className="text-danger d-block mb-1">{actions.actionError}</small>
       ) : null}
-      <div className="d-grid gap-2 d-sm-flex" role="group" aria-label="Planned item actions">
+      <div
+        className="d-grid gap-2 d-sm-flex"
+        role="group"
+        aria-label={m.today_planned_item_actions()}
+      >
         <button
           type="button"
           className={`btn btn-sm ${plannedItem.is_done ? "btn-outline-success" : "btn-success"}`}

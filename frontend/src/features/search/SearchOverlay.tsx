@@ -23,7 +23,7 @@ export function SearchOverlay({ onClose }: { onClose: () => void }) {
     searchQuery.error instanceof Error
       ? searchQuery.error.message
       : searchQuery.error
-        ? "Search failed."
+        ? m.api_search_failed()
         : null;
   useFocusTrap(dialogRef);
 
@@ -167,7 +167,7 @@ export function SearchOverlay({ onClose }: { onClose: () => void }) {
               type="button"
               className="btn btn-link border-0"
               onClick={onClose}
-              aria-label="Close search"
+              aria-label={m.ui_close_search()}
             >
               <i className="bi bi-x-lg" aria-hidden="true" />
             </button>

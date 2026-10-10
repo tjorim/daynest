@@ -1,5 +1,6 @@
 import { getJson } from "@/lib/api/http";
 import { z } from "zod";
+import * as m from "@/paraglide/messages";
 
 export interface RoutineSearchResult {
   id: number;
@@ -97,6 +98,6 @@ export async function searchItems(query: string, signal?: AbortSignal): Promise<
     searchResponseSchema,
     signal,
     2,
-    "Search failed",
+    m.api_search_failed(),
   );
 }

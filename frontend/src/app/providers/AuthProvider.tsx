@@ -3,6 +3,7 @@ import { useAuth as useOidcAuth } from "react-oidc-context";
 import { AuthApiError, fetchMe, type AuthUser } from "@/lib/api/auth";
 import { setOidcAccessToken, setSigninSilent, setOfflineOwner } from "@/lib/auth/session";
 import { AUTH_ROUTE_PATHS } from "@/config/oidc";
+import * as m from "@/paraglide/messages";
 
 function getOidcErrorMessage(error: unknown) {
   if (!error) return null;
@@ -12,7 +13,7 @@ function getOidcErrorMessage(error: unknown) {
   }
 
   const fallbackMessage = String(error);
-  return fallbackMessage || "Unable to complete sign in";
+  return fallbackMessage || m.auth_sign_in_failed();
 }
 
 function getLoginReturnTo() {
@@ -119,7 +120,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         setIsAccountRejected(false);
-        setSessionError(error instanceof Error ? error.message : "Unable to load session");
+        setSessionError(error instanceof Error ? error.message : m.api_session_load_failed());
       })
       .finally(() => {
         if (!cancelled) setIsFetching(false);
@@ -161,7 +162,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
 
           setIsAccountRejected(false);
-          setSessionError(error instanceof Error ? error.message : "Unable to load session");
+          setSessionError(error instanceof Error ? error.message : m.api_session_load_failed());
         }
       },
       sessionError,

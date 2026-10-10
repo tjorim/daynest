@@ -34,7 +34,7 @@ export function TodayPage() {
   const error = todayQuery.error
     ? todayQuery.error instanceof Error
       ? todayQuery.error.message
-      : "Unable to load today payload."
+      : m.load_today_failed()
     : null;
   const canRetry = todayQuery.error ? isRetryableApiError(todayQuery.error) : false;
   const loadToday = useCallback(async () => {

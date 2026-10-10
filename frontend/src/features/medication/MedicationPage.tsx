@@ -88,7 +88,7 @@ export function MedicationPage() {
     queryError instanceof Error
       ? queryError.message
       : queryError
-        ? "Unable to load medication data."
+        ? m.load_medication_failed()
         : null;
   const canRetry = queryError ? isRetryableApiError(queryError) : false;
 
@@ -437,7 +437,12 @@ function EditMedicationPlanDialog({
         <div ref={modalRef} className="modal-content">
           <div className="modal-header">
             <h3 className="modal-title h5">{m.medication_edit_title()}</h3>
-            <button type="button" className="btn-close" aria-label="Close" onClick={onCancel} />
+            <button
+              type="button"
+              className="btn-close"
+              aria-label={m.ui_close()}
+              onClick={onCancel}
+            />
           </div>
           <form
             onSubmit={(event) => {

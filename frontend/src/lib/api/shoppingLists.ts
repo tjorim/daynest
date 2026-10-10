@@ -6,6 +6,7 @@ import {
 } from "@/lib/api/today";
 import { fetchWithAuth, parseJsonResponse } from "@/lib/api/http";
 import { z } from "zod";
+import * as m from "@/paraglide/messages";
 
 export type ShoppingListStatus = "active" | "archived";
 export type ShoppingListStatusFilter = ShoppingListStatus | "all";
@@ -63,7 +64,7 @@ export async function listShoppingLists(
     headers: { Accept: "application/json" },
     signal,
   });
-  return parseJsonResponse(response, "Unable to load shopping lists", true, shoppingListsSchema);
+  return parseJsonResponse(response, m.api_shopping_lists_load_failed(), true, shoppingListsSchema);
 }
 
 export async function getShoppingList(listId: number, signal?: AbortSignal): Promise<ShoppingList> {
@@ -71,7 +72,7 @@ export async function getShoppingList(listId: number, signal?: AbortSignal): Pro
     headers: { Accept: "application/json" },
     signal,
   });
-  return parseJsonResponse(response, "Unable to load shopping list", true, shoppingListSchema);
+  return parseJsonResponse(response, m.api_shopping_list_load_failed(), true, shoppingListSchema);
 }
 
 export async function createShoppingList(input: ShoppingListInput): Promise<ShoppingList> {
@@ -83,7 +84,12 @@ export async function createShoppingList(input: ShoppingListInput): Promise<Shop
     },
     body: JSON.stringify(input),
   });
-  return parseJsonResponse(response, "Unable to create shopping list", false, shoppingListSchema);
+  return parseJsonResponse(
+    response,
+    m.api_shopping_list_create_failed(),
+    false,
+    shoppingListSchema,
+  );
 }
 
 export async function updateShoppingList(
@@ -98,7 +104,12 @@ export async function updateShoppingList(
     },
     body: JSON.stringify(input),
   });
-  return parseJsonResponse(response, "Unable to update shopping list", false, shoppingListSchema);
+  return parseJsonResponse(
+    response,
+    m.api_shopping_list_update_failed(),
+    false,
+    shoppingListSchema,
+  );
 }
 
 export async function deleteShoppingList(listId: number): Promise<void> {
@@ -108,7 +119,7 @@ export async function deleteShoppingList(listId: number): Promise<void> {
   });
 
   if (!response.ok) {
-    await parseJsonResponse<never>(response, "Unable to delete shopping list", false);
+    await parseJsonResponse<never>(response, m.api_shopping_list_delete_failed(), false);
   }
 }
 
@@ -145,7 +156,7 @@ export async function importRecurringGroceries(listId: number): Promise<PlannedT
   });
   return parseJsonResponse<PlannedTodayItem[]>(
     response,
-    "Unable to import recurring groceries",
+    m.api_recurring_groceries_import_failed(),
     false,
   );
 }

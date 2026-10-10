@@ -1,12 +1,19 @@
 import { m } from "@/paraglide/messages";
+import { getLocale } from "@/paraglide/runtime";
 
-const LAST_UPDATED = "July 4, 2026";
+const LAST_UPDATED = "2026-07-04";
 
 export function PrivacyPolicyPage() {
   return (
     <section className="mx-auto px-3" style={{ maxWidth: "48rem" }}>
       <h2 className="h4 mb-1">{m.privacy_page_title()}</h2>
-      <p className="text-muted mb-4">{m.privacy_page_last_updated({ date: LAST_UPDATED })}</p>
+      <p className="text-muted mb-4">
+        {m.privacy_page_last_updated({
+          date: new Intl.DateTimeFormat(getLocale(), { dateStyle: "long", timeZone: "UTC" }).format(
+            new Date(LAST_UPDATED),
+          ),
+        })}
+      </p>
 
       <p>{m.privacy_page_intro()}</p>
       <p>{m.privacy_page_self_hosting()}</p>

@@ -19,7 +19,7 @@ export function OAuthSessionsSection() {
       }
     } catch (err) {
       if (!signal?.aborted) {
-        setSessionsError(err instanceof Error ? err.message : "Unable to load OAuth sessions.");
+        setSessionsError(err instanceof Error ? err.message : m.load_oauth_sessions_failed());
       }
     } finally {
       if (!signal?.aborted) {
@@ -40,7 +40,7 @@ export function OAuthSessionsSection() {
       await revokeOAuthSession(sessionId);
       await loadSessions();
     } catch (err) {
-      setRevokeError(err instanceof Error ? err.message : "Failed to revoke session.");
+      setRevokeError(err instanceof Error ? err.message : m.revoke_session_failed());
     } finally {
       setRevokingSession(null);
     }

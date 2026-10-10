@@ -1,5 +1,6 @@
 import { getJson } from "@/lib/api/http";
 import { z } from "zod";
+import * as m from "@/paraglide/messages";
 
 export type AnalyticsPeriod = "week" | "month" | "quarter" | "year";
 
@@ -154,6 +155,6 @@ export async function fetchAnalyticsSummary(
     analyticsSummarySchema,
     signal,
     2,
-    "Failed to load analytics",
+    m.api_analytics_load_failed(),
   );
 }
