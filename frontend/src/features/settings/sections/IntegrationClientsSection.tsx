@@ -96,7 +96,7 @@ export function IntegrationClientsSection({ backendBaseUrl }: IntegrationClients
     clientsQuery.error instanceof Error
       ? clientsQuery.error.message
       : clientsQuery.error
-        ? "Unable to load integration clients."
+        ? m.load_integration_clients_failed()
         : null;
   const canRetry = clientsQuery.error ? isRetryableApiError(clientsQuery.error) : false;
 
@@ -111,13 +111,9 @@ export function IntegrationClientsSection({ backendBaseUrl }: IntegrationClients
       const rotated = await rotateClientMutation.mutateAsync(clientId);
       setCreatedClient(rotated);
       setCopyStatus(null);
-      setSuccessMessage(
-        "OAuth client secret rotated. Copy the new secret now; it will not be shown again.",
-      );
+      setSuccessMessage(m.settings_client_secret_rotated());
     } catch (err) {
-      setRotateClientError(
-        err instanceof Error ? err.message : "Failed to rotate integration client key.",
-      );
+      setRotateClientError(err instanceof Error ? err.message : m.settings_client_rotate_failed());
     } finally {
       setRotatingClient(null);
     }
@@ -129,9 +125,7 @@ export function IntegrationClientsSection({ backendBaseUrl }: IntegrationClients
     try {
       await revokeClientMutation.mutateAsync(clientId);
     } catch (err) {
-      setRevokeClientError(
-        err instanceof Error ? err.message : "Failed to revoke integration client.",
-      );
+      setRevokeClientError(err instanceof Error ? err.message : m.settings_client_revoke_failed());
     } finally {
       setRevokingClient(null);
     }
@@ -139,13 +133,13 @@ export function IntegrationClientsSection({ backendBaseUrl }: IntegrationClients
 
   const onCreateClient = async () => {
     if (!name.trim()) {
-      setSubmitError("Client name is required.");
+      setSubmitError(m.settings_client_name_required());
       return;
     }
 
     const parsedRateLimit = parseInt(rateLimit, 10);
     if (isNaN(parsedRateLimit) || parsedRateLimit < 10 || parsedRateLimit > 600) {
-      setSubmitError("Rate limit must be an integer between 10 and 600.");
+      setSubmitError(m.settings_client_rate_limit_range());
       return;
     }
 
@@ -160,11 +154,9 @@ export function IntegrationClientsSection({ backendBaseUrl }: IntegrationClients
         scopes: clientType === "pebble" ? ["pebble:read", "pebble:write"] : ["home_assistant:*"],
       });
       setCreatedClient(created);
-      setSuccessMessage(
-        "Integration client created. Copy the OAuth client secret now; it will not be shown again.",
-      );
+      setSuccessMessage(m.settings_client_created());
     } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : "Failed to create integration client.");
+      setSubmitError(err instanceof Error ? err.message : m.settings_client_create_failed());
     } finally {
       setIsSubmitting(false);
     }
@@ -175,12 +167,12 @@ export function IntegrationClientsSection({ backendBaseUrl }: IntegrationClients
     try {
       if (navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(createdClient.client_secret);
-        setCopyStatus("Client secret copied.");
+        setCopyStatus(m.settings_client_secret_copied());
       } else {
-        setCopyStatus("Clipboard copy failed.");
+        setCopyStatus(m.settings_client_copy_failed());
       }
     } catch {
-      setCopyStatus("Clipboard copy failed.");
+      setCopyStatus(m.settings_client_copy_failed());
     }
   };
 
@@ -196,7 +188,11 @@ export function IntegrationClientsSection({ backendBaseUrl }: IntegrationClients
           id: "rateLimit",
           header: m.settings_rate_limit_label(),
           enableColumnFilter: false,
-          cell: (info) => <small className="text-muted d-block">{info.getValue()}/min</small>,
+          cell: (info) => (
+            <small className="text-muted d-block">
+              {m.settings_client_rate_per_minute({ count: info.getValue() })}
+            </small>
+          ),
         }),
         integrationClientColumnHelper.accessor("is_active", {
           id: "status",
@@ -305,7 +301,7 @@ export function IntegrationClientsSection({ backendBaseUrl }: IntegrationClients
           />
           <div>
             <label className="form-label small fw-semibold mb-1" htmlFor="client-type">
-              Client type
+              {m.settings_client_type_label()}
             </label>
             <select
               id="client-type"
@@ -318,11 +314,9 @@ export function IntegrationClientsSection({ backendBaseUrl }: IntegrationClients
               }}
             >
               <option value="home_assistant">Home Assistant</option>
-              <option value="pebble">Pebble watch</option>
+              <option value="pebble">{m.settings_client_type_pebble()}</option>
             </select>
-            <small className="text-muted d-block mt-1">
-              The client receives only the API scopes required for this type.
-            </small>
+            <small className="text-muted d-block mt-1">{m.settings_client_type_hint()}</small>
           </div>
           <div>
             <label className="form-label small fw-semibold mb-1" htmlFor="client-rate-limit">
@@ -403,40 +397,32 @@ export function IntegrationClientsSection({ backendBaseUrl }: IntegrationClients
                 <div className="card-header fw-semibold py-2">
                   {createdClient.name} -{" "}
                   {isPebbleClient
-                    ? "Pebble configuration credential"
-                    : "Legacy integration client fallback"}
+                    ? m.settings_client_credential_pebble()
+                    : m.settings_client_credential_legacy()}
                 </div>
                 <div className="card-body">
                   <div className="alert alert-warning py-2">
-                    {isPebbleClient ? (
-                      <>
-                        This key is the companion app&rsquo;s configuration credential. Enter it,
-                        along with this server&rsquo;s URL, in the Pebble mobile app&rsquo;s Daynest
-                        settings screen (see <code>pebble/README.md</code>) — it is not shown again.
-                      </>
-                    ) : (
-                      <>
-                        The Home Assistant integration now uses browser OAuth redirect and does not
-                        require these values for normal setup. Keep this secret only for legacy
-                        compatibility.
-                      </>
-                    )}
+                    {isPebbleClient
+                      ? m.settings_client_pebble_note({ readme: "pebble/README.md" })
+                      : m.settings_client_ha_note()}
                   </div>
                   <dl className="row small mb-0">
-                    <dt className="col-sm-4">Client ID</dt>
+                    <dt className="col-sm-4">{m.settings_client_id_label()}</dt>
                     <dd className="col-sm-8">
                       <code>{createdClient.client_id}</code>
                     </dd>
-                    <dt className="col-sm-4">Client secret</dt>
+                    <dt className="col-sm-4">{m.settings_client_secret_label()}</dt>
                     <dd className="col-sm-8">
                       <code className="settings-api-key">{createdClient.client_secret}</code>
                     </dd>
-                    <dt className="col-sm-4">Token URL</dt>
+                    <dt className="col-sm-4">{m.settings_client_token_url_label()}</dt>
                     <dd className="col-sm-8">
                       <code>{createdClient.token_url}</code>
                     </dd>
                     <dt className="col-sm-4">
-                      {isPebbleClient ? "Integration key header" : "Fallback key header"}
+                      {isPebbleClient
+                        ? m.settings_client_key_header_pebble()
+                        : m.settings_client_key_header_fallback()}
                     </dt>
                     <dd className="col-sm-8">
                       <code>X-Integration-Key</code>
@@ -448,7 +434,7 @@ export function IntegrationClientsSection({ backendBaseUrl }: IntegrationClients
                       className="btn btn-outline-primary btn-sm"
                       onClick={() => void copyApiKey()}
                     >
-                      Copy client secret
+                      {m.settings_client_copy_secret()}
                     </button>
                     {copyStatus ? (
                       <small className="text-muted align-self-center">{copyStatus}</small>

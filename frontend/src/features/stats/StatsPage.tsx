@@ -51,7 +51,7 @@ export function StatsPage() {
     summaryQuery.error instanceof Error
       ? summaryQuery.error.message
       : summaryQuery.error
-        ? "Unable to load analytics."
+        ? m.load_analytics_failed()
         : null;
   const canRetry = summaryQuery.error ? isRetryableApiError(summaryQuery.error) : false;
 
@@ -370,7 +370,7 @@ function TrendAreaChart({ rows, stroke, fill, ariaLabel, tooltipLabel }: TrendAr
                   ),
                   values: dates,
                   format: (value: string) => shortDate(value),
-                  ariaLabel: `${ariaLabel} range`,
+                  ariaLabel: m.stats_range_label({ label: ariaLabel }),
                 }),
               ],
             }

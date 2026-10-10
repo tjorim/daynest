@@ -67,7 +67,7 @@ export function CalendarEventModal({
               ref={closeButtonRef}
               type="button"
               className="btn-close"
-              aria-label="Close"
+              aria-label={m.ui_close()}
               onClick={onClose}
             />
           </div>

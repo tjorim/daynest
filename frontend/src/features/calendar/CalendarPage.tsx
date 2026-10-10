@@ -131,7 +131,7 @@ export function CalendarPage() {
       setDayActionStatus(successMessage);
       setSelectedItem(null);
     } catch (err) {
-      planned.setAddError(err instanceof Error ? err.message : "Action failed.");
+      planned.setAddError(err instanceof Error ? err.message : m.ui_action_failed());
     } finally {
       setIsRunningDayAction(false);
     }
@@ -189,11 +189,7 @@ export function CalendarPage() {
   const loading = rangeQuery.isPending || dayQuery.isPending || plannedQuery.isPending;
   const queryError = rangeQuery.error ?? dayQuery.error ?? plannedQuery.error;
   const error =
-    queryError instanceof Error
-      ? queryError.message
-      : queryError
-        ? "Unable to load calendar view."
-        : null;
+    queryError instanceof Error ? queryError.message : queryError ? m.load_calendar_failed() : null;
 
   return (
     <section>

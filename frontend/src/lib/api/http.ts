@@ -2,6 +2,7 @@ import { buildApiUrl } from "@/lib/api/serverConfig";
 import { getOidcAccessToken, renewOidcAccessToken } from "@/lib/auth/session";
 import { enqueue as enqueueOffline } from "@/lib/offlineQueue";
 import { z } from "zod";
+import * as m from "@/paraglide/messages";
 
 export class ApiError extends Error {
   readonly status: number;
@@ -115,7 +116,7 @@ export async function fetchWithAuth(
 
 export async function parseJsonResponse<T>(
   response: Response,
-  fallbackMessage = "Request failed",
+  fallbackMessage = m.api_request_failed(),
   isIdempotent = true,
   schema?: z.ZodType<T>,
 ): Promise<T> {
@@ -146,7 +147,7 @@ export async function parseJsonResponse<T>(
     } catch {
       // keep fallback message
     }
-    const fullMessage = requestId ? `${message} [request-id: ${requestId}]` : message;
+    const fullMessage = requestId ? m.api_with_request_id({ message, id: requestId }) : message;
     throw new ApiError(
       fullMessage,
       response.status,
@@ -169,8 +170,8 @@ export async function parseJsonResponse<T>(
       })
       .join(", ");
     const fullMessage = requestId
-      ? `Invalid response format: ${details} [request-id: ${requestId}]`
-      : `Invalid response format: ${details}`;
+      ? m.api_invalid_response_with_request_id({ details, id: requestId })
+      : m.api_invalid_response({ details });
     throw new ApiError(fullMessage, response.status, false, requestId);
   }
 
@@ -182,7 +183,7 @@ export async function getJson<T>(
   schema: z.ZodType<T>,
   signal?: AbortSignal,
   retries = 1,
-  fallbackMessage = "Request failed",
+  fallbackMessage = m.api_request_failed(),
 ): Promise<T> {
   const response = await fetchWithAuth(
     path,
@@ -200,7 +201,7 @@ export async function sendJson<T>(
   path: string,
   body: unknown,
   schema: z.ZodType<T>,
-  fallbackMessage = "Request failed",
+  fallbackMessage = m.api_request_failed(),
 ): Promise<T> {
   const response = await fetchWithAuth(path, {
     method,

@@ -1,5 +1,6 @@
 import { fetchWithAuth, getJson, parseJsonResponse, sendJson } from "@/lib/api/http";
 import { z } from "zod";
+import * as m from "@/paraglide/messages";
 
 export interface RoutineTemplate {
   id: number;
@@ -88,7 +89,7 @@ export async function deleteRoutineTemplate(routineTemplateId: number): Promise<
 
   if (!response.ok) {
     // Error-only parse; successful deletes return 204 with no JSON body.
-    await parseJsonResponse<never>(response, "Request failed", false);
+    await parseJsonResponse<never>(response, m.api_request_failed(), false);
   }
 }
 
@@ -115,6 +116,6 @@ export async function deleteChoreTemplate(choreTemplateId: number): Promise<void
 
   if (!response.ok) {
     // Error-only parse; successful deletes return 204 with no JSON body.
-    await parseJsonResponse<never>(response, "Request failed", false);
+    await parseJsonResponse<never>(response, m.api_request_failed(), false);
   }
 }

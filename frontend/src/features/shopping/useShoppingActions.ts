@@ -13,6 +13,7 @@ import {
 } from "@/lib/api/shoppingLists";
 import type { PlannedTodayItem } from "@/lib/api/today";
 import { queryKeys } from "@/lib/query/queryKeys";
+import * as m from "@/paraglide/messages";
 
 type MutationOptions = { refresh?: boolean };
 
@@ -74,7 +75,7 @@ export function useShoppingActions(onRefresh?: () => Promise<unknown>) {
         await onRefresh();
       }
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : "Action failed");
+      setActionError(err instanceof Error ? err.message : m.ui_action_failed());
       throw err;
     } finally {
       setIsSubmitting(false);

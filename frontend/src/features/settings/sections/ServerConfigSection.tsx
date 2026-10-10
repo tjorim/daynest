@@ -27,11 +27,11 @@ export function ServerConfigSection({
     try {
       parsed = new URL(trimmed);
     } catch {
-      setServerUrlError("Enter a valid absolute URL.");
+      setServerUrlError(m.settings_server_url_invalid());
       return;
     }
     if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
-      setServerUrlError("URL must use https:// or http://.");
+      setServerUrlError(m.settings_server_url_protocol());
       return;
     }
     setCustomServerUrl(parsed.origin);

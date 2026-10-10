@@ -1,5 +1,6 @@
 import { getOidcAccessToken } from "@/lib/auth/session";
 import { buildApiUrl } from "@/lib/api/serverConfig";
+import * as m from "@/paraglide/messages";
 
 export interface AuthUser {
   id: number;
@@ -79,7 +80,7 @@ export async function fetchMe(accessToken: string): Promise<AuthUser> {
     },
   });
 
-  return parseJsonResponse<AuthUser>(response, "Unable to load session");
+  return parseJsonResponse<AuthUser>(response, m.api_session_load_failed());
 }
 
 export async function listOAuthSessions(): Promise<OAuthSession[]> {
@@ -93,7 +94,7 @@ export async function listOAuthSessions(): Promise<OAuthSession[]> {
       Authorization: `Bearer ${token}`,
     },
   });
-  return parseJsonResponse<OAuthSession[]>(response, "Unable to load OAuth sessions");
+  return parseJsonResponse<OAuthSession[]>(response, m.api_oauth_sessions_load_failed());
 }
 
 export async function revokeOAuthSession(sessionId: string): Promise<void> {
@@ -108,6 +109,6 @@ export async function revokeOAuthSession(sessionId: string): Promise<void> {
     },
   });
   if (!response.ok) {
-    await parseJsonResponse<never>(response, "Failed to revoke session");
+    await parseJsonResponse<never>(response, m.api_session_revoke_failed());
   }
 }
