@@ -7,6 +7,7 @@
     "dev": "vite",
     "dev:mock": "cross-env VITE_MSW=true vite",
     "paraglide:compile": "paraglide-js compile --project ./project.inlang --outdir ./src/paraglide --emit-ts-declarations",
+    "check-message-parity": "node scripts/check-message-parity.mjs",
     "build": "pnpm paraglide:compile && tsc -b && vite build",
     "build:mock": "cross-env VITE_MSW=true pnpm build",
     "preview": "vite preview",
