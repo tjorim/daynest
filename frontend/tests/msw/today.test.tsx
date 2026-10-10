@@ -13,7 +13,13 @@ vi.mock("@/app/providers/AuthProvider", async (importOriginal) => {
   return {
     ...actual,
     useAuth: () => ({
-      user: { id: 1, email: "demo@daynest.app", full_name: "Demo User", is_active: true, roles: ["user"] },
+      user: {
+        id: 1,
+        email: "demo@daynest.app",
+        full_name: "Demo User",
+        is_active: true,
+        roles: ["user"],
+      },
       isLoading: false,
       isAuthenticated: true,
       login: () => {},

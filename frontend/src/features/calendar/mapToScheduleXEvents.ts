@@ -31,17 +31,19 @@ export function mapToScheduleXEvents(items: UnifiedDayItem[]): CalendarEvent[] {
       ? toZonedDateTime(start.add(item.duration_minutes ?? DEFAULT_DURATION_MINUTES, "minute"))
       : Temporal.PlainDate.from(item.scheduled_date as string);
 
-    return [{
-      id: `${item.item_type}-${item.item_id}`,
-      title: item.title,
-      start: eventStart,
-      end: eventEnd,
-      calendarId: item.item_type,
-      _type: item.item_type,
-      _status: item.status,
-      _itemId: item.item_id,
-      _moduleKey: item.module_key,
-      _options: item.item_type === "planned" ? undefined : { disableDND: true },
-    }];
+    return [
+      {
+        id: `${item.item_type}-${item.item_id}`,
+        title: item.title,
+        start: eventStart,
+        end: eventEnd,
+        calendarId: item.item_type,
+        _type: item.item_type,
+        _status: item.status,
+        _itemId: item.item_id,
+        _moduleKey: item.module_key,
+        _options: item.item_type === "planned" ? undefined : { disableDND: true },
+      },
+    ];
   });
 }

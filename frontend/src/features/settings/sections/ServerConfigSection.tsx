@@ -4,7 +4,11 @@ import { getCustomServerUrl, setCustomServerUrl } from "@/lib/api/serverConfig";
 
 type ServerMode = "default" | "custom";
 
-export function ServerConfigSection({ onBaseUrlChange }: { onBaseUrlChange: (url: string) => void }) {
+export function ServerConfigSection({
+  onBaseUrlChange,
+}: {
+  onBaseUrlChange: (url: string) => void;
+}) {
   const [serverMode, setServerMode] = useState<ServerMode>(() =>
     getCustomServerUrl() ? "custom" : "default",
   );
@@ -23,11 +27,11 @@ export function ServerConfigSection({ onBaseUrlChange }: { onBaseUrlChange: (url
     try {
       parsed = new URL(trimmed);
     } catch {
-      setServerUrlError("Enter a valid absolute URL.");
+      setServerUrlError(m.settings_server_url_invalid());
       return;
     }
     if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
-      setServerUrlError("URL must use https:// or http://.");
+      setServerUrlError(m.settings_server_url_protocol());
       return;
     }
     setCustomServerUrl(parsed.origin);
@@ -76,16 +80,10 @@ export function ServerConfigSection({ onBaseUrlChange }: { onBaseUrlChange: (url
               placeholder={m.settings_custom_placeholder()}
               aria-label={m.settings_custom_placeholder()}
             />
-            {serverUrlError ? (
-              <div className="invalid-feedback">{serverUrlError}</div>
-            ) : null}
+            {serverUrlError ? <div className="invalid-feedback">{serverUrlError}</div> : null}
           </div>
         ) : null}
-        <button
-          type="button"
-          className="btn btn-outline-primary btn-sm"
-          onClick={applyServerUrl}
-        >
+        <button type="button" className="btn btn-outline-primary btn-sm" onClick={applyServerUrl}>
           {m.settings_apply()}
         </button>
       </div>

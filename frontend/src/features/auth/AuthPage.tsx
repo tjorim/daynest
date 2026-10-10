@@ -63,10 +63,7 @@ export function AuthPage() {
             >
               {isBusy ? (
                 <>
-                  <span
-                    className="spinner-border spinner-border-sm me-2"
-                    aria-hidden="true"
-                  />
+                  <span className="spinner-border spinner-border-sm me-2" aria-hidden="true" />
                   {m.auth_loading()}
                 </>
               ) : (

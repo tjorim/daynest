@@ -10,7 +10,7 @@ import {
 function formatPlannedMeta(item: PlannedTodayItem): string {
   const timeAndDuration = [
     item.time_of_day ? item.time_of_day.slice(0, 5) : null,
-    item.duration_minutes ? `${item.duration_minutes} min` : null,
+    item.duration_minutes ? m.calendar_duration_minutes({ minutes: item.duration_minutes }) : null,
   ]
     .filter(Boolean)
     .join(" · ");
@@ -23,7 +23,7 @@ function formatPlannedMeta(item: PlannedTodayItem): string {
         ? m.calendar_repeat_hint({ hint: item.recurrence_hint })
         : m.calendar_repeats()
       : null,
-    item.linked_source ? `Source: ${item.linked_source}` : null,
+    item.linked_source ? m.calendar_source_label({ source: item.linked_source }) : null,
   ];
 
   return values.filter(Boolean).join(" • ");
@@ -179,7 +179,7 @@ export function PlannedItemsSidebar({
               className="form-select"
               value={moduleKey}
               onChange={(event) => onSetModuleKey(event.target.value as PlannedItemModuleKey | "")}
-              aria-label="Optional module"
+              aria-label={m.calendar_optional_module_label()}
             >
               <option value="">{m.calendar_module_general()}</option>
               <option value="shopping_list">{m.calendar_module_shopping()}</option>
@@ -330,7 +330,10 @@ export function PlannedItemsSidebar({
         <div className="card-header fw-semibold py-2">
           {m.calendar_planned_items_header({ date: formatDate(selectedDate) })}
         </div>
-        <ul className="list-group list-group-flush" aria-label={m.calendar_planned_items_header({ date: formatDate(selectedDate) })}>
+        <ul
+          className="list-group list-group-flush"
+          aria-label={m.calendar_planned_items_header({ date: formatDate(selectedDate) })}
+        >
           {plannedItems.length === 0 ? (
             <li className="list-group-item py-2 text-muted">{m.calendar_no_planned_items()}</li>
           ) : (

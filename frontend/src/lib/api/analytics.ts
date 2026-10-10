@@ -1,5 +1,6 @@
 import { getJson } from "@/lib/api/http";
 import { z } from "zod";
+import * as m from "@/paraglide/messages";
 
 export type AnalyticsPeriod = "week" | "month" | "quarter" | "year";
 
@@ -94,28 +95,34 @@ const analyticsSummarySchema = z.object({
     total_completed: z.number(),
     total_scheduled: z.number(),
     daily_completions: z.array(dailyCountSchema),
-    streaks: z.array(z.object({
-      chore_id: z.number(),
-      name: z.string(),
-      current_streak: z.number(),
-      longest_streak: z.number(),
-    })),
-    most_skipped: z.array(z.object({
-      chore_id: z.number(),
-      name: z.string(),
-      skip_count: z.number(),
-    })),
+    streaks: z.array(
+      z.object({
+        chore_id: z.number(),
+        name: z.string(),
+        current_streak: z.number(),
+        longest_streak: z.number(),
+      }),
+    ),
+    most_skipped: z.array(
+      z.object({
+        chore_id: z.number(),
+        name: z.string(),
+        skip_count: z.number(),
+      }),
+    ),
   }),
   medications: z.object({
     adherence_rate: z.number(),
     total_taken: z.number(),
     total_scheduled: z.number(),
-    daily_adherence: z.array(z.object({
-      date: z.string(),
-      taken: z.number(),
-      total: z.number(),
-      adherence_rate: z.number(),
-    })),
+    daily_adherence: z.array(
+      z.object({
+        date: z.string(),
+        taken: z.number(),
+        total: z.number(),
+        adherence_rate: z.number(),
+      }),
+    ),
   }),
   planned_items: z.object({
     completion_rate: z.number(),
@@ -128,12 +135,14 @@ const analyticsSummarySchema = z.object({
     total_completed: z.number(),
     total_scheduled: z.number(),
     daily_completions: z.array(dailyCountSchema),
-    streaks: z.array(z.object({
-      routine_id: z.number(),
-      name: z.string(),
-      current_streak: z.number(),
-      longest_streak: z.number(),
-    })),
+    streaks: z.array(
+      z.object({
+        routine_id: z.number(),
+        name: z.string(),
+        current_streak: z.number(),
+        longest_streak: z.number(),
+      }),
+    ),
   }),
 });
 
@@ -146,6 +155,6 @@ export async function fetchAnalyticsSummary(
     analyticsSummarySchema,
     signal,
     2,
-    "Failed to load analytics",
+    m.api_analytics_load_failed(),
   );
 }

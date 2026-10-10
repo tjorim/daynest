@@ -27,7 +27,5 @@ export const authHandlers = [
     ]);
   }),
 
-  http.delete("/api/auth/sessions/:sessionId", () =>
-    new HttpResponse(null, { status: 204 }),
-  ),
+  http.delete("/api/auth/sessions/:sessionId", () => new HttpResponse(null, { status: 204 })),
 ];

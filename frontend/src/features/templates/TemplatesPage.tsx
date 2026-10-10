@@ -41,7 +41,7 @@ export function TemplatesPage() {
     queryError instanceof Error
       ? queryError.message
       : queryError
-        ? "Unable to load template data."
+        ? m.load_templates_failed()
         : null;
   const canRetry = queryError ? isRetryableApiError(queryError) : false;
 
@@ -382,7 +382,7 @@ export function TemplatesPage() {
                           return streak && streak.current_streak > 0 ? (
                             <span
                               className="badge text-bg-warning"
-                              title={`Best: ${streak.longest_streak}`}
+                              title={m.templates_best_streak({ count: streak.longest_streak })}
                             >
                               🔥 {streak.current_streak}
                             </span>
@@ -560,7 +560,7 @@ export function TemplatesPage() {
                           return streak && streak.current_streak > 0 ? (
                             <span
                               className="badge text-bg-warning"
-                              title={`Best: ${streak.longest_streak}`}
+                              title={m.templates_best_streak({ count: streak.longest_streak })}
                             >
                               🔥 {streak.current_streak}
                             </span>

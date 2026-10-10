@@ -1,5 +1,6 @@
 import { fetchWithAuth, getJson, parseJsonResponse, sendJson } from "@/lib/api/http";
 import { z } from "zod";
+import * as m from "@/paraglide/messages";
 
 export interface IntegrationClient {
   id: number;
@@ -44,7 +45,12 @@ export async function listIntegrationClients(signal?: AbortSignal): Promise<Inte
 export async function createIntegrationClient(
   input: IntegrationClientInput,
 ): Promise<IntegrationClientCreateResponse> {
-  return sendJson("POST", "/api/integrations/clients", input, integrationClientCreateResponseSchema);
+  return sendJson(
+    "POST",
+    "/api/integrations/clients",
+    input,
+    integrationClientCreateResponseSchema,
+  );
 }
 
 export async function rotateIntegrationClient(
@@ -56,7 +62,7 @@ export async function rotateIntegrationClient(
   });
   return parseJsonResponse(
     response,
-    "Failed to rotate integration client",
+    m.api_integration_client_rotate_failed(),
     false,
     integrationClientCreateResponseSchema,
   );
@@ -68,6 +74,6 @@ export async function revokeIntegrationClient(clientId: number): Promise<void> {
   });
   if (!response.ok) {
     // Error-only parse; successful revocations return 204 with no JSON body.
-    await parseJsonResponse<never>(response, "Failed to revoke integration client");
+    await parseJsonResponse<never>(response, m.api_integration_client_revoke_failed());
   }
 }

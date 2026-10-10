@@ -3,11 +3,12 @@
   "version": "2026.8.2",
   "private": true,
   "type": "module",
-  "packageManager": "pnpm@10.33.0",
   "scripts": {
     "dev": "vite",
     "dev:mock": "cross-env VITE_MSW=true vite",
     "paraglide:compile": "paraglide-js compile --project ./project.inlang --outdir ./src/paraglide --emit-ts-declarations",
+    "check-message-parity": "node scripts/check-message-parity.mjs",
+    "locale:audit": "node scripts/locale-audit.mjs",
     "build": "pnpm paraglide:compile && tsc -b && vite build",
     "build:mock": "cross-env VITE_MSW=true pnpm build",
     "preview": "vite preview",
@@ -15,7 +16,8 @@
     "test": "vitest run",
     "test:e2e": "playwright test",
     "lint": "oxlint",
-    "format": "oxfmt ."
+    "format": "oxfmt .",
+    "format:check": "oxfmt --check ."
   },
   "dependencies": {
     "@inlang/paraglide-js": "^2.25.4",
@@ -60,12 +62,14 @@
     "cross-env": "^10.1.0",
     "jsdom": "^30.1.1",
     "msw": "^2.15.0",
+    "oxc-parser": "^0.153.0",
     "oxfmt": "^0.70.0",
     "oxlint": "^1.85.0",
     "typescript": "^7.0.2",
     "vite": "^8.3.3",
     "vitest": "^5.0.1"
   },
+  "packageManager": "pnpm@10.33.0",
   "msw": {
     "workerDirectory": [
       "public"

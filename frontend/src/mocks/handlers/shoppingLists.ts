@@ -78,7 +78,8 @@ export const shoppingListHandlers = [
     const uniqueSeries = new Map<string, (typeof plannedItems)[number]>();
     for (const item of plannedItems) {
       if (item.module_key === "recurring_grocery" && item.auto_add_to_list_id === listId) {
-        const key = item.recurrence_series_id != null ? String(item.recurrence_series_id) : `item-${item.id}`;
+        const key =
+          item.recurrence_series_id != null ? String(item.recurrence_series_id) : `item-${item.id}`;
         if (!uniqueSeries.has(key)) {
           uniqueSeries.set(key, item);
         }

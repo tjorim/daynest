@@ -10,7 +10,7 @@ live on ``DaynestMcpBackend`` directly.
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from datetime import UTC, date, datetime, time
 from typing import Any
@@ -44,7 +44,7 @@ __all__ = [
 
 
 @contextmanager
-def session_scope(session_factory: Callable[[], Session]) -> Iterator[Session]:
+def session_scope(session_factory: Callable[[], Session]) -> Generator[Session]:
     session = session_factory()
     try:
         yield session

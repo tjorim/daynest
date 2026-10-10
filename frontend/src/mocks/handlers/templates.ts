@@ -6,9 +6,7 @@ import type { RoutineTemplateInput, ChoreTemplateInput } from "@/lib/api/templat
 
 export const templateHandlers = [
   // Routine templates
-  http.get("/api/templates/routines", () =>
-    HttpResponse.json(getMockState().routineTemplates),
-  ),
+  http.get("/api/templates/routines", () => HttpResponse.json(getMockState().routineTemplates)),
 
   http.post("/api/templates/routines", async ({ request }) => {
     const input = (await request.json()) as RoutineTemplateInput;
@@ -36,7 +34,12 @@ export const templateHandlers = [
       return HttpResponse.json({ detail: "Not found" }, { status: 404 });
     }
 
-    const updated = { ...existing, ...input, description: input.description ?? null, due_time: input.due_time ?? null };
+    const updated = {
+      ...existing,
+      ...input,
+      description: input.description ?? null,
+      due_time: input.due_time ?? null,
+    };
     mutateRoutineTemplates((ts) => ts.map((t) => (t.id === id ? updated : t)));
     return HttpResponse.json(updated);
   }),
@@ -48,9 +51,7 @@ export const templateHandlers = [
   }),
 
   // Chore templates
-  http.get("/api/templates/chores", () =>
-    HttpResponse.json(getMockState().choreTemplates),
-  ),
+  http.get("/api/templates/chores", () => HttpResponse.json(getMockState().choreTemplates)),
 
   http.post("/api/templates/chores", async ({ request }) => {
     const input = (await request.json()) as ChoreTemplateInput;

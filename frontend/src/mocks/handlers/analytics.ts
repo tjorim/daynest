@@ -93,7 +93,9 @@ export const analyticsHandlers = [
         total_completed: routinesSum.completed,
         total_scheduled: routinesSum.total,
         daily_completions: routines,
-        streaks: [{ routine_id: 20, name: "Morning routine", current_streak: 7, longest_streak: 21 }],
+        streaks: [
+          { routine_id: 20, name: "Morning routine", current_streak: 7, longest_streak: 21 },
+        ],
       },
     });
   }),

@@ -1,10 +1,6 @@
 import { useEffect, useState } from "react";
 import * as m from "@/paraglide/messages";
-import {
-  listOAuthSessions,
-  revokeOAuthSession,
-  type OAuthSession,
-} from "@/lib/api/auth";
+import { listOAuthSessions, revokeOAuthSession, type OAuthSession } from "@/lib/api/auth";
 
 export function OAuthSessionsSection() {
   const [oauthSessions, setOauthSessions] = useState<OAuthSession[]>([]);
@@ -23,7 +19,7 @@ export function OAuthSessionsSection() {
       }
     } catch (err) {
       if (!signal?.aborted) {
-        setSessionsError(err instanceof Error ? err.message : "Unable to load OAuth sessions.");
+        setSessionsError(err instanceof Error ? err.message : m.load_oauth_sessions_failed());
       }
     } finally {
       if (!signal?.aborted) {
@@ -44,7 +40,7 @@ export function OAuthSessionsSection() {
       await revokeOAuthSession(sessionId);
       await loadSessions();
     } catch (err) {
-      setRevokeError(err instanceof Error ? err.message : "Failed to revoke session.");
+      setRevokeError(err instanceof Error ? err.message : m.revoke_session_failed());
     } finally {
       setRevokingSession(null);
     }
@@ -93,7 +89,9 @@ export function OAuthSessionsSection() {
                     <div>
                       <div className="fw-semibold d-flex align-items-center flex-wrap gap-2">
                         <span>
-                          {clientNames.length > 0 ? clientNames.join(", ") : m.settings_unknown_client()}
+                          {clientNames.length > 0
+                            ? clientNames.join(", ")
+                            : m.settings_unknown_client()}
                         </span>
                         {session.is_current ? (
                           <span className="badge text-bg-primary">{m.settings_this_device()}</span>

@@ -1,5 +1,6 @@
 import { fetchWithAuth, getJson, sendJson } from "@/lib/api/http";
 import { z } from "zod";
+import * as m from "@/paraglide/messages";
 
 export interface CalendarFeedResponse {
   token: string;
@@ -45,7 +46,13 @@ const userSettingsSchema = z.object({
 });
 
 export async function fetchCalendarFeed(signal?: AbortSignal): Promise<CalendarFeedResponse> {
-  return getJson("/api/calendar/feed", calendarFeedResponseSchema, signal, 2, "Failed to load calendar feed");
+  return getJson(
+    "/api/calendar/feed",
+    calendarFeedResponseSchema,
+    signal,
+    2,
+    m.api_calendar_feed_load_failed(),
+  );
 }
 
 export async function regenerateCalendarFeed(): Promise<CalendarFeedResponse> {
@@ -54,16 +61,22 @@ export async function regenerateCalendarFeed(): Promise<CalendarFeedResponse> {
     "/api/calendar/feed/regenerate",
     undefined,
     calendarFeedResponseSchema,
-    "Failed to regenerate calendar feed",
+    m.api_calendar_feed_regenerate_failed(),
   );
 }
 
 export async function fetchUserSettings(signal?: AbortSignal): Promise<UserSettings> {
-  return getJson("/api/users/me/settings", userSettingsSchema, signal, 2, "Request failed");
+  return getJson("/api/users/me/settings", userSettingsSchema, signal, 2, m.api_request_failed());
 }
 
 export async function updateUserSettings(patch: UserSettingsPatch): Promise<UserSettings> {
-  return sendJson("PATCH", "/api/users/me/settings", patch, userSettingsSchema, "Failed to update settings");
+  return sendJson(
+    "PATCH",
+    "/api/users/me/settings",
+    patch,
+    userSettingsSchema,
+    m.api_settings_update_failed(),
+  );
 }
 
 export async function deleteAccount(): Promise<void> {
@@ -72,7 +85,7 @@ export async function deleteAccount(): Promise<void> {
     return;
   }
 
-  let message = "Failed to delete account";
+  let message: string = m.api_account_delete_failed();
   try {
     const body = (await response.json()) as { detail?: unknown };
     if (typeof body.detail === "string") message = body.detail;

@@ -46,7 +46,9 @@ function toSeries(item: PlannedTodayItem): RecurringGrocerySeries {
   };
 }
 
-export async function listRecurringGroceries(signal?: AbortSignal): Promise<RecurringGrocerySeries[]> {
+export async function listRecurringGroceries(
+  signal?: AbortSignal,
+): Promise<RecurringGrocerySeries[]> {
   const items = await listPlannedItems(undefined, undefined, signal);
   const grouped = new Map<string, PlannedTodayItem>();
 
@@ -64,7 +66,9 @@ export async function listRecurringGroceries(signal?: AbortSignal): Promise<Recu
     .map(toSeries);
 }
 
-export async function createRecurringGrocery(input: RecurringGroceryInput): Promise<PlannedTodayItem> {
+export async function createRecurringGrocery(
+  input: RecurringGroceryInput,
+): Promise<PlannedTodayItem> {
   return createPlannedItem({
     title: input.title,
     planned_for: input.planned_for,

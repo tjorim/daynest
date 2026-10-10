@@ -17,7 +17,10 @@ afterEach(() => {
 
 describe("fetchWithAuth 401 recovery", () => {
   it("returns the response unchanged when not a 401", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(null, { status: 200 })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(null, { status: 200 })),
+    );
 
     const response = await fetchWithAuth("/api/today");
 
@@ -31,7 +34,9 @@ describe("fetchWithAuth 401 recovery", () => {
       "fetch",
       vi.fn(async () => {
         calls += 1;
-        return calls === 1 ? new Response(null, { status: 401 }) : new Response(null, { status: 200 });
+        return calls === 1
+          ? new Response(null, { status: 401 })
+          : new Response(null, { status: 200 });
       }),
     );
     sessionMock.renewOidcAccessToken.mockResolvedValue("renewed-token");
@@ -46,7 +51,10 @@ describe("fetchWithAuth 401 recovery", () => {
   });
 
   it("returns the original 401 response when renewal fails", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(null, { status: 401 })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(null, { status: 401 })),
+    );
     sessionMock.renewOidcAccessToken.mockResolvedValue(null);
 
     const response = await fetchWithAuth("/api/today");

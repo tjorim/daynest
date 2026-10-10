@@ -1,5 +1,6 @@
 import { fetchWithAuth, getJson, parseJsonResponse, sendJson } from "@/lib/api/http";
 import { z } from "zod";
+import * as m from "@/paraglide/messages";
 
 export type MedicationDoseStatus = "scheduled" | "taken" | "skipped" | "missed";
 
@@ -102,13 +103,17 @@ export async function deleteMedicationPlan(medicationPlanId: number): Promise<vo
 
   if (!response.ok) {
     // Error-only parse; successful deletes return 204 with no JSON body.
-    await parseJsonResponse<never>(response, "Request failed", false);
+    await parseJsonResponse<never>(response, m.api_request_failed(), false);
   }
 }
 
 export async function fetchMedicationHistory(
   signal?: AbortSignal,
 ): Promise<MedicationHistoryItem[]> {
-  const payload = await getJson("/api/medication-doses/history", medicationHistoryResponseSchema, signal);
+  const payload = await getJson(
+    "/api/medication-doses/history",
+    medicationHistoryResponseSchema,
+    signal,
+  );
   return payload.history;
 }

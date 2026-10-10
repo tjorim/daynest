@@ -21,6 +21,7 @@ import {
   type MedicationTodayItem,
 } from "@/lib/api/medications";
 import { z } from "zod";
+import * as m from "@/paraglide/messages";
 
 export type TaskStatus = "pending" | "in_progress" | "completed" | "skipped";
 export type ChoreStatus = "pending" | "completed" | "skipped";
@@ -30,7 +31,12 @@ export type PlannedItemModuleKey =
   | "recurring_grocery"
   | "shared_calendar";
 
-export type { MedicationDoseStatus, MedicationHistoryItem, MedicationMutationResponse, MedicationTodayItem };
+export type {
+  MedicationDoseStatus,
+  MedicationHistoryItem,
+  MedicationMutationResponse,
+  MedicationTodayItem,
+};
 
 export interface RoutineTodayItem {
   task_instance_id: number;
@@ -221,8 +227,15 @@ export const plannedTodayItemSchema = z.object({
   linked_source: z.string().nullable(),
   linked_ref: z.string().nullable(),
   auto_add_to_list_id: z.number().int().nullable().optional(),
-  priority: plannedItemPrioritySchema.nullable().transform((v) => v ?? undefined).optional(),
-  tags: z.array(z.string()).nullable().transform((v) => v ?? undefined).optional(),
+  priority: plannedItemPrioritySchema
+    .nullable()
+    .transform((v) => v ?? undefined)
+    .optional(),
+  tags: z
+    .array(z.string())
+    .nullable()
+    .transform((v) => v ?? undefined)
+    .optional(),
   is_done: z.boolean(),
 });
 
@@ -318,7 +331,7 @@ export interface TaskMutationResponse {
 }
 
 export async function fetchToday(signal?: AbortSignal): Promise<TodayPayload> {
-  return getJson("/api/today", TodayResponseSchema, signal, 1, "Unable to load today's data");
+  return getJson("/api/today", TodayResponseSchema, signal, 1, m.api_today_load_failed());
 }
 
 export async function fetchCalendarMonth(
@@ -362,7 +375,12 @@ export async function updatePlannedItem(
   input: PlannedItemUpdateInput,
   scope: PlannedItemEditScope = "this",
 ): Promise<PlannedTodayItem> {
-  return sendJson("PUT", `/api/planned-items/${plannedItemId}?scope=${scope}`, input, plannedTodayItemSchema);
+  return sendJson(
+    "PUT",
+    `/api/planned-items/${plannedItemId}?scope=${scope}`,
+    input,
+    plannedTodayItemSchema,
+  );
 }
 
 export async function deletePlannedItem(
@@ -376,7 +394,7 @@ export async function deletePlannedItem(
 
   if (!response.ok) {
     // Error-only parse; successful deletes return 204 with no JSON body.
-    await parseJsonResponse<never>(response, "Request failed", false);
+    await parseJsonResponse<never>(response, m.api_request_failed(), false);
   }
 }
 
@@ -402,7 +420,7 @@ export async function completeChore(choreInstanceId: number): Promise<ChoreMutat
     method: "POST",
     headers: { Accept: "application/json" },
   });
-  return parseJsonResponse(response, "Request failed", false, choreMutationResponseSchema);
+  return parseJsonResponse(response, m.api_request_failed(), false, choreMutationResponseSchema);
 }
 
 export async function skipChore(choreInstanceId: number): Promise<ChoreMutationResponse> {
@@ -410,7 +428,7 @@ export async function skipChore(choreInstanceId: number): Promise<ChoreMutationR
     method: "POST",
     headers: { Accept: "application/json" },
   });
-  return parseJsonResponse(response, "Request failed", false, choreMutationResponseSchema);
+  return parseJsonResponse(response, m.api_request_failed(), false, choreMutationResponseSchema);
 }
 
 export async function rescheduleChore(
@@ -425,19 +443,29 @@ export async function rescheduleChore(
     },
     body: JSON.stringify({ scheduled_date: scheduledDate }),
   });
-  return parseJsonResponse(response, "Request failed", false, choreMutationResponseSchema);
+  return parseJsonResponse(response, m.api_request_failed(), false, choreMutationResponseSchema);
 }
 
 export async function takeMedicationDose(
   medicationDoseId: number,
 ): Promise<MedicationMutationResponse> {
-  return sendJson("POST", `/api/medication-doses/${medicationDoseId}/take`, undefined, medicationMutationResponseSchema);
+  return sendJson(
+    "POST",
+    `/api/medication-doses/${medicationDoseId}/take`,
+    undefined,
+    medicationMutationResponseSchema,
+  );
 }
 
 export async function skipMedicationDose(
   medicationDoseId: number,
 ): Promise<MedicationMutationResponse> {
-  return sendJson("POST", `/api/medication-doses/${medicationDoseId}/skip`, undefined, medicationMutationResponseSchema);
+  return sendJson(
+    "POST",
+    `/api/medication-doses/${medicationDoseId}/skip`,
+    undefined,
+    medicationMutationResponseSchema,
+  );
 }
 
 export async function startRoutineTask(taskInstanceId: number): Promise<TaskMutationResponse> {
@@ -445,7 +473,7 @@ export async function startRoutineTask(taskInstanceId: number): Promise<TaskMuta
     method: "POST",
     headers: { Accept: "application/json" },
   });
-  return parseJsonResponse(response, "Request failed", false, taskMutationResponseSchema);
+  return parseJsonResponse(response, m.api_request_failed(), false, taskMutationResponseSchema);
 }
 
 export async function completeRoutineTask(taskInstanceId: number): Promise<TaskMutationResponse> {
@@ -453,7 +481,7 @@ export async function completeRoutineTask(taskInstanceId: number): Promise<TaskM
     method: "POST",
     headers: { Accept: "application/json" },
   });
-  return parseJsonResponse(response, "Request failed", false, taskMutationResponseSchema);
+  return parseJsonResponse(response, m.api_request_failed(), false, taskMutationResponseSchema);
 }
 
 export async function skipRoutineTask(taskInstanceId: number): Promise<TaskMutationResponse> {
@@ -461,7 +489,7 @@ export async function skipRoutineTask(taskInstanceId: number): Promise<TaskMutat
     method: "POST",
     headers: { Accept: "application/json" },
   });
-  return parseJsonResponse(response, "Request failed", false, taskMutationResponseSchema);
+  return parseJsonResponse(response, m.api_request_failed(), false, taskMutationResponseSchema);
 }
 
 // --- Planned item reschedule ---
@@ -475,5 +503,5 @@ export async function reschedulePlannedItem(
     headers: { Accept: "application/json", "Content-Type": "application/json" },
     body: JSON.stringify({ planned_for: newDate }),
   });
-  return parseJsonResponse(response, "Failed to reschedule item", false, plannedTodayItemSchema);
+  return parseJsonResponse(response, m.api_reschedule_failed(), false, plannedTodayItemSchema);
 }

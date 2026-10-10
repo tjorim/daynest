@@ -183,22 +183,26 @@ describe("useTodayActions", () => {
       );
     });
 
-    expect(todayApiMock.updatePlannedItem).toHaveBeenCalledWith(22, {
-      title: "Order groceries",
-      planned_for: "2026-05-17",
-      time_of_day: "10:00:00",
-      duration_minutes: 30,
-      notes: "Before 6 PM",
-      module_key: "shopping_list",
-      recurrence_hint: null,
-      rrule: "FREQ=WEEKLY;BYDAY=SU",
-      linked_source: "note",
-      linked_ref: "abc",
-      auto_add_to_list_id: 7,
-      priority: "high",
-      tags: ["errand", "weekly"],
-      is_done: true,
-    }, "this");
+    expect(todayApiMock.updatePlannedItem).toHaveBeenCalledWith(
+      22,
+      {
+        title: "Order groceries",
+        planned_for: "2026-05-17",
+        time_of_day: "10:00:00",
+        duration_minutes: 30,
+        notes: "Before 6 PM",
+        module_key: "shopping_list",
+        recurrence_hint: null,
+        rrule: "FREQ=WEEKLY;BYDAY=SU",
+        linked_source: "note",
+        linked_ref: "abc",
+        auto_add_to_list_id: 7,
+        priority: "high",
+        tags: ["errand", "weekly"],
+        is_done: true,
+      },
+      "this",
+    );
     expect(onRefresh).toHaveBeenCalledTimes(1);
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.today.all });
   });

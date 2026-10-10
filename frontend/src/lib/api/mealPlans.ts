@@ -2,6 +2,7 @@ import { fetchWithAuth, parseJsonResponse } from "@/lib/api/http";
 import { plannedTodayItemSchema } from "@/lib/api/today";
 import type { PlannedTodayItem } from "@/lib/api/today";
 import { z } from "zod";
+import * as m from "@/paraglide/messages";
 
 export type MealSlotType = "breakfast" | "lunch" | "dinner" | "snack";
 
@@ -121,7 +122,7 @@ export async function listMealPlans(signal?: AbortSignal): Promise<MealPlan[]> {
     headers: { Accept: "application/json" },
     signal,
   });
-  return parseJsonResponse(response, "Unable to load meal plans", true, z.array(mealPlanSchema));
+  return parseJsonResponse(response, m.api_meal_plans_load_failed(), true, z.array(mealPlanSchema));
 }
 
 export async function createMealPlan(input: MealPlanInput): Promise<MealPlan> {
@@ -133,7 +134,7 @@ export async function createMealPlan(input: MealPlanInput): Promise<MealPlan> {
     },
     body: JSON.stringify(input),
   });
-  return parseJsonResponse(response, "Unable to create meal plan", false, mealPlanSchema);
+  return parseJsonResponse(response, m.api_meal_plan_create_failed(), false, mealPlanSchema);
 }
 
 export async function updateMealPlan(
@@ -148,7 +149,7 @@ export async function updateMealPlan(
     },
     body: JSON.stringify(input),
   });
-  return parseJsonResponse(response, "Unable to update meal plan", false, mealPlanSchema);
+  return parseJsonResponse(response, m.api_meal_plan_update_failed(), false, mealPlanSchema);
 }
 
 export async function getMealPlanWeek(
@@ -166,7 +167,7 @@ export async function getMealPlanWeek(
       signal,
     },
   );
-  return parseJsonResponse(response, "Unable to load meal plan week", true, weekGridSchema);
+  return parseJsonResponse(response, m.api_meal_plan_week_load_failed(), true, weekGridSchema);
 }
 
 export async function updateMealSlot(
@@ -182,7 +183,7 @@ export async function updateMealSlot(
     },
     body: JSON.stringify(input),
   });
-  return parseJsonResponse(response, "Unable to update meal slot", false, mealSlotSchema);
+  return parseJsonResponse(response, m.api_meal_slot_update_failed(), false, mealSlotSchema);
 }
 
 export async function generateMealPlanShoppingList(
@@ -194,7 +195,7 @@ export async function generateMealPlanShoppingList(
   });
   return parseJsonResponse(
     response,
-    "Unable to generate shopping list",
+    m.api_shopping_list_generate_failed(),
     false,
     generateShoppingListResponseSchema,
   );

@@ -10,7 +10,10 @@ export function PwaInstallButton() {
   const [isInstalling, setIsInstalling] = useState(false);
   const [canInstallApp, setCanInstallApp] = useState(() => Boolean(getDeferredInstallPrompt()));
 
-  useEffect(() => subscribeInstallPrompt(() => setCanInstallApp(Boolean(getDeferredInstallPrompt()))), []);
+  useEffect(
+    () => subscribeInstallPrompt(() => setCanInstallApp(Boolean(getDeferredInstallPrompt()))),
+    [],
+  );
 
   if (!canInstallApp) {
     return null;

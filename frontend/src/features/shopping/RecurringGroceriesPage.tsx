@@ -60,15 +60,14 @@ export function RecurringGroceriesPage() {
   const [autoAddToListId, setAutoAddToListId] = useState("");
   const [tags, setTags] = useState("");
   const [repeatPreset, setRepeatPreset] = useState<RepeatPreset>("weekly");
-  const [repeatWeekdays, setRepeatWeekdays] = useState<string[]>([selectedDateWeekdayCode(startDate)]);
+  const [repeatWeekdays, setRepeatWeekdays] = useState<string[]>([
+    selectedDateWeekdayCode(startDate),
+  ]);
   const [customInterval, setCustomInterval] = useState(2);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const lists = listsQuery.data ?? [];
-  const listNameById = useMemo(
-    () => new Map(lists.map((list) => [list.id, list.name])),
-    [lists],
-  );
+  const listNameById = useMemo(() => new Map(lists.map((list) => [list.id, list.name])), [lists]);
   const queryError = recurringQuery.error ?? listsQuery.error;
   const error = queryError instanceof Error ? queryError.message : null;
   const canRetry = queryError ? isRetryableApiError(queryError) : false;
@@ -166,7 +165,9 @@ export function RecurringGroceriesPage() {
       </div>
       <p className="text-muted mb-3">{m.recurring_groceries_subtitle()}</p>
 
-      {loading ? <div className="alert alert-info py-2">{m.recurring_groceries_loading()}</div> : null}
+      {loading ? (
+        <div className="alert alert-info py-2">{m.recurring_groceries_loading()}</div>
+      ) : null}
       {error ? (
         <div className="alert alert-danger py-2 d-flex justify-content-between align-items-center gap-2 flex-wrap">
           <span>{error}</span>
@@ -181,7 +182,9 @@ export function RecurringGroceriesPage() {
           ) : null}
         </div>
       ) : null}
-      {actions.actionError ? <div className="alert alert-danger py-2">{actions.actionError}</div> : null}
+      {actions.actionError ? (
+        <div className="alert alert-danger py-2">{actions.actionError}</div>
+      ) : null}
       {successMessage ? <div className="alert alert-success py-2">{successMessage}</div> : null}
 
       <div className="card mb-3">
@@ -279,7 +282,9 @@ export function RecurringGroceriesPage() {
                               setRepeatWeekdays([...repeatWeekdays, weekday.code]);
                               return;
                             }
-                            setRepeatWeekdays(repeatWeekdays.filter((value) => value !== weekday.code));
+                            setRepeatWeekdays(
+                              repeatWeekdays.filter((value) => value !== weekday.code),
+                            );
                           }}
                         />
                         <span className="form-check-label">{weekday.label()}</span>
@@ -312,7 +317,11 @@ export function RecurringGroceriesPage() {
                 disabled={actions.isSubmitting || !title.trim() || !startDate}
                 onClick={() => void submit()}
               >
-                {actions.isSubmitting ? m.action_saving() : editingSeries ? m.action_save() : m.action_add()}
+                {actions.isSubmitting
+                  ? m.action_saving()
+                  : editingSeries
+                    ? m.action_save()
+                    : m.action_add()}
               </button>
               {editingSeries ? (
                 <button
@@ -340,13 +349,18 @@ export function RecurringGroceriesPage() {
                 <div>
                   <h3 className="h5 mb-1">{series.title}</h3>
                   <div className="text-muted small">
-                    {m.recurring_groceries_cadence({ cadence: series.recurrenceHint ?? formatRRule(series.rrule) })}
+                    {m.recurring_groceries_cadence({
+                      cadence: series.recurrenceHint ?? formatRRule(series.rrule),
+                    })}
                   </div>
-                  <div className="text-muted small">{m.shopping_planned_for_date({ date: formatDate(series.startDate) })}</div>
+                  <div className="text-muted small">
+                    {m.shopping_planned_for_date({ date: formatDate(series.startDate) })}
+                  </div>
                   {series.autoAddToListId ? (
                     <div className="text-muted small">
                       {m.recurring_groceries_auto_add_to({
-                        list: listNameById.get(series.autoAddToListId) ?? `#${series.autoAddToListId}`,
+                        list:
+                          listNameById.get(series.autoAddToListId) ?? `#${series.autoAddToListId}`,
                       })}
                     </div>
                   ) : null}
@@ -354,7 +368,9 @@ export function RecurringGroceriesPage() {
                   {series.tags.length ? (
                     <div className="d-flex flex-wrap gap-1 mt-2">
                       {series.tags.map((tag) => (
-                        <span className="badge text-bg-light" key={tag}>{tag}</span>
+                        <span className="badge text-bg-light" key={tag}>
+                          {tag}
+                        </span>
                       ))}
                     </div>
                   ) : null}

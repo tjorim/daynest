@@ -122,7 +122,7 @@ export function AppLayout() {
   return (
     <>
       <a className="skip-link" href="#main-content">
-        Skip to main content
+        {m.ui_skip_to_main()}
       </a>
       {hasLegacyQueue() ? (
         <div role="alert" className="alert alert-warning">

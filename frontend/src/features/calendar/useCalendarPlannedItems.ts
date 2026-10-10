@@ -13,6 +13,7 @@ import {
   type PlannedItemModuleKey,
   type PlannedTodayItem,
 } from "@/lib/api/today";
+import * as m from "@/paraglide/messages";
 
 type RepeatPreset = "daily" | "weekly" | "monthly" | "custom";
 
@@ -85,7 +86,9 @@ export function useCalendarPlannedItems({
   const [recurrenceHint, setRecurrenceHint] = useState("");
   const [isRepeating, setIsRepeating] = useState(false);
   const [repeatPreset, setRepeatPreset] = useState<RepeatPreset>("weekly");
-  const [repeatWeekdays, setRepeatWeekdays] = useState<string[]>([selectedDateWeekdayCode(selectedDate)]);
+  const [repeatWeekdays, setRepeatWeekdays] = useState<string[]>([
+    selectedDateWeekdayCode(selectedDate),
+  ]);
   const [customInterval, setCustomInterval] = useState(2);
   const [linkedSource, setLinkedSource] = useState("");
   const [linkedRef, setLinkedRef] = useState("");
@@ -179,23 +182,29 @@ export function useCalendarPlannedItems({
 
       if (editingPlannedItemId !== null) {
         const currentItem = plannedItems.find((item) => item.id === editingPlannedItemId);
-        await updatePlannedItem(editingPlannedItemId, {
-          ...payload,
-          is_done: currentItem?.is_done ?? false,
-        }, editScope);
+        await updatePlannedItem(
+          editingPlannedItemId,
+          {
+            ...payload,
+            is_done: currentItem?.is_done ?? false,
+          },
+          editScope,
+        );
       } else {
         await createPlannedItem(payload);
       }
 
       const isUpdate = editingPlannedItemId !== null;
       resetPlannedForm();
-      setActionStatus(isUpdate ? "Planned item updated." : "Planned item created.");
+      setActionStatus(isUpdate ? m.calendar_planned_updated() : m.calendar_planned_created());
       await loadCalendar();
     } catch (err) {
       setAddError(
         err instanceof Error
           ? err.message
-          : `Failed to ${editingPlannedItemId !== null ? "update" : "add"} item.`,
+          : editingPlannedItemId !== null
+            ? m.calendar_planned_update_failed()
+            : m.calendar_planned_add_failed(),
       );
     } finally {
       setIsAdding(false);
@@ -220,10 +229,10 @@ export function useCalendarPlannedItems({
         linked_ref: item.linked_ref,
         is_done: !item.is_done,
       });
-      setActionStatus(item.is_done ? "Planned item reopened." : "Planned item marked done.");
+      setActionStatus(item.is_done ? m.calendar_planned_reopened() : m.calendar_planned_done());
       await loadCalendar();
     } catch (err) {
-      setAddError(err instanceof Error ? err.message : "Failed to update item.");
+      setAddError(err instanceof Error ? err.message : m.calendar_planned_update_failed());
     } finally {
       setIsAdding(false);
     }
@@ -239,10 +248,10 @@ export function useCalendarPlannedItems({
       if (editingPlannedItemId === itemId) {
         resetPlannedForm();
       }
-      setActionStatus("Planned item deleted.");
+      setActionStatus(m.calendar_planned_deleted());
       await loadCalendar();
     } catch (err) {
-      setAddError(err instanceof Error ? err.message : "Failed to delete item.");
+      setAddError(err instanceof Error ? err.message : m.calendar_planned_delete_failed());
     } finally {
       setIsAdding(false);
     }
@@ -251,19 +260,19 @@ export function useCalendarPlannedItems({
   const dragReschedulePlannedItem = async (itemId: number, newDate: string) => {
     const prevItems = [...plannedItems];
     // Optimistic update
-    setPlannedItems(plannedItems.map((item) =>
-      item.id === itemId ? { ...item, planned_for: newDate } : item,
-    ));
+    setPlannedItems(
+      plannedItems.map((item) => (item.id === itemId ? { ...item, planned_for: newDate } : item)),
+    );
     setActionStatus(null);
     setAddError(null);
     try {
       await reschedulePlannedItem(itemId, newDate);
     } catch (err) {
       setPlannedItems(prevItems);
-      setAddError(err instanceof Error ? err.message : "Failed to reschedule item.");
+      setAddError(err instanceof Error ? err.message : m.calendar_planned_reschedule_failed());
       return;
     }
-    setActionStatus("Planned item moved.");
+    setActionStatus(m.calendar_planned_moved());
     try {
       await loadCalendar();
     } catch {
@@ -304,9 +313,9 @@ export function useCalendarPlannedItems({
       anchor.click();
       anchor.remove();
       URL.revokeObjectURL(downloadUrl);
-      setBackupStatus(`Exported ${payload.items.length} planned items.`);
+      setBackupStatus(m.calendar_export_done({ count: payload.items.length }));
     } catch (err) {
-      setBackupStatus(err instanceof Error ? err.message : "Export failed.");
+      setBackupStatus(err instanceof Error ? err.message : m.calendar_export_failed());
     } finally {
       setIsExporting(false);
     }
@@ -350,9 +359,13 @@ export function useCalendarPlannedItems({
         }
       }
       await loadCalendar();
-      setBackupStatus(`Import complete. ${imported} imported${failed ? `, ${failed} failed` : ""}.`);
+      setBackupStatus(
+        failed
+          ? m.calendar_import_complete_with_failures({ imported, failed })
+          : m.calendar_import_complete({ imported }),
+      );
     } catch (err) {
-      setBackupStatus(err instanceof Error ? err.message : "Import failed.");
+      setBackupStatus(err instanceof Error ? err.message : m.calendar_import_failed());
     } finally {
       if (fileInputRef.current) {
         fileInputRef.current.value = "";

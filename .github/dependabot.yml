@@ -46,6 +46,23 @@ updates:
       i18n:
         patterns:
           - "@inlang/*"
+      # oidc-client-ts is the engine react-oidc-context wraps
+      oidc:
+        patterns:
+          - "oidc-client-ts"
+          - "react-oidc-context"
+      playwright:
+        patterns:
+          - "@playwright/*"
+          - "@axe-core/playwright"
+      d3:
+        patterns:
+          - "d3-shape"
+          - "@types/d3-shape"
+      canvas-confetti:
+        patterns:
+          - "canvas-confetti"
+          - "@types/canvas-confetti"
       schedule-x:
         patterns:
           - "@schedule-x/*"
@@ -118,6 +135,7 @@ updates:
         patterns:
           - "ruff"
           - "ty"
+          - "pytest"
 
   # Monitor uv-managed Python dependencies for the Home Assistant custom component
   - package-ecosystem: "uv"
@@ -181,9 +199,7 @@ updates:
 
   # Monitor Docker images
   - package-ecosystem: "docker"
-    directories:
-      - "/backend"
-      - "/frontend"
+    directory: "/backend"
     schedule:
       interval: "weekly"
       day: "friday"
