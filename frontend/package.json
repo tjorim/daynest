@@ -15,7 +15,8 @@
     "test": "vitest run",
     "test:e2e": "playwright test",
     "lint": "oxlint",
-    "format": "oxfmt ."
+    "format": "oxfmt .",
+    "format:check": "oxfmt --check ."
   },
   "dependencies": {
     "@inlang/paraglide-js": "^2.25.4",
