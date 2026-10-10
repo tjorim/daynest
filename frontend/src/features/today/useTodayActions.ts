@@ -50,7 +50,10 @@ export function useTodayActions(onRefresh?: () => Promise<void>) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
-  const invalidateRelatedQueries = async (options?: { calendar?: boolean; plannedItems?: boolean }) => {
+  const invalidateRelatedQueries = async (options?: {
+    calendar?: boolean;
+    plannedItems?: boolean;
+  }) => {
     const calls = [queryClient.invalidateQueries({ queryKey: queryKeys.today.all })];
     if (options?.plannedItems) {
       calls.push(queryClient.invalidateQueries({ queryKey: queryKeys.plannedItems.all }));
@@ -82,8 +85,13 @@ export function useTodayActions(onRefresh?: () => Promise<void>) {
     onSuccess: () => invalidateRelatedQueries({ calendar: true }),
   });
   const rescheduleChoreMutation = useMutation({
-    mutationFn: ({ choreInstanceId, scheduledDate }: { choreInstanceId: number; scheduledDate: string }) =>
-      rescheduleChore(choreInstanceId, scheduledDate),
+    mutationFn: ({
+      choreInstanceId,
+      scheduledDate,
+    }: {
+      choreInstanceId: number;
+      scheduledDate: string;
+    }) => rescheduleChore(choreInstanceId, scheduledDate),
     onSuccess: () => invalidateRelatedQueries({ calendar: true }),
   });
   const takeMedicationDoseMutation = useMutation({
@@ -107,8 +115,13 @@ export function useTodayActions(onRefresh?: () => Promise<void>) {
     onSuccess: () => invalidateRelatedQueries({ calendar: true, plannedItems: true }),
   });
   const deletePlannedItemMutation = useMutation({
-    mutationFn: ({ plannedItemId, scope }: { plannedItemId: number; scope: PlannedItemDeleteScope }) =>
-      deletePlannedItem(plannedItemId, scope),
+    mutationFn: ({
+      plannedItemId,
+      scope,
+    }: {
+      plannedItemId: number;
+      scope: PlannedItemDeleteScope;
+    }) => deletePlannedItem(plannedItemId, scope),
     onSuccess: () => invalidateRelatedQueries({ calendar: true, plannedItems: true }),
   });
   const createPlannedItemMutation = useMutation({
@@ -157,7 +170,11 @@ export function useTodayActions(onRefresh?: () => Promise<void>) {
       options?: MutationOptions,
     ) => {
       const nextDate = toIsoDate(dayjs(scheduledDate).add(1, "day"));
-      return runAction(rescheduleChoreMutation, { choreInstanceId, scheduledDate: nextDate }, options);
+      return runAction(
+        rescheduleChoreMutation,
+        { choreInstanceId, scheduledDate: nextDate },
+        options,
+      );
     },
     takeMedicationDose: (medicationDoseInstanceId: number, options?: MutationOptions) =>
       runAction(takeMedicationDoseMutation, medicationDoseInstanceId, options),
@@ -169,11 +186,15 @@ export function useTodayActions(onRefresh?: () => Promise<void>) {
       options?: MutationOptions,
       scope: PlannedItemEditScope = "this",
     ) =>
-      runAction(updatePlannedItemMutation, {
-        plannedItemId: item.id,
-        input: buildPlannedItemPayload(item, isDone),
-        scope,
-      }, options),
+      runAction(
+        updatePlannedItemMutation,
+        {
+          plannedItemId: item.id,
+          input: buildPlannedItemPayload(item, isDone),
+          scope,
+        },
+        options,
+      ),
     deletePlannedItem: (
       plannedItemId: number,
       scope: PlannedItemDeleteScope = "this",
@@ -201,16 +222,20 @@ export function useTodayActions(onRefresh?: () => Promise<void>) {
       scope: PlannedItemEditScope = "this",
       options?: MutationOptions,
     ) =>
-      runAction(updatePlannedItemMutation, {
-        plannedItemId: item.id,
-        input: {
-          auto_add_to_list_id: item.auto_add_to_list_id,
-          priority: item.priority,
-          tags: item.tags,
-          ...updates,
-          is_done: item.is_done,
+      runAction(
+        updatePlannedItemMutation,
+        {
+          plannedItemId: item.id,
+          input: {
+            auto_add_to_list_id: item.auto_add_to_list_id,
+            priority: item.priority,
+            tags: item.tags,
+            ...updates,
+            is_done: item.is_done,
+          },
+          scope,
         },
-        scope,
-      }, options),
+        options,
+      ),
   };
 }

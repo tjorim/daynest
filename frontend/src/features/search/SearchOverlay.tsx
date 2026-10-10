@@ -16,17 +16,15 @@ export function SearchOverlay({ onClose }: { onClose: () => void }) {
   const previousFocusRef = useRef<HTMLElement | null>(null);
   const navigate = useNavigate();
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const searchQuery = useSearchQuery(
-    debouncedQuery,
-    debouncedQuery.length >= MIN_QUERY_LEN,
-  );
+  const searchQuery = useSearchQuery(debouncedQuery, debouncedQuery.length >= MIN_QUERY_LEN);
   const results = searchQuery.data ?? null;
   const loading = searchQuery.isFetching;
-  const error = searchQuery.error instanceof Error
-    ? searchQuery.error.message
-    : searchQuery.error
-      ? "Search failed."
-      : null;
+  const error =
+    searchQuery.error instanceof Error
+      ? searchQuery.error.message
+      : searchQuery.error
+        ? "Search failed."
+        : null;
   useFocusTrap(dialogRef);
 
   const flatItems = useMemo(() => {
@@ -51,7 +49,8 @@ export function SearchOverlay({ onClose }: { onClose: () => void }) {
   }, [activeIndex, flatItems]);
 
   useEffect(() => {
-    previousFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    previousFocusRef.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
     inputRef.current?.focus();
     return () => {
       previousFocusRef.current?.focus();
@@ -133,7 +132,12 @@ export function SearchOverlay({ onClose }: { onClose: () => void }) {
         role="dialog"
         aria-modal="true"
         aria-label={m.app_search()}
-        style={{ width: "min(640px, 96vw)", maxHeight: "70vh", display: "flex", flexDirection: "column" }}
+        style={{
+          width: "min(640px, 96vw)",
+          maxHeight: "70vh",
+          display: "flex",
+          flexDirection: "column",
+        }}
       >
         <div className="card-header p-2">
           <div className="input-group">
@@ -152,10 +156,19 @@ export function SearchOverlay({ onClose }: { onClose: () => void }) {
             />
             {loading ? (
               <span className="input-group-text border-0 bg-transparent">
-                <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true" />
+                <span
+                  className="spinner-border spinner-border-sm"
+                  role="status"
+                  aria-hidden="true"
+                />
               </span>
             ) : null}
-            <button type="button" className="btn btn-link border-0" onClick={onClose} aria-label="Close search">
+            <button
+              type="button"
+              className="btn btn-link border-0"
+              onClick={onClose}
+              aria-label="Close search"
+            >
               <i className="bi bi-x-lg" aria-hidden="true" />
             </button>
           </div>
@@ -167,17 +180,19 @@ export function SearchOverlay({ onClose }: { onClose: () => void }) {
         </div>
 
         <div className="overflow-auto flex-fill">
-          {error ? (
-            <div className="alert alert-danger m-2 py-2">{error}</div>
-          ) : null}
+          {error ? <div className="alert alert-danger m-2 py-2">{error}</div> : null}
 
           {results && totalResults === 0 && !loading ? (
-            <div className="p-3 text-muted text-center">{m.search_no_results({ query: results.query })}</div>
+            <div className="p-3 text-muted text-center">
+              {m.search_no_results({ query: results.query })}
+            </div>
           ) : null}
 
           {results && results.routine_templates.length > 0 ? (
             <div>
-              <div className="px-3 py-1 small fw-semibold text-muted border-bottom">{m.search_routine_templates()}</div>
+              <div className="px-3 py-1 small fw-semibold text-muted border-bottom">
+                {m.search_routine_templates()}
+              </div>
               {results.routine_templates.map((r, i) => (
                 <button
                   key={`routine-${r.id}`}
@@ -191,7 +206,9 @@ export function SearchOverlay({ onClose }: { onClose: () => void }) {
                       <div className="fw-semibold">{r.name}</div>
                       {r.description ? <small className="text-muted">{r.description}</small> : null}
                     </div>
-                    <span className={`badge ${r.is_active ? "text-bg-success" : "text-bg-secondary"}`}>
+                    <span
+                      className={`badge ${r.is_active ? "text-bg-success" : "text-bg-secondary"}`}
+                    >
                       {r.is_active ? m.status_active() : m.status_inactive()}
                     </span>
                   </div>
@@ -202,7 +219,9 @@ export function SearchOverlay({ onClose }: { onClose: () => void }) {
 
           {results && results.chore_templates.length > 0 ? (
             <div>
-              <div className="px-3 py-1 small fw-semibold text-muted border-bottom">{m.search_chore_templates()}</div>
+              <div className="px-3 py-1 small fw-semibold text-muted border-bottom">
+                {m.search_chore_templates()}
+              </div>
               {results.chore_templates.map((c, i) => (
                 <button
                   key={`chore-${c.id}`}
@@ -216,7 +235,9 @@ export function SearchOverlay({ onClose }: { onClose: () => void }) {
                       <div className="fw-semibold">{c.name}</div>
                       {c.description ? <small className="text-muted">{c.description}</small> : null}
                     </div>
-                    <span className={`badge ${c.is_active ? "text-bg-success" : "text-bg-secondary"}`}>
+                    <span
+                      className={`badge ${c.is_active ? "text-bg-success" : "text-bg-secondary"}`}
+                    >
                       {c.is_active ? m.status_active() : m.status_inactive()}
                     </span>
                   </div>
@@ -227,7 +248,9 @@ export function SearchOverlay({ onClose }: { onClose: () => void }) {
 
           {results && results.medication_plans.length > 0 ? (
             <div>
-              <div className="px-3 py-1 small fw-semibold text-muted border-bottom">{m.search_medications()}</div>
+              <div className="px-3 py-1 small fw-semibold text-muted border-bottom">
+                {m.search_medications()}
+              </div>
               {results.medication_plans.map((med, i) => (
                 <button
                   key={`med-${med.id}`}
@@ -239,9 +262,13 @@ export function SearchOverlay({ onClose }: { onClose: () => void }) {
                   <div className="d-flex justify-content-between align-items-center gap-2">
                     <div>
                       <div className="fw-semibold">{med.name}</div>
-                      {med.instructions ? <small className="text-muted">{med.instructions}</small> : null}
+                      {med.instructions ? (
+                        <small className="text-muted">{med.instructions}</small>
+                      ) : null}
                     </div>
-                    <span className={`badge ${med.is_active ? "text-bg-success" : "text-bg-secondary"}`}>
+                    <span
+                      className={`badge ${med.is_active ? "text-bg-success" : "text-bg-secondary"}`}
+                    >
                       {med.is_active ? m.status_active() : m.status_inactive()}
                     </span>
                   </div>
@@ -252,7 +279,9 @@ export function SearchOverlay({ onClose }: { onClose: () => void }) {
 
           {results && results.planned_items.length > 0 ? (
             <div>
-              <div className="px-3 py-1 small fw-semibold text-muted border-bottom">{m.search_planned_items()}</div>
+              <div className="px-3 py-1 small fw-semibold text-muted border-bottom">
+                {m.search_planned_items()}
+              </div>
               {results.planned_items.map((p, i) => (
                 <button
                   key={`planned-${p.id}`}
@@ -267,7 +296,9 @@ export function SearchOverlay({ onClose }: { onClose: () => void }) {
                       <small className="text-muted">{p.planned_for}</small>
                       {p.notes ? <small className="text-muted d-block">{p.notes}</small> : null}
                     </div>
-                    <span className={`badge ${p.is_done ? "text-bg-success" : "text-bg-secondary"}`}>
+                    <span
+                      className={`badge ${p.is_done ? "text-bg-success" : "text-bg-secondary"}`}
+                    >
                       {p.is_done ? m.search_done() : m.search_planned()}
                     </span>
                   </div>

@@ -33,7 +33,8 @@ export function CalendarEventModal({
 
   useEffect(() => {
     if (!item) return;
-    previousFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    previousFocusRef.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
     closeButtonRef.current?.focus();
     return () => {
       previousFocusRef.current?.focus();
@@ -62,7 +63,13 @@ export function CalendarEventModal({
                 {item.title}
               </h2>
             </div>
-            <button ref={closeButtonRef} type="button" className="btn-close" aria-label="Close" onClick={onClose} />
+            <button
+              ref={closeButtonRef}
+              type="button"
+              className="btn-close"
+              aria-label="Close"
+              onClick={onClose}
+            />
           </div>
           <div className="modal-body d-grid gap-2">
             <div>

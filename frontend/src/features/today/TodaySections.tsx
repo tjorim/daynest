@@ -33,9 +33,9 @@ export type TodaySection = {
 };
 
 export function isItemActionable(item: SectionItem): boolean {
-  if (item.medicationDoseInstanceId) return item.medicationStatus === "scheduled" || item.medicationStatus === "missed";
-  if (item.taskInstanceId)
-    return item.taskStatus !== "completed" && item.taskStatus !== "skipped";
+  if (item.medicationDoseInstanceId)
+    return item.medicationStatus === "scheduled" || item.medicationStatus === "missed";
+  if (item.taskInstanceId) return item.taskStatus !== "completed" && item.taskStatus !== "skipped";
   if (item.choreInstanceId)
     return item.choreStatus !== "completed" && item.choreStatus !== "skipped";
   if (item.plannedItem) return !item.plannedItem.is_done;
@@ -172,22 +172,20 @@ export function buildPlannedItems(items: PlannedTodayItem[]): SectionItem[] {
       return 0;
     })
     .map((item) => ({
-    id: `planned-${item.id}`,
-    title: item.time_of_day
-      ? `${item.time_of_day.slice(0, 5)} · ${item.title}`
-      : item.title,
-    isRecurring: Boolean(item.rrule || item.recurrence_series_id),
-    subtitle: formatSubtitle(
-      item.is_done
-        ? m.today_planned_done_for({ date: formatDate(item.planned_for) })
-        : m.today_planned_for({ date: formatDate(item.planned_for) }),
-      item.module_key ? m.today_planned_module({ key: item.module_key }) : undefined,
-    ),
-    instructions: item.notes ?? undefined,
-    statusLabel: item.is_done ? m.search_done() : m.search_planned(),
-    statusTone: item.is_done ? "success" : "secondary",
-    plannedItem: item,
-  }));
+      id: `planned-${item.id}`,
+      title: item.time_of_day ? `${item.time_of_day.slice(0, 5)} · ${item.title}` : item.title,
+      isRecurring: Boolean(item.rrule || item.recurrence_series_id),
+      subtitle: formatSubtitle(
+        item.is_done
+          ? m.today_planned_done_for({ date: formatDate(item.planned_for) })
+          : m.today_planned_for({ date: formatDate(item.planned_for) }),
+        item.module_key ? m.today_planned_module({ key: item.module_key }) : undefined,
+      ),
+      instructions: item.notes ?? undefined,
+      statusLabel: item.is_done ? m.search_done() : m.search_planned(),
+      statusTone: item.is_done ? "success" : "secondary",
+      plannedItem: item,
+    }));
 }
 
 export function SummaryCard({
@@ -231,7 +229,9 @@ export function WebFocusPanel({ sections }: { sections: TodaySection[] }) {
       <div className="card-body">
         <div className="d-flex flex-column flex-lg-row justify-content-between gap-3">
           <div>
-            <div className="text-uppercase text-muted small fw-semibold">{m.today_focus_panel_title()}</div>
+            <div className="text-uppercase text-muted small fw-semibold">
+              {m.today_focus_panel_title()}
+            </div>
             <h3 className="h5 mb-1">{nextItem ? nextItem.title : m.today_focus_all_clear()}</h3>
             <p className="text-muted mb-0">
               {nextItem
@@ -239,7 +239,10 @@ export function WebFocusPanel({ sections }: { sections: TodaySection[] }) {
                 : m.today_focus_no_open_actions()}
             </p>
           </div>
-          <div className="focus-progress" aria-label={`${completionPercent}% ${m.today_focus_complete()}`}>
+          <div
+            className="focus-progress"
+            aria-label={`${completionPercent}% ${m.today_focus_complete()}`}
+          >
             <span className="focus-progress-value">{completionPercent}%</span>
             <span className="text-muted small">{m.today_focus_complete()}</span>
           </div>
@@ -291,7 +294,9 @@ function TaskActions({
 
   return (
     <div>
-      {actions.actionError ? <small className="text-danger d-block mb-1">{actions.actionError}</small> : null}
+      {actions.actionError ? (
+        <small className="text-danger d-block mb-1">{actions.actionError}</small>
+      ) : null}
       <div className="d-grid gap-2 d-sm-flex" role="group" aria-label="Task actions">
         <button
           type="button"
@@ -333,13 +338,18 @@ function MedicationActions({
 }) {
   const actions = useTodayActions(onRefresh);
 
-  if (!medicationDoseInstanceId || (medicationStatus !== "scheduled" && medicationStatus !== "missed")) {
+  if (
+    !medicationDoseInstanceId ||
+    (medicationStatus !== "scheduled" && medicationStatus !== "missed")
+  ) {
     return null;
   }
 
   return (
     <div>
-      {actions.actionError ? <small className="text-danger d-block mb-1">{actions.actionError}</small> : null}
+      {actions.actionError ? (
+        <small className="text-danger d-block mb-1">{actions.actionError}</small>
+      ) : null}
       <div className="d-grid gap-2 d-sm-flex" role="group" aria-label="Medication actions">
         <button
           type="button"
@@ -379,7 +389,9 @@ function RoutineActions({
 
   return (
     <div>
-      {actions.actionError ? <small className="text-danger d-block mb-1">{actions.actionError}</small> : null}
+      {actions.actionError ? (
+        <small className="text-danger d-block mb-1">{actions.actionError}</small>
+      ) : null}
       <div className="d-grid gap-2 d-sm-flex" role="group" aria-label="Routine actions">
         {taskStatus === "pending" ? (
           <button
@@ -438,16 +450,20 @@ function PlannedItemActions({
 
   const onSave = async () => {
     if (!plannedItem || !editTitle.trim()) return;
-    await actions.editPlannedItem(plannedItem, {
-      title: editTitle.trim(),
-      planned_for: editPlannedFor,
-      notes: editNotes.trim() || null,
-      module_key: plannedItem.module_key,
-      recurrence_hint: plannedItem.recurrence_hint,
-      rrule: plannedItem.rrule,
-      linked_source: plannedItem.linked_source,
-      linked_ref: plannedItem.linked_ref,
-    }, editScope);
+    await actions.editPlannedItem(
+      plannedItem,
+      {
+        title: editTitle.trim(),
+        planned_for: editPlannedFor,
+        notes: editNotes.trim() || null,
+        module_key: plannedItem.module_key,
+        recurrence_hint: plannedItem.recurrence_hint,
+        rrule: plannedItem.rrule,
+        linked_source: plannedItem.linked_source,
+        linked_ref: plannedItem.linked_ref,
+      },
+      editScope,
+    );
     setIsEditing(false);
   };
 
@@ -521,7 +537,9 @@ function PlannedItemActions({
 
   return (
     <div>
-      {actions.actionError ? <small className="text-danger d-block mb-1">{actions.actionError}</small> : null}
+      {actions.actionError ? (
+        <small className="text-danger d-block mb-1">{actions.actionError}</small>
+      ) : null}
       <div className="d-grid gap-2 d-sm-flex" role="group" aria-label="Planned item actions">
         <button
           type="button"
@@ -716,12 +734,18 @@ export function SectionCard({
                 <div>
                   <div className="fw-medium d-flex align-items-center gap-1">
                     {item.isRecurring ? (
-                      <i className="bi bi-arrow-repeat text-muted" role="img" aria-label={m.today_recurring()} />
+                      <i
+                        className="bi bi-arrow-repeat text-muted"
+                        role="img"
+                        aria-label={m.today_recurring()}
+                      />
                     ) : null}
                     {item.title}
                   </div>
                   {item.instructions ? (
-                    <small className="d-block">{m.today_instructions({ text: item.instructions })}</small>
+                    <small className="d-block">
+                      {m.today_instructions({ text: item.instructions })}
+                    </small>
                   ) : null}
                   {item.subtitle ? <small className="text-muted">{item.subtitle}</small> : null}
                 </div>

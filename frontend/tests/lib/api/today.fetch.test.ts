@@ -60,14 +60,15 @@ describe("today API response validation", () => {
 
     vi.stubGlobal(
       "fetch",
-      vi.fn(async () =>
-        new Response(
-          JSON.stringify({
-            ...payload,
-            days: [{ ...payload.days[0], total: "2" }],
-          }),
-          { status: 200 },
-        ),
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              ...payload,
+              days: [{ ...payload.days[0], total: "2" }],
+            }),
+            { status: 200 },
+          ),
       ),
     );
 
@@ -80,14 +81,15 @@ describe("today API response validation", () => {
   it("throws a clear error when fetchCalendarDay response is invalid", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn(async () =>
-        new Response(
-          JSON.stringify({
-            date: "2026-05-16",
-            items: [{ item_type: "planned", item_id: "13" }],
-          }),
-          { status: 200 },
-        ),
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              date: "2026-05-16",
+              items: [{ item_type: "planned", item_id: "13" }],
+            }),
+            { status: 200 },
+          ),
       ),
     );
 
@@ -110,35 +112,32 @@ describe("today API response validation", () => {
   });
 
   it("passes edit scope for recurring planned-item updates", async () => {
-    const fetchMock = vi.fn(async () =>
-      new Response(
-        JSON.stringify({
-          id: 42,
-          title: "Update",
-          planned_for: "2026-05-20",
-          time_of_day: null,
-          duration_minutes: null,
-          notes: null,
-          module_key: null,
-          recurrence_hint: null,
-          rrule: null,
-          recurrence_series_id: null,
-          linked_source: null,
-          linked_ref: null,
-          is_done: false,
-        }),
-        { status: 200 },
-      ),
+    const fetchMock = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            id: 42,
+            title: "Update",
+            planned_for: "2026-05-20",
+            time_of_day: null,
+            duration_minutes: null,
+            notes: null,
+            module_key: null,
+            recurrence_hint: null,
+            rrule: null,
+            recurrence_series_id: null,
+            linked_source: null,
+            linked_ref: null,
+            is_done: false,
+          }),
+          { status: 200 },
+        ),
     );
     vi.stubGlobal("fetch", fetchMock);
     vi.stubGlobal("navigator", { onLine: true });
 
     await expect(
-      updatePlannedItem(
-        42,
-        { title: "Update", planned_for: "2026-05-20", is_done: false },
-        "all",
-      ),
+      updatePlannedItem(42, { title: "Update", planned_for: "2026-05-20", is_done: false }, "all"),
     ).resolves.toBeDefined();
     expect(fetchMock).toHaveBeenCalledWith(
       expect.stringContaining("/api/planned-items/42?scope=all"),

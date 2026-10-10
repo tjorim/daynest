@@ -109,6 +109,10 @@ export async function deleteMedicationPlan(medicationPlanId: number): Promise<vo
 export async function fetchMedicationHistory(
   signal?: AbortSignal,
 ): Promise<MedicationHistoryItem[]> {
-  const payload = await getJson("/api/medication-doses/history", medicationHistoryResponseSchema, signal);
+  const payload = await getJson(
+    "/api/medication-doses/history",
+    medicationHistoryResponseSchema,
+    signal,
+  );
   return payload.history;
 }

@@ -45,7 +45,13 @@ const userSettingsSchema = z.object({
 });
 
 export async function fetchCalendarFeed(signal?: AbortSignal): Promise<CalendarFeedResponse> {
-  return getJson("/api/calendar/feed", calendarFeedResponseSchema, signal, 2, "Failed to load calendar feed");
+  return getJson(
+    "/api/calendar/feed",
+    calendarFeedResponseSchema,
+    signal,
+    2,
+    "Failed to load calendar feed",
+  );
 }
 
 export async function regenerateCalendarFeed(): Promise<CalendarFeedResponse> {
@@ -63,7 +69,13 @@ export async function fetchUserSettings(signal?: AbortSignal): Promise<UserSetti
 }
 
 export async function updateUserSettings(patch: UserSettingsPatch): Promise<UserSettings> {
-  return sendJson("PATCH", "/api/users/me/settings", patch, userSettingsSchema, "Failed to update settings");
+  return sendJson(
+    "PATCH",
+    "/api/users/me/settings",
+    patch,
+    userSettingsSchema,
+    "Failed to update settings",
+  );
 }
 
 export async function deleteAccount(): Promise<void> {

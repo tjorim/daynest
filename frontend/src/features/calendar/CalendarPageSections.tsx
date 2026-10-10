@@ -330,7 +330,10 @@ export function PlannedItemsSidebar({
         <div className="card-header fw-semibold py-2">
           {m.calendar_planned_items_header({ date: formatDate(selectedDate) })}
         </div>
-        <ul className="list-group list-group-flush" aria-label={m.calendar_planned_items_header({ date: formatDate(selectedDate) })}>
+        <ul
+          className="list-group list-group-flush"
+          aria-label={m.calendar_planned_items_header({ date: formatDate(selectedDate) })}
+        >
           {plannedItems.length === 0 ? (
             <li className="list-group-item py-2 text-muted">{m.calendar_no_planned_items()}</li>
           ) : (

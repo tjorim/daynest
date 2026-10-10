@@ -4,7 +4,11 @@ import { getCustomServerUrl, setCustomServerUrl } from "@/lib/api/serverConfig";
 
 type ServerMode = "default" | "custom";
 
-export function ServerConfigSection({ onBaseUrlChange }: { onBaseUrlChange: (url: string) => void }) {
+export function ServerConfigSection({
+  onBaseUrlChange,
+}: {
+  onBaseUrlChange: (url: string) => void;
+}) {
   const [serverMode, setServerMode] = useState<ServerMode>(() =>
     getCustomServerUrl() ? "custom" : "default",
   );
@@ -76,16 +80,10 @@ export function ServerConfigSection({ onBaseUrlChange }: { onBaseUrlChange: (url
               placeholder={m.settings_custom_placeholder()}
               aria-label={m.settings_custom_placeholder()}
             />
-            {serverUrlError ? (
-              <div className="invalid-feedback">{serverUrlError}</div>
-            ) : null}
+            {serverUrlError ? <div className="invalid-feedback">{serverUrlError}</div> : null}
           </div>
         ) : null}
-        <button
-          type="button"
-          className="btn btn-outline-primary btn-sm"
-          onClick={applyServerUrl}
-        >
+        <button type="button" className="btn btn-outline-primary btn-sm" onClick={applyServerUrl}>
           {m.settings_apply()}
         </button>
       </div>

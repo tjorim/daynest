@@ -41,7 +41,11 @@ export function UserPreferencesSection() {
 
   const timezones = useMemo<string[]>(() => {
     try {
-      return (Intl as { supportedValuesOf?: (key: string) => string[] }).supportedValuesOf?.("timeZone") ?? [];
+      return (
+        (Intl as { supportedValuesOf?: (key: string) => string[] }).supportedValuesOf?.(
+          "timeZone",
+        ) ?? []
+      );
     } catch {
       return [];
     }
@@ -70,9 +74,10 @@ export function UserPreferencesSection() {
     if (hasInitializedUserSettings) return;
     if (!userSettingsQuery.data) {
       if (userSettingsQuery.error) {
-        const msg = userSettingsQuery.error instanceof Error
-          ? userSettingsQuery.error.message
-          : m.settings_timezone_load_error();
+        const msg =
+          userSettingsQuery.error instanceof Error
+            ? userSettingsQuery.error.message
+            : m.settings_timezone_load_error();
         setTimezoneError(msg);
       }
       return;
@@ -124,9 +129,11 @@ export function UserPreferencesSection() {
     if (field === "push_missed_medications_enabled") setPushMissedMedications(checked);
 
     const serverValue =
-      field === "push_overdue_chores_enabled" ? serverConfirmedOverdue :
-      field === "push_medication_reminders_enabled" ? serverConfirmedMedReminders :
-      serverConfirmedMissedMed;
+      field === "push_overdue_chores_enabled"
+        ? serverConfirmedOverdue
+        : field === "push_medication_reminders_enabled"
+          ? serverConfirmedMedReminders
+          : serverConfirmedMissedMed;
     if (checked === serverValue) return;
 
     const prevOverdue = pushOverdueChores;
@@ -198,7 +205,9 @@ export function UserPreferencesSection() {
       await regenerateCalendarFeedMutation.mutateAsync();
       setCalendarFeedCopyStatus(m.settings_calendar_regenerated());
     } catch (err) {
-      setCalendarFeedError(err instanceof Error ? err.message : m.settings_calendar_regenerate_error());
+      setCalendarFeedError(
+        err instanceof Error ? err.message : m.settings_calendar_regenerate_error(),
+      );
     }
   };
 
@@ -251,8 +260,16 @@ export function UserPreferencesSection() {
               </button>
             </div>
           )}
-          <FeedbackBanner message={timezoneError} tone="danger" onDismiss={() => setTimezoneError(null)} />
-          <FeedbackBanner message={timezoneSuccess} tone="success" onDismiss={() => setTimezoneSuccess(null)} />
+          <FeedbackBanner
+            message={timezoneError}
+            tone="danger"
+            onDismiss={() => setTimezoneError(null)}
+          />
+          <FeedbackBanner
+            message={timezoneSuccess}
+            tone="success"
+            onDismiss={() => setTimezoneSuccess(null)}
+          />
         </div>
       </div>
 
@@ -265,7 +282,9 @@ export function UserPreferencesSection() {
               className="form-check-input"
               id="pushOverdueChores"
               checked={pushOverdueChores}
-              onChange={(e) => void handlePushToggle("push_overdue_chores_enabled", e.target.checked)}
+              onChange={(e) =>
+                void handlePushToggle("push_overdue_chores_enabled", e.target.checked)
+              }
             />
             <label className="form-check-label" htmlFor="pushOverdueChores">
               {m.settings_overdue_chore_reminders()}
@@ -277,7 +296,9 @@ export function UserPreferencesSection() {
               className="form-check-input"
               id="pushMedReminders"
               checked={pushMedicationReminders}
-              onChange={(e) => void handlePushToggle("push_medication_reminders_enabled", e.target.checked)}
+              onChange={(e) =>
+                void handlePushToggle("push_medication_reminders_enabled", e.target.checked)
+              }
             />
             <label className="form-check-label" htmlFor="pushMedReminders">
               {m.settings_medication_reminders()}
@@ -289,7 +310,9 @@ export function UserPreferencesSection() {
               className="form-check-input"
               id="pushMissedMed"
               checked={pushMissedMedications}
-              onChange={(e) => void handlePushToggle("push_missed_medications_enabled", e.target.checked)}
+              onChange={(e) =>
+                void handlePushToggle("push_missed_medications_enabled", e.target.checked)
+              }
             />
             <label className="form-check-label" htmlFor="pushMissedMed">
               {m.settings_missed_medication_alerts()}
@@ -368,7 +391,9 @@ export function UserPreferencesSection() {
       </div>
 
       <div className="card mb-3">
-        <div className="card-header fw-semibold py-2">{m.settings_calendar_subscription_header()}</div>
+        <div className="card-header fw-semibold py-2">
+          {m.settings_calendar_subscription_header()}
+        </div>
         <div className="card-body d-grid gap-2">
           <p className="text-muted small mb-1">{m.settings_calendar_subscription_description()}</p>
           <label className="form-label small fw-semibold mb-0" htmlFor="calendarFeedUrl">

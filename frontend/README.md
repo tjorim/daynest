@@ -30,30 +30,30 @@ The service worker (`public/mockServiceWorker.js`) is kept up to date automatica
 
 Append `?mock-scenario=<name>` to the URL to load a specific fixture state. The scenario is applied once on page load; refreshing the page resets it.
 
-| `?mock-scenario=` | Description | Key items to observe |
-|---|---|---|
-| `default` (or omitted) | Busy today view | Medications, routines, chores, planned items |
-| `empty` | Fresh household | All lists empty, first-run surfaces |
-| `busy-today` | Same as default | Multiple items across all sections |
-| `overdue` | Overdue chores + missed medications | Overdue section populated, missed-dose badges |
-| `medication-refill` | All medications active | Refill-needed edge cases |
-| `template-crud` | Templates pre-populated | Routine & chore template lists |
-| `signed-out` | Unauthenticated state | Login prompt, 401 responses |
-| `expired-session` | Expired token | Mid-session 401 responses |
-| `forbidden` | 403 on today + auth/me | Forbidden / access-denied UI |
-| `api-error` | Today endpoint returns 500 | Error boundary / retry UI |
+| `?mock-scenario=`      | Description                         | Key items to observe                          |
+| ---------------------- | ----------------------------------- | --------------------------------------------- |
+| `default` (or omitted) | Busy today view                     | Medications, routines, chores, planned items  |
+| `empty`                | Fresh household                     | All lists empty, first-run surfaces           |
+| `busy-today`           | Same as default                     | Multiple items across all sections            |
+| `overdue`              | Overdue chores + missed medications | Overdue section populated, missed-dose badges |
+| `medication-refill`    | All medications active              | Refill-needed edge cases                      |
+| `template-crud`        | Templates pre-populated             | Routine & chore template lists                |
+| `signed-out`           | Unauthenticated state               | Login prompt, 401 responses                   |
+| `expired-session`      | Expired token                       | Mid-session 401 responses                     |
+| `forbidden`            | 403 on today + auth/me              | Forbidden / access-denied UI                  |
+| `api-error`            | Today endpoint returns 500          | Error boundary / retry UI                     |
 
 ### Recommended screenshot routes
 
-| URL | Viewport | What to capture |
-|---|---|---|
-| `http://localhost:5173/today` | 1280×800 (desktop) | Today overview — all sections |
-| `http://localhost:5173/today` | 390×844 (mobile) | Mobile today view |
-| `http://localhost:5173/today?mock-scenario=overdue` | 1280×800 | Overdue chores + missed meds |
-| `http://localhost:5173/today?mock-scenario=empty` | 1280×800 | Empty / first-run state |
-| `http://localhost:5173/today?mock-scenario=medication-refill` | 1280×800 | All four dose statuses (scheduled, taken, skipped, missed) |
-| `http://localhost:5173/today?mock-scenario=api-error` | 1280×800 | Error UI with retry |
-| `http://localhost:5173/templates?mock-scenario=template-crud` | 1280×800 | Template list with active + inactive items |
+| URL                                                           | Viewport           | What to capture                                            |
+| ------------------------------------------------------------- | ------------------ | ---------------------------------------------------------- |
+| `http://localhost:5173/today`                                 | 1280×800 (desktop) | Today overview — all sections                              |
+| `http://localhost:5173/today`                                 | 390×844 (mobile)   | Mobile today view                                          |
+| `http://localhost:5173/today?mock-scenario=overdue`           | 1280×800           | Overdue chores + missed meds                               |
+| `http://localhost:5173/today?mock-scenario=empty`             | 1280×800           | Empty / first-run state                                    |
+| `http://localhost:5173/today?mock-scenario=medication-refill` | 1280×800           | All four dose statuses (scheduled, taken, skipped, missed) |
+| `http://localhost:5173/today?mock-scenario=api-error`         | 1280×800           | Error UI with retry                                        |
+| `http://localhost:5173/templates?mock-scenario=template-crud` | 1280×800           | Template list with active + inactive items                 |
 
 ---
 
@@ -61,11 +61,11 @@ Append `?mock-scenario=<name>` to the URL to load a specific fixture state. The 
 
 ### Test suites
 
-| Suite | Command | Description |
-|---|---|---|
-| `dom` | `pnpm test` | Component tests (jsdom), mock API via `vi.mock()` |
-| `node` | `pnpm test` | Library / API fetch tests (Node environment) |
-| `msw` | `pnpm test` | Component + API tests backed by real MSW handlers |
+| Suite  | Command     | Description                                       |
+| ------ | ----------- | ------------------------------------------------- |
+| `dom`  | `pnpm test` | Component tests (jsdom), mock API via `vi.mock()` |
+| `node` | `pnpm test` | Library / API fetch tests (Node environment)      |
+| `msw`  | `pnpm test` | Component + API tests backed by real MSW handlers |
 
 Run a specific suite:
 
@@ -90,9 +90,7 @@ import { http, HttpResponse } from "msw";
 
 it("shows error UI on 500", async () => {
   server.use(
-    http.get("/api/v1/today", () =>
-      HttpResponse.json({ detail: "Server error" }, { status: 500 }),
-    ),
+    http.get("/api/v1/today", () => HttpResponse.json({ detail: "Server error" }, { status: 500 })),
   );
   // render and assert error UI...
 });

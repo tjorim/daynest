@@ -5,9 +5,7 @@ import type { UserSettingsPatch } from "@/lib/api/settings";
 let mockCalendarFeedToken = "mock-calendar-feed-token";
 
 export const settingsHandlers = [
-  http.get("/api/users/me/settings", () =>
-    HttpResponse.json(getMockState().settings),
-  ),
+  http.get("/api/users/me/settings", () => HttpResponse.json(getMockState().settings)),
 
   http.patch("/api/users/me/settings", async ({ request }) => {
     const patch = (await request.json()) as UserSettingsPatch;
@@ -71,7 +69,5 @@ export const settingsHandlers = [
     }),
   ),
 
-  http.delete("/api/integrations/clients/:id", () =>
-    new HttpResponse(null, { status: 204 }),
-  ),
+  http.delete("/api/integrations/clients/:id", () => new HttpResponse(null, { status: 204 })),
 ];

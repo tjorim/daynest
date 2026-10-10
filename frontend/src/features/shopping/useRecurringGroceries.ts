@@ -37,8 +37,13 @@ export function useRecurringGroceryActions(onRefresh?: () => Promise<unknown>) {
     onSuccess: invalidateRecurringGroceries,
   });
   const updateMutation = useMutation({
-    mutationFn: ({ series, input }: { series: RecurringGrocerySeries; input: RecurringGroceryInput }) =>
-      updateRecurringGrocery(series, input),
+    mutationFn: ({
+      series,
+      input,
+    }: {
+      series: RecurringGrocerySeries;
+      input: RecurringGroceryInput;
+    }) => updateRecurringGrocery(series, input),
     onSuccess: invalidateRecurringGroceries,
   });
   const deleteMutation = useMutation({
