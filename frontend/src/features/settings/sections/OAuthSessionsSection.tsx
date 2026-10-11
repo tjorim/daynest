@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import * as m from "@/paraglide/messages";
 import { listOAuthSessions, revokeOAuthSession, type OAuthSession } from "@/lib/api/auth";
 import { apiErrorMessage } from "@/lib/api/errorMessages";
+import { formatDateTime } from "@/lib/dateUtils";
 
 export function OAuthSessionsSection() {
   const [oauthSessions, setOauthSessions] = useState<OAuthSession[]>([]);
@@ -77,9 +78,7 @@ export function OAuthSessionsSection() {
           ) : (
             oauthSessions.map((session) => {
               const clientNames = session.clients.map((c) => c.clientName ?? c.clientId);
-              const lastAccess = session.last_access
-                ? new Date(session.last_access).toLocaleString()
-                : null;
+              const lastAccess = session.last_access ? formatDateTime(session.last_access) : null;
               const metaParts = [
                 session.ip_address ? m.settings_ip_address({ ip: session.ip_address }) : null,
                 lastAccess ? m.settings_last_active({ date: lastAccess }) : null,

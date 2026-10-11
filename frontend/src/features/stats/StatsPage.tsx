@@ -14,13 +14,14 @@ import { type AnalyticsPeriod, type DailyCount } from "@/lib/api/analytics";
 import { isRetryableApiError } from "@/lib/api/http";
 import { useStatsSummaryQuery } from "@/features/stats/useStatsQuery";
 import { apiErrorMessage } from "@/lib/api/errorMessages";
+import { formatDate } from "@/lib/dateUtils";
 
 function pct(rate: number): string {
   return `${Math.round(rate * 100)}%`;
 }
 
 function shortDate(date: string): string {
-  return date.slice(5);
+  return formatDate(date);
 }
 
 // Spring transition for area/line redraws as data or the brush selection changes.
