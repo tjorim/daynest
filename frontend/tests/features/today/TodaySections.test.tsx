@@ -18,6 +18,7 @@ import {
   type BulkAction,
 } from "@/features/today/TodaySections";
 import type { SectionItem } from "@/lib/api/today";
+import { setLocale } from "@/paraglide/runtime";
 import { QueryTestProvider } from "../../utils/queryTestProvider";
 
 describe("Today section components", () => {
@@ -558,6 +559,24 @@ describe("build item helpers", () => {
       statusTone: "danger",
       choreStatus: "pending",
     });
+  });
+
+  it("buildOverdueItems formats the overdue date in Dutch", () => {
+    setLocale("nl", { reload: false });
+    try {
+      const [item] = buildOverdueItems([
+        {
+          chore_instance_id: 2,
+          chore_template_id: 1,
+          title: "Dishes",
+          status: "pending",
+          overdue_since: "2026-05-18",
+        },
+      ]);
+      expect(item?.subtitle).toBe("Achterstallig sinds 18 mei");
+    } finally {
+      setLocale("en", { reload: false });
+    }
   });
 
   it("buildUpcomingItems sets upcoming status", () => {

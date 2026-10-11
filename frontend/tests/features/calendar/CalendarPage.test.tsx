@@ -2,6 +2,7 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { CalendarPage } from "@/features/calendar/CalendarPage";
+import { setLocale } from "@/paraglide/runtime";
 import { QueryTestProvider } from "../../utils/queryTestProvider";
 
 vi.mock("@tanstack/react-router", async (importOriginal) => {
@@ -11,7 +12,7 @@ vi.mock("@tanstack/react-router", async (importOriginal) => {
     useNavigate: () => vi.fn(),
     useSearch: () => ({
       month: undefined as string | undefined,
-      date: undefined as string | undefined,
+      date: "2026-05-16" as string | undefined,
     }),
   };
 });
@@ -83,6 +84,24 @@ describe("CalendarPage", () => {
     expect(screen.getByText("Quick add planned item")).toBeInTheDocument();
     expect(screen.getByLabelText("Repeat")).toBeInTheDocument();
     expect(screen.getByText("Backup export/import")).toBeInTheDocument();
+  });
+
+  it.each([
+    ["en", "Planned items · May 16"],
+    ["nl", "Geplande items · 16 mei"],
+  ] as const)("formats the planned items header date for %s", async (locale, header) => {
+    setLocale(locale, { reload: false });
+    try {
+      render(
+        <QueryTestProvider>
+          <CalendarPage />
+        </QueryTestProvider>,
+      );
+
+      expect(await screen.findByText(header)).toBeInTheDocument();
+    } finally {
+      setLocale("en", { reload: false });
+    }
   });
 
   it("shows a repeat indicator for recurring planned items in calendar view", async () => {

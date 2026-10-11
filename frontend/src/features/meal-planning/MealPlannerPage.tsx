@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import * as m from "@/paraglide/messages";
-import { dayjs, formatDate, toIsoDate } from "@/lib/dateUtils";
+import { dayjs, formatDate, formatWeekday, toIsoDate } from "@/lib/dateUtils";
 import { isRetryableApiError } from "@/lib/api/http";
 import { MEAL_SLOT_TYPES, type MealSlot, type MealSlotType } from "@/lib/api/mealPlans";
 import { GenerateShoppingListModal } from "@/features/meal-planning/GenerateShoppingListModal";
@@ -252,7 +252,7 @@ export function MealPlannerPage() {
           <div className="meal-plan-grid-corner" />
           {week.days.map((day) => (
             <div className="meal-plan-day-header" key={day.date}>
-              <div className="fw-semibold">{dayjs(day.date).format("ddd")}</div>
+              <div className="fw-semibold">{formatWeekday(day.date)}</div>
               <div className="small text-muted">{formatDate(day.date)}</div>
             </div>
           ))}
@@ -261,7 +261,7 @@ export function MealPlannerPage() {
               <div className="meal-plan-meal-header">{mealLabel(slotType)}</div>
               {week.days.map((day) => {
                 const slot = day.slots[slotType];
-                const dayLabel = `${dayjs(day.date).format("dddd")}, ${formatDate(day.date)}`;
+                const dayLabel = `${formatWeekday(day.date, "long")}, ${formatDate(day.date)}`;
                 return (
                   <MealSlotCard
                     key={`${day.date}-${slotType}`}

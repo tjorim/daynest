@@ -12,6 +12,7 @@ import { createDragAndDropPlugin } from "@/features/calendar/dragAndDropAdapter"
 import { createEventModalPlugin } from "@schedule-x/event-modal";
 import { ScheduleXCalendar, useCalendarApp } from "@schedule-x/react";
 import * as m from "@/paraglide/messages";
+import { useLanguage } from "@/i18n/LanguageProvider";
 import { isRetryableApiError } from "@/lib/api/http";
 import type { UnifiedDayItem } from "@/lib/api/today";
 import { dayjs, toIsoDate } from "@/lib/dateUtils";
@@ -56,6 +57,7 @@ const calendarDefinitions = Object.fromEntries(
 );
 
 export function CalendarPage() {
+  const { language } = useLanguage();
   const navigate = useNavigate();
   const search = useSearch({ from: "/protected/calendar" });
   // Resolved the same way the route loader resolves it, so the two can
@@ -143,6 +145,7 @@ export function CalendarPage() {
       views: [...views],
       events,
       selectedDate: Temporal.PlainDate.from(selectedDate),
+      locale: language === "nl" ? "nl-NL" : "en-US",
       calendars: calendarDefinitions,
       callbacks: {
         onRangeUpdate: (nextRange) => {
@@ -174,7 +177,7 @@ export function CalendarPage() {
         },
       },
     }),
-    [views, events, selectedDate, calendarDefinitions, setRange, updateSearch],
+    [views, events, selectedDate, language, calendarDefinitions, setRange, updateSearch],
   );
   const calendar = useCalendarApp(calendarConfig, plugins);
   // Stable reference: ScheduleXCalendar destroys and re-renders its entire
