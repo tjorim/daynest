@@ -14,6 +14,7 @@ import {
   useUpdateChoreTemplateMutation,
   useUpdateRoutineTemplateMutation,
 } from "@/features/templates/useTemplateQueries";
+import { apiErrorMessage } from "@/lib/api/errorMessages";
 
 export function TemplatesPage() {
   const [routineSubmitError, setRoutineSubmitError] = useState<string | null>(null);
@@ -37,12 +38,7 @@ export function TemplatesPage() {
   const refreshing =
     (routinesQuery.isFetching || choresQuery.isFetching || analyticsQuery.isFetching) && !loading;
   const queryError = routinesQuery.error ?? choresQuery.error ?? analyticsQuery.error;
-  const error =
-    queryError instanceof Error
-      ? queryError.message
-      : queryError
-        ? m.load_templates_failed()
-        : null;
+  const error = queryError ? apiErrorMessage(queryError, m.load_templates_failed()) : null;
   const canRetry = queryError ? isRetryableApiError(queryError) : false;
 
   const routineStreakMap = useMemo(
@@ -129,7 +125,7 @@ export function TemplatesPage() {
         editingRoutineId !== null ? m.templates_routine_updated() : m.templates_routine_created(),
       );
     } catch (err) {
-      setRoutineSubmitError(err instanceof Error ? err.message : m.templates_routine_save_failed());
+      setRoutineSubmitError(apiErrorMessage(err, m.templates_routine_save_failed()));
     } finally {
       setIsRoutineSubmitting(false);
     }
@@ -166,7 +162,7 @@ export function TemplatesPage() {
         editingChoreId !== null ? m.templates_chore_updated() : m.templates_chore_created(),
       );
     } catch (err) {
-      setChoreSubmitError(err instanceof Error ? err.message : m.templates_chore_save_failed());
+      setChoreSubmitError(apiErrorMessage(err, m.templates_chore_save_failed()));
     } finally {
       setIsChoreSubmitting(false);
     }
@@ -182,9 +178,7 @@ export function TemplatesPage() {
       if (editingRoutineId === routineId) resetRoutineForm();
       setSuccessMessage(m.templates_routine_deleted());
     } catch (err) {
-      setRoutineSubmitError(
-        err instanceof Error ? err.message : m.templates_routine_delete_failed(),
-      );
+      setRoutineSubmitError(apiErrorMessage(err, m.templates_routine_delete_failed()));
     } finally {
       setIsRoutineSubmitting(false);
     }
@@ -200,7 +194,7 @@ export function TemplatesPage() {
       if (editingChoreId === choreId) resetChoreForm();
       setSuccessMessage(m.templates_chore_deleted());
     } catch (err) {
-      setChoreSubmitError(err instanceof Error ? err.message : m.templates_chore_delete_failed());
+      setChoreSubmitError(apiErrorMessage(err, m.templates_chore_delete_failed()));
     } finally {
       setIsChoreSubmitting(false);
     }

@@ -160,6 +160,7 @@ describe("MedicationPage", () => {
     await user.type(screen.getByLabelText(/instructions/i), "After dinner");
     await user.click(screen.getByRole("button", { name: /create/i }));
 
-    expect(await screen.findByText("Failed to save medication")).toBeInTheDocument();
+    expect(await screen.findByText("medication_create_failed")).toBeInTheDocument();
+    expect(screen.queryByText("Failed to save medication")).not.toBeInTheDocument();
   });
 });

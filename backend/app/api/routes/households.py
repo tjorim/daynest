@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, Response, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.api.dependencies.auth import get_current_user
 from app.core.enums import HouseholdMemberRole
+from app.core.errors import ApiException
 from app.db.session import get_db
 from app.models.user import User
 from app.repositories.household_repository import HouseholdRepository
@@ -67,10 +68,16 @@ def get_household(
     repo = HouseholdRepository(db)
     household = repo.get_household(household_id)
     if household is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Household not found")
+        raise ApiException(
+            status_code=status.HTTP_404_NOT_FOUND, code="household_not_found", detail="Household not found"
+        )
     membership = repo.get_membership(household_id=household_id, user_id=current_user.id)
     if membership is None:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not a member of this household")
+        raise ApiException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            code="household_not_a_member",
+            detail="You are not a member of this household",
+        )
     members = repo.list_members(household_id)
     return _household_to_response(household, members)
 
@@ -85,13 +92,21 @@ def update_household(
     repo = HouseholdRepository(db)
     household = repo.get_household(household_id)
     if household is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Household not found")
+        raise ApiException(
+            status_code=status.HTTP_404_NOT_FOUND, code="household_not_found", detail="Household not found"
+        )
     membership = repo.get_membership(household_id=household_id, user_id=current_user.id)
     if membership is None:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not a member of this household")
+        raise ApiException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            code="household_not_a_member",
+            detail="You are not a member of this household",
+        )
     if membership.role != HouseholdMemberRole.owner:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="Only the household owner can update household settings"
+        raise ApiException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            code="household_owner_only",
+            detail="Only the household owner can update household settings",
         )
     household = repo.update_household_name(household, request.name)
     members = repo.list_members(household_id)
@@ -108,26 +123,48 @@ def invite_member(
     repo = HouseholdRepository(db)
     household = repo.get_household(household_id)
     if household is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Household not found")
+        raise ApiException(
+            status_code=status.HTTP_404_NOT_FOUND, code="household_not_found", detail="Household not found"
+        )
     membership = repo.get_membership(household_id=household_id, user_id=current_user.id)
     if membership is None:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not a member of this household")
+        raise ApiException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            code="household_not_a_member",
+            detail="You are not a member of this household",
+        )
     if membership.role != HouseholdMemberRole.owner:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only the household owner can invite members")
+        raise ApiException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            code="household_owner_only",
+            detail="Only the household owner can invite members",
+        )
 
     invitee = repo.get_user_by_email(request.email)
     if invitee is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User with this email not found")
+        raise ApiException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            code="user_email_not_found",
+            detail="User with this email not found",
+        )
 
     existing = repo.get_membership(household_id=household_id, user_id=invitee.id)
     if existing is not None:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="User is already a member of this household")
+        raise ApiException(
+            status_code=status.HTTP_409_CONFLICT,
+            code="household_already_member",
+            detail="User is already a member of this household",
+        )
 
     try:
         new_membership = repo.add_member(household, invitee)
     except IntegrityError:
         db.rollback()
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="User is already a member of this household")
+        raise ApiException(
+            status_code=status.HTTP_409_CONFLICT,
+            code="household_already_member",
+            detail="User is already a member of this household",
+        )
     return HouseholdMemberResponse(
         user_id=invitee.id,
         email=invitee.email,
@@ -147,20 +184,28 @@ def remove_member(
     repo = HouseholdRepository(db)
     household = repo.get_household(household_id)
     if household is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Household not found")
+        raise ApiException(
+            status_code=status.HTTP_404_NOT_FOUND, code="household_not_found", detail="Household not found"
+        )
 
     current_membership = repo.get_membership(household_id=household_id, user_id=current_user.id)
     if current_membership is None:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not a member of this household")
+        raise ApiException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            code="household_not_a_member",
+            detail="You are not a member of this household",
+        )
 
     target_membership = repo.get_membership(household_id=household_id, user_id=user_id)
     if target_membership is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Member not found")
+        raise ApiException(status_code=status.HTTP_404_NOT_FOUND, code="member_not_found", detail="Member not found")
 
     # Owner can remove anyone; non-owners can only remove themselves
     if current_user.id != user_id and current_membership.role != HouseholdMemberRole.owner:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="Only the household owner can remove other members"
+        raise ApiException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            code="household_owner_only",
+            detail="Only the household owner can remove other members",
         )
 
     # Prevent removing the last owner
@@ -168,8 +213,9 @@ def remove_member(
         members = repo.list_members(household_id)
         owner_count = sum(1 for m in members if m.role == HouseholdMemberRole.owner)
         if owner_count <= 1:
-            raise HTTPException(
+            raise ApiException(
                 status_code=status.HTTP_409_CONFLICT,
+                code="household_last_owner",
                 detail="Cannot remove the last owner of a household",
             )
 
@@ -186,13 +232,21 @@ def delete_household(
     repo = HouseholdRepository(db)
     household = repo.get_household(household_id)
     if household is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Household not found")
+        raise ApiException(
+            status_code=status.HTTP_404_NOT_FOUND, code="household_not_found", detail="Household not found"
+        )
     membership = repo.get_membership(household_id=household_id, user_id=current_user.id)
     if membership is None:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not a member of this household")
+        raise ApiException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            code="household_not_a_member",
+            detail="You are not a member of this household",
+        )
     if membership.role != HouseholdMemberRole.owner:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="Only the household owner can delete the household"
+        raise ApiException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            code="household_owner_only",
+            detail="Only the household owner can delete the household",
         )
     repo.delete_household(household)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

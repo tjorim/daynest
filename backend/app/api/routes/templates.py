@@ -1,8 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from fastapi import APIRouter, Depends, Query, Response, status
 from sqlalchemy.orm import Session
 
 from app.api.dependencies.audit import get_audit_actor
 from app.api.dependencies.auth import get_current_user
+from app.core.errors import ApiException
 from app.db.session import get_db
 from app.models.chore_template import ChoreTemplate
 from app.models.routine_template import RoutineTemplate
@@ -55,14 +56,20 @@ def _chore_to_response(template: ChoreTemplate) -> ChoreTemplateResponse:
 def _get_user_routine_template(repository: TodayRepository, user_id: int, routine_template_id: int) -> RoutineTemplate:
     template = repository.get_routine_template_for_user(user_id=user_id, routine_template_id=routine_template_id)
     if template is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Routine template not found")
+        raise ApiException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            code="routine_template_not_found",
+            detail="Routine template not found",
+        )
     return template
 
 
 def _get_user_chore_template(repository: TodayRepository, user_id: int, chore_template_id: int) -> ChoreTemplate:
     template = repository.get_chore_template_for_user(user_id=user_id, chore_template_id=chore_template_id)
     if template is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chore template not found")
+        raise ApiException(
+            status_code=status.HTTP_404_NOT_FOUND, code="chore_template_not_found", detail="Chore template not found"
+        )
     return template
 
 
@@ -71,8 +78,9 @@ def _validate_household_membership(db: Session, user_id: int, household_id: int)
     household_repo = HouseholdRepository(db)
     membership = household_repo.get_membership(household_id=household_id, user_id=user_id)
     if membership is None:
-        raise HTTPException(
+        raise ApiException(
             status_code=status.HTTP_403_FORBIDDEN,
+            code="household_not_a_member",
             detail="You are not a member of this household",
         )
 
@@ -199,8 +207,9 @@ def update_chore_template(
     repository = TodayRepository(db)
     template = _get_user_chore_template(repository, current_user.id, chore_template_id)
     if template.user_id != current_user.id:
-        raise HTTPException(
+        raise ApiException(
             status_code=status.HTTP_403_FORBIDDEN,
+            code="template_owner_only",
             detail="Only the template owner can update this chore template",
         )
     updated = repository.update_chore_template(
@@ -229,8 +238,9 @@ def delete_chore_template(
     repository = TodayRepository(db)
     template = _get_user_chore_template(repository, current_user.id, chore_template_id)
     if template.user_id != current_user.id:
-        raise HTTPException(
+        raise ApiException(
             status_code=status.HTTP_403_FORBIDDEN,
+            code="template_owner_only",
             detail="Only the template owner can delete this chore template",
         )
     repository.delete_chore_template(template, actor=audit_actor)

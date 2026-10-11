@@ -1,10 +1,11 @@
 from dataclasses import dataclass
 from enum import StrEnum
 
-from fastapi import Depends, HTTPException, Query, Request, status
+from fastapi import Depends, Query, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
+from app.core.errors import ApiException
 from app.core.oidc import (
     OIDCTokenError,
     _extract_roles,
@@ -61,16 +62,21 @@ def _set_request_auth_state(request: Request, user: User, claims: dict[str, obje
 def _resolve_user_from_claims(request: Request, db: Session, claims: dict[str, object]) -> User:
     subject = claims.get("sub")
     if not isinstance(subject, str) or not subject:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token subject")
+        raise ApiException(
+            status_code=status.HTTP_401_UNAUTHORIZED, code="invalid_token_subject", detail="Invalid token subject"
+        )
     if _is_keycloak_service_account(claims):
-        raise HTTPException(
+        raise ApiException(
             status_code=status.HTTP_403_FORBIDDEN,
+            code="keycloak_service_accounts_cannot_use_the_user_rest_api",
             detail="Keycloak service accounts cannot use the user REST API",
         )
 
     user = get_or_create_local_user(subject, claims, db)
     if not user.is_active:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User account inactive")
+        raise ApiException(
+            status_code=status.HTTP_401_UNAUTHORIZED, code="user_inactive", detail="User account inactive"
+        )
 
     _set_request_auth_state(request, user, claims)
     return user
@@ -105,11 +111,13 @@ async def get_current_user(
     db: Session = Depends(get_db),
 ) -> User:
     if credentials is None:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+        raise ApiException(
+            status_code=status.HTTP_401_UNAUTHORIZED, code="not_authenticated", detail="Not authenticated"
+        )
     try:
         claims = await decode_oidc_token(credentials.credentials)
     except OIDCTokenError as exc:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(exc)) from exc
+        raise ApiException(status_code=status.HTTP_401_UNAUTHORIZED, code="invalid_token", detail=str(exc)) from exc
 
     return _resolve_user_from_claims(request, db, claims)
 
@@ -120,9 +128,11 @@ async def get_current_user_from_query_token(
     db: Session = Depends(get_db),
 ) -> User:
     if token is None:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+        raise ApiException(
+            status_code=status.HTTP_401_UNAUTHORIZED, code="not_authenticated", detail="Not authenticated"
+        )
     try:
         claims = await decode_oidc_token(token)
     except OIDCTokenError as exc:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(exc)) from exc
+        raise ApiException(status_code=status.HTTP_401_UNAUTHORIZED, code="invalid_token", detail=str(exc)) from exc
     return _resolve_user_from_claims(request, db, claims)

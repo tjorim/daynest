@@ -13,6 +13,7 @@ import {
   useMedicationPlansQuery,
   useUpdateMedicationPlanMutation,
 } from "@/features/medication/useMedicationQueries";
+import { apiErrorMessage } from "@/lib/api/errorMessages";
 
 const medicationPlanFormSchema = z.object({
   name: z.string().trim().min(1),
@@ -84,12 +85,7 @@ export function MedicationPage() {
   const history = historyQuery.data ?? [];
   const loading = plansQuery.isPending || historyQuery.isPending;
   const queryError = plansQuery.error ?? historyQuery.error;
-  const error =
-    queryError instanceof Error
-      ? queryError.message
-      : queryError
-        ? m.load_medication_failed()
-        : null;
+  const error = queryError ? apiErrorMessage(queryError, m.load_medication_failed()) : null;
   const canRetry = queryError ? isRetryableApiError(queryError) : false;
 
   const createForm = useForm({
@@ -122,7 +118,7 @@ export function MedicationPage() {
         });
         setSuccessMessage(m.medication_plan_created());
       } catch (err) {
-        setSubmitError(err instanceof Error ? err.message : m.medication_create_failed());
+        setSubmitError(apiErrorMessage(err, m.medication_create_failed()));
       } finally {
         setIsSubmitting(false);
       }
@@ -143,7 +139,7 @@ export function MedicationPage() {
       setEditingPlan(null);
       setSuccessMessage(m.medication_plan_updated());
     } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : m.medication_update_failed());
+      setSubmitError(apiErrorMessage(err, m.medication_update_failed()));
     } finally {
       setIsSubmitting(false);
     }
@@ -158,7 +154,7 @@ export function MedicationPage() {
       await deletePlanMutation.mutateAsync(planId);
       setSuccessMessage(m.medication_plan_deleted());
     } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : m.medication_delete_failed());
+      setSubmitError(apiErrorMessage(err, m.medication_delete_failed()));
     } finally {
       setDeletingPlanId(null);
     }

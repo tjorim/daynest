@@ -3,6 +3,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthContext } from "@/app/providers/AuthProvider";
+import { ApiError } from "@/lib/api/http";
 import { AccountDeletionSection } from "@/features/settings/sections/AccountDeletionSection";
 
 const apiMock = vi.hoisted(() => ({
@@ -95,17 +96,25 @@ describe("AccountDeletionSection", () => {
     );
     await user.click(screen.getByRole("button", { name: /confirm/i }));
 
-    expect(await screen.findByText("Delete shared chores first.")).toBeInTheDocument();
+    expect(await screen.findByText("Failed to delete account.")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /cancel/i }));
 
-    expect(screen.queryByText("Delete shared chores first.")).not.toBeInTheDocument();
+    expect(screen.queryByText("Failed to delete account.")).not.toBeInTheDocument();
   });
 
-  it("shows the server error when deletion is blocked", async () => {
+  it("shows the translated message when deletion is blocked", async () => {
     const user = userEvent.setup();
     const { logout } = renderSection();
-    apiMock.deleteAccount.mockRejectedValue(new Error("Delete shared chores first."));
+    apiMock.deleteAccount.mockRejectedValue(
+      new ApiError(
+        "Delete shared chores first.",
+        409,
+        false,
+        null,
+        "account_deletion_blocked_shared_chores",
+      ),
+    );
 
     await user.click(screen.getByRole("button", { name: /delete my account/i }));
     await user.type(
@@ -114,7 +123,8 @@ describe("AccountDeletionSection", () => {
     );
     await user.click(screen.getByRole("button", { name: /confirm/i }));
 
-    expect(await screen.findByText("Delete shared chores first.")).toBeInTheDocument();
+    expect(await screen.findByText(/cannot delete your account while you own/)).toBeInTheDocument();
+    expect(screen.queryByText("Delete shared chores first.")).not.toBeInTheDocument();
     expect(logout).not.toHaveBeenCalled();
   });
 });

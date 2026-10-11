@@ -10,12 +10,13 @@ from io import StringIO
 from typing import Any, NoReturn
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from fastapi import HTTPException, status
+from fastapi import status
 from sqlalchemy import delete
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.enums import ChoreStatus, MedicationDoseStatus, Priority, TaskStatus
+from app.core.errors import ApiException
 from app.models.chore_instance import ChoreInstance
 from app.models.chore_template import ChoreTemplate
 from app.models.medication_dose_instance import MedicationDoseInstance
@@ -191,8 +192,9 @@ def user_export_to_csv(payload: Mapping[str, Any]) -> str:
 
 def import_user_export(db: Session, user: User, payload: Mapping[str, Any], *, replace: bool = False) -> dict[str, int]:
     if payload.get("version") != EXPORT_VERSION:
-        raise HTTPException(
+        raise ApiException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            code="unsupported_export_version",
             detail=f"Unsupported export version: {payload.get('version')}",
         )
 
@@ -349,8 +351,9 @@ def import_user_export(db: Session, user: User, payload: Mapping[str, Any], *, r
     except IntegrityError as exc:
         db.rollback()
         logger.error("Import IntegrityError during commit", exc_info=exc)
-        raise HTTPException(
+        raise ApiException(
             status_code=status.HTTP_409_CONFLICT,
+            code="import_conflict",
             detail="Import conflicts with existing data",
         ) from exc
     return counts
@@ -362,8 +365,9 @@ def _flush(db: Session) -> None:
     except IntegrityError as exc:
         db.rollback()
         logger.error("Import IntegrityError during flush", exc_info=exc)
-        raise HTTPException(
+        raise ApiException(
             status_code=status.HTTP_409_CONFLICT,
+            code="import_conflict",
             detail="Import conflicts with existing data",
         ) from exc
 
@@ -526,4 +530,4 @@ def _nullable_datetime(value: Any, field: str) -> datetime | None:
 
 
 def _invalid(detail: str) -> NoReturn:
-    raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=detail)
+    raise ApiException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, code="invalid_import_data", detail=detail)

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import * as m from "@/paraglide/messages";
 import { listOAuthSessions, revokeOAuthSession, type OAuthSession } from "@/lib/api/auth";
+import { apiErrorMessage } from "@/lib/api/errorMessages";
 
 export function OAuthSessionsSection() {
   const [oauthSessions, setOauthSessions] = useState<OAuthSession[]>([]);
@@ -19,7 +20,7 @@ export function OAuthSessionsSection() {
       }
     } catch (err) {
       if (!signal?.aborted) {
-        setSessionsError(err instanceof Error ? err.message : m.load_oauth_sessions_failed());
+        setSessionsError(apiErrorMessage(err, m.load_oauth_sessions_failed()));
       }
     } finally {
       if (!signal?.aborted) {
@@ -40,7 +41,7 @@ export function OAuthSessionsSection() {
       await revokeOAuthSession(sessionId);
       await loadSessions();
     } catch (err) {
-      setRevokeError(err instanceof Error ? err.message : m.revoke_session_failed());
+      setRevokeError(apiErrorMessage(err, m.revoke_session_failed()));
     } finally {
       setRevokingSession(null);
     }

@@ -86,8 +86,8 @@ describe("AuthProvider login returnTo", () => {
     });
   });
 
-  it("falls back to the OIDC error string when message is empty", () => {
-    authMock.oidc.error = { message: "", toString: () => "State mismatch" };
+  it("shows a translated message instead of the raw OIDC error", () => {
+    authMock.oidc.error = { message: "State mismatch" };
 
     render(
       <AuthProvider>
@@ -95,7 +95,8 @@ describe("AuthProvider login returnTo", () => {
       </AuthProvider>,
     );
 
-    expect(screen.getByText("State mismatch")).toBeInTheDocument();
+    expect(screen.getByText("Unable to complete sign in")).toBeInTheDocument();
+    expect(screen.queryByText("State mismatch")).not.toBeInTheDocument();
   });
 
   it("preserves path, search, and hash for app routes", async () => {

@@ -2,7 +2,7 @@ from datetime import UTC, datetime, timedelta
 from secrets import token_urlsafe
 
 import jwt
-from fastapi import APIRouter, Depends, Form, HTTPException, Request, Response, status
+from fastapi import APIRouter, Depends, Form, Request, Response, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -13,6 +13,7 @@ from app.api.dependencies.integration_auth import (
     hash_integration_key,
 )
 from app.core.config import settings
+from app.core.errors import ApiException
 from app.db.session import get_db
 from app.models.integration_client import IntegrationClient
 from app.models.user import User
@@ -202,10 +203,15 @@ def rotate_integration_client(
         )
     )
     if client is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Integration client not found")
+        raise ApiException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            code="integration_client_not_found",
+            detail="Integration client not found",
+        )
     if not client.is_active or client.revoked_at is not None:
-        raise HTTPException(
+        raise ApiException(
             status_code=status.HTTP_409_CONFLICT,
+            code="integration_client_revoked",
             detail="Revoked integration clients cannot be rotated",
         )
     raw_key = f"daynest_{token_urlsafe(30)}"
@@ -237,25 +243,29 @@ def exchange_integration_client_token(
 ) -> IntegrationClientTokenResponse:
     response.headers["Cache-Control"] = "no-store"
     if grant_type != "client_credentials":
-        raise HTTPException(
+        raise ApiException(
             status_code=status.HTTP_400_BAD_REQUEST,
+            code="unsupported_grant_type_expected_client_credentials",
             detail="Unsupported grant_type; expected client_credentials",
         )
     if not client_id.strip() or not client_secret:
-        raise HTTPException(
+        raise ApiException(
             status_code=status.HTTP_401_UNAUTHORIZED,
+            code="invalid_oauth_client_credentials",
             detail="Invalid OAuth client credentials",
         )
 
     client = get_integration_client_by_raw_key(db, client_secret)
     if client is None or not client.is_active:
-        raise HTTPException(
+        raise ApiException(
             status_code=status.HTTP_401_UNAUTHORIZED,
+            code="invalid_oauth_client_credentials",
             detail="Invalid OAuth client credentials",
         )
     if client_id.strip() not in _valid_client_ids(client):
-        raise HTTPException(
+        raise ApiException(
             status_code=status.HTTP_401_UNAUTHORIZED,
+            code="invalid_oauth_client_credentials",
             detail="Invalid OAuth client credentials",
         )
 
@@ -282,7 +292,11 @@ def revoke_integration_client(
         )
     )
     if client is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Integration client not found")
+        raise ApiException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            code="integration_client_not_found",
+            detail="Integration client not found",
+        )
     client.is_active = False
     client.revoked_at = datetime.now(UTC)
     write_audit_entry(

@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from "react";
 import * as m from "@/paraglide/messages";
 import type { WeekGridResponse } from "@/lib/api/mealPlans";
 import { useFocusTrap } from "@/lib/useFocusTrap";
+import { apiErrorMessage } from "@/lib/api/errorMessages";
 
 interface GenerateShoppingListModalProps {
   week: WeekGridResponse;
@@ -42,7 +43,7 @@ export function GenerateShoppingListModal({
     try {
       await onGenerate();
     } catch (err) {
-      setError(err instanceof Error ? err.message : m.meal_plan_generate_error());
+      setError(apiErrorMessage(err, m.meal_plan_generate_error()));
     }
   };
 

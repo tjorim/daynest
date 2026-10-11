@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useTodayActions } from "@/features/today/useTodayActions";
+import { ApiError } from "@/lib/api/http";
 import { queryKeys } from "@/lib/query/queryKeys";
 import { createQueryTestClient } from "../../utils/queryTestProvider";
 
@@ -234,12 +235,20 @@ describe("useTodayActions", () => {
     });
 
     expect(thrown).toBe(mutationError);
-    expect(result.current.actionError).toBe("Action failed hard");
+    expect(result.current.actionError).toBe("Action failed");
 
     act(() => {
       result.current.clearActionError();
     });
     expect(result.current.actionError).toBeNull();
+
+    todayApiMock.skipChore.mockRejectedValueOnce(
+      new ApiError("Chore instance not found", 404, false, null, "chore_instance_not_found"),
+    );
+    await act(async () => {
+      await result.current.skipChore(22).catch(() => undefined);
+    });
+    expect(result.current.actionError).toBe("Chore not found.");
     expect(result.current.isSubmitting).toBe(false);
   });
 

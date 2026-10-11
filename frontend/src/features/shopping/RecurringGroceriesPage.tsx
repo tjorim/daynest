@@ -14,6 +14,7 @@ import {
   selectedDateWeekdayCode,
   type RepeatPreset,
 } from "@/features/shopping/rruleControls";
+import { apiErrorMessage } from "@/lib/api/errorMessages";
 
 const WEEKDAY_REPEAT_OPTIONS = [
   { code: "MO", label: m.calendar_weekday_mon },
@@ -69,7 +70,9 @@ export function RecurringGroceriesPage() {
   const lists = listsQuery.data ?? [];
   const listNameById = useMemo(() => new Map(lists.map((list) => [list.id, list.name])), [lists]);
   const queryError = recurringQuery.error ?? listsQuery.error;
-  const error = queryError instanceof Error ? queryError.message : null;
+  const error = queryError
+    ? apiErrorMessage(queryError, m.recurring_groceries_load_failed())
+    : null;
   const canRetry = queryError ? isRetryableApiError(queryError) : false;
   const loading = recurringQuery.isPending || listsQuery.isPending;
 

@@ -1,10 +1,11 @@
 from datetime import timedelta
 from typing import cast
 
-from fastapi import HTTPException, status
+from fastapi import status
 
 from app.core.config import settings
 from app.core.enums import Priority
+from app.core.errors import ApiException
 from app.models.meal_plan import MealPlan, MealSlot
 from app.repositories.meal_plan_repository import MealPlanRepository
 from app.repositories.shopping_list_repository import ShoppingListRepository
@@ -88,7 +89,9 @@ class MealPlanService:
         self._get_user_plan(user_id, meal_plan_id)
         slot = self.repository.get_slot(user_id=user_id, meal_plan_id=meal_plan_id, slot_id=slot_id)
         if slot is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Meal slot not found")
+            raise ApiException(
+                status_code=status.HTTP_404_NOT_FOUND, code="meal_slot_not_found", detail="Meal slot not found"
+            )
         if "title" in request.model_fields_set and request.title is not None:
             slot.title = request.title
         if "recipe_url" in request.model_fields_set:
@@ -106,8 +109,9 @@ class MealPlanService:
                     PlannedItem.user_id == user_id,
                 )
                 if not self.repository.db.scalar(stmt):
-                    raise HTTPException(
+                    raise ApiException(
                         status_code=status.HTTP_404_NOT_FOUND,
+                        code="planned_item_not_found",
                         detail="Planned item not found",
                     )
             slot.planned_item_id = request.planned_item_id
@@ -131,8 +135,9 @@ class MealPlanService:
                 ingredients.append(normalized)
 
         if not ingredients:
-            raise HTTPException(
+            raise ApiException(
                 status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                code="meal_plan_no_ingredients",
                 detail="Meal plan has no ingredients",
             )
 
@@ -165,7 +170,9 @@ class MealPlanService:
     def _get_user_plan(self, user_id: int, meal_plan_id: int, *, include_slots: bool = False) -> MealPlan:
         plan = self.repository.get_by_id(user_id=user_id, meal_plan_id=meal_plan_id, include_slots=include_slots)
         if plan is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Meal plan not found")
+            raise ApiException(
+                status_code=status.HTTP_404_NOT_FOUND, code="meal_plan_not_found", detail="Meal plan not found"
+            )
         return plan
 
     @staticmethod

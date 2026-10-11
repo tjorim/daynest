@@ -2,6 +2,7 @@ import { useContext, useState } from "react";
 import * as m from "@/paraglide/messages";
 import { AuthContext } from "@/app/providers/AuthProvider";
 import { deleteAccount } from "@/lib/api/settings";
+import { apiErrorMessage } from "@/lib/api/errorMessages";
 
 export function AccountDeletionSection() {
   const auth = useContext(AuthContext);
@@ -31,7 +32,7 @@ export function AccountDeletionSection() {
       await deleteAccount();
       auth?.logout();
     } catch (err) {
-      setError(err instanceof Error ? err.message : m.settings_delete_account_error());
+      setError(apiErrorMessage(err, m.settings_delete_account_error()));
       setIsDeleting(false);
     }
   };
