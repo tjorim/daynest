@@ -4,11 +4,12 @@ import hmac
 import logging
 import time
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi import APIRouter, Depends, Request, Response, status
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.core.config import settings
+from app.core.errors import ApiException
 from app.core.observability import metrics
 from app.core.oidc import check_jwks_reachable
 from app.db.session import engine
@@ -44,10 +45,10 @@ def _verify_metrics_token(token: str, secret: str) -> bool:
 def _require_metrics_access(request: Request) -> None:
     secret = settings.metrics_hmac_secret
     if not secret:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not Found")
+        raise ApiException(status_code=status.HTTP_404_NOT_FOUND, code="not_found", detail="Not Found")
     provided = request.headers.get("X-Metrics-Token", "")
     if not provided or not _verify_metrics_token(provided, secret):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
+        raise ApiException(status_code=status.HTTP_403_FORBIDDEN, code="forbidden", detail="Forbidden")
 
 
 @router.get("/health/liveness")

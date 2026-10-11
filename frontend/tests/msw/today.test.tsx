@@ -61,13 +61,17 @@ describe("TodayPage — MSW-backed", () => {
       </QueryTestProvider>,
     );
 
-    expect(await screen.findByText(/Internal server error/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Unable to load today payload/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Internal server error/i)).not.toBeInTheDocument();
   });
 
   it("shows error UI when MSW returns a 401 for /api/today", async () => {
     server.use(
       http.get("/api/today", () =>
-        HttpResponse.json({ detail: "Not authenticated" }, { status: 401 }),
+        HttpResponse.json(
+          { detail: "Not authenticated", code: "not_authenticated" },
+          { status: 401 },
+        ),
       ),
     );
 
@@ -77,6 +81,6 @@ describe("TodayPage — MSW-backed", () => {
       </QueryTestProvider>,
     );
 
-    expect(await screen.findByText(/Not authenticated/i)).toBeInTheDocument();
+    expect(await screen.findByText(/You are not signed in/i)).toBeInTheDocument();
   });
 });

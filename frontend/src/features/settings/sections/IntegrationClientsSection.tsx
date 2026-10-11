@@ -30,6 +30,7 @@ import {
   useRevokeIntegrationClientMutation,
   useRotateIntegrationClientMutation,
 } from "@/features/settings/useSettingsQueries";
+import { apiErrorMessage } from "@/lib/api/errorMessages";
 
 const HA_ENDPOINTS = [
   "GET /api/integrations/home-assistant/summary",
@@ -92,12 +93,9 @@ export function IntegrationClientsSection({ backendBaseUrl }: IntegrationClients
   const revokeClientMutation = useRevokeIntegrationClientMutation();
   const clients = clientsQuery.data ?? [];
   const loading = clientsQuery.isPending;
-  const error =
-    clientsQuery.error instanceof Error
-      ? clientsQuery.error.message
-      : clientsQuery.error
-        ? m.load_integration_clients_failed()
-        : null;
+  const error = clientsQuery.error
+    ? apiErrorMessage(clientsQuery.error, m.load_integration_clients_failed())
+    : null;
   const canRetry = clientsQuery.error ? isRetryableApiError(clientsQuery.error) : false;
 
   const loadClients = async () => {
@@ -113,7 +111,7 @@ export function IntegrationClientsSection({ backendBaseUrl }: IntegrationClients
       setCopyStatus(null);
       setSuccessMessage(m.settings_client_secret_rotated());
     } catch (err) {
-      setRotateClientError(err instanceof Error ? err.message : m.settings_client_rotate_failed());
+      setRotateClientError(apiErrorMessage(err, m.settings_client_rotate_failed()));
     } finally {
       setRotatingClient(null);
     }
@@ -125,7 +123,7 @@ export function IntegrationClientsSection({ backendBaseUrl }: IntegrationClients
     try {
       await revokeClientMutation.mutateAsync(clientId);
     } catch (err) {
-      setRevokeClientError(err instanceof Error ? err.message : m.settings_client_revoke_failed());
+      setRevokeClientError(apiErrorMessage(err, m.settings_client_revoke_failed()));
     } finally {
       setRevokingClient(null);
     }
@@ -156,7 +154,7 @@ export function IntegrationClientsSection({ backendBaseUrl }: IntegrationClients
       setCreatedClient(created);
       setSuccessMessage(m.settings_client_created());
     } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : m.settings_client_create_failed());
+      setSubmitError(apiErrorMessage(err, m.settings_client_create_failed()));
     } finally {
       setIsSubmitting(false);
     }

@@ -2,12 +2,13 @@ import logging
 from urllib.parse import quote
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, Request, status
 from fastapi.security import HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 
 from app.api.dependencies.auth import bearer_scheme, get_current_user
 from app.core.config import settings
+from app.core.errors import ApiException
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.auth import (
@@ -52,8 +53,10 @@ async def discover_oidc_endpoints() -> OidcDiscoveryConfig:
     paths. Raises HTTPException 503 when OIDC is unconfigured or discovery fails.
     """
     if not settings.oidc_issuer_url:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="OIDC not configured on this server"
+        raise ApiException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            code="oidc_not_configured",
+            detail="OIDC not configured on this server",
         )
     issuer = settings.oidc_issuer_url.rstrip("/")
     cached = _oidc_config_cache.get(issuer)
@@ -65,14 +68,16 @@ async def discover_oidc_endpoints() -> OidcDiscoveryConfig:
         resp = await _http_client.get(discovery_url)
     except httpx.RequestError as exc:
         logger.error("Failed to reach OIDC discovery endpoint %s: %s", discovery_url, exc)
-        raise HTTPException(
+        raise ApiException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            code="oidc_discovery_failed",
             detail="OIDC discovery failed",
         ) from exc
     if not resp.is_success:
         logger.error("OIDC discovery endpoint %s returned HTTP %s", discovery_url, resp.status_code)
-        raise HTTPException(
+        raise ApiException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            code="oidc_discovery_failed",
             detail="OIDC discovery failed",
         )
     try:
@@ -87,8 +92,9 @@ async def discover_oidc_endpoints() -> OidcDiscoveryConfig:
         )
     except (KeyError, ValueError) as exc:
         logger.error("Invalid OIDC discovery document from %s: %s", discovery_url, exc)
-        raise HTTPException(
+        raise ApiException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            code="oidc_discovery_failed",
             detail="OIDC discovery failed",
         ) from exc
     _oidc_config_cache[issuer] = config
@@ -127,12 +133,15 @@ async def list_sessions(
 ) -> list[OAuthSessionResponse]:
     """List active OAuth sessions for the current user via the OIDC provider's Account API."""
     if not settings.oidc_issuer_url:
-        raise HTTPException(
+        raise ApiException(
             status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            code="oidc_not_configured",
             detail="OIDC not configured; session listing is unavailable.",
         )
     if credentials is None:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+        raise ApiException(
+            status_code=status.HTTP_401_UNAUTHORIZED, code="not_authenticated", detail="Not authenticated"
+        )
 
     account_url = f"{settings.oidc_issuer_url.rstrip('/')}/account/sessions"
     try:
@@ -142,21 +151,24 @@ async def list_sessions(
         )
     except httpx.RequestError as exc:
         logger.error("Failed to reach OIDC Account API: %s", exc)
-        raise HTTPException(
+        raise ApiException(
             status_code=status.HTTP_502_BAD_GATEWAY,
+            code="oidc_unreachable",
             detail="Could not reach the OIDC provider.",
         ) from exc
 
     if not resp.is_success:
-        raise HTTPException(
+        raise ApiException(
             status_code=resp.status_code,
+            code="oidc_sessions_unavailable",
             detail="Failed to retrieve sessions from the OIDC provider.",
         )
 
     raw_sessions = resp.json()
     if not isinstance(raw_sessions, list):
-        raise HTTPException(
+        raise ApiException(
             status_code=status.HTTP_502_BAD_GATEWAY,
+            code="invalid_response_from_oidc_provider",
             detail="Invalid response from OIDC provider.",
         )
     current_session_id = getattr(request.state, "oidc_session_id", None)
@@ -185,12 +197,15 @@ async def revoke_session(
 ) -> None:
     """Revoke a specific OAuth session for the current user via the OIDC provider's Account API."""
     if not settings.oidc_issuer_url:
-        raise HTTPException(
+        raise ApiException(
             status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            code="oidc_not_configured",
             detail="OIDC not configured; session revocation is unavailable.",
         )
     if credentials is None:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+        raise ApiException(
+            status_code=status.HTTP_401_UNAUTHORIZED, code="not_authenticated", detail="Not authenticated"
+        )
 
     account_url = f"{settings.oidc_issuer_url.rstrip('/')}/account/sessions/{quote(session_id)}"
     try:
@@ -200,13 +215,15 @@ async def revoke_session(
         )
     except httpx.RequestError as exc:
         logger.error("Failed to reach OIDC Account API: %s", exc)
-        raise HTTPException(
+        raise ApiException(
             status_code=status.HTTP_502_BAD_GATEWAY,
+            code="oidc_unreachable",
             detail="Could not reach the OIDC provider.",
         ) from exc
 
     if not resp.is_success:
-        raise HTTPException(
+        raise ApiException(
             status_code=resp.status_code,
+            code="oidc_session_revoke_failed",
             detail="Failed to revoke session.",
         )

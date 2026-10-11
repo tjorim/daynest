@@ -6,7 +6,8 @@ import { useAuth } from "@/app/providers/AuthProvider";
 import { fetchWithAuth } from "@/lib/api/http";
 
 vi.mock("@/app/providers/AuthProvider");
-vi.mock("@/lib/api/http", () => ({
+vi.mock("@/lib/api/http", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/api/http")>()),
   fetchWithAuth: vi.fn(),
 }));
 
@@ -92,7 +93,7 @@ describe("PebblePairPage", () => {
     const user = userEvent.setup();
     render(<PebblePairPage />);
 
-    expect(await screen.findByText("Pairing failed (503)")).toBeInTheDocument();
+    expect(await screen.findByText("Pairing failed. Try again.")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Retry pairing" }));
 
     await waitFor(() => expect(fetchWithAuth).toHaveBeenCalledTimes(2));

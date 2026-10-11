@@ -8,6 +8,7 @@ import {
   useUpdateUserSettingsMutation,
   useUserSettingsQuery,
 } from "@/features/settings/useSettingsQueries";
+import { apiErrorMessage } from "@/lib/api/errorMessages";
 
 export function UserPreferencesSection() {
   const { language, setLanguage } = useLanguage();
@@ -74,10 +75,7 @@ export function UserPreferencesSection() {
     if (hasInitializedUserSettings) return;
     if (!userSettingsQuery.data) {
       if (userSettingsQuery.error) {
-        const msg =
-          userSettingsQuery.error instanceof Error
-            ? userSettingsQuery.error.message
-            : m.settings_timezone_load_error();
+        const msg = apiErrorMessage(userSettingsQuery.error, m.settings_timezone_load_error());
         setTimezoneError(msg);
       }
       return;
@@ -109,7 +107,7 @@ export function UserPreferencesSection() {
       await updateUserSettingsMutation.mutateAsync({ timezone });
       setTimezoneSuccess(m.settings_timezone_saved());
     } catch (err) {
-      setTimezoneError(err instanceof Error ? err.message : m.settings_timezone_save_error());
+      setTimezoneError(apiErrorMessage(err, m.settings_timezone_save_error()));
     } finally {
       setTimezoneSaving(false);
     }
@@ -148,9 +146,7 @@ export function UserPreferencesSection() {
       setPushOverdueChores(prevOverdue);
       setPushMedicationReminders(prevMed);
       setPushMissedMedications(prevMissed);
-      setNotificationError(
-        err instanceof Error ? err.message : m.settings_notification_prefs_save_error(),
-      );
+      setNotificationError(apiErrorMessage(err, m.settings_notification_prefs_save_error()));
     }
   };
 
@@ -166,9 +162,7 @@ export function UserPreferencesSection() {
       });
       setNotificationSuccess(m.settings_notification_prefs_saved());
     } catch (err) {
-      setNotificationError(
-        err instanceof Error ? err.message : m.settings_notification_prefs_save_error(),
-      );
+      setNotificationError(apiErrorMessage(err, m.settings_notification_prefs_save_error()));
     } finally {
       setNotificationSaving(false);
     }
@@ -205,9 +199,7 @@ export function UserPreferencesSection() {
       await regenerateCalendarFeedMutation.mutateAsync();
       setCalendarFeedCopyStatus(m.settings_calendar_regenerated());
     } catch (err) {
-      setCalendarFeedError(
-        err instanceof Error ? err.message : m.settings_calendar_regenerate_error(),
-      );
+      setCalendarFeedError(apiErrorMessage(err, m.settings_calendar_regenerate_error()));
     }
   };
 
@@ -435,9 +427,7 @@ export function UserPreferencesSection() {
           </div>
           {calendarFeedQuery.error ? (
             <div className="text-danger small">
-              {calendarFeedQuery.error instanceof Error
-                ? calendarFeedQuery.error.message
-                : m.settings_calendar_load_error()}
+              {apiErrorMessage(calendarFeedQuery.error, m.settings_calendar_load_error())}
             </div>
           ) : null}
           <FeedbackBanner

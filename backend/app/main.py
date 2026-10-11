@@ -33,6 +33,7 @@ from app.api.routes.templates import router as templates_router
 from app.api.routes.today import router as today_router
 from app.api.routes.users import router as users_router
 from app.core.config import settings
+from app.core.errors import ApiException, handle_api_exception
 from app.core.observability import (
     configure_error_tracking,
     configure_logging,
@@ -210,6 +211,7 @@ if settings.cors_origins:
 # gets a request ID and observability log entry like any other response.
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, handle_rate_limit_exceeded)
+app.add_exception_handler(ApiException, handle_api_exception)
 app.add_middleware(SlowAPIMiddleware)
 
 app.include_router(system_router, prefix=settings.api_prefix)

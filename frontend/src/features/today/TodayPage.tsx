@@ -24,6 +24,7 @@ import {
 import { useTodayActions } from "@/features/today/useTodayActions";
 import { useTodayLiveUpdates } from "@/features/today/useTodayLiveUpdates";
 import { useTodayQuery } from "@/features/today/useTodayQuery";
+import { apiErrorMessage } from "@/lib/api/errorMessages";
 
 export function TodayPage() {
   const liveUpdatesError = useTodayLiveUpdates();
@@ -31,11 +32,7 @@ export function TodayPage() {
   const today = todayQuery.data ?? null;
   const isLoading = todayQuery.isLoading;
   const isRefreshing = todayQuery.isFetching && !isLoading;
-  const error = todayQuery.error
-    ? todayQuery.error instanceof Error
-      ? todayQuery.error.message
-      : m.load_today_failed()
-    : null;
+  const error = todayQuery.error ? apiErrorMessage(todayQuery.error, m.load_today_failed()) : null;
   const canRetry = todayQuery.error ? isRetryableApiError(todayQuery.error) : false;
   const loadToday = useCallback(async () => {
     await todayQuery.refetch();

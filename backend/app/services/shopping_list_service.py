@@ -1,9 +1,10 @@
 from datetime import date
 from typing import cast
 
-from fastapi import HTTPException, status
+from fastapi import status
 
 from app.core.enums import Priority
+from app.core.errors import ApiException
 from app.core.pagination import clamp_limit
 from app.models.shopping_list import ShoppingList
 from app.repositories.shopping_list_repository import ShoppingListRepository
@@ -149,7 +150,9 @@ class ShoppingListService:
             user_id=user_id, planned_item_id=planned_item_id
         )
         if existing is None or existing.module_key != "shopping_list" or existing.linked_ref != str(shopping_list.id):
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Shopping item not found")
+            raise ApiException(
+                status_code=status.HTTP_404_NOT_FOUND, code="shopping_item_not_found", detail="Shopping item not found"
+            )
         item = self.today_service.update_planned_item(
             user_id=user_id,
             planned_item_id=planned_item_id,
@@ -175,7 +178,9 @@ class ShoppingListService:
     def _get_user_shopping_list(self, user_id: int, shopping_list_id: int) -> ShoppingList:
         shopping_list = self.repository.get_by_id(user_id=user_id, shopping_list_id=shopping_list_id)
         if shopping_list is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Shopping list not found")
+            raise ApiException(
+                status_code=status.HTTP_404_NOT_FOUND, code="shopping_list_not_found", detail="Shopping list not found"
+            )
         return shopping_list
 
     @staticmethod

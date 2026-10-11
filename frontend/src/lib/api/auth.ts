@@ -1,5 +1,6 @@
 import { getOidcAccessToken } from "@/lib/auth/session";
 import { buildApiUrl } from "@/lib/api/serverConfig";
+import { ApiError, readErrorBody, type ApiErrorParams } from "@/lib/api/http";
 import * as m from "@/paraglide/messages";
 
 export interface AuthUser {
@@ -28,45 +29,22 @@ export interface OAuthSession {
   is_current: boolean;
 }
 
-export class AuthApiError extends Error {
-  readonly status: number;
-
-  constructor(message: string, status: number) {
-    super(message);
+export class AuthApiError extends ApiError {
+  constructor(
+    message: string,
+    status: number,
+    code: string | null = null,
+    params?: ApiErrorParams,
+  ) {
+    super(message, status, false, null, code, params);
     this.name = "AuthApiError";
-    this.status = status;
   }
 }
 
 async function parseJsonResponse<T>(response: Response, fallbackMessage: string): Promise<T> {
   if (!response.ok) {
-    let message = fallbackMessage;
-
-    try {
-      const body = (await response.json()) as { detail?: string | unknown[] };
-      if (typeof body.detail === "string") {
-        message = body.detail;
-      } else if (Array.isArray(body.detail) && body.detail.length > 0) {
-        message = body.detail
-          .map((entry) => {
-            if (
-              entry &&
-              typeof entry === "object" &&
-              "msg" in entry &&
-              typeof entry.msg === "string"
-            ) {
-              return entry.msg;
-            }
-            return JSON.stringify(entry);
-          })
-          .filter((entry): entry is string => Boolean(entry))
-          .join(", ");
-      }
-    } catch {
-      // keep fallback message
-    }
-
-    throw new AuthApiError(message, response.status);
+    const { message, code, params } = await readErrorBody(response, fallbackMessage);
+    throw new AuthApiError(message, response.status, code, params);
   }
 
   return (await response.json()) as T;
@@ -86,7 +64,7 @@ export async function fetchMe(accessToken: string): Promise<AuthUser> {
 export async function listOAuthSessions(): Promise<OAuthSession[]> {
   const token = getOidcAccessToken();
   if (!token) {
-    throw new AuthApiError("Not authenticated", 401);
+    throw new AuthApiError("Not authenticated", 401, "not_authenticated");
   }
   const response = await fetch(buildApiUrl("/api/auth/sessions"), {
     headers: {
@@ -100,7 +78,7 @@ export async function listOAuthSessions(): Promise<OAuthSession[]> {
 export async function revokeOAuthSession(sessionId: string): Promise<void> {
   const token = getOidcAccessToken();
   if (!token) {
-    throw new AuthApiError("Not authenticated", 401);
+    throw new AuthApiError("Not authenticated", 401, "not_authenticated");
   }
   const response = await fetch(buildApiUrl(`/api/auth/sessions/${encodeURIComponent(sessionId)}`), {
     method: "DELETE",

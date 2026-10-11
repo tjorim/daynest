@@ -42,6 +42,9 @@ bump on every app release.
 ## [Unreleased]
 
 ### Changed
+- **API/Frontend:** error responses now carry a stable `code` (and optional `params`) next to the
+  English `detail`, and the interface shows a translated message for the code, or the translated
+  operation fallback when the code is unknown, instead of echoing `error.message` (#990).
 - **MCP:** the server instructions now explain the `search_tools` → `call_tool` flow, so agents
   know most tools are hidden until discovered.
 - **Backend:** dropped the `fastmcp` prerelease workaround (`prerelease = "explicit"` and the

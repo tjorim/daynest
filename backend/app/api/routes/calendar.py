@@ -2,13 +2,14 @@ from datetime import UTC, date, datetime, timedelta
 from secrets import token_urlsafe
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
+from fastapi import APIRouter, Depends, Query, Request, Response, status
 from icalendar import Calendar, Event
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.dependencies.auth import get_current_user, get_current_user_optional
 from app.api.dependencies.today import get_today_service
+from app.core.errors import ApiException
 from app.db.session import get_db
 from app.models.planned_item import PlannedItem
 from app.models.user import User
@@ -119,8 +120,10 @@ def generate_calendar_token(
 @router.get("/users/me/calendar-token", response_model=CalendarTokenResponse)
 def get_calendar_token(current_user: User = Depends(get_current_user)) -> CalendarTokenResponse:
     if not current_user.calendar_token:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="No calendar token exists; POST to generate one"
+        raise ApiException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            code="calendar_token_missing",
+            detail="No calendar token exists; POST to generate one",
         )
     return CalendarTokenResponse(token=current_user.calendar_token)
 
@@ -146,15 +149,21 @@ def _new_calendar_feed_token(db: Session) -> str:
         exists = db.scalar(select(User.id).where(User.calendar_feed_token == token))
         if exists is None:
             return token
-    raise HTTPException(
-        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Could not generate calendar feed token"
+    raise ApiException(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        code="calendar_token_generation_failed",
+        detail="Could not generate calendar feed token",
     )
 
 
 def _calendar_feed_response(request: Request, user: User) -> CalendarFeedResponse:
     token = user.calendar_feed_token
     if token is None:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Calendar feed token missing")
+        raise ApiException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            code="calendar_token_missing",
+            detail="Calendar feed token missing",
+        )
     return CalendarFeedResponse(
         token=token,
         feed_url=str(request.url_for("get_calendar_feed_ics", token=token)),
@@ -232,7 +241,9 @@ def _build_planned_items_calendar(user: User, planned_items: list[PlannedItem]) 
 def get_calendar_feed_ics(token: str, db: Session = Depends(get_db)) -> Response:
     user = db.scalar(select(User).where(User.calendar_feed_token == token).where(User.is_active.is_(True)))
     if user is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Calendar feed not found")
+        raise ApiException(
+            status_code=status.HTTP_404_NOT_FOUND, code="calendar_feed_not_found", detail="Calendar feed not found"
+        )
 
     try:
         feed_tz = ZoneInfo(user.timezone)
@@ -290,8 +301,9 @@ def _resolve_user(
         user = db.scalar(select(User).where(User.calendar_token == token).where(User.is_active.is_(True)))
         if user:
             return user
-    raise HTTPException(
+    raise ApiException(
         status_code=status.HTTP_401_UNAUTHORIZED,
+        code="calendar_token_required",
         detail="Provide a Bearer token or a valid ?token= calendar token",
         headers={"WWW-Authenticate": "Bearer"},
     )

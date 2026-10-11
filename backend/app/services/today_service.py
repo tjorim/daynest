@@ -8,10 +8,11 @@ from typing import Literal, Protocol, cast
 from uuid import UUID
 from zoneinfo import ZoneInfo
 
-from fastapi import HTTPException, status
+from fastapi import status
 
 from app.core.config import AppSettings
 from app.core.enums import ChoreStatus, MedicationDoseStatus, Priority, TaskStatus
+from app.core.errors import ApiException
 from app.core.pagination import MAX_LIST_LIMIT, clamp_limit
 from app.models.chore_instance import ChoreInstance
 from app.models.chore_template import ChoreTemplate
@@ -269,9 +270,13 @@ class TodayService:
         try:
             first_dates = generate_recurrence_dates(start_date, rrule, max_instances=1)
         except RecurrenceValidationError as exc:
-            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Invalid rrule") from exc
+            raise ApiException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, code="invalid_rrule", detail="Invalid rrule"
+            ) from exc
         if not first_dates or first_dates[0] != start_date:
-            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Invalid rrule")
+            raise ApiException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, code="invalid_rrule", detail="Invalid rrule"
+            )
 
     def _materialize_series(self, *, series: RecurrenceSeries, through_date: date) -> None:
         if series.materialized_through is not None and series.materialized_through >= through_date:
@@ -643,10 +648,16 @@ class TodayService:
 
     def get_calendar_range(self, user_id: int, start_date: date, end_date: date) -> CalendarRangeResponse:
         if end_date < start_date:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="end must not be before start")
+            raise ApiException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                code="end_before_start",
+                detail="end must not be before start",
+            )
         if (end_date - start_date).days >= MAX_CALENDAR_QUERY_RANGE_DAYS:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="Calendar range must not exceed 90 days"
+            raise ApiException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                code="calendar_range_too_large",
+                detail="Calendar range must not exceed 90 days",
             )
 
         user_tz_str = self.repository.get_user_timezone(user_id)
@@ -704,8 +715,10 @@ class TodayService:
         event_types: set[str] | None = None,
     ) -> list[HACalendarEvent]:
         if end_date < start_date:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="end_date must not be before start_date"
+            raise ApiException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                code="end_before_start",
+                detail="end_date must not be before start_date",
             )
         if (end_date - start_date).days > MAX_CALENDAR_RANGE_DAYS:
             logger.warning(
@@ -904,7 +917,11 @@ class TodayService:
             user_id=user_id, recurrence_series_id=series_id
         )
         if recurrence_series is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Recurrence series not found")
+            raise ApiException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                code="recurrence_series_not_found",
+                detail="Recurrence series not found",
+            )
         if patch.rrule:
             self._validate_rrule_start_or_422(start_date=patch.planned_for, rrule=patch.rrule)
         if patch.auto_add_to_list_id is not None:
@@ -950,7 +967,11 @@ class TodayService:
             user_id=user_id, recurrence_series_id=series_id
         )
         if recurrence_series is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Recurrence series not found")
+            raise ApiException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                code="recurrence_series_not_found",
+                detail="Recurrence series not found",
+            )
         new_start_date = recurrence_series.start_date
         if original_planned_for is not None:
             new_start_date = recurrence_series.start_date + (patch.planned_for - original_planned_for)
@@ -1105,7 +1126,9 @@ class TodayService:
         self, user_id: int, planned_item_id: int, days: int = 1, *, actor: AuditActor | None = None
     ) -> PlannedTodayItem:
         if days < 1:
-            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="days must be >= 1")
+            raise ApiException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, code="days_invalid", detail="days must be >= 1"
+            )
         item = self._get_user_planned_item(user_id=user_id, planned_item_id=planned_item_id)
         return self.update_planned_item(
             user_id=user_id,
@@ -1136,8 +1159,10 @@ class TodayService:
         try:
             series_uuid = _UUID(recurrence_series_id)
         except ValueError as exc:
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Invalid recurrence_series_id format"
+            raise ApiException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                code="recurrence_series_invalid_id",
+                detail="Invalid recurrence_series_id format",
             ) from exc
         return self.repository.delete_planned_item_series(
             user_id=user_id, recurrence_series_id=series_uuid, actor=actor
@@ -1158,7 +1183,11 @@ class TodayService:
                 recurrence_series_id=item.recurrence_series_id,
             )
             if recurrence_series is None:
-                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Recurrence series not found")
+                raise ApiException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    code="recurrence_series_not_found",
+                    detail="Recurrence series not found",
+                )
             cutoff_date = item.planned_for - timedelta(days=1)
             cutoff_dates = generate_recurrence_dates(
                 recurrence_series.start_date,
@@ -1194,7 +1223,11 @@ class TodayService:
                 self.repository.save()
             return self._chore_instance_to_response(instance)
         if instance.status == ChoreStatus.skipped:
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Skipped chores cannot be completed")
+            raise ApiException(
+                status_code=status.HTTP_409_CONFLICT,
+                code="chore_already_skipped",
+                detail="Skipped chores cannot be completed",
+            )
         instance.status = ChoreStatus.completed
         instance.completed_at = self.repository.utcnow()
         instance.completed_by = user_id
@@ -1216,9 +1249,17 @@ class TodayService:
     ) -> TaskInstanceMutationResponse:
         instance = self._get_user_task(user_id, task_instance_id)
         if instance.status == TaskStatus.completed:
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Completed tasks cannot be started again")
+            raise ApiException(
+                status_code=status.HTTP_409_CONFLICT,
+                code="task_already_completed",
+                detail="Completed tasks cannot be started again",
+            )
         if instance.status == TaskStatus.skipped:
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Skipped tasks cannot be started again")
+            raise ApiException(
+                status_code=status.HTTP_409_CONFLICT,
+                code="task_already_skipped",
+                detail="Skipped tasks cannot be started again",
+            )
         instance.status = TaskStatus.in_progress
         self.repository.record_audit(actor, "task_instance.start", "task_instance", instance.id)
         self.repository.save()
@@ -1231,7 +1272,11 @@ class TodayService:
         if instance.status == TaskStatus.completed:
             return self._task_instance_to_response(instance)
         if instance.status == TaskStatus.skipped:
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Skipped tasks cannot be completed")
+            raise ApiException(
+                status_code=status.HTTP_409_CONFLICT,
+                code="task_already_skipped",
+                detail="Skipped tasks cannot be completed",
+            )
         instance.status = TaskStatus.completed
         instance.completed_at = self.repository.utcnow()
         self.repository.record_audit(actor, "task_instance.complete", "task_instance", instance.id)
@@ -1245,7 +1290,11 @@ class TodayService:
         if instance.status == TaskStatus.skipped:
             return self._task_instance_to_response(instance)
         if instance.status == TaskStatus.completed:
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Completed tasks cannot be skipped")
+            raise ApiException(
+                status_code=status.HTTP_409_CONFLICT,
+                code="task_already_completed",
+                detail="Completed tasks cannot be skipped",
+            )
         instance.status = TaskStatus.skipped
         instance.completed_at = None
         self.repository.record_audit(actor, "task_instance.skip", "task_instance", instance.id)
@@ -1261,7 +1310,11 @@ class TodayService:
                 self.repository.save()
             return self._chore_instance_to_response(instance)
         if instance.status == ChoreStatus.completed:
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Completed chores cannot be skipped")
+            raise ApiException(
+                status_code=status.HTTP_409_CONFLICT,
+                code="chore_already_completed",
+                detail="Completed chores cannot be skipped",
+            )
         instance.status = ChoreStatus.skipped
         instance.skipped_at = self.repository.utcnow()
         instance.completed_at = None
@@ -1283,8 +1336,10 @@ class TodayService:
     ) -> ChoreInstanceMutationResponse:
         instance = self._get_user_chore(user_id, chore_instance_id)
         if instance.status in (ChoreStatus.completed, ChoreStatus.skipped):
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT, detail="Completed or skipped chores cannot be rescheduled"
+            raise ApiException(
+                status_code=status.HTTP_409_CONFLICT,
+                code="chore_not_reschedulable",
+                detail="Completed or skipped chores cannot be rescheduled",
             )
         if instance.scheduled_date == scheduled_date:
             self.repository.save()
@@ -1316,7 +1371,11 @@ class TodayService:
             user_id=user_id, chore_instance_id=chore_instance_id, for_update=True
         )
         if instance is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chore instance not found")
+            raise ApiException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                code="chore_instance_not_found",
+                detail="Chore instance not found",
+            )
         return instance
 
     def assign_chore(
@@ -1327,13 +1386,15 @@ class TodayService:
             household_id = instance.chore_template.household_id
             if household_id is None:
                 if assigned_to != instance.user_id:
-                    raise HTTPException(
+                    raise ApiException(
                         status_code=status.HTTP_400_BAD_REQUEST,
+                        code="chore_assignee_invalid",
                         detail="Personal chores can only be assigned to the owner",
                     )
             elif household_id not in self.repository.get_user_household_ids(assigned_to):
-                raise HTTPException(
+                raise ApiException(
                     status_code=status.HTTP_400_BAD_REQUEST,
+                    code="chore_assignee_invalid",
                     detail="Assigned user is not a member of this household",
                 )
         instance.assigned_to = assigned_to
@@ -1351,18 +1412,24 @@ class TodayService:
     def _get_user_task(self, user_id: int, task_instance_id: int) -> TaskInstance:
         instance = self.repository.get_task_instance_for_user(user_id=user_id, task_instance_id=task_instance_id)
         if instance is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task instance not found")
+            raise ApiException(
+                status_code=status.HTTP_404_NOT_FOUND, code="task_instance_not_found", detail="Task instance not found"
+            )
         return instance
 
     def _get_user_planned_item(self, user_id: int, planned_item_id: int) -> PlannedItem:
         item = self.repository.get_planned_item_for_user(user_id=user_id, planned_item_id=planned_item_id)
         if item is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Planned item not found")
+            raise ApiException(
+                status_code=status.HTTP_404_NOT_FOUND, code="planned_item_not_found", detail="Planned item not found"
+            )
         return item
 
     def _validate_shopping_list_or_404(self, user_id: int, shopping_list_id: int) -> None:
         if not self.repository.shopping_list_belongs_to_user(user_id=user_id, shopping_list_id=shopping_list_id):
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Shopping list not found")
+            raise ApiException(
+                status_code=status.HTTP_404_NOT_FOUND, code="shopping_list_not_found", detail="Shopping list not found"
+            )
 
     @staticmethod
     def _planned_item_to_schema(item: PlannedItem) -> PlannedTodayItem:
@@ -1626,21 +1693,28 @@ class TodayService:
     ):
         instance = self.repository.get_dose_for_user(user_id=user_id, dose_id=medication_dose_instance_id)
         if instance is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Medication dose instance not found")
+            raise ApiException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                code="medication_dose_instance_not_found",
+                detail="Medication dose instance not found",
+            )
 
         now = self.repository.utcnow()
         if action == "take":
             if instance.status not in {MedicationDoseStatus.scheduled, MedicationDoseStatus.missed}:
-                raise HTTPException(
+                raise ApiException(
                     status_code=status.HTTP_409_CONFLICT,
+                    code="medication_dose_not_actionable",
                     detail="Medication dose can only be taken from scheduled or missed",
                 )
             if taken_at is not None:
                 # Ensure timezone-aware for comparison
                 ta = taken_at if taken_at.tzinfo is not None else taken_at.replace(tzinfo=UTC)
                 if ta > now:
-                    raise HTTPException(
-                        status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="taken_at must not be in the future"
+                    raise ApiException(
+                        status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                        code="taken_at_in_future",
+                        detail="taken_at must not be in the future",
                     )
                 resolved_taken_at = ta
             else:
@@ -1651,8 +1725,9 @@ class TodayService:
             instance.missed_at = None
         elif action == "skip":
             if instance.status not in {MedicationDoseStatus.scheduled, MedicationDoseStatus.missed}:
-                raise HTTPException(
+                raise ApiException(
                     status_code=status.HTTP_409_CONFLICT,
+                    code="medication_dose_not_actionable",
                     detail="Medication dose can only be skipped from scheduled or missed",
                 )
             instance.status = MedicationDoseStatus.skipped
@@ -1661,8 +1736,9 @@ class TodayService:
             instance.missed_at = None
         elif action == "miss":
             if instance.status != MedicationDoseStatus.scheduled:
-                raise HTTPException(
+                raise ApiException(
                     status_code=status.HTTP_409_CONFLICT,
+                    code="medication_dose_not_actionable",
                     detail="Medication dose can only be marked missed from scheduled",
                 )
             instance.status = MedicationDoseStatus.missed
@@ -1670,7 +1746,11 @@ class TodayService:
             instance.taken_at = None
             instance.skipped_at = None
         else:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported medication action")
+            raise ApiException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                code="unsupported_medication_action",
+                detail="Unsupported medication action",
+            )
 
         self.repository.record_audit(actor, f"medication_dose.{action}", "medication_dose", instance.id)
         self.repository.save()

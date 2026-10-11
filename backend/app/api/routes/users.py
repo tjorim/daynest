@@ -1,12 +1,13 @@
 from typing import Any
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Query, Response, status
+from fastapi import APIRouter, Body, Depends, Query, Response, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session, aliased
 
 from app.api.dependencies.auth import get_current_user
 from app.core.enums import HouseholdMemberRole
+from app.core.errors import ApiException
 from app.db.session import get_db
 from app.models.chore_template import ChoreTemplate
 from app.models.household_member import HouseholdMember
@@ -97,7 +98,11 @@ def update_settings(
         try:
             ZoneInfo(request.timezone)
         except ZoneInfoNotFoundError:
-            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid IANA timezone")
+            raise ApiException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                code="invalid_timezone",
+                detail="Invalid IANA timezone",
+            )
         current_user.timezone = request.timezone
     if request.default_snooze_days is not None:
         current_user.default_snooze_days = request.default_snooze_days
@@ -151,8 +156,9 @@ def delete_current_user(
     current_user: User = Depends(get_current_user),
 ) -> Response:
     if _has_household_shared_chores(db, current_user.id):
-        raise HTTPException(
+        raise ApiException(
             status_code=status.HTTP_409_CONFLICT,
+            code="account_deletion_blocked_shared_chores",
             detail=(
                 "Account deletion is blocked while you own household-shared chores. "
                 "Delete or transfer those chores, or leave shared households before deleting your account."
@@ -160,8 +166,9 @@ def delete_current_user(
         )
 
     if _is_sole_owner_of_shared_household(db, current_user.id):
-        raise HTTPException(
+        raise ApiException(
             status_code=status.HTTP_409_CONFLICT,
+            code="account_deletion_blocked_sole_owner",
             detail=(
                 "Account deletion is blocked while you are the sole owner of a shared household. "
                 "Transfer ownership, remove the other members, or delete the household before deleting your account."

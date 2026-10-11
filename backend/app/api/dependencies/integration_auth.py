@@ -4,12 +4,13 @@ from hmac import digest
 
 import jwt
 from anyio import from_thread
-from fastapi import Depends, Header, HTTPException, Request, status
+from fastapi import Depends, Header, Request, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
 from app.api.dependencies.auth import AuthorizationPrincipal, AuthType
 from app.core.config import settings
+from app.core.errors import ApiException
 from app.core.oidc import (
     OIDCTokenError,
     _extract_roles,
@@ -78,8 +79,9 @@ def enforce_integration_rate_limit(db: Session, client: IntegrationClient) -> No
     """Enforce one fixed window transactionally across every app worker."""
     locked = db.scalar(select(IntegrationClient).where(IntegrationClient.id == client.id).with_for_update())
     if locked is None:
-        raise HTTPException(
+        raise ApiException(
             status_code=status.HTTP_401_UNAUTHORIZED,
+            code="integration_client_not_found",
             detail="Integration client not found",
         )
     now = datetime.now(UTC)
@@ -91,8 +93,9 @@ def enforce_integration_rate_limit(db: Session, client: IntegrationClient) -> No
         locked.rate_limit_window_count = 1
     elif locked.rate_limit_window_count >= locked.rate_limit_per_minute:
         db.rollback()
-        raise HTTPException(
+        raise ApiException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            code="integration_rate_limit_exceeded",
             detail="Integration rate limit exceeded",
         )
     else:
@@ -147,8 +150,9 @@ def require_integration_auth(*required_scopes: str) -> Callable:
                     try:
                         client_id_int = int(int_claims["sub"])
                     except ValueError, KeyError:
-                        raise HTTPException(
+                        raise ApiException(
                             status_code=status.HTTP_401_UNAUTHORIZED,
+                            code="invalid_integration_token",
                             detail="Invalid integration token",
                         )
                     int_client = db.scalar(
@@ -157,19 +161,22 @@ def require_integration_auth(*required_scopes: str) -> Callable:
                         .options(joinedload(IntegrationClient.user))
                     )
                     if int_client is None or not int_client.is_active or int_client.revoked_at is not None:
-                        raise HTTPException(
+                        raise ApiException(
                             status_code=status.HTTP_401_UNAUTHORIZED,
+                            code="integration_client_not_found_or_inactive",
                             detail="Integration client not found or inactive",
                         )
                     if int_client.user is None:
-                        raise HTTPException(
+                        raise ApiException(
                             status_code=status.HTTP_401_UNAUTHORIZED,
+                            code="integration_owner_not_found",
                             detail="Integration owner not found",
                         )
                     granted = set(int_client.scopes)
                     if not has_required_scopes(granted, required):
-                        raise HTTPException(
+                        raise ApiException(
                             status_code=status.HTTP_403_FORBIDDEN,
+                            code="integration_token_lacks_required_scope",
                             detail="Integration token lacks required scope",
                         )
                     request.state.user_id = int_client.user.id
@@ -185,8 +192,9 @@ def require_integration_auth(*required_scopes: str) -> Callable:
                     record_integration_client_use(db, int_client)
                     return int_client.user
                 except jwt.ExpiredSignatureError as exc:
-                    raise HTTPException(
+                    raise ApiException(
                         status_code=status.HTTP_401_UNAUTHORIZED,
+                        code="integration_token_has_expired",
                         detail="Integration token has expired",
                     ) from exc
                 except jwt.InvalidIssuerError:
@@ -198,26 +206,30 @@ def require_integration_auth(*required_scopes: str) -> Callable:
                 try:
                     claims = from_thread.run(decode_oidc_token, raw_token)
                 except OIDCTokenError as exc:
-                    raise HTTPException(
+                    raise ApiException(
                         status_code=status.HTTP_401_UNAUTHORIZED,
+                        code="invalid_or_expired_oidc_token",
                         detail="Invalid or expired OIDC token",
                     ) from exc
                 subject = claims.get("sub")
                 if not subject:
-                    raise HTTPException(
+                    raise ApiException(
                         status_code=status.HTTP_401_UNAUTHORIZED,
+                        code="oidc_token_missing_sub_claim",
                         detail="OIDC token missing sub claim",
                     )
                 user = get_or_create_local_user(subject, claims, db)
                 if not user.is_active:
-                    raise HTTPException(
+                    raise ApiException(
                         status_code=status.HTTP_401_UNAUTHORIZED,
+                        code="user_inactive",
                         detail="User account is inactive",
                     )
                 granted = set(str(claims.get("scope", "")).split())
                 if not has_required_scopes(granted, required):
-                    raise HTTPException(
+                    raise ApiException(
                         status_code=status.HTTP_403_FORBIDDEN,
+                        code="oidc_token_lacks_required_scope",
                         detail="OIDC token lacks required scope",
                     )
                 request.state.user_id = user.id
@@ -241,27 +253,31 @@ def require_integration_auth(*required_scopes: str) -> Callable:
             raw_key = x_integration_key
 
         if not raw_key:
-            raise HTTPException(
+            raise ApiException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
+                code="integration_key_required",
                 detail="Integration key required",
             )
 
         client = get_integration_client_by_raw_key(db, raw_key)
         if client is None or not client.is_active or client.revoked_at is not None:
-            raise HTTPException(
+            raise ApiException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
+                code="invalid_integration_key",
                 detail="Invalid integration key",
             )
 
         if client.user is None:
-            raise HTTPException(
+            raise ApiException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
+                code="integration_owner_not_found",
                 detail="Integration owner not found",
             )
         granted = set(client.scopes)
         if not has_required_scopes(granted, required):
-            raise HTTPException(
+            raise ApiException(
                 status_code=status.HTTP_403_FORBIDDEN,
+                code="integration_key_lacks_required_scope",
                 detail="Integration key lacks required scope",
             )
 

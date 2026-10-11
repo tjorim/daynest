@@ -8,6 +8,7 @@ import { isRetryableApiError } from "@/lib/api/http";
 import { AddItemForm } from "@/features/shopping/AddItemForm";
 import { useShoppingActions } from "@/features/shopping/useShoppingActions";
 import { useShoppingItemsQuery, useShoppingListQuery } from "@/features/shopping/useShoppingLists";
+import { apiErrorMessage } from "@/lib/api/errorMessages";
 
 function groupItemsByTag(items: PlannedTodayItem[]) {
   const groups = new Map<string, PlannedTodayItem[]>();
@@ -37,7 +38,7 @@ export function ShoppingListDetail() {
   const completedItems = items.filter((item) => item.is_done);
   const groups = groupItemsByTag(openItems);
   const queryError = listQuery.error ?? itemsQuery.error;
-  const error = queryError instanceof Error ? queryError.message : null;
+  const error = queryError ? apiErrorMessage(queryError, m.api_shopping_list_load_failed()) : null;
   const canRetry = queryError ? isRetryableApiError(queryError) : false;
   const loading = listQuery.isPending || itemsQuery.isPending;
 

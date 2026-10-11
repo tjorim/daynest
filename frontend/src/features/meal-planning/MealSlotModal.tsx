@@ -3,6 +3,7 @@ import { useForm } from "@tanstack/react-form";
 import * as m from "@/paraglide/messages";
 import type { MealSlot, MealSlotUpdateInput } from "@/lib/api/mealPlans";
 import { useFocusTrap } from "@/lib/useFocusTrap";
+import { apiErrorMessage } from "@/lib/api/errorMessages";
 
 interface MealSlotModalProps {
   slot: MealSlot | null;
@@ -42,7 +43,7 @@ export function MealSlotModal({
         });
         onClose();
       } catch (err) {
-        setError(err instanceof Error ? err.message : m.meal_plan_save_error());
+        setError(apiErrorMessage(err, m.meal_plan_save_error()));
       }
     },
   });

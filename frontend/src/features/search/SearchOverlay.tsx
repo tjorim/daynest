@@ -3,6 +3,7 @@ import { useNavigate } from "@tanstack/react-router";
 import * as m from "@/paraglide/messages";
 import { useSearchQuery } from "@/features/search/useSearchQuery";
 import { useFocusTrap } from "@/lib/useFocusTrap";
+import { apiErrorMessage } from "@/lib/api/errorMessages";
 
 const DEBOUNCE_MS = 300;
 const MIN_QUERY_LEN = 2;
@@ -19,12 +20,9 @@ export function SearchOverlay({ onClose }: { onClose: () => void }) {
   const searchQuery = useSearchQuery(debouncedQuery, debouncedQuery.length >= MIN_QUERY_LEN);
   const results = searchQuery.data ?? null;
   const loading = searchQuery.isFetching;
-  const error =
-    searchQuery.error instanceof Error
-      ? searchQuery.error.message
-      : searchQuery.error
-        ? m.api_search_failed()
-        : null;
+  const error = searchQuery.error
+    ? apiErrorMessage(searchQuery.error, m.api_search_failed())
+    : null;
   useFocusTrap(dialogRef);
 
   const flatItems = useMemo(() => {

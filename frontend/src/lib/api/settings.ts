@@ -1,4 +1,4 @@
-import { fetchWithAuth, getJson, sendJson } from "@/lib/api/http";
+import { ApiError, fetchWithAuth, getJson, readErrorBody, sendJson } from "@/lib/api/http";
 import { z } from "zod";
 import * as m from "@/paraglide/messages";
 
@@ -85,12 +85,6 @@ export async function deleteAccount(): Promise<void> {
     return;
   }
 
-  let message: string = m.api_account_delete_failed();
-  try {
-    const body = (await response.json()) as { detail?: unknown };
-    if (typeof body.detail === "string") message = body.detail;
-  } catch {
-    // keep fallback message
-  }
-  throw new Error(message);
+  const { message, code, params } = await readErrorBody(response, m.api_account_delete_failed());
+  throw new ApiError(message, response.status, false, null, code, params);
 }

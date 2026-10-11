@@ -4,18 +4,78 @@ import { enqueue as enqueueOffline } from "@/lib/offlineQueue";
 import { z } from "zod";
 import * as m from "@/paraglide/messages";
 
+export type ApiErrorParams = Record<string, string | number | boolean>;
+
 export class ApiError extends Error {
   readonly status: number;
   readonly retryable: boolean;
   readonly requestId: string | null;
+  /** Stable machine-readable code; the interface maps it to a translated message. */
+  readonly code: string | null;
+  readonly params: ApiErrorParams | undefined;
 
-  constructor(message: string, status: number, retryable = false, requestId: string | null = null) {
+  constructor(
+    message: string,
+    status: number,
+    retryable = false,
+    requestId: string | null = null,
+    code: string | null = null,
+    params?: ApiErrorParams,
+  ) {
     super(message);
     this.name = "ApiError";
     this.status = status;
     this.retryable = retryable;
     this.requestId = requestId;
+    this.code = code;
+    this.params = params;
   }
+}
+
+/** Diagnostic text plus the stable code and safe parameters from an error response body. */
+export async function readErrorBody(
+  response: Response,
+  fallbackMessage: string,
+): Promise<{ message: string; code: string | null; params: ApiErrorParams | undefined }> {
+  let message = fallbackMessage;
+  let code: string | null = null;
+  let params: ApiErrorParams | undefined;
+  try {
+    const body = (await response.json()) as {
+      detail?: string | unknown[];
+      code?: unknown;
+      params?: unknown;
+    };
+    if (typeof body.detail === "string") {
+      message = body.detail;
+    } else if (Array.isArray(body.detail) && body.detail.length > 0) {
+      message = body.detail
+        .map((entry) => {
+          if (
+            entry &&
+            typeof entry === "object" &&
+            "msg" in entry &&
+            typeof entry.msg === "string"
+          ) {
+            return entry.msg;
+          }
+          return JSON.stringify(entry);
+        })
+        .filter((entry): entry is string => Boolean(entry))
+        .join(", ");
+    }
+    if (typeof body.code === "string") code = body.code;
+    if (body.params && typeof body.params === "object" && !Array.isArray(body.params)) {
+      params = Object.fromEntries(
+        Object.entries(body.params).filter((entry): entry is [string, string | number | boolean] =>
+          ["string", "number", "boolean"].includes(typeof entry[1]),
+        ),
+      );
+    }
+  } catch {
+    // keep fallback message
+  }
+  return { message, code, params };
 }
 
 export function isRetryableStatus(status: number): boolean {
@@ -57,9 +117,15 @@ export async function fetchWithRetry(
   }
 
   if (lastError instanceof Error) {
-    throw new ApiError(`Network request failed: ${lastError.message}`, 0, isIdempotent);
+    throw new ApiError(
+      `Network request failed: ${lastError.message}`,
+      0,
+      isIdempotent,
+      null,
+      "network_error",
+    );
   }
-  throw new ApiError("Network request failed.", 0, isIdempotent);
+  throw new ApiError("Network request failed.", 0, isIdempotent, null, "network_error");
 }
 
 export function withAuthHeader(init: RequestInit, token?: string): RequestInit {
@@ -78,7 +144,7 @@ export async function fetchWithAuth(
 ): Promise<Response> {
   const token = getOidcAccessToken();
   if (!token) {
-    throw new ApiError("Not authenticated", 401);
+    throw new ApiError("Not authenticated", 401, false, null, "not_authenticated");
   }
   const url =
     typeof input === "string" && !/^https?:\/\//i.test(input) ? buildApiUrl(input) : input;
@@ -96,6 +162,8 @@ export async function fetchWithAuth(
         : "You are offline. This action could not be saved; reconnect before trying again.",
       0,
       false,
+      null,
+      saved ? "offline_queued" : "offline_not_saved",
     );
   }
   const response = await fetchWithRetry(url, withAuthHeader(init, token), retries);
@@ -123,36 +191,18 @@ export async function parseJsonResponse<T>(
   const requestId = response.headers.get("x-request-id");
 
   if (!response.ok) {
-    let message = `${fallbackMessage} (${response.status})`;
-    try {
-      const body = (await response.json()) as { detail?: string | unknown[] };
-      if (typeof body.detail === "string") {
-        message = body.detail;
-      } else if (Array.isArray(body.detail) && body.detail.length > 0) {
-        message = body.detail
-          .map((entry) => {
-            if (
-              entry &&
-              typeof entry === "object" &&
-              "msg" in entry &&
-              typeof entry.msg === "string"
-            ) {
-              return entry.msg;
-            }
-            return JSON.stringify(entry);
-          })
-          .filter((entry): entry is string => Boolean(entry))
-          .join(", ");
-      }
-    } catch {
-      // keep fallback message
-    }
+    const { message, code, params } = await readErrorBody(
+      response,
+      `${fallbackMessage} (${response.status})`,
+    );
     const fullMessage = requestId ? m.api_with_request_id({ message, id: requestId }) : message;
     throw new ApiError(
       fullMessage,
       response.status,
       isIdempotent && isRetryableStatus(response.status),
       requestId,
+      code,
+      params,
     );
   }
   const payload = (await response.json()) as unknown;
@@ -172,7 +222,7 @@ export async function parseJsonResponse<T>(
     const fullMessage = requestId
       ? m.api_invalid_response_with_request_id({ details, id: requestId })
       : m.api_invalid_response({ details });
-    throw new ApiError(fullMessage, response.status, false, requestId);
+    throw new ApiError(fullMessage, response.status, false, requestId, "invalid_response");
   }
 
   return result.data;

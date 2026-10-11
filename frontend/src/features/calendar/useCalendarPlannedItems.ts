@@ -14,6 +14,7 @@ import {
   type PlannedTodayItem,
 } from "@/lib/api/today";
 import * as m from "@/paraglide/messages";
+import { apiErrorMessage } from "@/lib/api/errorMessages";
 
 type RepeatPreset = "daily" | "weekly" | "monthly" | "custom";
 
@@ -53,14 +54,22 @@ function parseRRule(
   return { preset: "daily", weekdays: [fallbackWeekday], customInterval: 2 };
 }
 
+/** A problem with the backup file itself; its message is already translated. */
+class BackupFileError extends Error {}
+
+/** Interface text for a failed backup step: our own file errors are translated, the rest is not. */
+function backupErrorMessage(err: unknown, fallback: string): string {
+  return err instanceof BackupFileError ? err.message : apiErrorMessage(err, fallback);
+}
+
 function safeParseBackup(raw: string): PlannedItemBackupFile {
   const parsed = JSON.parse(raw) as Partial<PlannedItemBackupFile>;
   if (parsed.source !== "daynest" || parsed.schema_version !== 1 || !Array.isArray(parsed.items)) {
-    throw new Error("Unsupported backup file.");
+    throw new BackupFileError(m.calendar_backup_unsupported());
   }
   parsed.items.forEach((item, index) => {
     if (!item || typeof item.title !== "string" || typeof item.planned_for !== "string") {
-      throw new Error(`Invalid backup item at index ${index}: title and planned_for are required.`);
+      throw new BackupFileError(m.calendar_backup_invalid_item({ index }));
     }
   });
   return parsed as PlannedItemBackupFile;
@@ -200,11 +209,12 @@ export function useCalendarPlannedItems({
       await loadCalendar();
     } catch (err) {
       setAddError(
-        err instanceof Error
-          ? err.message
-          : editingPlannedItemId !== null
+        apiErrorMessage(
+          err,
+          editingPlannedItemId !== null
             ? m.calendar_planned_update_failed()
             : m.calendar_planned_add_failed(),
+        ),
       );
     } finally {
       setIsAdding(false);
@@ -232,7 +242,7 @@ export function useCalendarPlannedItems({
       setActionStatus(item.is_done ? m.calendar_planned_reopened() : m.calendar_planned_done());
       await loadCalendar();
     } catch (err) {
-      setAddError(err instanceof Error ? err.message : m.calendar_planned_update_failed());
+      setAddError(apiErrorMessage(err, m.calendar_planned_update_failed()));
     } finally {
       setIsAdding(false);
     }
@@ -251,7 +261,7 @@ export function useCalendarPlannedItems({
       setActionStatus(m.calendar_planned_deleted());
       await loadCalendar();
     } catch (err) {
-      setAddError(err instanceof Error ? err.message : m.calendar_planned_delete_failed());
+      setAddError(apiErrorMessage(err, m.calendar_planned_delete_failed()));
     } finally {
       setIsAdding(false);
     }
@@ -269,7 +279,7 @@ export function useCalendarPlannedItems({
       await reschedulePlannedItem(itemId, newDate);
     } catch (err) {
       setPlannedItems(prevItems);
-      setAddError(err instanceof Error ? err.message : m.calendar_planned_reschedule_failed());
+      setAddError(apiErrorMessage(err, m.calendar_planned_reschedule_failed()));
       return;
     }
     setActionStatus(m.calendar_planned_moved());
@@ -315,7 +325,7 @@ export function useCalendarPlannedItems({
       URL.revokeObjectURL(downloadUrl);
       setBackupStatus(m.calendar_export_done({ count: payload.items.length }));
     } catch (err) {
-      setBackupStatus(err instanceof Error ? err.message : m.calendar_export_failed());
+      setBackupStatus(apiErrorMessage(err, m.calendar_export_failed()));
     } finally {
       setIsExporting(false);
     }
@@ -365,7 +375,7 @@ export function useCalendarPlannedItems({
           : m.calendar_import_complete({ imported }),
       );
     } catch (err) {
-      setBackupStatus(err instanceof Error ? err.message : m.calendar_import_failed());
+      setBackupStatus(backupErrorMessage(err, m.calendar_import_failed()));
     } finally {
       if (fileInputRef.current) {
         fileInputRef.current.value = "";

@@ -13,6 +13,7 @@ import * as m from "@/paraglide/messages";
 import { type AnalyticsPeriod, type DailyCount } from "@/lib/api/analytics";
 import { isRetryableApiError } from "@/lib/api/http";
 import { useStatsSummaryQuery } from "@/features/stats/useStatsQuery";
+import { apiErrorMessage } from "@/lib/api/errorMessages";
 
 function pct(rate: number): string {
   return `${Math.round(rate * 100)}%`;
@@ -47,12 +48,9 @@ export function StatsPage() {
   const summaryQuery = useStatsSummaryQuery(period);
   const summary = summaryQuery.data ?? null;
   const loading = summaryQuery.isPending;
-  const error =
-    summaryQuery.error instanceof Error
-      ? summaryQuery.error.message
-      : summaryQuery.error
-        ? m.load_analytics_failed()
-        : null;
+  const error = summaryQuery.error
+    ? apiErrorMessage(summaryQuery.error, m.load_analytics_failed())
+    : null;
   const canRetry = summaryQuery.error ? isRetryableApiError(summaryQuery.error) : false;
 
   const periods: { value: AnalyticsPeriod; label: string }[] = [

@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/app/providers/AuthProvider";
 import * as m from "@/paraglide/messages";
-import { fetchWithAuth } from "@/lib/api/http";
+import { apiErrorMessage } from "@/lib/api/errorMessages";
+import { ApiError, fetchWithAuth, readErrorBody } from "@/lib/api/http";
 
 export function PebblePairPage() {
   const { isAuthenticated, isLoading, login, oidcError, sessionError } = useAuth();
@@ -28,7 +29,13 @@ export function PebblePairPage() {
         const response = await fetchWithAuth("/api/integrations/clients/pebble", {
           method: "POST",
         });
-        if (!response.ok) throw new Error(`Pairing failed (${response.status})`);
+        if (!response.ok) {
+          const { message, code, params } = await readErrorBody(
+            response,
+            m.pebble_pairing_failed(),
+          );
+          throw new ApiError(message, response.status, false, null, code, params);
+        }
         const result = (await response.json()) as { api_key?: string };
         if (!result.api_key) throw new Error("Pairing response did not include a token");
         const payload = encodeURIComponent(JSON.stringify({ accessToken: result.api_key }));
@@ -36,7 +43,7 @@ export function PebblePairPage() {
         setClosed(true);
       } catch (error) {
         pairRequested.current = false;
-        setPairingError(error instanceof Error ? error.message : String(error));
+        setPairingError(apiErrorMessage(error, m.pebble_pairing_failed()));
       }
     };
     void pair();

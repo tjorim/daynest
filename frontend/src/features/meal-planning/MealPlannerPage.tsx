@@ -12,6 +12,7 @@ import {
   useMealPlanWeekQuery,
   useMealPlansQuery,
 } from "@/features/meal-planning/useMealPlan";
+import { apiErrorMessage } from "@/lib/api/errorMessages";
 
 function startOfWeek(value: dayjs.ConfigType): string {
   const date = dayjs(value);
@@ -66,8 +67,7 @@ export function MealPlannerPage() {
 
   const weekEnd = useMemo(() => toIsoDate(dayjs(weekStart).add(6, "day")), [weekStart]);
   const queryError = plansQuery.error ?? weekQuery.error ?? actions.error;
-  const error =
-    queryError instanceof Error ? queryError.message : queryError ? m.meal_plan_load_error() : null;
+  const error = queryError ? apiErrorMessage(queryError, m.meal_plan_load_error()) : null;
 
   const createPlan = async () => {
     setStatusMessage(null);

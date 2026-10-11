@@ -1,11 +1,12 @@
 from datetime import UTC, datetime
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, Response, status
 from sqlalchemy.orm import Session
 
 from app.api.dependencies.audit import get_audit_actor
 from app.api.dependencies.auth import get_current_user
 from app.core.config import settings
+from app.core.errors import ApiException
 from app.db.session import get_db
 from app.models.medication_plan import MedicationPlan
 from app.models.user import User
@@ -42,7 +43,9 @@ def _plan_to_response(plan: MedicationPlan) -> MedicationPlanResponse:
 def _get_user_medication_plan(repository: TodayRepository, user_id: int, medication_plan_id: int) -> MedicationPlan:
     plan = repository.get_medication_plan_for_user(user_id=user_id, medication_plan_id=medication_plan_id)
     if plan is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Medication plan not found")
+        raise ApiException(
+            status_code=status.HTTP_404_NOT_FOUND, code="medication_plan_not_found", detail="Medication plan not found"
+        )
     return plan
 
 

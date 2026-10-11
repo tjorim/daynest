@@ -32,6 +32,7 @@ import {
 } from "@/features/calendar/useCalendarQueries";
 import { useCalendarRangeQuery } from "@/features/calendar/useCalendarRangeQuery";
 import "@/features/calendar/calendar.css";
+import { apiErrorMessage } from "@/lib/api/errorMessages";
 
 function calendarDateString(value: Temporal.ZonedDateTime | Temporal.PlainDate): string {
   return value instanceof Temporal.PlainDate ? value.toString() : value.toPlainDate().toString();
@@ -131,7 +132,7 @@ export function CalendarPage() {
       setDayActionStatus(successMessage);
       setSelectedItem(null);
     } catch (err) {
-      planned.setAddError(err instanceof Error ? err.message : m.ui_action_failed());
+      planned.setAddError(apiErrorMessage(err, m.ui_action_failed()));
     } finally {
       setIsRunningDayAction(false);
     }
@@ -188,8 +189,7 @@ export function CalendarPage() {
 
   const loading = rangeQuery.isPending || dayQuery.isPending || plannedQuery.isPending;
   const queryError = rangeQuery.error ?? dayQuery.error ?? plannedQuery.error;
-  const error =
-    queryError instanceof Error ? queryError.message : queryError ? m.load_calendar_failed() : null;
+  const error = queryError ? apiErrorMessage(queryError, m.load_calendar_failed()) : null;
 
   return (
     <section>

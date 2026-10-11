@@ -2,6 +2,7 @@
 import { render, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { TodayPage } from "@/features/today/TodayPage";
+import { ApiError } from "@/lib/api/http";
 import { QueryTestProvider } from "../../utils/queryTestProvider";
 
 const todayApiMock = vi.hoisted(() => ({
@@ -127,7 +128,9 @@ describe("TodayPage", () => {
   });
 
   it("shows query error state and retry action", async () => {
-    todayApiMock.fetchToday.mockRejectedValueOnce(new Error("Not authenticated"));
+    todayApiMock.fetchToday.mockRejectedValueOnce(
+      new ApiError("Not authenticated", 401, false, null, "not_authenticated"),
+    );
 
     render(
       <QueryTestProvider>
@@ -135,7 +138,23 @@ describe("TodayPage", () => {
       </QueryTestProvider>,
     );
 
-    expect(await screen.findByText("Not authenticated")).toBeInTheDocument();
+    expect(
+      await screen.findByText("You are not signed in. Sign in and try again."),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("Not authenticated")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Retry" })).not.toBeInTheDocument();
+  });
+
+  it("falls back to the translated message for an unknown error", async () => {
+    todayApiMock.fetchToday.mockRejectedValueOnce(new ApiError("Boom: db exploded", 400));
+
+    render(
+      <QueryTestProvider>
+        <TodayPage />
+      </QueryTestProvider>,
+    );
+
+    expect(await screen.findByText("Unable to load today payload.")).toBeInTheDocument();
+    expect(screen.queryByText(/db exploded/)).not.toBeInTheDocument();
   });
 });

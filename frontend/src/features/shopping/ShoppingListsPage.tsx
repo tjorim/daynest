@@ -4,6 +4,7 @@ import * as m from "@/paraglide/messages";
 import { isRetryableApiError } from "@/lib/api/http";
 import { useShoppingActions } from "@/features/shopping/useShoppingActions";
 import { useShoppingListsQuery } from "@/features/shopping/useShoppingLists";
+import { apiErrorMessage } from "@/lib/api/errorMessages";
 
 export function ShoppingListsPage() {
   const [tab, setTab] = useState<"active" | "archived">("active");
@@ -17,7 +18,9 @@ export function ShoppingListsPage() {
   });
 
   const lists = (listsQuery.data ?? []).filter((list) => list.status === tab);
-  const error = listsQuery.error instanceof Error ? listsQuery.error.message : null;
+  const error = listsQuery.error
+    ? apiErrorMessage(listsQuery.error, m.api_shopping_lists_load_failed())
+    : null;
   const canRetry = listsQuery.error ? isRetryableApiError(listsQuery.error) : false;
 
   const createList = async () => {
