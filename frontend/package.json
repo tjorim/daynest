@@ -62,7 +62,7 @@
     "cross-env": "^10.1.0",
     "jsdom": "^30.1.2",
     "msw": "^2.15.0",
-    "oxc-parser": "^0.153.0",
+    "oxc-parser": "^0.154.0",
     "oxfmt": "^0.73.0",
     "oxlint": "^1.88.0",
     "typescript": "^7.0.2",
