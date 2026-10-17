@@ -4,9 +4,15 @@ on:
   pull_request:
     branches:
       - main
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/e2e.yml'
   push:
     branches:
       - main
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/e2e.yml'
 
 permissions:
   contents: read
