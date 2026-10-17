@@ -1,20 +1,9 @@
 name: CodeQL JavaScript
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'dashboard/**'
-      - 'frontend/**'
-      - '.github/workflows/codeql-javascript.yml'
-  pull_request:
-    branches: [main]
-    paths:
-      - 'dashboard/**'
-      - 'frontend/**'
-      - '.github/workflows/codeql-javascript.yml'
+  workflow_call:
   schedule:
-    - cron: '0 3 * * 1'
+    - cron: "0 3 * * 1"
 
 permissions:
   contents: read

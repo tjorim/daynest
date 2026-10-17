@@ -1,22 +1,9 @@
 name: CodeQL Python
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'backend/**'
-      - 'custom_components/**'
-      - 'python-daynest/**'
-      - '.github/workflows/codeql-python.yml'
-  pull_request:
-    branches: [main]
-    paths:
-      - 'backend/**'
-      - 'custom_components/**'
-      - 'python-daynest/**'
-      - '.github/workflows/codeql-python.yml'
+  workflow_call:
   schedule:
-    - cron: '0 3 * * 1'
+    - cron: "0 3 * * 1"
 
 permissions:
   contents: read

@@ -1,20 +1,7 @@
 name: ha-ci
 
 on:
-  pull_request:
-    paths:
-      - 'custom_components/**'
-      - '.github/workflows/ha-ci.yml'
-  push:
-    branches:
-      - main
-    paths:
-      - 'custom_components/**'
-      - '.github/workflows/ha-ci.yml'
-
-concurrency:
-  group: "ha-ci-${{ github.head_ref || github.ref }}"
-  cancel-in-progress: true
+  workflow_call:
 
 permissions:
   contents: read

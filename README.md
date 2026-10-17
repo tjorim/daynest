@@ -319,18 +319,25 @@ Related backend environment variables:
 - `SENTRY_DSN` (optional)
 - `SENTRY_TRACES_SAMPLE_RATE` (default `0.0`)
 
-## CI safety automation
+## Continuous integration
 
-GitHub Actions now enforces non-feature safety checks on pull requests and pushes to `main` via `.github/workflows/ci-safety.yml`:
+Everything runs from `.github/workflows/ci.yml` on pull requests and pushes to `main`. A `changes` job detects which components a pull request touches and each component job runs only when it is affected; the rest show as **Skipped**. Pushes to `main` run everything. Each component lives in its own reusable workflow:
 
-- `backend-safety` (lint, type-check, tests)
-- `frontend-type-build` (TypeScript compile + production build)
-- `migration-check` (`alembic upgrade head` + `alembic check` against Postgres)
-- `container-build-verification` (builds both backend and frontend Dockerfiles)
+| Job | Workflow | Checks |
+|-----|----------|--------|
+| Backend | `backend-ci.yml` | Ruff lint and format, `ty` type-check, pytest; Alembic migrations applied to head |
+| Frontend | `frontend-ci.yml` | locale audit, format check, type-check and production build, Vitest with coverage |
+| End-to-end | `e2e.yml` | Playwright against the mocked frontend |
+| Dashboard | `dashboard-ci.yml` | Lovelace card build |
+| Python library | `daynest-lib-ci.yml` | Ruff, pyright, pytest for `python-daynest` |
+| Home Assistant | `ha-ci.yml` | Ruff and pytest for `custom_components` |
+| Android | `android.yml` | detekt, ktlint, Android lint, unit tests, debug APK |
+| Pebble | `pebble.yml` | Pebble app build and emulator tests |
+| CodeQL | `codeql-*.yml` | Code scanning for Actions, Android, JavaScript and Python; also runs weekly |
 
-Branch protection is automated in `.github/workflows/branch-protection.yml` and requires those checks to be green before merge.
+The `CI gate` job at the end passes only when every job passed or was skipped, so it is the one check to require in branch protection. Branch protection is not configured for this repository yet.
 
-If `GITHUB_TOKEN` cannot administer branch settings in your repo, create a `BRANCH_PROTECTION_TOKEN` secret with a fine-grained personal access token that has "Administration" repository permissions (read and write).
+Release workflows (`release.yml`, `android-release.yml`) are triggered by tags or manually and are not part of `ci.yml`.
 
 ## Backend Python tooling
 
