@@ -14,26 +14,46 @@ import * as m from "@/paraglide/messages";
 import { AppLayout } from "@/app/layout/AppLayout";
 import { AuthPage } from "@/features/auth/AuthPage";
 import { TodayPage } from "@/features/today/TodayPage";
-import { CalendarPage } from "@/features/calendar/CalendarPage";
+import { RouteChunkError, RoutePending, lazyPage } from "@/app/router/lazyPage";
 import {
   calendarDayQueryOptions,
   calendarPlannedItemsQueryOptions,
   resolveCalendarSelectedDate,
 } from "@/features/calendar/useCalendarQueries";
-import { MedicationPage } from "@/features/medication/MedicationPage";
-import { SettingsPage } from "@/features/settings/SettingsPage";
-import { TemplatesPage } from "@/features/templates/TemplatesPage";
-import { StatsPage } from "@/features/stats/StatsPage";
-import { ShoppingListDetail } from "@/features/shopping/ShoppingListDetail";
-import { ShoppingListsPage } from "@/features/shopping/ShoppingListsPage";
 import {
   shoppingItemsQueryOptions,
   shoppingListQueryOptions,
 } from "@/features/shopping/useShoppingLists";
-import { RecurringGroceriesPage } from "@/features/shopping/RecurringGroceriesPage";
-import { MealPlannerPage } from "@/features/meal-planning/MealPlannerPage";
-import { PrivacyPolicyPage } from "@/features/legal/PrivacyPolicyPage";
-import { PebblePairPage } from "@/features/pebble/PebblePairPage";
+
+const CalendarPage = lazyPage(() => import("@/features/calendar/CalendarPage"), "CalendarPage");
+const MedicationPage = lazyPage(
+  () => import("@/features/medication/MedicationPage"),
+  "MedicationPage",
+);
+const SettingsPage = lazyPage(() => import("@/features/settings/SettingsPage"), "SettingsPage");
+const TemplatesPage = lazyPage(() => import("@/features/templates/TemplatesPage"), "TemplatesPage");
+const StatsPage = lazyPage(() => import("@/features/stats/StatsPage"), "StatsPage");
+const ShoppingListDetail = lazyPage(
+  () => import("@/features/shopping/ShoppingListDetail"),
+  "ShoppingListDetail",
+);
+const ShoppingListsPage = lazyPage(
+  () => import("@/features/shopping/ShoppingListsPage"),
+  "ShoppingListsPage",
+);
+const RecurringGroceriesPage = lazyPage(
+  () => import("@/features/shopping/RecurringGroceriesPage"),
+  "RecurringGroceriesPage",
+);
+const MealPlannerPage = lazyPage(
+  () => import("@/features/meal-planning/MealPlannerPage"),
+  "MealPlannerPage",
+);
+const PrivacyPolicyPage = lazyPage(
+  () => import("@/features/legal/PrivacyPolicyPage"),
+  "PrivacyPolicyPage",
+);
+const PebblePairPage = lazyPage(() => import("@/features/pebble/PebblePairPage"), "PebblePairPage");
 
 type RouterContext = {
   auth: {
@@ -262,6 +282,10 @@ const routeTree = rootRoute.addChildren([
 export function createAppRouter() {
   return createRouter({
     routeTree,
+    // Lazy route chunks (see lazyPage) show these while loading / on failure.
+    defaultPendingComponent: RoutePending,
+    defaultPendingMs: 200,
+    defaultErrorComponent: RouteChunkError,
     context: {
       auth: {
         isAuthenticated: false,
