@@ -55,6 +55,14 @@ export default defineConfig({
       {
         extends: true,
         test: {
+          name: "scripts",
+          include: ["scripts/**/*.test.mjs"],
+          environment: "node",
+        },
+      },
+      {
+        extends: true,
+        test: {
           name: "msw",
           include: ["tests/msw/**/*.test.?(c|m)[jt]s?(x)"],
           environment: "jsdom",

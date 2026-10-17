@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { catalogueErrors } from "../../scripts/check-message-parity.mjs";
+import { catalogueErrors } from "./check-message-parity.mjs";
 
 it("rejects missing keys and inputs, including declaration-only plural inputs", () => {
   expect(catalogueErrors({ greeting: "Hello {name}" }, {})).toHaveLength(1);

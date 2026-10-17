@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { sourceCandidates, frozenMessageCalls } from "../../scripts/locale-audit.mjs";
+import { sourceCandidates, frozenMessageCalls } from "./locale-audit.mjs";
 
 it("finds JSX copy, single-word labels, validators, enum prose and template fragments", () => {
   const source = `const labels = { wait: "Even wachten" }; const validate = () => "Geef een naam";
