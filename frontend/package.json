@@ -34,7 +34,7 @@
     "@tanstack/react-router": "^1.170.38",
     "@tanstack/react-table": "^9.2.4",
     "bootstrap": "^5.3.3",
-    "bootstrap-icons": "^1.13.1",
+    "bootstrap-icons": "^1.13.2",
     "canvas-confetti": "^1.9.4",
     "d3-shape": "^3.2.0",
     "dayjs": "^1.11.23",
