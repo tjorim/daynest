@@ -195,9 +195,9 @@ def test_routine_generation_falls_back_for_invalid_rrule(db_session: Session) ->
     assert [item.scheduled_date for item in generated] == [date(2026, 4, 20), date(2026, 4, 22), date(2026, 4, 24)]
     # SQLite round-trips DateTime(timezone=True) columns as naive UTC values.
     assert [item.due_at for item in generated] == [
-        datetime(2026, 4, 20, 7, 30),  # noqa: DTZ001
-        datetime(2026, 4, 22, 7, 30),  # noqa: DTZ001
-        datetime(2026, 4, 24, 7, 30),  # noqa: DTZ001
+        datetime(2026, 4, 20, 7, 30),
+        datetime(2026, 4, 22, 7, 30),
+        datetime(2026, 4, 24, 7, 30),
     ]
 
 
@@ -228,7 +228,7 @@ def test_routine_generation_does_not_fallback_for_exhausted_rrule(db_session: Se
         .all()
     )
     assert [item.scheduled_date for item in generated] == [date(2026, 4, 20)]
-    assert generated[0].due_at == datetime(2026, 4, 20, 8, 0)  # noqa: DTZ001 -- SQLite round-trips as naive UTC
+    assert generated[0].due_at == datetime(2026, 4, 20, 8, 0)  # SQLite round-trips as naive UTC
 
 
 def test_get_today_allows_today_service_dependency_override(client: TestClient, db_session: Session) -> None:
