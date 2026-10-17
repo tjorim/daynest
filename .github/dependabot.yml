@@ -43,6 +43,7 @@ updates:
         patterns:
           - "oxlint"
           - "oxfmt"
+          - "oxc-parser"
       i18n:
         patterns:
           - "@inlang/*"
