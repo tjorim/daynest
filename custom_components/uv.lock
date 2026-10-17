@@ -1492,14 +1492,14 @@ wheels = [
 
 [[package]]
 name = "mashumaro"
-version = "3.20"
+version = "3.23"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/64/3d/0f1bf475109a816c2a31a8b424750911343f0bce304827a5255df167547e/mashumaro-3.20.tar.gz", hash = "sha256:af4573f14ae61be3fbc3a473158ddfc1420f345410385809fd782e0d79e9215c", size = 191643, upload-time = "2026-02-09T21:53:55.24Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/09/18/6383ce957a0551d8704936ffef1ecf0b0c620543999a44f9adf6c5f30888/mashumaro-3.23.tar.gz", hash = "sha256:ed69d5bc548c76efbb5286cc0e541a6b8796e621385f986e25b750364011abf5", size = 141901, upload-time = "2026-09-30T20:21:40.905Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/96/5a/4fed77781061647d3be98e2f235ef1869289dd839ca0451a8d50a30fcd5c/mashumaro-3.20-py3-none-any.whl", hash = "sha256:648bc326f64c55447988eab67d6bfe3b7958c0961c83590709b1f950f88f4a3c", size = 94942, upload-time = "2026-02-09T21:53:53.343Z" },
+    { url = "https://files.pythonhosted.org/packages/4e/eb/2c5e2b0df54c9c979d45bfa4820687ab24797fe1ad42d4fdfc0c8ece59f1/mashumaro-3.23-py3-none-any.whl", hash = "sha256:a671279ce93119d41c54adcd767753ae68adb32b9473de2f9d5d1720d2376231", size = 78621, upload-time = "2026-09-30T20:21:39.403Z" },
 ]
 
 [[package]]
