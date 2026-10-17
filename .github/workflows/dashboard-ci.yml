@@ -1,21 +1,8 @@
 name: dashboard-ci
 
 on:
-  pull_request:
-    paths:
-      - 'dashboard/**'
-      - '.github/workflows/dashboard-ci.yml'
-  push:
-    branches:
-      - main
-    paths:
-      - 'dashboard/**'
-      - '.github/workflows/dashboard-ci.yml'
+  workflow_call:
   workflow_dispatch:
-
-concurrency:
-  group: "dashboard-ci-${{ github.head_ref || github.ref }}"
-  cancel-in-progress: true
 
 permissions:
   contents: read

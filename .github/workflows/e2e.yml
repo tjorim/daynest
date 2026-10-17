@@ -1,18 +1,7 @@
 name: e2e
 
 on:
-  pull_request:
-    branches:
-      - main
-    paths:
-      - 'frontend/**'
-      - '.github/workflows/e2e.yml'
-  push:
-    branches:
-      - main
-    paths:
-      - 'frontend/**'
-      - '.github/workflows/e2e.yml'
+  workflow_call:
 
 permissions:
   contents: read
