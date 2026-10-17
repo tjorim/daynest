@@ -131,6 +131,9 @@ updates:
       - "backend"
       - "python"
     versioning-strategy: "increase"
+    # Include transitive dependencies such as mcp and mcp-types in grouped updates.
+    allow:
+      - dependency-type: all
     groups:
       # fastmcp pulls in mcp and mcp-types; keep them moving together
       fastmcp:
@@ -163,6 +166,8 @@ updates:
       - "dependencies"
       - "python"
     versioning-strategy: "increase"
+    allow:
+      - dependency-type: all
 
   # Monitor uv-managed Python dependencies for the python-daynest library
   - package-ecosystem: "uv"
@@ -182,6 +187,8 @@ updates:
       - "dependencies"
       - "python"
     versioning-strategy: "increase"
+    allow:
+      - dependency-type: all
 
   # Monitor GitHub Actions
   - package-ecosystem: "github-actions"
