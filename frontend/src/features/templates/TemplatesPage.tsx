@@ -1,8 +1,8 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import * as m from "@/paraglide/messages";
 import { FeedbackBanner } from "@/components/common/FeedbackBanner";
 import { isRetryableApiError } from "@/lib/api/http";
-import { formatDate, toIsoDate } from "@/lib/dateUtils";
+import { formatDate } from "@/lib/dateUtils";
 import {
   useChoreTemplatesQuery,
   useCreateChoreTemplateMutation,
@@ -15,6 +15,8 @@ import {
   useUpdateRoutineTemplateMutation,
 } from "@/features/templates/useTemplateQueries";
 import { apiErrorMessage } from "@/lib/api/errorMessages";
+
+import { TemplateEditor, type TemplateEditorState } from "./TemplateEditor";
 
 export function TemplatesPage() {
   const [routineSubmitError, setRoutineSubmitError] = useState<string | null>(null);
@@ -50,122 +52,17 @@ export function TemplatesPage() {
     [analytics],
   );
 
-  const [routineName, setRoutineName] = useState("");
-  const [routineDescription, setRoutineDescription] = useState("");
-  const [routineStartDate, setRoutineStartDate] = useState(() => toIsoDate(new Date()));
-  const [routineEveryNDays, setRoutineEveryNDays] = useState("1");
-  const [routineDueTime, setRoutineDueTime] = useState("08:00");
-  const [routineActive, setRoutineActive] = useState(true);
-  const [editingRoutineId, setEditingRoutineId] = useState<number | null>(null);
+  const [editor, setEditor] = useState<TemplateEditorState | null>(null);
+  const returnFocus = useRef<HTMLElement | null>(null);
+  const openEditor = (next: TemplateEditorState, trigger: HTMLElement) => {
+    returnFocus.current = trigger;
+    setSuccessMessage(null);
+    setEditor(next);
+  };
   const [confirmDeleteRoutineId, setConfirmDeleteRoutineId] = useState<number | null>(null);
   const [confirmDeleteChoreId, setConfirmDeleteChoreId] = useState<number | null>(null);
-
-  const [choreName, setChoreName] = useState("");
-  const [choreDescription, setChoreDescription] = useState("");
-  const [choreStartDate, setChoreStartDate] = useState(() => toIsoDate(new Date()));
-  const [choreEveryNDays, setChoreEveryNDays] = useState("7");
-  const [choreActive, setChoreActive] = useState(true);
-  const [editingChoreId, setEditingChoreId] = useState<number | null>(null);
-
   const loadTemplates = async () => {
     await Promise.all([routinesQuery.refetch(), choresQuery.refetch(), analyticsQuery.refetch()]);
-  };
-
-  const resetRoutineForm = () => {
-    setEditingRoutineId(null);
-    setRoutineName("");
-    setRoutineDescription("");
-    setRoutineStartDate(toIsoDate(new Date()));
-    setRoutineEveryNDays("1");
-    setRoutineDueTime("08:00");
-    setRoutineActive(true);
-  };
-
-  const resetChoreForm = () => {
-    setEditingChoreId(null);
-    setChoreName("");
-    setChoreDescription("");
-    setChoreStartDate(toIsoDate(new Date()));
-    setChoreEveryNDays("7");
-    setChoreActive(true);
-  };
-
-  const submitRoutine = async () => {
-    if (!routineName.trim()) {
-      setRoutineSubmitError(m.templates_routine_name_required());
-      return;
-    }
-    const everyNDaysRoutine = parseInt(routineEveryNDays, 10);
-    if (!Number.isInteger(everyNDaysRoutine) || everyNDaysRoutine < 1) {
-      setRoutineSubmitError(m.templates_every_n_error());
-      return;
-    }
-    setIsRoutineSubmitting(true);
-    setRoutineSubmitError(null);
-    setSuccessMessage(null);
-    try {
-      const payload = {
-        name: routineName.trim(),
-        description: routineDescription.trim() || null,
-        start_date: routineStartDate,
-        every_n_days: everyNDaysRoutine,
-        due_time: routineDueTime ? `${routineDueTime}:00` : null,
-        is_active: routineActive,
-      };
-      if (editingRoutineId !== null) {
-        await updateRoutineMutation.mutateAsync({
-          routineTemplateId: editingRoutineId,
-          input: payload,
-        });
-      } else {
-        await createRoutineMutation.mutateAsync(payload);
-      }
-      resetRoutineForm();
-      setSuccessMessage(
-        editingRoutineId !== null ? m.templates_routine_updated() : m.templates_routine_created(),
-      );
-    } catch (err) {
-      setRoutineSubmitError(apiErrorMessage(err, m.templates_routine_save_failed()));
-    } finally {
-      setIsRoutineSubmitting(false);
-    }
-  };
-
-  const submitChore = async () => {
-    if (!choreName.trim()) {
-      setChoreSubmitError(m.templates_chore_name_required());
-      return;
-    }
-    const everyNDaysChore = parseInt(choreEveryNDays, 10);
-    if (!Number.isInteger(everyNDaysChore) || everyNDaysChore < 1) {
-      setChoreSubmitError(m.templates_every_n_error());
-      return;
-    }
-    setIsChoreSubmitting(true);
-    setChoreSubmitError(null);
-    setSuccessMessage(null);
-    try {
-      const payload = {
-        name: choreName.trim(),
-        description: choreDescription.trim() || null,
-        start_date: choreStartDate,
-        every_n_days: everyNDaysChore,
-        is_active: choreActive,
-      };
-      if (editingChoreId !== null) {
-        await updateChoreMutation.mutateAsync({ choreTemplateId: editingChoreId, input: payload });
-      } else {
-        await createChoreMutation.mutateAsync(payload);
-      }
-      resetChoreForm();
-      setSuccessMessage(
-        editingChoreId !== null ? m.templates_chore_updated() : m.templates_chore_created(),
-      );
-    } catch (err) {
-      setChoreSubmitError(apiErrorMessage(err, m.templates_chore_save_failed()));
-    } finally {
-      setIsChoreSubmitting(false);
-    }
   };
 
   const handleDeleteRoutine = async (routineId: number) => {
@@ -175,7 +72,6 @@ export function TemplatesPage() {
     setSuccessMessage(null);
     try {
       await deleteRoutineMutation.mutateAsync(routineId);
-      if (editingRoutineId === routineId) resetRoutineForm();
       setSuccessMessage(m.templates_routine_deleted());
     } catch (err) {
       setRoutineSubmitError(apiErrorMessage(err, m.templates_routine_delete_failed()));
@@ -191,7 +87,6 @@ export function TemplatesPage() {
     setSuccessMessage(null);
     try {
       await deleteChoreMutation.mutateAsync(choreId);
-      if (editingChoreId === choreId) resetChoreForm();
       setSuccessMessage(m.templates_chore_deleted());
     } catch (err) {
       setChoreSubmitError(apiErrorMessage(err, m.templates_chore_delete_failed()));
@@ -245,103 +140,22 @@ export function TemplatesPage() {
 
       <div className="row g-3">
         <div className="col-xl-6">
-          <div className="card mb-3">
-            <div className="card-header fw-semibold py-2">{m.templates_routine_form_header()}</div>
-            <div className="card-body d-grid gap-2">
-              <FeedbackBanner
-                message={routineSubmitError}
-                tone="danger"
-                onDismiss={() => setRoutineSubmitError(null)}
-              />
-              <input
-                className="form-control"
-                value={routineName}
-                onChange={(event) => setRoutineName(event.target.value)}
-                placeholder={m.templates_routine_name_placeholder()}
-              />
-              <textarea
-                className="form-control"
-                rows={3}
-                value={routineDescription}
-                onChange={(event) => setRoutineDescription(event.target.value)}
-                placeholder={m.templates_description_placeholder()}
-              />
-              <div className="row g-2">
-                <div className="col-sm-6">
-                  <label className="form-label small fw-semibold mb-1">
-                    {m.templates_start_date_label()}
-                  </label>
-                  <input
-                    className="form-control"
-                    type="date"
-                    value={routineStartDate}
-                    onChange={(event) => setRoutineStartDate(event.target.value)}
-                  />
-                </div>
-                <div className="col-sm-6">
-                  <label className="form-label small fw-semibold mb-1">
-                    {m.templates_every_n_days_label()}
-                  </label>
-                  <input
-                    className="form-control"
-                    type="number"
-                    min={1}
-                    value={routineEveryNDays}
-                    onChange={(event) => setRoutineEveryNDays(event.target.value)}
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="form-label small fw-semibold mb-1">
-                  {m.templates_due_time_label()}
-                </label>
-                <input
-                  className="form-control"
-                  type="time"
-                  value={routineDueTime}
-                  onChange={(event) => setRoutineDueTime(event.target.value)}
-                />
-              </div>
-              <label className="form-check">
-                <input
-                  className="form-check-input"
-                  type="checkbox"
-                  checked={routineActive}
-                  onChange={(event) => setRoutineActive(event.target.checked)}
-                />
-                <span className="form-check-label">{m.templates_active_label()}</span>
-              </label>
-              <div className="d-flex gap-2 flex-column flex-sm-row">
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  disabled={isRoutineSubmitting}
-                  onClick={() => void submitRoutine()}
-                >
-                  {isRoutineSubmitting
-                    ? editingRoutineId !== null
-                      ? m.action_saving()
-                      : m.action_creating()
-                    : editingRoutineId !== null
-                      ? m.templates_save_routine()
-                      : m.templates_create_routine()}
-                </button>
-                {editingRoutineId !== null ? (
-                  <button
-                    type="button"
-                    className="btn btn-outline-secondary"
-                    disabled={isRoutineSubmitting}
-                    onClick={resetRoutineForm}
-                  >
-                    {m.templates_cancel_edit()}
-                  </button>
-                ) : null}
-              </div>
-            </div>
-          </div>
-
           <div className="card">
-            <div className="card-header fw-semibold py-2">{m.templates_routine_list_header()}</div>
+            <div className="card-header d-flex justify-content-between align-items-center gap-2 py-2">
+              <span className="fw-semibold">{m.templates_routine_list_header()}</span>
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                onClick={(event) => openEditor({ kind: "routine" }, event.currentTarget)}
+              >
+                {m.templates_new_routine()}
+              </button>
+            </div>
+            <FeedbackBanner
+              message={routineSubmitError}
+              tone="danger"
+              onDismiss={() => setRoutineSubmitError(null)}
+            />
             <ul className="list-group list-group-flush">
               {routines.length === 0 ? (
                 <li className="list-group-item py-2 text-muted">{m.templates_no_routines()}</li>
@@ -385,18 +199,9 @@ export function TemplatesPage() {
                         <button
                           type="button"
                           className="btn btn-outline-primary btn-sm"
-                          onClick={() => {
-                            setEditingRoutineId(routine.id);
-                            setRoutineName(routine.name);
-                            setRoutineDescription(routine.description ?? "");
-                            setRoutineStartDate(routine.start_date);
-                            setRoutineEveryNDays(String(routine.every_n_days));
-                            setRoutineDueTime(routine.due_time ? routine.due_time.slice(0, 5) : "");
-                            setRoutineActive(routine.is_active);
-                            setConfirmDeleteRoutineId(null);
-                            setRoutineSubmitError(null);
-                            setSuccessMessage(null);
-                          }}
+                          onClick={(event) =>
+                            openEditor({ kind: "routine", template: routine }, event.currentTarget)
+                          }
                         >
                           {m.action_edit()}
                         </button>
@@ -438,92 +243,22 @@ export function TemplatesPage() {
         </div>
 
         <div className="col-xl-6">
-          <div className="card mb-3">
-            <div className="card-header fw-semibold py-2">{m.templates_chore_form_header()}</div>
-            <div className="card-body d-grid gap-2">
-              <FeedbackBanner
-                message={choreSubmitError}
-                tone="danger"
-                onDismiss={() => setChoreSubmitError(null)}
-              />
-              <input
-                className="form-control"
-                value={choreName}
-                onChange={(event) => setChoreName(event.target.value)}
-                placeholder={m.templates_chore_name_placeholder()}
-              />
-              <textarea
-                className="form-control"
-                rows={3}
-                value={choreDescription}
-                onChange={(event) => setChoreDescription(event.target.value)}
-                placeholder={m.templates_description_placeholder()}
-              />
-              <div className="row g-2">
-                <div className="col-sm-6">
-                  <label className="form-label small fw-semibold mb-1">
-                    {m.templates_start_date_label()}
-                  </label>
-                  <input
-                    className="form-control"
-                    type="date"
-                    value={choreStartDate}
-                    onChange={(event) => setChoreStartDate(event.target.value)}
-                  />
-                </div>
-                <div className="col-sm-6">
-                  <label className="form-label small fw-semibold mb-1">
-                    {m.templates_every_n_days_label()}
-                  </label>
-                  <input
-                    className="form-control"
-                    type="number"
-                    min={1}
-                    value={choreEveryNDays}
-                    onChange={(event) => setChoreEveryNDays(event.target.value)}
-                  />
-                </div>
-              </div>
-              <label className="form-check">
-                <input
-                  className="form-check-input"
-                  type="checkbox"
-                  checked={choreActive}
-                  onChange={(event) => setChoreActive(event.target.checked)}
-                />
-                <span className="form-check-label">{m.templates_active_label()}</span>
-              </label>
-              <div className="d-flex gap-2 flex-column flex-sm-row">
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  disabled={isChoreSubmitting}
-                  onClick={() => void submitChore()}
-                >
-                  {isChoreSubmitting
-                    ? editingChoreId !== null
-                      ? m.action_saving()
-                      : m.action_creating()
-                    : editingChoreId !== null
-                      ? m.templates_save_chore()
-                      : m.templates_create_chore()}
-                </button>
-                {editingChoreId !== null ? (
-                  <button
-                    type="button"
-                    className="btn btn-outline-secondary"
-                    disabled={isChoreSubmitting}
-                    onClick={resetChoreForm}
-                  >
-                    {m.templates_cancel_edit()}
-                  </button>
-                ) : null}
-              </div>
-            </div>
-          </div>
-
           <div className="card">
-            <div className="card-header fw-semibold py-2">{m.templates_chore_list_header()}</div>
+            <div className="card-header d-flex justify-content-between align-items-center gap-2 py-2">
+              <span className="fw-semibold">{m.templates_chore_list_header()}</span>
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                onClick={(event) => openEditor({ kind: "chore" }, event.currentTarget)}
+              >
+                {m.templates_new_chore()}
+              </button>
+            </div>
+            <FeedbackBanner
+              message={choreSubmitError}
+              tone="danger"
+              onDismiss={() => setChoreSubmitError(null)}
+            />
             <ul className="list-group list-group-flush">
               {chores.length === 0 ? (
                 <li className="list-group-item py-2 text-muted">{m.templates_no_chores()}</li>
@@ -563,17 +298,9 @@ export function TemplatesPage() {
                         <button
                           type="button"
                           className="btn btn-outline-primary btn-sm"
-                          onClick={() => {
-                            setEditingChoreId(chore.id);
-                            setChoreName(chore.name);
-                            setChoreDescription(chore.description ?? "");
-                            setChoreStartDate(chore.start_date);
-                            setChoreEveryNDays(String(chore.every_n_days));
-                            setChoreActive(chore.is_active);
-                            setConfirmDeleteChoreId(null);
-                            setChoreSubmitError(null);
-                            setSuccessMessage(null);
-                          }}
+                          onClick={(event) =>
+                            openEditor({ kind: "chore", template: chore }, event.currentTarget)
+                          }
                         >
                           {m.action_edit()}
                         </button>
@@ -614,6 +341,36 @@ export function TemplatesPage() {
           </div>
         </div>
       </div>
+      {editor ? (
+        <TemplateEditor
+          editor={editor}
+          returnFocus={returnFocus}
+          onClose={() => setEditor(null)}
+          onSave={async (input) => {
+            if (editor.kind === "routine") {
+              if (editor.template)
+                await updateRoutineMutation.mutateAsync({
+                  routineTemplateId: editor.template.id,
+                  input,
+                });
+              else await createRoutineMutation.mutateAsync(input);
+              setSuccessMessage(
+                editor.template ? m.templates_routine_updated() : m.templates_routine_created(),
+              );
+            } else {
+              if (editor.template)
+                await updateChoreMutation.mutateAsync({
+                  choreTemplateId: editor.template.id,
+                  input,
+                });
+              else await createChoreMutation.mutateAsync(input);
+              setSuccessMessage(
+                editor.template ? m.templates_chore_updated() : m.templates_chore_created(),
+              );
+            }
+          }}
+        />
+      ) : null}
     </section>
   );
 }
