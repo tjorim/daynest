@@ -638,5 +638,13 @@
   "calendar_backup_unsupported": "Niet-ondersteund back-upbestand.",
   "calendar_backup_invalid_item": "Ongeldig back-upitem op positie {index}: titel en geplande datum zijn verplicht.",
   "pebble_pairing_failed": "Koppelen mislukt. Probeer het opnieuw.",
-  "recurring_groceries_load_failed": "Kan terugkerende boodschappen niet laden"
+  "recurring_groceries_load_failed": "Kan terugkerende boodschappen niet laden",
+  "templates_new_routine": "Nieuwe routine",
+  "templates_edit_routine": "Routine bewerken",
+  "templates_new_chore": "Nieuwe klus",
+  "templates_edit_chore": "Klus bewerken",
+  "editor_discard_title": "Niet-opgeslagen wijzigingen verwerpen?",
+  "editor_discard_description": "Je wijzigingen gaan verloren als je deze editor sluit.",
+  "editor_continue_editing": "Verder bewerken",
+  "editor_discard_changes": "Wijzigingen verwerpen"
 }

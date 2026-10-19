@@ -638,5 +638,13 @@
   "calendar_backup_unsupported": "Unsupported backup file.",
   "calendar_backup_invalid_item": "Invalid backup item at position {index}: title and planned date are required.",
   "pebble_pairing_failed": "Pairing failed. Try again.",
-  "recurring_groceries_load_failed": "Unable to load recurring groceries"
+  "recurring_groceries_load_failed": "Unable to load recurring groceries",
+  "templates_new_routine": "New routine",
+  "templates_edit_routine": "Edit routine",
+  "templates_new_chore": "New chore",
+  "templates_edit_chore": "Edit chore",
+  "editor_discard_title": "Discard unsaved changes?",
+  "editor_discard_description": "Your changes will be lost if you close this editor.",
+  "editor_continue_editing": "Continue editing",
+  "editor_discard_changes": "Discard changes"
 }
