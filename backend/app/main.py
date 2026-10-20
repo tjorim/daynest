@@ -39,6 +39,7 @@ from app.core.observability import (
     configure_logging,
     observability_middleware,
 )
+from app.core.request_timing import RequestTimingMiddleware
 from app.db.session import SessionLocal
 from app.mcp.capabilities import CONTRACT_VERSION, tool_capability
 from app.mcp_server import create_mcp_server
@@ -213,6 +214,8 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, handle_rate_limit_exceeded)
 app.add_exception_handler(ApiException, handle_api_exception)
 app.add_middleware(SlowAPIMiddleware)
+# Outermost, so its timing covers everything below it (apps#246).
+app.add_middleware(RequestTimingMiddleware)
 
 app.include_router(system_router, prefix=settings.api_prefix)
 app.include_router(auth_router, prefix=settings.api_prefix)
