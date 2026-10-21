@@ -1,5 +1,4 @@
 import { Link } from "@tanstack/react-router";
-import confetti from "canvas-confetti";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import * as m from "@/paraglide/messages";
 import { FeedbackBanner } from "@/components/common/FeedbackBanner";
@@ -167,7 +166,12 @@ export function TodayPage() {
       prevActionableRef.current !== null &&
       prevActionableRef.current > 0
     ) {
-      void confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
+      // Loaded on the moment it fires; offline without a cached copy it is skipped.
+      void import("canvas-confetti")
+        .then(({ default: confetti }) =>
+          confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } }),
+        )
+        .catch(() => {});
     }
     prevActionableRef.current = actionableCount;
   }, [actionableCount, hasAnyItems]);

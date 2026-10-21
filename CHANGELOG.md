@@ -49,6 +49,9 @@ bump on every app release.
   same `request_timing.py` module is shared with Travel, Worktime and Champagnefestival.
 
 ### Changed
+- **Frontend:** the Today page's first load is about 11% smaller (198 → 176 KB gzipped; apps#247).
+  The quick-add form and its form library load shortly after the page settles, so they are still
+  cached for offline use, and the completion confetti loads when it fires.
 - **API/Frontend:** error responses now carry a stable `code` (and optional `params`) next to the
   English `detail`, and the interface shows a translated message for the code, or the translated
   operation fallback when the code is unknown, instead of echoing `error.message` (#990).
