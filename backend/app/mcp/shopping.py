@@ -14,7 +14,7 @@ from app.mcp.context import (
     with_meal_plan_service,
     with_shopping_service,
 )
-from app.mcp.errors import map_domain_errors
+from app.mcp.errors import map_domain_errors, validate_arguments
 from app.mcp.principal import McpPrincipal
 from app.schemas.meal_plan import MealSlotUpdate
 from app.schemas.shopping_list import (
@@ -69,7 +69,7 @@ def set_meal_slot(
         payload["ingredients_json"] = ingredients_json
     if planned_item_id is not None:
         payload["planned_item_id"] = None if planned_item_id == 0 else planned_item_id
-    request = MealSlotUpdate(**payload)
+    request = validate_arguments(MealSlotUpdate, payload)
 
     def _op(_db: Session, principal: McpPrincipal, service: MealPlanService) -> dict[str, Any]:
         return jsonable(
@@ -163,7 +163,7 @@ def update_shopping_list(
         }.items()
         if value is not None
     }
-    request = ShoppingListUpdateRequest.model_validate(payload)
+    request = validate_arguments(ShoppingListUpdateRequest, payload)
 
     def _op(_db: Session, principal: McpPrincipal, service: ShoppingListService) -> dict[str, Any]:
         return jsonable(
