@@ -41,6 +41,13 @@ bump on every app release.
 
 ## [Unreleased]
 
+### Added
+- **Backend:** every API response carries `Server-Timing: app;dur=…, db;desc="N queries";dur=…`
+  (visible in the browser devtools Network tab), and a request slower than 300 ms is logged as a
+  warning with its method, route template (never the raw path), status, duration and query count
+  (apps#246). Queries are counted through SQLAlchemy engine events, so N+1 patterns stand out. The
+  same `request_timing.py` module is shared with Travel, Worktime and Champagnefestival.
+
 ### Changed
 - **API/Frontend:** error responses now carry a stable `code` (and optional `params`) next to the
   English `detail`, and the interface shows a translated message for the code, or the translated
