@@ -72,9 +72,6 @@ def _search_serializer(tools: Sequence[Tool]) -> list[dict[str, Any]]:
     ]
 
 
-if not logger.handlers:
-    logging.basicConfig(stream=sys.stderr, level=logging.INFO)
-
 DAYNEST_USER_EMAIL_ENV = "DAYNEST_USER_EMAIL"
 MCP_TOOL_NAMES = (
     "whoami",
@@ -1415,6 +1412,9 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
 
 
 def main() -> None:
+    # Only the stdio entry point configures the root logger: inside the API
+    # it would print every app.* line a second time next to configure_logging.
+    logging.basicConfig(stream=sys.stderr, level=logging.INFO)
     mcp = create_mcp_server()
     logger.info("Starting Daynest MCP server (stdio)")
     mcp.run(transport="stdio")

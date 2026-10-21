@@ -67,6 +67,9 @@ bump on every app release.
   `idempotent_hint` derived from `docs/retry-safety.md`.
 
 ### Fixed
+- **Backend:** each log line from the API is printed once. Importing the MCP module configured
+  the root logger as well, so every `app.*` line appeared a second time in `docker logs`; only the
+  stdio entry point (`python -m app.mcp_server`) does that now.
 - **Docs:** the README pointed at a non-existent `/api/v1/mcp/*` adapter; it now lists the live
   `GET /api/mcp/capabilities` endpoint (#914).
 
