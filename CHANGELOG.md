@@ -49,6 +49,12 @@ bump on every app release.
   same `request_timing.py` module is shared with Travel, Worktime and Champagnefestival.
 
 ### Changed
+- **MCP:** FastMCP 4.1.3 (with MCP SDK 2.3.0), starting from the lock of the grouped Dependabot
+  bump (#1052; #994). 4.1.2 applies component authorization after transforms, so tools hidden
+  behind `search_tools`/`call_tool` are authorized the same way as listed ones, and 4.1.3 requires
+  certifi 2026.10.19 after the eMudhra CA compromise. The mount is stateless and keeps no MCP sessions or protocol tasks, so
+  `MultiAuth`'s source-qualified client IDs need no migration; principals resolve from token
+  claims, and a new test drives a Keycloak-style JWT and an integration key over stateless HTTP.
 - **Frontend:** the Today page's first load is about 11% smaller (198 → 176 KB gzipped; apps#247).
   The quick-add form and its form library load shortly after the page settles, so they are still
   cached for offline use, and the completion confetti loads when it fires.
@@ -70,6 +76,14 @@ bump on every app release.
   `idempotent_hint` derived from `docs/retry-safety.md`.
 
 ### Fixed
+- **MCP:** a tool call whose arguments fail Pydantic validation inside the tool body
+  (`set_meal_slot`, `update_shopping_list`) reports `Invalid arguments: field: message` and no
+  longer echoes the caller's values to the client or the server log. A validation error from a
+  stored or generated result now returns a correlation reference and logs field paths and error
+  types only, kept apart from argument failures; direct calls and the `call_tool` proxy behave the
+  same. Arguments of the wrong type and unknown tool names get the same treatment: `Invalid
+  arguments for '<tool>': field: message` and `Unknown tool '<name>'` (pointing at `search_tools`),
+  logged at warning level without the traceback that previously carried the values (#994).
 - **Backend:** each log line from the API is printed once. Importing the MCP module configured
   the root logger as well, so every `app.*` line appeared a second time in `docker logs`; only the
   stdio entry point (`python -m app.mcp_server`) does that now.

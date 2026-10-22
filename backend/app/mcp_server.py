@@ -49,6 +49,7 @@ from app.mcp import routines as mcp_routines
 from app.mcp import shopping as mcp_shopping
 from app.mcp.auth import IntegrationKeyTokenVerifier
 from app.mcp.capabilities import tool_annotations, tool_auth
+from app.mcp.errors import ToolCallErrorMiddleware, guard_invalid_results
 from app.mcp.medications import DEFAULT_MEDICATION_HISTORY_LIMIT
 from app.schemas.shopping_list import ShoppingListStatus
 from app.schemas.today import PlannedItemModuleKey
@@ -644,6 +645,7 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
             "call_tool (name plus arguments)."
         ),
         auth=auth,
+        middleware=[ToolCallErrorMiddleware()],
         transforms=[
             BM25SearchTransform(
                 max_results=10,
@@ -661,7 +663,7 @@ def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
         return mcp.tool(
             annotations=tool_annotations(tool_name),
             auth=tool_auth(tool_name),
-        )(fn)
+        )(guard_invalid_results(tool_name, fn))
 
     @register_tool
     async def whoami(ctx: Context) -> dict[str, Any]:
