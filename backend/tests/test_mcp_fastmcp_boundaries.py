@@ -89,6 +89,7 @@ async def test_tool_body_argument_failures_are_sanitised_and_not_audited(
     assert PRIVATE not in str(error)
     assert PRIVATE not in caplog.text
     assert "input_value" not in caplog.text
+    assert not [record for record in caplog.records if record.levelno >= logging.ERROR]
     assert _audit_count(db_session) == 0
 
 
@@ -127,13 +128,23 @@ async def test_invalid_stored_result_is_correlated_and_distinct_from_argument_fa
 @pytest.mark.anyio
 @pytest.mark.parametrize("through_proxy", [False, True], ids=["direct", "call_tool_proxy"])
 async def test_wrong_argument_types_and_unknown_tools_are_rejected(
-    db_session: Session, local_server, through_proxy: bool
+    db_session: Session, local_server, caplog: pytest.LogCaptureFixture, through_proxy: bool
 ) -> None:
-    wrong_type = await _call(local_server, "get_calendar_month", {"year": "x", "month": 1}, through_proxy=through_proxy)
+    with caplog.at_level(logging.DEBUG):
+        wrong_type = await _call(
+            local_server, "get_calendar_month", {"year": PRIVATE, "month": 1}, through_proxy=through_proxy
+        )
+    error_records = [record for record in caplog.records if record.levelno >= logging.ERROR]
     unknown = await _call(local_server, "no_such_tool", {}, through_proxy=through_proxy)
 
-    assert "year" in str(wrong_type)
-    assert "no_such_tool" in str(unknown)
+    assert "Invalid arguments for 'get_calendar_month': year" in str(wrong_type)
+    assert "input_value" not in str(wrong_type)
+    assert PRIVATE not in str(wrong_type)
+    assert PRIVATE not in caplog.text
+    # A bad call is not a server fault: nothing at error level, so no traceback carrying the value.
+    assert not error_records
+    assert "Unknown tool 'no_such_tool'" in str(unknown)
+    assert "search_tools" in str(unknown)
     assert _audit_count(db_session) == 0
 
 

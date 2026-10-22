@@ -79,7 +79,9 @@ bump on every app release.
   longer echoes the caller's values to the client or the server log. A validation error from a
   stored or generated result now returns a correlation reference and logs field paths and error
   types only, kept apart from argument failures; direct calls and the `call_tool` proxy behave the
-  same (#994).
+  same. Arguments of the wrong type and unknown tool names get the same treatment: `Invalid
+  arguments for '<tool>': field: message` and `Unknown tool '<name>'` (pointing at `search_tools`),
+  logged at warning level without the traceback that previously carried the values (#994).
 - **Backend:** each log line from the API is printed once. Importing the MCP module configured
   the root logger as well, so every `app.*` line appeared a second time in `docker logs`; only the
   stdio entry point (`python -m app.mcp_server`) does that now.
