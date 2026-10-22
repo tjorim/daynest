@@ -877,7 +877,7 @@ class TodayRepository:
             return []
 
         series_ids = list(series_dates.keys())
-        all_dates = [d for dates in series_dates.values() for d in dates]
+        all_dates = [*dates for dates in series_dates.values()]
 
         series_map = {
             s.id: s for s in self.db.scalars(select(RecurrenceSeries).where(RecurrenceSeries.id.in_(series_ids))).all()
