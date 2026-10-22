@@ -49,8 +49,10 @@ bump on every app release.
   same `request_timing.py` module is shared with Travel, Worktime and Champagnefestival.
 
 ### Changed
-- **MCP:** FastMCP 4.1.0 (with MCP SDK 2.3.0), using the lock of the grouped Dependabot bump
-  (#1052; #994). The mount is stateless and keeps no MCP sessions or protocol tasks, so
+- **MCP:** FastMCP 4.1.3 (with MCP SDK 2.3.0), starting from the lock of the grouped Dependabot
+  bump (#1052; #994). 4.1.2 applies component authorization after transforms, so tools hidden
+  behind `search_tools`/`call_tool` are authorized the same way as listed ones, and 4.1.3 requires
+  certifi 2026.10.19 after the eMudhra CA compromise. The mount is stateless and keeps no MCP sessions or protocol tasks, so
   `MultiAuth`'s source-qualified client IDs need no migration; principals resolve from token
   claims, and a new test drives a Keycloak-style JWT and an integration key over stateless HTTP.
 - **Frontend:** the Today page's first load is about 11% smaller (198 → 176 KB gzipped; apps#247).
