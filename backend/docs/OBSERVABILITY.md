@@ -123,3 +123,7 @@ Before merging a new backend route:
 - [ ] If the route accepts a bearer token in a query parameter, verify that `request.url.path` (not `request.url`) is what gets logged.
 - [ ] If the route introduces a new auth mechanism, ensure it sets `request.state.user_id` and `request.state.auth_type` so log lines are complete.
 - [ ] System/internal routes that should not be user-accessible use `_require_metrics_access` or equivalent protection.
+
+## Profiling
+
+To find out *why* a request identified by `X-Request-ID` and `Server-Timing` is slow, profile it locally with the standard-library sampling profiler. See [PROFILING.md](PROFILING.md).
