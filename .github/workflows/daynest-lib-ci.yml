@@ -9,6 +9,12 @@ permissions:
 jobs:
   lib-ci:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # 3.14 is the supported minimum (requires-python); 3.15 is the
+        # newest stable runtime.
+        python-version: ['3.14', '3.15']
     defaults:
       run:
         working-directory: python-daynest
@@ -19,7 +25,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
-          python-version: '3.14'
+          python-version: ${{ matrix.python-version }}
 
       - name: Set up uv
         uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
