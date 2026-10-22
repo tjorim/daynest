@@ -217,6 +217,19 @@ Configure these per environment via env files:
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
 ```
 
+### Local backend without a container
+
+With `ENVIRONMENT=dev` (the default) and no `DATABASE_URL`, the backend uses a SQLite file, `backend/dev.db`. Production runs on PostgreSQL and its migrations target it, so the SQLite database is built from the models instead:
+
+```bash
+cd backend
+export DEV_AUTH_BYPASS_TOKEN=dev   # any string; send it as `Authorization: Bearer dev`
+uv run python -m app.db.dev_schema           # create the tables
+uv run uvicorn app.main:app --reload
+```
+
+`create_all` never alters an existing table, so after a model change run `uv run python -m app.db.dev_schema --reset` to rebuild the file. The test suite uses an in-memory SQLite database the same way.
+
 ## Data loss prevention playbook
 
 To reduce painful data loss, Daynest treats backup/recovery and data portability as first-class operational requirements.

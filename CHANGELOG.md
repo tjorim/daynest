@@ -42,6 +42,9 @@ bump on every app release.
 ## [Unreleased]
 
 ### Added
+- **Backend:** `uv run python -m app.db.dev_schema` builds the local SQLite database (`backend/dev.db`, the default
+  with `ENVIRONMENT=dev`) from the models, so a dev instance needs no container. Until now that default had no
+  tables, because the Alembic migrations target PostgreSQL. `--reset` rebuilds it after a model change.
 - **Backend:** every API response carries `Server-Timing: app;dur=…, db;desc="N queries";dur=…`
   (visible in the browser devtools Network tab), and a request slower than 300 ms is logged as a
   warning with its method, route template (never the raw path), status, duration and query count
