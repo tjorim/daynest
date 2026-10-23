@@ -1,8 +1,7 @@
+import { http, HttpResponse } from "msw/http";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("@/lib/auth/session", () => ({
-  getOidcAccessToken: vi.fn(() => "test-token"),
-}));
+import { server } from "@/mocks/server";
 
 import {
   deletePlannedItem,
@@ -31,19 +30,13 @@ describe("today API response validation", () => {
       day_items: [],
     };
 
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async () => new Response(JSON.stringify(payload), { status: 200 })),
-    );
+    server.use(http.get("/api/today", () => HttpResponse.json(payload)));
 
     await expect(fetchToday()).resolves.toEqual(payload);
   });
 
   it("throws a clear error when today response is invalid", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async () => new Response(JSON.stringify({ medication: [] }), { status: 200 })),
-    );
+    server.use(http.get("/api/today", () => HttpResponse.json({ medication: [] })));
 
     await expect(fetchToday()).rejects.toMatchObject({
       name: "ApiError",
@@ -58,17 +51,9 @@ describe("today API response validation", () => {
       days: [{ date: "2026-05-16", total: 2, routines: 1, chores: 1, medications: 0, planned: 0 }],
     };
 
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(
-        async () =>
-          new Response(
-            JSON.stringify({
-              ...payload,
-              days: [{ ...payload.days[0], total: "2" }],
-            }),
-            { status: 200 },
-          ),
+    server.use(
+      http.get("/api/calendar/month", () =>
+        HttpResponse.json({ ...payload, days: [{ ...payload.days[0], total: "2" }] }),
       ),
     );
 
@@ -79,17 +64,9 @@ describe("today API response validation", () => {
   });
 
   it("throws a clear error when fetchCalendarDay response is invalid", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(
-        async () =>
-          new Response(
-            JSON.stringify({
-              date: "2026-05-16",
-              items: [{ item_type: "planned", item_id: "13" }],
-            }),
-            { status: 200 },
-          ),
+    server.use(
+      http.get("/api/calendar/day", () =>
+        HttpResponse.json({ date: "2026-05-16", items: [{ item_type: "planned", item_id: "13" }] }),
       ),
     );
 
@@ -100,48 +77,48 @@ describe("today API response validation", () => {
   });
 
   it("passes delete scope for recurring planned-item removal", async () => {
-    const fetchMock = vi.fn(async () => new Response(null, { status: 204 }));
-    vi.stubGlobal("fetch", fetchMock);
+    const received: Request[] = [];
+    server.use(
+      http.delete("/api/planned-items/42", ({ request }) => {
+        received.push(request);
+        return new HttpResponse(null, { status: 204 });
+      }),
+    );
     vi.stubGlobal("navigator", { onLine: true });
 
     await expect(deletePlannedItem(42, "future")).resolves.toBeUndefined();
-    expect(fetchMock).toHaveBeenCalledWith(
-      expect.stringContaining("/api/planned-items/42?scope=future"),
-      expect.objectContaining({ method: "DELETE" }),
-    );
+    expect(received).toHaveLength(1);
+    expect(new URL(received[0]!.url).searchParams.get("scope")).toBe("future");
   });
 
   it("passes edit scope for recurring planned-item updates", async () => {
-    const fetchMock = vi.fn(
-      async () =>
-        new Response(
-          JSON.stringify({
-            id: 42,
-            title: "Update",
-            planned_for: "2026-05-20",
-            time_of_day: null,
-            duration_minutes: null,
-            notes: null,
-            module_key: null,
-            recurrence_hint: null,
-            rrule: null,
-            recurrence_series_id: null,
-            linked_source: null,
-            linked_ref: null,
-            is_done: false,
-          }),
-          { status: 200 },
-        ),
+    const received: Request[] = [];
+    server.use(
+      http.put("/api/planned-items/42", ({ request }) => {
+        received.push(request);
+        return HttpResponse.json({
+          id: 42,
+          title: "Update",
+          planned_for: "2026-05-20",
+          time_of_day: null,
+          duration_minutes: null,
+          notes: null,
+          module_key: null,
+          recurrence_hint: null,
+          rrule: null,
+          recurrence_series_id: null,
+          linked_source: null,
+          linked_ref: null,
+          is_done: false,
+        });
+      }),
     );
-    vi.stubGlobal("fetch", fetchMock);
     vi.stubGlobal("navigator", { onLine: true });
 
     await expect(
       updatePlannedItem(42, { title: "Update", planned_for: "2026-05-20", is_done: false }, "all"),
     ).resolves.toBeDefined();
-    expect(fetchMock).toHaveBeenCalledWith(
-      expect.stringContaining("/api/planned-items/42?scope=all"),
-      expect.objectContaining({ method: "PUT" }),
-    );
+    expect(received).toHaveLength(1);
+    expect(new URL(received[0]!.url).searchParams.get("scope")).toBe("all");
   });
 });
