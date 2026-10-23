@@ -36,7 +36,8 @@ pnpm ui:upstream
 ```
 
 Run the upstream comparison monthly, and whenever a Base UI or shadcn update
-PR is reviewed. It writes only ignored `.ui-maintenance/` reports. Exit code 0
+PR is reviewed. With no pending record to recover, it writes only ignored
+`.ui-maintenance/` reports. Exit code 0
 means no captured upstream definitions changed, 1 means review is needed, and
 2 means validation/network/tooling failed. None of these means a UI change is
 safe to merge. Package installation is frozen; never overwrite all components
@@ -47,6 +48,28 @@ fetching shadcn definitions. Review the runtime release notes against
 `EditorDialog`; add new shared components to the inventory with `registry: null`
 and an explicit maintenance reason. Do not add unused registry snapshots or a
 shadcn dependency merely to make this repository look like the other apps.
+
+## Interrupted review-record saves
+
+`ui:record` publishes a complete exclusive `.ui-maintenance-record.json` journal
+before replacing either metadata file. Each file is staged and atomically
+replaced. The journal stores the exact before/after contents of both files and
+stays in place if a replacement fails or the process stops.
+
+The next maintenance command finishes that saved update **before** reading and
+validating the snapshot hashes, without fetching another registry revision.
+After fixing any filesystem permission problem, run `pnpm ui:check` first to
+recover, then format the metadata and retry the review command if needed.
+Successful completion removes the journal. Staging files and the journal are
+ignored by Git; never commit them.
+
+Run metadata commands serially in a checkout. A live journal owner is refused
+rather than taken over. If either file differs from both its recorded before
+and after contents, recovery stops to preserve the independent edit. Keep the
+current files and journal, reconcile those edits with the saved update, then
+retry; do not delete the journal merely to silence validation. This recovery
+plan addresses process interruption, not conflicting concurrent edits or a
+blanket approval of the saved source.
 
 ## Validation before merging
 
