@@ -41,7 +41,7 @@ function App() {
 async function bootstrap() {
   if (import.meta.env.VITE_MSW === "true") {
     const { worker } = await import("./mocks/browser");
-    await worker.start({ onUnhandledRequest: "warn" });
+    await worker.start({ onUnhandledFrame: "warn" });
     const { MockAuthProvider } = await import("./mocks/MockAuthProvider");
 
     ReactDOM.createRoot(document.getElementById("root")!).render(

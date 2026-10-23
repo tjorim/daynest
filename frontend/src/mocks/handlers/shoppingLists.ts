@@ -1,4 +1,4 @@
-import { http, HttpResponse } from "msw";
+import { http, HttpResponse } from "msw/http";
 import { getMockState, mutatePlannedItems } from "../data/state";
 import { nextPlannedItemId } from "../data/plannedItems";
 import type {

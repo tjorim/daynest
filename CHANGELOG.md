@@ -42,6 +42,9 @@ bump on every app release.
 ## [Unreleased]
 
 ### Added
+- **Backend:** `uv run python -m app.db.dev_schema` builds the local SQLite database (`backend/dev.db`, the default
+  with `ENVIRONMENT=dev`) from the models, so a dev instance needs no container. Until now that default had no
+  tables, because the Alembic migrations target PostgreSQL. `--reset` rebuilds it after a model change.
 - **Backend:** every API response carries `Server-Timing: app;dur=…, db;desc="N queries";dur=…`
   (visible in the browser devtools Network tab), and a request slower than 300 ms is logged as a
   warning with its method, route template (never the raw path), status, duration and query count
@@ -49,6 +52,14 @@ bump on every app release.
   same `request_timing.py` module is shared with Travel, Worktime and Champagnefestival.
 
 ### Changed
+- **Breaking for local development:** the backend now requires Python 3.15
+  (`requires-python >=3.15`, Ruff `py315`), and its image and CI run it (#995). It is run from
+  source and never installed as a library, so it keeps no older minimum; the `python-daynest`
+  library and the Home Assistant integration keep their own minimums. Pydantic moves to 2.14.1
+  so pydantic-core ships a 3.15 wheel, and the image's uv is pinned to 0.13.5 instead of
+  `latest`. The image healthcheck now probes `/api/health` (the old path returned 404).
+  `backend/docs/PROFILING.md` describes a local workflow for the standard-library sampling
+  profiler on slow routes and MCP calls.
 - **MCP:** FastMCP 4.1.3 (with MCP SDK 2.3.0), starting from the lock of the grouped Dependabot
   bump (#1052; #994). 4.1.2 applies component authorization after transforms, so tools hidden
   behind `search_tools`/`call_tool` are authorized the same way as listed ones, and 4.1.3 requires
