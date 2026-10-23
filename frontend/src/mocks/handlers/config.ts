@@ -1,4 +1,4 @@
-import { http, HttpResponse } from "msw";
+import { http, HttpResponse } from "msw/http";
 
 export const configHandlers = [
   http.get("/api/auth/oidc-config", () =>

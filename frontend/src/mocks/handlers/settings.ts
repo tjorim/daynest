@@ -1,4 +1,4 @@
-import { http, HttpResponse } from "msw";
+import { http, HttpResponse } from "msw/http";
 import { getMockState, mutateSettings } from "../data/state";
 import type { UserSettingsPatch } from "@/lib/api/settings";
 

@@ -1,4 +1,4 @@
-import { http, HttpResponse } from "msw";
+import { http, HttpResponse } from "msw/http";
 import { getMockState, getTodayPayload } from "../data/state";
 import { auth401, forbidden403, serverError500 } from "./errors";
 import { MOCK_TODAY } from "../data/constants";
