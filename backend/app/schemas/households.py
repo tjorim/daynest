@@ -3,8 +3,7 @@ from datetime import datetime
 from pydantic import BaseModel, EmailStr, Field
 
 from app.core.enums import HouseholdMemberRole
-from app.schemas.base import RequestModel
-from app.schemas.types import NonEmptyText255
+from app.schemas.base import NonEmptyText255, RequestModel
 
 
 class HouseholdCreateRequest(RequestModel):

@@ -5,9 +5,8 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
-from app.schemas.base import RequestModel
+from app.schemas.base import NonEmptyText255, RequestModel, Text255, Text4000
 from app.schemas.today import DueTodayItem, MedicationTodayItem, PlannedTodayItem
-from app.schemas.types import NonEmptyText255, Text255, Text4000
 
 
 class CompleteTaskRequest(RequestModel):

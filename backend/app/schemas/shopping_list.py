@@ -3,8 +3,7 @@ from typing import Literal
 
 from pydantic import BaseModel, model_validator
 
-from app.schemas.base import RequestModel
-from app.schemas.types import NonEmptyText255, Text255, Text4000
+from app.schemas.base import NonEmptyText255, RequestModel, Text255, Text4000
 
 ShoppingListStatus = Literal["active", "archived"]
 

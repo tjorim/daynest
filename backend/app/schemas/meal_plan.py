@@ -3,10 +3,9 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, model_validator
 
-from app.schemas.base import RequestModel
+from app.schemas.base import NonEmptyText255, RequestModel, Text255, Text4000
 from app.schemas.shopping_list import ShoppingListResponse
 from app.schemas.today import PlannedTodayItem
-from app.schemas.types import NonEmptyText255, Text255, Text4000
 
 MealSlotType = Literal["breakfast", "lunch", "dinner", "snack"]
 MEAL_SLOT_TYPES: tuple[MealSlotType, ...] = ("breakfast", "lunch", "dinner", "snack")

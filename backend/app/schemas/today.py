@@ -5,8 +5,7 @@ from uuid import UUID
 from pydantic import BaseModel, Field, model_validator
 
 from app.core.enums import ChoreStatus, MedicationDoseStatus, Priority, TaskStatus
-from app.schemas.base import RequestModel
-from app.schemas.types import NonEmptyText255, Text255, Text4000
+from app.schemas.base import NonEmptyText255, RequestModel, Text255, Text4000
 
 
 class MedicationTodayItem(BaseModel):
