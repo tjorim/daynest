@@ -12,5 +12,9 @@
       "reviewedAt": null,
       "reviewNote": null
     }
+  },
+  "importPolicy": {
+    "uiAlias": "@/components/ui",
+    "baseUiExceptions": {}
   }
 }

@@ -24,7 +24,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: '22'
+          node-version-file: frontend/.node-version
           cache: pnpm
           cache-dependency-path: frontend/pnpm-lock.yaml
 
@@ -34,8 +34,9 @@ jobs:
       - name: Validate UI maintenance inventory
         working-directory: frontend
         run: |
-          node --test scripts/ui-maintenance.verify.mjs
+          node --test scripts/ui-maintenance.verify.mjs scripts/ui-imports.verify.mjs
           node scripts/ui-maintenance.mjs check
+          node scripts/ui-imports.mjs
 
       - name: Audit interface strings and catalogues
         run: pnpm run locale:audit
