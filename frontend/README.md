@@ -61,11 +61,11 @@ Append `?mock-scenario=<name>` to the URL to load a specific fixture state. The 
 
 ### Test suites
 
-| Suite  | Command     | Description                                       |
-| ------ | ----------- | ------------------------------------------------- |
-| `dom`  | `pnpm test` | Component tests (jsdom), mock API via `vi.mock()` |
-| `node` | `pnpm test` | Library / API fetch tests (Node environment)      |
-| `msw`  | `pnpm test` | Component + API tests backed by real MSW handlers |
+| Suite  | Command     | Description                                           |
+| ------ | ----------- | ----------------------------------------------------- |
+| `dom`  | `pnpm test` | Component tests (happy-dom), mock API via `vi.mock()` |
+| `node` | `pnpm test` | Library / API fetch tests (Node environment)          |
+| `msw`  | `pnpm test` | Component + API tests backed by real MSW handlers     |
 
 Run a specific suite:
 

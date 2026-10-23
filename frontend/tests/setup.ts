@@ -2,11 +2,16 @@ import { cleanup } from "@testing-library/react";
 import "@testing-library/jest-dom/vitest";
 import { afterEach, beforeAll, vi } from "vitest";
 
-// jsdom does not implement requestAnimationFrame/cancelAnimationFrame,
+// Node test projects need requestAnimationFrame/cancelAnimationFrame,
 // but Schedule-X (Preact) calls them in timers that outlast tests.
 if (typeof globalThis.requestAnimationFrame === "undefined") {
   globalThis.requestAnimationFrame = (cb) => setTimeout(cb, 0) as unknown as number;
   globalThis.cancelAnimationFrame = (id) => clearTimeout(id);
+}
+
+// Happy DOM omits native dialogs; tests spy on confirm to verify inline confirmation.
+if (typeof window !== "undefined" && typeof window.confirm === "undefined") {
+  window.confirm = () => false;
 }
 
 vi.mock("@/app/layout/AppLayout", async () => {
