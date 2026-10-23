@@ -33,7 +33,7 @@ export default defineConfig({
             "tests/features/**/*.{test,spec}.?(c|m)[jt]s?(x)",
             "tests/components/**/*.{test,spec}.?(c|m)[jt]s?(x)",
           ],
-          environment: "jsdom",
+          environment: "happy-dom",
           env: {
             TZ: "UTC",
           },
@@ -65,7 +65,7 @@ export default defineConfig({
         test: {
           name: "msw",
           include: ["tests/msw/**/*.test.?(c|m)[jt]s?(x)"],
-          environment: "jsdom",
+          environment: "happy-dom",
           env: {
             TZ: "UTC",
           },
