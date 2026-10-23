@@ -1,4 +1,4 @@
-import { HttpResponse } from "msw";
+import { HttpResponse } from "msw/http";
 
 export const auth401 = () => HttpResponse.json({ detail: "Not authenticated" }, { status: 401 });
 

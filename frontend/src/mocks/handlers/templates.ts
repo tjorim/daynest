@@ -1,4 +1,4 @@
-import { http, HttpResponse } from "msw";
+import { http, HttpResponse } from "msw/http";
 import { getMockState, mutateRoutineTemplates, mutateChoreTemplates } from "../data/state";
 import { nextTemplateId } from "../data/templates";
 import { MOCK_TODAY } from "../data/constants";

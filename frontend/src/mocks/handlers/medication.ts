@@ -1,4 +1,4 @@
-import { http, HttpResponse } from "msw";
+import { http, HttpResponse } from "msw/http";
 import { getMockState, mutateMedications } from "../data/state";
 import { nextMedicationId, seedMedicationHistory } from "../data/medication";
 import { MOCK_TODAY } from "../data/constants";
