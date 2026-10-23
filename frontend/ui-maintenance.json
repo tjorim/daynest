@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "mode": "base-ui",
+  "style": null,
+  "directories": ["src/components/ui"],
+  "components": {
+    "EditorDialog": {
+      "files": ["src/components/ui/EditorDialog.tsx"],
+      "registry": null,
+      "origin": "local",
+      "reason": "Locally owned composition; maintain against the Base UI APIs it imports and the app UI audit.",
+      "reviewedAt": null,
+      "reviewNote": null
+    }
+  }
+}

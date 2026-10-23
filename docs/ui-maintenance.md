@@ -1,0 +1,119 @@
+# UI dependency and component maintenance
+
+Daynest uses Base UI directly in `EditorDialog`, styled with the existing Bootstrap-based UI. It has no shadcn registry configuration, so do not initialise shadcn or replace the design system as part of dependency maintenance.
+
+## Ownership and records
+
+Dependabot proposes package and lockfile updates. It does not update copied
+component source or prove interaction compatibility. Keep Base UI runtime
+updates separate from registry-source changes so regressions are attributable.
+
+`frontend/ui-maintenance.json` inventories the shared UI directory and selected direct
+Base UI compositions, with the source origin and maintenance decision for each.
+CI runs `pnpm ui:check` offline: missing files and new untracked components
+fail the check. Direct mode requires no shadcn CLI. Screens and consumers
+outside the shared directory still need review when their primitive APIs change.
+
+Daynest’s `ui-upstream.json` is intentionally empty. In the shadcn apps, that
+file preserves canonical registry source and dependency snapshots.
+The SHA-256 content hash is the captured upstream revision. A pinned CLI does
+**not** pin the remotely served registry, which can change independently.
+`capturedAt` means a comparison baseline was saved, not that a component was
+approved. A null `reviewedAt` explicitly means source review is pending.
+Reviewed entries include a decision, validation note and local source hash;
+`ui:check` reports when local source has changed since that historical review.
+Do not label the initial captured inventory as a completed visual/source audit.
+
+## Routine review
+
+Run from `frontend/`, using the project's Node and pnpm versions:
+
+```sh
+pnpm install --frozen-lockfile
+pnpm ui:check
+pnpm ui:test
+pnpm ui:upstream
+```
+
+Run the upstream comparison monthly, and whenever a Base UI or shadcn update
+PR is reviewed. With no pending record to recover, it writes only ignored
+`.ui-maintenance/` reports. Exit code 0
+means no captured upstream definitions changed, 1 means review is needed, and
+2 means validation/network/tooling failed. None of these means a UI change is
+safe to merge. Package installation is frozen; never overwrite all components
+or raise bundle budgets just to make an update pass.
+
+For Daynest, `ui:upstream` points to the direct Base UI review instead of
+fetching shadcn definitions. Review the runtime release notes against
+`EditorDialog`; add new shared components to the inventory with `registry: null`
+and an explicit maintenance reason. Do not add unused registry snapshots or a
+shadcn dependency merely to make this repository look like the other apps.
+
+## Interrupted review-record saves
+
+`ui:record` publishes a complete exclusive `.ui-maintenance-record.json` journal
+before replacing either metadata file. Each file is staged and atomically
+replaced. The journal stores the exact before/after contents of both files and
+stays in place if a replacement fails or the process stops.
+
+The next maintenance command finishes that saved update **before** reading and
+validating the snapshot hashes, without fetching another registry revision.
+After fixing any filesystem permission problem, run `pnpm ui:check` first to
+recover, then format the metadata and retry the review command if needed.
+Successful completion removes the journal. Staging files and the journal are
+ignored by Git; never commit them.
+
+Run metadata commands serially in a checkout. A live journal owner is refused
+rather than taken over. If either file differs from both its recorded before
+and after contents, recovery stops to preserve the independent edit. Keep the
+current files and journal, reconcile those edits with the saved update, then
+retry; do not delete the journal merely to silence validation. This recovery
+plan addresses process interruption, not conflicting concurrent edits or a
+blanket approval of the saved source.
+
+## Validation before merging
+
+Read the Base UI release notes and map changes to actual imports, including
+consumers outside the shared UI folder. Check changed event callbacks,
+controlled state, native-button behaviour, unmounting, portal and focus APIs.
+Run generation, tests and builds sequentially to avoid translation-file races.
+
+```sh
+pnpm lint
+pnpm format:check
+pnpm test --maxWorkers=2
+pnpm build
+pnpm build:mock
+pnpm test:e2e
+```
+
+Use the existing E2E/auth setup documented in the repository; do not bypass
+real authentication or point tests at production data. At least exercise:
+
+- Dialog/alert dialog: Tab/Shift+Tab, Escape, outside press, initial/return focus,
+  nested confirmation, dirty drafts and busy-state dismissal.
+- Select/combobox/autocomplete: arrows, Enter/Escape, typeahead, asynchronous
+  results, clearing, disabled options and selected values outside results.
+- Fields/radio/checkbox/switch: label association, validation, keyboard changes
+  and submitted values; calendar/date input: locale and selected dates.
+- Menus/popovers/tabs/accordions actually used: focus navigation, dismissal,
+  disabled controls and kept-mounted content.
+- Light and dark, desktop and narrow mobile; both supported locales where
+  applicable; accessible names, axe checks and no horizontal overflow.
+- Production entry/route chunks against the existing CI bundle budgets. If a
+  budget fails, compare old/new runtime on the same code and dependency set.
+
+In the PR, record runtime/CLI versions, components examined, keep/apply decisions,
+test commands/results, bundle comparison and any independently reproduced
+baseline failures. Include screenshots for visual changes under repo policy.
+A passing inventory check is bookkeeping, not a compatibility approval.
+
+## Initial review (2026-10-24)
+
+Base UI is already 1.9. All six editor-dialog Playwright tests passed, covering routine/chore focus traps and return focus, dirty-draft dismissal and axe checks at 1280/375px in light/dark. Production/mock build passed. No shadcn migration is required.
+
+## References
+
+- [Base UI releases](https://base-ui.com/react/overview/releases)
+- [shadcn CLI dry-run/diff](https://ui.shadcn.com/docs/cli)
+- [shadcn changelog](https://ui.shadcn.com/docs/changelog)
