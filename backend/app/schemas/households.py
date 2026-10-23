@@ -3,14 +3,15 @@ from datetime import datetime
 from pydantic import BaseModel, EmailStr, Field
 
 from app.core.enums import HouseholdMemberRole
+from app.schemas.base import NonEmptyText255, RequestModel
 
 
-class HouseholdCreateRequest(BaseModel):
-    name: str = Field(..., min_length=1, max_length=255)
+class HouseholdCreateRequest(RequestModel):
+    name: NonEmptyText255
 
 
-class HouseholdUpdateRequest(BaseModel):
-    name: str = Field(..., min_length=1, max_length=255)
+class HouseholdUpdateRequest(RequestModel):
+    name: NonEmptyText255
 
 
 class HouseholdMemberResponse(BaseModel):
@@ -28,5 +29,5 @@ class HouseholdResponse(BaseModel):
     members: list[HouseholdMemberResponse]
 
 
-class InviteRequest(BaseModel):
+class InviteRequest(RequestModel):
     email: EmailStr = Field(..., description="Email of the user to invite")

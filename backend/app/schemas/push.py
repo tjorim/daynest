@@ -1,9 +1,10 @@
-from pydantic import BaseModel, Field, model_validator
+from pydantic import Field, model_validator
 
 from app.core.enums import PushPlatform
+from app.schemas.base import RequestModel
 
 
-class PushSubscribeRequest(BaseModel):
+class PushSubscribeRequest(RequestModel):
     platform: PushPlatform
     endpoint: str = Field(..., min_length=1)
     p256dh: str | None = None
@@ -16,5 +17,5 @@ class PushSubscribeRequest(BaseModel):
         return self
 
 
-class PushUnsubscribeRequest(BaseModel):
+class PushUnsubscribeRequest(RequestModel):
     endpoint: str = Field(..., min_length=1)

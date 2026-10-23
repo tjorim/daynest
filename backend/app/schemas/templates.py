@@ -3,11 +3,12 @@ from datetime import date, datetime, time
 from pydantic import BaseModel, Field, PositiveInt
 
 from app.core.enums import Priority
+from app.schemas.base import NonEmptyText255, RequestModel, Text4000
 
 
 class RoutineTemplateBase(BaseModel):
-    name: str = Field(..., min_length=1, max_length=255)
-    description: str | None = Field(default=None, max_length=4000)
+    name: NonEmptyText255
+    description: Text4000 | None = None
     start_date: date
     every_n_days: int = Field(default=1, ge=1)
     rrule: str | None = Field(default=None, max_length=500)
@@ -15,11 +16,11 @@ class RoutineTemplateBase(BaseModel):
     is_active: bool = True
 
 
-class RoutineTemplateCreateRequest(RoutineTemplateBase):
+class RoutineTemplateCreateRequest(RoutineTemplateBase, RequestModel):
     pass
 
 
-class RoutineTemplateUpdateRequest(RoutineTemplateBase):
+class RoutineTemplateUpdateRequest(RoutineTemplateBase, RequestModel):
     pass
 
 
@@ -29,8 +30,8 @@ class RoutineTemplateResponse(RoutineTemplateBase):
 
 
 class ChoreTemplateBase(BaseModel):
-    name: str = Field(..., min_length=1, max_length=255)
-    description: str | None = Field(default=None, max_length=4000)
+    name: NonEmptyText255
+    description: Text4000 | None = None
     start_date: date
     every_n_days: int = Field(default=1, ge=1)
     rrule: str | None = Field(default=None, max_length=500)
@@ -40,11 +41,11 @@ class ChoreTemplateBase(BaseModel):
     household_id: PositiveInt | None = None
 
 
-class ChoreTemplateCreateRequest(ChoreTemplateBase):
+class ChoreTemplateCreateRequest(ChoreTemplateBase, RequestModel):
     pass
 
 
-class ChoreTemplateUpdateRequest(ChoreTemplateBase):
+class ChoreTemplateUpdateRequest(ChoreTemplateBase, RequestModel):
     pass
 
 

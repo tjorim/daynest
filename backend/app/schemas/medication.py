@@ -3,6 +3,7 @@ from datetime import date, datetime, time
 from pydantic import BaseModel, Field
 
 from app.core.enums import MedicationDoseStatus
+from app.schemas.base import RequestModel
 
 
 class MedicationPlanBase(BaseModel):
@@ -13,11 +14,11 @@ class MedicationPlanBase(BaseModel):
     every_n_days: int = Field(default=1, ge=1)
 
 
-class MedicationPlanCreateRequest(MedicationPlanBase):
+class MedicationPlanCreateRequest(MedicationPlanBase, RequestModel):
     pass
 
 
-class MedicationPlanUpdateRequest(MedicationPlanBase):
+class MedicationPlanUpdateRequest(MedicationPlanBase, RequestModel):
     is_active: bool
 
 
@@ -31,14 +32,14 @@ class MedicationPlanResponse(BaseModel):
     is_active: bool
 
 
-class MedicationDoseTakeRequest(BaseModel):
+class MedicationDoseTakeRequest(RequestModel):
     taken_at: datetime | None = Field(
         default=None,
         description="Optional timestamp when the dose was actually taken. Must not be in the future. Defaults to now.",
     )
 
 
-class SkipMissedDosesRequest(BaseModel):
+class SkipMissedDosesRequest(RequestModel):
     before_date: date | None = Field(
         default=None,
         description="Skip all missed doses with scheduled_date strictly before this date. Defaults to today.",
