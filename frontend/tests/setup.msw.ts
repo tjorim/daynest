@@ -4,7 +4,7 @@ import { resetMockState } from "@/mocks/data/state";
 import { setOidcAccessToken } from "@/lib/auth/session";
 import { MOCK_TOKEN } from "@/mocks/data/constants";
 
-beforeAll(() => server.listen({ onUnhandledFrame: "warn" }));
+beforeAll(() => server.listen({ onUnhandledFrame: "error" }));
 
 beforeEach(() => {
   setOidcAccessToken(MOCK_TOKEN);
