@@ -1,21 +1,24 @@
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, model_validator
+
+from app.schemas.base import RequestModel
+from app.schemas.types import NonEmptyText255, Text255, Text4000
 
 ShoppingListStatus = Literal["active", "archived"]
 
 
-class ShoppingListCreateRequest(BaseModel):
-    name: str = Field(..., min_length=1, max_length=255)
-    store: str | None = Field(default=None, max_length=255)
-    notes: str | None = Field(default=None, max_length=4000)
+class ShoppingListCreateRequest(RequestModel):
+    name: NonEmptyText255
+    store: Text255 | None = None
+    notes: Text4000 | None = None
 
 
-class ShoppingListUpdateRequest(BaseModel):
-    name: str | None = Field(default=None, min_length=1, max_length=255)
-    store: str | None = Field(default=None, max_length=255)
-    notes: str | None = Field(default=None, max_length=4000)
+class ShoppingListUpdateRequest(RequestModel):
+    name: NonEmptyText255 | None = None
+    store: Text255 | None = None
+    notes: Text4000 | None = None
     status: ShoppingListStatus | None = None
 
     @model_validator(mode="after")

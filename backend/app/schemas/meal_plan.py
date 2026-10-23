@@ -3,23 +3,25 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, model_validator
 
+from app.schemas.base import RequestModel
 from app.schemas.shopping_list import ShoppingListResponse
 from app.schemas.today import PlannedTodayItem
+from app.schemas.types import NonEmptyText255, Text255, Text4000
 
 MealSlotType = Literal["breakfast", "lunch", "dinner", "snack"]
 MEAL_SLOT_TYPES: tuple[MealSlotType, ...] = ("breakfast", "lunch", "dinner", "snack")
 
 
-class MealPlanCreate(BaseModel):
-    name: str = Field(..., min_length=1, max_length=255)
+class MealPlanCreate(RequestModel):
+    name: NonEmptyText255
     week_start: date
-    notes: str | None = Field(default=None, max_length=4000)
+    notes: Text4000 | None = None
 
 
-class MealPlanUpdate(BaseModel):
-    name: str | None = Field(default=None, min_length=1, max_length=255)
+class MealPlanUpdate(RequestModel):
+    name: NonEmptyText255 | None = None
     week_start: date | None = None
-    notes: str | None = Field(default=None, max_length=4000)
+    notes: Text4000 | None = None
 
     @model_validator(mode="after")
     def non_clearable_fields_cannot_be_null(self) -> MealPlanUpdate:
@@ -30,9 +32,9 @@ class MealPlanUpdate(BaseModel):
         return self
 
 
-class MealSlotUpdate(BaseModel):
-    title: str | None = Field(default=None, max_length=255)
-    recipe_url: str | None = Field(default=None, max_length=4000)
+class MealSlotUpdate(RequestModel):
+    title: Text255 | None = None
+    recipe_url: Text4000 | None = None
     ingredients_json: list[str] | None = Field(default=None, max_length=100)
     planned_item_id: int | None = Field(default=None, ge=1)
 

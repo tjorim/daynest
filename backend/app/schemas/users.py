@@ -2,6 +2,8 @@ from datetime import time
 
 from pydantic import BaseModel, Field
 
+from app.schemas.base import RequestModel
+
 
 class UserSettingsResponse(BaseModel):
     timezone: str
@@ -14,7 +16,7 @@ class UserSettingsResponse(BaseModel):
     push_missed_medications_enabled: bool
 
 
-class UserSettingsPatchRequest(BaseModel):
+class UserSettingsPatchRequest(RequestModel):
     timezone: str | None = Field(default=None, max_length=100)
     default_snooze_days: int | None = Field(default=None, ge=1)
     medication_reminder_minutes: int | None = Field(default=None, ge=0)

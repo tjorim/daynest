@@ -5,48 +5,50 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
+from app.schemas.base import RequestModel
 from app.schemas.today import DueTodayItem, MedicationTodayItem, PlannedTodayItem
+from app.schemas.types import NonEmptyText255, Text255, Text4000
 
 
-class CompleteTaskRequest(BaseModel):
+class CompleteTaskRequest(RequestModel):
     chore_instance_id: int = Field(gt=0, description="The chore instance ID to mark as complete")
 
 
-class SnoozeTaskRequest(BaseModel):
+class SnoozeTaskRequest(RequestModel):
     chore_instance_id: int = Field(gt=0, description="The chore instance ID to reschedule")
     days: int = Field(default=1, ge=1, le=30, description="Number of days to snooze the task")
 
 
-class MarkMedicationTakenRequest(BaseModel):
+class MarkMedicationTakenRequest(RequestModel):
     medication_dose_id: int = Field(gt=0, description="The medication dose instance ID to mark as taken")
 
 
-class SkipTaskRequest(BaseModel):
+class SkipTaskRequest(RequestModel):
     chore_instance_id: int = Field(gt=0, description="The chore instance ID to skip")
 
 
-class SkipMedicationRequest(BaseModel):
+class SkipMedicationRequest(RequestModel):
     medication_dose_id: int = Field(gt=0, description="The medication dose instance ID to skip")
 
 
-class MarkPlannedDoneRequest(BaseModel):
+class MarkPlannedDoneRequest(RequestModel):
     planned_item_id: int = Field(gt=0, description="The planned item ID to mark as done")
 
 
 PlannedItemModuleKey = Literal["shopping_list", "meal_planning", "recurring_grocery", "shared_calendar"]
 
 
-class PlannedItemCreateRequest(BaseModel):
-    title: str = Field(..., min_length=1, max_length=255)
+class PlannedItemCreateRequest(RequestModel):
+    title: NonEmptyText255
     planned_for: date
-    notes: str | None = Field(default=None, max_length=4000)
+    notes: Text4000 | None = None
     module_key: PlannedItemModuleKey | None = None
-    recurrence_hint: str | None = Field(default=None, max_length=255)
+    recurrence_hint: Text255 | None = None
     linked_source: str | None = Field(default=None, max_length=120)
-    linked_ref: str | None = Field(default=None, max_length=255)
+    linked_ref: Text255 | None = None
 
 
-class PlannedItemUpdateRequest(PlannedItemCreateRequest):
+class PlannedItemUpdateRequest(PlannedItemCreateRequest, RequestModel):
     is_done: bool = False
 
 
@@ -62,7 +64,7 @@ def _default_integration_scopes() -> list[IntegrationScope]:
     return ["home_assistant:*"]
 
 
-class IntegrationClientCreateRequest(BaseModel):
+class IntegrationClientCreateRequest(RequestModel):
     name: str = Field(min_length=2, max_length=120)
     rate_limit_per_minute: int = Field(default=120, ge=10, le=600)
     scopes: list[IntegrationScope] = Field(

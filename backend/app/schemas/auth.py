@@ -2,6 +2,8 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from pydantic import BaseModel, HttpUrl, field_validator
 
+from app.schemas.base import RequestModel
+
 
 class UserMeResponse(BaseModel):
     id: int
@@ -12,7 +14,7 @@ class UserMeResponse(BaseModel):
     roles: list[str] = []
 
 
-class UserUpdateRequest(BaseModel):
+class UserUpdateRequest(RequestModel):
     timezone: str
 
     @field_validator("timezone")

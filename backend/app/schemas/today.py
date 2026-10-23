@@ -5,6 +5,8 @@ from uuid import UUID
 from pydantic import BaseModel, Field, model_validator
 
 from app.core.enums import ChoreStatus, MedicationDoseStatus, Priority, TaskStatus
+from app.schemas.base import RequestModel
+from app.schemas.types import NonEmptyText255, Text255, Text4000
 
 
 class MedicationTodayItem(BaseModel):
@@ -88,16 +90,16 @@ class PlannedTodayItem(BaseModel):
 
 
 class PlannedItemBase(BaseModel):
-    title: str = Field(..., min_length=1, max_length=255)
+    title: NonEmptyText255
     planned_for: date
     time_of_day: time | None = None
     duration_minutes: int | None = Field(default=None, ge=1)
-    notes: str | None = Field(default=None, max_length=4000)
+    notes: Text4000 | None = None
     module_key: PlannedItemModuleKey | None = None
-    recurrence_hint: str | None = Field(default=None, max_length=255)
+    recurrence_hint: Text255 | None = None
     rrule: str | None = Field(default=None, max_length=500)
     linked_source: str | None = Field(default=None, max_length=120)
-    linked_ref: str | None = Field(default=None, max_length=255)
+    linked_ref: Text255 | None = None
     auto_add_to_list_id: int | None = Field(default=None, ge=1)
     priority: Priority = Priority.normal
     tags: list[str] = Field(default_factory=list)
@@ -109,11 +111,11 @@ class PlannedItemBase(BaseModel):
         return self
 
 
-class PlannedItemCreateRequest(PlannedItemBase):
+class PlannedItemCreateRequest(PlannedItemBase, RequestModel):
     pass
 
 
-class PlannedItemUpdateRequest(PlannedItemBase):
+class PlannedItemUpdateRequest(PlannedItemBase, RequestModel):
     is_done: bool = False
 
 
@@ -189,9 +191,9 @@ class TaskInstanceMutationResponse(BaseModel):
     completed_at: datetime | None = None
 
 
-class RescheduleChoreRequest(BaseModel):
+class RescheduleChoreRequest(RequestModel):
     scheduled_date: date = Field(..., description="New date for the chore instance")
 
 
-class AssignChoreRequest(BaseModel):
+class AssignChoreRequest(RequestModel):
     assigned_to: int | None = Field(default=None, description="User ID to assign the chore to, or null to unassign")
