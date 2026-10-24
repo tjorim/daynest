@@ -51,6 +51,30 @@
       "reason": "Hand-written component styled with the tw: prefix and Bootstrap-bridged theme tokens; replaces Bootstrap's .card classes during the #937 migration.",
       "reviewedAt": null,
       "reviewNote": null
+    },
+    "input": {
+      "files": ["src/components/ui/input.tsx"],
+      "registry": null,
+      "origin": "local",
+      "reason": "Hand-written component styled with the tw: prefix and Bootstrap-bridged theme tokens; replaces Bootstrap's equivalent classes during the #937 migration.",
+      "reviewedAt": null,
+      "reviewNote": null
+    },
+    "badge": {
+      "files": ["src/components/ui/badge.tsx"],
+      "registry": null,
+      "origin": "local",
+      "reason": "Hand-written component styled with the tw: prefix and Bootstrap-bridged theme tokens; replaces Bootstrap's equivalent classes during the #937 migration.",
+      "reviewedAt": null,
+      "reviewNote": null
+    },
+    "list-group": {
+      "files": ["src/components/ui/list-group.tsx"],
+      "registry": null,
+      "origin": "local",
+      "reason": "Hand-written component styled with the tw: prefix and Bootstrap-bridged theme tokens; replaces Bootstrap's equivalent classes during the #937 migration.",
+      "reviewedAt": null,
+      "reviewNote": null
     }
   },
   "importPolicy": {
