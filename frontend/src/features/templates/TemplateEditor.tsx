@@ -5,6 +5,10 @@ import { FeedbackBanner } from "@/components/common/FeedbackBanner";
 import { apiErrorMessage } from "@/lib/api/errorMessages";
 import { toIsoDate } from "@/lib/dateUtils";
 import type { ChoreTemplate, RoutineTemplate, RoutineTemplateInput } from "@/lib/api/templates";
+import { Label } from "@/components/ui/field";
+import { Input, Textarea } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
 
 export type TemplateEditorState =
   | { kind: "routine"; template?: RoutineTemplate }
@@ -100,49 +104,41 @@ export function TemplateEditor({
         aria-busy={busy}
       >
         <FeedbackBanner message={error} tone="danger" />
-        <fieldset disabled={busy} className="d-grid gap-2">
-          <label htmlFor={`${id}-name`} className="form-label mb-0">
+        <fieldset disabled={busy} className="tw:grid tw:gap-2">
+          <Label className="tw:mb-0" htmlFor={`${id}-name`}>
             {routine
               ? m.templates_routine_name_placeholder()
               : m.templates_chore_name_placeholder()}
-          </label>
-          <input
+          </Label>
+          <Input
             id={`${id}-name`}
-            className="form-control"
             value={draft.name}
             onChange={(event) => field("name", event.target.value)}
           />
-          <label htmlFor={`${id}-description`} className="form-label mb-0">
+          <Label className="tw:mb-0" htmlFor={`${id}-description`}>
             {m.templates_description_placeholder()}
-          </label>
-          <textarea
+          </Label>
+          <Textarea
             id={`${id}-description`}
-            className="form-control"
             rows={3}
             value={draft.description}
             onChange={(event) => field("description", event.target.value)}
           />
-          <div className="row g-2">
-            <div className="col-sm-6">
-              <label htmlFor={`${id}-date`} className="form-label">
-                {m.templates_start_date_label()}
-              </label>
-              <input
+          <div className="tw:grid tw:grid-cols-12 tw:gap-2">
+            <div className="tw:col-span-12 tw:sm:col-span-6">
+              <Label htmlFor={`${id}-date`}>{m.templates_start_date_label()}</Label>
+              <Input
                 id={`${id}-date`}
-                className="form-control"
                 type="date"
                 required
                 value={draft.startDate}
                 onChange={(event) => field("startDate", event.target.value)}
               />
             </div>
-            <div className="col-sm-6">
-              <label htmlFor={`${id}-days`} className="form-label">
-                {m.templates_every_n_days_label()}
-              </label>
-              <input
+            <div className="tw:col-span-12 tw:sm:col-span-6">
+              <Label htmlFor={`${id}-days`}>{m.templates_every_n_days_label()}</Label>
+              <Input
                 id={`${id}-days`}
-                className="form-control"
                 type="number"
                 min={1}
                 step={1}
@@ -154,28 +150,23 @@ export function TemplateEditor({
           </div>
           {routine ? (
             <div>
-              <label htmlFor={`${id}-time`} className="form-label">
-                {m.templates_due_time_label()}
-              </label>
-              <input
+              <Label htmlFor={`${id}-time`}>{m.templates_due_time_label()}</Label>
+              <Input
                 id={`${id}-time`}
-                className="form-control"
                 type="time"
                 value={draft.dueTime}
                 onChange={(event) => field("dueTime", event.target.value)}
               />
             </div>
           ) : null}
-          <label className="form-check">
-            <input
-              className="form-check-input"
-              type="checkbox"
+          <label className="tw:flex tw:items-start tw:gap-2 tw:min-h-6 tw:mb-0.5">
+            <Checkbox
               checked={draft.active}
               onChange={(event) => field("active", event.target.checked)}
             />
-            <span className="form-check-label">{m.templates_active_label()}</span>
+            <span>{m.templates_active_label()}</span>
           </label>
-          <button type="submit" className="btn btn-primary" disabled={busy}>
+          <Button type="submit" disabled={busy}>
             {busy
               ? editing
                 ? m.action_saving()
@@ -187,7 +178,7 @@ export function TemplateEditor({
                 : editing
                   ? m.templates_save_chore()
                   : m.templates_create_chore()}
-          </button>
+          </Button>
         </fieldset>
       </form>
     </EditorDialog>

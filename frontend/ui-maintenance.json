@@ -99,6 +99,14 @@
       "reason": "Hand-written component styled with the tw: prefix and Bootstrap-bridged theme tokens; replaces Bootstrap's equivalent classes during the #937 migration.",
       "reviewedAt": null,
       "reviewNote": null
+    },
+    "close-button": {
+      "files": ["src/components/ui/close-button.tsx"],
+      "registry": null,
+      "origin": "local",
+      "reason": "Hand-written component styled with the tw: prefix; replaces Bootstrap's .btn-close during the #937 migration.",
+      "reviewedAt": null,
+      "reviewNote": null
     }
   },
   "importPolicy": {

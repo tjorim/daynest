@@ -154,6 +154,29 @@
   background-size: 16px 12px;
 }
 
+/* The white tick on a checked checkbox, as Bootstrap draws it. */
+@utility checkbox-check {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3e%3cpath fill='none' stroke='%23fff' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='m6 10 3 3 6-6'/%3e%3c/svg%3e");
+}
+
+/* Bootstrap's close "x", as a background so it can follow the theme with a filter. */
+@utility close-icon {
+  background: transparent
+    url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23000'%3e%3cpath d='M.293.293a1 1 0 0 1 1.414 0L8 6.586 14.293.293a1 1 0 1 1 1.414 1.414L9.414 8l6.293 6.293a1 1 0 0 1-1.414 1.414L8 9.414l-6.293 6.293a1 1 0 0 1-1.414-1.414L6.586 8 .293 1.707a1 1 0 0 1 0-1.414z'/%3e%3c/svg%3e")
+    center / 1em auto no-repeat;
+
+  [data-bs-theme="dark"] & {
+    filter: invert(1) grayscale(100%) brightness(200%);
+  }
+}
+
+/* Touch targets: buttons inside a list row are at least 44px tall. */
+@utility row-buttons {
+  & [data-variant] {
+    min-height: 2.75rem;
+  }
+}
+
 @utility p-badge {
   padding: 0.35em 0.65em;
 }
