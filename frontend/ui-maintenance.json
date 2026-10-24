@@ -43,6 +43,14 @@
       "reason": "Hand-written Tailwind component styled with the tw: prefix and Bootstrap-bridged theme tokens; replaces Bootstrap's .spinner-border classes during the #937 migration.",
       "reviewedAt": null,
       "reviewNote": null
+    },
+    "card": {
+      "files": ["src/components/ui/card.tsx"],
+      "registry": null,
+      "origin": "local",
+      "reason": "Hand-written component styled with the tw: prefix and Bootstrap-bridged theme tokens; replaces Bootstrap's .card classes during the #937 migration.",
+      "reviewedAt": null,
+      "reviewNote": null
     }
   },
   "importPolicy": {
