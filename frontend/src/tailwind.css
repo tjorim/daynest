@@ -96,6 +96,9 @@
   --text-h6: 1rem;
   --text-h6--line-height: 1.2;
 
+  --color-card-border: var(--bs-border-color-translucent);
+  --color-card-header: rgba(var(--bs-body-color-rgb), 0.03);
+
   --animate-spinner: spinner 0.75s linear infinite;
   @keyframes spinner {
     to {
@@ -112,6 +115,21 @@
     --tw-color-surface-to: rgba(22, 22, 35, 0.96);
     --tw-color-muted-surface: rgba(255, 255, 255, 0.08);
   }
+}
+
+/* Card header and footer corners sit one border width inside the card's own radius. */
+@utility rounded-t-inner {
+  border-top-left-radius: calc(var(--tw-radius-md) - 1px);
+  border-top-right-radius: calc(var(--tw-radius-md) - 1px);
+}
+
+@utility rounded-b-inner {
+  border-bottom-right-radius: calc(var(--tw-radius-md) - 1px);
+  border-bottom-left-radius: calc(var(--tw-radius-md) - 1px);
+}
+
+@utility min-h-auth {
+  min-height: min(70vh, 42rem);
 }
 
 @utility align-spinner {

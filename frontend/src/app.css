@@ -82,16 +82,6 @@ main.container {
   min-height: 44px;
 }
 
-.auth-shell {
-  min-height: min(70vh, 42rem);
-  display: grid;
-  place-items: center;
-}
-
-.auth-shell .card {
-  width: min(100%, 32rem);
-}
-
 @media (max-width: 575.98px) {
   main.container {
     padding-left: 0.75rem;
