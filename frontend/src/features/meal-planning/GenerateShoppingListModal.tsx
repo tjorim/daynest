@@ -1,7 +1,16 @@
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import * as m from "@/paraglide/messages";
 import type { WeekGridResponse } from "@/lib/api/mealPlans";
-import { useFocusTrap } from "@/lib/useFocusTrap";
+import {
+  Dialog,
+  DialogBody,
+  DialogClose,
+  DialogCloseButton,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { apiErrorMessage } from "@/lib/api/errorMessages";
 
 interface GenerateShoppingListModalProps {
@@ -18,8 +27,6 @@ export function GenerateShoppingListModal({
   onClose,
 }: GenerateShoppingListModalProps) {
   const [error, setError] = useState<string | null>(null);
-  const modalRef = useRef<HTMLDivElement>(null);
-  useFocusTrap(modalRef);
   const ingredients = useMemo(() => {
     const seen = new Set<string>();
     const list: string[] = [];
@@ -48,48 +55,39 @@ export function GenerateShoppingListModal({
   };
 
   return (
-    <div className="modal d-block meal-plan-modal" tabIndex={-1} role="dialog" aria-modal="true">
-      <div className="modal-dialog modal-dialog-centered">
-        <div ref={modalRef} className="modal-content">
-          <div className="modal-header">
-            <h3 className="modal-title h5">{m.meal_plan_generate_shopping_list()}</h3>
-            <button
-              type="button"
-              className="btn-close"
-              aria-label={m.action_cancel()}
-              onClick={onClose}
-            />
-          </div>
-          <div className="modal-body">
-            {error ? <div className="alert alert-danger py-2">{error}</div> : null}
-            <p className="text-muted">{m.meal_plan_generate_preview()}</p>
-            {ingredients.length ? (
-              <ul className="list-group meal-plan-ingredient-preview">
-                {ingredients.map((ingredient) => (
-                  <li className="list-group-item" key={ingredient}>
-                    {ingredient}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <div className="alert alert-secondary py-2">{m.meal_plan_no_ingredients()}</div>
-            )}
-          </div>
-          <div className="modal-footer">
-            <button type="button" className="btn btn-outline-secondary" onClick={onClose}>
-              {m.action_cancel()}
-            </button>
-            <button
-              type="button"
-              className="btn btn-primary"
-              disabled={isSaving || ingredients.length === 0}
-              onClick={() => void generate()}
-            >
-              {isSaving ? m.action_creating() : m.meal_plan_generate_shopping_list()}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle className="h5 mb-0">{m.meal_plan_generate_shopping_list()}</DialogTitle>
+          <DialogCloseButton label={m.action_cancel()} />
+        </DialogHeader>
+        <DialogBody>
+          {error ? <div className="alert alert-danger py-2">{error}</div> : null}
+          <p className="text-muted">{m.meal_plan_generate_preview()}</p>
+          {ingredients.length ? (
+            <ul className="list-group meal-plan-ingredient-preview">
+              {ingredients.map((ingredient) => (
+                <li className="list-group-item" key={ingredient}>
+                  {ingredient}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className="alert alert-secondary py-2">{m.meal_plan_no_ingredients()}</div>
+          )}
+        </DialogBody>
+        <DialogFooter>
+          <DialogClose className="btn btn-outline-secondary">{m.action_cancel()}</DialogClose>
+          <button
+            type="button"
+            className="btn btn-primary"
+            disabled={isSaving || ingredients.length === 0}
+            onClick={() => void generate()}
+          >
+            {isSaving ? m.action_creating() : m.meal_plan_generate_shopping_list()}
+          </button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

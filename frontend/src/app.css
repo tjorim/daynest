@@ -163,10 +163,6 @@ main.container {
   width: auto;
 }
 
-.meal-plan-modal {
-  background: rgba(0, 0, 0, 0.45);
-}
-
 .meal-plan-ingredient-preview {
   max-height: 16rem;
   overflow: auto;

@@ -1,11 +1,20 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { useForm } from "@tanstack/react-form";
 import { z } from "zod";
 import * as m from "@/paraglide/messages";
 import { isRetryableApiError } from "@/lib/api/http";
 import { type MedicationPlan, type MedicationPlanUpdateInput } from "@/lib/api/medications";
 import { formatDate, formatDateTime } from "@/lib/dateUtils";
-import { useFocusTrap } from "@/lib/useFocusTrap";
+import {
+  Dialog,
+  DialogBody,
+  DialogClose,
+  DialogCloseButton,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   useCreateMedicationPlanMutation,
   useDeleteMedicationPlanMutation,
@@ -405,8 +414,6 @@ function EditMedicationPlanDialog({
   onSubmit: (input: MedicationPlanUpdateInput) => void;
 }) {
   const [error, setError] = useState<string | null>(null);
-  const modalRef = useRef<HTMLDivElement>(null);
-  useFocusTrap(modalRef);
   const editForm = useForm({
     defaultValues: {
       name: plan.name,
@@ -428,128 +435,130 @@ function EditMedicationPlanDialog({
   });
 
   return (
-    <div className="modal d-block" tabIndex={-1} role="dialog" aria-modal="true">
-      <div className="modal-dialog">
-        <div ref={modalRef} className="modal-content">
-          <div className="modal-header">
-            <h3 className="modal-title h5">{m.medication_edit_title()}</h3>
-            <button
-              type="button"
-              className="btn-close"
-              aria-label={m.ui_close()}
-              onClick={onCancel}
+    <Dialog open onOpenChange={(open) => !open && onCancel()}>
+      <DialogContent>
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            void editForm.handleSubmit();
+          }}
+        >
+          <DialogHeader>
+            <DialogTitle className="h5 mb-0">{m.medication_edit_title()}</DialogTitle>
+            <DialogCloseButton />
+          </DialogHeader>
+          <DialogBody className="d-grid gap-2">
+            {error ? <div className="alert alert-danger py-2">{error}</div> : null}
+            <editForm.Field
+              name="name"
+              children={(field) => (
+                <input
+                  className="form-control"
+                  value={field.value}
+                  onChange={(event) => field.handleChange(event.target.value)}
+                  aria-label={m.medication_name_placeholder()}
+                />
+              )}
             />
-          </div>
-          <form
-            onSubmit={(event) => {
-              event.preventDefault();
-              event.stopPropagation();
-              void editForm.handleSubmit();
-            }}
-          >
-            <div className="modal-body d-grid gap-2">
-              {error ? <div className="alert alert-danger py-2">{error}</div> : null}
-              <editForm.Field
-                name="name"
-                children={(field) => (
-                  <input
-                    className="form-control"
-                    value={field.value}
-                    onChange={(event) => field.handleChange(event.target.value)}
-                    aria-label={m.medication_name_placeholder()}
-                  />
-                )}
-              />
-              <editForm.Field
-                name="instructions"
-                children={(field) => (
-                  <textarea
-                    className="form-control"
-                    rows={3}
-                    value={field.value}
-                    onChange={(event) => field.handleChange(event.target.value)}
-                    aria-label={m.medication_instructions_placeholder()}
-                  />
-                )}
-              />
-              <div className="row g-2">
-                <div className="col-sm-6">
-                  <label className="form-label small fw-semibold mb-1">
-                    {m.medication_start_date_label()}
-                  </label>
-                  <editForm.Field
-                    name="startDate"
-                    children={(field) => (
-                      <input
-                        className="form-control"
-                        type="date"
-                        value={field.value}
-                        onChange={(event) => field.handleChange(event.target.value)}
-                      />
-                    )}
-                  />
-                </div>
-                <div className="col-sm-6">
-                  <label className="form-label small fw-semibold mb-1">
-                    {m.medication_schedule_time_label()}
-                  </label>
-                  <editForm.Field
-                    name="scheduleTime"
-                    children={(field) => (
-                      <input
-                        className="form-control"
-                        type="time"
-                        value={field.value}
-                        onChange={(event) => field.handleChange(event.target.value)}
-                      />
-                    )}
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="form-label small fw-semibold mb-1">
-                  {m.medication_every_n_days_label()}
+            <editForm.Field
+              name="instructions"
+              children={(field) => (
+                <textarea
+                  className="form-control"
+                  rows={3}
+                  value={field.value}
+                  onChange={(event) => field.handleChange(event.target.value)}
+                  aria-label={m.medication_instructions_placeholder()}
+                />
+              )}
+            />
+            <div className="row g-2">
+              <div className="col-sm-6">
+                <label
+                  className="form-label small fw-semibold mb-1"
+                  htmlFor="edit-medication-start-date"
+                >
+                  {m.medication_start_date_label()}
                 </label>
                 <editForm.Field
-                  name="everyNDays"
+                  name="startDate"
                   children={(field) => (
                     <input
+                      id="edit-medication-start-date"
                       className="form-control"
-                      type="number"
-                      min={1}
+                      type="date"
                       value={field.value}
                       onChange={(event) => field.handleChange(event.target.value)}
                     />
                   )}
                 />
               </div>
-              <label className="form-check">
+              <div className="col-sm-6">
+                <label
+                  className="form-label small fw-semibold mb-1"
+                  htmlFor="edit-medication-schedule-time"
+                >
+                  {m.medication_schedule_time_label()}
+                </label>
                 <editForm.Field
-                  name="isActive"
+                  name="scheduleTime"
                   children={(field) => (
                     <input
-                      className="form-check-input"
-                      type="checkbox"
-                      checked={field.value}
-                      onChange={(event) => field.handleChange(event.target.checked)}
+                      id="edit-medication-schedule-time"
+                      className="form-control"
+                      type="time"
+                      value={field.value}
+                      onChange={(event) => field.handleChange(event.target.value)}
                     />
                   )}
                 />
-                <span className="form-check-label">{m.medication_active_label()}</span>
+              </div>
+            </div>
+            <div>
+              <label
+                className="form-label small fw-semibold mb-1"
+                htmlFor="edit-medication-every-n-days"
+              >
+                {m.medication_every_n_days_label()}
               </label>
+              <editForm.Field
+                name="everyNDays"
+                children={(field) => (
+                  <input
+                    id="edit-medication-every-n-days"
+                    className="form-control"
+                    type="number"
+                    min={1}
+                    value={field.value}
+                    onChange={(event) => field.handleChange(event.target.value)}
+                  />
+                )}
+              />
             </div>
-            <div className="modal-footer">
-              <button type="button" className="btn btn-outline-secondary" onClick={onCancel}>
-                {m.action_cancel()}
-              </button>
-              <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
-                {isSubmitting ? m.action_saving() : m.action_save()}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-      <div className="modal-backdrop show" />
-    </div>
+            <label className="form-check">
+              <editForm.Field
+                name="isActive"
+                children={(field) => (
+                  <input
+                    className="form-check-input"
+                    type="checkbox"
+                    checked={field.value}
+                    onChange={(event) => field.handleChange(event.target.checked)}
+                  />
+                )}
+              />
+              <span className="form-check-label">{m.medication_active_label()}</span>
+            </label>
+          </DialogBody>
+          <DialogFooter>
+            <DialogClose className="btn btn-outline-secondary">{m.action_cancel()}</DialogClose>
+            <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
+              {isSubmitting ? m.action_saving() : m.action_save()}
+            </button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }

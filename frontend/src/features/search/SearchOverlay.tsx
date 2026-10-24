@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import * as m from "@/paraglide/messages";
 import { useSearchQuery } from "@/features/search/useSearchQuery";
-import { useFocusTrap } from "@/lib/useFocusTrap";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { apiErrorMessage } from "@/lib/api/errorMessages";
 
 const DEBOUNCE_MS = 300;
@@ -13,8 +13,6 @@ export function SearchOverlay({ onClose }: { onClose: () => void }) {
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
-  const dialogRef = useRef<HTMLDivElement>(null);
-  const previousFocusRef = useRef<HTMLElement | null>(null);
   const navigate = useNavigate();
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const searchQuery = useSearchQuery(debouncedQuery, debouncedQuery.length >= MIN_QUERY_LEN);
@@ -23,7 +21,6 @@ export function SearchOverlay({ onClose }: { onClose: () => void }) {
   const error = searchQuery.error
     ? apiErrorMessage(searchQuery.error, m.api_search_failed())
     : null;
-  useFocusTrap(dialogRef);
 
   const flatItems = useMemo(() => {
     if (!results) return [];
@@ -45,25 +42,6 @@ export function SearchOverlay({ onClose }: { onClose: () => void }) {
       if (key) document.getElementById(key)?.scrollIntoView({ block: "nearest" });
     }
   }, [activeIndex, flatItems]);
-
-  useEffect(() => {
-    previousFocusRef.current =
-      document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    inputRef.current?.focus();
-    return () => {
-      previousFocusRef.current?.focus();
-    };
-  }, []);
-
-  useEffect(() => {
-    const handler = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        onClose();
-      }
-    };
-    document.addEventListener("keydown", handler);
-    return () => document.removeEventListener("keydown", handler);
-  }, [onClose]);
 
   const onQueryChange = (value: string) => {
     setQuery(value);
@@ -117,17 +95,11 @@ export function SearchOverlay({ onClose }: { onClose: () => void }) {
   const plannedOffset = medOffset + (results?.medication_plans.length ?? 0);
 
   return (
-    <div
-      className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-start justify-content-center z-1050 bg-black/50 pt-search-offset"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
-      <div
-        ref={dialogRef}
-        className="card shadow-lg flex flex-col w-search max-h-search"
-        role="dialog"
-        aria-modal="true"
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent
+        position="top"
+        className="card"
+        initialFocus={inputRef}
         aria-label={m.app_search()}
       >
         <div className="card-header p-2">
@@ -306,7 +278,7 @@ export function SearchOverlay({ onClose }: { onClose: () => void }) {
         <div className="card-footer py-1 px-3">
           <small className="text-muted">{m.search_keyboard_hint()}</small>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -35,6 +35,9 @@
   --color-surface-from: rgba(255, 255, 255, 0.92);
   --color-surface-to: rgba(248, 249, 250, 0.96);
   --color-muted-surface: rgba(33, 37, 41, 0.08);
+  --color-popover: var(--bs-body-bg);
+  --color-popover-foreground: var(--bs-body-color);
+  --color-dialog-border: var(--bs-border-color);
 }
 
 @layer base {
@@ -47,9 +50,13 @@
   }
 }
 
-/* One-off sizes for the search overlay that no theme token expresses. */
-@utility pt-search-offset {
-  padding-top: 10vh;
+/* One-off sizes for dialogs that no theme token expresses. */
+@utility max-h-dialog {
+  max-height: calc(100dvh - 2rem);
+}
+
+@utility top-search-offset {
+  top: 10vh;
 }
 
 @utility w-search {

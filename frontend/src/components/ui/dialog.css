@@ -22,10 +22,10 @@
   z-index: 1050;
 }
 
-[data-bs-theme="dark"] .editor-dialog-popup .btn-outline-secondary {
+[data-bs-theme="dark"] :is(.editor-dialog-popup, .dialog-popup) .btn-outline-secondary {
   --bs-btn-color: var(--bs-secondary-color);
 }
 
-[data-bs-theme="dark"] .editor-dialog-popup .btn-outline-danger {
+[data-bs-theme="dark"] :is(.editor-dialog-popup, .dialog-popup) .btn-outline-danger {
   --bs-btn-color: var(--bs-danger-text-emphasis);
 }

@@ -4,6 +4,14 @@
   "style": null,
   "directories": ["src/components/ui"],
   "components": {
+    "dialog": {
+      "files": ["src/components/ui/dialog.tsx"],
+      "registry": null,
+      "origin": "local",
+      "reason": "Hand-written Base UI Dialog wrapper styled with Tailwind and Bootstrap theme tokens; replaces the hand-built Bootstrap modals and useFocusTrap. Maintain against the Base UI Dialog APIs it imports.",
+      "reviewedAt": null,
+      "reviewNote": null
+    },
     "EditorDialog": {
       "files": ["src/components/ui/EditorDialog.tsx"],
       "registry": null,
