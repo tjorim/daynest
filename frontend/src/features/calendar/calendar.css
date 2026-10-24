@@ -1,16 +1,19 @@
 @layer theme, base, bootstrap, schedule-x, components, utilities;
 @import "@schedule-x/theme-default/dist/index.css" layer(schedule-x);
 
-.daynest-calendar {
-  --sx-color-primary: var(--bs-primary);
+.daynest-calendar,
+.daynest-calendar .is-dark {
+  --sx-color-primary: var(--color-brand);
   --sx-color-on-primary: #fff;
-  --sx-color-primary-container: rgba(var(--bs-primary-rgb), 0.14);
+  --sx-color-primary-container: rgba(var(--brand-rgb), 0.14);
   --sx-color-on-primary-container: var(--bs-body-color);
   --sx-color-surface: var(--bs-body-bg);
   --sx-color-surface-container: var(--bs-tertiary-bg);
   --sx-color-on-surface: var(--bs-body-color);
   --sx-color-outline: var(--bs-border-color);
+}
 
+.daynest-calendar {
   min-height: 44rem;
 }
 

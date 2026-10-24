@@ -10,8 +10,42 @@
 @import "bootstrap-icons/font/bootstrap-icons.min.css" layer(bootstrap);
 @import "tailwindcss/utilities.css" layer(utilities);
 
-/* The theme switch sets data-bs-theme on <html>, so `dark:` must follow it, not the OS setting. */
+/*
+ * One theming mechanism: ThemeContext resolves light | dark | auto and sets data-bs-theme on
+ * <html>. Bootstrap, the `dark:` variant, the tokens below and the Schedule-X calendar all follow
+ * that attribute; nothing here reads prefers-color-scheme.
+ */
 @custom-variant dark (&:where([data-bs-theme="dark"], [data-bs-theme="dark"] *));
+
+/*
+ * Design tokens. `static` emits every token even when no utility uses it, because app.css reads
+ * them with var(). Dark values are overridden under [data-bs-theme="dark"] below, so utilities
+ * such as `bg-surface-from` and `text-brand` switch with the theme without a `dark:` variant.
+ * --brand-rgb is the channel form Bootstrap needs for its --bs-*-rgb variables.
+ */
+@theme static {
+  --brand-rgb: 42, 98, 255;
+  --brand-hover-rgb: 33, 78, 204;
+  --color-brand: rgb(var(--brand-rgb));
+  --color-brand-hover: rgb(var(--brand-hover-rgb));
+  --color-link: var(--color-brand);
+  --color-link-hover: var(--color-brand-hover);
+  --color-page-from: rgba(248, 249, 250, 0.95);
+  --color-page-to: rgba(255, 255, 255, 1);
+  --color-surface-from: rgba(255, 255, 255, 0.92);
+  --color-surface-to: rgba(248, 249, 250, 0.96);
+  --color-muted-surface: rgba(33, 37, 41, 0.08);
+}
+
+@layer base {
+  [data-bs-theme="dark"] {
+    --color-page-from: rgba(18, 18, 28, 0.98);
+    --color-page-to: rgba(12, 12, 20, 1);
+    --color-surface-from: rgba(30, 30, 45, 0.92);
+    --color-surface-to: rgba(22, 22, 35, 0.96);
+    --color-muted-surface: rgba(255, 255, 255, 0.08);
+  }
+}
 
 /* One-off sizes for the search overlay that no theme token expresses. */
 @utility pt-search-offset {

@@ -22,13 +22,19 @@ const legacyClasses = [
     ),
   ),
 ];
+// The rule rejects allow entries that are not colour utilities, so keep only the prefixed ones.
+const legacyColorClasses = legacyClasses.filter((name) =>
+  /^(text|bg|border|ring|outline|fill|stroke|divide)-/.test(name),
+);
 
 export default defineConfig({
   ignorePatterns: ["src/paraglide/**"],
   jsPlugins: ["@shadcn/lint"],
   rules: {
     "shadcn/no-arbitrary-values": "error",
-    "shadcn/no-raw-colors": "error",
+    // Bootstrap colour classes such as `text-muted` look like Tailwind colour utilities once the
+    // theme declares colours, so they are allowed the same way as for unknown classes.
+    "shadcn/no-raw-colors": ["error", { allow: legacyColorClasses }],
     "shadcn/no-inline-styles": "error",
     "shadcn/no-unknown-classes": ["error", { allow: legacyClasses }],
   },
