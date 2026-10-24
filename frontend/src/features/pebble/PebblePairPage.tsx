@@ -2,6 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/app/providers/AuthProvider";
 import * as m from "@/paraglide/messages";
 import { apiErrorMessage } from "@/lib/api/errorMessages";
+import { Alert } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import { ApiError, fetchWithAuth, readErrorBody } from "@/lib/api/http";
 
 export function PebblePairPage() {
@@ -65,31 +68,32 @@ export function PebblePairPage() {
   const signInFailed = Boolean(oidcError || sessionError);
 
   return (
-    <section className="mx-auto tw:max-w-lg py-5 text-center">
-      <h1 className="h4 mb-3">{m.pebble_pair_title()}</h1>
-      <p className="text-body-secondary mb-4">{m.pebble_pair_description()}</p>
+    <section className="tw:mx-auto tw:max-w-lg tw:py-12 tw:text-center">
+      <h1 className="tw:mb-4 tw:text-h4 tw:font-medium">{m.pebble_pair_title()}</h1>
+      <p className="tw:mb-6 tw:text-muted-foreground">{m.pebble_pair_description()}</p>
 
       {signInFailed || pairingError ? (
-        <div className="alert alert-danger" role="alert">
+        <Alert variant="danger" role="alert">
           <div>{pairingError || oidcError || sessionError}</div>
-          <button
-            className="btn btn-sm btn-outline-danger mt-3"
-            type="button"
+          <Button
+            variant="outline-danger"
+            size="sm"
+            className="tw:mt-4"
             onClick={pairingError ? retryPairing : retrySignIn}
           >
             {pairingError ? m.pebble_pair_retry() : m.pebble_pair_retry_sign_in()}
-          </button>
-        </div>
+          </Button>
+        </Alert>
       ) : closed ? (
-        <div className="alert alert-success" role="status">
+        <Alert variant="success" role="status">
           {m.pebble_pair_close_instruction()}
-        </div>
+        </Alert>
       ) : (
         <div
-          className="d-flex align-items-center justify-content-center gap-2 text-body-secondary"
+          className="tw:flex tw:items-center tw:justify-center tw:gap-2 tw:text-muted-foreground"
           role="status"
         >
-          <span className="spinner-border spinner-border-sm" aria-hidden="true" />
+          <Spinner />
           {m.pebble_pair_connecting()}
         </div>
       )}
