@@ -13,6 +13,7 @@ import { createEventModalPlugin } from "@schedule-x/event-modal";
 import { ScheduleXCalendar, useCalendarApp } from "@schedule-x/react";
 import * as m from "@/paraglide/messages";
 import { useLanguage } from "@/i18n/LanguageProvider";
+import { useTheme } from "@/app/theme/ThemeContext";
 import { isRetryableApiError } from "@/lib/api/http";
 import type { UnifiedDayItem } from "@/lib/api/today";
 import { dayjs, toIsoDate } from "@/lib/dateUtils";
@@ -58,6 +59,10 @@ const calendarDefinitions = Object.fromEntries(
 
 export function CalendarPage() {
   const { language } = useLanguage();
+  const { resolvedTheme } = useTheme();
+  // Only the first value seeds the config; later changes go through calendar.setTheme below, so
+  // the config identity (and with it the calendar instance) stays stable.
+  const [initialIsDark] = useState(() => resolvedTheme === "dark");
   const navigate = useNavigate();
   const search = useSearch({ from: "/protected/calendar" });
   // Resolved the same way the route loader resolves it, so the two can
@@ -146,6 +151,7 @@ export function CalendarPage() {
       events,
       selectedDate: Temporal.PlainDate.from(selectedDate),
       locale: language === "nl" ? "nl-NL" : "en-US",
+      isDark: initialIsDark,
       calendars: calendarDefinitions,
       callbacks: {
         onRangeUpdate: (nextRange) => {
@@ -189,6 +195,10 @@ export function CalendarPage() {
   useEffect(() => {
     calendar?.events.set(events);
   }, [calendar, events]);
+
+  useEffect(() => {
+    calendar?.setTheme(resolvedTheme);
+  }, [calendar, resolvedTheme]);
 
   const loading = rangeQuery.isPending || dayQuery.isPending || plannedQuery.isPending;
   const queryError = rangeQuery.error ?? dayQuery.error ?? plannedQuery.error;

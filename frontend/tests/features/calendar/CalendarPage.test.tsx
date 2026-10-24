@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { ThemeProvider } from "@/app/theme/ThemeContext";
 import { CalendarPage } from "@/features/calendar/CalendarPage";
 import { setLocale } from "@/paraglide/runtime";
 import { QueryTestProvider } from "../../utils/queryTestProvider";
@@ -73,7 +74,9 @@ describe("CalendarPage", () => {
   it("renders Schedule-X controls and the retained planned item sidebar", async () => {
     render(
       <QueryTestProvider>
-        <CalendarPage />
+        <ThemeProvider>
+          <CalendarPage />
+        </ThemeProvider>
       </QueryTestProvider>,
     );
 
@@ -94,7 +97,9 @@ describe("CalendarPage", () => {
     try {
       render(
         <QueryTestProvider>
-          <CalendarPage />
+          <ThemeProvider>
+            <CalendarPage />
+          </ThemeProvider>
         </QueryTestProvider>,
       );
 
@@ -125,7 +130,9 @@ describe("CalendarPage", () => {
 
     render(
       <QueryTestProvider>
-        <CalendarPage />
+        <ThemeProvider>
+          <CalendarPage />
+        </ThemeProvider>
       </QueryTestProvider>,
     );
 
