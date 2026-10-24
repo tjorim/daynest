@@ -16,15 +16,15 @@ const variants = {
   danger:
     "border-danger bg-danger text-white hover:border-danger-hover hover:bg-danger-hover focus-visible:ring-danger/50",
   "outline-primary":
-    "border-primary text-primary hover:bg-primary hover:text-white focus-visible:ring-primary/50",
+    "border-primary text-primary-text hover:bg-primary hover:text-white focus-visible:ring-primary/50",
   "outline-secondary":
     "border-secondary text-secondary-text hover:bg-secondary hover:text-white focus-visible:ring-secondary/50",
   "outline-success":
-    "border-success text-success hover:bg-success hover:text-white focus-visible:ring-success/50",
+    "border-success text-success-text hover:bg-success hover:text-white focus-visible:ring-success/50",
   "outline-danger":
     "border-danger text-danger-text hover:bg-danger hover:text-white focus-visible:ring-danger/50",
   light:
-    "border-light bg-light text-black hover:border-light-hover hover:bg-light-hover focus-visible:ring-light/50",
+    "border-tertiary bg-tertiary text-foreground hover:border-secondary-bg hover:bg-secondary-bg focus-visible:ring-secondary/50",
   link: cn("text-link underline hover:text-link-hover focus-visible:ring-brand/50"),
 } as const;
 

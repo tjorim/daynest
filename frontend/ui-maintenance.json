@@ -8,7 +8,7 @@
       "files": ["src/components/ui/dialog.tsx"],
       "registry": null,
       "origin": "local",
-      "reason": "Hand-written Base UI Dialog wrapper styled with Tailwind and Bootstrap theme tokens; replaces the hand-built Bootstrap modals and useFocusTrap. Maintain against the Base UI Dialog APIs it imports.",
+      "reason": "Keep: owned Base UI Dialog adapter supplies shared portal, focus and layout APIs; preserve calendar, meal, medication and search consumers. See docs/ui-registry-coverage.md.",
       "reviewedAt": null,
       "reviewNote": null
     },
@@ -16,7 +16,7 @@
       "files": ["src/components/ui/EditorDialog.tsx"],
       "registry": null,
       "origin": "local",
-      "reason": "Locally owned composition; maintain against the Base UI APIs it imports and the app UI audit.",
+      "reason": "Keep: guarded Base UI composition preserves dirty/pending dismissal, nested discard confirmation and focus return for template editors. See docs/ui-registry-coverage.md.",
       "reviewedAt": null,
       "reviewNote": null
     },
@@ -24,7 +24,7 @@
       "files": ["src/components/ui/button.tsx"],
       "registry": null,
       "origin": "local",
-      "reason": "Hand-written Base UI Button wrapper: component styled with the tw: prefix and Bootstrap-bridged theme tokens; replaces Bootstrap's .btn classes during the #937 migration.",
+      "reason": "Keep: Base UI Button with application semantic variants, compact sizes and buttonVariants for router links; ButtonGroup is a visual group, not tabs. See docs/ui-registry-coverage.md.",
       "reviewedAt": null,
       "reviewNote": null
     },
@@ -32,7 +32,7 @@
       "files": ["src/components/ui/alert.tsx"],
       "registry": null,
       "origin": "local",
-      "reason": "Hand-written Tailwind component styled with the tw: prefix and Bootstrap-bridged theme tokens; replaces Bootstrap's .alert classes during the #937 migration.",
+      "reason": "Keep: static semantic-tone container; consumers explicitly choose alert/status roles for translated feedback.",
       "reviewedAt": null,
       "reviewNote": null
     },
@@ -40,7 +40,7 @@
       "files": ["src/components/ui/spinner.tsx"],
       "registry": null,
       "origin": "local",
-      "reason": "Hand-written Tailwind component styled with the tw: prefix and Bootstrap-bridged theme tokens; replaces Bootstrap's .spinner-border classes during the #937 migration.",
+      "reason": "Keep: CSS loading indicator; consumers supply translated loading text and status semantics where appropriate.",
       "reviewedAt": null,
       "reviewNote": null
     },
@@ -48,7 +48,7 @@
       "files": ["src/components/ui/card.tsx"],
       "registry": null,
       "origin": "local",
-      "reason": "Hand-written component styled with the tw: prefix and Bootstrap-bridged theme tokens; replaces Bootstrap's .card classes during the #937 migration.",
+      "reason": "Keep: semantic layout slots preserve feature grids and compact headers/footers; no interaction primitive required.",
       "reviewedAt": null,
       "reviewNote": null
     },
@@ -56,7 +56,7 @@
       "files": ["src/components/ui/input.tsx"],
       "registry": null,
       "origin": "local",
-      "reason": "Hand-written component styled with the tw: prefix and Bootstrap-bridged theme tokens; replaces Bootstrap's equivalent classes during the #937 migration.",
+      "reason": "Keep: native Input/Textarea preserve browser date/time/number validation and existing onChange/form APIs.",
       "reviewedAt": null,
       "reviewNote": null
     },
@@ -64,7 +64,7 @@
       "files": ["src/components/ui/badge.tsx"],
       "registry": null,
       "origin": "local",
-      "reason": "Hand-written component styled with the tw: prefix and Bootstrap-bridged theme tokens; replaces Bootstrap's equivalent classes during the #937 migration.",
+      "reason": "Keep: static status labels with application semantic variants; no interaction primitive required.",
       "reviewedAt": null,
       "reviewNote": null
     },
@@ -72,7 +72,7 @@
       "files": ["src/components/ui/list-group.tsx"],
       "registry": null,
       "origin": "local",
-      "reason": "Hand-written component styled with the tw: prefix and Bootstrap-bridged theme tokens; replaces Bootstrap's equivalent classes during the #937 migration.",
+      "reason": "Keep: Base UI useRender supports actual button/link/list semantics and flush/active rows; it is not a listbox or keyboard-selection primitive.",
       "reviewedAt": null,
       "reviewNote": null
     },
@@ -80,7 +80,7 @@
       "files": ["src/components/ui/field.tsx"],
       "registry": null,
       "origin": "local",
-      "reason": "Hand-written component styled with the tw: prefix and Bootstrap-bridged theme tokens; replaces Bootstrap's equivalent classes during the #937 migration.",
+      "reason": "Keep: presentational Field/Label/Description/Error slots integrate existing TanStack Form; consumers own id, htmlFor and aria-describedby wiring.",
       "reviewedAt": null,
       "reviewNote": null
     },
@@ -88,7 +88,7 @@
       "files": ["src/components/ui/select.tsx"],
       "registry": null,
       "origin": "local",
-      "reason": "Hand-written component styled with the tw: prefix and Bootstrap-bridged theme tokens; replaces Bootstrap's equivalent classes during the #937 migration.",
+      "reason": "Keep: native select preserves option children, native mobile picker and event.target.value consumers; custom popup selection is not currently required.",
       "reviewedAt": null,
       "reviewNote": null
     },
@@ -96,7 +96,7 @@
       "files": ["src/components/ui/checkbox.tsx"],
       "registry": null,
       "origin": "local",
-      "reason": "Hand-written component styled with the tw: prefix and Bootstrap-bridged theme tokens; replaces Bootstrap's equivalent classes during the #937 migration.",
+      "reason": "Keep: native checkbox preserves checked/onChange, labels and submitted values for bulk selection and preferences.",
       "reviewedAt": null,
       "reviewNote": null
     },
@@ -104,7 +104,7 @@
       "files": ["src/components/ui/close-button.tsx"],
       "registry": null,
       "origin": "local",
-      "reason": "Hand-written component styled with the tw: prefix; replaces Bootstrap's .btn-close during the #937 migration.",
+      "reason": "Keep: shared labelled Lucide close button preserves translated accessible names and dialog styling.",
       "reviewedAt": null,
       "reviewNote": null
     },
@@ -112,7 +112,7 @@
       "files": ["src/components/ui/progress.tsx"],
       "registry": null,
       "origin": "local",
-      "reason": "Hand-written component styled with the tw: prefix; replaces Bootstrap's .progress during the #937 migration.",
+      "reason": "Keep: determinate percentage indicator with explicit progressbar values; consumer supplies accessible name.",
       "reviewedAt": null,
       "reviewNote": null
     },
@@ -120,7 +120,7 @@
       "files": ["src/components/ui/table.tsx"],
       "registry": null,
       "origin": "local",
-      "reason": "Hand-written component styled with the tw: prefix and Bootstrap-bridged theme tokens; replaces Bootstrap's equivalent classes during the #937 migration.",
+      "reason": "Keep: native table slots and horizontal overflow retain TanStack sorting/filtering/visibility and compact cells; no duplicate data-table state.",
       "reviewedAt": null,
       "reviewNote": null
     },
@@ -128,7 +128,7 @@
       "files": ["src/components/ui/radio.tsx"],
       "registry": null,
       "origin": "local",
-      "reason": "Hand-written component styled with the tw: prefix and Bootstrap-bridged theme tokens; replaces Bootstrap's equivalent classes during the #937 migration.",
+      "reason": "Keep: native same-name radio grouping preserves browser arrow-key and form behavior without a second state model.",
       "reviewedAt": null,
       "reviewNote": null
     },
@@ -136,7 +136,7 @@
       "files": ["src/components/ui/switch.tsx"],
       "registry": null,
       "origin": "local",
-      "reason": "Hand-written component styled with the tw: prefix and Bootstrap-bridged theme tokens; replaces Bootstrap's equivalent classes during the #937 migration.",
+      "reason": "Keep: native checkbox styled as an on/off control preserves checked/onChange and associated labels; not a multi-state selector.",
       "reviewedAt": null,
       "reviewNote": null
     }
