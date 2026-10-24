@@ -1,6 +1,11 @@
 import { useState } from "react";
 import * as m from "@/paraglide/messages";
 import { getCustomServerUrl, setCustomServerUrl } from "@/lib/api/serverConfig";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { FieldError } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { Radio } from "@/components/ui/radio";
 
 type ServerMode = "default" | "custom";
 
@@ -40,14 +45,14 @@ export function ServerConfigSection({
   };
 
   return (
-    <div className="card mb-3">
-      <div className="card-header fw-semibold py-2">{m.settings_backend_server_header()}</div>
-      <div className="card-body d-grid gap-2">
-        <div className="d-flex gap-3">
-          <label className="form-check">
-            <input
-              className="form-check-input"
-              type="radio"
+    <Card className="tw:mb-4">
+      <CardHeader className="tw:font-semibold tw:py-2">
+        {m.settings_backend_server_header()}
+      </CardHeader>
+      <CardContent className="tw:grid tw:gap-2">
+        <div className="tw:flex tw:gap-4">
+          <label className="tw:check-row tw:mb-0.5">
+            <Radio
               name="server-mode"
               checked={serverMode === "default"}
               onChange={() => {
@@ -55,23 +60,21 @@ export function ServerConfigSection({
                 setServerUrlError(null);
               }}
             />
-            <span className="form-check-label">{m.settings_default()}</span>
+            <span>{m.settings_default()}</span>
           </label>
-          <label className="form-check">
-            <input
-              className="form-check-input"
-              type="radio"
+          <label className="tw:check-row tw:mb-0.5">
+            <Radio
               name="server-mode"
               checked={serverMode === "custom"}
               onChange={() => setServerMode("custom")}
             />
-            <span className="form-check-label">{m.settings_custom_self_hosted()}</span>
+            <span>{m.settings_custom_self_hosted()}</span>
           </label>
         </div>
         {serverMode === "custom" ? (
           <div>
-            <input
-              className={`form-control${serverUrlError ? " is-invalid" : ""}`}
+            <Input
+              aria-invalid={serverUrlError ? true : undefined}
               value={customServerInput}
               onChange={(event) => {
                 setCustomServerInput(event.target.value);
@@ -80,13 +83,13 @@ export function ServerConfigSection({
               placeholder={m.settings_custom_placeholder()}
               aria-label={m.settings_custom_placeholder()}
             />
-            {serverUrlError ? <div className="invalid-feedback">{serverUrlError}</div> : null}
+            {serverUrlError ? <FieldError>{serverUrlError}</FieldError> : null}
           </div>
         ) : null}
-        <button type="button" className="btn btn-outline-primary btn-sm" onClick={applyServerUrl}>
+        <Button variant="outline-primary" size="sm" onClick={applyServerUrl}>
           {m.settings_apply()}
-        </button>
-      </div>
-    </div>
+        </Button>
+      </CardContent>
+    </Card>
   );
 }

@@ -3,6 +3,11 @@ import * as m from "@/paraglide/messages";
 import { AuthContext } from "@/app/providers/AuthProvider";
 import { deleteAccount } from "@/lib/api/settings";
 import { apiErrorMessage } from "@/lib/api/errorMessages";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Alert } from "@/components/ui/alert";
+import { Label } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 export function AccountDeletionSection() {
   const auth = useContext(AuthContext);
@@ -38,25 +43,27 @@ export function AccountDeletionSection() {
   };
 
   return (
-    <div className="card mt-3 border-danger">
-      <div className="card-header fw-semibold py-2 text-danger">
+    <Card className="tw:mt-4 tw:border-danger">
+      <CardHeader className="tw:font-semibold tw:py-2 tw:text-danger">
         {m.settings_delete_account_header()}
-      </div>
-      <div className="card-body py-2">
-        <p className="text-muted small mb-2">{m.settings_delete_account_description()}</p>
+      </CardHeader>
+      <CardContent className="tw:py-2">
+        <p className="tw:text-muted-foreground tw:text-small tw:mb-2">
+          {m.settings_delete_account_description()}
+        </p>
         {isConfirming ? (
-          <div className="alert alert-danger py-2 small mb-2">
+          <Alert variant="danger" className="tw:py-2 tw:text-small tw:mb-2">
             {m.settings_delete_account_confirm({ email: userEmail })}
-          </div>
+          </Alert>
         ) : null}
         {isConfirming ? (
-          <div className="mb-2">
-            <label className="form-label small mb-1" htmlFor="delete-account-email-confirmation">
+          <div className="tw:mb-2">
+            <Label className="tw:text-small tw:mb-1" htmlFor="delete-account-email-confirmation">
               {m.settings_delete_account_email_label()}
-            </label>
-            <input
+            </Label>
+            <Input
+              size="sm"
               type="email"
-              className="form-control form-control-sm"
               id="delete-account-email-confirmation"
               value={confirmationEmail}
               onChange={(event) => {
@@ -69,30 +76,34 @@ export function AccountDeletionSection() {
             />
           </div>
         ) : null}
-        {error ? <div className="alert alert-danger py-2 small mb-2">{error}</div> : null}
+        {error ? (
+          <Alert variant="danger" className="tw:py-2 tw:text-small tw:mb-2">
+            {error}
+          </Alert>
+        ) : null}
         {isConfirming ? (
-          <div className="d-flex gap-1">
-            <button
-              type="button"
-              className="btn btn-danger btn-sm"
+          <div className="tw:flex tw:gap-1">
+            <Button
+              variant="danger"
+              size="sm"
               onClick={handleDelete}
               disabled={isDeleting || !canDelete}
             >
               {isDeleting ? m.settings_delete_account_deleting() : m.action_confirm()}
-            </button>
-            <button
-              type="button"
-              className="btn btn-outline-secondary btn-sm"
+            </Button>
+            <Button
+              variant="outline-secondary"
+              size="sm"
               onClick={resetConfirmation}
               disabled={isDeleting}
             >
               {m.action_cancel()}
-            </button>
+            </Button>
           </div>
         ) : (
-          <button
-            type="button"
-            className="btn btn-outline-danger btn-sm"
+          <Button
+            variant="outline-danger"
+            size="sm"
             onClick={() => {
               setError(null);
               setConfirmationEmail("");
@@ -101,9 +112,9 @@ export function AccountDeletionSection() {
             disabled={isDeleting || userEmail.length === 0}
           >
             {m.settings_delete_account_button()}
-          </button>
+          </Button>
         )}
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }

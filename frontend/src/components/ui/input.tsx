@@ -9,7 +9,7 @@ const sizes = {
 type InputSize = keyof typeof sizes;
 
 const fieldClasses = cn(
-  "tw:block tw:w-full tw:border tw:border-border tw:bg-background tw:leading-normal tw:font-normal tw:text-foreground tw:placeholder:text-muted-foreground tw:focus:border-brand tw:focus:ring-4 tw:focus:ring-brand/25 tw:focus:outline-none tw:disabled:bg-secondary-subtle",
+  "tw:block tw:w-full tw:border tw:border-border tw:bg-background tw:leading-normal tw:font-normal tw:text-foreground tw:placeholder:text-muted-foreground tw:focus:border-brand tw:focus:ring-4 tw:focus:ring-brand/25 tw:focus:outline-none tw:disabled:bg-secondary-subtle tw:aria-invalid:border-danger tw:aria-invalid:focus:ring-danger/25",
 );
 
 /** Single-line text-like input. Pass `type`, `value` and handlers as for a native input. */

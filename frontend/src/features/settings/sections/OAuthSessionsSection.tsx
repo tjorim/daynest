@@ -3,6 +3,10 @@ import * as m from "@/paraglide/messages";
 import { listOAuthSessions, revokeOAuthSession, type OAuthSession } from "@/lib/api/auth";
 import { apiErrorMessage } from "@/lib/api/errorMessages";
 import { formatDateTime } from "@/lib/dateUtils";
+import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { ListGroup, ListGroupItem } from "@/components/ui/list-group";
+import { Badge } from "@/components/ui/badge";
 
 export function OAuthSessionsSection() {
   const [oauthSessions, setOauthSessions] = useState<OAuthSession[]>([]);
@@ -55,26 +59,30 @@ export function OAuthSessionsSection() {
   }, []);
 
   return (
-    <div className="card mt-3">
-      <div className="card-header d-flex justify-content-between align-items-center py-2">
-        <span className="fw-semibold">{m.settings_oauth_sessions_header()}</span>
-        <button
-          type="button"
-          className="btn btn-outline-secondary btn-sm"
+    <Card className="tw:mt-4">
+      <CardHeader className="tw:flex tw:justify-between tw:items-center tw:py-2">
+        <span className="tw:font-semibold">{m.settings_oauth_sessions_header()}</span>
+        <Button
+          variant="outline-secondary"
+          size="sm"
           disabled={sessionsLoading}
           onClick={() => void loadSessions()}
         >
           {m.settings_refresh()}
-        </button>
-      </div>
+        </Button>
+      </CardHeader>
       {sessionsLoading ? (
-        <div className="card-body py-2 text-muted small">{m.settings_loading_sessions()}</div>
+        <CardContent className="tw:py-2 tw:text-muted-foreground tw:text-small">
+          {m.settings_loading_sessions()}
+        </CardContent>
       ) : sessionsError ? (
-        <div className="card-body py-2 text-danger small">{sessionsError}</div>
+        <CardContent className="tw:py-2 tw:text-danger tw:text-small">{sessionsError}</CardContent>
       ) : (
-        <ul className="list-group list-group-flush">
+        <ListGroup flush render={<ul />}>
           {oauthSessions.length === 0 ? (
-            <li className="list-group-item py-2 text-muted">{m.settings_no_sessions()}</li>
+            <ListGroupItem render={<li />} className="tw:py-2 tw:text-muted-foreground">
+              {m.settings_no_sessions()}
+            </ListGroupItem>
           ) : (
             oauthSessions.map((session) => {
               const clientNames = session.clients.map((c) => c.clientName ?? c.clientId);
@@ -84,39 +92,44 @@ export function OAuthSessionsSection() {
                 lastAccess ? m.settings_last_active({ date: lastAccess }) : null,
               ].filter(Boolean);
               return (
-                <li key={session.id} className="list-group-item py-2">
-                  <div className="d-flex justify-content-between align-items-start gap-3">
+                <ListGroupItem render={<li />} className="tw:py-2" key={session.id}>
+                  <div className="tw:flex tw:justify-between tw:items-start tw:gap-4">
                     <div>
-                      <div className="fw-semibold d-flex align-items-center flex-wrap gap-2">
+                      <div className="tw:font-semibold tw:flex tw:items-center tw:flex-wrap tw:gap-2">
                         <span>
                           {clientNames.length > 0
                             ? clientNames.join(", ")
                             : m.settings_unknown_client()}
                         </span>
                         {session.is_current ? (
-                          <span className="badge text-bg-primary">{m.settings_this_device()}</span>
+                          <Badge variant="primary">{m.settings_this_device()}</Badge>
                         ) : null}
                       </div>
                       {metaParts.length > 0 ? (
-                        <small className="text-muted d-block">{metaParts.join(" • ")}</small>
+                        <small className="tw:text-muted-foreground tw:block">
+                          {metaParts.join(" • ")}
+                        </small>
                       ) : null}
                     </div>
-                    <button
-                      type="button"
-                      className="btn btn-outline-danger btn-sm flex-shrink-0"
+                    <Button
+                      variant="outline-danger"
+                      size="sm"
+                      className="tw:shrink-0"
                       disabled={revokingSession === session.id}
                       onClick={() => void onRevokeSession(session)}
                     >
                       {revokingSession === session.id ? m.settings_revoking() : m.settings_revoke()}
-                    </button>
+                    </Button>
                   </div>
-                </li>
+                </ListGroupItem>
               );
             })
           )}
-        </ul>
+        </ListGroup>
       )}
-      {revokeError ? <div className="card-footer text-danger py-2 small">{revokeError}</div> : null}
-    </div>
+      {revokeError ? (
+        <CardFooter className="tw:text-danger tw:py-2 tw:text-small">{revokeError}</CardFooter>
+      ) : null}
+    </Card>
   );
 }

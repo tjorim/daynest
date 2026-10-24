@@ -9,6 +9,12 @@ import {
   useUserSettingsQuery,
 } from "@/features/settings/useSettingsQueries";
 import { apiErrorMessage } from "@/lib/api/errorMessages";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Label } from "@/components/ui/field";
+import { Select } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Input, InputGroup } from "@/components/ui/input";
 
 export function UserPreferencesSection() {
   const { language, setLanguage } = useLanguage();
@@ -205,26 +211,30 @@ export function UserPreferencesSection() {
 
   return (
     <>
-      <div className="card mb-3">
-        <div className="card-header fw-semibold py-2">{m.settings_user_prefs_header()}</div>
-        <div className="card-body d-grid gap-2">
-          <label className="form-label small fw-semibold mb-1">{m.settings_language()}</label>
-          <select
-            className="form-select mb-2"
+      <Card className="tw:mb-4">
+        <CardHeader className="tw:font-semibold tw:py-2">
+          {m.settings_user_prefs_header()}
+        </CardHeader>
+        <CardContent className="tw:grid tw:gap-2">
+          <Label className="tw:text-small tw:font-semibold tw:mb-1">{m.settings_language()}</Label>
+          <Select
+            className="tw:mb-2"
             value={language}
             onChange={(event) => setLanguage(event.target.value as "en" | "nl")}
             aria-label={m.settings_language()}
           >
             <option value="en">{m.settings_language_english()}</option>
             <option value="nl">{m.settings_language_dutch()}</option>
-          </select>
-          <label className="form-label small fw-semibold mb-1">{m.settings_timezone()}</label>
+          </Select>
+          <Label className="tw:text-small tw:font-semibold tw:mb-1">{m.settings_timezone()}</Label>
           {timezoneLoading ? (
-            <div className="text-muted small">{m.settings_timezone_loading()}</div>
+            <div className="tw:text-muted-foreground tw:text-small">
+              {m.settings_timezone_loading()}
+            </div>
           ) : (
-            <div className="d-flex gap-2 flex-wrap">
-              <select
-                className="form-select flex-fill"
+            <div className="tw:flex tw:gap-2 tw:flex-wrap">
+              <Select
+                className="tw:flex-auto"
                 value={timezone}
                 onChange={(e) => {
                   setTimezone(e.target.value);
@@ -241,15 +251,15 @@ export function UserPreferencesSection() {
                     {label}
                   </option>
                 ))}
-              </select>
-              <button
-                type="button"
-                className="btn btn-outline-primary btn-sm"
+              </Select>
+              <Button
+                variant="outline-primary"
+                size="sm"
                 disabled={timezoneSaving || !timezone}
                 onClick={() => void onSaveTimezone()}
               >
                 {timezoneSaving ? m.settings_saving() : m.settings_save()}
-              </button>
+              </Button>
             </div>
           )}
           <FeedbackBanner
@@ -262,104 +272,91 @@ export function UserPreferencesSection() {
             tone="success"
             onDismiss={() => setTimezoneSuccess(null)}
           />
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
-      <div className="card mb-3">
-        <div className="card-header fw-semibold py-2">{m.settings_notifications_header()}</div>
-        <div className="card-body d-grid gap-2">
-          <div className="form-check form-switch">
-            <input
-              type="checkbox"
-              className="form-check-input"
+      <Card className="tw:mb-4">
+        <CardHeader className="tw:font-semibold tw:py-2">
+          {m.settings_notifications_header()}
+        </CardHeader>
+        <CardContent className="tw:grid tw:gap-2">
+          <div className="tw:check-row tw:mb-0.5">
+            <Switch
               id="pushOverdueChores"
               checked={pushOverdueChores}
               onChange={(e) =>
                 void handlePushToggle("push_overdue_chores_enabled", e.target.checked)
               }
             />
-            <label className="form-check-label" htmlFor="pushOverdueChores">
-              {m.settings_overdue_chore_reminders()}
-            </label>
+            <label htmlFor="pushOverdueChores">{m.settings_overdue_chore_reminders()}</label>
           </div>
-          <div className="form-check form-switch">
-            <input
-              type="checkbox"
-              className="form-check-input"
+          <div className="tw:check-row tw:mb-0.5">
+            <Switch
               id="pushMedReminders"
               checked={pushMedicationReminders}
               onChange={(e) =>
                 void handlePushToggle("push_medication_reminders_enabled", e.target.checked)
               }
             />
-            <label className="form-check-label" htmlFor="pushMedReminders">
-              {m.settings_medication_reminders()}
-            </label>
+            <label htmlFor="pushMedReminders">{m.settings_medication_reminders()}</label>
           </div>
-          <div className="form-check form-switch">
-            <input
-              type="checkbox"
-              className="form-check-input"
+          <div className="tw:check-row tw:mb-0.5">
+            <Switch
               id="pushMissedMed"
               checked={pushMissedMedications}
               onChange={(e) =>
                 void handlePushToggle("push_missed_medications_enabled", e.target.checked)
               }
             />
-            <label className="form-check-label" htmlFor="pushMissedMed">
-              {m.settings_missed_medication_alerts()}
-            </label>
+            <label htmlFor="pushMissedMed">{m.settings_missed_medication_alerts()}</label>
           </div>
 
-          <label className="form-label small fw-semibold" htmlFor="medicationReminderMinutes">
+          <Label className="tw:text-small tw:font-semibold" htmlFor="medicationReminderMinutes">
             {m.settings_medication_reminder_minutes()}
-          </label>
-          <input
+          </Label>
+          <Input
             id="medicationReminderMinutes"
             type="number"
-            className="form-control"
             min={1}
             max={120}
             value={medicationReminderMinutes}
             onChange={(e) => setMedicationReminderMinutes(Number(e.target.value))}
           />
 
-          <label className="form-label small fw-semibold">{m.settings_quiet_hours()}</label>
-          <div className="d-flex gap-2">
-            <div className="flex-fill">
-              <label htmlFor="quietHoursStart" className="form-label small mb-1">
+          <Label className="tw:text-small tw:font-semibold">{m.settings_quiet_hours()}</Label>
+          <div className="tw:flex tw:gap-2">
+            <div className="tw:flex-auto">
+              <Label className="tw:text-small tw:mb-1" htmlFor="quietHoursStart">
                 {m.settings_quiet_hours_from()}
-              </label>
-              <input
+              </Label>
+              <Input
                 id="quietHoursStart"
                 type="time"
-                className="form-control"
                 value={quietHoursStart}
                 onChange={(e) => setQuietHoursStart(e.target.value)}
               />
             </div>
-            <div className="flex-fill">
-              <label htmlFor="quietHoursEnd" className="form-label small mb-1">
+            <div className="tw:flex-auto">
+              <Label className="tw:text-small tw:mb-1" htmlFor="quietHoursEnd">
                 {m.settings_quiet_hours_to()}
-              </label>
-              <input
+              </Label>
+              <Input
                 id="quietHoursEnd"
                 type="time"
-                className="form-control"
                 value={quietHoursEnd}
                 onChange={(e) => setQuietHoursEnd(e.target.value)}
               />
             </div>
           </div>
 
-          <button
-            type="button"
-            className="btn btn-outline-primary btn-sm"
+          <Button
+            variant="outline-primary"
+            size="sm"
             onClick={() => void onSaveNotificationPreferences()}
             disabled={notificationSaving}
           >
             {notificationSaving ? m.settings_saving() : m.settings_save_notification_prefs()}
-          </button>
+          </Button>
           <FeedbackBanner
             message={notificationError}
             tone="danger"
@@ -371,30 +368,32 @@ export function UserPreferencesSection() {
             onDismiss={() => setNotificationSuccess(null)}
           />
           {notificationPermission === "default" ? (
-            <button
-              type="button"
-              className="btn btn-sm btn-outline-primary"
+            <Button
+              variant="outline-primary"
+              size="sm"
               onClick={() => void requestPushPermission()}
             >
               {m.settings_enable_browser_notifications()}
-            </button>
+            </Button>
           ) : null}
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
-      <div className="card mb-3">
-        <div className="card-header fw-semibold py-2">
+      <Card className="tw:mb-4">
+        <CardHeader className="tw:font-semibold tw:py-2">
           {m.settings_calendar_subscription_header()}
-        </div>
-        <div className="card-body d-grid gap-2">
-          <p className="text-muted small mb-1">{m.settings_calendar_subscription_description()}</p>
-          <label className="form-label small fw-semibold mb-0" htmlFor="calendarFeedUrl">
+        </CardHeader>
+        <CardContent className="tw:grid tw:gap-2">
+          <p className="tw:text-muted-foreground tw:text-small tw:mb-1">
+            {m.settings_calendar_subscription_description()}
+          </p>
+          <Label className="tw:text-small tw:font-semibold tw:mb-0" htmlFor="calendarFeedUrl">
             {m.settings_calendar_feed_label()}
-          </label>
-          <div className="input-group input-group-sm">
-            <input
+          </Label>
+          <InputGroup>
+            <Input
+              size="sm"
               id="calendarFeedUrl"
-              className="form-control"
               readOnly
               value={calendarFeedQuery.data?.feed_url ?? ""}
               placeholder={
@@ -403,30 +402,32 @@ export function UserPreferencesSection() {
                   : m.settings_calendar_feed_unavailable()
               }
             />
-            <button
-              type="button"
-              className="btn btn-outline-primary"
+            <Button
+              variant="outline-primary"
+              size="sm"
               disabled={!calendarFeedQuery.data?.feed_url}
               onClick={() => void copyCalendarFeedUrl()}
             >
               {m.settings_calendar_feed_copy()}
-            </button>
-          </div>
-          <div className="d-flex gap-2 align-items-center flex-wrap">
-            <button
-              type="button"
-              className="btn btn-outline-danger btn-sm"
+            </Button>
+          </InputGroup>
+          <div className="tw:flex tw:gap-2 tw:items-center tw:flex-wrap">
+            <Button
+              variant="outline-danger"
+              size="sm"
               disabled={regenerateCalendarFeedMutation.isPending}
               onClick={() => void onRegenerateCalendarFeed()}
             >
               {regenerateCalendarFeedMutation.isPending
                 ? m.settings_calendar_regenerating()
                 : m.settings_calendar_regenerate()}
-            </button>
-            <small className="text-muted">{m.settings_calendar_rotate_warning()}</small>
+            </Button>
+            <small className="tw:text-muted-foreground">
+              {m.settings_calendar_rotate_warning()}
+            </small>
           </div>
           {calendarFeedQuery.error ? (
-            <div className="text-danger small">
+            <div className="tw:text-danger tw:text-small">
               {apiErrorMessage(calendarFeedQuery.error, m.settings_calendar_load_error())}
             </div>
           ) : null}
@@ -440,8 +441,8 @@ export function UserPreferencesSection() {
             tone="success"
             onDismiss={() => setCalendarFeedCopyStatus(null)}
           />
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </>
   );
 }

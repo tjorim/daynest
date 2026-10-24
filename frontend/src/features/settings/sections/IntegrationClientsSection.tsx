@@ -31,6 +31,22 @@ import {
   useRotateIntegrationClientMutation,
 } from "@/features/settings/useSettingsQueries";
 import { apiErrorMessage } from "@/lib/api/errorMessages";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Alert } from "@/components/ui/alert";
+import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/field";
+import { Select } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const HA_ENDPOINTS = [
   "GET /api/integrations/home-assistant/summary",
@@ -180,14 +196,14 @@ export function IntegrationClientsSection({ backendBaseUrl }: IntegrationClients
         integrationClientColumnHelper.accessor("name", {
           id: "name",
           header: m.settings_client_column_name(),
-          cell: (info) => <span className="fw-semibold">{info.getValue()}</span>,
+          cell: (info) => <span className="tw:font-semibold">{info.getValue()}</span>,
         }),
         integrationClientColumnHelper.accessor("rate_limit_per_minute", {
           id: "rateLimit",
           header: m.settings_rate_limit_label(),
           enableColumnFilter: false,
           cell: (info) => (
-            <small className="text-muted d-block">
+            <small className="tw:text-muted-foreground tw:block">
               {m.settings_client_rate_per_minute({ count: info.getValue() })}
             </small>
           ),
@@ -197,9 +213,9 @@ export function IntegrationClientsSection({ backendBaseUrl }: IntegrationClients
           header: m.status_active(),
           enableColumnFilter: false,
           cell: (info) => (
-            <span className={`badge ${info.getValue() ? "text-bg-success" : "text-bg-secondary"}`}>
+            <Badge variant={info.getValue() ? "success" : "secondary"}>
               {info.getValue() ? m.status_active() : m.status_inactive()}
-            </span>
+            </Badge>
           ),
         }),
         integrationClientColumnHelper.display({
@@ -210,25 +226,25 @@ export function IntegrationClientsSection({ backendBaseUrl }: IntegrationClients
           cell: (info) => {
             const client = info.row.original;
             return (
-              <div className="d-flex align-items-center gap-2 flex-wrap justify-content-end">
-                <button
-                  type="button"
-                  className="btn btn-outline-secondary btn-sm"
+              <div className="tw:flex tw:items-center tw:gap-2 tw:flex-wrap tw:justify-end">
+                <Button
+                  variant="outline-secondary"
+                  size="sm"
                   disabled={rotatingClient === client.id || revokingClient === client.id}
                   onClick={() => void onRotateClient(client.id)}
                 >
                   {rotatingClient === client.id
                     ? m.settings_rotating()
                     : m.settings_rotate_secret()}
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-outline-danger btn-sm"
+                </Button>
+                <Button
+                  variant="outline-danger"
+                  size="sm"
                   disabled={revokingClient === client.id || rotatingClient === client.id}
                   onClick={() => void onRevokeClient(client.id)}
                 >
                   {revokingClient === client.id ? m.settings_revoking() : m.settings_revoke()}
-                </button>
+                </Button>
               </div>
             );
           },
@@ -253,30 +269,29 @@ export function IntegrationClientsSection({ backendBaseUrl }: IntegrationClients
 
   return (
     <>
-      <div className="d-flex justify-content-end mb-2">
-        <button
-          type="button"
-          className="btn btn-outline-primary btn-sm"
+      <div className="tw:flex tw:justify-end tw:mb-2">
+        <Button
+          variant="outline-primary"
+          size="sm"
           disabled={loading}
           onClick={() => void loadClients()}
         >
           {m.settings_refresh()}
-        </button>
+        </Button>
       </div>
       <FeedbackBanner message={loading ? m.settings_loading() : null} tone="info" />
       {error ? (
-        <div className="alert alert-danger py-2 d-flex justify-content-between align-items-center gap-2 flex-wrap">
+        <Alert
+          variant="danger"
+          className="tw:py-2 tw:flex tw:justify-between tw:items-center tw:gap-2 tw:flex-wrap"
+        >
           <span>{error}</span>
           {canRetry ? (
-            <button
-              type="button"
-              className="btn btn-danger btn-sm"
-              onClick={() => void loadClients()}
-            >
+            <Button variant="danger" size="sm" onClick={() => void loadClients()}>
               {m.settings_retry()}
-            </button>
+            </Button>
           ) : null}
-        </div>
+        </Alert>
       ) : null}
       <FeedbackBanner
         message={successMessage}
@@ -284,11 +299,12 @@ export function IntegrationClientsSection({ backendBaseUrl }: IntegrationClients
         onDismiss={() => setSuccessMessage(null)}
       />
 
-      <div className="card mb-3">
-        <div className="card-header fw-semibold py-2">{m.settings_create_client_header()}</div>
-        <div className="card-body d-grid gap-3">
-          <input
-            className="form-control"
+      <Card className="tw:mb-4">
+        <CardHeader className="tw:font-semibold tw:py-2">
+          {m.settings_create_client_header()}
+        </CardHeader>
+        <CardContent className="tw:grid tw:gap-4">
+          <Input
             value={name}
             onChange={(event) => {
               setName(event.target.value);
@@ -298,12 +314,11 @@ export function IntegrationClientsSection({ backendBaseUrl }: IntegrationClients
             aria-label={m.settings_client_name_placeholder()}
           />
           <div>
-            <label className="form-label small fw-semibold mb-1" htmlFor="client-type">
+            <Label className="tw:text-small tw:font-semibold tw:mb-1" htmlFor="client-type">
               {m.settings_client_type_label()}
-            </label>
-            <select
+            </Label>
+            <Select
               id="client-type"
-              className="form-select"
               value={clientType}
               onChange={(event) => {
                 const value = event.target.value as "home_assistant" | "pebble";
@@ -313,16 +328,17 @@ export function IntegrationClientsSection({ backendBaseUrl }: IntegrationClients
             >
               <option value="home_assistant">Home Assistant</option>
               <option value="pebble">{m.settings_client_type_pebble()}</option>
-            </select>
-            <small className="text-muted d-block mt-1">{m.settings_client_type_hint()}</small>
+            </Select>
+            <small className="tw:text-muted-foreground tw:block tw:mt-1">
+              {m.settings_client_type_hint()}
+            </small>
           </div>
           <div>
-            <label className="form-label small fw-semibold mb-1" htmlFor="client-rate-limit">
+            <Label className="tw:text-small tw:font-semibold tw:mb-1" htmlFor="client-rate-limit">
               {m.settings_rate_limit_label()}
-            </label>
-            <input
+            </Label>
+            <Input
               id="client-rate-limit"
-              className="form-control"
               type="number"
               min={10}
               max={600}
@@ -332,49 +348,50 @@ export function IntegrationClientsSection({ backendBaseUrl }: IntegrationClients
                 setSubmitError(null);
               }}
             />
-            <small className="text-muted d-block mt-1">{m.settings_rate_limit_hint()}</small>
+            <small className="tw:text-muted-foreground tw:block tw:mt-1">
+              {m.settings_rate_limit_hint()}
+            </small>
           </div>
-          <button
-            type="button"
-            className="btn btn-primary"
-            disabled={isSubmitting}
-            onClick={() => void onCreateClient()}
-          >
+          <Button disabled={isSubmitting} onClick={() => void onCreateClient()}>
             {isSubmitting ? m.settings_creating() : m.settings_create_client()}
-          </button>
-        </div>
+          </Button>
+        </CardContent>
         {submitError ? (
-          <div className="card-footer">
+          <CardFooter>
             <FeedbackBanner
               message={submitError}
               tone="danger"
               onDismiss={() => setSubmitError(null)}
             />
-          </div>
+          </CardFooter>
         ) : null}
-      </div>
+      </Card>
 
-      <div className="card mb-3">
-        <div className="card-header fw-semibold py-2">{m.settings_ha_header()}</div>
-        <div className="card-body">
-          <p className="text-muted small mb-2">{m.settings_ha_description()}</p>
-          <dl className="row small mb-0">
-            <dt className="col-sm-4">{m.settings_ha_base_url()}</dt>
-            <dd className="col-sm-8">
+      <Card className="tw:mb-4">
+        <CardHeader className="tw:font-semibold tw:py-2">{m.settings_ha_header()}</CardHeader>
+        <CardContent>
+          <p className="tw:text-muted-foreground tw:text-small tw:mb-2">
+            {m.settings_ha_description()}
+          </p>
+          <dl className="tw:grid tw:grid-cols-12 tw:gap-x-6 tw:text-small tw:mb-0">
+            <dt className="tw:col-span-12 tw:sm:col-span-4">{m.settings_ha_base_url()}</dt>
+            <dd className="tw:col-span-12 tw:sm:col-span-8">
               <code>{backendBaseUrl}</code>
             </dd>
-            <dt className="col-sm-4">{m.settings_ha_oauth_callback()}</dt>
-            <dd className="col-sm-8">
+            <dt className="tw:col-span-12 tw:sm:col-span-4">{m.settings_ha_oauth_callback()}</dt>
+            <dd className="tw:col-span-12 tw:sm:col-span-8">
               <code>{HOME_ASSISTANT_REDIRECT_URI}</code>
             </dd>
-            <dt className="col-sm-4">{m.settings_ha_contract()}</dt>
-            <dd className="col-sm-8">
+            <dt className="tw:col-span-12 tw:sm:col-span-4">{m.settings_ha_contract()}</dt>
+            <dd className="tw:col-span-12 tw:sm:col-span-8">
               <code>home-assistant; version=ha.v1</code>
             </dd>
           </dl>
-          <details className="mt-3">
-            <summary className="small fw-semibold">{m.settings_ha_endpoints_summary()}</summary>
-            <ul className="settings-endpoint-list mt-2 mb-0">
+          <details className="tw:mt-4">
+            <summary className="tw:text-small tw:font-semibold">
+              {m.settings_ha_endpoints_summary()}
+            </summary>
+            <ul className="settings-endpoint-list tw:mt-2 tw:mb-0">
               {HA_ENDPOINTS.map((endpoint) => (
                 <li key={endpoint}>
                   <code>{endpoint}</code>
@@ -382,8 +399,8 @@ export function IntegrationClientsSection({ backendBaseUrl }: IntegrationClients
               ))}
             </ul>
           </details>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {createdClient
         ? (() => {
@@ -391,168 +408,170 @@ export function IntegrationClientsSection({ backendBaseUrl }: IntegrationClients
               scope.startsWith("pebble:"),
             );
             return (
-              <div className="card mb-3">
-                <div className="card-header fw-semibold py-2">
+              <Card className="tw:mb-4">
+                <CardHeader className="tw:font-semibold tw:py-2">
                   {createdClient.name} -{" "}
                   {isPebbleClient
                     ? m.settings_client_credential_pebble()
                     : m.settings_client_credential_legacy()}
-                </div>
-                <div className="card-body">
-                  <div className="alert alert-warning py-2">
+                </CardHeader>
+                <CardContent>
+                  <Alert variant="warning" className="tw:py-2">
                     {isPebbleClient
                       ? m.settings_client_pebble_note({ readme: "pebble/README.md" })
                       : m.settings_client_ha_note()}
-                  </div>
-                  <dl className="row small mb-0">
-                    <dt className="col-sm-4">{m.settings_client_id_label()}</dt>
-                    <dd className="col-sm-8">
+                  </Alert>
+                  <dl className="tw:grid tw:grid-cols-12 tw:gap-x-6 tw:text-small tw:mb-0">
+                    <dt className="tw:col-span-12 tw:sm:col-span-4">
+                      {m.settings_client_id_label()}
+                    </dt>
+                    <dd className="tw:col-span-12 tw:sm:col-span-8">
                       <code>{createdClient.client_id}</code>
                     </dd>
-                    <dt className="col-sm-4">{m.settings_client_secret_label()}</dt>
-                    <dd className="col-sm-8">
+                    <dt className="tw:col-span-12 tw:sm:col-span-4">
+                      {m.settings_client_secret_label()}
+                    </dt>
+                    <dd className="tw:col-span-12 tw:sm:col-span-8">
                       <code className="settings-api-key">{createdClient.client_secret}</code>
                     </dd>
-                    <dt className="col-sm-4">{m.settings_client_token_url_label()}</dt>
-                    <dd className="col-sm-8">
+                    <dt className="tw:col-span-12 tw:sm:col-span-4">
+                      {m.settings_client_token_url_label()}
+                    </dt>
+                    <dd className="tw:col-span-12 tw:sm:col-span-8">
                       <code>{createdClient.token_url}</code>
                     </dd>
-                    <dt className="col-sm-4">
+                    <dt className="tw:col-span-12 tw:sm:col-span-4">
                       {isPebbleClient
                         ? m.settings_client_key_header_pebble()
                         : m.settings_client_key_header_fallback()}
                     </dt>
-                    <dd className="col-sm-8">
+                    <dd className="tw:col-span-12 tw:sm:col-span-8">
                       <code>X-Integration-Key</code>
                     </dd>
                   </dl>
-                  <div className="d-flex gap-2 mt-3 flex-wrap">
-                    <button
-                      type="button"
-                      className="btn btn-outline-primary btn-sm"
-                      onClick={() => void copyApiKey()}
-                    >
+                  <div className="tw:flex tw:gap-2 tw:mt-4 tw:flex-wrap">
+                    <Button variant="outline-primary" size="sm" onClick={() => void copyApiKey()}>
                       {m.settings_client_copy_secret()}
-                    </button>
+                    </Button>
                     {copyStatus ? (
-                      <small className="text-muted align-self-center">{copyStatus}</small>
+                      <small className="tw:text-muted-foreground tw:self-center">
+                        {copyStatus}
+                      </small>
                     ) : null}
                   </div>
-                </div>
-              </div>
+                </CardContent>
+              </Card>
             );
           })()
         : null}
 
-      <div className="card">
-        <div className="card-header fw-semibold py-2">
+      <Card>
+        <CardHeader className="tw:font-semibold tw:py-2">
           {m.settings_integration_clients_header()}
-        </div>
-        <div className="card-body border-bottom d-grid gap-2">
-          <label className="form-label small fw-semibold mb-0" htmlFor="integration-client-filter">
+        </CardHeader>
+        <CardContent className="tw:border-b tw:border-border tw:grid tw:gap-2">
+          <Label
+            className="tw:text-small tw:font-semibold tw:mb-0"
+            htmlFor="integration-client-filter"
+          >
             {m.settings_search_clients()}
-          </label>
-          <input
+          </Label>
+          <Input
+            size="sm"
             id="integration-client-filter"
-            className="form-control form-control-sm"
             value={(clientsTable.getColumn("name")?.getFilterValue() as string | undefined) ?? ""}
             onChange={(event) => clientsTable.getColumn("name")?.setFilterValue(event.target.value)}
             placeholder={m.settings_filter_by_client_name()}
           />
-          <div className="d-flex gap-3 flex-wrap small">
-            <label className="form-check m-0">
-              <input
-                className="form-check-input"
-                type="checkbox"
+          <div className="tw:flex tw:gap-4 tw:flex-wrap tw:text-small">
+            <label className="tw:check-row tw:m-0">
+              <Checkbox
                 checked={clientsTable.getColumn("rateLimit")?.getIsVisible() ?? true}
                 onChange={(event) =>
                   clientsTable.getColumn("rateLimit")?.toggleVisibility(event.target.checked)
                 }
               />
-              <span className="form-check-label">{m.settings_rate_limit_label()}</span>
+              <span>{m.settings_rate_limit_label()}</span>
             </label>
-            <label className="form-check m-0">
-              <input
-                className="form-check-input"
-                type="checkbox"
+            <label className="tw:check-row tw:m-0">
+              <Checkbox
                 checked={clientsTable.getColumn("status")?.getIsVisible() ?? true}
                 onChange={(event) =>
                   clientsTable.getColumn("status")?.toggleVisibility(event.target.checked)
                 }
               />
-              <span className="form-check-label">{m.status_active()}</span>
+              <span>{m.status_active()}</span>
             </label>
           </div>
-        </div>
-        <div className="table-responsive">
-          <table className="table table-sm align-middle mb-0">
-            <thead>
-              {clientsTable.getHeaderGroups().map((headerGroup) => (
-                <tr key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => (
-                    <th key={header.id} scope="col">
-                      {header.isPlaceholder ? null : header.column.getCanSort() ? (
-                        <button
-                          type="button"
-                          className="btn btn-link btn-sm p-0 text-decoration-none"
-                          onClick={header.column.getToggleSortingHandler()}
-                        >
-                          {flexRender(header.column.columnDef.header, header.getContext())}
-                          {({ asc: " ↑", desc: " ↓" } as Record<string, string>)[
-                            header.column.getIsSorted() as string
-                          ] ?? null}
-                        </button>
-                      ) : (
-                        flexRender(header.column.columnDef.header, header.getContext())
-                      )}
-                    </th>
+        </CardContent>
+        <Table size="sm" className="tw:mb-0 tw:align-middle">
+          <TableHeader>
+            {clientsTable.getHeaderGroups().map((headerGroup) => (
+              <TableRow key={headerGroup.id}>
+                {headerGroup.headers.map((header) => (
+                  <TableHead key={header.id} scope="col">
+                    {header.isPlaceholder ? null : header.column.getCanSort() ? (
+                      <Button
+                        variant="link"
+                        size="sm"
+                        className="tw:p-0 tw:no-underline"
+                        onClick={header.column.getToggleSortingHandler()}
+                      >
+                        {flexRender(header.column.columnDef.header, header.getContext())}
+                        {({ asc: " ↑", desc: " ↓" } as Record<string, string>)[
+                          header.column.getIsSorted() as string
+                        ] ?? null}
+                      </Button>
+                    ) : (
+                      flexRender(header.column.columnDef.header, header.getContext())
+                    )}
+                  </TableHead>
+                ))}
+              </TableRow>
+            ))}
+          </TableHeader>
+          <TableBody>
+            {clientsTable.getRowModel().rows.length === 0 ? (
+              <TableRow>
+                <TableCell
+                  className="tw:py-2 tw:text-muted-foreground"
+                  colSpan={clientsTable.getVisibleLeafColumns().length}
+                >
+                  {m.settings_no_clients()}
+                </TableCell>
+              </TableRow>
+            ) : (
+              clientsTable.getRowModel().rows.map((row) => (
+                <TableRow key={row.id}>
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell key={cell.id}>
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </TableCell>
                   ))}
-                </tr>
-              ))}
-            </thead>
-            <tbody>
-              {clientsTable.getRowModel().rows.length === 0 ? (
-                <tr>
-                  <td
-                    className="py-2 text-muted"
-                    colSpan={clientsTable.getVisibleLeafColumns().length}
-                  >
-                    {m.settings_no_clients()}
-                  </td>
-                </tr>
-              ) : (
-                clientsTable.getRowModel().rows.map((row) => (
-                  <tr key={row.id}>
-                    {row.getVisibleCells().map((cell) => (
-                      <td key={cell.id}>
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </td>
-                    ))}
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
         {revokeClientError ? (
-          <div className="card-footer">
+          <CardFooter>
             <FeedbackBanner
               message={revokeClientError}
               tone="danger"
               onDismiss={() => setRevokeClientError(null)}
             />
-          </div>
+          </CardFooter>
         ) : null}
         {rotateClientError ? (
-          <div className="card-footer">
+          <CardFooter>
             <FeedbackBanner
               message={rotateClientError}
               tone="danger"
               onDismiss={() => setRotateClientError(null)}
             />
-          </div>
+          </CardFooter>
         ) : null}
-      </div>
+      </Card>
     </>
   );
 }
