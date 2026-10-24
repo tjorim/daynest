@@ -181,30 +181,27 @@ export function TodayPage() {
 
   return (
     <section>
-      <div className="tw:flex tw:flex-col tw:md:flex-row tw:justify-between tw:items-start tw:md:items-center tw:gap-2 tw:mb-2">
-        <h2 className="tw:text-h4 tw:font-medium tw:mb-0">{m.nav_today()}</h2>
-        <div className="tw:flex tw:gap-2 tw:items-start tw:flex-wrap tw:w-full">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-2 mb-2">
+        <h2 className="text-h4 font-medium mb-0">{m.nav_today()}</h2>
+        <div className="flex gap-2 items-start flex-wrap w-full">
           <Button
             variant="outline-primary"
             size="sm"
-            className="tw:md:grow-0"
+            className="md:grow-0"
             disabled={isLoading || isRefreshing}
             onClick={() => void loadToday()}
           >
-            {isRefreshing ? <Spinner className="tw:me-1" role="status" /> : null}
+            {isRefreshing ? <Spinner className="me-1" role="status" /> : null}
             {m.action_refresh()}
           </Button>
         </div>
       </div>
-      <p className="tw:text-muted-foreground tw:mb-4">{m.today_subtitle()}</p>
+      <p className="text-muted-foreground mb-4">{m.today_subtitle()}</p>
 
       <FeedbackBanner message={isLoading ? m.today_loading() : null} tone="info" />
       <FeedbackBanner message={liveUpdatesError} tone="warning" />
       {!isLoading && error ? (
-        <Alert
-          variant="danger"
-          className="tw:py-2 tw:flex tw:justify-between tw:items-center tw:gap-2 tw:flex-wrap"
-        >
+        <Alert variant="danger" className="py-2 flex justify-between items-center gap-2 flex-wrap">
           <span>{error}</span>
           {canRetry ? (
             <Button variant="danger" size="sm" onClick={() => void loadToday()}>
@@ -216,7 +213,7 @@ export function TodayPage() {
       {!isLoading && !error && today && !hasAnyItems ? (
         <Alert
           variant="secondary"
-          className="tw:py-2 tw:flex tw:justify-between tw:items-center tw:gap-2 tw:flex-wrap"
+          className="py-2 flex justify-between items-center gap-2 flex-wrap"
         >
           <span>{m.today_nothing_scheduled()}</span>
           <Link to="/templates" className={buttonVariants({ size: "sm" })}>
@@ -227,7 +224,7 @@ export function TodayPage() {
 
       {!isLoading && !error && today ? (
         <>
-          <div className="tw:grid tw:grid-cols-12 tw:gap-4 tw:mb-4 tw:lg:grid-cols-5">
+          <div className="grid grid-cols-12 gap-4 mb-4 lg:grid-cols-5">
             <SummaryCard
               label={m.today_summary_overdue()}
               value={today.overdue.length}

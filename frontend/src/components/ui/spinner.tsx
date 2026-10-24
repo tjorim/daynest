@@ -7,7 +7,7 @@ function Spinner({ className, ...props }: ComponentProps<"span">) {
     <span
       aria-hidden="true"
       className={cn(
-        "tw:inline-block tw:size-4 tw:animate-spinner tw:rounded-full tw:border-3 tw:border-current tw:border-r-transparent tw:align-spinner",
+        "inline-block size-4 animate-spinner rounded-full border-3 border-current border-r-transparent align-spinner",
         className,
       )}
       {...props}

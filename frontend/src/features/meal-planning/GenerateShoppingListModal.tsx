@@ -61,18 +61,18 @@ export function GenerateShoppingListModal({
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle className="tw:text-h5 tw:font-medium tw:mb-0">
+          <DialogTitle className="text-h5 font-medium mb-0">
             {m.meal_plan_generate_shopping_list()}
           </DialogTitle>
           <DialogCloseButton label={m.action_cancel()} />
         </DialogHeader>
         <DialogBody>
           {error ? (
-            <Alert variant="danger" className="tw:py-2">
+            <Alert variant="danger" className="py-2">
               {error}
             </Alert>
           ) : null}
-          <p className="tw:text-muted-foreground">{m.meal_plan_generate_preview()}</p>
+          <p className="text-muted-foreground">{m.meal_plan_generate_preview()}</p>
           {ingredients.length ? (
             <ListGroup render={<ul />} className="meal-plan-ingredient-preview">
               {ingredients.map((ingredient) => (
@@ -82,7 +82,7 @@ export function GenerateShoppingListModal({
               ))}
             </ListGroup>
           ) : (
-            <Alert variant="secondary" className="tw:py-2">
+            <Alert variant="secondary" className="py-2">
               {m.meal_plan_no_ingredients()}
             </Alert>
           )}

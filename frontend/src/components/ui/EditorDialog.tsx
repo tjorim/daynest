@@ -35,28 +35,28 @@ export function EditorDialog({
       }}
     >
       <Dialog.Portal>
-        <Dialog.Backdrop className="editor-dialog-backdrop" />
-        <Dialog.Popup className="editor-dialog-popup" finalFocus={returnFocus}>
-          <div className="tw:flex tw:justify-between tw:items-center tw:gap-4 tw:mb-4">
-            <Dialog.Title className="tw:text-h5 tw:font-medium tw:mb-0">{title}</Dialog.Title>
+        <Dialog.Backdrop data-slot="editor-dialog-backdrop" />
+        <Dialog.Popup data-slot="editor-dialog-popup" finalFocus={returnFocus}>
+          <div className="flex justify-between items-center gap-4 mb-4">
+            <Dialog.Title className="text-h5 font-medium mb-0">{title}</Dialog.Title>
             <Dialog.Close className={closeButtonClass} aria-label={m.ui_close()} disabled={busy} />
           </div>
           {children}
           <Dialog.Close
-            render={<Button variant="outline-secondary" className="tw:mt-4" />}
+            render={<Button variant="outline-secondary" className="mt-4" />}
             disabled={busy}
           >
             {m.action_cancel()}
           </Dialog.Close>
           <Dialog.Root open={confirmDiscard} onOpenChange={setConfirmDiscard}>
             <Dialog.Portal>
-              <Dialog.Backdrop className="editor-dialog-backdrop" />
-              <Dialog.Popup className="editor-dialog-popup">
-                <Dialog.Title className="tw:text-h5 tw:font-medium tw:mb-2">
+              <Dialog.Backdrop data-slot="editor-dialog-backdrop" />
+              <Dialog.Popup data-slot="editor-dialog-popup">
+                <Dialog.Title className="text-h5 font-medium mb-2">
                   {m.editor_discard_title()}
                 </Dialog.Title>
                 <Dialog.Description>{m.editor_discard_description()}</Dialog.Description>
-                <div className="tw:flex tw:flex-wrap tw:gap-2">
+                <div className="flex flex-wrap gap-2">
                   <Dialog.Close render={<Button />}>{m.editor_continue_editing()}</Dialog.Close>
                   <Button variant="outline-danger" onClick={onClose}>
                     {m.editor_discard_changes()}

@@ -104,8 +104,8 @@ export function TemplateEditor({
         aria-busy={busy}
       >
         <FeedbackBanner message={error} tone="danger" />
-        <fieldset disabled={busy} className="tw:grid tw:gap-2">
-          <Label className="tw:mb-0" htmlFor={`${id}-name`}>
+        <fieldset disabled={busy} className="grid gap-2">
+          <Label className="mb-0" htmlFor={`${id}-name`}>
             {routine
               ? m.templates_routine_name_placeholder()
               : m.templates_chore_name_placeholder()}
@@ -115,7 +115,7 @@ export function TemplateEditor({
             value={draft.name}
             onChange={(event) => field("name", event.target.value)}
           />
-          <Label className="tw:mb-0" htmlFor={`${id}-description`}>
+          <Label className="mb-0" htmlFor={`${id}-description`}>
             {m.templates_description_placeholder()}
           </Label>
           <Textarea
@@ -124,8 +124,8 @@ export function TemplateEditor({
             value={draft.description}
             onChange={(event) => field("description", event.target.value)}
           />
-          <div className="tw:grid tw:grid-cols-12 tw:gap-2">
-            <div className="tw:col-span-12 tw:sm:col-span-6">
+          <div className="grid grid-cols-12 gap-2">
+            <div className="col-span-12 sm:col-span-6">
               <Label htmlFor={`${id}-date`}>{m.templates_start_date_label()}</Label>
               <Input
                 id={`${id}-date`}
@@ -135,7 +135,7 @@ export function TemplateEditor({
                 onChange={(event) => field("startDate", event.target.value)}
               />
             </div>
-            <div className="tw:col-span-12 tw:sm:col-span-6">
+            <div className="col-span-12 sm:col-span-6">
               <Label htmlFor={`${id}-days`}>{m.templates_every_n_days_label()}</Label>
               <Input
                 id={`${id}-days`}
@@ -159,7 +159,7 @@ export function TemplateEditor({
               />
             </div>
           ) : null}
-          <label className="tw:flex tw:items-start tw:gap-2 tw:min-h-6 tw:mb-0.5">
+          <label className="flex items-start gap-2 min-h-6 mb-0.5">
             <Checkbox
               checked={draft.active}
               onChange={(event) => field("active", event.target.checked)}

@@ -69,7 +69,7 @@ function ProtectedRouteBoundary() {
   const location = useLocation();
   if (isLoading) {
     return (
-      <Alert variant="info" className="tw:py-2">
+      <Alert variant="info" className="py-2">
         {m.router_loading_session()}
       </Alert>
     );
@@ -90,7 +90,7 @@ function ProtectedRouteBoundary() {
 
 function AuthCallback() {
   return (
-    <Alert variant="info" className="tw:py-2">
+    <Alert variant="info" className="py-2">
       {m.router_completing_sign_in()}
     </Alert>
   );
@@ -183,7 +183,7 @@ const calendarRoute = createRoute({
   // still owns its own loading/error UI via plain useQuery, unaffected by
   // this; the two loading states just cover different windows.
   pendingComponent: () => (
-    <Alert variant="info" className="tw:py-2">
+    <Alert variant="info" className="py-2">
       {m.calendar_loading()}
     </Alert>
   ),
@@ -233,7 +233,7 @@ const shoppingListRoute = createRoute({
   // See the equivalent comment on calendarRoute above — covers the loader's
   // in-flight window, not the component's own (unaffected) loading UI.
   pendingComponent: () => (
-    <Alert variant="info" className="tw:py-2">
+    <Alert variant="info" className="py-2">
       {m.shopping_loading()}
     </Alert>
   ),
@@ -310,7 +310,7 @@ export function createAppRouter() {
       },
       // Placeholder only — RouterProvider's `context` prop supplies the real,
       // shared QueryClient instance before any loader actually runs (same
-      // bootstrapping pattern as the `auth` defaults above).
+      // initialization pattern as the `auth` defaults above).
       queryClient: new QueryClient(),
     },
   });

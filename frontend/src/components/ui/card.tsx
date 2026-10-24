@@ -6,7 +6,7 @@ function Card({ className, ...props }: ComponentProps<"div">) {
   return (
     <div
       className={cn(
-        "tw:relative tw:flex tw:min-w-0 tw:flex-col tw:rounded-md tw:border tw:border-card-border tw:bg-background tw:bg-clip-border tw:wrap-break-word",
+        "relative flex min-w-0 flex-col rounded-md border border-card-border bg-background bg-clip-border wrap-break-word",
         className,
       )}
       {...props}
@@ -18,7 +18,7 @@ function CardHeader({ className, ...props }: ComponentProps<"div">) {
   return (
     <div
       className={cn(
-        "tw:mb-0 tw:rounded-t-inner tw:border-b tw:border-card-border tw:bg-card-header tw:px-4 tw:py-2",
+        "mb-0 rounded-t-inner border-b border-card-border bg-card-header px-4 py-2",
         className,
       )}
       {...props}
@@ -27,14 +27,14 @@ function CardHeader({ className, ...props }: ComponentProps<"div">) {
 }
 
 function CardContent({ className, ...props }: ComponentProps<"div">) {
-  return <div className={cn("tw:flex-auto tw:p-4", className)} {...props} />;
+  return <div className={cn("flex-auto p-4", className)} {...props} />;
 }
 
 function CardFooter({ className, ...props }: ComponentProps<"div">) {
   return (
     <div
       className={cn(
-        "tw:rounded-b-inner tw:border-t tw:border-card-border tw:bg-card-header tw:px-4 tw:py-2",
+        "rounded-b-inner border-t border-card-border bg-card-header px-4 py-2",
         className,
       )}
       {...props}

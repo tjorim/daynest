@@ -38,7 +38,7 @@ export function FeedbackBanner({
   return (
     <Alert
       variant={tone}
-      className="tw:flex tw:flex-wrap tw:items-center tw:justify-between tw:gap-2 tw:py-2"
+      className="flex flex-wrap items-center justify-between gap-2 py-2"
       role={tone === "danger" ? "alert" : "status"}
       aria-live={tone === "danger" ? "assertive" : "polite"}
     >

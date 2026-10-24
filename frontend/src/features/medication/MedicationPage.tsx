@@ -179,8 +179,8 @@ export function MedicationPage() {
 
   return (
     <section>
-      <div className="tw:flex tw:flex-col tw:md:flex-row tw:justify-between tw:items-start tw:md:items-center tw:gap-2 tw:mb-2">
-        <h2 className="tw:text-h4 tw:font-medium tw:mb-0">{m.medication_title()}</h2>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-2 mb-2">
+        <h2 className="text-h4 font-medium mb-0">{m.medication_title()}</h2>
         <Button
           variant="outline-primary"
           size="sm"
@@ -190,18 +190,15 @@ export function MedicationPage() {
           {m.action_refresh()}
         </Button>
       </div>
-      <p className="tw:text-muted-foreground tw:mb-4">{m.medication_subtitle()}</p>
+      <p className="text-muted-foreground mb-4">{m.medication_subtitle()}</p>
 
       {loading ? (
-        <Alert variant="info" className="tw:py-2">
+        <Alert variant="info" className="py-2">
           {m.medication_loading()}
         </Alert>
       ) : null}
       {error ? (
-        <Alert
-          variant="danger"
-          className="tw:py-2 tw:flex tw:justify-between tw:items-center tw:gap-2 tw:flex-wrap"
-        >
+        <Alert variant="danger" className="py-2 flex justify-between items-center gap-2 flex-wrap">
           <span>{error}</span>
           {canRetry ? (
             <Button variant="danger" size="sm" onClick={() => void loadMedication()}>
@@ -211,19 +208,19 @@ export function MedicationPage() {
         </Alert>
       ) : null}
       {successMessage ? (
-        <Alert variant="success" className="tw:py-2">
+        <Alert variant="success" className="py-2">
           {successMessage}
         </Alert>
       ) : null}
 
-      <div className="tw:grid tw:grid-cols-12 tw:gap-4">
-        <div className="tw:col-span-12 tw:lg:col-span-5">
-          <Card className="tw:mb-4">
-            <CardHeader className="tw:font-semibold tw:py-2">
+      <div className="grid grid-cols-12 gap-4">
+        <div className="col-span-12 lg:col-span-5">
+          <Card className="mb-4">
+            <CardHeader className="font-semibold py-2">
               {m.medication_create_plan_header()}
             </CardHeader>
             <form
-              className="tw:grid tw:flex-auto tw:gap-2 tw:p-4"
+              className="grid flex-auto gap-2 p-4"
               onSubmit={(event) => {
                 event.preventDefault();
                 event.stopPropagation();
@@ -261,9 +258,9 @@ export function MedicationPage() {
                   />
                 )}
               />
-              <div className="tw:grid tw:grid-cols-12 tw:gap-2">
-                <div className="tw:col-span-12 tw:sm:col-span-6">
-                  <Label className="tw:text-small tw:font-semibold tw:mb-1">
+              <div className="grid grid-cols-12 gap-2">
+                <div className="col-span-12 sm:col-span-6">
+                  <Label className="text-small font-semibold mb-1">
                     {m.medication_start_date_label()}
                   </Label>
                   <createForm.Field
@@ -277,8 +274,8 @@ export function MedicationPage() {
                     )}
                   />
                 </div>
-                <div className="tw:col-span-12 tw:sm:col-span-6">
-                  <Label className="tw:text-small tw:font-semibold tw:mb-1">
+                <div className="col-span-12 sm:col-span-6">
+                  <Label className="text-small font-semibold mb-1">
                     {m.medication_schedule_time_label()}
                   </Label>
                   <createForm.Field
@@ -294,7 +291,7 @@ export function MedicationPage() {
                 </div>
               </div>
               <div>
-                <Label className="tw:text-small tw:font-semibold tw:mb-1">
+                <Label className="text-small font-semibold mb-1">
                   {m.medication_every_n_days_label()}
                 </Label>
                 <createForm.Field
@@ -318,40 +315,38 @@ export function MedicationPage() {
               </Button>
             </form>
             {submitError ? (
-              <CardFooter className="tw:text-danger tw:py-2 tw:text-small">
-                {submitError}
-              </CardFooter>
+              <CardFooter className="text-danger py-2 text-small">{submitError}</CardFooter>
             ) : null}
           </Card>
 
           <Card>
-            <CardHeader className="tw:font-semibold tw:py-2">
+            <CardHeader className="font-semibold py-2">
               {m.medication_active_plans_header()}
             </CardHeader>
             <ListGroup flush render={<ul />}>
               {plans.length === 0 ? (
-                <ListGroupItem render={<li />} className="tw:py-2 tw:text-muted-foreground">
+                <ListGroupItem render={<li />} className="py-2 text-muted-foreground">
                   {m.medication_no_plans()}
                 </ListGroupItem>
               ) : (
                 plans.map((plan) => (
-                  <ListGroupItem render={<li />} className="tw:py-2" key={plan.id}>
-                    <div className="tw:flex tw:justify-between tw:items-start tw:gap-4 tw:flex-col tw:sm:flex-row">
+                  <ListGroupItem render={<li />} className="py-2" key={plan.id}>
+                    <div className="flex justify-between items-start gap-4 flex-col sm:flex-row">
                       <div>
-                        <div className="tw:font-semibold">{plan.name}</div>
-                        <small className="tw:text-muted-foreground tw:block">
+                        <div className="font-semibold">{plan.name}</div>
+                        <small className="text-muted-foreground block">
                           {m.medication_starts({ date: formatDate(plan.start_date) })} •{" "}
                           {plan.schedule_time.slice(0, 5)} •{" "}
                           {plan.every_n_days === 1
                             ? m.medication_every_day({ count: plan.every_n_days })
                             : m.medication_every_days({ count: plan.every_n_days })}
                         </small>
-                        <small className="tw:block tw:mt-1">{plan.instructions}</small>
+                        <small className="block mt-1">{plan.instructions}</small>
                       </div>
-                      <div className="tw:flex tw:gap-2 tw:items-center tw:flex-wrap">
+                      <div className="flex gap-2 items-center flex-wrap">
                         <Badge
                           variant={plan.is_active ? "success" : "secondary"}
-                          className="tw:self-start"
+                          className="self-start"
                         >
                           {plan.is_active ? m.status_active() : m.status_inactive()}
                         </Badge>
@@ -379,30 +374,30 @@ export function MedicationPage() {
           </Card>
         </div>
 
-        <div className="tw:col-span-12 tw:lg:col-span-7">
+        <div className="col-span-12 lg:col-span-7">
           <Card>
-            <CardHeader className="tw:font-semibold tw:py-2">
+            <CardHeader className="font-semibold py-2">
               {m.medication_dose_history_header()}
             </CardHeader>
             <ListGroup flush render={<ul />}>
               {history.length === 0 ? (
-                <ListGroupItem render={<li />} className="tw:py-2 tw:text-muted-foreground">
+                <ListGroupItem render={<li />} className="py-2 text-muted-foreground">
                   {m.medication_no_history()}
                 </ListGroupItem>
               ) : (
                 history.map((item) => (
                   <ListGroupItem
                     render={<li />}
-                    className="tw:py-2"
+                    className="py-2"
                     key={item.medication_dose_instance_id}
                   >
-                    <div className="tw:flex tw:justify-between tw:items-start tw:gap-4">
+                    <div className="flex justify-between items-start gap-4">
                       <div>
-                        <div className="tw:font-semibold">{item.name}</div>
-                        <small className="tw:text-muted-foreground tw:block">
+                        <div className="font-semibold">{item.name}</div>
+                        <small className="text-muted-foreground block">
                           {formatDateTime(item.scheduled_at)} • {item.status}
                         </small>
-                        <small className="tw:block tw:mt-1">{item.instructions}</small>
+                        <small className="block mt-1">{item.instructions}</small>
                       </div>
                       <Badge
                         variant={
@@ -478,14 +473,14 @@ function EditMedicationPlanDialog({
           }}
         >
           <DialogHeader>
-            <DialogTitle className="tw:text-h5 tw:font-medium tw:mb-0">
+            <DialogTitle className="text-h5 font-medium mb-0">
               {m.medication_edit_title()}
             </DialogTitle>
             <DialogCloseButton />
           </DialogHeader>
-          <DialogBody className="tw:grid tw:gap-2">
+          <DialogBody className="grid gap-2">
             {error ? (
-              <Alert variant="danger" className="tw:py-2">
+              <Alert variant="danger" className="py-2">
                 {error}
               </Alert>
             ) : null}
@@ -510,10 +505,10 @@ function EditMedicationPlanDialog({
                 />
               )}
             />
-            <div className="tw:grid tw:grid-cols-12 tw:gap-2">
-              <div className="tw:col-span-12 tw:sm:col-span-6">
+            <div className="grid grid-cols-12 gap-2">
+              <div className="col-span-12 sm:col-span-6">
                 <Label
-                  className="tw:text-small tw:font-semibold tw:mb-1"
+                  className="text-small font-semibold mb-1"
                   htmlFor="edit-medication-start-date"
                 >
                   {m.medication_start_date_label()}
@@ -530,9 +525,9 @@ function EditMedicationPlanDialog({
                   )}
                 />
               </div>
-              <div className="tw:col-span-12 tw:sm:col-span-6">
+              <div className="col-span-12 sm:col-span-6">
                 <Label
-                  className="tw:text-small tw:font-semibold tw:mb-1"
+                  className="text-small font-semibold mb-1"
                   htmlFor="edit-medication-schedule-time"
                 >
                   {m.medication_schedule_time_label()}
@@ -552,7 +547,7 @@ function EditMedicationPlanDialog({
             </div>
             <div>
               <Label
-                className="tw:text-small tw:font-semibold tw:mb-1"
+                className="text-small font-semibold mb-1"
                 htmlFor="edit-medication-every-n-days"
               >
                 {m.medication_every_n_days_label()}
@@ -570,7 +565,7 @@ function EditMedicationPlanDialog({
                 )}
               />
             </div>
-            <label className="tw:flex tw:items-start tw:gap-2 tw:min-h-6 tw:mb-0.5">
+            <label className="flex items-start gap-2 min-h-6 mb-0.5">
               <editForm.Field
                 name="isActive"
                 children={(field) => (

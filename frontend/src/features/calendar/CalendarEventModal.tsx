@@ -49,24 +49,24 @@ export function CalendarEventModal({
       <DialogContent>
         <DialogHeader>
           <div>
-            <Badge variant={BADGE_VARIANT[item.item_type] ?? "primary"} className="tw:mb-2">
+            <Badge variant={BADGE_VARIANT[item.item_type] ?? "primary"} className="mb-2">
               {item.item_type}
             </Badge>
-            <DialogTitle className="tw:text-h5 tw:font-medium tw:mb-0">{item.title}</DialogTitle>
+            <DialogTitle className="text-h5 font-medium mb-0">{item.title}</DialogTitle>
           </div>
           <DialogCloseButton />
         </DialogHeader>
-        <DialogBody className="tw:grid tw:gap-2">
+        <DialogBody className="grid gap-2">
           <div>
             <strong>{m.calendar_status_label()}:</strong>{" "}
             {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
           </div>
           {item.detail ? <div>{item.detail}</div> : null}
           {item.scheduled_date ? (
-            <div className="tw:text-muted-foreground tw:text-small">{item.scheduled_date}</div>
+            <div className="text-muted-foreground text-small">{item.scheduled_date}</div>
           ) : null}
         </DialogBody>
-        <DialogFooter className="tw:justify-start">
+        <DialogFooter className="justify-start">
           {item.item_type === "routine" ? (
             <>
               {item.status === "pending" ? (
@@ -122,7 +122,7 @@ export function CalendarEventModal({
               {m.action_edit()}
             </Button>
           ) : null}
-          <DialogClose render={<Button variant="outline-secondary" className="tw:ms-auto" />}>
+          <DialogClose render={<Button variant="outline-secondary" className="ms-auto" />}>
             {m.action_cancel()}
           </DialogClose>
         </DialogFooter>

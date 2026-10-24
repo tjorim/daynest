@@ -42,16 +42,16 @@ export function AddItemForm({ isSubmitting, onAddItem }: AddItemFormProps) {
   };
 
   return (
-    <Card className="tw:mb-4">
+    <Card className="mb-4">
       <CardContent>
-        <h3 className="tw:text-h6 tw:font-medium tw:mb-4">{m.shopping_add_item()}</h3>
+        <h3 className="text-h6 font-medium mb-4">{m.shopping_add_item()}</h3>
         {error ? (
-          <Alert variant="danger" className="tw:py-2">
+          <Alert variant="danger" className="py-2">
             {error}
           </Alert>
         ) : null}
-        <div className="tw:grid tw:grid-cols-12 tw:gap-2 tw:items-end">
-          <div className="tw:col-span-12 tw:md:col-span-4">
+        <div className="grid grid-cols-12 gap-2 items-end">
+          <div className="col-span-12 md:col-span-4">
             <Label htmlFor="shopping-item-title">{m.shopping_item_name()}</Label>
             <Input
               id="shopping-item-title"
@@ -60,7 +60,7 @@ export function AddItemForm({ isSubmitting, onAddItem }: AddItemFormProps) {
               onChange={(event) => setTitle(event.target.value)}
             />
           </div>
-          <div className="tw:col-span-12 tw:md:col-span-3">
+          <div className="col-span-12 md:col-span-3">
             <Label htmlFor="shopping-item-tag">{m.shopping_category_tag()}</Label>
             <Input
               id="shopping-item-tag"
@@ -69,7 +69,7 @@ export function AddItemForm({ isSubmitting, onAddItem }: AddItemFormProps) {
               onChange={(event) => setTag(event.target.value)}
             />
           </div>
-          <div className="tw:col-span-12 tw:md:col-span-3">
+          <div className="col-span-12 md:col-span-3">
             <Label htmlFor="shopping-item-date">{m.shopping_planned_for()}</Label>
             <Input
               id="shopping-item-date"
@@ -78,12 +78,12 @@ export function AddItemForm({ isSubmitting, onAddItem }: AddItemFormProps) {
               onChange={(event) => setPlannedFor(event.target.value)}
             />
           </div>
-          <div className="tw:col-span-12 tw:md:col-span-2">
-            <Button className="tw:w-full" disabled={isSubmitting} onClick={() => void submit()}>
+          <div className="col-span-12 md:col-span-2">
+            <Button className="w-full" disabled={isSubmitting} onClick={() => void submit()}>
               {isSubmitting ? m.action_adding() : m.action_add()}
             </Button>
           </div>
-          <div className="tw:col-span-12">
+          <div className="col-span-12">
             <Label htmlFor="shopping-item-notes">{m.today_notes_optional()}</Label>
             <Textarea
               id="shopping-item-notes"

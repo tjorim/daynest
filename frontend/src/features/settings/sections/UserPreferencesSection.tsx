@@ -211,14 +211,12 @@ export function UserPreferencesSection() {
 
   return (
     <>
-      <Card className="tw:mb-4">
-        <CardHeader className="tw:font-semibold tw:py-2">
-          {m.settings_user_prefs_header()}
-        </CardHeader>
-        <CardContent className="tw:grid tw:gap-2">
-          <Label className="tw:text-small tw:font-semibold tw:mb-1">{m.settings_language()}</Label>
+      <Card className="mb-4">
+        <CardHeader className="font-semibold py-2">{m.settings_user_prefs_header()}</CardHeader>
+        <CardContent className="grid gap-2">
+          <Label className="text-small font-semibold mb-1">{m.settings_language()}</Label>
           <Select
-            className="tw:mb-2"
+            className="mb-2"
             value={language}
             onChange={(event) => setLanguage(event.target.value as "en" | "nl")}
             aria-label={m.settings_language()}
@@ -226,15 +224,13 @@ export function UserPreferencesSection() {
             <option value="en">{m.settings_language_english()}</option>
             <option value="nl">{m.settings_language_dutch()}</option>
           </Select>
-          <Label className="tw:text-small tw:font-semibold tw:mb-1">{m.settings_timezone()}</Label>
+          <Label className="text-small font-semibold mb-1">{m.settings_timezone()}</Label>
           {timezoneLoading ? (
-            <div className="tw:text-muted-foreground tw:text-small">
-              {m.settings_timezone_loading()}
-            </div>
+            <div className="text-muted-foreground text-small">{m.settings_timezone_loading()}</div>
           ) : (
-            <div className="tw:flex tw:gap-2 tw:flex-wrap">
+            <div className="flex gap-2 flex-wrap">
               <Select
-                className="tw:flex-auto"
+                className="flex-auto"
                 value={timezone}
                 onChange={(e) => {
                   setTimezone(e.target.value);
@@ -275,12 +271,10 @@ export function UserPreferencesSection() {
         </CardContent>
       </Card>
 
-      <Card className="tw:mb-4">
-        <CardHeader className="tw:font-semibold tw:py-2">
-          {m.settings_notifications_header()}
-        </CardHeader>
-        <CardContent className="tw:grid tw:gap-2">
-          <div className="tw:check-row tw:mb-0.5">
+      <Card className="mb-4">
+        <CardHeader className="font-semibold py-2">{m.settings_notifications_header()}</CardHeader>
+        <CardContent className="grid gap-2">
+          <div className="check-row mb-0.5">
             <Switch
               id="pushOverdueChores"
               checked={pushOverdueChores}
@@ -290,7 +284,7 @@ export function UserPreferencesSection() {
             />
             <label htmlFor="pushOverdueChores">{m.settings_overdue_chore_reminders()}</label>
           </div>
-          <div className="tw:check-row tw:mb-0.5">
+          <div className="check-row mb-0.5">
             <Switch
               id="pushMedReminders"
               checked={pushMedicationReminders}
@@ -300,7 +294,7 @@ export function UserPreferencesSection() {
             />
             <label htmlFor="pushMedReminders">{m.settings_medication_reminders()}</label>
           </div>
-          <div className="tw:check-row tw:mb-0.5">
+          <div className="check-row mb-0.5">
             <Switch
               id="pushMissedMed"
               checked={pushMissedMedications}
@@ -311,7 +305,7 @@ export function UserPreferencesSection() {
             <label htmlFor="pushMissedMed">{m.settings_missed_medication_alerts()}</label>
           </div>
 
-          <Label className="tw:text-small tw:font-semibold" htmlFor="medicationReminderMinutes">
+          <Label className="text-small font-semibold" htmlFor="medicationReminderMinutes">
             {m.settings_medication_reminder_minutes()}
           </Label>
           <Input
@@ -323,10 +317,10 @@ export function UserPreferencesSection() {
             onChange={(e) => setMedicationReminderMinutes(Number(e.target.value))}
           />
 
-          <Label className="tw:text-small tw:font-semibold">{m.settings_quiet_hours()}</Label>
-          <div className="tw:flex tw:gap-2">
-            <div className="tw:flex-auto">
-              <Label className="tw:text-small tw:mb-1" htmlFor="quietHoursStart">
+          <Label className="text-small font-semibold">{m.settings_quiet_hours()}</Label>
+          <div className="flex gap-2">
+            <div className="flex-auto">
+              <Label className="text-small mb-1" htmlFor="quietHoursStart">
                 {m.settings_quiet_hours_from()}
               </Label>
               <Input
@@ -336,8 +330,8 @@ export function UserPreferencesSection() {
                 onChange={(e) => setQuietHoursStart(e.target.value)}
               />
             </div>
-            <div className="tw:flex-auto">
-              <Label className="tw:text-small tw:mb-1" htmlFor="quietHoursEnd">
+            <div className="flex-auto">
+              <Label className="text-small mb-1" htmlFor="quietHoursEnd">
                 {m.settings_quiet_hours_to()}
               </Label>
               <Input
@@ -379,15 +373,15 @@ export function UserPreferencesSection() {
         </CardContent>
       </Card>
 
-      <Card className="tw:mb-4">
-        <CardHeader className="tw:font-semibold tw:py-2">
+      <Card className="mb-4">
+        <CardHeader className="font-semibold py-2">
           {m.settings_calendar_subscription_header()}
         </CardHeader>
-        <CardContent className="tw:grid tw:gap-2">
-          <p className="tw:text-muted-foreground tw:text-small tw:mb-1">
+        <CardContent className="grid gap-2">
+          <p className="text-muted-foreground text-small mb-1">
             {m.settings_calendar_subscription_description()}
           </p>
-          <Label className="tw:text-small tw:font-semibold tw:mb-0" htmlFor="calendarFeedUrl">
+          <Label className="text-small font-semibold mb-0" htmlFor="calendarFeedUrl">
             {m.settings_calendar_feed_label()}
           </Label>
           <InputGroup>
@@ -411,7 +405,7 @@ export function UserPreferencesSection() {
               {m.settings_calendar_feed_copy()}
             </Button>
           </InputGroup>
-          <div className="tw:flex tw:gap-2 tw:items-center tw:flex-wrap">
+          <div className="flex gap-2 items-center flex-wrap">
             <Button
               variant="outline-danger"
               size="sm"
@@ -422,12 +416,10 @@ export function UserPreferencesSection() {
                 ? m.settings_calendar_regenerating()
                 : m.settings_calendar_regenerate()}
             </Button>
-            <small className="tw:text-muted-foreground">
-              {m.settings_calendar_rotate_warning()}
-            </small>
+            <small className="text-muted-foreground">{m.settings_calendar_rotate_warning()}</small>
           </div>
           {calendarFeedQuery.error ? (
-            <div className="tw:text-danger tw:text-small">
+            <div className="text-danger text-small">
               {apiErrorMessage(calendarFeedQuery.error, m.settings_calendar_load_error())}
             </div>
           ) : null}

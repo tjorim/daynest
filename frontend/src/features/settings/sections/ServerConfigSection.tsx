@@ -45,13 +45,11 @@ export function ServerConfigSection({
   };
 
   return (
-    <Card className="tw:mb-4">
-      <CardHeader className="tw:font-semibold tw:py-2">
-        {m.settings_backend_server_header()}
-      </CardHeader>
-      <CardContent className="tw:grid tw:gap-2">
-        <div className="tw:flex tw:gap-4">
-          <label className="tw:check-row tw:mb-0.5">
+    <Card className="mb-4">
+      <CardHeader className="font-semibold py-2">{m.settings_backend_server_header()}</CardHeader>
+      <CardContent className="grid gap-2">
+        <div className="flex gap-4">
+          <label className="check-row mb-0.5">
             <Radio
               name="server-mode"
               checked={serverMode === "default"}
@@ -62,7 +60,7 @@ export function ServerConfigSection({
             />
             <span>{m.settings_default()}</span>
           </label>
-          <label className="tw:check-row tw:mb-0.5">
+          <label className="check-row mb-0.5">
             <Radio
               name="server-mode"
               checked={serverMode === "custom"}

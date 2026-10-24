@@ -139,19 +139,17 @@ export function PlannedItemsSidebar({
 }) {
   return (
     <>
-      <Card className="tw:mb-4">
-        <CardHeader className="tw:font-semibold tw:py-2">
-          {m.calendar_quick_add_header()}
-        </CardHeader>
-        <CardContent className="tw:grid tw:gap-4">
-          <div className="tw:grid tw:gap-2">
+      <Card className="mb-4">
+        <CardHeader className="font-semibold py-2">{m.calendar_quick_add_header()}</CardHeader>
+        <CardContent className="grid gap-4">
+          <div className="grid gap-2">
             <Input
               value={title}
               onChange={(event) => onSetTitle(event.target.value)}
               placeholder={m.calendar_plan_title_placeholder()}
               aria-label={m.calendar_plan_title_placeholder()}
             />
-            <Label className="tw:mt-2 tw:mb-1" htmlFor="planned-time-of-day">
+            <Label className="mt-2 mb-1" htmlFor="planned-time-of-day">
               {m.calendar_time_of_day_label()}
             </Label>
             <Input
@@ -160,7 +158,7 @@ export function PlannedItemsSidebar({
               value={timeOfDay}
               onChange={(event) => onSetTimeOfDay(event.target.value)}
             />
-            <Label className="tw:mt-2 tw:mb-1" htmlFor="planned-duration-minutes">
+            <Label className="mt-2 mb-1" htmlFor="planned-duration-minutes">
               {m.calendar_duration_label()}
             </Label>
             <Input
@@ -191,7 +189,7 @@ export function PlannedItemsSidebar({
               <option value="recurring_grocery">{m.calendar_module_grocery()}</option>
               <option value="shared_calendar">{m.calendar_module_shared()}</option>
             </Select>
-            <div className="tw:flex tw:items-start tw:gap-2 tw:min-h-6 tw:mb-0.5">
+            <div className="flex items-start gap-2 min-h-6 mb-0.5">
               <Checkbox
                 id="planned-repeat-toggle"
                 checked={isRepeating}
@@ -200,7 +198,7 @@ export function PlannedItemsSidebar({
               <label htmlFor="planned-repeat-toggle">{m.calendar_repeat_label()}</label>
             </div>
             {isRepeating ? (
-              <div className="tw:grid tw:gap-2 tw:border tw:border-border tw:rounded-md tw:p-2">
+              <div className="grid gap-2 border border-border rounded-md p-2">
                 <Select
                   value={repeatPreset}
                   onChange={(event) =>
@@ -216,12 +214,9 @@ export function PlannedItemsSidebar({
                   <option value="custom">{m.calendar_repeat_custom()}</option>
                 </Select>
                 {repeatPreset === "weekly" ? (
-                  <div className="tw:flex tw:flex-wrap tw:gap-2">
+                  <div className="flex flex-wrap gap-2">
                     {WEEKDAY_REPEAT_OPTIONS.map((weekday) => (
-                      <label
-                        key={weekday.code}
-                        className="tw:flex tw:items-start tw:gap-2 tw:min-h-6 tw:me-4"
-                      >
+                      <label key={weekday.code} className="flex items-start gap-2 min-h-6 me-4">
                         <Checkbox
                           checked={repeatWeekdays.includes(weekday.code)}
                           onChange={(event) => {
@@ -289,7 +284,7 @@ export function PlannedItemsSidebar({
               </Select>
             ) : null}
           </div>
-          <div className="tw:flex tw:gap-2 tw:flex-col tw:sm:flex-row">
+          <div className="flex gap-2 flex-col sm:flex-row">
             <Button disabled={isAdding} onClick={() => void onAddPlanned()}>
               {isAdding
                 ? editingPlannedItemId !== null
@@ -307,12 +302,12 @@ export function PlannedItemsSidebar({
           </div>
         </CardContent>
         {addError && editingPlannedItemId !== null ? (
-          <CardFooter className="tw:text-danger tw:py-2 tw:text-small">{addError}</CardFooter>
+          <CardFooter className="text-danger py-2 text-small">{addError}</CardFooter>
         ) : null}
       </Card>
 
-      <Card className="tw:mb-4">
-        <CardHeader className="tw:font-semibold tw:py-2">
+      <Card className="mb-4">
+        <CardHeader className="font-semibold py-2">
           {m.calendar_planned_items_header({ date: formatDate(selectedDate) })}
         </CardHeader>
         <ListGroup
@@ -321,29 +316,27 @@ export function PlannedItemsSidebar({
           aria-label={m.calendar_planned_items_header({ date: formatDate(selectedDate) })}
         >
           {plannedItems.length === 0 ? (
-            <ListGroupItem render={<li />} className="tw:py-2 tw:text-muted-foreground">
+            <ListGroupItem render={<li />} className="py-2 text-muted-foreground">
               {m.calendar_no_planned_items()}
             </ListGroupItem>
           ) : (
             plannedItems.map((item) => (
-              <ListGroupItem render={<li />} className="tw:py-2" key={item.id}>
-                <div className="tw:flex tw:justify-between tw:items-start tw:gap-4">
+              <ListGroupItem render={<li />} className="py-2" key={item.id}>
+                <div className="flex justify-between items-start gap-4">
                   <div>
-                    <div className="tw:font-semibold">
+                    <div className="font-semibold">
                       {item.rrule || item.recurrence_series_id ? "🔁 " : ""}
                       {item.title}
                     </div>
-                    <small className="tw:text-muted-foreground tw:block">
-                      {formatPlannedMeta(item)}
-                    </small>
-                    {item.notes ? <small className="tw:block tw:mt-1">{item.notes}</small> : null}
+                    <small className="text-muted-foreground block">{formatPlannedMeta(item)}</small>
+                    {item.notes ? <small className="block mt-1">{item.notes}</small> : null}
                     {item.linked_ref ? (
-                      <small className="tw:block tw:text-muted-foreground">
+                      <small className="block text-muted-foreground">
                         {m.calendar_ref_label({ ref: item.linked_ref })}
                       </small>
                     ) : null}
                   </div>
-                  <div className="tw:grid tw:gap-2">
+                  <div className="grid gap-2">
                     <Button
                       variant={item.is_done ? "outline-success" : "success"}
                       size="sm"
@@ -361,7 +354,7 @@ export function PlannedItemsSidebar({
                       {m.action_edit()}
                     </Button>
                     {confirmDeleteId === item.id ? (
-                      <div className="tw:flex tw:gap-1">
+                      <div className="flex gap-1">
                         {item.rrule || item.recurrence_series_id ? (
                           <>
                             <Button
@@ -419,9 +412,9 @@ export function PlannedItemsSidebar({
       </Card>
 
       <Card>
-        <CardHeader className="tw:font-semibold tw:py-2">{m.calendar_backup_header()}</CardHeader>
+        <CardHeader className="font-semibold py-2">{m.calendar_backup_header()}</CardHeader>
         <CardContent>
-          <div className="tw:flex tw:flex-col tw:sm:flex-row tw:gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <Button
               variant="outline-primary"
               disabled={isExporting || isImporting}
@@ -440,12 +433,12 @@ export function PlannedItemsSidebar({
               ref={fileInputRef}
               type="file"
               accept="application/json"
-              className="tw:hidden"
+              className="hidden"
               onChange={(event) => void onImportFile(event)}
             />
           </div>
           {backupStatus ? (
-            <small className="tw:text-muted-foreground tw:block tw:mt-2">{backupStatus}</small>
+            <small className="text-muted-foreground block mt-2">{backupStatus}</small>
           ) : null}
         </CardContent>
       </Card>

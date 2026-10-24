@@ -3,14 +3,14 @@ import { getLocale } from "@/paraglide/runtime";
 
 const LAST_UPDATED = "2026-07-04";
 
-const sectionTitleClass = "tw:mt-6 tw:text-h5 tw:font-medium";
-const subsectionTitleClass = "tw:mt-4 tw:text-h6 tw:font-medium";
+const sectionTitleClass = "mt-6 text-h5 font-medium";
+const subsectionTitleClass = "mt-4 text-h6 font-medium";
 
 export function PrivacyPolicyPage() {
   return (
-    <section className="tw:mx-auto tw:max-w-3xl tw:px-4">
-      <h2 className="tw:mb-1 tw:text-h4 tw:font-medium">{m.privacy_page_title()}</h2>
-      <p className="tw:mb-6 tw:text-muted-foreground">
+    <section className="mx-auto max-w-3xl px-4">
+      <h2 className="mb-1 text-h4 font-medium">{m.privacy_page_title()}</h2>
+      <p className="mb-6 text-muted-foreground">
         {m.privacy_page_last_updated({
           date: new Intl.DateTimeFormat(getLocale(), { dateStyle: "long", timeZone: "UTC" }).format(
             new Date(LAST_UPDATED),

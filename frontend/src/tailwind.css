@@ -1,93 +1,72 @@
-/*
- * Cascade order while Bootstrap is still in charge. Unlayered rules beat layered ones, so the
- * Bootstrap and Schedule-X stylesheets are imported into named layers below `components` and
- * `utilities`: a Tailwind utility wins over `.btn`, `.form-control`, `.card` and friends.
- * Tailwind's preflight is intentionally not imported; Bootstrap's reboot is the base layer.
- */
-@layer theme, base, bootstrap, schedule-x, components, utilities;
-@import "tailwindcss/theme.css" layer(theme) prefix(tw);
-@import "bootstrap/dist/css/bootstrap.min.css" layer(bootstrap);
-@import "bootstrap-icons/font/bootstrap-icons.min.css" layer(bootstrap);
-@import "tailwindcss/utilities.css" layer(utilities) prefix(tw);
+@layer theme, base, schedule-x, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
 
-/*
- * One theming mechanism: ThemeContext resolves light | dark | auto and sets data-bs-theme on
- * <html>. Bootstrap, the `dark:` variant, the tokens below and the Schedule-X calendar all follow
- * that attribute; nothing here reads prefers-color-scheme.
- */
-@custom-variant dark (&:where([data-bs-theme="dark"], [data-bs-theme="dark"] *));
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
-/*
- * Design tokens. `static` emits every token even when no utility uses it, because app.css reads
- * them with var(). Dark values are overridden under [data-bs-theme="dark"] below, so utilities
- * such as `tw:bg-surface-from` and `tw:text-brand` switch with the theme without a `dark:` variant.
- * --tw-brand-rgb is the channel form Bootstrap needs for its --bs-*-rgb variables.
- */
 @theme static {
+  --color-code: #d63384;
   --brand-rgb: 42, 98, 255;
   --brand-hover-rgb: 33, 78, 204;
-  --color-brand: rgb(var(--tw-brand-rgb));
-  --color-brand-hover: rgb(var(--tw-brand-hover-rgb));
-  --color-link: var(--tw-color-brand);
-  --color-link-hover: var(--tw-color-brand-hover);
+  --color-brand: rgb(var(--brand-rgb));
+  --color-brand-hover: rgb(var(--brand-hover-rgb));
+  --color-link: var(--color-brand);
+  --color-link-hover: var(--color-brand-hover);
   --color-page-from: rgba(248, 249, 250, 0.95);
   --color-page-to: rgba(255, 255, 255, 1);
   --color-surface-from: rgba(255, 255, 255, 0.92);
   --color-surface-to: rgba(248, 249, 250, 0.96);
   --color-muted-surface: rgba(33, 37, 41, 0.08);
-  --color-popover: var(--bs-body-bg);
-  --color-popover-foreground: var(--bs-body-color);
-  --color-dialog-border: var(--bs-border-color);
-  --shadow-dialog: var(--bs-box-shadow-lg);
+  --color-popover: #fff;
+  --color-popover-foreground: #212529;
+  --color-dialog-border: #dee2e6;
+  --shadow-dialog: 0 1rem 3rem rgba(0, 0, 0, 0.175);
 
-  /* Bootstrap's breakpoints, so `tw:md:` and friends switch where the legacy classes did. */
   --breakpoint-sm: 576px;
   --breakpoint-md: 768px;
   --breakpoint-lg: 992px;
   --breakpoint-xl: 1200px;
   --breakpoint-2xl: 1400px;
 
-  /* Semantic colours bridged to Bootstrap's variables, which already follow data-bs-theme. */
-  --color-foreground: var(--bs-body-color);
-  --color-background: var(--bs-body-bg);
-  --color-muted-foreground: var(--bs-secondary-color);
-  --color-border: var(--bs-border-color);
-  /* Bootstrap buttons use its blue, not the --bs-primary override that carries the brand colour. */
-  --color-primary: var(--bs-blue);
-  --color-primary-hover: color-mix(in srgb, black 15%, var(--bs-blue));
-  --color-secondary: var(--bs-secondary);
-  --color-success: var(--bs-success);
-  --color-danger: var(--bs-danger);
-  --color-warning: var(--bs-warning);
-  --color-info: var(--bs-info);
-  /* Text on a plain background; a dialog lifts these in dark mode (dialog.css). */
-  --color-secondary-text: var(--bs-secondary);
-  --color-danger-text: var(--bs-danger);
-  --color-light-hover: color-mix(in srgb, black 15%, var(--bs-light));
-  --color-secondary-hover: color-mix(in srgb, black 15%, var(--bs-secondary));
-  --color-success-hover: color-mix(in srgb, black 15%, var(--bs-success));
-  --color-danger-hover: color-mix(in srgb, black 15%, var(--bs-danger));
-  --color-primary-subtle: var(--bs-primary-bg-subtle);
-  --color-primary-border-subtle: var(--bs-primary-border-subtle);
-  --color-primary-emphasis: var(--bs-primary-text-emphasis);
-  --color-secondary-subtle: var(--bs-secondary-bg-subtle);
-  --color-secondary-border-subtle: var(--bs-secondary-border-subtle);
-  --color-secondary-emphasis: var(--bs-secondary-text-emphasis);
-  --color-success-subtle: var(--bs-success-bg-subtle);
-  --color-success-border-subtle: var(--bs-success-border-subtle);
-  --color-success-emphasis: var(--bs-success-text-emphasis);
-  --color-danger-subtle: var(--bs-danger-bg-subtle);
-  --color-danger-border-subtle: var(--bs-danger-border-subtle);
-  --color-danger-emphasis: var(--bs-danger-text-emphasis);
-  --color-warning-subtle: var(--bs-warning-bg-subtle);
-  --color-warning-border-subtle: var(--bs-warning-border-subtle);
-  --color-warning-emphasis: var(--bs-warning-text-emphasis);
-  --color-info-subtle: var(--bs-info-bg-subtle);
-  --color-info-border-subtle: var(--bs-info-border-subtle);
-  --color-info-emphasis: var(--bs-info-text-emphasis);
-  --shadow-sm: var(--bs-box-shadow-sm);
+  --color-foreground: #212529;
+  --color-background: #fff;
+  --color-muted-foreground: rgba(33, 37, 41, 0.75);
+  --color-border: #dee2e6;
 
-  /* Bootstrap's heading scale (the .h3-.h6 and .fs-4 classes), fluid below the xl breakpoint. */
+  --color-primary: #0d6efd;
+  --color-primary-hover: color-mix(in srgb, black 15%, #0d6efd);
+  --color-secondary: #6c757d;
+  --color-success: #198754;
+  --color-danger: #dc3545;
+  --color-warning: #ffc107;
+  --color-info: #0dcaf0;
+
+  --color-secondary-text: #6c757d;
+  --color-danger-text: #dc3545;
+  --color-light-hover: color-mix(in srgb, black 15%, #f8f9fa);
+  --color-secondary-hover: color-mix(in srgb, black 15%, #6c757d);
+  --color-success-hover: color-mix(in srgb, black 15%, #198754);
+  --color-danger-hover: color-mix(in srgb, black 15%, #dc3545);
+  --color-primary-subtle: #cfe2ff;
+  --color-primary-border-subtle: #9ec5fe;
+  --color-primary-emphasis: #052c65;
+  --color-secondary-subtle: #e2e3e5;
+  --color-secondary-border-subtle: #c4c8cb;
+  --color-secondary-emphasis: #2b2f32;
+  --color-success-subtle: #d1e7dd;
+  --color-success-border-subtle: #a3cfbb;
+  --color-success-emphasis: #0a3622;
+  --color-danger-subtle: #f8d7da;
+  --color-danger-border-subtle: #f1aeb5;
+  --color-danger-emphasis: #58151c;
+  --color-warning-subtle: #fff3cd;
+  --color-warning-border-subtle: #ffe69c;
+  --color-warning-emphasis: #664d03;
+  --color-info-subtle: #cff4fc;
+  --color-info-border-subtle: #9eeaf9;
+  --color-info-emphasis: #055160;
+  --shadow-sm: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+
   --text-h3: min(calc(1.3rem + 0.6vw), 1.75rem);
   --text-h3--line-height: 1.2;
   --text-h4: min(calc(1.275rem + 0.3vw), 1.5rem);
@@ -97,14 +76,13 @@
   --text-h6: 1rem;
   --text-h6--line-height: 1.2;
 
-  --color-emphasis: var(--bs-emphasis-color);
-  --color-light: var(--bs-light);
-  --color-tertiary: var(--bs-tertiary-bg);
-  --color-secondary-bg: var(--bs-secondary-bg);
-  --color-card-border: var(--bs-border-color-translucent);
-  --color-card-header: rgba(var(--bs-body-color-rgb), 0.03);
+  --color-emphasis: #000;
+  --color-light: #f8f9fa;
+  --color-tertiary: #f8f9fa;
+  --color-secondary-bg: #e9ecef;
+  --color-card-border: rgba(0, 0, 0, 0.175);
+  --color-card-header: rgba(33, 37, 41, 0.03);
 
-  /* Bootstrap's .fs-3 to .fs-5: the same sizes as the headings, without their line height. */
   --text-fluid-3: min(calc(1.3rem + 0.6vw), 1.75rem);
   --text-fluid-4: min(calc(1.275rem + 0.3vw), 1.5rem);
   --text-fluid-5: 1.25rem;
@@ -123,38 +101,67 @@
     --select-chevron: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
   }
 
-  [data-bs-theme="dark"] {
+  [data-theme="dark"] {
+    color-scheme: dark;
+    --color-code: #e685b5;
+    --color-popover: #212529;
+    --color-popover-foreground: #dee2e6;
+    --color-dialog-border: #495057;
+    --color-foreground: #dee2e6;
+    --color-background: #212529;
+    --color-muted-foreground: rgba(222, 226, 230, 0.75);
+    --color-border: #495057;
+    --color-primary-subtle: #031633;
+    --color-primary-border-subtle: #084298;
+    --color-primary-emphasis: #6ea8fe;
+    --color-secondary-subtle: #161719;
+    --color-secondary-border-subtle: #41464b;
+    --color-secondary-emphasis: #a7acb1;
+    --color-success-subtle: #051b11;
+    --color-success-border-subtle: #0f5132;
+    --color-success-emphasis: #75b798;
+    --color-danger-subtle: #2c0b0e;
+    --color-danger-border-subtle: #842029;
+    --color-danger-emphasis: #ea868f;
+    --color-warning-subtle: #332701;
+    --color-warning-border-subtle: #997404;
+    --color-warning-emphasis: #ffda6a;
+    --color-info-subtle: #032830;
+    --color-info-border-subtle: #087990;
+    --color-info-emphasis: #6edff6;
+    --color-emphasis: #fff;
+    --color-tertiary: #2b3035;
+    --color-secondary-bg: #343a40;
+    --color-card-border: rgba(255, 255, 255, 0.15);
+    --color-card-header: rgba(222, 226, 230, 0.03);
     --switch-knob: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='rgba%28255, 255, 255, 0.25%29'/%3e%3c/svg%3e");
     --select-chevron: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23dee2e6' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
-    --tw-color-page-from: rgba(18, 18, 28, 0.98);
-    --tw-color-page-to: rgba(12, 12, 20, 1);
-    --tw-color-surface-from: rgba(30, 30, 45, 0.92);
-    --tw-color-surface-to: rgba(22, 22, 35, 0.96);
-    --tw-color-muted-surface: rgba(255, 255, 255, 0.08);
+    --color-page-from: rgba(18, 18, 28, 0.98);
+    --color-page-to: rgba(12, 12, 20, 1);
+    --color-surface-from: rgba(30, 30, 45, 0.92);
+    --color-surface-to: rgba(22, 22, 35, 0.96);
+    --color-muted-surface: rgba(255, 255, 255, 0.08);
   }
 }
 
-/* Card header and footer corners sit one border width inside the card's own radius. */
 @utility rounded-t-inner {
-  border-top-left-radius: calc(var(--tw-radius-md) - 1px);
-  border-top-right-radius: calc(var(--tw-radius-md) - 1px);
+  border-top-left-radius: calc(var(--radius-md) - 1px);
+  border-top-right-radius: calc(var(--radius-md) - 1px);
 }
 
 @utility rounded-b-inner {
-  border-bottom-right-radius: calc(var(--tw-radius-md) - 1px);
-  border-bottom-left-radius: calc(var(--tw-radius-md) - 1px);
+  border-bottom-right-radius: calc(var(--radius-md) - 1px);
+  border-bottom-left-radius: calc(var(--radius-md) - 1px);
 }
 
 @utility min-h-auth {
   min-height: min(70vh, 42rem);
 }
 
-/* Bootstrap's `.small`: relative to the parent font size, line height untouched. */
 @utility text-small {
   font-size: 0.875em;
 }
 
-/* Native select chevron; the colour follows the theme through --select-chevron. */
 @utility select-chevron {
   background-image: var(--select-chevron);
   background-repeat: no-repeat;
@@ -162,30 +169,26 @@
   background-size: 16px 12px;
 }
 
-/* The white tick on a checked checkbox, as Bootstrap draws it. */
 @utility checkbox-check {
   background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3e%3cpath fill='none' stroke='%23fff' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='m6 10 3 3 6-6'/%3e%3c/svg%3e");
 }
 
-/* Bootstrap's close "x", as a background so it can follow the theme with a filter. */
 @utility close-icon {
   background: transparent
     url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23000'%3e%3cpath d='M.293.293a1 1 0 0 1 1.414 0L8 6.586 14.293.293a1 1 0 1 1 1.414 1.414L9.414 8l6.293 6.293a1 1 0 0 1-1.414 1.414L8 9.414l-6.293 6.293a1 1 0 0 1-1.414-1.414L6.586 8 .293 1.707a1 1 0 0 1 0-1.414z'/%3e%3c/svg%3e")
     center / 1em auto no-repeat;
 
-  [data-bs-theme="dark"] & {
+  [data-theme="dark"] & {
     filter: invert(1) grayscale(100%) brightness(200%);
   }
 }
 
-/* Touch targets: buttons inside a list row are at least 44px tall. */
 @utility row-buttons {
   & [data-variant] {
     min-height: 2.75rem;
   }
 }
 
-/* Buttons that touch: shared borders, only the outer corners rounded. */
 @utility button-group {
   & > [data-variant] {
     position: relative;
@@ -206,7 +209,6 @@
   }
 }
 
-/* Fields with attached add-ons: shared borders, only the outer corners rounded. */
 @utility input-group {
   position: relative;
   display: flex;
@@ -238,7 +240,6 @@
   }
 }
 
-/* A badge inside a button sits one pixel higher, as in Bootstrap. */
 @utility btn-badge {
   & [data-slot="badge"] {
     position: relative;
@@ -246,14 +247,12 @@
   }
 }
 
-/* Bootstrap sizes a checkbox in em, so it follows the font size of its label. */
 @utility checkbox-box {
   width: 1em;
   height: 1em;
   margin-top: 0.25em;
 }
 
-/* A checkbox and its label, as Bootstrap's .form-check lays them out (the gap scales with the font). */
 @utility check-row {
   display: flex;
   align-items: flex-start;
@@ -265,7 +264,6 @@
   vertical-align: inherit;
 }
 
-/* Bootstrap's switch: a pill with a sliding knob (the unchecked knob follows the theme). */
 @utility switch-box {
   width: 2em;
   height: 1em;
@@ -280,12 +278,10 @@
   background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%23fff'/%3e%3c/svg%3e");
 }
 
-/* The white dot in a checked radio button. */
 @utility radio-dot {
   background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='2' fill='%23fff'/%3e%3c/svg%3e");
 }
 
-/* The page column: Bootstrap's container, which the app caps at 1080px. */
 @utility max-w-page {
   max-width: 1080px;
 }
@@ -302,7 +298,6 @@
   vertical-align: -0.125em;
 }
 
-/* One-off sizes for dialogs that no theme token expresses. */
 @utility max-h-dialog {
   max-height: calc(100dvh - 2rem);
 }
@@ -317,4 +312,394 @@
 
 @utility max-h-search {
   max-height: 70vh;
+}
+/* Owned document defaults preserve the application's typography and native controls. */
+@layer base {
+  *,
+  ::before,
+  ::after {
+    box-sizing: border-box;
+  }
+  :root:not([data-theme="dark"]) {
+    color-scheme: light;
+  }
+  body {
+    margin: 0;
+    font-family:
+      system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans",
+      "Liberation Sans", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji",
+      "Segoe UI Symbol", "Noto Color Emoji";
+    font-size: 1rem;
+    font-weight: 400;
+    line-height: 1.5;
+    color: var(--color-foreground);
+    background-color: var(--color-background);
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    :root {
+      scroll-behavior: smooth;
+    }
+  }
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    margin: 0 0 0.5rem;
+    font-weight: 500;
+    line-height: 1.2;
+  }
+  h1 {
+    font-size: min(calc(1.375rem + 1.5vw), 2.5rem);
+  }
+  h2 {
+    font-size: min(calc(1.325rem + 0.9vw), 2rem);
+  }
+  h3 {
+    font-size: var(--text-h3);
+  }
+  h4 {
+    font-size: var(--text-h4);
+  }
+  h5 {
+    font-size: var(--text-h5);
+  }
+  h6 {
+    font-size: var(--text-h6);
+  }
+  p,
+  ol,
+  ul,
+  dl,
+  pre {
+    margin-top: 0;
+    margin-bottom: 1rem;
+  }
+  ol,
+  ul {
+    padding-left: 2rem;
+  }
+  ol ol,
+  ul ul,
+  ol ul,
+  ul ol {
+    margin-bottom: 0;
+  }
+  dt {
+    font-weight: 700;
+  }
+  dd {
+    margin: 0 0 0.5rem;
+  }
+  blockquote,
+  figure {
+    margin: 0 0 1rem;
+  }
+  b,
+  strong {
+    font-weight: bolder;
+  }
+  small {
+    font-size: 0.875em;
+  }
+  hr {
+    margin: 1rem 0;
+    color: inherit;
+    border: 0;
+    border-top: 1px solid;
+    opacity: 0.25;
+  }
+  a {
+    color: var(--color-link);
+    text-decoration: underline;
+  }
+  a:hover {
+    color: var(--color-link-hover);
+  }
+  a:not([href]):not([class]) {
+    color: inherit;
+    text-decoration: none;
+  }
+  pre,
+  code,
+  kbd,
+  samp {
+    font-family:
+      SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size: 1em;
+  }
+  pre {
+    display: block;
+    overflow: auto;
+    font-size: 0.875em;
+  }
+  code {
+    font-size: 0.875em;
+    color: var(--color-code);
+    overflow-wrap: break-word;
+  }
+  pre code {
+    font-size: inherit;
+    color: inherit;
+    word-break: normal;
+  }
+  a > code {
+    color: inherit;
+  }
+  kbd {
+    padding: 0.1875rem 0.375rem;
+    font-size: 0.875em;
+    color: var(--color-background);
+    background: var(--color-foreground);
+    border-radius: 0.25rem;
+  }
+  img,
+  svg {
+    vertical-align: middle;
+  }
+  table {
+    caption-side: bottom;
+    border-collapse: collapse;
+  }
+  caption {
+    padding: 0.5rem 0;
+    color: var(--color-muted-foreground);
+    text-align: left;
+  }
+  th {
+    text-align: inherit;
+  }
+  thead,
+  tbody,
+  tfoot,
+  tr,
+  td,
+  th {
+    border-color: inherit;
+    border-style: solid;
+    border-width: 0;
+  }
+  label {
+    display: inline-block;
+  }
+  button {
+    border-radius: 0;
+  }
+  button:focus:not(:focus-visible) {
+    outline: 0;
+  }
+  input,
+  button,
+  select,
+  optgroup,
+  textarea {
+    margin: 0;
+    font-family: inherit;
+    font-size: inherit;
+    line-height: inherit;
+  }
+  button,
+  select {
+    text-transform: none;
+  }
+  select {
+    overflow-wrap: normal;
+  }
+  select:disabled {
+    opacity: 1;
+  }
+  button,
+  [type="button"],
+  [type="reset"],
+  [type="submit"] {
+    appearance: button;
+  }
+  button:not(:disabled),
+  [role="button"],
+  [type="button"]:not(:disabled),
+  [type="reset"]:not(:disabled),
+  [type="submit"]:not(:disabled) {
+    cursor: pointer;
+  }
+  textarea {
+    resize: vertical;
+  }
+  fieldset {
+    min-width: 0;
+    padding: 0;
+    margin: 0;
+    border: 0;
+  }
+  legend {
+    float: left;
+    width: 100%;
+    padding: 0;
+    margin-bottom: 0.5rem;
+    line-height: inherit;
+    font-size: var(--text-h4);
+  }
+  legend + * {
+    clear: left;
+  }
+  ::-webkit-datetime-edit-fields-wrapper,
+  ::-webkit-datetime-edit-text,
+  ::-webkit-datetime-edit-minute,
+  ::-webkit-datetime-edit-hour-field,
+  ::-webkit-datetime-edit-day-field,
+  ::-webkit-datetime-edit-month-field,
+  ::-webkit-datetime-edit-year-field {
+    padding: 0;
+  }
+  ::-webkit-inner-spin-button {
+    height: auto;
+  }
+  [type="search"] {
+    appearance: textfield;
+    outline-offset: -2px;
+  }
+  ::file-selector-button {
+    font: inherit;
+    appearance: button;
+  }
+  output {
+    display: inline-block;
+  }
+  iframe {
+    border: 0;
+  }
+  summary {
+    display: list-item;
+    cursor: pointer;
+  }
+  progress {
+    vertical-align: baseline;
+  }
+  [hidden] {
+    display: none !important;
+  }
+}
+
+@utility skip-link {
+  position: fixed;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 2000;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.375rem;
+  background: var(--color-background);
+  color: var(--color-foreground);
+  transform: translateY(-150%);
+  transition: transform 0.15s ease;
+
+  &:focus {
+    transform: translateY(0);
+  }
+}
+
+@utility summary-card {
+  background: linear-gradient(180deg, var(--color-surface-from), var(--color-surface-to));
+}
+
+@utility summary-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0.25rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+@utility summary-value {
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  line-height: 1;
+  font-weight: 700;
+}
+
+@utility settings-api-key {
+  display: block;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  background: var(--color-muted-surface);
+  word-break: break-all;
+}
+
+@utility web-focus-panel {
+  background: linear-gradient(135deg, rgba(13, 110, 253, 0.12), var(--color-surface-from));
+}
+
+@utility focus-progress {
+  min-width: 7rem;
+  padding: 0.75rem 1rem;
+  border-radius: 1rem;
+  background: var(--color-muted-surface);
+  text-align: center;
+}
+
+@utility focus-progress-value {
+  display: block;
+  font-size: clamp(1.75rem, 4vw, 2.5rem);
+  line-height: 1;
+  font-weight: 800;
+}
+
+@utility settings-endpoint-list {
+  display: grid;
+  gap: 0.35rem;
+  padding-left: 1rem;
+}
+
+@utility meal-plan-grid {
+  grid-template-columns: minmax(5.5rem, 0.7fr) repeat(7, minmax(8rem, 1fr));
+  gap: 0.5rem;
+  overflow-x: auto;
+}
+
+@utility meal-plan-row-contents {
+  display: contents;
+}
+
+@utility meal-plan-grid-corner {
+  padding: 0.75rem;
+  border-radius: 0.75rem;
+  background: var(--color-muted-surface);
+}
+
+@utility meal-plan-day-header {
+  padding: 0.75rem;
+  border-radius: 0.75rem;
+  background: var(--color-muted-surface);
+}
+
+@utility meal-plan-meal-header {
+  padding: 0.75rem;
+  border-radius: 0.75rem;
+  background: var(--color-muted-surface);
+}
+
+@utility meal-plan-day-header {
+  min-width: 8rem;
+}
+
+@utility meal-plan-meal-header {
+  min-width: 8rem;
+}
+
+@utility meal-plan-meal-header {
+  display: flex;
+  align-items: center;
+  font-weight: 700;
+}
+
+@utility meal-slot-card {
+  min-height: 7rem;
+  white-space: normal;
+}
+
+@utility meal-plan-ingredient-preview {
+  max-height: 16rem;
+  overflow: auto;
 }

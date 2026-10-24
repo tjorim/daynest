@@ -31,19 +31,19 @@ describe("Button", () => {
 
   it("applies the variant and lets a caller class replace a conflicting one", () => {
     render(
-      <Button variant="outline-danger" size="sm" className="tw:px-6">
+      <Button variant="outline-danger" size="sm" className="px-6">
         Delete
       </Button>,
     );
 
     const button = screen.getByRole("button", { name: "Delete" });
     expect(button).toHaveAttribute("data-variant", "outline-danger");
-    expect(button).toHaveClass("tw:border-danger", "tw:px-6");
-    expect(button).not.toHaveClass("tw:px-2");
+    expect(button).toHaveClass("border-danger", "px-6");
+    expect(button).not.toHaveClass("px-2");
   });
 
   it("exposes the same classes for non-button elements", () => {
-    expect(buttonVariants({ variant: "primary" })).toContain("tw:bg-primary");
+    expect(buttonVariants({ variant: "primary" })).toContain("bg-primary");
   });
 });
 
@@ -56,7 +56,7 @@ describe("Alert", () => {
     );
 
     expect(screen.getByRole("alert")).toHaveTextContent("Something failed");
-    expect(screen.getByRole("alert")).toHaveClass("tw:bg-danger-subtle");
+    expect(screen.getByRole("alert")).toHaveClass("bg-danger-subtle");
   });
 });
 
@@ -72,9 +72,7 @@ describe("cn", () => {
   it("keeps a custom font size next to a text colour", async () => {
     const { cn } = await import("@/lib/utils");
 
-    expect(cn("tw:text-h6", "tw:text-muted-foreground")).toBe(
-      "tw:text-h6 tw:text-muted-foreground",
-    );
-    expect(cn("tw:text-h5", "tw:text-h4")).toBe("tw:text-h4");
+    expect(cn("text-h6", "text-muted-foreground")).toBe("text-h6 text-muted-foreground");
+    expect(cn("text-h5", "text-h4")).toBe("text-h4");
   });
 });

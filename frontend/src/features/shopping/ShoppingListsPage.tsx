@@ -49,9 +49,9 @@ export function ShoppingListsPage() {
 
   return (
     <section>
-      <div className="tw:flex tw:flex-col tw:md:flex-row tw:justify-between tw:items-start tw:md:items-center tw:gap-2 tw:mb-2">
-        <h2 className="tw:text-h4 tw:font-medium tw:mb-0">{m.shopping_title()}</h2>
-        <div className="tw:flex tw:flex-wrap tw:gap-2">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-2 mb-2">
+        <h2 className="text-h4 font-medium mb-0">{m.shopping_title()}</h2>
+        <div className="flex flex-wrap gap-2">
           <Link
             className={buttonVariants({ variant: "outline-primary", size: "sm" })}
             to="/shopping/recurring"
@@ -68,18 +68,15 @@ export function ShoppingListsPage() {
           </Button>
         </div>
       </div>
-      <p className="tw:text-muted-foreground tw:mb-4">{m.shopping_subtitle()}</p>
+      <p className="text-muted-foreground mb-4">{m.shopping_subtitle()}</p>
 
       {listsQuery.isPending ? (
-        <Alert variant="info" className="tw:py-2">
+        <Alert variant="info" className="py-2">
           {m.shopping_loading()}
         </Alert>
       ) : null}
       {error ? (
-        <Alert
-          variant="danger"
-          className="tw:py-2 tw:flex tw:justify-between tw:items-center tw:gap-2 tw:flex-wrap"
-        >
+        <Alert variant="danger" className="py-2 flex justify-between items-center gap-2 flex-wrap">
           <span>{error}</span>
           {canRetry ? (
             <Button variant="danger" size="sm" onClick={() => void listsQuery.refetch()}>
@@ -89,21 +86,21 @@ export function ShoppingListsPage() {
         </Alert>
       ) : null}
       {actions.actionError ? (
-        <Alert variant="danger" className="tw:py-2">
+        <Alert variant="danger" className="py-2">
           {actions.actionError}
         </Alert>
       ) : null}
       {successMessage ? (
-        <Alert variant="success" className="tw:py-2">
+        <Alert variant="success" className="py-2">
           {successMessage}
         </Alert>
       ) : null}
 
-      <Card className="tw:mb-4">
+      <Card className="mb-4">
         <CardContent>
-          <h3 className="tw:text-h6 tw:font-medium tw:mb-4">{m.shopping_create_list()}</h3>
-          <div className="tw:grid tw:grid-cols-12 tw:gap-2 tw:items-end">
-            <div className="tw:col-span-12 tw:md:col-span-4">
+          <h3 className="text-h6 font-medium mb-4">{m.shopping_create_list()}</h3>
+          <div className="grid grid-cols-12 gap-2 items-end">
+            <div className="col-span-12 md:col-span-4">
               <Label htmlFor="shopping-list-name">{m.shopping_list_name()}</Label>
               <Input
                 id="shopping-list-name"
@@ -112,7 +109,7 @@ export function ShoppingListsPage() {
                 placeholder={m.shopping_list_name_placeholder()}
               />
             </div>
-            <div className="tw:col-span-12 tw:md:col-span-3">
+            <div className="col-span-12 md:col-span-3">
               <Label htmlFor="shopping-list-store">{m.shopping_store()}</Label>
               <Input
                 id="shopping-list-store"
@@ -121,7 +118,7 @@ export function ShoppingListsPage() {
                 placeholder={m.shopping_store_placeholder()}
               />
             </div>
-            <div className="tw:col-span-12 tw:md:col-span-3">
+            <div className="col-span-12 md:col-span-3">
               <Label htmlFor="shopping-list-notes">{m.today_notes_optional()}</Label>
               <Input
                 id="shopping-list-notes"
@@ -129,9 +126,9 @@ export function ShoppingListsPage() {
                 onChange={(event) => setNotes(event.target.value)}
               />
             </div>
-            <div className="tw:col-span-12 tw:md:col-span-2">
+            <div className="col-span-12 md:col-span-2">
               <Button
-                className="tw:w-full"
+                className="w-full"
                 disabled={actions.isSubmitting || !name.trim()}
                 onClick={() => void createList()}
               >
@@ -142,7 +139,7 @@ export function ShoppingListsPage() {
         </CardContent>
       </Card>
 
-      <div className="tw:flex tw:gap-2 tw:mb-4" role="tablist" aria-label={m.shopping_tabs_label()}>
+      <div className="flex gap-2 mb-4" role="tablist" aria-label={m.shopping_tabs_label()}>
         <Button
           size="sm"
           variant={tab === "active" ? "primary" : "outline-primary"}
@@ -159,24 +156,24 @@ export function ShoppingListsPage() {
         </Button>
       </div>
 
-      <div className="tw:grid tw:grid-cols-12 tw:gap-4">
+      <div className="grid grid-cols-12 gap-4">
         {lists.map((list) => (
-          <div className="tw:col-span-12 tw:md:col-span-6 tw:xl:col-span-4" key={list.id}>
-            <Card className="tw:h-full">
-              <CardContent className="tw:flex tw:flex-col tw:gap-2">
+          <div className="col-span-12 md:col-span-6 xl:col-span-4" key={list.id}>
+            <Card className="h-full">
+              <CardContent className="flex flex-col gap-2">
                 <div>
-                  <div className="tw:flex tw:justify-between tw:gap-2">
-                    <h3 className="tw:text-h5 tw:font-medium tw:mb-1">{list.name}</h3>
-                    <Badge variant="secondary" className="tw:self-start">
+                  <div className="flex justify-between gap-2">
+                    <h3 className="text-h5 font-medium mb-1">{list.name}</h3>
+                    <Badge variant="secondary" className="self-start">
                       {list.status}
                     </Badge>
                   </div>
                   {list.store ? (
-                    <div className="tw:text-muted-foreground tw:text-small">{list.store}</div>
+                    <div className="text-muted-foreground text-small">{list.store}</div>
                   ) : null}
-                  {list.notes ? <p className="tw:mb-0 tw:text-small">{list.notes}</p> : null}
+                  {list.notes ? <p className="mb-0 text-small">{list.notes}</p> : null}
                 </div>
-                <div className="tw:flex tw:flex-wrap tw:gap-2 tw:mt-auto">
+                <div className="flex flex-wrap gap-2 mt-auto">
                   <Link
                     className={buttonVariants({ variant: "outline-primary", size: "sm" })}
                     to="/shopping/$listId"
@@ -208,8 +205,8 @@ export function ShoppingListsPage() {
           </div>
         ))}
         {!listsQuery.isPending && lists.length === 0 ? (
-          <div className="tw:col-span-12">
-            <Alert variant="secondary" className="tw:py-2">
+          <div className="col-span-12">
+            <Alert variant="secondary" className="py-2">
               {m.shopping_no_lists()}
             </Alert>
           </div>

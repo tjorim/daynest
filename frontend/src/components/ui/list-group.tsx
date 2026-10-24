@@ -14,11 +14,7 @@ function ListGroup({
   const element = useRender({
     render: render ?? <div />,
     props: {
-      className: cn(
-        "tw:mb-0 tw:flex tw:list-none tw:flex-col tw:ps-0",
-        flush ? "" : "tw:rounded-md",
-        className,
-      ),
+      className: cn("mb-0 flex list-none flex-col ps-0", flush ? "" : "rounded-md", className),
       ...props,
     },
   });
@@ -26,15 +22,14 @@ function ListGroup({
 }
 
 const rowBase = cn(
-  "tw:relative tw:block tw:row-buttons tw:border tw:border-border tw:bg-background tw:px-4 tw:py-2 tw:text-foreground",
+  "relative block row-buttons border border-border bg-background px-4 py-2 text-foreground",
 );
-const rowGrouped = "tw:not-first:border-t-0 tw:first:rounded-t-md tw:last:rounded-b-md";
+const rowGrouped = "not-first:border-t-0 first:rounded-t-md last:rounded-b-md";
 const rowFlush =
-  "tw:border-x-0 tw:rounded-none tw:last:rounded-b-inner tw:not-first:border-t-0 tw:last:border-b-0 tw:first:border-t-0";
+  "border-x-0 rounded-none last:rounded-b-inner not-first:border-t-0 last:border-b-0 first:border-t-0";
 const rowAction =
-  "tw:w-full tw:cursor-pointer tw:text-start tw:hover:bg-tertiary tw:focus-visible:bg-tertiary tw:focus-visible:outline-none";
-const rowActive =
-  "tw:border-brand tw:bg-brand tw:text-white tw:hover:bg-brand tw:focus-visible:bg-brand";
+  "w-full cursor-pointer text-start hover:bg-tertiary focus-visible:bg-tertiary focus-visible:outline-none";
+const rowActive = "border-brand bg-brand text-white hover:bg-brand focus-visible:bg-brand";
 
 /**
  * One row. Pass `action` for a clickable row and `active` to mark it selected. It renders a div;

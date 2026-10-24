@@ -2,12 +2,12 @@ import type { ComponentProps } from "react";
 import { cn } from "@/lib/utils";
 
 const variants = {
-  primary: "tw:border-primary-border-subtle tw:bg-primary-subtle tw:text-primary-emphasis",
-  secondary: "tw:border-secondary-border-subtle tw:bg-secondary-subtle tw:text-secondary-emphasis",
-  success: "tw:border-success-border-subtle tw:bg-success-subtle tw:text-success-emphasis",
-  danger: "tw:border-danger-border-subtle tw:bg-danger-subtle tw:text-danger-emphasis",
-  warning: "tw:border-warning-border-subtle tw:bg-warning-subtle tw:text-warning-emphasis",
-  info: "tw:border-info-border-subtle tw:bg-info-subtle tw:text-info-emphasis",
+  primary: "border-primary-border-subtle bg-primary-subtle text-primary-emphasis",
+  secondary: "border-secondary-border-subtle bg-secondary-subtle text-secondary-emphasis",
+  success: "border-success-border-subtle bg-success-subtle text-success-emphasis",
+  danger: "border-danger-border-subtle bg-danger-subtle text-danger-emphasis",
+  warning: "border-warning-border-subtle bg-warning-subtle text-warning-emphasis",
+  info: "border-info-border-subtle bg-info-subtle text-info-emphasis",
 } as const;
 
 type AlertVariant = keyof typeof variants;
@@ -20,11 +20,7 @@ function Alert({
 }: ComponentProps<"div"> & { variant?: AlertVariant }) {
   return (
     <div
-      className={cn(
-        "tw:relative tw:mb-4 tw:rounded-md tw:border tw:p-4",
-        variants[variant],
-        className,
-      )}
+      className={cn("relative mb-4 rounded-md border p-4", variants[variant], className)}
       {...props}
     />
   );

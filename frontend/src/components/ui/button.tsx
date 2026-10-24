@@ -3,34 +3,34 @@ import type { ComponentProps } from "react";
 import { cn } from "@/lib/utils";
 
 const base = cn(
-  "tw:inline-block tw:btn-badge tw:cursor-pointer tw:rounded-md tw:border tw:border-transparent tw:bg-transparent tw:px-3 tw:py-1.5 tw:text-center tw:align-middle tw:text-base tw:leading-normal tw:font-normal tw:no-underline tw:transition-colors tw:select-none tw:focus-visible:ring-4 tw:focus-visible:outline-none tw:disabled:pointer-events-none tw:disabled:opacity-65 tw:aria-disabled:pointer-events-none tw:aria-disabled:opacity-65",
+  "inline-block btn-badge cursor-pointer rounded-md border border-transparent bg-transparent px-3 py-1.5 text-center align-middle text-base leading-normal font-normal no-underline transition-colors select-none focus-visible:ring-4 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-65 aria-disabled:pointer-events-none aria-disabled:opacity-65",
 );
 
 const variants = {
   primary:
-    "tw:border-primary tw:bg-primary tw:text-white tw:hover:border-primary-hover tw:hover:bg-primary-hover tw:focus-visible:ring-primary/50",
+    "border-primary bg-primary text-white hover:border-primary-hover hover:bg-primary-hover focus-visible:ring-primary/50",
   secondary:
-    "tw:border-secondary tw:bg-secondary tw:text-white tw:hover:border-secondary-hover tw:hover:bg-secondary-hover tw:focus-visible:ring-secondary/50",
+    "border-secondary bg-secondary text-white hover:border-secondary-hover hover:bg-secondary-hover focus-visible:ring-secondary/50",
   success:
-    "tw:border-success tw:bg-success tw:text-white tw:hover:border-success-hover tw:hover:bg-success-hover tw:focus-visible:ring-success/50",
+    "border-success bg-success text-white hover:border-success-hover hover:bg-success-hover focus-visible:ring-success/50",
   danger:
-    "tw:border-danger tw:bg-danger tw:text-white tw:hover:border-danger-hover tw:hover:bg-danger-hover tw:focus-visible:ring-danger/50",
+    "border-danger bg-danger text-white hover:border-danger-hover hover:bg-danger-hover focus-visible:ring-danger/50",
   "outline-primary":
-    "tw:border-primary tw:text-primary tw:hover:bg-primary tw:hover:text-white tw:focus-visible:ring-primary/50",
+    "border-primary text-primary hover:bg-primary hover:text-white focus-visible:ring-primary/50",
   "outline-secondary":
-    "tw:border-secondary tw:text-secondary-text tw:hover:bg-secondary tw:hover:text-white tw:focus-visible:ring-secondary/50",
+    "border-secondary text-secondary-text hover:bg-secondary hover:text-white focus-visible:ring-secondary/50",
   "outline-success":
-    "tw:border-success tw:text-success tw:hover:bg-success tw:hover:text-white tw:focus-visible:ring-success/50",
+    "border-success text-success hover:bg-success hover:text-white focus-visible:ring-success/50",
   "outline-danger":
-    "tw:border-danger tw:text-danger-text tw:hover:bg-danger tw:hover:text-white tw:focus-visible:ring-danger/50",
+    "border-danger text-danger-text hover:bg-danger hover:text-white focus-visible:ring-danger/50",
   light:
-    "tw:border-light tw:bg-light tw:text-black tw:hover:border-light-hover tw:hover:bg-light-hover tw:focus-visible:ring-light/50",
-  link: cn("tw:text-link tw:underline tw:hover:text-link-hover tw:focus-visible:ring-brand/50"),
+    "border-light bg-light text-black hover:border-light-hover hover:bg-light-hover focus-visible:ring-light/50",
+  link: cn("text-link underline hover:text-link-hover focus-visible:ring-brand/50"),
 } as const;
 
 const sizes = {
   default: "",
-  sm: "tw:rounded-sm tw:px-2 tw:py-1 tw:text-sm tw:leading-normal",
+  sm: "rounded-sm px-2 py-1 text-sm leading-normal",
 } as const;
 
 type ButtonVariant = keyof typeof variants;
@@ -45,7 +45,7 @@ function buttonVariants({
   return cn(base, variants[variant], sizes[size], className);
 }
 
-/** Bootstrap-equivalent button. Base UI supplies the native-button semantics and disabled handling. */
+/** Shared button. Base UI supplies the native-button semantics and disabled handling. */
 function Button({
   variant = "primary",
   size = "default",
@@ -70,7 +70,7 @@ function ButtonGroup({ className, ...props }: ComponentProps<"div">) {
   return (
     <div
       role="group"
-      className={cn("tw:relative tw:inline-flex tw:button-group tw:align-middle", className)}
+      className={cn("relative inline-flex button-group align-middle", className)}
       {...props}
     />
   );

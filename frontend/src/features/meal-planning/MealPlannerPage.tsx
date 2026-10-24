@@ -123,12 +123,12 @@ export function MealPlannerPage() {
 
   return (
     <section>
-      <div className="tw:flex tw:flex-col tw:lg:flex-row tw:justify-between tw:lg:items-start tw:gap-4 tw:mb-4">
+      <div className="flex flex-col lg:flex-row justify-between lg:items-start gap-4 mb-4">
         <div>
-          <h2 className="tw:text-h4 tw:font-medium tw:mb-1">{m.meal_plan_title()}</h2>
-          <p className="tw:text-muted-foreground tw:mb-0">{m.meal_plan_subtitle()}</p>
+          <h2 className="text-h4 font-medium mb-1">{m.meal_plan_title()}</h2>
+          <p className="text-muted-foreground mb-0">{m.meal_plan_subtitle()}</p>
         </div>
-        <div className="tw:flex tw:flex-wrap tw:gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button variant="outline-primary" size="sm" onClick={() => void reload()}>
             {m.action_refresh()}
           </Button>
@@ -143,15 +143,12 @@ export function MealPlannerPage() {
       </div>
 
       {plansQuery.isPending ? (
-        <Alert variant="info" className="tw:py-2">
+        <Alert variant="info" className="py-2">
           {m.meal_plan_loading()}
         </Alert>
       ) : null}
       {error ? (
-        <Alert
-          variant="danger"
-          className="tw:py-2 tw:flex tw:justify-between tw:items-center tw:gap-2 tw:flex-wrap"
-        >
+        <Alert variant="danger" className="py-2 flex justify-between items-center gap-2 flex-wrap">
           <span>{error}</span>
           {isRetryableApiError(queryError) ? (
             <Button variant="danger" size="sm" onClick={() => void reload()}>
@@ -161,15 +158,15 @@ export function MealPlannerPage() {
         </Alert>
       ) : null}
       {statusMessage ? (
-        <Alert variant="success" className="tw:py-2">
+        <Alert variant="success" className="py-2">
           {statusMessage}
         </Alert>
       ) : null}
 
-      <Card className="tw:mb-4">
+      <Card className="mb-4">
         <CardContent>
-          <div className="tw:grid tw:grid-cols-12 tw:gap-2 tw:items-end">
-            <div className="tw:col-span-12 tw:md:col-span-4">
+          <div className="grid grid-cols-12 gap-2 items-end">
+            <div className="col-span-12 md:col-span-4">
               <Label htmlFor="meal-plan-select">{m.meal_plan_select()}</Label>
               <Select
                 id="meal-plan-select"
@@ -189,7 +186,7 @@ export function MealPlannerPage() {
                 ))}
               </Select>
             </div>
-            <div className="tw:col-span-12 tw:md:col-span-4">
+            <div className="col-span-12 md:col-span-4">
               <Label htmlFor="meal-plan-name">{m.meal_plan_new_name()}</Label>
               <Input
                 id="meal-plan-name"
@@ -197,10 +194,10 @@ export function MealPlannerPage() {
                 onChange={(event) => setNewPlanName(event.target.value)}
               />
             </div>
-            <div className="tw:col-span-12 tw:md:col-span-4">
+            <div className="col-span-12 md:col-span-4">
               <Button
                 variant="outline-primary"
-                className="tw:w-full"
+                className="w-full"
                 disabled={actions.isSubmitting}
                 onClick={() => void createPlan()}
               >
@@ -211,15 +208,15 @@ export function MealPlannerPage() {
         </CardContent>
       </Card>
 
-      <Card className="tw:mb-4">
-        <CardContent className="tw:flex tw:flex-col tw:md:flex-row tw:md:items-center tw:justify-between tw:gap-4">
+      <Card className="mb-4">
+        <CardContent className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <div className="tw:text-muted-foreground tw:text-small">{m.meal_plan_week()}</div>
-            <div className="tw:font-semibold">
+            <div className="text-muted-foreground text-small">{m.meal_plan_week()}</div>
+            <div className="font-semibold">
               {formatDate(weekStart)} – {formatDate(weekEnd)}
             </div>
           </div>
-          <div className="tw:flex tw:flex-wrap tw:gap-2 tw:items-center">
+          <div className="flex flex-wrap gap-2 items-center">
             <Button
               variant="outline-secondary"
               size="sm"
@@ -230,7 +227,7 @@ export function MealPlannerPage() {
             </Button>
             <Input
               size="sm"
-              className="meal-plan-week-input"
+              className="w-auto"
               type="date"
               value={weekStart}
               disabled={actions.isSubmitting || !selectedPlan}
@@ -250,17 +247,17 @@ export function MealPlannerPage() {
       </Card>
 
       {weekQuery.isPending && selectedPlan ? (
-        <Alert variant="info" className="tw:py-2">
+        <Alert variant="info" className="py-2">
           {m.meal_plan_loading_week()}
         </Alert>
       ) : null}
       {week ? (
-        <Card className="meal-plan-grid tw:p-2 tw:md:p-4">
+        <Card className="grid meal-plan-grid p-2 md:p-4">
           <div className="meal-plan-grid-corner" />
           {week.days.map((day) => (
             <div className="meal-plan-day-header" key={day.date}>
-              <div className="tw:font-semibold">{formatWeekday(day.date)}</div>
-              <div className="tw:text-small tw:text-muted-foreground">{formatDate(day.date)}</div>
+              <div className="font-semibold">{formatWeekday(day.date)}</div>
+              <div className="text-small text-muted-foreground">{formatDate(day.date)}</div>
             </div>
           ))}
           {MEAL_SLOT_TYPES.map((slotType) => (
@@ -286,7 +283,7 @@ export function MealPlannerPage() {
           ))}
         </Card>
       ) : !plansQuery.isPending ? (
-        <Alert variant="secondary" className="tw:py-2">
+        <Alert variant="secondary" className="py-2">
           {m.meal_plan_create_first()}
         </Alert>
       ) : null}

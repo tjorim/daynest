@@ -19,7 +19,7 @@ export function lazyPage<Name extends string>(
 
 export function RoutePending() {
   return (
-    <Alert variant="info" className="tw:py-2" role="status">
+    <Alert variant="info" className="py-2" role="status">
       {m.router_loading_page()}
     </Alert>
   );
@@ -27,8 +27,8 @@ export function RoutePending() {
 
 export function RouteChunkError() {
   return (
-    <Alert variant="danger" className="tw:py-2" role="alert">
-      <p className="tw:mb-2">{m.router_page_load_failed()}</p>
+    <Alert variant="danger" className="py-2" role="alert">
+      <p className="mb-2">{m.router_page_load_failed()}</p>
       <Button variant="outline-danger" size="sm" onClick={() => window.location.reload()}>
         {m.router_page_reload()}
       </Button>

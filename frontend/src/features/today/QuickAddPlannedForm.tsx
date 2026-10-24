@@ -31,7 +31,7 @@ export function QuickAddPlannedForm({
 
   return (
     <form
-      className="tw:flex tw:gap-2 tw:items-start tw:flex-wrap"
+      className="flex gap-2 items-start flex-wrap"
       onSubmit={(event) => {
         event.preventDefault();
         event.stopPropagation();
@@ -44,7 +44,7 @@ export function QuickAddPlannedForm({
           <>
             <Input
               size="sm"
-              className="tw:grow tw:min-w-48"
+              className="grow min-w-48"
               value={field.value}
               autoFocus
               placeholder={m.today_quick_add_placeholder()}
@@ -73,7 +73,7 @@ export function QuickAddPlannedForm({
         {m.action_cancel()}
       </Button>
       {actions.actionError ? (
-        <small className="tw:w-full tw:text-danger">{actions.actionError}</small>
+        <small className="w-full text-danger">{actions.actionError}</small>
       ) : null}
     </form>
   );

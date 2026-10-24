@@ -209,22 +209,19 @@ export function CalendarPage() {
 
   return (
     <section>
-      <div className="tw:flex tw:justify-between tw:items-center tw:gap-2 tw:mb-2">
-        <h2 className="tw:text-h4 tw:font-medium tw:mb-0">{m.calendar_title()}</h2>
+      <div className="flex justify-between items-center gap-2 mb-2">
+        <h2 className="text-h4 font-medium mb-0">{m.calendar_title()}</h2>
         <Button variant="outline-primary" size="sm" onClick={() => void reloadCalendar()}>
           {m.action_refresh()}
         </Button>
       </div>
       {loading ? (
-        <Alert variant="info" className="tw:py-2">
+        <Alert variant="info" className="py-2">
           {m.calendar_loading()}
         </Alert>
       ) : null}
       {error ? (
-        <Alert
-          variant="danger"
-          className="tw:py-2 tw:flex tw:justify-between tw:items-center tw:gap-2"
-        >
+        <Alert variant="danger" className="py-2 flex justify-between items-center gap-2">
           <span>{error}</span>
           {isRetryableApiError(queryError) ? (
             <Button variant="danger" size="sm" onClick={() => void reloadCalendar()}>
@@ -234,30 +231,35 @@ export function CalendarPage() {
         </Alert>
       ) : null}
       {dayActionStatus || planned.actionStatus ? (
-        <Alert variant="success" className="tw:py-2">
+        <Alert variant="success" className="py-2">
           {dayActionStatus ?? planned.actionStatus}
         </Alert>
       ) : null}
       {planned.addError && planned.editingPlannedItemId === null ? (
-        <Alert variant="danger" className="tw:py-2">
+        <Alert variant="danger" className="py-2">
           {planned.addError}
         </Alert>
       ) : null}
-      <div className="tw:grid tw:grid-cols-12 tw:gap-4">
+      <div className="grid grid-cols-12 gap-4">
         {/*
           schedule-x switches to its compact "small calendar" layout (hiding
           the Today/Previous/Next toolbar) once its container drops below
-          700px. At the xl breakpoint the app's 1080px-capped .container
+          700px. At the xl breakpoint the app's 1080px-capped page column
           leaves an 8/4 split just under that threshold, so the toolbar was
-          permanently hidden on desktop. col-xl-9/col-xl-3 keeps it above
+          permanently hidden on desktop. the 9/3 column split keeps it above
           700px.
         */}
-        <div className="tw:col-span-12 tw:xl:col-span-9">
-          <Card className="daynest-calendar tw:p-2" role="region" aria-label={m.calendar_title()}>
+        <div className="col-span-12 xl:col-span-9">
+          <Card
+            data-slot="daynest-calendar"
+            className="p-2"
+            role="region"
+            aria-label={m.calendar_title()}
+          >
             <ScheduleXCalendar calendarApp={calendar} customComponents={customComponents} />
           </Card>
         </div>
-        <div className="tw:col-span-12 tw:xl:col-span-3">
+        <div className="col-span-12 xl:col-span-3">
           <PlannedItemsSidebar
             selectedDate={selectedDate}
             plannedItems={planned.plannedItems}

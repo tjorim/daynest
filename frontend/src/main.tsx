@@ -22,11 +22,7 @@ function App() {
   // second one, letting route loaders and page components share one cache.
   const queryClient = useQueryClient();
   return (
-    <main
-      id="main-content"
-      className="tw:mx-auto tw:w-full tw:max-w-page tw:px-3 tw:py-4 tw:md:py-6"
-      tabIndex={-1}
-    >
+    <main id="main-content" className="mx-auto w-full max-w-page px-3 py-4 md:py-6" tabIndex={-1}>
       <RouterProvider
         router={appRouter}
         context={{
@@ -41,7 +37,7 @@ function App() {
   );
 }
 
-async function bootstrap() {
+async function initializeApp() {
   if (import.meta.env.VITE_MSW === "true") {
     const { worker } = await import("./mocks/browser");
     await worker.start({ onUnhandledFrame: "warn" });
@@ -92,7 +88,7 @@ async function bootstrap() {
   );
 }
 
-bootstrap();
+initializeApp();
 
 if ("serviceWorker" in navigator && import.meta.env.PROD) {
   const appVersion = __APP_VERSION__;
