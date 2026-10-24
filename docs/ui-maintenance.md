@@ -1,6 +1,6 @@
 # UI dependency and component maintenance
 
-The shared primitives in `components/ui/` (`button`, `alert`, `badge`, `card`, `input`, `select`, `checkbox`, `radio`, `switch`, `field`, `list-group`, `table`, `progress`, `spinner`, `close-button`) are hand-written, Tailwind-styled replacements for the Bootstrap component classes (#937); only `button` imports Base UI (`Button`, plus `use-render` in `list-group`). Daynest also uses Base UI directly in `EditorDialog` and in the shared `dialog` wrapper (`components/ui/dialog.tsx`, used by the calendar event, meal planner, medication and search dialogs), styled with owned theme tokens and Tailwind utilities (see `frontend/src/tailwind.css` for the cascade layers). `components.json` pins the Base UI base for the shadcn tooling, but there are no registry components and no `shadcn` dependency, so `ui-maintenance.json` stays in `base-ui` mode. Do not switch it to registry mode or replace the design system as part of dependency maintenance.
+The shared primitives in `components/ui/` (`button`, `alert`, `badge`, `card`, `input`, `select`, `checkbox`, `radio`, `switch`, `field`, `list-group`, `table`, `progress`, `spinner`, `close-button`) are hand-written, Tailwind-styled replacements for the Bootstrap component classes (#937); `button` imports Base UI Button and `list-group` imports Base UI `use-render`. Daynest also uses Base UI directly in `EditorDialog` and in the shared `dialog` wrapper (`components/ui/dialog.tsx`, used by the calendar event, meal planner, medication and search dialogs), styled with owned theme tokens and Tailwind utilities (see `frontend/src/tailwind.css` for the cascade layers). `components.json` pins the Base UI base for the shadcn tooling, but there are no registry components and no `shadcn` dependency, so `ui-maintenance.json` stays in `base-ui` mode. Do not switch it to registry mode or replace the design system as part of dependency maintenance.
 
 ## Ownership and records
 
@@ -184,3 +184,7 @@ All replacements use Lucide outlines (including the previous filled theme icons)
 | list | Menu | Decorative beside the menu label |
 
 See [removal validation](bootstrap-removal-validation.md) for size and verification evidence.
+
+## Registry coverage gate (#1137)
+
+[The current-code coverage audit](ui-registry-coverage.md) records shared primitives, feature compositions, registry alternatives, consumer paths and unresolved acceptance checks. Consult it before implementing or restyling custom UI. A keep decision is a source/requirements decision, not proof of visual or accessibility acceptance. Do not record #933/#937 as complete while its open gates remain.
