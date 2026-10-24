@@ -1,8 +1,17 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "@tanstack/react-form";
 import * as m from "@/paraglide/messages";
 import type { MealSlot, MealSlotUpdateInput } from "@/lib/api/mealPlans";
-import { useFocusTrap } from "@/lib/useFocusTrap";
+import {
+  Dialog,
+  DialogBody,
+  DialogClose,
+  DialogCloseButton,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { apiErrorMessage } from "@/lib/api/errorMessages";
 
 interface MealSlotModalProps {
@@ -23,8 +32,6 @@ export function MealSlotModal({
   onClose,
 }: MealSlotModalProps) {
   const [error, setError] = useState<string | null>(null);
-  const modalRef = useRef<HTMLFormElement>(null);
-  useFocusTrap(modalRef, Boolean(slot));
 
   const form = useForm({
     defaultValues: { title: "", recipeUrl: "", ingredientsText: "" },
@@ -63,32 +70,25 @@ export function MealSlotModal({
   if (!slot) return null;
 
   return (
-    <div className="modal d-block meal-plan-modal" tabIndex={-1} role="dialog" aria-modal="true">
-      <div className="modal-dialog modal-dialog-centered">
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent>
         <form
-          ref={modalRef}
-          className="modal-content"
           onSubmit={(event) => {
             event.preventDefault();
             event.stopPropagation();
             void form.handleSubmit();
           }}
         >
-          <div className="modal-header">
+          <DialogHeader>
             <div>
-              <h3 className="modal-title h5">{m.meal_plan_edit_slot()}</h3>
+              <DialogTitle className="h5 mb-0">{m.meal_plan_edit_slot()}</DialogTitle>
               <div className="small text-muted">
                 {dayLabel} · {mealLabel}
               </div>
             </div>
-            <button
-              type="button"
-              className="btn-close"
-              aria-label={m.action_cancel()}
-              onClick={onClose}
-            />
-          </div>
-          <div className="modal-body">
+            <DialogCloseButton label={m.action_cancel()} />
+          </DialogHeader>
+          <DialogBody>
             {error ? <div className="alert alert-danger py-2">{error}</div> : null}
             <div className="mb-3">
               <label className="form-label" htmlFor="meal-slot-title">
@@ -144,17 +144,15 @@ export function MealSlotModal({
               />
               <div className="form-text">{m.meal_plan_ingredients_help()}</div>
             </div>
-          </div>
-          <div className="modal-footer">
-            <button type="button" className="btn btn-outline-secondary" onClick={onClose}>
-              {m.action_cancel()}
-            </button>
+          </DialogBody>
+          <DialogFooter>
+            <DialogClose className="btn btn-outline-secondary">{m.action_cancel()}</DialogClose>
             <button type="submit" className="btn btn-primary" disabled={isSaving}>
               {isSaving ? m.action_saving() : m.action_save()}
             </button>
-          </div>
+          </DialogFooter>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

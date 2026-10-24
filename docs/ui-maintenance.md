@@ -1,6 +1,6 @@
 # UI dependency and component maintenance
 
-Daynest uses Base UI directly in `EditorDialog`, styled with Bootstrap and Tailwind utilities (see `frontend/src/tailwind.css` for the cascade layers). `components.json` pins the Base UI base for the shadcn tooling, but there are no registry components and no `shadcn` dependency, so `ui-maintenance.json` stays in `base-ui` mode. Do not switch it to registry mode or replace the design system as part of dependency maintenance.
+Daynest uses Base UI directly in `EditorDialog` and in the shared `dialog` wrapper (`components/ui/dialog.tsx`, used by the calendar event, meal planner, medication and search dialogs), styled with Bootstrap and Tailwind utilities (see `frontend/src/tailwind.css` for the cascade layers). `components.json` pins the Base UI base for the shadcn tooling, but there are no registry components and no `shadcn` dependency, so `ui-maintenance.json` stays in `base-ui` mode. Do not switch it to registry mode or replace the design system as part of dependency maintenance.
 
 ## Ownership and records
 
@@ -45,7 +45,7 @@ or raise bundle budgets just to make an update pass.
 
 For Daynest, `ui:upstream` points to the direct Base UI review instead of
 fetching shadcn definitions. Review the runtime release notes against
-`EditorDialog`; add new shared components to the inventory with `registry: null`
+`EditorDialog` and `dialog`; add new shared components to the inventory with `registry: null`
 and an explicit maintenance reason. Do not add unused registry snapshots or a
 shadcn dependency merely to make this repository look like the other apps.
 
