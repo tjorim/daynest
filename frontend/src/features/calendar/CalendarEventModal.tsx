@@ -10,6 +10,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Badge, type BadgeVariant } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+
+const BADGE_VARIANT: Partial<Record<string, BadgeVariant>> = {
+  planned: "secondary",
+  chore: "warning",
+  medication: "info",
+};
 
 export function CalendarEventModal({
   item,
@@ -41,97 +49,80 @@ export function CalendarEventModal({
       <DialogContent>
         <DialogHeader>
           <div>
-            <span
-              className={`badge text-bg-${item.item_type === "planned" ? "secondary" : item.item_type === "chore" ? "warning" : item.item_type === "medication" ? "info" : "primary"} mb-2`}
-            >
+            <Badge variant={BADGE_VARIANT[item.item_type] ?? "primary"} className="tw:mb-2">
               {item.item_type}
-            </span>
-            <DialogTitle className="h5 mb-0">{item.title}</DialogTitle>
+            </Badge>
+            <DialogTitle className="tw:text-h5 tw:font-medium tw:mb-0">{item.title}</DialogTitle>
           </div>
           <DialogCloseButton />
         </DialogHeader>
-        <DialogBody className="d-grid gap-2">
+        <DialogBody className="tw:grid tw:gap-2">
           <div>
             <strong>{m.calendar_status_label()}:</strong>{" "}
             {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
           </div>
           {item.detail ? <div>{item.detail}</div> : null}
           {item.scheduled_date ? (
-            <div className="text-muted small">{item.scheduled_date}</div>
+            <div className="tw:text-muted-foreground tw:text-small">{item.scheduled_date}</div>
           ) : null}
         </DialogBody>
         <DialogFooter className="tw:justify-start">
           {item.item_type === "routine" ? (
             <>
               {item.status === "pending" ? (
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  disabled={isRunning}
-                  onClick={() => onStartRoutine(item.item_id)}
-                >
+                <Button disabled={isRunning} onClick={() => onStartRoutine(item.item_id)}>
                   {m.action_start()}
-                </button>
+                </Button>
               ) : null}
-              <button
-                type="button"
-                className="btn btn-success"
+              <Button
+                variant="success"
                 disabled={isRunning}
                 onClick={() => onCompleteRoutine(item.item_id)}
               >
                 {m.action_done()}
-              </button>
-              <button
-                type="button"
-                className="btn btn-outline-secondary"
+              </Button>
+              <Button
+                variant="outline-secondary"
                 disabled={isRunning}
                 onClick={() => onSkipRoutine(item.item_id)}
               >
                 {m.action_skip()}
-              </button>
+              </Button>
             </>
           ) : null}
           {item.item_type === "chore" ? (
             <>
-              <button
-                type="button"
-                className="btn btn-success"
+              <Button
+                variant="success"
                 disabled={isRunning}
                 onClick={() => onCompleteChore(item.item_id)}
               >
                 {m.action_done()}
-              </button>
-              <button
-                type="button"
-                className="btn btn-outline-secondary"
+              </Button>
+              <Button
+                variant="outline-secondary"
                 disabled={isRunning}
                 onClick={() => onSkipChore(item.item_id)}
               >
                 {m.action_skip()}
-              </button>
+              </Button>
               {item.scheduled_date ? (
-                <button
-                  type="button"
-                  className="btn btn-outline-primary"
+                <Button
+                  variant="outline-primary"
                   disabled={isRunning}
                   onClick={() => onRescheduleChore(item.item_id, item.scheduled_date!)}
                 >
                   {m.action_reschedule_1_day()}
-                </button>
+                </Button>
               ) : null}
             </>
           ) : null}
           {item.item_type === "planned" ? (
-            <button
-              type="button"
-              className="btn btn-primary"
-              disabled={isRunning}
-              onClick={() => onEditPlanned(item.item_id)}
-            >
+            <Button disabled={isRunning} onClick={() => onEditPlanned(item.item_id)}>
               {m.action_edit()}
-            </button>
+            </Button>
           ) : null}
-          <DialogClose className="btn btn-outline-secondary ms-auto">
+          <DialogClose render={<Button variant="outline-secondary" className="tw:ms-auto" />}>
             {m.action_cancel()}
           </DialogClose>
         </DialogFooter>

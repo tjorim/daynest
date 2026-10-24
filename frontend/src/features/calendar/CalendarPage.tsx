@@ -35,6 +35,9 @@ import {
 import { useCalendarRangeQuery } from "@/features/calendar/useCalendarRangeQuery";
 import "@/features/calendar/calendar.css";
 import { apiErrorMessage } from "@/lib/api/errorMessages";
+import { Button } from "@/components/ui/button";
+import { Alert } from "@/components/ui/alert";
+import { Card } from "@/components/ui/card";
 
 function calendarDateString(value: Temporal.ZonedDateTime | Temporal.PlainDate): string {
   return value instanceof Temporal.PlainDate ? value.toString() : value.toPlainDate().toString();
@@ -206,38 +209,41 @@ export function CalendarPage() {
 
   return (
     <section>
-      <div className="d-flex justify-content-between align-items-center gap-2 mb-2">
-        <h2 className="h4 mb-0">{m.calendar_title()}</h2>
-        <button
-          type="button"
-          className="btn btn-outline-primary btn-sm"
-          onClick={() => void reloadCalendar()}
-        >
+      <div className="tw:flex tw:justify-between tw:items-center tw:gap-2 tw:mb-2">
+        <h2 className="tw:text-h4 tw:font-medium tw:mb-0">{m.calendar_title()}</h2>
+        <Button variant="outline-primary" size="sm" onClick={() => void reloadCalendar()}>
           {m.action_refresh()}
-        </button>
+        </Button>
       </div>
-      {loading ? <div className="alert alert-info py-2">{m.calendar_loading()}</div> : null}
+      {loading ? (
+        <Alert variant="info" className="tw:py-2">
+          {m.calendar_loading()}
+        </Alert>
+      ) : null}
       {error ? (
-        <div className="alert alert-danger py-2 d-flex justify-content-between align-items-center gap-2">
+        <Alert
+          variant="danger"
+          className="tw:py-2 tw:flex tw:justify-between tw:items-center tw:gap-2"
+        >
           <span>{error}</span>
           {isRetryableApiError(queryError) ? (
-            <button
-              type="button"
-              className="btn btn-danger btn-sm"
-              onClick={() => void reloadCalendar()}
-            >
+            <Button variant="danger" size="sm" onClick={() => void reloadCalendar()}>
               {m.action_retry()}
-            </button>
+            </Button>
           ) : null}
-        </div>
+        </Alert>
       ) : null}
       {dayActionStatus || planned.actionStatus ? (
-        <div className="alert alert-success py-2">{dayActionStatus ?? planned.actionStatus}</div>
+        <Alert variant="success" className="tw:py-2">
+          {dayActionStatus ?? planned.actionStatus}
+        </Alert>
       ) : null}
       {planned.addError && planned.editingPlannedItemId === null ? (
-        <div className="alert alert-danger py-2">{planned.addError}</div>
+        <Alert variant="danger" className="tw:py-2">
+          {planned.addError}
+        </Alert>
       ) : null}
-      <div className="row g-3">
+      <div className="tw:grid tw:grid-cols-12 tw:gap-4">
         {/*
           schedule-x switches to its compact "small calendar" layout (hiding
           the Today/Previous/Next toolbar) once its container drops below
@@ -246,12 +252,12 @@ export function CalendarPage() {
           permanently hidden on desktop. col-xl-9/col-xl-3 keeps it above
           700px.
         */}
-        <div className="col-xl-9">
-          <div className="daynest-calendar card p-2" role="region" aria-label={m.calendar_title()}>
+        <div className="tw:col-span-12 tw:xl:col-span-9">
+          <Card className="daynest-calendar tw:p-2" role="region" aria-label={m.calendar_title()}>
             <ScheduleXCalendar calendarApp={calendar} customComponents={customComponents} />
-          </div>
+          </Card>
         </div>
-        <div className="col-xl-3">
+        <div className="tw:col-span-12 tw:xl:col-span-3">
           <PlannedItemsSidebar
             selectedDate={selectedDate}
             plannedItems={planned.plannedItems}

@@ -6,6 +6,13 @@ import {
   type PlannedItemModuleKey,
   type PlannedTodayItem,
 } from "@/lib/api/today";
+import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+import { Input, InputGroup, InputGroupText, Textarea } from "@/components/ui/input";
+import { Label } from "@/components/ui/field";
+import { Select } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
+import { ListGroup, ListGroupItem } from "@/components/ui/list-group";
 
 function formatPlannedMeta(item: PlannedTodayItem): string {
   const timeAndDuration = [
@@ -132,34 +139,33 @@ export function PlannedItemsSidebar({
 }) {
   return (
     <>
-      <div className="card mb-3">
-        <div className="card-header fw-semibold py-2">{m.calendar_quick_add_header()}</div>
-        <div className="card-body d-grid gap-3">
-          <div className="d-grid gap-2">
-            <input
-              className="form-control"
+      <Card className="tw:mb-4">
+        <CardHeader className="tw:font-semibold tw:py-2">
+          {m.calendar_quick_add_header()}
+        </CardHeader>
+        <CardContent className="tw:grid tw:gap-4">
+          <div className="tw:grid tw:gap-2">
+            <Input
               value={title}
               onChange={(event) => onSetTitle(event.target.value)}
               placeholder={m.calendar_plan_title_placeholder()}
               aria-label={m.calendar_plan_title_placeholder()}
             />
-            <label htmlFor="planned-time-of-day" className="form-label mt-2 mb-1">
+            <Label className="tw:mt-2 tw:mb-1" htmlFor="planned-time-of-day">
               {m.calendar_time_of_day_label()}
-            </label>
-            <input
+            </Label>
+            <Input
               id="planned-time-of-day"
               type="time"
-              className="form-control"
               value={timeOfDay}
               onChange={(event) => onSetTimeOfDay(event.target.value)}
             />
-            <label htmlFor="planned-duration-minutes" className="form-label mt-2 mb-1">
+            <Label className="tw:mt-2 tw:mb-1" htmlFor="planned-duration-minutes">
               {m.calendar_duration_label()}
-            </label>
-            <input
+            </Label>
+            <Input
               id="planned-duration-minutes"
               type="number"
-              className="form-control"
               min={1}
               value={durationMinutes ?? ""}
               onChange={(event) =>
@@ -167,16 +173,14 @@ export function PlannedItemsSidebar({
               }
               placeholder={m.calendar_duration_placeholder()}
             />
-            <textarea
-              className="form-control"
+            <Textarea
               rows={3}
               value={notes}
               onChange={(event) => onSetNotes(event.target.value)}
               placeholder={m.calendar_notes_placeholder()}
               aria-label={m.calendar_notes_placeholder()}
             />
-            <select
-              className="form-select"
+            <Select
               value={moduleKey}
               onChange={(event) => onSetModuleKey(event.target.value as PlannedItemModuleKey | "")}
               aria-label={m.calendar_optional_module_label()}
@@ -186,23 +190,18 @@ export function PlannedItemsSidebar({
               <option value="meal_planning">{m.calendar_module_meal()}</option>
               <option value="recurring_grocery">{m.calendar_module_grocery()}</option>
               <option value="shared_calendar">{m.calendar_module_shared()}</option>
-            </select>
-            <div className="form-check">
-              <input
+            </Select>
+            <div className="tw:flex tw:items-start tw:gap-2 tw:min-h-6 tw:mb-0.5">
+              <Checkbox
                 id="planned-repeat-toggle"
-                className="form-check-input"
-                type="checkbox"
                 checked={isRepeating}
                 onChange={(event) => onSetIsRepeating(event.target.checked)}
               />
-              <label className="form-check-label" htmlFor="planned-repeat-toggle">
-                {m.calendar_repeat_label()}
-              </label>
+              <label htmlFor="planned-repeat-toggle">{m.calendar_repeat_label()}</label>
             </div>
             {isRepeating ? (
-              <div className="d-grid gap-2 border rounded p-2">
-                <select
-                  className="form-select"
+              <div className="tw:grid tw:gap-2 tw:border tw:border-border tw:rounded-md tw:p-2">
+                <Select
                   value={repeatPreset}
                   onChange={(event) =>
                     onSetRepeatPreset(
@@ -215,14 +214,15 @@ export function PlannedItemsSidebar({
                   <option value="weekly">{m.calendar_repeat_weekly()}</option>
                   <option value="monthly">{m.calendar_repeat_monthly()}</option>
                   <option value="custom">{m.calendar_repeat_custom()}</option>
-                </select>
+                </Select>
                 {repeatPreset === "weekly" ? (
-                  <div className="d-flex flex-wrap gap-2">
+                  <div className="tw:flex tw:flex-wrap tw:gap-2">
                     {WEEKDAY_REPEAT_OPTIONS.map((weekday) => (
-                      <label key={weekday.code} className="form-check form-check-inline mb-0">
-                        <input
-                          type="checkbox"
-                          className="form-check-input"
+                      <label
+                        key={weekday.code}
+                        className="tw:flex tw:items-start tw:gap-2 tw:min-h-6 tw:me-4"
+                      >
+                        <Checkbox
                           checked={repeatWeekdays.includes(weekday.code)}
                           onChange={(event) => {
                             if (event.target.checked) {
@@ -233,45 +233,41 @@ export function PlannedItemsSidebar({
                             onSetRepeatWeekdays(next);
                           }}
                         />
-                        <span className="form-check-label">{weekday.label()}</span>
+                        <span>{weekday.label()}</span>
                       </label>
                     ))}
                   </div>
                 ) : null}
                 {repeatPreset === "custom" ? (
-                  <div className="input-group">
-                    <span className="input-group-text">{m.calendar_repeat_every()}</span>
-                    <input
+                  <InputGroup>
+                    <InputGroupText>{m.calendar_repeat_every()}</InputGroupText>
+                    <Input
                       type="number"
-                      className="form-control"
                       min={2}
                       value={customInterval}
                       onChange={(event) =>
                         onSetCustomInterval(Math.max(2, Number(event.target.value || 2)))
                       }
                     />
-                    <span className="input-group-text">{m.calendar_repeat_days()}</span>
-                  </div>
+                    <InputGroupText>{m.calendar_repeat_days()}</InputGroupText>
+                  </InputGroup>
                 ) : null}
               </div>
             ) : (
-              <input
-                className="form-control"
+              <Input
                 value={recurrenceHint}
                 onChange={(event) => onSetRecurrenceHint(event.target.value)}
                 placeholder={m.calendar_recurrence_placeholder()}
                 aria-label={m.calendar_recurrence_placeholder()}
               />
             )}
-            <input
-              className="form-control"
+            <Input
               value={linkedSource}
               onChange={(event) => onSetLinkedSource(event.target.value)}
               placeholder={m.calendar_linked_source_placeholder()}
               aria-label={m.calendar_linked_source_placeholder()}
             />
-            <input
-              className="form-control"
+            <Input
               value={linkedRef}
               onChange={(event) => onSetLinkedRef(event.target.value)}
               placeholder={m.calendar_linked_ref_placeholder()}
@@ -282,8 +278,7 @@ export function PlannedItemsSidebar({
               const editingItem = plannedItems.find((item) => item.id === editingPlannedItemId);
               return Boolean(editingItem?.rrule || editingItem?.recurrence_series_id);
             })() ? (
-              <select
-                className="form-select"
+              <Select
                 value={editScope}
                 onChange={(event) => onSetEditScope(event.target.value as PlannedItemEditScope)}
                 aria-label={m.calendar_planned_edit_scope_label()}
@@ -291,16 +286,11 @@ export function PlannedItemsSidebar({
                 <option value="this">{m.calendar_planned_edit_scope_this()}</option>
                 <option value="future">{m.calendar_planned_edit_scope_future()}</option>
                 <option value="all">{m.calendar_planned_edit_scope_all()}</option>
-              </select>
+              </Select>
             ) : null}
           </div>
-          <div className="d-flex gap-2 flex-column flex-sm-row">
-            <button
-              type="button"
-              className="btn btn-primary"
-              disabled={isAdding}
-              onClick={() => void onAddPlanned()}
-            >
+          <div className="tw:flex tw:gap-2 tw:flex-col tw:sm:flex-row">
+            <Button disabled={isAdding} onClick={() => void onAddPlanned()}>
               {isAdding
                 ? editingPlannedItemId !== null
                   ? m.action_saving()
@@ -308,157 +298,157 @@ export function PlannedItemsSidebar({
                 : editingPlannedItemId !== null
                   ? m.calendar_save_item()
                   : m.calendar_add_item()}
-            </button>
+            </Button>
             {editingPlannedItemId !== null ? (
-              <button
-                type="button"
-                className="btn btn-outline-secondary"
-                disabled={isAdding}
-                onClick={onCancelEdit}
-              >
+              <Button variant="outline-secondary" disabled={isAdding} onClick={onCancelEdit}>
                 {m.calendar_cancel_edit()}
-              </button>
+              </Button>
             ) : null}
           </div>
-        </div>
+        </CardContent>
         {addError && editingPlannedItemId !== null ? (
-          <div className="card-footer text-danger py-2 small">{addError}</div>
+          <CardFooter className="tw:text-danger tw:py-2 tw:text-small">{addError}</CardFooter>
         ) : null}
-      </div>
+      </Card>
 
-      <div className="card mb-3">
-        <div className="card-header fw-semibold py-2">
+      <Card className="tw:mb-4">
+        <CardHeader className="tw:font-semibold tw:py-2">
           {m.calendar_planned_items_header({ date: formatDate(selectedDate) })}
-        </div>
-        <ul
-          className="list-group list-group-flush"
+        </CardHeader>
+        <ListGroup
+          flush
+          render={<ul />}
           aria-label={m.calendar_planned_items_header({ date: formatDate(selectedDate) })}
         >
           {plannedItems.length === 0 ? (
-            <li className="list-group-item py-2 text-muted">{m.calendar_no_planned_items()}</li>
+            <ListGroupItem render={<li />} className="tw:py-2 tw:text-muted-foreground">
+              {m.calendar_no_planned_items()}
+            </ListGroupItem>
           ) : (
             plannedItems.map((item) => (
-              <li key={item.id} className="list-group-item py-2">
-                <div className="d-flex justify-content-between align-items-start gap-3">
+              <ListGroupItem render={<li />} className="tw:py-2" key={item.id}>
+                <div className="tw:flex tw:justify-between tw:items-start tw:gap-4">
                   <div>
-                    <div className="fw-semibold">
+                    <div className="tw:font-semibold">
                       {item.rrule || item.recurrence_series_id ? "🔁 " : ""}
                       {item.title}
                     </div>
-                    <small className="text-muted d-block">{formatPlannedMeta(item)}</small>
-                    {item.notes ? <small className="d-block mt-1">{item.notes}</small> : null}
+                    <small className="tw:text-muted-foreground tw:block">
+                      {formatPlannedMeta(item)}
+                    </small>
+                    {item.notes ? <small className="tw:block tw:mt-1">{item.notes}</small> : null}
                     {item.linked_ref ? (
-                      <small className="d-block text-muted">
+                      <small className="tw:block tw:text-muted-foreground">
                         {m.calendar_ref_label({ ref: item.linked_ref })}
                       </small>
                     ) : null}
                   </div>
-                  <div className="d-grid gap-2">
-                    <button
-                      type="button"
-                      className={`btn btn-sm ${item.is_done ? "btn-outline-success" : "btn-success"}`}
+                  <div className="tw:grid tw:gap-2">
+                    <Button
+                      variant={item.is_done ? "outline-success" : "success"}
+                      size="sm"
                       disabled={isAdding}
                       onClick={() => void onToggleDone(item)}
                     >
                       {item.is_done ? m.action_undo() : m.action_done()}
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn-outline-primary btn-sm"
+                    </Button>
+                    <Button
+                      variant="outline-primary"
+                      size="sm"
                       disabled={isAdding}
                       onClick={() => onStartEdit(item)}
                     >
                       {m.action_edit()}
-                    </button>
+                    </Button>
                     {confirmDeleteId === item.id ? (
-                      <div className="d-flex gap-1">
+                      <div className="tw:flex tw:gap-1">
                         {item.rrule || item.recurrence_series_id ? (
                           <>
-                            <button
-                              type="button"
-                              className="btn btn-danger btn-sm"
+                            <Button
+                              variant="danger"
+                              size="sm"
                               disabled={isAdding}
                               onClick={() => void onRemovePlannedItem(item.id, "this")}
                             >
                               {m.calendar_delete_this()}
-                            </button>
-                            <button
-                              type="button"
-                              className="btn btn-outline-danger btn-sm"
+                            </Button>
+                            <Button
+                              variant="outline-danger"
+                              size="sm"
                               disabled={isAdding}
                               onClick={() => void onRemovePlannedItem(item.id, "future")}
                             >
                               {m.calendar_delete_this_and_future()}
-                            </button>
+                            </Button>
                           </>
                         ) : (
-                          <button
-                            type="button"
-                            className="btn btn-danger btn-sm"
+                          <Button
+                            variant="danger"
+                            size="sm"
                             disabled={isAdding}
                             onClick={() => void onRemovePlannedItem(item.id)}
                           >
                             {m.action_confirm()}
-                          </button>
+                          </Button>
                         )}
-                        <button
-                          type="button"
-                          className="btn btn-outline-secondary btn-sm"
+                        <Button
+                          variant="outline-secondary"
+                          size="sm"
                           disabled={isAdding}
                           onClick={() => onSetConfirmDeleteId(null)}
                         >
                           {m.action_cancel()}
-                        </button>
+                        </Button>
                       </div>
                     ) : (
-                      <button
-                        type="button"
-                        className="btn btn-outline-danger btn-sm"
+                      <Button
+                        variant="outline-danger"
+                        size="sm"
                         disabled={isAdding}
                         onClick={() => onSetConfirmDeleteId(item.id)}
                       >
                         {m.action_delete()}
-                      </button>
+                      </Button>
                     )}
                   </div>
                 </div>
-              </li>
+              </ListGroupItem>
             ))
           )}
-        </ul>
-      </div>
+        </ListGroup>
+      </Card>
 
-      <div className="card">
-        <div className="card-header fw-semibold py-2">{m.calendar_backup_header()}</div>
-        <div className="card-body">
-          <div className="d-flex flex-column flex-sm-row gap-2">
-            <button
-              type="button"
-              className="btn btn-outline-primary"
+      <Card>
+        <CardHeader className="tw:font-semibold tw:py-2">{m.calendar_backup_header()}</CardHeader>
+        <CardContent>
+          <div className="tw:flex tw:flex-col tw:sm:flex-row tw:gap-2">
+            <Button
+              variant="outline-primary"
               disabled={isExporting || isImporting}
               onClick={() => void onExportBackup()}
             >
               {isExporting ? m.calendar_exporting() : m.calendar_export_backup()}
-            </button>
-            <button
-              type="button"
-              className="btn btn-outline-secondary"
+            </Button>
+            <Button
+              variant="outline-secondary"
               disabled={isExporting || isImporting}
               onClick={() => fileInputRef.current?.click()}
             >
               {isImporting ? m.calendar_importing() : m.calendar_import_backup()}
-            </button>
+            </Button>
             <input
               ref={fileInputRef}
               type="file"
               accept="application/json"
-              className="d-none"
+              className="tw:hidden"
               onChange={(event) => void onImportFile(event)}
             />
           </div>
-          {backupStatus ? <small className="text-muted d-block mt-2">{backupStatus}</small> : null}
-        </div>
-      </div>
+          {backupStatus ? (
+            <small className="tw:text-muted-foreground tw:block tw:mt-2">{backupStatus}</small>
+          ) : null}
+        </CardContent>
+      </Card>
     </>
   );
 }
