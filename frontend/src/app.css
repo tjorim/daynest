@@ -78,10 +78,6 @@ main.container {
   min-height: 44px;
 }
 
-.list-group-item .btn {
-  min-height: 44px;
-}
-
 @media (max-width: 575.98px) {
   main.container {
     padding-left: 0.75rem;

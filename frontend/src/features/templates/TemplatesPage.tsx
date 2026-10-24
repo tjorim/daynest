@@ -17,6 +17,12 @@ import {
 import { apiErrorMessage } from "@/lib/api/errorMessages";
 
 import { TemplateEditor, type TemplateEditorState } from "./TemplateEditor";
+import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
+import { Alert } from "@/components/ui/alert";
+import { Card, CardHeader } from "@/components/ui/card";
+import { ListGroup, ListGroupItem } from "@/components/ui/list-group";
+import { Badge } from "@/components/ui/badge";
 
 export function TemplatesPage() {
   const [routineSubmitError, setRoutineSubmitError] = useState<string | null>(null);
@@ -97,40 +103,33 @@ export function TemplatesPage() {
 
   return (
     <section>
-      <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2 mb-2">
-        <h2 className="h4 mb-0">{m.templates_title()}</h2>
-        <button
-          type="button"
-          className="btn btn-outline-primary btn-sm"
+      <div className="tw:flex tw:flex-col tw:md:flex-row tw:justify-between tw:items-start tw:md:items-center tw:gap-2 tw:mb-2">
+        <h2 className="tw:text-h4 tw:font-medium tw:mb-0">{m.templates_title()}</h2>
+        <Button
+          variant="outline-primary"
+          size="sm"
           disabled={loading || refreshing}
           onClick={() => void loadTemplates()}
         >
-          {refreshing ? (
-            <span
-              className="spinner-border spinner-border-sm me-1"
-              role="status"
-              aria-hidden="true"
-            />
-          ) : null}
+          {refreshing ? <Spinner className="tw:me-1" role="status" /> : null}
           {m.action_refresh()}
-        </button>
+        </Button>
       </div>
-      <p className="text-muted mb-3">{m.templates_subtitle()}</p>
+      <p className="tw:text-muted-foreground tw:mb-4">{m.templates_subtitle()}</p>
 
       <FeedbackBanner message={loading ? m.templates_loading() : null} tone="info" />
       {error ? (
-        <div className="alert alert-danger py-2 d-flex justify-content-between align-items-center gap-2 flex-wrap">
+        <Alert
+          variant="danger"
+          className="tw:py-2 tw:flex tw:justify-between tw:items-center tw:gap-2 tw:flex-wrap"
+        >
           <span>{error}</span>
           {canRetry ? (
-            <button
-              type="button"
-              className="btn btn-danger btn-sm"
-              onClick={() => void loadTemplates()}
-            >
+            <Button variant="danger" size="sm" onClick={() => void loadTemplates()}>
               {m.action_retry()}
-            </button>
+            </Button>
           ) : null}
-        </div>
+        </Alert>
       ) : null}
       <FeedbackBanner
         message={successMessage}
@@ -138,207 +137,205 @@ export function TemplatesPage() {
         onDismiss={() => setSuccessMessage(null)}
       />
 
-      <div className="row g-3">
-        <div className="col-xl-6">
-          <div className="card">
-            <div className="card-header d-flex justify-content-between align-items-center gap-2 py-2">
-              <span className="fw-semibold">{m.templates_routine_list_header()}</span>
-              <button
-                type="button"
-                className="btn btn-primary btn-sm"
+      <div className="tw:grid tw:grid-cols-12 tw:gap-4">
+        <div className="tw:col-span-12 tw:xl:col-span-6">
+          <Card>
+            <CardHeader className="tw:flex tw:justify-between tw:items-center tw:gap-2 tw:py-2">
+              <span className="tw:font-semibold">{m.templates_routine_list_header()}</span>
+              <Button
+                size="sm"
                 onClick={(event) => openEditor({ kind: "routine" }, event.currentTarget)}
               >
                 {m.templates_new_routine()}
-              </button>
-            </div>
+              </Button>
+            </CardHeader>
             <FeedbackBanner
               message={routineSubmitError}
               tone="danger"
               onDismiss={() => setRoutineSubmitError(null)}
             />
-            <ul className="list-group list-group-flush">
+            <ListGroup flush render={<ul />}>
               {routines.length === 0 ? (
-                <li className="list-group-item py-2 text-muted">{m.templates_no_routines()}</li>
+                <ListGroupItem render={<li />} className="tw:py-2 tw:text-muted-foreground">
+                  {m.templates_no_routines()}
+                </ListGroupItem>
               ) : (
                 routines.map((routine) => (
-                  <li key={routine.id} className="list-group-item py-2">
-                    <div className="d-flex justify-content-between align-items-start gap-3">
+                  <ListGroupItem render={<li />} className="tw:py-2" key={routine.id}>
+                    <div className="tw:flex tw:justify-between tw:items-start tw:gap-4">
                       <div>
-                        <div className="fw-semibold">{routine.name}</div>
+                        <div className="tw:font-semibold">{routine.name}</div>
                         {routine.description ? (
-                          <small className="d-block">{routine.description}</small>
+                          <small className="tw:block">{routine.description}</small>
                         ) : null}
-                        <small className="text-muted d-block">
+                        <small className="tw:text-muted-foreground tw:block">
                           {m.templates_starts({ date: formatDate(routine.start_date) })} •{" "}
                           {routine.every_n_days === 1
                             ? m.templates_every_day({ count: routine.every_n_days })
                             : m.templates_every_days({ count: routine.every_n_days })}
                           {routine.due_time ? ` • ${routine.due_time.slice(0, 5)}` : ""}
                         </small>
-                        <small className="text-muted d-block">
+                        <small className="tw:text-muted-foreground tw:block">
                           {m.templates_created({ date: formatDate(routine.created_at) })}
                         </small>
                       </div>
-                      <div className="d-grid gap-2">
-                        <span
-                          className={`badge ${routine.is_active ? "text-bg-success" : "text-bg-secondary"}`}
-                        >
+                      <div className="tw:grid tw:gap-2">
+                        <Badge variant={routine.is_active ? "success" : "secondary"}>
                           {routine.is_active ? m.status_active() : m.status_inactive()}
-                        </span>
+                        </Badge>
                         {(() => {
                           const streak = routineStreakMap.get(routine.id);
                           return streak && streak.current_streak > 0 ? (
-                            <span
-                              className="badge text-bg-warning"
+                            <Badge
+                              variant="warning"
                               title={m.templates_best_streak({ count: streak.longest_streak })}
                             >
                               🔥 {streak.current_streak}
-                            </span>
+                            </Badge>
                           ) : null;
                         })()}
-                        <button
-                          type="button"
-                          className="btn btn-outline-primary btn-sm"
+                        <Button
+                          variant="outline-primary"
+                          size="sm"
                           onClick={(event) =>
                             openEditor({ kind: "routine", template: routine }, event.currentTarget)
                           }
                         >
                           {m.action_edit()}
-                        </button>
+                        </Button>
                         {confirmDeleteRoutineId === routine.id ? (
-                          <div className="d-flex gap-1">
-                            <button
-                              type="button"
-                              className="btn btn-danger btn-sm"
+                          <div className="tw:flex tw:gap-1">
+                            <Button
+                              variant="danger"
+                              size="sm"
                               disabled={isRoutineSubmitting}
                               onClick={() => void handleDeleteRoutine(routine.id)}
                             >
                               {m.action_confirm()}
-                            </button>
-                            <button
-                              type="button"
-                              className="btn btn-outline-secondary btn-sm"
+                            </Button>
+                            <Button
+                              variant="outline-secondary"
+                              size="sm"
                               disabled={isRoutineSubmitting}
                               onClick={() => setConfirmDeleteRoutineId(null)}
                             >
                               {m.action_cancel()}
-                            </button>
+                            </Button>
                           </div>
                         ) : (
-                          <button
-                            type="button"
-                            className="btn btn-outline-danger btn-sm"
+                          <Button
+                            variant="outline-danger"
+                            size="sm"
                             onClick={() => setConfirmDeleteRoutineId(routine.id)}
                           >
                             {m.action_delete()}
-                          </button>
+                          </Button>
                         )}
                       </div>
                     </div>
-                  </li>
+                  </ListGroupItem>
                 ))
               )}
-            </ul>
-          </div>
+            </ListGroup>
+          </Card>
         </div>
 
-        <div className="col-xl-6">
-          <div className="card">
-            <div className="card-header d-flex justify-content-between align-items-center gap-2 py-2">
-              <span className="fw-semibold">{m.templates_chore_list_header()}</span>
-              <button
-                type="button"
-                className="btn btn-primary btn-sm"
+        <div className="tw:col-span-12 tw:xl:col-span-6">
+          <Card>
+            <CardHeader className="tw:flex tw:justify-between tw:items-center tw:gap-2 tw:py-2">
+              <span className="tw:font-semibold">{m.templates_chore_list_header()}</span>
+              <Button
+                size="sm"
                 onClick={(event) => openEditor({ kind: "chore" }, event.currentTarget)}
               >
                 {m.templates_new_chore()}
-              </button>
-            </div>
+              </Button>
+            </CardHeader>
             <FeedbackBanner
               message={choreSubmitError}
               tone="danger"
               onDismiss={() => setChoreSubmitError(null)}
             />
-            <ul className="list-group list-group-flush">
+            <ListGroup flush render={<ul />}>
               {chores.length === 0 ? (
-                <li className="list-group-item py-2 text-muted">{m.templates_no_chores()}</li>
+                <ListGroupItem render={<li />} className="tw:py-2 tw:text-muted-foreground">
+                  {m.templates_no_chores()}
+                </ListGroupItem>
               ) : (
                 chores.map((chore) => (
-                  <li key={chore.id} className="list-group-item py-2">
-                    <div className="d-flex justify-content-between align-items-start gap-3">
+                  <ListGroupItem render={<li />} className="tw:py-2" key={chore.id}>
+                    <div className="tw:flex tw:justify-between tw:items-start tw:gap-4">
                       <div>
-                        <div className="fw-semibold">{chore.name}</div>
+                        <div className="tw:font-semibold">{chore.name}</div>
                         {chore.description ? (
-                          <small className="d-block">{chore.description}</small>
+                          <small className="tw:block">{chore.description}</small>
                         ) : null}
-                        <small className="text-muted d-block">
+                        <small className="tw:text-muted-foreground tw:block">
                           {m.templates_starts({ date: formatDate(chore.start_date) })} •{" "}
                           {chore.every_n_days === 1
                             ? m.templates_every_day({ count: chore.every_n_days })
                             : m.templates_every_days({ count: chore.every_n_days })}
                         </small>
                       </div>
-                      <div className="d-grid gap-2">
-                        <span
-                          className={`badge ${chore.is_active ? "text-bg-success" : "text-bg-secondary"}`}
-                        >
+                      <div className="tw:grid tw:gap-2">
+                        <Badge variant={chore.is_active ? "success" : "secondary"}>
                           {chore.is_active ? m.status_active() : m.status_inactive()}
-                        </span>
+                        </Badge>
                         {(() => {
                           const streak = choreStreakMap.get(chore.id);
                           return streak && streak.current_streak > 0 ? (
-                            <span
-                              className="badge text-bg-warning"
+                            <Badge
+                              variant="warning"
                               title={m.templates_best_streak({ count: streak.longest_streak })}
                             >
                               🔥 {streak.current_streak}
-                            </span>
+                            </Badge>
                           ) : null;
                         })()}
-                        <button
-                          type="button"
-                          className="btn btn-outline-primary btn-sm"
+                        <Button
+                          variant="outline-primary"
+                          size="sm"
                           onClick={(event) =>
                             openEditor({ kind: "chore", template: chore }, event.currentTarget)
                           }
                         >
                           {m.action_edit()}
-                        </button>
+                        </Button>
                         {confirmDeleteChoreId === chore.id ? (
-                          <div className="d-flex gap-1">
-                            <button
-                              type="button"
-                              className="btn btn-danger btn-sm"
+                          <div className="tw:flex tw:gap-1">
+                            <Button
+                              variant="danger"
+                              size="sm"
                               disabled={isChoreSubmitting}
                               onClick={() => void handleDeleteChore(chore.id)}
                             >
                               {m.action_confirm()}
-                            </button>
-                            <button
-                              type="button"
-                              className="btn btn-outline-secondary btn-sm"
+                            </Button>
+                            <Button
+                              variant="outline-secondary"
+                              size="sm"
                               disabled={isChoreSubmitting}
                               onClick={() => setConfirmDeleteChoreId(null)}
                             >
                               {m.action_cancel()}
-                            </button>
+                            </Button>
                           </div>
                         ) : (
-                          <button
-                            type="button"
-                            className="btn btn-outline-danger btn-sm"
+                          <Button
+                            variant="outline-danger"
+                            size="sm"
                             onClick={() => setConfirmDeleteChoreId(chore.id)}
                           >
                             {m.action_delete()}
-                          </button>
+                          </Button>
                         )}
                       </div>
                     </div>
-                  </li>
+                  </ListGroupItem>
                 ))
               )}
-            </ul>
-          </div>
+            </ListGroup>
+          </Card>
         </div>
       </div>
       {editor ? (

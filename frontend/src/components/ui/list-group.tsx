@@ -26,11 +26,11 @@ function ListGroup({
 }
 
 const rowBase = cn(
-  "tw:relative tw:block tw:border tw:border-border tw:bg-background tw:px-4 tw:py-2 tw:text-foreground",
+  "tw:relative tw:block tw:row-buttons tw:border tw:border-border tw:bg-background tw:px-4 tw:py-2 tw:text-foreground",
 );
 const rowGrouped = "tw:not-first:border-t-0 tw:first:rounded-t-md tw:last:rounded-b-md";
 const rowFlush =
-  "tw:border-x-0 tw:rounded-none tw:not-first:border-t-0 tw:last:border-b-0 tw:first:border-t-0";
+  "tw:border-x-0 tw:rounded-none tw:last:rounded-b-inner tw:not-first:border-t-0 tw:last:border-b-0 tw:first:border-t-0";
 const rowAction =
   "tw:w-full tw:cursor-pointer tw:text-start tw:hover:bg-tertiary tw:focus-visible:bg-tertiary tw:focus-visible:outline-none";
 const rowActive =

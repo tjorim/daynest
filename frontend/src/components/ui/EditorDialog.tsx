@@ -2,6 +2,8 @@ import { Dialog } from "@base-ui/react/dialog";
 import { useState, type ReactNode, type RefObject } from "react";
 import * as m from "@/paraglide/messages";
 import "./dialog.css";
+import { Button } from "@/components/ui/button";
+import { closeButtonClass } from "@/components/ui/close-button";
 
 /** Shared record editor shell. Base UI owns focus, scroll locking and dismissal. */
 export function EditorDialog({
@@ -35,27 +37,30 @@ export function EditorDialog({
       <Dialog.Portal>
         <Dialog.Backdrop className="editor-dialog-backdrop" />
         <Dialog.Popup className="editor-dialog-popup" finalFocus={returnFocus}>
-          <div className="d-flex justify-content-between align-items-center gap-3 mb-3">
-            <Dialog.Title className="h5 mb-0">{title}</Dialog.Title>
-            <Dialog.Close className="btn-close" aria-label={m.ui_close()} disabled={busy} />
+          <div className="tw:flex tw:justify-between tw:items-center tw:gap-4 tw:mb-4">
+            <Dialog.Title className="tw:text-h5 tw:font-medium tw:mb-0">{title}</Dialog.Title>
+            <Dialog.Close className={closeButtonClass} aria-label={m.ui_close()} disabled={busy} />
           </div>
           {children}
-          <Dialog.Close className="btn btn-outline-secondary mt-3" disabled={busy}>
+          <Dialog.Close
+            render={<Button variant="outline-secondary" className="tw:mt-4" />}
+            disabled={busy}
+          >
             {m.action_cancel()}
           </Dialog.Close>
           <Dialog.Root open={confirmDiscard} onOpenChange={setConfirmDiscard}>
             <Dialog.Portal>
               <Dialog.Backdrop className="editor-dialog-backdrop" />
               <Dialog.Popup className="editor-dialog-popup">
-                <Dialog.Title className="h5">{m.editor_discard_title()}</Dialog.Title>
+                <Dialog.Title className="tw:text-h5 tw:font-medium tw:mb-2">
+                  {m.editor_discard_title()}
+                </Dialog.Title>
                 <Dialog.Description>{m.editor_discard_description()}</Dialog.Description>
-                <div className="d-flex flex-wrap gap-2">
-                  <Dialog.Close className="btn btn-primary">
-                    {m.editor_continue_editing()}
-                  </Dialog.Close>
-                  <button type="button" className="btn btn-outline-danger" onClick={onClose}>
+                <div className="tw:flex tw:flex-wrap tw:gap-2">
+                  <Dialog.Close render={<Button />}>{m.editor_continue_editing()}</Dialog.Close>
+                  <Button variant="outline-danger" onClick={onClose}>
                     {m.editor_discard_changes()}
-                  </button>
+                  </Button>
                 </div>
               </Dialog.Popup>
             </Dialog.Portal>

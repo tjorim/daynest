@@ -1,5 +1,6 @@
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
 import type { ComponentProps } from "react";
+import { closeButtonClass } from "@/components/ui/close-button";
 import { cn } from "@/lib/utils";
 import * as m from "@/paraglide/messages";
 import "./dialog.css";
@@ -78,7 +79,7 @@ function DialogCloseButton({
 }: Omit<ComponentProps<typeof DialogPrimitive.Close>, "aria-label"> & {
   label?: string;
 }) {
-  return <DialogPrimitive.Close className="btn-close" aria-label={label} {...props} />;
+  return <DialogPrimitive.Close className={closeButtonClass} aria-label={label} {...props} />;
 }
 
 export {
