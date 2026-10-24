@@ -24,6 +24,7 @@ import {
   shoppingItemsQueryOptions,
   shoppingListQueryOptions,
 } from "@/features/shopping/useShoppingLists";
+import { Alert } from "@/components/ui/alert";
 
 const CalendarPage = lazyPage(() => import("@/features/calendar/CalendarPage"), "CalendarPage");
 const MedicationPage = lazyPage(
@@ -67,7 +68,11 @@ function ProtectedRouteBoundary() {
   const { isAuthenticated, isLoading } = useAuth();
   const location = useLocation();
   if (isLoading) {
-    return <div className="alert alert-info py-2">{m.router_loading_session()}</div>;
+    return (
+      <Alert variant="info" className="tw:py-2">
+        {m.router_loading_session()}
+      </Alert>
+    );
   }
   if (!isAuthenticated) {
     return (
@@ -84,7 +89,11 @@ function ProtectedRouteBoundary() {
 }
 
 function AuthCallback() {
-  return <div className="alert alert-info py-2">{m.router_completing_sign_in()}</div>;
+  return (
+    <Alert variant="info" className="tw:py-2">
+      {m.router_completing_sign_in()}
+    </Alert>
+  );
 }
 
 const authSearchSchema = z.object({
@@ -173,7 +182,11 @@ const calendarRoute = createRoute({
   // would otherwise navigate (e.g. a slow first visit) — CalendarPage itself
   // still owns its own loading/error UI via plain useQuery, unaffected by
   // this; the two loading states just cover different windows.
-  pendingComponent: () => <div className="alert alert-info py-2">{m.calendar_loading()}</div>,
+  pendingComponent: () => (
+    <Alert variant="info" className="tw:py-2">
+      {m.calendar_loading()}
+    </Alert>
+  ),
   component: CalendarPage,
 });
 
@@ -219,7 +232,11 @@ const shoppingListRoute = createRoute({
   },
   // See the equivalent comment on calendarRoute above — covers the loader's
   // in-flight window, not the component's own (unaffected) loading UI.
-  pendingComponent: () => <div className="alert alert-info py-2">{m.shopping_loading()}</div>,
+  pendingComponent: () => (
+    <Alert variant="info" className="tw:py-2">
+      {m.shopping_loading()}
+    </Alert>
+  ),
   component: ShoppingListDetail,
 });
 

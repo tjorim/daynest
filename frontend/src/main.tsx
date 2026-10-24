@@ -22,7 +22,11 @@ function App() {
   // second one, letting route loaders and page components share one cache.
   const queryClient = useQueryClient();
   return (
-    <main id="main-content" className="container py-3 py-md-4" tabIndex={-1}>
+    <main
+      id="main-content"
+      className="tw:mx-auto tw:w-full tw:max-w-page tw:px-3 tw:py-4 tw:md:py-6"
+      tabIndex={-1}
+    >
       <RouterProvider
         router={appRouter}
         context={{

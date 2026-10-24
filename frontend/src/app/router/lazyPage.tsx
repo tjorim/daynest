@@ -1,6 +1,8 @@
 import type { ComponentType } from "react";
 import { lazyRouteComponent } from "@tanstack/react-router";
 import * as m from "@/paraglide/messages";
+import { Alert } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 
 /**
  * Code-splits a route page into its own chunk. Chunk-load failures (offline,
@@ -17,23 +19,19 @@ export function lazyPage<Name extends string>(
 
 export function RoutePending() {
   return (
-    <div className="alert alert-info py-2" role="status">
+    <Alert variant="info" className="tw:py-2" role="status">
       {m.router_loading_page()}
-    </div>
+    </Alert>
   );
 }
 
 export function RouteChunkError() {
   return (
-    <div className="alert alert-danger py-2" role="alert">
-      <p className="mb-2">{m.router_page_load_failed()}</p>
-      <button
-        type="button"
-        className="btn btn-outline-danger btn-sm"
-        onClick={() => window.location.reload()}
-      >
+    <Alert variant="danger" className="tw:py-2" role="alert">
+      <p className="tw:mb-2">{m.router_page_load_failed()}</p>
+      <Button variant="outline-danger" size="sm" onClick={() => window.location.reload()}>
         {m.router_page_reload()}
-      </button>
-    </div>
+      </Button>
+    </Alert>
   );
 }
