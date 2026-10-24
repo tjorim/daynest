@@ -260,13 +260,17 @@ export function MedicationPage() {
               />
               <div className="grid grid-cols-12 gap-2">
                 <div className="col-span-12 sm:col-span-6">
-                  <Label className="text-small font-semibold mb-1">
+                  <Label
+                    className="text-small font-semibold mb-1"
+                    htmlFor="create-medication-start-date"
+                  >
                     {m.medication_start_date_label()}
                   </Label>
                   <createForm.Field
                     name="startDate"
                     children={(field) => (
                       <Input
+                        id="create-medication-start-date"
                         type="date"
                         value={field.value}
                         onChange={(event) => field.handleChange(event.target.value)}
@@ -275,13 +279,17 @@ export function MedicationPage() {
                   />
                 </div>
                 <div className="col-span-12 sm:col-span-6">
-                  <Label className="text-small font-semibold mb-1">
+                  <Label
+                    className="text-small font-semibold mb-1"
+                    htmlFor="create-medication-schedule-time"
+                  >
                     {m.medication_schedule_time_label()}
                   </Label>
                   <createForm.Field
                     name="scheduleTime"
                     children={(field) => (
                       <Input
+                        id="create-medication-schedule-time"
                         type="time"
                         value={field.value}
                         onChange={(event) => field.handleChange(event.target.value)}
@@ -291,13 +299,17 @@ export function MedicationPage() {
                 </div>
               </div>
               <div>
-                <Label className="text-small font-semibold mb-1">
+                <Label
+                  className="text-small font-semibold mb-1"
+                  htmlFor="create-medication-every-n-days"
+                >
                   {m.medication_every_n_days_label()}
                 </Label>
                 <createForm.Field
                   name="everyNDays"
                   children={(field) => (
                     <Input
+                      id="create-medication-every-n-days"
                       type="number"
                       min={1}
                       value={field.value}

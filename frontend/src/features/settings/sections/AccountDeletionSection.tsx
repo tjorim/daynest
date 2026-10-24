@@ -44,7 +44,7 @@ export function AccountDeletionSection() {
 
   return (
     <Card className="mt-4 border-danger">
-      <CardHeader className="font-semibold py-2 text-danger">
+      <CardHeader className="font-semibold py-2 text-danger-emphasis">
         {m.settings_delete_account_header()}
       </CardHeader>
       <CardContent className="py-2">

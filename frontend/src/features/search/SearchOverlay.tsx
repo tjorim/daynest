@@ -26,6 +26,7 @@ function ResultRow({
   doneLabel,
   openLabel,
   onSelect,
+  onFocus,
 }: {
   id: string;
   active: boolean;
@@ -35,8 +36,9 @@ function ResultRow({
   doneLabel: string;
   openLabel: string;
   onSelect: () => void;
+  onFocus: () => void;
 }) {
-  const detailClass = active ? "text-white/75" : "text-muted-foreground";
+  const detailClass = active ? "text-white" : "text-muted-foreground";
   const [first, second] = details;
   return (
     <ListGroupItem
@@ -46,6 +48,7 @@ function ResultRow({
       active={active}
       className="rounded-none border-0 px-4 py-2"
       onClick={onSelect}
+      onFocus={onFocus}
     >
       <div className="flex items-center justify-between gap-2">
         <div>
@@ -70,7 +73,10 @@ export function SearchOverlay({ onClose }: { onClose: () => void }) {
   const navigate = useNavigate();
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const searchQuery = useSearchQuery(debouncedQuery, debouncedQuery.length >= MIN_QUERY_LEN);
-  const results = searchQuery.data ?? null;
+  const results =
+    query.trim() === debouncedQuery && query.trim().length >= MIN_QUERY_LEN
+      ? (searchQuery.data ?? null)
+      : null;
   const loading = searchQuery.isFetching;
   const error = searchQuery.error
     ? apiErrorMessage(searchQuery.error, m.api_search_failed())
@@ -99,6 +105,7 @@ export function SearchOverlay({ onClose }: { onClose: () => void }) {
 
   const onQueryChange = (value: string) => {
     setQuery(value);
+    setActiveIndex(-1);
     if (timerRef.current !== null) {
       clearTimeout(timerRef.current);
     }
@@ -123,16 +130,30 @@ export function SearchOverlay({ onClose }: { onClose: () => void }) {
     void navigate({ to: path });
   };
 
+  // Results navigate to routes; they are buttons, not selected combobox values.
+  // Move actual focus so assistive technology announces each destination.
+  const focusResult = (index: number) => {
+    const item = flatItems[index];
+    if (item) document.getElementById(item.key)?.focus();
+    else if (index < 0) inputRef.current?.focus();
+  };
+
   const onInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "ArrowDown") {
+    if (e.key === "ArrowDown" && flatItems.length > 0) {
       e.preventDefault();
-      setActiveIndex((i) => Math.min(i + 1, flatItems.length - 1));
-    } else if (e.key === "ArrowUp") {
+      focusResult(0);
+    }
+  };
+
+  const onResultsKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
       e.preventDefault();
-      setActiveIndex((i) => Math.max(i - 1, -1));
-    } else if (e.key === "Enter" && activeIndex >= 0) {
-      const item = flatItems[activeIndex];
-      if (item) navigateTo(item.path);
+      focusResult(
+        e.key === "ArrowDown" ? Math.min(activeIndex + 1, flatItems.length - 1) : activeIndex - 1,
+      );
+    } else if (e.key === "Home" || e.key === "End") {
+      e.preventDefault();
+      focusResult(e.key === "Home" ? 0 : flatItems.length - 1);
     }
   };
 
@@ -159,6 +180,9 @@ export function SearchOverlay({ onClose }: { onClose: () => void }) {
             <Input
               ref={inputRef}
               type="search"
+              aria-label={m.app_search()}
+              aria-describedby="search-keyboard-hint"
+              onFocus={() => setActiveIndex(-1)}
               className="-ms-px min-w-0 flex-1 border-0 shadow-none focus:ring-0"
               placeholder={m.search_placeholder()}
               value={query}
@@ -189,15 +213,15 @@ export function SearchOverlay({ onClose }: { onClose: () => void }) {
           ) : null}
         </CardHeader>
 
-        <div className="flex-auto overflow-auto">
+        <div className="flex-auto overflow-auto" onKeyDown={onResultsKeyDown} aria-busy={loading}>
           {error ? (
-            <Alert variant="danger" className="m-2 py-2">
+            <Alert variant="danger" className="m-2 py-2" role="alert">
               {error}
             </Alert>
           ) : null}
 
           {results && totalResults === 0 && !loading ? (
-            <div className="p-4 text-center text-muted-foreground">
+            <div className="p-4 text-center text-muted-foreground" role="status">
               {m.search_no_results({ query: results.query })}
             </div>
           ) : null}
@@ -210,6 +234,7 @@ export function SearchOverlay({ onClose }: { onClose: () => void }) {
                   key={`routine-${r.id}`}
                   id={`routine-${r.id}`}
                   active={routineOffset + i === activeIndex}
+                  onFocus={() => setActiveIndex(routineOffset + i)}
                   title={r.name}
                   details={[r.description]}
                   done={r.is_active}
@@ -229,6 +254,7 @@ export function SearchOverlay({ onClose }: { onClose: () => void }) {
                   key={`chore-${c.id}`}
                   id={`chore-${c.id}`}
                   active={choreOffset + i === activeIndex}
+                  onFocus={() => setActiveIndex(choreOffset + i)}
                   title={c.name}
                   details={[c.description]}
                   done={c.is_active}
@@ -248,6 +274,7 @@ export function SearchOverlay({ onClose }: { onClose: () => void }) {
                   key={`med-${med.id}`}
                   id={`med-${med.id}`}
                   active={medOffset + i === activeIndex}
+                  onFocus={() => setActiveIndex(medOffset + i)}
                   title={med.name}
                   details={[med.instructions]}
                   done={med.is_active}
@@ -267,6 +294,7 @@ export function SearchOverlay({ onClose }: { onClose: () => void }) {
                   key={`planned-${p.id}`}
                   id={`planned-${p.id}`}
                   active={plannedOffset + i === activeIndex}
+                  onFocus={() => setActiveIndex(plannedOffset + i)}
                   title={p.title}
                   details={[p.planned_for, p.notes]}
                   done={p.is_done}
@@ -279,12 +307,16 @@ export function SearchOverlay({ onClose }: { onClose: () => void }) {
           ) : null}
 
           {!results && !loading && !error && query.length >= MIN_QUERY_LEN ? (
-            <div className="p-4 text-center text-muted-foreground">{m.search_searching()}</div>
+            <div className="p-4 text-center text-muted-foreground" role="status">
+              {m.search_searching()}
+            </div>
           ) : null}
         </div>
 
         <CardFooter className="px-4 py-1">
-          <small className="text-muted-foreground">{m.search_keyboard_hint()}</small>
+          <small id="search-keyboard-hint" className="text-muted-foreground">
+            {m.search_keyboard_hint()}
+          </small>
         </CardFooter>
       </DialogContent>
     </Dialog>

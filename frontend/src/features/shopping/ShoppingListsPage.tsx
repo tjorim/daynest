@@ -139,9 +139,10 @@ export function ShoppingListsPage() {
         </CardContent>
       </Card>
 
-      <div className="flex gap-2 mb-4" role="tablist" aria-label={m.shopping_tabs_label()}>
+      <div className="flex gap-2 mb-4" role="group" aria-label={m.shopping_tabs_label()}>
         <Button
           size="sm"
+          aria-pressed={tab === "active"}
           variant={tab === "active" ? "primary" : "outline-primary"}
           onClick={() => setTab("active")}
         >
@@ -149,6 +150,7 @@ export function ShoppingListsPage() {
         </Button>
         <Button
           size="sm"
+          aria-pressed={tab === "archived"}
           variant={tab === "archived" ? "primary" : "outline-primary"}
           onClick={() => setTab("archived")}
         >

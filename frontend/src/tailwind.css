@@ -34,6 +34,8 @@
   --color-border: #dee2e6;
 
   --color-primary: #0d6efd;
+  --color-primary-text: #0d6efd;
+  --color-success-text: #198754;
   --color-primary-hover: color-mix(in srgb, black 15%, #0d6efd);
   --color-secondary: #6c757d;
   --color-success: #198754;
@@ -41,8 +43,8 @@
   --color-warning: #ffc107;
   --color-info: #0dcaf0;
 
-  --color-secondary-text: #6c757d;
-  --color-danger-text: #dc3545;
+  --color-secondary-text: #5c636a;
+  --color-danger-text: #b02a37;
   --color-light-hover: color-mix(in srgb, black 15%, #f8f9fa);
   --color-secondary-hover: color-mix(in srgb, black 15%, #6c757d);
   --color-success-hover: color-mix(in srgb, black 15%, #198754);
@@ -102,6 +104,12 @@
   }
 
   [data-theme="dark"] {
+    --color-primary-text: #6ea8fe;
+    --color-secondary-text: #a7acb1;
+    --color-link: #6ea8fe;
+    --color-link-hover: #9ec5fe;
+    --color-danger-text: #ea868f;
+    --color-success-text: #75b798;
     color-scheme: dark;
     --color-code: #e685b5;
     --color-popover: #212529;

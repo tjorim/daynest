@@ -147,7 +147,7 @@ export function StatsPage() {
                   </div>
                   <div className="col-span-12 sm:col-span-3">
                     <div className="text-center p-2">
-                      <div className="text-fluid-4 font-bold text-info">
+                      <div className="text-fluid-4 font-bold text-info-emphasis">
                         {pct(summary.medications.adherence_rate)}
                       </div>
                       <div className="text-small text-muted-foreground mt-1">
@@ -160,7 +160,7 @@ export function StatsPage() {
                   </div>
                   <div className="col-span-12 sm:col-span-3">
                     <div className="text-center p-2">
-                      <div className="text-fluid-4 font-bold text-warning">
+                      <div className="text-fluid-4 font-bold text-warning-emphasis">
                         {pct(summary.planned_items.completion_rate)}
                       </div>
                       <div className="text-small text-muted-foreground mt-1">
