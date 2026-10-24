@@ -65,5 +65,16 @@ function Button({
   );
 }
 
-export { Button, buttonVariants };
+/** Joins `Button`s into one segmented control. */
+function ButtonGroup({ className, ...props }: ComponentProps<"div">) {
+  return (
+    <div
+      role="group"
+      className={cn("tw:relative tw:inline-flex tw:button-group tw:align-middle", className)}
+      {...props}
+    />
+  );
+}
+
+export { Button, ButtonGroup, buttonVariants };
 export type { ButtonSize, ButtonVariant };

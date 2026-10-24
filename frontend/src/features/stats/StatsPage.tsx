@@ -15,6 +15,11 @@ import { isRetryableApiError } from "@/lib/api/http";
 import { useStatsSummaryQuery } from "@/features/stats/useStatsQuery";
 import { apiErrorMessage } from "@/lib/api/errorMessages";
 import { formatDate } from "@/lib/dateUtils";
+import { Button, ButtonGroup } from "@/components/ui/button";
+import { Alert } from "@/components/ui/alert";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { ListGroup, ListGroupItem } from "@/components/ui/list-group";
+import { Badge } from "@/components/ui/badge";
 
 function pct(rate: number): string {
   return `${Math.round(rate * 100)}%`;
@@ -63,113 +68,128 @@ export function StatsPage() {
 
   return (
     <section>
-      <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2 mb-3">
-        <h2 className="h4 mb-0">{m.stats_title()}</h2>
-        <div className="d-flex gap-2 align-items-center flex-wrap">
-          <div className="btn-group btn-group-sm" role="group" aria-label={m.stats_title()}>
+      <div className="tw:flex tw:flex-col tw:md:flex-row tw:justify-between tw:items-start tw:md:items-center tw:gap-2 tw:mb-4">
+        <h2 className="tw:text-h4 tw:font-medium tw:mb-0">{m.stats_title()}</h2>
+        <div className="tw:flex tw:gap-2 tw:items-center tw:flex-wrap">
+          <ButtonGroup aria-label={m.stats_title()}>
             {periods.map((p) => (
-              <button
+              <Button
                 key={p.value}
-                type="button"
-                className={`btn ${period === p.value ? "btn-primary" : "btn-outline-secondary"}`}
+                size="sm"
+                variant={period === p.value ? "primary" : "outline-secondary"}
                 onClick={() => setPeriod(p.value)}
               >
                 {p.label}
-              </button>
+              </Button>
             ))}
-          </div>
-          <button
-            type="button"
-            className="btn btn-outline-primary btn-sm"
+          </ButtonGroup>
+          <Button
+            variant="outline-primary"
+            size="sm"
             disabled={loading}
             onClick={() => void summaryQuery.refetch()}
           >
             {m.action_refresh()}
-          </button>
+          </Button>
         </div>
       </div>
 
-      {loading ? <div className="alert alert-info py-2">{m.stats_loading()}</div> : null}
+      {loading ? (
+        <Alert variant="info" className="tw:py-2">
+          {m.stats_loading()}
+        </Alert>
+      ) : null}
       {error ? (
-        <div className="alert alert-danger py-2 d-flex justify-content-between align-items-center gap-2 flex-wrap">
+        <Alert
+          variant="danger"
+          className="tw:py-2 tw:flex tw:justify-between tw:items-center tw:gap-2 tw:flex-wrap"
+        >
           <span>{error}</span>
           {canRetry ? (
-            <button
-              type="button"
-              className="btn btn-danger btn-sm"
-              onClick={() => void summaryQuery.refetch()}
-            >
+            <Button variant="danger" size="sm" onClick={() => void summaryQuery.refetch()}>
               {m.action_retry()}
-            </button>
+            </Button>
           ) : null}
-        </div>
+        </Alert>
       ) : null}
 
       {summary ? (
-        <div className="row g-3">
-          <div className="col-12">
-            <div className="card">
-              <div className="card-header fw-semibold py-2">
+        <div className="tw:grid tw:grid-cols-12 tw:gap-4">
+          <div className="tw:col-span-12">
+            <Card>
+              <CardHeader className="tw:font-semibold tw:py-2">
                 {m.stats_completion_header({ start: summary.start_date, end: summary.end_date })}
-              </div>
-              <div className="card-body">
-                <div className="row g-3">
-                  <div className="col-sm-3">
-                    <div className="text-center p-2">
-                      <div className="fs-4 fw-bold text-primary">
+              </CardHeader>
+              <CardContent>
+                <div className="tw:grid tw:grid-cols-12 tw:gap-4">
+                  <div className="tw:col-span-12 tw:sm:col-span-3">
+                    <div className="tw:text-center tw:p-2">
+                      <div className="tw:text-fluid-4 tw:font-bold tw:text-brand">
                         {pct(summary.chores.completion_rate)}
                       </div>
-                      <div className="small text-muted mt-1">{m.stats_chores()}</div>
-                      <div className="small text-muted">
+                      <div className="tw:text-small tw:text-muted-foreground tw:mt-1">
+                        {m.stats_chores()}
+                      </div>
+                      <div className="tw:text-small tw:text-muted-foreground">
                         {summary.chores.total_completed}/{summary.chores.total_scheduled}
                       </div>
                     </div>
                   </div>
-                  <div className="col-sm-3">
-                    <div className="text-center p-2">
-                      <div className="fs-4 fw-bold text-success">
+                  <div className="tw:col-span-12 tw:sm:col-span-3">
+                    <div className="tw:text-center tw:p-2">
+                      <div className="tw:text-fluid-4 tw:font-bold tw:text-success">
                         {pct(summary.routines.completion_rate)}
                       </div>
-                      <div className="small text-muted mt-1">{m.stats_routines()}</div>
-                      <div className="small text-muted">
+                      <div className="tw:text-small tw:text-muted-foreground tw:mt-1">
+                        {m.stats_routines()}
+                      </div>
+                      <div className="tw:text-small tw:text-muted-foreground">
                         {summary.routines.total_completed}/{summary.routines.total_scheduled}
                       </div>
                     </div>
                   </div>
-                  <div className="col-sm-3">
-                    <div className="text-center p-2">
-                      <div className="fs-4 fw-bold text-info">
+                  <div className="tw:col-span-12 tw:sm:col-span-3">
+                    <div className="tw:text-center tw:p-2">
+                      <div className="tw:text-fluid-4 tw:font-bold tw:text-info">
                         {pct(summary.medications.adherence_rate)}
                       </div>
-                      <div className="small text-muted mt-1">{m.stats_medication()}</div>
-                      <div className="small text-muted">
+                      <div className="tw:text-small tw:text-muted-foreground tw:mt-1">
+                        {m.stats_medication()}
+                      </div>
+                      <div className="tw:text-small tw:text-muted-foreground">
                         {summary.medications.total_taken}/{summary.medications.total_scheduled}
                       </div>
                     </div>
                   </div>
-                  <div className="col-sm-3">
-                    <div className="text-center p-2">
-                      <div className="fs-4 fw-bold text-warning">
+                  <div className="tw:col-span-12 tw:sm:col-span-3">
+                    <div className="tw:text-center tw:p-2">
+                      <div className="tw:text-fluid-4 tw:font-bold tw:text-warning">
                         {pct(summary.planned_items.completion_rate)}
                       </div>
-                      <div className="small text-muted mt-1">{m.stats_planned_items()}</div>
-                      <div className="small text-muted">
+                      <div className="tw:text-small tw:text-muted-foreground tw:mt-1">
+                        {m.stats_planned_items()}
+                      </div>
+                      <div className="tw:text-small tw:text-muted-foreground">
                         {summary.planned_items.total_completed}/
                         {summary.planned_items.total_scheduled}
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           </div>
 
-          <div className="col-lg-6">
-            <div className="card h-100">
-              <div className="card-header fw-semibold py-2">{m.stats_streak_header()}</div>
-              <ul className="list-group list-group-flush">
+          <div className="tw:col-span-12 tw:lg:col-span-6">
+            <Card className="tw:h-full">
+              <CardHeader className="tw:font-semibold tw:py-2">
+                {m.stats_streak_header()}
+              </CardHeader>
+              <ListGroup flush render={<ul />}>
                 {summary.chores.streaks.length === 0 && summary.routines.streaks.length === 0 ? (
-                  <li className="list-group-item py-2 text-muted">{m.stats_no_streaks()}</li>
+                  <ListGroupItem render={<li />} className="tw:py-2 tw:text-muted-foreground">
+                    {m.stats_no_streaks()}
+                  </ListGroupItem>
                 ) : (
                   [
                     ...summary.chores.streaks.map((s) => ({
@@ -189,57 +209,65 @@ export function StatsPage() {
                   ]
                     .sort((a, b) => b.current - a.current)
                     .map((item) => (
-                      <li key={item.key} className="list-group-item py-2">
-                        <div className="d-flex justify-content-between align-items-center gap-2">
+                      <ListGroupItem render={<li />} className="tw:py-2" key={item.key}>
+                        <div className="tw:flex tw:justify-between tw:items-center tw:gap-2">
                           <div>
-                            <div className="fw-semibold">{item.name}</div>
-                            <small className="text-muted">{item.type}</small>
+                            <div className="tw:font-semibold">{item.name}</div>
+                            <small className="tw:text-muted-foreground">{item.type}</small>
                           </div>
-                          <div className="text-end">
+                          <div className="tw:text-end">
                             {item.current > 0 ? (
-                              <span className="badge text-bg-warning me-1">🔥 {item.current}</span>
+                              <Badge variant="warning" className="tw:me-1">
+                                🔥 {item.current}
+                              </Badge>
                             ) : null}
-                            <small className="text-muted d-block">
+                            <small className="tw:text-muted-foreground tw:block">
                               {m.stats_best({ count: item.best })}
                             </small>
                           </div>
                         </div>
-                      </li>
+                      </ListGroupItem>
                     ))
                 )}
-              </ul>
-            </div>
+              </ListGroup>
+            </Card>
           </div>
 
-          <div className="col-lg-6">
-            <div className="card h-100">
-              <div className="card-header fw-semibold py-2">{m.stats_most_skipped_header()}</div>
-              <ul className="list-group list-group-flush">
+          <div className="tw:col-span-12 tw:lg:col-span-6">
+            <Card className="tw:h-full">
+              <CardHeader className="tw:font-semibold tw:py-2">
+                {m.stats_most_skipped_header()}
+              </CardHeader>
+              <ListGroup flush render={<ul />}>
                 {summary.chores.most_skipped.length === 0 ? (
-                  <li className="list-group-item py-2 text-muted">{m.stats_no_skipped()}</li>
+                  <ListGroupItem render={<li />} className="tw:py-2 tw:text-muted-foreground">
+                    {m.stats_no_skipped()}
+                  </ListGroupItem>
                 ) : (
                   summary.chores.most_skipped.map((item) => (
-                    <li key={item.chore_id} className="list-group-item py-2">
-                      <div className="d-flex justify-content-between align-items-center gap-2">
-                        <div className="fw-semibold">{item.name}</div>
-                        <span className="badge text-bg-secondary">
+                    <ListGroupItem render={<li />} className="tw:py-2" key={item.chore_id}>
+                      <div className="tw:flex tw:justify-between tw:items-center tw:gap-2">
+                        <div className="tw:font-semibold">{item.name}</div>
+                        <Badge variant="secondary">
                           {item.skip_count === 1
                             ? m.stats_skip({ count: item.skip_count })
                             : m.stats_skips({ count: item.skip_count })}
-                        </span>
+                        </Badge>
                       </div>
-                    </li>
+                    </ListGroupItem>
                   ))
                 )}
-              </ul>
-            </div>
+              </ListGroup>
+            </Card>
           </div>
 
           {summary.chores.daily_completions.length > 0 ? (
-            <div className="col-lg-6">
-              <div className="card">
-                <div className="card-header fw-semibold py-2">{m.stats_chores_daily_header()}</div>
-                <div className="card-body pb-2">
+            <div className="tw:col-span-12 tw:lg:col-span-6">
+              <Card>
+                <CardHeader className="tw:font-semibold tw:py-2">
+                  {m.stats_chores_daily_header()}
+                </CardHeader>
+                <CardContent className="tw:pb-2">
                   <TrendAreaChart
                     rows={toCompletionTrend(summary.chores.daily_completions)}
                     stroke="var(--bs-primary)"
@@ -247,18 +275,18 @@ export function StatsPage() {
                     ariaLabel={m.stats_chores_daily_header()}
                     tooltipLabel={m.stats_completion_tooltip()}
                   />
-                </div>
-              </div>
+                </CardContent>
+              </Card>
             </div>
           ) : null}
 
           {summary.routines.daily_completions.length > 0 ? (
-            <div className="col-lg-6">
-              <div className="card">
-                <div className="card-header fw-semibold py-2">
+            <div className="tw:col-span-12 tw:lg:col-span-6">
+              <Card>
+                <CardHeader className="tw:font-semibold tw:py-2">
                   {m.stats_routines_daily_header()}
-                </div>
-                <div className="card-body pb-2">
+                </CardHeader>
+                <CardContent className="tw:pb-2">
                   <TrendAreaChart
                     rows={toCompletionTrend(summary.routines.daily_completions)}
                     stroke="var(--bs-success)"
@@ -266,18 +294,18 @@ export function StatsPage() {
                     ariaLabel={m.stats_routines_daily_header()}
                     tooltipLabel={m.stats_completion_tooltip()}
                   />
-                </div>
-              </div>
+                </CardContent>
+              </Card>
             </div>
           ) : null}
 
           {summary.medications.daily_adherence.length > 0 ? (
-            <div className="col-lg-6">
-              <div className="card">
-                <div className="card-header fw-semibold py-2">
+            <div className="tw:col-span-12 tw:lg:col-span-6">
+              <Card>
+                <CardHeader className="tw:font-semibold tw:py-2">
                   {m.stats_medication_adherence_header()}
-                </div>
-                <div className="card-body pb-2">
+                </CardHeader>
+                <CardContent className="tw:pb-2">
                   <TrendAreaChart
                     rows={toAdherenceTrend(summary.medications.daily_adherence)}
                     stroke="var(--bs-info)"
@@ -285,8 +313,8 @@ export function StatsPage() {
                     ariaLabel={m.stats_medication_adherence_header()}
                     tooltipLabel={m.stats_adherence_tooltip()}
                   />
-                </div>
-              </div>
+                </CardContent>
+              </Card>
             </div>
           ) : null}
         </div>
@@ -410,7 +438,7 @@ function TrendAreaChart({ rows, stroke, fill, ariaLabel, tooltipLabel }: TrendAr
     <div>
       <Chart definition={definition} renderer={chartRenderer} height={140} ariaLabel={ariaLabel} />
       {canBrush && range && selection ? (
-        <div className="d-flex justify-content-between align-items-center small text-muted mt-1">
+        <div className="tw:flex tw:justify-between tw:items-center tw:text-small tw:text-muted-foreground tw:mt-1">
           <span>
             {m.stats_trend_selection({
               start: shortDate(range.start),
@@ -419,13 +447,9 @@ function TrendAreaChart({ rows, stroke, fill, ariaLabel, tooltipLabel }: TrendAr
             })}
           </span>
           {!isFullRange ? (
-            <button
-              type="button"
-              className="btn btn-link btn-sm p-0"
-              onClick={() => setRange(fullRange)}
-            >
+            <Button variant="link" size="sm" className="tw:p-0" onClick={() => setRange(fullRange)}>
               {m.stats_trend_reset()}
-            </button>
+            </Button>
           ) : null}
         </div>
       ) : null}
