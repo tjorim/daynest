@@ -13,6 +13,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { apiErrorMessage } from "@/lib/api/errorMessages";
+import { Alert } from "@/components/ui/alert";
+import { FieldDescription, Label } from "@/components/ui/field";
+import { Input, Textarea } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 interface MealSlotModalProps {
   slot: MealSlot | null;
@@ -81,25 +85,28 @@ export function MealSlotModal({
         >
           <DialogHeader>
             <div>
-              <DialogTitle className="h5 mb-0">{m.meal_plan_edit_slot()}</DialogTitle>
-              <div className="small text-muted">
+              <DialogTitle className="tw:text-h5 tw:font-medium tw:mb-0">
+                {m.meal_plan_edit_slot()}
+              </DialogTitle>
+              <div className="tw:text-small tw:text-muted-foreground">
                 {dayLabel} · {mealLabel}
               </div>
             </div>
             <DialogCloseButton label={m.action_cancel()} />
           </DialogHeader>
           <DialogBody>
-            {error ? <div className="alert alert-danger py-2">{error}</div> : null}
-            <div className="mb-3">
-              <label className="form-label" htmlFor="meal-slot-title">
-                {m.meal_plan_slot_title()}
-              </label>
+            {error ? (
+              <Alert variant="danger" className="tw:py-2">
+                {error}
+              </Alert>
+            ) : null}
+            <div className="tw:mb-4">
+              <Label htmlFor="meal-slot-title">{m.meal_plan_slot_title()}</Label>
               <form.Field
                 name="title"
                 children={(field) => (
-                  <input
+                  <Input
                     id="meal-slot-title"
-                    className="form-control"
                     value={field.value}
                     onChange={(event) => field.handleChange(event.target.value)}
                     placeholder={m.meal_plan_slot_title_placeholder()}
@@ -107,16 +114,13 @@ export function MealSlotModal({
                 )}
               />
             </div>
-            <div className="mb-3">
-              <label className="form-label" htmlFor="meal-slot-recipe">
-                {m.meal_plan_recipe_url()}
-              </label>
+            <div className="tw:mb-4">
+              <Label htmlFor="meal-slot-recipe">{m.meal_plan_recipe_url()}</Label>
               <form.Field
                 name="recipeUrl"
                 children={(field) => (
-                  <input
+                  <Input
                     id="meal-slot-recipe"
-                    className="form-control"
                     type="url"
                     value={field.value}
                     onChange={(event) => field.handleChange(event.target.value)}
@@ -126,15 +130,12 @@ export function MealSlotModal({
               />
             </div>
             <div>
-              <label className="form-label" htmlFor="meal-slot-ingredients">
-                {m.meal_plan_ingredients()}
-              </label>
+              <Label htmlFor="meal-slot-ingredients">{m.meal_plan_ingredients()}</Label>
               <form.Field
                 name="ingredientsText"
                 children={(field) => (
-                  <textarea
+                  <Textarea
                     id="meal-slot-ingredients"
-                    className="form-control"
                     rows={4}
                     value={field.value}
                     onChange={(event) => field.handleChange(event.target.value)}
@@ -142,14 +143,16 @@ export function MealSlotModal({
                   />
                 )}
               />
-              <div className="form-text">{m.meal_plan_ingredients_help()}</div>
+              <FieldDescription>{m.meal_plan_ingredients_help()}</FieldDescription>
             </div>
           </DialogBody>
           <DialogFooter>
-            <DialogClose className="btn btn-outline-secondary">{m.action_cancel()}</DialogClose>
-            <button type="submit" className="btn btn-primary" disabled={isSaving}>
+            <DialogClose render={<Button variant="outline-secondary" />}>
+              {m.action_cancel()}
+            </DialogClose>
+            <Button type="submit" disabled={isSaving}>
               {isSaving ? m.action_saving() : m.action_save()}
-            </button>
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>

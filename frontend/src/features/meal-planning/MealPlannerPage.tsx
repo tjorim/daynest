@@ -13,6 +13,12 @@ import {
   useMealPlansQuery,
 } from "@/features/meal-planning/useMealPlan";
 import { apiErrorMessage } from "@/lib/api/errorMessages";
+import { Button } from "@/components/ui/button";
+import { Alert } from "@/components/ui/alert";
+import { Card, CardContent } from "@/components/ui/card";
+import { Label } from "@/components/ui/field";
+import { Select } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 
 function startOfWeek(value: dayjs.ConfigType): string {
   const date = dayjs(value);
@@ -117,55 +123,56 @@ export function MealPlannerPage() {
 
   return (
     <section>
-      <div className="d-flex flex-column flex-lg-row justify-content-between align-items-lg-start gap-3 mb-3">
+      <div className="tw:flex tw:flex-col tw:lg:flex-row tw:justify-between tw:lg:items-start tw:gap-4 tw:mb-4">
         <div>
-          <h2 className="h4 mb-1">{m.meal_plan_title()}</h2>
-          <p className="text-muted mb-0">{m.meal_plan_subtitle()}</p>
+          <h2 className="tw:text-h4 tw:font-medium tw:mb-1">{m.meal_plan_title()}</h2>
+          <p className="tw:text-muted-foreground tw:mb-0">{m.meal_plan_subtitle()}</p>
         </div>
-        <div className="d-flex flex-wrap gap-2">
-          <button
-            type="button"
-            className="btn btn-outline-primary btn-sm"
-            onClick={() => void reload()}
-          >
+        <div className="tw:flex tw:flex-wrap tw:gap-2">
+          <Button variant="outline-primary" size="sm" onClick={() => void reload()}>
             {m.action_refresh()}
-          </button>
-          <button
-            type="button"
-            className="btn btn-primary btn-sm"
+          </Button>
+          <Button
+            size="sm"
             disabled={!week || actions.isSubmitting}
             onClick={() => setShowGenerateModal(true)}
           >
             {m.meal_plan_generate_shopping_list()}
-          </button>
+          </Button>
         </div>
       </div>
 
       {plansQuery.isPending ? (
-        <div className="alert alert-info py-2">{m.meal_plan_loading()}</div>
+        <Alert variant="info" className="tw:py-2">
+          {m.meal_plan_loading()}
+        </Alert>
       ) : null}
       {error ? (
-        <div className="alert alert-danger py-2 d-flex justify-content-between align-items-center gap-2 flex-wrap">
+        <Alert
+          variant="danger"
+          className="tw:py-2 tw:flex tw:justify-between tw:items-center tw:gap-2 tw:flex-wrap"
+        >
           <span>{error}</span>
           {isRetryableApiError(queryError) ? (
-            <button type="button" className="btn btn-danger btn-sm" onClick={() => void reload()}>
+            <Button variant="danger" size="sm" onClick={() => void reload()}>
               {m.action_retry()}
-            </button>
+            </Button>
           ) : null}
-        </div>
+        </Alert>
       ) : null}
-      {statusMessage ? <div className="alert alert-success py-2">{statusMessage}</div> : null}
+      {statusMessage ? (
+        <Alert variant="success" className="tw:py-2">
+          {statusMessage}
+        </Alert>
+      ) : null}
 
-      <div className="card mb-3">
-        <div className="card-body">
-          <div className="row g-2 align-items-end">
-            <div className="col-12 col-md-4">
-              <label className="form-label" htmlFor="meal-plan-select">
-                {m.meal_plan_select()}
-              </label>
-              <select
+      <Card className="tw:mb-4">
+        <CardContent>
+          <div className="tw:grid tw:grid-cols-12 tw:gap-2 tw:items-end">
+            <div className="tw:col-span-12 tw:md:col-span-4">
+              <Label htmlFor="meal-plan-select">{m.meal_plan_select()}</Label>
+              <Select
                 id="meal-plan-select"
-                className="form-select"
                 value={selectedPlanId ?? ""}
                 onChange={(event) => {
                   const plan = plans.find((item) => item.id === Number(event.target.value));
@@ -180,80 +187,80 @@ export function MealPlannerPage() {
                     {plan.name}
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
-            <div className="col-12 col-md-4">
-              <label className="form-label" htmlFor="meal-plan-name">
-                {m.meal_plan_new_name()}
-              </label>
-              <input
+            <div className="tw:col-span-12 tw:md:col-span-4">
+              <Label htmlFor="meal-plan-name">{m.meal_plan_new_name()}</Label>
+              <Input
                 id="meal-plan-name"
-                className="form-control"
                 value={newPlanName}
                 onChange={(event) => setNewPlanName(event.target.value)}
               />
             </div>
-            <div className="col-12 col-md-4">
-              <button
-                type="button"
-                className="btn btn-outline-primary w-100"
+            <div className="tw:col-span-12 tw:md:col-span-4">
+              <Button
+                variant="outline-primary"
+                className="tw:w-full"
                 disabled={actions.isSubmitting}
                 onClick={() => void createPlan()}
               >
                 {actions.isSubmitting ? m.action_creating() : m.meal_plan_create()}
-              </button>
+              </Button>
             </div>
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
-      <div className="card mb-3">
-        <div className="card-body d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+      <Card className="tw:mb-4">
+        <CardContent className="tw:flex tw:flex-col tw:md:flex-row tw:md:items-center tw:justify-between tw:gap-4">
           <div>
-            <div className="text-muted small">{m.meal_plan_week()}</div>
-            <div className="fw-semibold">
+            <div className="tw:text-muted-foreground tw:text-small">{m.meal_plan_week()}</div>
+            <div className="tw:font-semibold">
               {formatDate(weekStart)} – {formatDate(weekEnd)}
             </div>
           </div>
-          <div className="d-flex flex-wrap gap-2 align-items-center">
-            <button
-              type="button"
-              className="btn btn-outline-secondary btn-sm"
+          <div className="tw:flex tw:flex-wrap tw:gap-2 tw:items-center">
+            <Button
+              variant="outline-secondary"
+              size="sm"
               disabled={actions.isSubmitting || !selectedPlan}
               onClick={() => void changeWeek(toIsoDate(dayjs(weekStart).subtract(7, "day")))}
             >
               {m.meal_plan_previous_week()}
-            </button>
-            <input
+            </Button>
+            <Input
+              size="sm"
+              className="meal-plan-week-input"
               type="date"
-              className="form-control form-control-sm meal-plan-week-input"
               value={weekStart}
               disabled={actions.isSubmitting || !selectedPlan}
               onChange={(event) => void changeWeek(startOfWeek(event.target.value))}
               aria-label={m.meal_plan_week_start()}
             />
-            <button
-              type="button"
-              className="btn btn-outline-secondary btn-sm"
+            <Button
+              variant="outline-secondary"
+              size="sm"
               disabled={actions.isSubmitting || !selectedPlan}
               onClick={() => void changeWeek(toIsoDate(dayjs(weekStart).add(7, "day")))}
             >
               {m.meal_plan_next_week()}
-            </button>
+            </Button>
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {weekQuery.isPending && selectedPlan ? (
-        <div className="alert alert-info py-2">{m.meal_plan_loading_week()}</div>
+        <Alert variant="info" className="tw:py-2">
+          {m.meal_plan_loading_week()}
+        </Alert>
       ) : null}
       {week ? (
-        <div className="meal-plan-grid card p-2 p-md-3">
+        <Card className="meal-plan-grid tw:p-2 tw:md:p-4">
           <div className="meal-plan-grid-corner" />
           {week.days.map((day) => (
             <div className="meal-plan-day-header" key={day.date}>
-              <div className="fw-semibold">{formatWeekday(day.date)}</div>
-              <div className="small text-muted">{formatDate(day.date)}</div>
+              <div className="tw:font-semibold">{formatWeekday(day.date)}</div>
+              <div className="tw:text-small tw:text-muted-foreground">{formatDate(day.date)}</div>
             </div>
           ))}
           {MEAL_SLOT_TYPES.map((slotType) => (
@@ -277,9 +284,11 @@ export function MealPlannerPage() {
               })}
             </div>
           ))}
-        </div>
+        </Card>
       ) : !plansQuery.isPending ? (
-        <div className="alert alert-secondary py-2">{m.meal_plan_create_first()}</div>
+        <Alert variant="secondary" className="tw:py-2">
+          {m.meal_plan_create_first()}
+        </Alert>
       ) : null}
 
       <MealSlotModal

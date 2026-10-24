@@ -75,6 +75,30 @@
       "reason": "Hand-written component styled with the tw: prefix and Bootstrap-bridged theme tokens; replaces Bootstrap's equivalent classes during the #937 migration.",
       "reviewedAt": null,
       "reviewNote": null
+    },
+    "field": {
+      "files": ["src/components/ui/field.tsx"],
+      "registry": null,
+      "origin": "local",
+      "reason": "Hand-written component styled with the tw: prefix and Bootstrap-bridged theme tokens; replaces Bootstrap's equivalent classes during the #937 migration.",
+      "reviewedAt": null,
+      "reviewNote": null
+    },
+    "select": {
+      "files": ["src/components/ui/select.tsx"],
+      "registry": null,
+      "origin": "local",
+      "reason": "Hand-written component styled with the tw: prefix and Bootstrap-bridged theme tokens; replaces Bootstrap's equivalent classes during the #937 migration.",
+      "reviewedAt": null,
+      "reviewNote": null
+    },
+    "checkbox": {
+      "files": ["src/components/ui/checkbox.tsx"],
+      "registry": null,
+      "origin": "local",
+      "reason": "Hand-written component styled with the tw: prefix and Bootstrap-bridged theme tokens; replaces Bootstrap's equivalent classes during the #937 migration.",
+      "reviewedAt": null,
+      "reviewNote": null
     }
   },
   "importPolicy": {

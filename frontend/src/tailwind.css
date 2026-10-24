@@ -63,6 +63,7 @@
   /* Text on a plain background; a dialog lifts these in dark mode (dialog.css). */
   --color-secondary-text: var(--bs-secondary);
   --color-danger-text: var(--bs-danger);
+  --color-light-hover: color-mix(in srgb, black 15%, var(--bs-light));
   --color-secondary-hover: color-mix(in srgb, black 15%, var(--bs-secondary));
   --color-success-hover: color-mix(in srgb, black 15%, var(--bs-success));
   --color-danger-hover: color-mix(in srgb, black 15%, var(--bs-danger));
@@ -111,7 +112,12 @@
 }
 
 @layer base {
+  :root {
+    --select-chevron: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+  }
+
   [data-bs-theme="dark"] {
+    --select-chevron: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23dee2e6' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
     --tw-color-page-from: rgba(18, 18, 28, 0.98);
     --tw-color-page-to: rgba(12, 12, 20, 1);
     --tw-color-surface-from: rgba(30, 30, 45, 0.92);
@@ -138,6 +144,14 @@
 /* Bootstrap's `.small`: relative to the parent font size, line height untouched. */
 @utility text-small {
   font-size: 0.875em;
+}
+
+/* Native select chevron; the colour follows the theme through --select-chevron. */
+@utility select-chevron {
+  background-image: var(--select-chevron);
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 16px 12px;
 }
 
 @utility p-badge {
