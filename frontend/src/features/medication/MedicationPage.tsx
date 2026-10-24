@@ -23,6 +23,14 @@ import {
   useUpdateMedicationPlanMutation,
 } from "@/features/medication/useMedicationQueries";
 import { apiErrorMessage } from "@/lib/api/errorMessages";
+import { Button } from "@/components/ui/button";
+import { Alert } from "@/components/ui/alert";
+import { Card, CardFooter, CardHeader } from "@/components/ui/card";
+import { Input, Textarea } from "@/components/ui/input";
+import { Label } from "@/components/ui/field";
+import { ListGroup, ListGroupItem } from "@/components/ui/list-group";
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const medicationPlanFormSchema = z.object({
   name: z.string().trim().min(1),
@@ -171,42 +179,51 @@ export function MedicationPage() {
 
   return (
     <section>
-      <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2 mb-2">
-        <h2 className="h4 mb-0">{m.medication_title()}</h2>
-        <button
-          type="button"
-          className="btn btn-outline-primary btn-sm"
+      <div className="tw:flex tw:flex-col tw:md:flex-row tw:justify-between tw:items-start tw:md:items-center tw:gap-2 tw:mb-2">
+        <h2 className="tw:text-h4 tw:font-medium tw:mb-0">{m.medication_title()}</h2>
+        <Button
+          variant="outline-primary"
+          size="sm"
           disabled={loading}
           onClick={() => void loadMedication()}
         >
           {m.action_refresh()}
-        </button>
+        </Button>
       </div>
-      <p className="text-muted mb-3">{m.medication_subtitle()}</p>
+      <p className="tw:text-muted-foreground tw:mb-4">{m.medication_subtitle()}</p>
 
-      {loading ? <div className="alert alert-info py-2">{m.medication_loading()}</div> : null}
+      {loading ? (
+        <Alert variant="info" className="tw:py-2">
+          {m.medication_loading()}
+        </Alert>
+      ) : null}
       {error ? (
-        <div className="alert alert-danger py-2 d-flex justify-content-between align-items-center gap-2 flex-wrap">
+        <Alert
+          variant="danger"
+          className="tw:py-2 tw:flex tw:justify-between tw:items-center tw:gap-2 tw:flex-wrap"
+        >
           <span>{error}</span>
           {canRetry ? (
-            <button
-              type="button"
-              className="btn btn-danger btn-sm"
-              onClick={() => void loadMedication()}
-            >
+            <Button variant="danger" size="sm" onClick={() => void loadMedication()}>
               {m.action_retry()}
-            </button>
+            </Button>
           ) : null}
-        </div>
+        </Alert>
       ) : null}
-      {successMessage ? <div className="alert alert-success py-2">{successMessage}</div> : null}
+      {successMessage ? (
+        <Alert variant="success" className="tw:py-2">
+          {successMessage}
+        </Alert>
+      ) : null}
 
-      <div className="row g-3">
-        <div className="col-lg-5">
-          <div className="card mb-3">
-            <div className="card-header fw-semibold py-2">{m.medication_create_plan_header()}</div>
+      <div className="tw:grid tw:grid-cols-12 tw:gap-4">
+        <div className="tw:col-span-12 tw:lg:col-span-5">
+          <Card className="tw:mb-4">
+            <CardHeader className="tw:font-semibold tw:py-2">
+              {m.medication_create_plan_header()}
+            </CardHeader>
             <form
-              className="card-body d-grid gap-2"
+              className="tw:grid tw:flex-auto tw:gap-2 tw:p-4"
               onSubmit={(event) => {
                 event.preventDefault();
                 event.stopPropagation();
@@ -216,8 +233,7 @@ export function MedicationPage() {
               <createForm.Field
                 name="name"
                 children={(field) => (
-                  <input
-                    className="form-control"
+                  <Input
                     value={field.value}
                     onChange={(event) => {
                       field.handleChange(event.target.value);
@@ -232,8 +248,7 @@ export function MedicationPage() {
               <createForm.Field
                 name="instructions"
                 children={(field) => (
-                  <textarea
-                    className="form-control"
+                  <Textarea
                     rows={3}
                     value={field.value}
                     onChange={(event) => {
@@ -246,16 +261,15 @@ export function MedicationPage() {
                   />
                 )}
               />
-              <div className="row g-2">
-                <div className="col-sm-6">
-                  <label className="form-label small fw-semibold mb-1">
+              <div className="tw:grid tw:grid-cols-12 tw:gap-2">
+                <div className="tw:col-span-12 tw:sm:col-span-6">
+                  <Label className="tw:text-small tw:font-semibold tw:mb-1">
                     {m.medication_start_date_label()}
-                  </label>
+                  </Label>
                   <createForm.Field
                     name="startDate"
                     children={(field) => (
-                      <input
-                        className="form-control"
+                      <Input
                         type="date"
                         value={field.value}
                         onChange={(event) => field.handleChange(event.target.value)}
@@ -263,15 +277,14 @@ export function MedicationPage() {
                     )}
                   />
                 </div>
-                <div className="col-sm-6">
-                  <label className="form-label small fw-semibold mb-1">
+                <div className="tw:col-span-12 tw:sm:col-span-6">
+                  <Label className="tw:text-small tw:font-semibold tw:mb-1">
                     {m.medication_schedule_time_label()}
-                  </label>
+                  </Label>
                   <createForm.Field
                     name="scheduleTime"
                     children={(field) => (
-                      <input
-                        className="form-control"
+                      <Input
                         type="time"
                         value={field.value}
                         onChange={(event) => field.handleChange(event.target.value)}
@@ -281,14 +294,13 @@ export function MedicationPage() {
                 </div>
               </div>
               <div>
-                <label className="form-label small fw-semibold mb-1">
+                <Label className="tw:text-small tw:font-semibold tw:mb-1">
                   {m.medication_every_n_days_label()}
-                </label>
+                </Label>
                 <createForm.Field
                   name="everyNDays"
                   children={(field) => (
-                    <input
-                      className="form-control"
+                    <Input
                       type="number"
                       min={1}
                       value={field.value}
@@ -301,93 +313,114 @@ export function MedicationPage() {
                   )}
                 />
               </div>
-              <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
+              <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting ? m.action_creating() : m.medication_create_button()}
-              </button>
+              </Button>
             </form>
             {submitError ? (
-              <div className="card-footer text-danger py-2 small">{submitError}</div>
+              <CardFooter className="tw:text-danger tw:py-2 tw:text-small">
+                {submitError}
+              </CardFooter>
             ) : null}
-          </div>
+          </Card>
 
-          <div className="card">
-            <div className="card-header fw-semibold py-2">{m.medication_active_plans_header()}</div>
-            <ul className="list-group list-group-flush">
+          <Card>
+            <CardHeader className="tw:font-semibold tw:py-2">
+              {m.medication_active_plans_header()}
+            </CardHeader>
+            <ListGroup flush render={<ul />}>
               {plans.length === 0 ? (
-                <li className="list-group-item py-2 text-muted">{m.medication_no_plans()}</li>
+                <ListGroupItem render={<li />} className="tw:py-2 tw:text-muted-foreground">
+                  {m.medication_no_plans()}
+                </ListGroupItem>
               ) : (
                 plans.map((plan) => (
-                  <li key={plan.id} className="list-group-item py-2">
-                    <div className="d-flex justify-content-between align-items-start gap-3 flex-column flex-sm-row">
+                  <ListGroupItem render={<li />} className="tw:py-2" key={plan.id}>
+                    <div className="tw:flex tw:justify-between tw:items-start tw:gap-4 tw:flex-col tw:sm:flex-row">
                       <div>
-                        <div className="fw-semibold">{plan.name}</div>
-                        <small className="text-muted d-block">
+                        <div className="tw:font-semibold">{plan.name}</div>
+                        <small className="tw:text-muted-foreground tw:block">
                           {m.medication_starts({ date: formatDate(plan.start_date) })} •{" "}
                           {plan.schedule_time.slice(0, 5)} •{" "}
                           {plan.every_n_days === 1
                             ? m.medication_every_day({ count: plan.every_n_days })
                             : m.medication_every_days({ count: plan.every_n_days })}
                         </small>
-                        <small className="d-block mt-1">{plan.instructions}</small>
+                        <small className="tw:block tw:mt-1">{plan.instructions}</small>
                       </div>
-                      <div className="d-flex gap-2 align-items-center flex-wrap">
-                        <span
-                          className={`badge align-self-start ${plan.is_active ? "text-bg-success" : "text-bg-secondary"}`}
+                      <div className="tw:flex tw:gap-2 tw:items-center tw:flex-wrap">
+                        <Badge
+                          variant={plan.is_active ? "success" : "secondary"}
+                          className="tw:self-start"
                         >
                           {plan.is_active ? m.status_active() : m.status_inactive()}
-                        </span>
-                        <button
-                          type="button"
-                          className="btn btn-outline-primary btn-sm"
+                        </Badge>
+                        <Button
+                          variant="outline-primary"
+                          size="sm"
                           onClick={() => setEditingPlan(plan)}
                         >
                           {m.action_edit()}
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn-outline-danger btn-sm"
+                        </Button>
+                        <Button
+                          variant="outline-danger"
+                          size="sm"
                           disabled={deletingPlanId === plan.id}
                           onClick={() => void onDeletePlan(plan.id)}
                         >
                           {deletingPlanId === plan.id ? m.action_deleting() : m.action_delete()}
-                        </button>
+                        </Button>
                       </div>
                     </div>
-                  </li>
+                  </ListGroupItem>
                 ))
               )}
-            </ul>
-          </div>
+            </ListGroup>
+          </Card>
         </div>
 
-        <div className="col-lg-7">
-          <div className="card">
-            <div className="card-header fw-semibold py-2">{m.medication_dose_history_header()}</div>
-            <ul className="list-group list-group-flush">
+        <div className="tw:col-span-12 tw:lg:col-span-7">
+          <Card>
+            <CardHeader className="tw:font-semibold tw:py-2">
+              {m.medication_dose_history_header()}
+            </CardHeader>
+            <ListGroup flush render={<ul />}>
               {history.length === 0 ? (
-                <li className="list-group-item py-2 text-muted">{m.medication_no_history()}</li>
+                <ListGroupItem render={<li />} className="tw:py-2 tw:text-muted-foreground">
+                  {m.medication_no_history()}
+                </ListGroupItem>
               ) : (
                 history.map((item) => (
-                  <li key={item.medication_dose_instance_id} className="list-group-item py-2">
-                    <div className="d-flex justify-content-between align-items-start gap-3">
+                  <ListGroupItem
+                    render={<li />}
+                    className="tw:py-2"
+                    key={item.medication_dose_instance_id}
+                  >
+                    <div className="tw:flex tw:justify-between tw:items-start tw:gap-4">
                       <div>
-                        <div className="fw-semibold">{item.name}</div>
-                        <small className="text-muted d-block">
+                        <div className="tw:font-semibold">{item.name}</div>
+                        <small className="tw:text-muted-foreground tw:block">
                           {formatDateTime(item.scheduled_at)} • {item.status}
                         </small>
-                        <small className="d-block mt-1">{item.instructions}</small>
+                        <small className="tw:block tw:mt-1">{item.instructions}</small>
                       </div>
-                      <span
-                        className={`badge ${item.status === "taken" ? "text-bg-success" : item.status === "scheduled" ? "text-bg-info" : "text-bg-secondary"}`}
+                      <Badge
+                        variant={
+                          item.status === "taken"
+                            ? "success"
+                            : item.status === "scheduled"
+                              ? "info"
+                              : "secondary"
+                        }
                       >
                         {item.status}
-                      </span>
+                      </Badge>
                     </div>
-                  </li>
+                  </ListGroupItem>
                 ))
               )}
-            </ul>
-          </div>
+            </ListGroup>
+          </Card>
         </div>
       </div>
       {editingPlan ? (
@@ -445,16 +478,21 @@ function EditMedicationPlanDialog({
           }}
         >
           <DialogHeader>
-            <DialogTitle className="h5 mb-0">{m.medication_edit_title()}</DialogTitle>
+            <DialogTitle className="tw:text-h5 tw:font-medium tw:mb-0">
+              {m.medication_edit_title()}
+            </DialogTitle>
             <DialogCloseButton />
           </DialogHeader>
-          <DialogBody className="d-grid gap-2">
-            {error ? <div className="alert alert-danger py-2">{error}</div> : null}
+          <DialogBody className="tw:grid tw:gap-2">
+            {error ? (
+              <Alert variant="danger" className="tw:py-2">
+                {error}
+              </Alert>
+            ) : null}
             <editForm.Field
               name="name"
               children={(field) => (
-                <input
-                  className="form-control"
+                <Input
                   value={field.value}
                   onChange={(event) => field.handleChange(event.target.value)}
                   aria-label={m.medication_name_placeholder()}
@@ -464,8 +502,7 @@ function EditMedicationPlanDialog({
             <editForm.Field
               name="instructions"
               children={(field) => (
-                <textarea
-                  className="form-control"
+                <Textarea
                   rows={3}
                   value={field.value}
                   onChange={(event) => field.handleChange(event.target.value)}
@@ -473,20 +510,19 @@ function EditMedicationPlanDialog({
                 />
               )}
             />
-            <div className="row g-2">
-              <div className="col-sm-6">
-                <label
-                  className="form-label small fw-semibold mb-1"
+            <div className="tw:grid tw:grid-cols-12 tw:gap-2">
+              <div className="tw:col-span-12 tw:sm:col-span-6">
+                <Label
+                  className="tw:text-small tw:font-semibold tw:mb-1"
                   htmlFor="edit-medication-start-date"
                 >
                   {m.medication_start_date_label()}
-                </label>
+                </Label>
                 <editForm.Field
                   name="startDate"
                   children={(field) => (
-                    <input
+                    <Input
                       id="edit-medication-start-date"
-                      className="form-control"
                       type="date"
                       value={field.value}
                       onChange={(event) => field.handleChange(event.target.value)}
@@ -494,19 +530,18 @@ function EditMedicationPlanDialog({
                   )}
                 />
               </div>
-              <div className="col-sm-6">
-                <label
-                  className="form-label small fw-semibold mb-1"
+              <div className="tw:col-span-12 tw:sm:col-span-6">
+                <Label
+                  className="tw:text-small tw:font-semibold tw:mb-1"
                   htmlFor="edit-medication-schedule-time"
                 >
                   {m.medication_schedule_time_label()}
-                </label>
+                </Label>
                 <editForm.Field
                   name="scheduleTime"
                   children={(field) => (
-                    <input
+                    <Input
                       id="edit-medication-schedule-time"
-                      className="form-control"
                       type="time"
                       value={field.value}
                       onChange={(event) => field.handleChange(event.target.value)}
@@ -516,18 +551,17 @@ function EditMedicationPlanDialog({
               </div>
             </div>
             <div>
-              <label
-                className="form-label small fw-semibold mb-1"
+              <Label
+                className="tw:text-small tw:font-semibold tw:mb-1"
                 htmlFor="edit-medication-every-n-days"
               >
                 {m.medication_every_n_days_label()}
-              </label>
+              </Label>
               <editForm.Field
                 name="everyNDays"
                 children={(field) => (
-                  <input
+                  <Input
                     id="edit-medication-every-n-days"
-                    className="form-control"
                     type="number"
                     min={1}
                     value={field.value}
@@ -536,26 +570,26 @@ function EditMedicationPlanDialog({
                 )}
               />
             </div>
-            <label className="form-check">
+            <label className="tw:flex tw:items-start tw:gap-2 tw:min-h-6 tw:mb-0.5">
               <editForm.Field
                 name="isActive"
                 children={(field) => (
-                  <input
-                    className="form-check-input"
-                    type="checkbox"
+                  <Checkbox
                     checked={field.value}
                     onChange={(event) => field.handleChange(event.target.checked)}
                   />
                 )}
               />
-              <span className="form-check-label">{m.medication_active_label()}</span>
+              <span>{m.medication_active_label()}</span>
             </label>
           </DialogBody>
           <DialogFooter>
-            <DialogClose className="btn btn-outline-secondary">{m.action_cancel()}</DialogClose>
-            <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
+            <DialogClose render={<Button variant="outline-secondary" />}>
+              {m.action_cancel()}
+            </DialogClose>
+            <Button type="submit" disabled={isSubmitting}>
               {isSubmitting ? m.action_saving() : m.action_save()}
-            </button>
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>
