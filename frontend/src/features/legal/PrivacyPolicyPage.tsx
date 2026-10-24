@@ -5,7 +5,7 @@ const LAST_UPDATED = "2026-07-04";
 
 export function PrivacyPolicyPage() {
   return (
-    <section className="mx-auto max-w-3xl px-3">
+    <section className="mx-auto tw:max-w-3xl px-3">
       <h2 className="h4 mb-1">{m.privacy_page_title()}</h2>
       <p className="text-muted mb-4">
         {m.privacy_page_last_updated({

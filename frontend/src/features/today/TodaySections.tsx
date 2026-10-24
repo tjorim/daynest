@@ -256,7 +256,7 @@ export function WebFocusPanel({ sections }: { sections: TodaySection[] }) {
           aria-valuemax={100}
         >
           <div
-            className="progress-bar w-(--completion-percent)"
+            className="progress-bar tw:w-(--completion-percent)"
             style={{ "--completion-percent": `${completionPercent}%` } as CSSProperties}
           />
         </div>
@@ -480,7 +480,7 @@ function PlannedItemActions({
 
   if (isEditing) {
     return (
-      <div className="border rounded p-2 d-flex flex-column gap-2 min-w-56">
+      <div className="border rounded p-2 d-flex flex-column gap-2 tw:min-w-56">
         <input
           className="form-control form-control-sm"
           value={editTitle}

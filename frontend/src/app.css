@@ -1,17 +1,17 @@
 :root {
   /* Bootstrap bridge: map its variables onto the tokens in tailwind.css. Remove with Bootstrap. */
-  --bs-primary: var(--color-brand);
-  --bs-primary-rgb: var(--brand-rgb);
-  --bs-link-color: var(--color-link);
-  --bs-link-color-rgb: var(--brand-rgb);
-  --bs-link-hover-color: var(--color-link-hover);
-  --bs-link-hover-color-rgb: var(--brand-hover-rgb);
+  --bs-primary: var(--tw-color-brand);
+  --bs-primary-rgb: var(--tw-brand-rgb);
+  --bs-link-color: var(--tw-color-link);
+  --bs-link-color-rgb: var(--tw-brand-rgb);
+  --bs-link-hover-color: var(--tw-color-link-hover);
+  --bs-link-hover-color-rgb: var(--tw-brand-hover-rgb);
 }
 
 body {
   background:
     radial-gradient(circle at top, rgba(13, 110, 253, 0.12), transparent 35%),
-    linear-gradient(180deg, var(--color-page-from), var(--color-page-to));
+    linear-gradient(180deg, var(--tw-color-page-from), var(--tw-color-page-to));
   min-height: 100vh;
 }
 
@@ -37,7 +37,7 @@ main.container {
 }
 
 .summary-card {
-  background: linear-gradient(180deg, var(--color-surface-from), var(--color-surface-to));
+  background: linear-gradient(180deg, var(--tw-color-surface-from), var(--tw-color-surface-to));
 }
 
 .summary-pill {
@@ -70,7 +70,7 @@ main.container {
   display: block;
   padding: 0.75rem;
   border-radius: 0.5rem;
-  background: var(--color-muted-surface);
+  background: var(--tw-color-muted-surface);
   word-break: break-all;
 }
 
@@ -100,14 +100,14 @@ main.container {
 }
 
 .web-focus-panel {
-  background: linear-gradient(135deg, rgba(13, 110, 253, 0.12), var(--color-surface-from));
+  background: linear-gradient(135deg, rgba(13, 110, 253, 0.12), var(--tw-color-surface-from));
 }
 
 .focus-progress {
   min-width: 7rem;
   padding: 0.75rem 1rem;
   border-radius: 1rem;
-  background: var(--color-muted-surface);
+  background: var(--tw-color-muted-surface);
   text-align: center;
 }
 
@@ -140,7 +140,7 @@ main.container {
 .meal-plan-meal-header {
   padding: 0.75rem;
   border-radius: 0.75rem;
-  background: var(--color-muted-surface);
+  background: var(--tw-color-muted-surface);
 }
 
 .meal-plan-day-header,
