@@ -39,6 +39,69 @@
   --color-popover-foreground: var(--bs-body-color);
   --color-dialog-border: var(--bs-border-color);
   --shadow-dialog: var(--bs-box-shadow-lg);
+
+  /* Bootstrap's breakpoints, so `tw:md:` and friends switch where the legacy classes did. */
+  --breakpoint-sm: 576px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 992px;
+  --breakpoint-xl: 1200px;
+  --breakpoint-2xl: 1400px;
+
+  /* Semantic colours bridged to Bootstrap's variables, which already follow data-bs-theme. */
+  --color-foreground: var(--bs-body-color);
+  --color-background: var(--bs-body-bg);
+  --color-muted-foreground: var(--bs-secondary-color);
+  --color-border: var(--bs-border-color);
+  /* Bootstrap buttons use its blue, not the --bs-primary override that carries the brand colour. */
+  --color-primary: var(--bs-blue);
+  --color-primary-hover: color-mix(in srgb, black 15%, var(--bs-blue));
+  --color-secondary: var(--bs-secondary);
+  --color-success: var(--bs-success);
+  --color-danger: var(--bs-danger);
+  --color-warning: var(--bs-warning);
+  --color-info: var(--bs-info);
+  /* Text on a plain background; a dialog lifts these in dark mode (dialog.css). */
+  --color-secondary-text: var(--bs-secondary);
+  --color-danger-text: var(--bs-danger);
+  --color-secondary-hover: color-mix(in srgb, black 15%, var(--bs-secondary));
+  --color-success-hover: color-mix(in srgb, black 15%, var(--bs-success));
+  --color-danger-hover: color-mix(in srgb, black 15%, var(--bs-danger));
+  --color-primary-subtle: var(--bs-primary-bg-subtle);
+  --color-primary-border-subtle: var(--bs-primary-border-subtle);
+  --color-primary-emphasis: var(--bs-primary-text-emphasis);
+  --color-secondary-subtle: var(--bs-secondary-bg-subtle);
+  --color-secondary-border-subtle: var(--bs-secondary-border-subtle);
+  --color-secondary-emphasis: var(--bs-secondary-text-emphasis);
+  --color-success-subtle: var(--bs-success-bg-subtle);
+  --color-success-border-subtle: var(--bs-success-border-subtle);
+  --color-success-emphasis: var(--bs-success-text-emphasis);
+  --color-danger-subtle: var(--bs-danger-bg-subtle);
+  --color-danger-border-subtle: var(--bs-danger-border-subtle);
+  --color-danger-emphasis: var(--bs-danger-text-emphasis);
+  --color-warning-subtle: var(--bs-warning-bg-subtle);
+  --color-warning-border-subtle: var(--bs-warning-border-subtle);
+  --color-warning-emphasis: var(--bs-warning-text-emphasis);
+  --color-info-subtle: var(--bs-info-bg-subtle);
+  --color-info-border-subtle: var(--bs-info-border-subtle);
+  --color-info-emphasis: var(--bs-info-text-emphasis);
+  --shadow-sm: var(--bs-box-shadow-sm);
+
+  /* Bootstrap's heading scale (the .h3-.h6 and .fs-4 classes), fluid below the xl breakpoint. */
+  --text-h3: min(calc(1.3rem + 0.6vw), 1.75rem);
+  --text-h3--line-height: 1.2;
+  --text-h4: min(calc(1.275rem + 0.3vw), 1.5rem);
+  --text-h4--line-height: 1.2;
+  --text-h5: 1.25rem;
+  --text-h5--line-height: 1.2;
+  --text-h6: 1rem;
+  --text-h6--line-height: 1.2;
+
+  --animate-spinner: spinner 0.75s linear infinite;
+  @keyframes spinner {
+    to {
+      transform: rotate(360deg);
+    }
+  }
 }
 
 @layer base {
@@ -49,6 +112,10 @@
     --tw-color-surface-to: rgba(22, 22, 35, 0.96);
     --tw-color-muted-surface: rgba(255, 255, 255, 0.08);
   }
+}
+
+@utility align-spinner {
+  vertical-align: -0.125em;
 }
 
 /* One-off sizes for dialogs that no theme token expresses. */

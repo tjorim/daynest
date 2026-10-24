@@ -22,6 +22,13 @@
   z-index: 1050;
 }
 
+/* Outline buttons read their text colour from these tokens; lift them for contrast in dark dialogs. */
+[data-bs-theme="dark"] :is(.editor-dialog-popup, .dialog-popup) {
+  --tw-color-secondary-text: var(--bs-secondary-color);
+  --tw-color-danger-text: var(--bs-danger-text-emphasis);
+}
+
+/* Bootstrap-styled buttons remain in unmigrated dialogs until their features move over. */
 [data-bs-theme="dark"] :is(.editor-dialog-popup, .dialog-popup) .btn-outline-secondary {
   --bs-btn-color: var(--bs-secondary-color);
 }

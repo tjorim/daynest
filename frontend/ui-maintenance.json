@@ -19,6 +19,30 @@
       "reason": "Locally owned composition; maintain against the Base UI APIs it imports and the app UI audit.",
       "reviewedAt": null,
       "reviewNote": null
+    },
+    "button": {
+      "files": ["src/components/ui/button.tsx"],
+      "registry": null,
+      "origin": "local",
+      "reason": "Hand-written Base UI Button wrapper: component styled with the tw: prefix and Bootstrap-bridged theme tokens; replaces Bootstrap's .btn classes during the #937 migration.",
+      "reviewedAt": null,
+      "reviewNote": null
+    },
+    "alert": {
+      "files": ["src/components/ui/alert.tsx"],
+      "registry": null,
+      "origin": "local",
+      "reason": "Hand-written Tailwind component styled with the tw: prefix and Bootstrap-bridged theme tokens; replaces Bootstrap's .alert classes during the #937 migration.",
+      "reviewedAt": null,
+      "reviewNote": null
+    },
+    "spinner": {
+      "files": ["src/components/ui/spinner.tsx"],
+      "registry": null,
+      "origin": "local",
+      "reason": "Hand-written Tailwind component styled with the tw: prefix and Bootstrap-bridged theme tokens; replaces Bootstrap's .spinner-border classes during the #937 migration.",
+      "reviewedAt": null,
+      "reviewNote": null
     }
   },
   "importPolicy": {
