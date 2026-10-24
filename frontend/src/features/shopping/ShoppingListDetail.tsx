@@ -9,6 +9,11 @@ import { AddItemForm } from "@/features/shopping/AddItemForm";
 import { useShoppingActions } from "@/features/shopping/useShoppingActions";
 import { useShoppingItemsQuery, useShoppingListQuery } from "@/features/shopping/useShoppingLists";
 import { apiErrorMessage } from "@/lib/api/errorMessages";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Alert } from "@/components/ui/alert";
+import { Card, CardHeader } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { ListGroup, ListGroupItem } from "@/components/ui/list-group";
 
 function groupItemsByTag(items: PlannedTodayItem[]) {
   const groups = new Map<string, PlannedTodayItem[]>();
@@ -54,34 +59,39 @@ export function ShoppingListDetail() {
 
   return (
     <section>
-      <div className="mb-3">
-        <Link to="/shopping" className="btn btn-link px-0">
+      <div className="tw:mb-4">
+        <Link className={buttonVariants({ variant: "link", className: "tw:px-0" })} to="/shopping">
           ← {m.shopping_back_to_lists()}
         </Link>
       </div>
-      <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2 mb-2">
+      <div className="tw:flex tw:flex-col tw:md:flex-row tw:justify-between tw:items-start tw:md:items-center tw:gap-2 tw:mb-2">
         <div>
-          <h2 className="h4 mb-1">{listQuery.data?.name ?? m.shopping_title()}</h2>
-          <p className="text-muted mb-0">
+          <h2 className="tw:text-h4 tw:font-medium tw:mb-1">
+            {listQuery.data?.name ?? m.shopping_title()}
+          </h2>
+          <p className="tw:text-muted-foreground tw:mb-0">
             {listQuery.data?.store ? `${listQuery.data.store} · ` : ""}
             {m.shopping_item_count({ count: openItems.length })}
           </p>
         </div>
-        <div className="d-flex flex-wrap gap-2">
-          <Link to="/shopping/recurring" className="btn btn-outline-primary btn-sm">
+        <div className="tw:flex tw:flex-wrap tw:gap-2">
+          <Link
+            className={buttonVariants({ variant: "outline-primary", size: "sm" })}
+            to="/shopping/recurring"
+          >
             {m.recurring_groceries_manage()}
           </Link>
-          <button
-            type="button"
-            className="btn btn-outline-primary btn-sm"
+          <Button
+            variant="outline-primary"
+            size="sm"
             disabled={loading || actions.isSubmitting}
             onClick={() => void importRecurring()}
           >
             {m.shopping_import_recurring()}
-          </button>
-          <button
-            type="button"
-            className="btn btn-outline-primary btn-sm"
+          </Button>
+          <Button
+            variant="outline-primary"
+            size="sm"
             disabled={loading}
             onClick={() => {
               setSuccessMessage(null);
@@ -89,25 +99,28 @@ export function ShoppingListDetail() {
             }}
           >
             {m.action_refresh()}
-          </button>
+          </Button>
         </div>
       </div>
-      {listQuery.data?.notes ? <p className="mb-3">{listQuery.data.notes}</p> : null}
+      {listQuery.data?.notes ? <p className="tw:mb-4">{listQuery.data.notes}</p> : null}
 
       <FeedbackBanner message={loading ? m.shopping_loading() : null} tone="info" />
       {error ? (
-        <div className="alert alert-danger py-2 d-flex justify-content-between align-items-center gap-2 flex-wrap">
+        <Alert
+          variant="danger"
+          className="tw:py-2 tw:flex tw:justify-between tw:items-center tw:gap-2 tw:flex-wrap"
+        >
           <span>{error}</span>
           {canRetry ? (
-            <button
-              type="button"
-              className="btn btn-danger btn-sm"
+            <Button
+              variant="danger"
+              size="sm"
               onClick={() => void Promise.all([listQuery.refetch(), itemsQuery.refetch()])}
             >
               {m.action_retry()}
-            </button>
+            </Button>
           ) : null}
-        </div>
+        </Alert>
       ) : null}
       <FeedbackBanner message={actions.actionError} tone="danger" />
       <FeedbackBanner
@@ -124,54 +137,58 @@ export function ShoppingListDetail() {
       {groups.length === 0 ? (
         <FeedbackBanner message={m.shopping_no_items()} tone="secondary" />
       ) : null}
-      <div className="d-flex flex-column gap-3">
+      <div className="tw:flex tw:flex-col tw:gap-4">
         {groups.map(([tag, group]) => (
-          <div className="card" key={tag}>
-            <div className="card-header d-flex justify-content-between align-items-center">
-              <h3 className="h6 mb-0">{tag}</h3>
-              <span className="badge text-bg-primary">{group.length}</span>
-            </div>
-            <div className="list-group list-group-flush" role="list" aria-label={tag}>
+          <Card key={tag}>
+            <CardHeader className="tw:flex tw:justify-between tw:items-center">
+              <h3 className="tw:text-h6 tw:font-medium tw:mb-0">{tag}</h3>
+              <Badge variant="primary">{group.length}</Badge>
+            </CardHeader>
+            <ListGroup flush role="list" aria-label={tag}>
               {group.map((item) => (
-                <div
-                  className="list-group-item d-flex align-items-start justify-content-between gap-3"
+                <ListGroupItem
+                  className="tw:flex tw:items-start tw:justify-between tw:gap-4"
                   key={item.id}
                   role="listitem"
                 >
                   <div>
-                    <div className="fw-semibold">{item.title}</div>
-                    <div className="text-muted small">
+                    <div className="tw:font-semibold">{item.title}</div>
+                    <div className="tw:text-muted-foreground tw:text-small">
                       {m.shopping_planned_for_date({ date: formatDate(item.planned_for) })}
                     </div>
-                    {item.notes ? <div className="small">{item.notes}</div> : null}
+                    {item.notes ? <div className="tw:text-small">{item.notes}</div> : null}
                   </div>
-                  <button
-                    type="button"
-                    className="btn btn-success btn-sm"
+                  <Button
+                    variant="success"
+                    size="sm"
                     disabled={actions.isSubmitting}
                     onClick={() => void actions.checkOffItem(item)}
                   >
                     {m.shopping_check_off()}
-                  </button>
-                </div>
+                  </Button>
+                </ListGroupItem>
               ))}
-            </div>
-          </div>
+            </ListGroup>
+          </Card>
         ))}
       </div>
 
       {completedItems.length > 0 ? (
-        <details className="mt-3">
-          <summary className="text-muted">
+        <details className="tw:mt-4">
+          <summary className="tw:text-muted-foreground">
             {m.shopping_completed_items({ count: completedItems.length })}
           </summary>
-          <ul className="list-group mt-2">
+          <ListGroup render={<ul />} className="tw:mt-2">
             {completedItems.map((item) => (
-              <li className="list-group-item text-muted text-decoration-line-through" key={item.id}>
+              <ListGroupItem
+                render={<li />}
+                className="tw:text-muted-foreground tw:line-through"
+                key={item.id}
+              >
                 {item.title}
-              </li>
+              </ListGroupItem>
             ))}
-          </ul>
+          </ListGroup>
         </details>
       ) : null}
     </section>

@@ -15,6 +15,14 @@ import {
   type RepeatPreset,
 } from "@/features/shopping/rruleControls";
 import { apiErrorMessage } from "@/lib/api/errorMessages";
+import { Button } from "@/components/ui/button";
+import { Alert } from "@/components/ui/alert";
+import { Card, CardContent } from "@/components/ui/card";
+import { Label } from "@/components/ui/field";
+import { Input, InputGroup, InputGroupText, Textarea } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 
 const WEEKDAY_REPEAT_OPTIONS = [
   { code: "MO", label: m.calendar_weekday_mon },
@@ -155,78 +163,80 @@ export function RecurringGroceriesPage() {
 
   return (
     <section>
-      <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2 mb-2">
-        <h2 className="h4 mb-0">{m.recurring_groceries_title()}</h2>
-        <button
-          type="button"
-          className="btn btn-outline-primary btn-sm"
+      <div className="tw:flex tw:flex-col tw:md:flex-row tw:justify-between tw:items-start tw:md:items-center tw:gap-2 tw:mb-2">
+        <h2 className="tw:text-h4 tw:font-medium tw:mb-0">{m.recurring_groceries_title()}</h2>
+        <Button
+          variant="outline-primary"
+          size="sm"
           disabled={loading}
           onClick={() => void Promise.all([recurringQuery.refetch(), listsQuery.refetch()])}
         >
           {m.action_refresh()}
-        </button>
+        </Button>
       </div>
-      <p className="text-muted mb-3">{m.recurring_groceries_subtitle()}</p>
+      <p className="tw:text-muted-foreground tw:mb-4">{m.recurring_groceries_subtitle()}</p>
 
       {loading ? (
-        <div className="alert alert-info py-2">{m.recurring_groceries_loading()}</div>
+        <Alert variant="info" className="tw:py-2">
+          {m.recurring_groceries_loading()}
+        </Alert>
       ) : null}
       {error ? (
-        <div className="alert alert-danger py-2 d-flex justify-content-between align-items-center gap-2 flex-wrap">
+        <Alert
+          variant="danger"
+          className="tw:py-2 tw:flex tw:justify-between tw:items-center tw:gap-2 tw:flex-wrap"
+        >
           <span>{error}</span>
           {canRetry ? (
-            <button
-              type="button"
-              className="btn btn-danger btn-sm"
+            <Button
+              variant="danger"
+              size="sm"
               onClick={() => void Promise.all([recurringQuery.refetch(), listsQuery.refetch()])}
             >
               {m.action_retry()}
-            </button>
+            </Button>
           ) : null}
-        </div>
+        </Alert>
       ) : null}
       {actions.actionError ? (
-        <div className="alert alert-danger py-2">{actions.actionError}</div>
+        <Alert variant="danger" className="tw:py-2">
+          {actions.actionError}
+        </Alert>
       ) : null}
-      {successMessage ? <div className="alert alert-success py-2">{successMessage}</div> : null}
+      {successMessage ? (
+        <Alert variant="success" className="tw:py-2">
+          {successMessage}
+        </Alert>
+      ) : null}
 
-      <div className="card mb-3">
-        <div className="card-body">
-          <h3 className="h6 mb-3">
+      <Card className="tw:mb-4">
+        <CardContent>
+          <h3 className="tw:text-h6 tw:font-medium tw:mb-4">
             {editingSeries ? m.recurring_groceries_edit() : m.recurring_groceries_create()}
           </h3>
-          <div className="row g-2">
-            <div className="col-12 col-md-4">
-              <label className="form-label" htmlFor="recurring-grocery-title">
-                {m.recurring_groceries_item_name()}
-              </label>
-              <input
+          <div className="tw:grid tw:grid-cols-12 tw:gap-2">
+            <div className="tw:col-span-12 tw:md:col-span-4">
+              <Label htmlFor="recurring-grocery-title">{m.recurring_groceries_item_name()}</Label>
+              <Input
                 id="recurring-grocery-title"
-                className="form-control"
                 value={title}
                 onChange={(event) => setTitle(event.target.value)}
                 placeholder={m.recurring_groceries_item_placeholder()}
               />
             </div>
-            <div className="col-12 col-md-2">
-              <label className="form-label" htmlFor="recurring-grocery-start">
-                {m.recurring_groceries_start_date()}
-              </label>
-              <input
+            <div className="tw:col-span-12 tw:md:col-span-2">
+              <Label htmlFor="recurring-grocery-start">{m.recurring_groceries_start_date()}</Label>
+              <Input
                 id="recurring-grocery-start"
                 type="date"
-                className="form-control"
                 value={startDate}
                 onChange={(event) => setStartDate(event.target.value)}
               />
             </div>
-            <div className="col-12 col-md-3">
-              <label className="form-label" htmlFor="recurring-grocery-list">
-                {m.recurring_groceries_auto_add()}
-              </label>
-              <select
+            <div className="tw:col-span-12 tw:md:col-span-3">
+              <Label htmlFor="recurring-grocery-list">{m.recurring_groceries_auto_add()}</Label>
+              <Select
                 id="recurring-grocery-list"
-                className="form-select"
                 value={autoAddToListId}
                 onChange={(event) => setAutoAddToListId(event.target.value)}
               >
@@ -236,33 +246,28 @@ export function RecurringGroceriesPage() {
                     {list.name}
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
-            <div className="col-12 col-md-3">
-              <label className="form-label" htmlFor="recurring-grocery-tags">
-                {m.recurring_groceries_tags()}
-              </label>
-              <input
+            <div className="tw:col-span-12 tw:md:col-span-3">
+              <Label htmlFor="recurring-grocery-tags">{m.recurring_groceries_tags()}</Label>
+              <Input
                 id="recurring-grocery-tags"
-                className="form-control"
                 value={tags}
                 onChange={(event) => setTags(event.target.value)}
                 placeholder={m.recurring_groceries_tags_placeholder()}
               />
             </div>
-            <div className="col-12">
-              <textarea
-                className="form-control"
+            <div className="tw:col-span-12">
+              <Textarea
                 rows={2}
                 value={notes}
                 onChange={(event) => setNotes(event.target.value)}
                 placeholder={m.today_notes_optional()}
               />
             </div>
-            <div className="col-12">
-              <div className="d-grid gap-2 border rounded p-2">
-                <select
-                  className="form-select"
+            <div className="tw:col-span-12">
+              <div className="tw:grid tw:gap-2 tw:border tw:border-border tw:rounded-md tw:p-2">
+                <Select
                   value={repeatPreset}
                   onChange={(event) => setRepeatPreset(event.target.value as RepeatPreset)}
                   aria-label={m.calendar_repeat_schedule_aria()}
@@ -271,14 +276,12 @@ export function RecurringGroceriesPage() {
                   <option value="weekly">{m.calendar_repeat_weekly()}</option>
                   <option value="monthly">{m.calendar_repeat_monthly()}</option>
                   <option value="custom">{m.calendar_repeat_custom()}</option>
-                </select>
+                </Select>
                 {repeatPreset === "weekly" ? (
-                  <div className="d-flex flex-wrap gap-2">
+                  <div className="tw:flex tw:flex-wrap tw:gap-2">
                     {WEEKDAY_REPEAT_OPTIONS.map((weekday) => (
-                      <label key={weekday.code} className="form-check form-check-inline mb-0">
-                        <input
-                          type="checkbox"
-                          className="form-check-input"
+                      <label key={weekday.code} className="tw:check-row tw:me-4 tw:mb-0">
+                        <Checkbox
                           checked={repeatWeekdays.includes(weekday.code)}
                           onChange={(event) => {
                             if (event.target.checked) {
@@ -290,17 +293,16 @@ export function RecurringGroceriesPage() {
                             );
                           }}
                         />
-                        <span className="form-check-label">{weekday.label()}</span>
+                        <span>{weekday.label()}</span>
                       </label>
                     ))}
                   </div>
                 ) : null}
                 {repeatPreset === "custom" ? (
-                  <div className="input-group">
-                    <span className="input-group-text">{m.calendar_repeat_every()}</span>
-                    <input
+                  <InputGroup>
+                    <InputGroupText>{m.calendar_repeat_every()}</InputGroupText>
+                    <Input
                       type="number"
-                      className="form-control"
                       min={2}
                       value={customInterval}
                       onChange={(event) => {
@@ -308,15 +310,13 @@ export function RecurringGroceriesPage() {
                         setCustomInterval(isNaN(val) ? 2 : Math.max(2, val));
                       }}
                     />
-                    <span className="input-group-text">{m.calendar_repeat_days()}</span>
-                  </div>
+                    <InputGroupText>{m.calendar_repeat_days()}</InputGroupText>
+                  </InputGroup>
                 ) : null}
               </div>
             </div>
-            <div className="col-12 d-flex flex-wrap gap-2">
-              <button
-                type="button"
-                className="btn btn-primary"
+            <div className="tw:col-span-12 tw:flex tw:flex-wrap tw:gap-2">
+              <Button
                 disabled={actions.isSubmitting || !title.trim() || !startDate}
                 onClick={() => void submit()}
               >
@@ -325,79 +325,80 @@ export function RecurringGroceriesPage() {
                   : editingSeries
                     ? m.action_save()
                     : m.action_add()}
-              </button>
+              </Button>
               {editingSeries ? (
-                <button
-                  type="button"
-                  className="btn btn-outline-secondary"
+                <Button
+                  variant="outline-secondary"
                   disabled={actions.isSubmitting}
                   onClick={resetForm}
                 >
                   {m.action_cancel()}
-                </button>
+                </Button>
               ) : null}
             </div>
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {recurringQuery.data?.length === 0 ? (
-        <div className="alert alert-secondary py-2">{m.recurring_groceries_no_items()}</div>
+        <Alert variant="secondary" className="tw:py-2">
+          {m.recurring_groceries_no_items()}
+        </Alert>
       ) : null}
-      <div className="row g-3">
+      <div className="tw:grid tw:grid-cols-12 tw:gap-4">
         {(recurringQuery.data ?? []).map((series) => (
-          <div className="col-12 col-md-6 col-xl-4" key={series.key}>
-            <div className="card h-100">
-              <div className="card-body d-flex flex-column gap-2">
+          <div className="tw:col-span-12 tw:md:col-span-6 tw:xl:col-span-4" key={series.key}>
+            <Card className="tw:h-full">
+              <CardContent className="tw:flex tw:flex-col tw:gap-2">
                 <div>
-                  <h3 className="h5 mb-1">{series.title}</h3>
-                  <div className="text-muted small">
+                  <h3 className="tw:text-h5 tw:font-medium tw:mb-1">{series.title}</h3>
+                  <div className="tw:text-muted-foreground tw:text-small">
                     {m.recurring_groceries_cadence({
                       cadence: series.recurrenceHint ?? formatRRule(series.rrule),
                     })}
                   </div>
-                  <div className="text-muted small">
+                  <div className="tw:text-muted-foreground tw:text-small">
                     {m.shopping_planned_for_date({ date: formatDate(series.startDate) })}
                   </div>
                   {series.autoAddToListId ? (
-                    <div className="text-muted small">
+                    <div className="tw:text-muted-foreground tw:text-small">
                       {m.recurring_groceries_auto_add_to({
                         list:
                           listNameById.get(series.autoAddToListId) ?? `#${series.autoAddToListId}`,
                       })}
                     </div>
                   ) : null}
-                  {series.notes ? <p className="mb-0 small">{series.notes}</p> : null}
+                  {series.notes ? <p className="tw:mb-0 tw:text-small">{series.notes}</p> : null}
                   {series.tags.length ? (
-                    <div className="d-flex flex-wrap gap-1 mt-2">
+                    <div className="tw:flex tw:flex-wrap tw:gap-1 tw:mt-2">
                       {series.tags.map((tag) => (
-                        <span className="badge text-bg-light" key={tag}>
+                        <Badge variant="light" key={tag}>
                           {tag}
-                        </span>
+                        </Badge>
                       ))}
                     </div>
                   ) : null}
                 </div>
-                <div className="d-flex flex-wrap gap-2 mt-auto">
-                  <button
-                    type="button"
-                    className="btn btn-outline-primary btn-sm"
+                <div className="tw:flex tw:flex-wrap tw:gap-2 tw:mt-auto">
+                  <Button
+                    variant="outline-primary"
+                    size="sm"
                     disabled={actions.isSubmitting}
                     onClick={() => startEditing(series)}
                   >
                     {m.action_edit()}
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-outline-danger btn-sm"
+                  </Button>
+                  <Button
+                    variant="outline-danger"
+                    size="sm"
                     disabled={actions.isSubmitting}
                     onClick={() => void deleteSeries(series)}
                   >
                     {m.action_delete()}
-                  </button>
+                  </Button>
                 </div>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           </div>
         ))}
       </div>
