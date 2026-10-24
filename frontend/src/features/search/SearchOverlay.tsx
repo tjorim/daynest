@@ -2,8 +2,61 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import * as m from "@/paraglide/messages";
 import { useSearchQuery } from "@/features/search/useSearchQuery";
+import { Alert } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { CardFooter, CardHeader } from "@/components/ui/card";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { ListGroupItem } from "@/components/ui/list-group";
+import { Spinner } from "@/components/ui/spinner";
 import { apiErrorMessage } from "@/lib/api/errorMessages";
+
+const sectionTitleClass =
+  "tw:border-b tw:border-border tw:px-4 tw:py-1 tw:text-small tw:font-semibold tw:text-muted-foreground";
+
+/** One result: a title, up to two detail lines and a done/open badge. */
+function ResultRow({
+  id,
+  active,
+  title,
+  details,
+  done,
+  doneLabel,
+  openLabel,
+  onSelect,
+}: {
+  id: string;
+  active: boolean;
+  title: string;
+  details: (string | null)[];
+  done: boolean;
+  doneLabel: string;
+  openLabel: string;
+  onSelect: () => void;
+}) {
+  const detailClass = active ? "tw:text-white/75" : "tw:text-muted-foreground";
+  const [first, second] = details;
+  return (
+    <ListGroupItem
+      id={id}
+      render={<button type="button" />}
+      action
+      active={active}
+      className="tw:rounded-none tw:border-0 tw:px-4 tw:py-2"
+      onClick={onSelect}
+    >
+      <div className="tw:flex tw:items-center tw:justify-between tw:gap-2">
+        <div>
+          <div className="tw:font-semibold">{title}</div>
+          {first ? <small className={detailClass}>{first}</small> : null}
+          {second ? <small className={`tw:block ${detailClass}`}>{second}</small> : null}
+        </div>
+        <Badge variant={done ? "success" : "secondary"}>{done ? doneLabel : openLabel}</Badge>
+      </div>
+    </ListGroupItem>
+  );
+}
 
 const DEBOUNCE_MS = 300;
 const MIN_QUERY_LEN = 2;
@@ -96,21 +149,16 @@ export function SearchOverlay({ onClose }: { onClose: () => void }) {
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent
-        position="top"
-        className="card"
-        initialFocus={inputRef}
-        aria-label={m.app_search()}
-      >
-        <div className="card-header p-2">
-          <div className="input-group">
-            <span className="input-group-text border-0 bg-transparent">
+      <DialogContent position="top" initialFocus={inputRef} aria-label={m.app_search()}>
+        <CardHeader className="tw:p-2">
+          <div className="tw:flex tw:w-full tw:flex-wrap tw:items-stretch">
+            <span className="tw:flex tw:items-center tw:px-3 tw:py-1.5 tw:text-center tw:leading-normal tw:whitespace-nowrap">
               <i className="bi bi-search" aria-hidden="true" />
             </span>
-            <input
+            <Input
               ref={inputRef}
               type="search"
-              className="form-control border-0 shadow-none"
+              className="tw:-ms-px tw:min-w-0 tw:flex-1 tw:border-0 tw:shadow-none tw:focus:ring-0"
               placeholder={m.search_placeholder()}
               value={query}
               onChange={(e) => onQueryChange(e.target.value)}
@@ -118,166 +166,127 @@ export function SearchOverlay({ onClose }: { onClose: () => void }) {
               autoComplete="off"
             />
             {loading ? (
-              <span className="input-group-text border-0 bg-transparent">
-                <span
-                  className="spinner-border spinner-border-sm"
-                  role="status"
-                  aria-hidden="true"
-                />
+              <span className="tw:-ms-px tw:flex tw:items-center tw:px-3 tw:py-1.5 tw:text-center tw:leading-normal tw:whitespace-nowrap">
+                <Spinner role="status" />
               </span>
             ) : null}
-            <button
-              type="button"
-              className="btn btn-link border-0"
+            <Button
+              variant="link"
+              className="tw:-ms-px tw:border-0"
               onClick={onClose}
               aria-label={m.ui_close_search()}
             >
               <i className="bi bi-x-lg" aria-hidden="true" />
-            </button>
+            </Button>
           </div>
           {query.length > 0 && query.length < MIN_QUERY_LEN ? (
-            <div className="px-2 pb-1">
-              <small className="text-muted">{m.search_min_chars({ min: MIN_QUERY_LEN })}</small>
+            <div className="tw:px-2 tw:pb-1">
+              <small className="tw:text-muted-foreground">
+                {m.search_min_chars({ min: MIN_QUERY_LEN })}
+              </small>
             </div>
           ) : null}
-        </div>
+        </CardHeader>
 
-        <div className="overflow-auto flex-fill">
-          {error ? <div className="alert alert-danger m-2 py-2">{error}</div> : null}
+        <div className="tw:flex-auto tw:overflow-auto">
+          {error ? (
+            <Alert variant="danger" className="tw:m-2 tw:py-2">
+              {error}
+            </Alert>
+          ) : null}
 
           {results && totalResults === 0 && !loading ? (
-            <div className="p-3 text-muted text-center">
+            <div className="tw:p-4 tw:text-center tw:text-muted-foreground">
               {m.search_no_results({ query: results.query })}
             </div>
           ) : null}
 
           {results && results.routine_templates.length > 0 ? (
             <div>
-              <div className="px-3 py-1 small fw-semibold text-muted border-bottom">
-                {m.search_routine_templates()}
-              </div>
+              <div className={sectionTitleClass}>{m.search_routine_templates()}</div>
               {results.routine_templates.map((r, i) => (
-                <button
+                <ResultRow
                   key={`routine-${r.id}`}
                   id={`routine-${r.id}`}
-                  type="button"
-                  className={`list-group-item list-group-item-action border-0 px-3 py-2${routineOffset + i === activeIndex ? " active" : ""}`}
-                  onClick={() => navigateTo("/templates")}
-                >
-                  <div className="d-flex justify-content-between align-items-center gap-2">
-                    <div>
-                      <div className="fw-semibold">{r.name}</div>
-                      {r.description ? <small className="text-muted">{r.description}</small> : null}
-                    </div>
-                    <span
-                      className={`badge ${r.is_active ? "text-bg-success" : "text-bg-secondary"}`}
-                    >
-                      {r.is_active ? m.status_active() : m.status_inactive()}
-                    </span>
-                  </div>
-                </button>
+                  active={routineOffset + i === activeIndex}
+                  title={r.name}
+                  details={[r.description]}
+                  done={r.is_active}
+                  doneLabel={m.status_active()}
+                  openLabel={m.status_inactive()}
+                  onSelect={() => navigateTo("/templates")}
+                />
               ))}
             </div>
           ) : null}
 
           {results && results.chore_templates.length > 0 ? (
             <div>
-              <div className="px-3 py-1 small fw-semibold text-muted border-bottom">
-                {m.search_chore_templates()}
-              </div>
+              <div className={sectionTitleClass}>{m.search_chore_templates()}</div>
               {results.chore_templates.map((c, i) => (
-                <button
+                <ResultRow
                   key={`chore-${c.id}`}
                   id={`chore-${c.id}`}
-                  type="button"
-                  className={`list-group-item list-group-item-action border-0 px-3 py-2${choreOffset + i === activeIndex ? " active" : ""}`}
-                  onClick={() => navigateTo("/templates")}
-                >
-                  <div className="d-flex justify-content-between align-items-center gap-2">
-                    <div>
-                      <div className="fw-semibold">{c.name}</div>
-                      {c.description ? <small className="text-muted">{c.description}</small> : null}
-                    </div>
-                    <span
-                      className={`badge ${c.is_active ? "text-bg-success" : "text-bg-secondary"}`}
-                    >
-                      {c.is_active ? m.status_active() : m.status_inactive()}
-                    </span>
-                  </div>
-                </button>
+                  active={choreOffset + i === activeIndex}
+                  title={c.name}
+                  details={[c.description]}
+                  done={c.is_active}
+                  doneLabel={m.status_active()}
+                  openLabel={m.status_inactive()}
+                  onSelect={() => navigateTo("/templates")}
+                />
               ))}
             </div>
           ) : null}
 
           {results && results.medication_plans.length > 0 ? (
             <div>
-              <div className="px-3 py-1 small fw-semibold text-muted border-bottom">
-                {m.search_medications()}
-              </div>
+              <div className={sectionTitleClass}>{m.search_medications()}</div>
               {results.medication_plans.map((med, i) => (
-                <button
+                <ResultRow
                   key={`med-${med.id}`}
                   id={`med-${med.id}`}
-                  type="button"
-                  className={`list-group-item list-group-item-action border-0 px-3 py-2${medOffset + i === activeIndex ? " active" : ""}`}
-                  onClick={() => navigateTo("/medication")}
-                >
-                  <div className="d-flex justify-content-between align-items-center gap-2">
-                    <div>
-                      <div className="fw-semibold">{med.name}</div>
-                      {med.instructions ? (
-                        <small className="text-muted">{med.instructions}</small>
-                      ) : null}
-                    </div>
-                    <span
-                      className={`badge ${med.is_active ? "text-bg-success" : "text-bg-secondary"}`}
-                    >
-                      {med.is_active ? m.status_active() : m.status_inactive()}
-                    </span>
-                  </div>
-                </button>
+                  active={medOffset + i === activeIndex}
+                  title={med.name}
+                  details={[med.instructions]}
+                  done={med.is_active}
+                  doneLabel={m.status_active()}
+                  openLabel={m.status_inactive()}
+                  onSelect={() => navigateTo("/medication")}
+                />
               ))}
             </div>
           ) : null}
 
           {results && results.planned_items.length > 0 ? (
             <div>
-              <div className="px-3 py-1 small fw-semibold text-muted border-bottom">
-                {m.search_planned_items()}
-              </div>
+              <div className={sectionTitleClass}>{m.search_planned_items()}</div>
               {results.planned_items.map((p, i) => (
-                <button
+                <ResultRow
                   key={`planned-${p.id}`}
                   id={`planned-${p.id}`}
-                  type="button"
-                  className={`list-group-item list-group-item-action border-0 px-3 py-2${plannedOffset + i === activeIndex ? " active" : ""}`}
-                  onClick={() => navigateTo(`/calendar`)}
-                >
-                  <div className="d-flex justify-content-between align-items-center gap-2">
-                    <div>
-                      <div className="fw-semibold">{p.title}</div>
-                      <small className="text-muted">{p.planned_for}</small>
-                      {p.notes ? <small className="text-muted d-block">{p.notes}</small> : null}
-                    </div>
-                    <span
-                      className={`badge ${p.is_done ? "text-bg-success" : "text-bg-secondary"}`}
-                    >
-                      {p.is_done ? m.search_done() : m.search_planned()}
-                    </span>
-                  </div>
-                </button>
+                  active={plannedOffset + i === activeIndex}
+                  title={p.title}
+                  details={[p.planned_for, p.notes]}
+                  done={p.is_done}
+                  doneLabel={m.search_done()}
+                  openLabel={m.search_planned()}
+                  onSelect={() => navigateTo("/calendar")}
+                />
               ))}
             </div>
           ) : null}
 
           {!results && !loading && !error && query.length >= MIN_QUERY_LEN ? (
-            <div className="p-3 text-muted text-center">{m.search_searching()}</div>
+            <div className="tw:p-4 tw:text-center tw:text-muted-foreground">
+              {m.search_searching()}
+            </div>
           ) : null}
         </div>
 
-        <div className="card-footer py-1 px-3">
-          <small className="text-muted">{m.search_keyboard_hint()}</small>
-        </div>
+        <CardFooter className="tw:px-4 tw:py-1">
+          <small className="tw:text-muted-foreground">{m.search_keyboard_hint()}</small>
+        </CardFooter>
       </DialogContent>
     </Dialog>
   );

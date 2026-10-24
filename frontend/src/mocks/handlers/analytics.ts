@@ -1,5 +1,6 @@
 import { http, HttpResponse } from "msw/http";
 import { MOCK_TODAY } from "../data/constants";
+import { getMockState } from "../data/state";
 
 function periodDays(period: string): number {
   switch (period) {
@@ -103,12 +104,53 @@ export const analyticsHandlers = [
   http.get("/api/search", ({ request }) => {
     const url = new URL(request.url);
     const q = url.searchParams.get("q") ?? "";
+    const needle = q.trim().toLowerCase();
+    const matches = (...values: (string | null | undefined)[]) =>
+      needle.length > 0 && values.some((value) => value?.toLowerCase().includes(needle));
+    const state = getMockState();
     return HttpResponse.json({
       query: q,
-      routine_templates: [],
-      chore_templates: [],
-      medication_plans: [],
-      planned_items: [],
+      routine_templates: state.routineTemplates
+        .filter((r) => matches(r.name, r.description))
+        .map((r) => ({
+          id: r.id,
+          name: r.name,
+          description: r.description ?? null,
+          is_active: r.is_active,
+          created_at: MOCK_TODAY,
+        })),
+      chore_templates: state.choreTemplates
+        .filter((c) => matches(c.name, c.description))
+        .map((c) => ({
+          id: c.id,
+          name: c.name,
+          description: c.description ?? null,
+          priority: "normal",
+          tags: [],
+          is_active: c.is_active,
+          created_at: MOCK_TODAY,
+        })),
+      medication_plans: state.medications
+        .filter((med) => matches(med.name, med.instructions))
+        .map((med) => ({
+          id: med.id,
+          name: med.name,
+          instructions: med.instructions ?? "",
+          is_active: med.is_active,
+          created_at: MOCK_TODAY,
+        })),
+      planned_items: state.plannedItems
+        .filter((item) => matches(item.title, item.notes))
+        .map((item) => ({
+          id: item.id,
+          title: item.title,
+          notes: item.notes ?? null,
+          planned_for: item.planned_for,
+          priority: "normal",
+          tags: [],
+          is_done: item.is_done,
+          created_at: MOCK_TODAY,
+        })),
     });
   }),
 ];

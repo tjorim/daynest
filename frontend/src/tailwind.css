@@ -96,6 +96,9 @@
   --text-h6: 1rem;
   --text-h6--line-height: 1.2;
 
+  --color-emphasis: var(--bs-emphasis-color);
+  --color-light: var(--bs-light);
+  --color-tertiary: var(--bs-tertiary-bg);
   --color-card-border: var(--bs-border-color-translucent);
   --color-card-header: rgba(var(--bs-body-color-rgb), 0.03);
 
@@ -130,6 +133,19 @@
 
 @utility min-h-auth {
   min-height: min(70vh, 42rem);
+}
+
+/* Bootstrap's `.small`: relative to the parent font size, line height untouched. */
+@utility text-small {
+  font-size: 0.875em;
+}
+
+@utility p-badge {
+  padding: 0.35em 0.65em;
+}
+
+@utility text-badge {
+  font-size: 0.75em;
 }
 
 @utility align-spinner {
