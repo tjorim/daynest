@@ -32,10 +32,6 @@ body {
   transform: translateY(0);
 }
 
-main.container {
-  max-width: 1080px;
-}
-
 .summary-card {
   background: linear-gradient(180deg, var(--tw-color-surface-from), var(--tw-color-surface-to));
 }
@@ -56,33 +52,12 @@ main.container {
   font-weight: 700;
 }
 
-.calendar-cell-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.25rem;
-}
-
-.calendar-cell-meta .badge {
-  font-size: 0.65rem;
-}
-
 .settings-api-key {
   display: block;
   padding: 0.75rem;
   border-radius: 0.5rem;
   background: var(--tw-color-muted-surface);
   word-break: break-all;
-}
-
-.nav-pills .nav-link {
-  min-height: 44px;
-}
-
-@media (max-width: 575.98px) {
-  main.container {
-    padding-left: 0.75rem;
-    padding-right: 0.75rem;
-  }
 }
 
 .web-focus-panel {

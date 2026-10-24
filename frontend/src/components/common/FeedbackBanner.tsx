@@ -1,3 +1,5 @@
+import { Alert } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import { useState } from "react";
 
 export type FeedbackTone = "info" | "success" | "warning" | "danger" | "secondary";
@@ -34,21 +36,22 @@ export function FeedbackBanner({
   };
 
   return (
-    <div
-      className={`alert alert-${tone} py-2 d-flex justify-content-between align-items-center gap-2 flex-wrap`}
+    <Alert
+      variant={tone}
+      className="tw:flex tw:flex-wrap tw:items-center tw:justify-between tw:gap-2 tw:py-2"
       role={tone === "danger" ? "alert" : "status"}
       aria-live={tone === "danger" ? "assertive" : "polite"}
     >
       <span>{message}</span>
       {onDismiss ? (
-        <button
-          type="button"
-          className={`btn btn-${tone === "danger" ? "danger" : "outline-secondary"} btn-sm`}
+        <Button
+          variant={tone === "danger" ? "danger" : "outline-secondary"}
+          size="sm"
           onClick={dismiss}
         >
           {dismissLabel}
-        </button>
+        </Button>
       ) : null}
-    </div>
+    </Alert>
   );
 }

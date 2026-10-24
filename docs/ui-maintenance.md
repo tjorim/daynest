@@ -1,6 +1,6 @@
 # UI dependency and component maintenance
 
-Daynest uses Base UI directly in `EditorDialog` and in the shared `dialog` wrapper (`components/ui/dialog.tsx`, used by the calendar event, meal planner, medication and search dialogs), styled with Bootstrap and Tailwind utilities (see `frontend/src/tailwind.css` for the cascade layers). `components.json` pins the Base UI base for the shadcn tooling, but there are no registry components and no `shadcn` dependency, so `ui-maintenance.json` stays in `base-ui` mode. Do not switch it to registry mode or replace the design system as part of dependency maintenance.
+The shared primitives in `components/ui/` (`button`, `alert`, `badge`, `card`, `input`, `select`, `checkbox`, `radio`, `switch`, `field`, `list-group`, `table`, `progress`, `spinner`, `close-button`) are hand-written, Tailwind-styled replacements for the Bootstrap component classes (#937); only `button` imports Base UI (`Button`, plus `use-render` in `list-group`). Daynest also uses Base UI directly in `EditorDialog` and in the shared `dialog` wrapper (`components/ui/dialog.tsx`, used by the calendar event, meal planner, medication and search dialogs), styled with Bootstrap and Tailwind utilities (see `frontend/src/tailwind.css` for the cascade layers). `components.json` pins the Base UI base for the shadcn tooling, but there are no registry components and no `shadcn` dependency, so `ui-maintenance.json` stays in `base-ui` mode. Do not switch it to registry mode or replace the design system as part of dependency maintenance.
 
 ## Ownership and records
 

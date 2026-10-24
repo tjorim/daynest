@@ -8,10 +8,7 @@ export const diagnosticCallees = [];
 // Exact source/value exclusions. Never approve a whole component or directory for visible copy.
 export const exclusions = {
   "app/layout/AppLayout.tsx": {
-    "nav-link active": "CSS class list",
     Daynest: "fixed application brand",
-    "btn btn-sm btn-primary": "CSS class list",
-    "btn btn-sm btn-outline-primary": "CSS class list",
   },
   "config/oidc.ts": {
     "openid profile email": "OIDC scopes",

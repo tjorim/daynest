@@ -285,6 +285,11 @@
   background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='2' fill='%23fff'/%3e%3c/svg%3e");
 }
 
+/* The page column: Bootstrap's container, which the app caps at 1080px. */
+@utility max-w-page {
+  max-width: 1080px;
+}
+
 @utility p-badge {
   padding: 0.35em 0.65em;
 }
