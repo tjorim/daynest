@@ -1,0 +1,27 @@
+/*
+ * Cascade order while Bootstrap is still in charge. Unlayered rules beat layered ones, so the
+ * Bootstrap and Schedule-X stylesheets are imported into named layers below `components` and
+ * `utilities`: a Tailwind utility wins over `.btn`, `.form-control`, `.card` and friends.
+ * Tailwind's preflight is intentionally not imported; Bootstrap's reboot is the base layer.
+ */
+@layer theme, base, bootstrap, schedule-x, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "bootstrap/dist/css/bootstrap.min.css" layer(bootstrap);
+@import "bootstrap-icons/font/bootstrap-icons.min.css" layer(bootstrap);
+@import "tailwindcss/utilities.css" layer(utilities);
+
+/* The theme switch sets data-bs-theme on <html>, so `dark:` must follow it, not the OS setting. */
+@custom-variant dark (&:where([data-bs-theme="dark"], [data-bs-theme="dark"] *));
+
+/* One-off sizes for the search overlay that no theme token expresses. */
+@utility pt-search-offset {
+  padding-top: 10vh;
+}
+
+@utility w-search {
+  width: min(640px, 96vw);
+}
+
+@utility max-h-search {
+  max-height: 70vh;
+}

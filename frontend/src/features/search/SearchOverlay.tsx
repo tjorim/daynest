@@ -118,24 +118,17 @@ export function SearchOverlay({ onClose }: { onClose: () => void }) {
 
   return (
     <div
-      className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-start justify-content-center"
-      style={{ zIndex: 1050, background: "rgba(0,0,0,0.5)", paddingTop: "10vh" }}
+      className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-start justify-content-center z-1050 bg-black/50 pt-search-offset"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
       <div
         ref={dialogRef}
-        className="card shadow-lg"
+        className="card shadow-lg flex flex-col w-search max-h-search"
         role="dialog"
         aria-modal="true"
         aria-label={m.app_search()}
-        style={{
-          width: "min(640px, 96vw)",
-          maxHeight: "70vh",
-          display: "flex",
-          flexDirection: "column",
-        }}
       >
         <div className="card-header p-2">
           <div className="input-group">
