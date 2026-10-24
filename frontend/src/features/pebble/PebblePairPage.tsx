@@ -65,7 +65,7 @@ export function PebblePairPage() {
   const signInFailed = Boolean(oidcError || sessionError);
 
   return (
-    <section className="mx-auto max-w-lg py-5 text-center">
+    <section className="mx-auto tw:max-w-lg py-5 text-center">
       <h1 className="h4 mb-3">{m.pebble_pair_title()}</h1>
       <p className="text-body-secondary mb-4">{m.pebble_pair_description()}</p>
 

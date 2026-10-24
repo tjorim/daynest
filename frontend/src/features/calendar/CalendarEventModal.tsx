@@ -60,7 +60,7 @@ export function CalendarEventModal({
             <div className="text-muted small">{item.scheduled_date}</div>
           ) : null}
         </DialogBody>
-        <DialogFooter className="justify-start">
+        <DialogFooter className="tw:justify-start">
           {item.item_type === "routine" ? (
             <>
               {item.status === "pending" ? (

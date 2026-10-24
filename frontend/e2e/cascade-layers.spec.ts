@@ -27,3 +27,34 @@ test("Bootstrap sits in a cascade layer below Tailwind utilities", async ({ page
     result.unlayered.filter((selector) => /^\.(btn|form-control|card)$/.test(selector)),
   ).toEqual([]);
 });
+
+// Tailwind utilities carry the `tw:` prefix while Bootstrap is loaded. Bootstrap's `!important`
+// spacing utilities would otherwise beat a same-named Tailwind class with a different value
+// (Bootstrap `mt-4` is 1.5rem, Tailwind `mt-4` is 1rem). Classes below are scanned from this spec.
+test("prefixed Tailwind utilities are not shadowed by Bootstrap's spacing scale", async ({
+  page,
+}) => {
+  await page.goto("/today");
+  await page.waitForLoadState("networkidle");
+
+  const margins = await page.evaluate(() => {
+    const measure = (className: string) => {
+      const element = document.createElement("div");
+      element.className = className;
+      document.body.append(element);
+      const value = getComputedStyle(element).marginTop;
+      element.remove();
+      return value;
+    };
+    return {
+      bootstrap: measure("mt-4"),
+      tailwind: measure("tw:mt-4"),
+      prefixOnly: measure("mt-6"),
+    };
+  });
+
+  expect(margins.bootstrap).toBe("24px");
+  expect(margins.tailwind).toBe("16px");
+  // Unprefixed Tailwind classes are not generated, so `mt-6` matches nothing.
+  expect(margins.prefixOnly).toBe("0px");
+});

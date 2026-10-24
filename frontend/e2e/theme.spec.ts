@@ -12,7 +12,7 @@ const expectedTheme = (os: (typeof OS_SCHEMES)[number], choice: (typeof CHOICES)
 const pageGradientStart = (page: Page) =>
   page.evaluate(() => {
     const probe = document.createElement("div");
-    probe.style.backgroundColor = "var(--color-page-from)";
+    probe.style.backgroundColor = "var(--tw-color-page-from)";
     document.body.append(probe);
     const color = getComputedStyle(probe).backgroundColor;
     probe.remove();

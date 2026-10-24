@@ -5,10 +5,10 @@
  * Tailwind's preflight is intentionally not imported; Bootstrap's reboot is the base layer.
  */
 @layer theme, base, bootstrap, schedule-x, components, utilities;
-@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/theme.css" layer(theme) prefix(tw);
 @import "bootstrap/dist/css/bootstrap.min.css" layer(bootstrap);
 @import "bootstrap-icons/font/bootstrap-icons.min.css" layer(bootstrap);
-@import "tailwindcss/utilities.css" layer(utilities);
+@import "tailwindcss/utilities.css" layer(utilities) prefix(tw);
 
 /*
  * One theming mechanism: ThemeContext resolves light | dark | auto and sets data-bs-theme on
@@ -20,16 +20,16 @@
 /*
  * Design tokens. `static` emits every token even when no utility uses it, because app.css reads
  * them with var(). Dark values are overridden under [data-bs-theme="dark"] below, so utilities
- * such as `bg-surface-from` and `text-brand` switch with the theme without a `dark:` variant.
- * --brand-rgb is the channel form Bootstrap needs for its --bs-*-rgb variables.
+ * such as `tw:bg-surface-from` and `tw:text-brand` switch with the theme without a `dark:` variant.
+ * --tw-brand-rgb is the channel form Bootstrap needs for its --bs-*-rgb variables.
  */
 @theme static {
   --brand-rgb: 42, 98, 255;
   --brand-hover-rgb: 33, 78, 204;
-  --color-brand: rgb(var(--brand-rgb));
-  --color-brand-hover: rgb(var(--brand-hover-rgb));
-  --color-link: var(--color-brand);
-  --color-link-hover: var(--color-brand-hover);
+  --color-brand: rgb(var(--tw-brand-rgb));
+  --color-brand-hover: rgb(var(--tw-brand-hover-rgb));
+  --color-link: var(--tw-color-brand);
+  --color-link-hover: var(--tw-color-brand-hover);
   --color-page-from: rgba(248, 249, 250, 0.95);
   --color-page-to: rgba(255, 255, 255, 1);
   --color-surface-from: rgba(255, 255, 255, 0.92);
@@ -38,15 +38,16 @@
   --color-popover: var(--bs-body-bg);
   --color-popover-foreground: var(--bs-body-color);
   --color-dialog-border: var(--bs-border-color);
+  --shadow-dialog: var(--bs-box-shadow-lg);
 }
 
 @layer base {
   [data-bs-theme="dark"] {
-    --color-page-from: rgba(18, 18, 28, 0.98);
-    --color-page-to: rgba(12, 12, 20, 1);
-    --color-surface-from: rgba(30, 30, 45, 0.92);
-    --color-surface-to: rgba(22, 22, 35, 0.96);
-    --color-muted-surface: rgba(255, 255, 255, 0.08);
+    --tw-color-page-from: rgba(18, 18, 28, 0.98);
+    --tw-color-page-to: rgba(12, 12, 20, 1);
+    --tw-color-surface-from: rgba(30, 30, 45, 0.92);
+    --tw-color-surface-to: rgba(22, 22, 35, 0.96);
+    --tw-color-muted-surface: rgba(255, 255, 255, 0.08);
   }
 }
 

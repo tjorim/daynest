@@ -41,7 +41,7 @@ export function QuickAddPlannedForm({
         children={(field) => (
           <>
             <input
-              className="form-control form-control-sm flex-grow-1 min-w-48"
+              className="form-control form-control-sm flex-grow-1 tw:min-w-48"
               value={field.value}
               autoFocus
               placeholder={m.today_quick_add_placeholder()}

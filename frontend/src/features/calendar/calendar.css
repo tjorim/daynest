@@ -3,9 +3,9 @@
 
 .daynest-calendar,
 .daynest-calendar .is-dark {
-  --sx-color-primary: var(--color-brand);
+  --sx-color-primary: var(--tw-color-brand);
   --sx-color-on-primary: #fff;
-  --sx-color-primary-container: rgba(var(--brand-rgb), 0.14);
+  --sx-color-primary-container: rgba(var(--tw-brand-rgb), 0.14);
   --sx-color-on-primary-container: var(--bs-body-color);
   --sx-color-surface: var(--bs-body-bg);
   --sx-color-surface-container: var(--bs-tertiary-bg);
