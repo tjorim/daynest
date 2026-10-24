@@ -107,6 +107,14 @@
       "reason": "Hand-written component styled with the tw: prefix; replaces Bootstrap's .btn-close during the #937 migration.",
       "reviewedAt": null,
       "reviewNote": null
+    },
+    "progress": {
+      "files": ["src/components/ui/progress.tsx"],
+      "registry": null,
+      "origin": "local",
+      "reason": "Hand-written component styled with the tw: prefix; replaces Bootstrap's .progress during the #937 migration.",
+      "reviewedAt": null,
+      "reviewNote": null
     }
   },
   "importPolicy": {

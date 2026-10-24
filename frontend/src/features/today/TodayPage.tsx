@@ -24,6 +24,9 @@ import { useTodayActions } from "@/features/today/useTodayActions";
 import { useTodayLiveUpdates } from "@/features/today/useTodayLiveUpdates";
 import { useTodayQuery } from "@/features/today/useTodayQuery";
 import { apiErrorMessage } from "@/lib/api/errorMessages";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
+import { Alert } from "@/components/ui/alert";
 
 export function TodayPage() {
   const liveUpdatesError = useTodayLiveUpdates();
@@ -55,7 +58,7 @@ export function TodayPage() {
       {
         key: "routine-done",
         label: m.action_done(),
-        buttonClassName: "btn-success",
+        buttonVariant: "success",
         isAvailable: (item) => Boolean(item.taskInstanceId && isItemActionable(item)),
         run: (item) =>
           actions.completeRoutineTask(item.taskInstanceId as number, { refresh: false }),
@@ -63,7 +66,7 @@ export function TodayPage() {
       {
         key: "routine-skip",
         label: m.action_skip(),
-        buttonClassName: "btn-outline-secondary",
+        buttonVariant: "outline-secondary",
         isAvailable: (item) => Boolean(item.taskInstanceId && isItemActionable(item)),
         run: (item) => actions.skipRoutineTask(item.taskInstanceId as number, { refresh: false }),
       },
@@ -76,14 +79,14 @@ export function TodayPage() {
       {
         key: "chore-done",
         label: m.action_done(),
-        buttonClassName: "btn-success",
+        buttonVariant: "success",
         isAvailable: (item) => Boolean(item.choreInstanceId && isItemActionable(item)),
         run: (item) => actions.completeChore(item.choreInstanceId as number, { refresh: false }),
       },
       {
         key: "chore-skip",
         label: m.action_skip(),
-        buttonClassName: "btn-outline-secondary",
+        buttonVariant: "outline-secondary",
         isAvailable: (item) => Boolean(item.choreInstanceId && isItemActionable(item)),
         run: (item) => actions.skipChore(item.choreInstanceId as number, { refresh: false }),
       },
@@ -96,14 +99,14 @@ export function TodayPage() {
       {
         key: "planned-done",
         label: m.action_done(),
-        buttonClassName: "btn-success",
+        buttonVariant: "success",
         isAvailable: (item) => Boolean(item.plannedItem && isItemActionable(item)),
         run: (item) => actions.togglePlannedItem(item.plannedItem!, true, { refresh: false }),
       },
       {
         key: "planned-undo",
         label: m.action_undo(),
-        buttonClassName: "btn-outline-success",
+        buttonVariant: "outline-success",
         isAvailable: (item) => Boolean(item.plannedItem && isItemCompleted(item)),
         run: (item) => actions.togglePlannedItem(item.plannedItem!, false, { refresh: false }),
       },
@@ -178,56 +181,53 @@ export function TodayPage() {
 
   return (
     <section>
-      <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2 mb-2">
-        <h2 className="h4 mb-0">{m.nav_today()}</h2>
-        <div className="d-flex gap-2 align-items-start flex-wrap w-100">
-          <button
-            className="btn btn-outline-primary btn-sm flex-md-grow-0"
-            type="button"
+      <div className="tw:flex tw:flex-col tw:md:flex-row tw:justify-between tw:items-start tw:md:items-center tw:gap-2 tw:mb-2">
+        <h2 className="tw:text-h4 tw:font-medium tw:mb-0">{m.nav_today()}</h2>
+        <div className="tw:flex tw:gap-2 tw:items-start tw:flex-wrap tw:w-full">
+          <Button
+            variant="outline-primary"
+            size="sm"
+            className="tw:md:grow-0"
             disabled={isLoading || isRefreshing}
             onClick={() => void loadToday()}
           >
-            {isRefreshing ? (
-              <span
-                className="spinner-border spinner-border-sm me-1"
-                role="status"
-                aria-hidden="true"
-              />
-            ) : null}
+            {isRefreshing ? <Spinner className="tw:me-1" role="status" /> : null}
             {m.action_refresh()}
-          </button>
+          </Button>
         </div>
       </div>
-      <p className="text-muted mb-3">{m.today_subtitle()}</p>
+      <p className="tw:text-muted-foreground tw:mb-4">{m.today_subtitle()}</p>
 
       <FeedbackBanner message={isLoading ? m.today_loading() : null} tone="info" />
       <FeedbackBanner message={liveUpdatesError} tone="warning" />
       {!isLoading && error ? (
-        <div className="alert alert-danger py-2 d-flex justify-content-between align-items-center gap-2 flex-wrap">
+        <Alert
+          variant="danger"
+          className="tw:py-2 tw:flex tw:justify-between tw:items-center tw:gap-2 tw:flex-wrap"
+        >
           <span>{error}</span>
           {canRetry ? (
-            <button
-              type="button"
-              className="btn btn-danger btn-sm"
-              onClick={() => void loadToday()}
-            >
+            <Button variant="danger" size="sm" onClick={() => void loadToday()}>
               {m.action_retry()}
-            </button>
+            </Button>
           ) : null}
-        </div>
+        </Alert>
       ) : null}
       {!isLoading && !error && today && !hasAnyItems ? (
-        <div className="alert alert-secondary py-2 d-flex justify-content-between align-items-center gap-2 flex-wrap">
+        <Alert
+          variant="secondary"
+          className="tw:py-2 tw:flex tw:justify-between tw:items-center tw:gap-2 tw:flex-wrap"
+        >
           <span>{m.today_nothing_scheduled()}</span>
-          <Link to="/templates" className="btn btn-primary btn-sm">
+          <Link to="/templates" className={buttonVariants({ size: "sm" })}>
             {m.today_create_first_chore()}
           </Link>
-        </div>
+        </Alert>
       ) : null}
 
       {!isLoading && !error && today ? (
         <>
-          <div className="row g-3 mb-3">
+          <div className="tw:grid tw:grid-cols-12 tw:gap-4 tw:mb-4 tw:lg:grid-cols-5">
             <SummaryCard
               label={m.today_summary_overdue()}
               value={today.overdue.length}

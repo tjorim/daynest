@@ -2,6 +2,8 @@ import { useForm } from "@tanstack/react-form";
 import * as m from "@/paraglide/messages";
 import { dayjs, toIsoDate } from "@/lib/dateUtils";
 import { useTodayActions } from "@/features/today/useTodayActions";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 export function QuickAddPlannedForm({
   onRefresh,
@@ -29,7 +31,7 @@ export function QuickAddPlannedForm({
 
   return (
     <form
-      className="d-flex gap-2 align-items-start flex-wrap"
+      className="tw:flex tw:gap-2 tw:items-start tw:flex-wrap"
       onSubmit={(event) => {
         event.preventDefault();
         event.stopPropagation();
@@ -40,8 +42,9 @@ export function QuickAddPlannedForm({
         name="title"
         children={(field) => (
           <>
-            <input
-              className="form-control form-control-sm flex-grow-1 tw:min-w-48"
+            <Input
+              size="sm"
+              className="tw:grow tw:min-w-48"
               value={field.value}
               autoFocus
               placeholder={m.today_quick_add_placeholder()}
@@ -51,19 +54,15 @@ export function QuickAddPlannedForm({
                 actions.clearActionError();
               }}
             />
-            <button
-              type="submit"
-              className="btn btn-primary btn-sm"
-              disabled={actions.isSubmitting || !field.value.trim()}
-            >
+            <Button size="sm" type="submit" disabled={actions.isSubmitting || !field.value.trim()}>
               {actions.isSubmitting ? m.action_adding() : m.action_add()}
-            </button>
+            </Button>
           </>
         )}
       />
-      <button
-        type="button"
-        className="btn btn-outline-secondary btn-sm"
+      <Button
+        variant="outline-secondary"
+        size="sm"
         disabled={actions.isSubmitting}
         onClick={() => {
           onClose();
@@ -72,9 +71,9 @@ export function QuickAddPlannedForm({
         }}
       >
         {m.action_cancel()}
-      </button>
+      </Button>
       {actions.actionError ? (
-        <small className="w-100 text-danger">{actions.actionError}</small>
+        <small className="tw:w-full tw:text-danger">{actions.actionError}</small>
       ) : null}
     </form>
   );

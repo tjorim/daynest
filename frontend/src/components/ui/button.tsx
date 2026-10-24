@@ -3,7 +3,7 @@ import type { ComponentProps } from "react";
 import { cn } from "@/lib/utils";
 
 const base = cn(
-  "tw:inline-block tw:cursor-pointer tw:rounded-md tw:border tw:border-transparent tw:bg-transparent tw:px-3 tw:py-1.5 tw:text-center tw:align-middle tw:text-base tw:leading-normal tw:font-normal tw:no-underline tw:transition-colors tw:select-none tw:focus-visible:ring-4 tw:focus-visible:outline-none tw:disabled:pointer-events-none tw:disabled:opacity-65 tw:aria-disabled:pointer-events-none tw:aria-disabled:opacity-65",
+  "tw:inline-block tw:btn-badge tw:cursor-pointer tw:rounded-md tw:border tw:border-transparent tw:bg-transparent tw:px-3 tw:py-1.5 tw:text-center tw:align-middle tw:text-base tw:leading-normal tw:font-normal tw:no-underline tw:transition-colors tw:select-none tw:focus-visible:ring-4 tw:focus-visible:outline-none tw:disabled:pointer-events-none tw:disabled:opacity-65 tw:aria-disabled:pointer-events-none tw:aria-disabled:opacity-65",
 );
 
 const variants = {
