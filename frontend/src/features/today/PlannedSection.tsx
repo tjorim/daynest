@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useState } from "react";
 import * as m from "@/paraglide/messages";
 import { type PlannedTodayItem } from "@/lib/api/today";
 import { SectionCard, buildPlannedItems, type BulkAction } from "@/features/today/TodaySections";
+import { Button } from "@/components/ui/button";
 
 // The form library is only needed once "quick add" is pressed. It loads after
 // the page settles rather than on click, so the service worker has cached it
@@ -20,14 +21,9 @@ function QuickAddPlanned({ onRefresh }: { onRefresh: () => Promise<void> }) {
   }, []);
 
   const openButton = (
-    <button
-      type="button"
-      className="btn btn-outline-secondary btn-sm"
-      disabled={isOpen}
-      onClick={() => setIsOpen(true)}
-    >
+    <Button variant="outline-secondary" size="sm" disabled={isOpen} onClick={() => setIsOpen(true)}>
       {m.today_quick_add()}
-    </button>
+    </Button>
   );
 
   if (!isOpen) return openButton;

@@ -100,6 +100,7 @@
   --color-emphasis: var(--bs-emphasis-color);
   --color-light: var(--bs-light);
   --color-tertiary: var(--bs-tertiary-bg);
+  --color-secondary-bg: var(--bs-secondary-bg);
   --color-card-border: var(--bs-border-color-translucent);
   --color-card-header: rgba(var(--bs-body-color-rgb), 0.03);
 
@@ -226,6 +227,29 @@
     width: 1%;
     min-width: 0;
   }
+}
+
+/* A badge inside a button sits one pixel higher, as in Bootstrap. */
+@utility btn-badge {
+  & [data-slot="badge"] {
+    position: relative;
+    top: -1px;
+  }
+}
+
+/* Bootstrap sizes a checkbox in em, so it follows the font size of its label. */
+@utility checkbox-box {
+  width: 1em;
+  height: 1em;
+  margin-top: 0.25em;
+}
+
+/* A checkbox and its label, as Bootstrap's .form-check lays them out (the gap scales with the font). */
+@utility check-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5em;
+  min-height: 1.5rem;
 }
 
 @utility p-badge {

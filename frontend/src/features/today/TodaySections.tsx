@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useState } from "react";
 import * as m from "@/paraglide/messages";
 import {
   type DueTodayItem,
@@ -16,11 +16,20 @@ import {
 import { capitalize, formatDate, formatDateTime, formatTime } from "@/lib/dateUtils";
 import { FeedbackBanner } from "@/components/common/FeedbackBanner";
 import { useTodayActions } from "@/features/today/useTodayActions";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Badge, badgeColors } from "@/components/ui/badge";
+import { Button, buttonVariants, type ButtonVariant } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import { cn } from "@/lib/utils";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ListGroup, ListGroupItem } from "@/components/ui/list-group";
 
 export type BulkAction = {
   key: string;
   label: string;
-  buttonClassName: string;
+  buttonVariant: ButtonVariant;
   isAvailable: (item: SectionItem) => boolean;
   run: (item: SectionItem) => Promise<unknown>;
 };
@@ -198,13 +207,13 @@ export function SummaryCard({
   tone: StatusTone;
 }) {
   return (
-    <div className="col-6 col-sm-4 col-lg">
-      <div className="card h-100 border-0 summary-card shadow-sm">
-        <div className="card-body py-3">
-          <div className={`summary-pill text-bg-${tone}`}>{label}</div>
-          <div className="summary-value mt-2">{value}</div>
-        </div>
-      </div>
+    <div className="tw:col-span-6 tw:sm:col-span-4 tw:lg:col-span-1">
+      <Card className="tw:h-full tw:border-0 summary-card tw:shadow-sm">
+        <CardContent className="tw:py-4">
+          <div className={cn("summary-pill", badgeColors(tone))}>{label}</div>
+          <div className="summary-value tw:mt-2">{value}</div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
@@ -225,15 +234,17 @@ export function WebFocusPanel({ sections }: { sections: TodaySection[] }) {
   const nextItem = nextSection?.items.find(isItemActionable);
 
   return (
-    <div className="card border-0 shadow-sm mb-3 web-focus-panel">
-      <div className="card-body">
-        <div className="d-flex flex-column flex-lg-row justify-content-between gap-3">
+    <Card className="tw:border-0 tw:shadow-sm tw:mb-4 web-focus-panel">
+      <CardContent>
+        <div className="tw:flex tw:flex-col tw:lg:flex-row tw:justify-between tw:gap-4">
           <div>
-            <div className="text-uppercase text-muted small fw-semibold">
+            <div className="tw:uppercase tw:text-muted-foreground tw:text-small tw:font-semibold">
               {m.today_focus_panel_title()}
             </div>
-            <h3 className="h5 mb-1">{nextItem ? nextItem.title : m.today_focus_all_clear()}</h3>
-            <p className="text-muted mb-0">
+            <h3 className="tw:text-h5 tw:font-medium tw:mb-1">
+              {nextItem ? nextItem.title : m.today_focus_all_clear()}
+            </h3>
+            <p className="tw:text-muted-foreground tw:mb-0">
               {nextItem
                 ? m.today_focus_next_attention({ heading: nextSection?.heading ?? "Today" })
                 : m.today_focus_no_open_actions()}
@@ -244,39 +255,34 @@ export function WebFocusPanel({ sections }: { sections: TodaySection[] }) {
             aria-label={`${completionPercent}% ${m.today_focus_complete()}`}
           >
             <span className="focus-progress-value">{completionPercent}%</span>
-            <span className="text-muted small">{m.today_focus_complete()}</span>
+            <span className="tw:text-muted-foreground tw:text-small">
+              {m.today_focus_complete()}
+            </span>
           </div>
         </div>
-        <div
-          className="progress my-3"
-          role="progressbar"
-          aria-label={m.today_completion()}
-          aria-valuenow={completionPercent}
-          aria-valuemin={0}
-          aria-valuemax={100}
-        >
-          <div
-            className="progress-bar tw:w-(--completion-percent)"
-            style={{ "--completion-percent": `${completionPercent}%` } as CSSProperties}
-          />
-        </div>
-        <div className="d-flex gap-2 flex-wrap">
+        <Progress className="tw:my-4" value={completionPercent} aria-label={m.today_completion()} />
+        <div className="tw:flex tw:gap-2 tw:flex-wrap">
           {sections.map((section) => {
             const actionable = getActionableCount(section.items);
             return (
               <a
                 key={section.key}
-                className={`btn btn-sm ${actionable > 0 ? "btn-outline-primary" : "btn-outline-secondary"}`}
+                className={buttonVariants({
+                  variant: actionable > 0 ? "outline-primary" : "outline-secondary",
+                  size: "sm",
+                })}
                 href={`#${section.key}`}
               >
                 {section.heading}
-                <span className="badge text-bg-light ms-2">{actionable}</span>
+                <Badge variant="light" className="tw:ms-2">
+                  {actionable}
+                </Badge>
               </a>
             );
           })}
         </div>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -298,33 +304,33 @@ function TaskActions({
   return (
     <div>
       {actions.actionError ? (
-        <small className="text-danger d-block mb-1">{actions.actionError}</small>
+        <small className="tw:text-danger tw:block tw:mb-1">{actions.actionError}</small>
       ) : null}
-      <div className="d-grid gap-2 d-sm-flex" role="group" aria-label={m.today_task_actions()}>
-        <button
-          type="button"
-          className="btn btn-success btn-sm"
+      <div className="tw:grid tw:gap-2 tw:sm:flex" role="group" aria-label={m.today_task_actions()}>
+        <Button
+          variant="success"
+          size="sm"
           disabled={actions.isSubmitting}
           onClick={() => void actions.completeChore(choreInstanceId)}
         >
           {m.action_done()}
-        </button>
-        <button
-          type="button"
-          className="btn btn-outline-secondary btn-sm"
+        </Button>
+        <Button
+          variant="outline-secondary"
+          size="sm"
           disabled={actions.isSubmitting}
           onClick={() => void actions.skipChore(choreInstanceId)}
         >
           {m.action_skip()}
-        </button>
-        <button
-          type="button"
-          className="btn btn-outline-primary btn-sm"
+        </Button>
+        <Button
+          variant="outline-primary"
+          size="sm"
           disabled={actions.isSubmitting}
           onClick={() => void actions.rescheduleChoreByOneDay(choreInstanceId, scheduledDate)}
         >
           {m.action_reschedule_1_day()}
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -351,29 +357,29 @@ function MedicationActions({
   return (
     <div>
       {actions.actionError ? (
-        <small className="text-danger d-block mb-1">{actions.actionError}</small>
+        <small className="tw:text-danger tw:block tw:mb-1">{actions.actionError}</small>
       ) : null}
       <div
-        className="d-grid gap-2 d-sm-flex"
+        className="tw:grid tw:gap-2 tw:sm:flex"
         role="group"
         aria-label={m.today_medication_actions()}
       >
-        <button
-          type="button"
-          className="btn btn-success btn-sm"
+        <Button
+          variant="success"
+          size="sm"
           disabled={actions.isSubmitting}
           onClick={() => void actions.takeMedicationDose(medicationDoseInstanceId)}
         >
           {m.action_taken()}
-        </button>
-        <button
-          type="button"
-          className="btn btn-outline-secondary btn-sm"
+        </Button>
+        <Button
+          variant="outline-secondary"
+          size="sm"
           disabled={actions.isSubmitting}
           onClick={() => void actions.skipMedicationDose(medicationDoseInstanceId)}
         >
           {m.action_skip()}
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -397,35 +403,39 @@ function RoutineActions({
   return (
     <div>
       {actions.actionError ? (
-        <small className="text-danger d-block mb-1">{actions.actionError}</small>
+        <small className="tw:text-danger tw:block tw:mb-1">{actions.actionError}</small>
       ) : null}
-      <div className="d-grid gap-2 d-sm-flex" role="group" aria-label={m.today_routine_actions()}>
+      <div
+        className="tw:grid tw:gap-2 tw:sm:flex"
+        role="group"
+        aria-label={m.today_routine_actions()}
+      >
         {taskStatus === "pending" ? (
-          <button
-            type="button"
-            className="btn btn-outline-primary btn-sm"
+          <Button
+            variant="outline-primary"
+            size="sm"
             disabled={actions.isSubmitting}
             onClick={() => void actions.startRoutineTask(taskInstanceId)}
           >
             {m.action_start()}
-          </button>
+          </Button>
         ) : null}
-        <button
-          type="button"
-          className="btn btn-success btn-sm"
+        <Button
+          variant="success"
+          size="sm"
           disabled={actions.isSubmitting}
           onClick={() => void actions.completeRoutineTask(taskInstanceId)}
         >
           {m.action_done()}
-        </button>
-        <button
-          type="button"
-          className="btn btn-outline-secondary btn-sm"
+        </Button>
+        <Button
+          variant="outline-secondary"
+          size="sm"
           disabled={actions.isSubmitting}
           onClick={() => void actions.skipRoutineTask(taskInstanceId)}
         >
           {m.action_skip()}
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -480,32 +490,32 @@ function PlannedItemActions({
 
   if (isEditing) {
     return (
-      <div className="border rounded p-2 d-flex flex-column gap-2 tw:min-w-56">
-        <input
-          className="form-control form-control-sm"
+      <div className="tw:border tw:border-border tw:rounded-md tw:p-2 tw:flex tw:flex-col tw:gap-2 tw:min-w-56">
+        <Input
+          size="sm"
           value={editTitle}
           placeholder={m.today_title_placeholder()}
           autoFocus
           disabled={actions.isSubmitting}
           onChange={(e) => setEditTitle(e.target.value)}
         />
-        <input
-          className="form-control form-control-sm"
+        <Input
+          size="sm"
           type="date"
           value={editPlannedFor}
           disabled={actions.isSubmitting}
           onChange={(e) => setEditPlannedFor(e.target.value)}
         />
-        <input
-          className="form-control form-control-sm"
+        <Input
+          size="sm"
           value={editNotes}
           placeholder={m.today_notes_optional()}
           disabled={actions.isSubmitting}
           onChange={(e) => setEditNotes(e.target.value)}
         />
         {plannedItem.rrule || plannedItem.recurrence_series_id ? (
-          <select
-            className="form-select form-select-sm"
+          <Select
+            size="sm"
             value={editScope}
             disabled={actions.isSubmitting}
             onChange={(e) => setEditScope(e.target.value as PlannedItemEditScope)}
@@ -514,21 +524,22 @@ function PlannedItemActions({
             <option value="this">{m.calendar_planned_edit_scope_this()}</option>
             <option value="future">{m.calendar_planned_edit_scope_future()}</option>
             <option value="all">{m.calendar_planned_edit_scope_all()}</option>
-          </select>
+          </Select>
         ) : null}
-        {actions.actionError ? <small className="text-danger">{actions.actionError}</small> : null}
-        <div className="d-flex gap-2">
-          <button
-            type="button"
-            className="btn btn-primary btn-sm"
+        {actions.actionError ? (
+          <small className="tw:text-danger">{actions.actionError}</small>
+        ) : null}
+        <div className="tw:flex tw:gap-2">
+          <Button
+            size="sm"
             disabled={actions.isSubmitting || !editTitle.trim()}
             onClick={() => void onSave()}
           >
             {actions.isSubmitting ? m.action_saving() : m.action_save()}
-          </button>
-          <button
-            type="button"
-            className="btn btn-outline-secondary btn-sm"
+          </Button>
+          <Button
+            variant="outline-secondary"
+            size="sm"
             disabled={actions.isSubmitting}
             onClick={() => {
               setIsEditing(false);
@@ -536,7 +547,7 @@ function PlannedItemActions({
             }}
           >
             {m.action_cancel()}
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -545,57 +556,57 @@ function PlannedItemActions({
   return (
     <div>
       {actions.actionError ? (
-        <small className="text-danger d-block mb-1">{actions.actionError}</small>
+        <small className="tw:text-danger tw:block tw:mb-1">{actions.actionError}</small>
       ) : null}
       <div
-        className="d-grid gap-2 d-sm-flex"
+        className="tw:grid tw:gap-2 tw:sm:flex"
         role="group"
         aria-label={m.today_planned_item_actions()}
       >
-        <button
-          type="button"
-          className={`btn btn-sm ${plannedItem.is_done ? "btn-outline-success" : "btn-success"}`}
+        <Button
+          variant={plannedItem.is_done ? "outline-success" : "success"}
+          size="sm"
           disabled={actions.isSubmitting}
           onClick={() => void actions.togglePlannedItem(plannedItem, !plannedItem.is_done)}
         >
           {plannedItem.is_done ? m.action_undo() : m.action_done()}
-        </button>
-        <button
-          type="button"
-          className="btn btn-outline-secondary btn-sm"
+        </Button>
+        <Button
+          variant="outline-secondary"
+          size="sm"
           disabled={actions.isSubmitting}
           onClick={openEdit}
         >
           {m.action_edit()}
-        </button>
+        </Button>
         {plannedItem.rrule || plannedItem.recurrence_series_id ? (
           <>
-            <button
-              type="button"
-              className="btn btn-outline-danger btn-sm"
+            <Button
+              variant="outline-danger"
+              size="sm"
               disabled={actions.isSubmitting}
               onClick={() => void actions.deletePlannedItem(plannedItem.id, "this")}
             >
               {m.planned_delete_this()}
-            </button>
-            <button
-              type="button"
-              className="btn btn-danger btn-sm"
+            </Button>
+            <Button
+              variant="danger"
+              size="sm"
               disabled={actions.isSubmitting}
               onClick={() => void actions.deletePlannedItem(plannedItem.id, "future")}
             >
               {m.calendar_delete_this_and_future()}
-            </button>
+            </Button>
           </>
         ) : (
-          <button
-            type="button"
-            className="btn btn-outline-danger btn-sm"
+          <Button
+            variant="outline-danger"
+            size="sm"
             disabled={actions.isSubmitting}
             onClick={() => void actions.deletePlannedItem(plannedItem.id)}
           >
             {m.action_delete()}
-          </button>
+          </Button>
         )}
       </div>
     </div>
@@ -675,16 +686,14 @@ export function SectionCard({
   };
 
   return (
-    <div className="card mb-3" id={sectionId}>
-      <div className="card-header py-2">
-        <div className="d-flex flex-column gap-2">
-          <div className="d-flex justify-content-between align-items-center gap-2 flex-wrap">
-            <span className="fw-semibold">{heading}</span>
+    <Card className="tw:mb-4" id={sectionId}>
+      <CardHeader className="tw:py-2">
+        <div className="tw:flex tw:flex-col tw:gap-2">
+          <div className="tw:flex tw:justify-between tw:items-center tw:gap-2 tw:flex-wrap">
+            <span className="tw:font-semibold">{heading}</span>
             {bulkActions?.length ? (
-              <label className="form-check mb-0 small text-muted">
-                <input
-                  className="form-check-input"
-                  type="checkbox"
+              <label className="tw:check-row tw:mb-0 tw:text-small tw:text-muted-foreground">
+                <Checkbox
                   checked={allSelected}
                   disabled={isBulkSubmitting || selectableItems.length === 0}
                   onChange={toggleAllSelected}
@@ -694,22 +703,22 @@ export function SectionCard({
             ) : null}
           </div>
           {bulkActions?.length ? (
-            <div className="d-flex flex-column gap-2">
-              <div className="d-flex gap-2 flex-wrap">
+            <div className="tw:flex tw:flex-col tw:gap-2">
+              <div className="tw:flex tw:gap-2 tw:flex-wrap">
                 {bulkActions.map((action) => {
                   const applicableCount = selectedItems.filter((item) =>
                     action.isAvailable(item),
                   ).length;
                   return (
-                    <button
+                    <Button
                       key={action.key}
-                      type="button"
-                      className={`btn btn-sm ${action.buttonClassName}`}
+                      variant={action.buttonVariant}
+                      size="sm"
                       disabled={isBulkSubmitting || !hasSelectedItems || applicableCount === 0}
                       onClick={() => void runBulkAction(action)}
                     >
                       {action.label}
-                    </button>
+                    </Button>
                   );
                 })}
               </div>
@@ -721,21 +730,23 @@ export function SectionCard({
             </div>
           ) : null}
         </div>
-      </div>
-      <ul className="list-group list-group-flush">
+      </CardHeader>
+      <ListGroup flush render={<ul />}>
         {items.length === 0 ? (
-          <li className="list-group-item py-2 text-muted">{m.today_no_items()}</li>
+          <ListGroupItem render={<li />} className="tw:py-2 tw:text-muted-foreground">
+            {m.today_no_items()}
+          </ListGroupItem>
         ) : (
           items.map((item) => (
-            <li
+            <ListGroupItem
+              render={<li />}
+              className="tw:py-2 tw:flex tw:justify-between tw:gap-4 tw:items-start tw:flex-col tw:md:flex-row"
               key={item.id}
-              className="list-group-item py-2 d-flex justify-content-between gap-3 align-items-start flex-column flex-md-row"
             >
-              <div className="d-flex gap-2 align-items-start flex-grow-1">
+              <div className="tw:flex tw:gap-2 tw:items-start tw:grow">
                 {bulkActions?.length ? (
-                  <input
-                    className="form-check-input mt-1"
-                    type="checkbox"
+                  <Checkbox
+                    className="tw:mt-1"
                     checked={selectedIds.includes(item.id)}
                     disabled={isBulkSubmitting}
                     aria-label={m.today_select_item({ title: item.title })}
@@ -743,10 +754,10 @@ export function SectionCard({
                   />
                 ) : null}
                 <div>
-                  <div className="fw-medium d-flex align-items-center gap-1">
+                  <div className="tw:font-medium tw:flex tw:items-center tw:gap-1">
                     {item.isRecurring ? (
                       <i
-                        className="bi bi-arrow-repeat text-muted"
+                        className="bi bi-arrow-repeat tw:text-muted-foreground"
                         role="img"
                         aria-label={m.today_recurring()}
                       />
@@ -754,21 +765,21 @@ export function SectionCard({
                     {item.title}
                   </div>
                   {item.instructions ? (
-                    <small className="d-block">
+                    <small className="tw:block">
                       {m.today_instructions({ text: item.instructions })}
                     </small>
                   ) : null}
-                  {item.subtitle ? <small className="text-muted">{item.subtitle}</small> : null}
+                  {item.subtitle ? (
+                    <small className="tw:text-muted-foreground">{item.subtitle}</small>
+                  ) : null}
                 </div>
               </div>
               {item.statusLabel ? (
-                <span
-                  className={`badge text-bg-${item.statusTone ?? "secondary"} align-self-start`}
-                >
+                <Badge variant={item.statusTone ?? "secondary"} className="tw:self-start">
                   {item.statusLabel}
-                </span>
+                </Badge>
               ) : null}
-              <div className="d-flex gap-2 align-items-center">
+              <div className="tw:flex tw:gap-2 tw:items-center">
                 <MedicationActions
                   medicationDoseInstanceId={item.medicationDoseInstanceId}
                   medicationStatus={item.medicationStatus}
@@ -786,10 +797,10 @@ export function SectionCard({
                   onRefresh={onRefresh}
                 />
               </div>
-            </li>
+            </ListGroupItem>
           ))
         )}
-      </ul>
-    </div>
+      </ListGroup>
+    </Card>
   );
 }

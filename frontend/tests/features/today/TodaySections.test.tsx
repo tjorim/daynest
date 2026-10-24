@@ -97,7 +97,7 @@ describe("Today section components", () => {
       {
         key: "bulk-done",
         label: "Bulk Done",
-        buttonClassName: "btn-success",
+        buttonVariant: "success",
         isAvailable: () => true,
         run: runBulkDone,
       },
@@ -140,7 +140,7 @@ describe("Today section components", () => {
       {
         key: "bulk-done",
         label: "Bulk Done",
-        buttonClassName: "btn-success",
+        buttonVariant: "success",
         isAvailable: () => true,
         run: runBulkDone,
       },
@@ -183,7 +183,7 @@ describe("Today section components", () => {
       {
         key: "bulk-done",
         label: "Bulk Done",
-        buttonClassName: "btn-success",
+        buttonVariant: "success",
         isAvailable: () => true,
         run: runBulkDone,
       },
@@ -230,7 +230,7 @@ describe("Today section components", () => {
       {
         key: "bulk-done",
         label: "Bulk Done",
-        buttonClassName: "btn-success",
+        buttonVariant: "success",
         isAvailable: () => true,
         run: runBulkDone,
       },
@@ -284,7 +284,7 @@ describe("Today section components", () => {
       {
         key: "bulk-done",
         label: "Bulk Done",
-        buttonClassName: "btn-success",
+        buttonVariant: "success",
         isAvailable: () => true,
         run: runBulkDone,
       },
