@@ -180,7 +180,7 @@ export function TodayPage() {
     <section>
       <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2 mb-2">
         <h2 className="h4 mb-0">{m.nav_today()}</h2>
-        <div className="d-flex gap-2 align-items-start flex-wrap w-100 w-md-auto">
+        <div className="d-flex gap-2 align-items-start flex-wrap w-100">
           <button
             className="btn btn-outline-primary btn-sm flex-md-grow-0"
             type="button"

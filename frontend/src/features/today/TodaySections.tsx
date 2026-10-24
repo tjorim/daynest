@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import * as m from "@/paraglide/messages";
 import {
   type DueTodayItem,
@@ -255,7 +255,10 @@ export function WebFocusPanel({ sections }: { sections: TodaySection[] }) {
           aria-valuemin={0}
           aria-valuemax={100}
         >
-          <div className="progress-bar" style={{ width: `${completionPercent}%` }} />
+          <div
+            className="progress-bar w-(--completion-percent)"
+            style={{ "--completion-percent": `${completionPercent}%` } as CSSProperties}
+          />
         </div>
         <div className="d-flex gap-2 flex-wrap">
           {sections.map((section) => {
@@ -477,7 +480,7 @@ function PlannedItemActions({
 
   if (isEditing) {
     return (
-      <div className="border rounded p-2 d-flex flex-column gap-2" style={{ minWidth: "14rem" }}>
+      <div className="border rounded p-2 d-flex flex-column gap-2 min-w-56">
         <input
           className="form-control form-control-sm"
           value={editTitle}

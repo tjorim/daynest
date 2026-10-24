@@ -3,8 +3,7 @@ import ReactDOM from "react-dom/client";
 import { RouterProvider } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { AuthProvider as OidcProvider } from "react-oidc-context";
-import "bootstrap/dist/css/bootstrap.min.css";
-import "bootstrap-icons/font/bootstrap-icons.min.css";
+import "./tailwind.css";
 import "./app.css";
 
 import * as m from "@/paraglide/messages";

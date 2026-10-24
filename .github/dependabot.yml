@@ -29,7 +29,10 @@ updates:
         patterns:
           - "bootstrap"
           - "bootstrap-icons"
-          - "react-bootstrap"
+      tailwind:
+        patterns:
+          - "tailwindcss"
+          - "@tailwindcss/*"
       vite:
         patterns:
           - "vite"

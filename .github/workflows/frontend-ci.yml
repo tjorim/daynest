@@ -41,6 +41,9 @@ jobs:
       - name: Audit interface strings and catalogues
         run: pnpm run locale:audit
 
+      - name: Lint
+        run: pnpm lint
+
       - name: Check formatting
         run: pnpm format:check
 

@@ -1,6 +1,6 @@
 # UI dependency and component maintenance
 
-Daynest uses Base UI directly in `EditorDialog`, styled with the existing Bootstrap-based UI. It has no shadcn registry configuration, so do not initialise shadcn or replace the design system as part of dependency maintenance.
+Daynest uses Base UI directly in `EditorDialog`, styled with Bootstrap and Tailwind utilities (see `frontend/src/tailwind.css` for the cascade layers). `components.json` pins the Base UI base for the shadcn tooling, but there are no registry components and no `shadcn` dependency, so `ui-maintenance.json` stays in `base-ui` mode. Do not switch it to registry mode or replace the design system as part of dependency maintenance.
 
 ## Ownership and records
 
