@@ -29,5 +29,28 @@ function Textarea({
   return <textarea className={cn(fieldClasses, sizes[size], className)} {...props} />;
 }
 
-export { Input, Textarea, fieldClasses, sizes as inputSizes };
+/** A field with attached `InputGroupText` add-ons before or after it. */
+function InputGroup({ className, ...props }: ComponentProps<"div">) {
+  return <div className={cn("tw:input-group", className)} {...props} />;
+}
+
+/** Static label attached to an input, such as "every" or "days". */
+function InputGroupText({
+  size = "default",
+  className,
+  ...props
+}: ComponentProps<"span"> & { size?: InputSize }) {
+  return (
+    <span
+      className={cn(
+        "tw:flex tw:items-center tw:border tw:border-border tw:bg-tertiary tw:text-center tw:leading-normal tw:font-normal tw:whitespace-nowrap tw:text-foreground",
+        sizes[size],
+        className,
+      )}
+      {...props}
+    />
+  );
+}
+
+export { Input, InputGroup, InputGroupText, Textarea, fieldClasses, sizes as inputSizes };
 export type { InputSize };

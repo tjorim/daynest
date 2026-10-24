@@ -203,6 +203,31 @@
   }
 }
 
+/* Fields with attached add-ons: shared borders, only the outer corners rounded. */
+@utility input-group {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  width: 100%;
+  & > :not(:first-child) {
+    margin-left: -1px;
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+  }
+  & > :not(:last-child) {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+  & > input,
+  & > select {
+    position: relative;
+    flex: 1 1 auto;
+    width: 1%;
+    min-width: 0;
+  }
+}
+
 @utility p-badge {
   padding: 0.35em 0.65em;
 }
