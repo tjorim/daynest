@@ -12,6 +12,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { apiErrorMessage } from "@/lib/api/errorMessages";
+import { Alert } from "@/components/ui/alert";
+import { ListGroup, ListGroupItem } from "@/components/ui/list-group";
+import { Button } from "@/components/ui/button";
 
 interface GenerateShoppingListModalProps {
   week: WeekGridResponse;
@@ -58,34 +61,39 @@ export function GenerateShoppingListModal({
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle className="h5 mb-0">{m.meal_plan_generate_shopping_list()}</DialogTitle>
+          <DialogTitle className="tw:text-h5 tw:font-medium tw:mb-0">
+            {m.meal_plan_generate_shopping_list()}
+          </DialogTitle>
           <DialogCloseButton label={m.action_cancel()} />
         </DialogHeader>
         <DialogBody>
-          {error ? <div className="alert alert-danger py-2">{error}</div> : null}
-          <p className="text-muted">{m.meal_plan_generate_preview()}</p>
+          {error ? (
+            <Alert variant="danger" className="tw:py-2">
+              {error}
+            </Alert>
+          ) : null}
+          <p className="tw:text-muted-foreground">{m.meal_plan_generate_preview()}</p>
           {ingredients.length ? (
-            <ul className="list-group meal-plan-ingredient-preview">
+            <ListGroup render={<ul />} className="meal-plan-ingredient-preview">
               {ingredients.map((ingredient) => (
-                <li className="list-group-item" key={ingredient}>
+                <ListGroupItem render={<li />} key={ingredient}>
                   {ingredient}
-                </li>
+                </ListGroupItem>
               ))}
-            </ul>
+            </ListGroup>
           ) : (
-            <div className="alert alert-secondary py-2">{m.meal_plan_no_ingredients()}</div>
+            <Alert variant="secondary" className="tw:py-2">
+              {m.meal_plan_no_ingredients()}
+            </Alert>
           )}
         </DialogBody>
         <DialogFooter>
-          <DialogClose className="btn btn-outline-secondary">{m.action_cancel()}</DialogClose>
-          <button
-            type="button"
-            className="btn btn-primary"
-            disabled={isSaving || ingredients.length === 0}
-            onClick={() => void generate()}
-          >
+          <DialogClose render={<Button variant="outline-secondary" />}>
+            {m.action_cancel()}
+          </DialogClose>
+          <Button disabled={isSaving || ingredients.length === 0} onClick={() => void generate()}>
             {isSaving ? m.action_creating() : m.meal_plan_generate_shopping_list()}
-          </button>
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

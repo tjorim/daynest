@@ -23,6 +23,8 @@ const variants = {
     "tw:border-success tw:text-success tw:hover:bg-success tw:hover:text-white tw:focus-visible:ring-success/50",
   "outline-danger":
     "tw:border-danger tw:text-danger-text tw:hover:bg-danger tw:hover:text-white tw:focus-visible:ring-danger/50",
+  light:
+    "tw:border-light tw:bg-light tw:text-black tw:hover:border-light-hover tw:hover:bg-light-hover tw:focus-visible:ring-light/50",
   link: cn("tw:text-link tw:underline tw:hover:text-link-hover tw:focus-visible:ring-brand/50"),
 } as const;
 

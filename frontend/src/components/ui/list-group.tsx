@@ -1,5 +1,5 @@
 import { useRender } from "@base-ui/react/use-render";
-import { createContext, useContext, type ComponentProps } from "react";
+import { createContext, useContext } from "react";
 import { cn } from "@/lib/utils";
 
 const ListGroupContext = createContext({ flush: false });
@@ -8,16 +8,21 @@ const ListGroupContext = createContext({ flush: false });
 function ListGroup({
   flush = false,
   className,
+  render,
   ...props
-}: ComponentProps<"div"> & { flush?: boolean }) {
-  return (
-    <ListGroupContext value={{ flush }}>
-      <div
-        className={cn("tw:flex tw:flex-col", flush ? "" : "tw:rounded-md", className)}
-        {...props}
-      />
-    </ListGroupContext>
-  );
+}: useRender.ComponentProps<"div"> & { flush?: boolean }) {
+  const element = useRender({
+    render: render ?? <div />,
+    props: {
+      className: cn(
+        "tw:mb-0 tw:flex tw:list-none tw:flex-col tw:ps-0",
+        flush ? "" : "tw:rounded-md",
+        className,
+      ),
+      ...props,
+    },
+  });
+  return <ListGroupContext value={{ flush }}>{element}</ListGroupContext>;
 }
 
 const rowBase = cn(
