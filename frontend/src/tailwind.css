@@ -103,6 +103,11 @@
   --color-card-border: var(--bs-border-color-translucent);
   --color-card-header: rgba(var(--bs-body-color-rgb), 0.03);
 
+  /* Bootstrap's .fs-3 to .fs-5: the same sizes as the headings, without their line height. */
+  --text-fluid-3: min(calc(1.3rem + 0.6vw), 1.75rem);
+  --text-fluid-4: min(calc(1.275rem + 0.3vw), 1.5rem);
+  --text-fluid-5: 1.25rem;
+
   --animate-spinner: spinner 0.75s linear infinite;
   @keyframes spinner {
     to {
@@ -174,6 +179,27 @@
 @utility row-buttons {
   & [data-variant] {
     min-height: 2.75rem;
+  }
+}
+
+/* Buttons that touch: shared borders, only the outer corners rounded. */
+@utility button-group {
+  & > [data-variant] {
+    position: relative;
+    flex: 1 1 auto;
+  }
+  & > [data-variant]:not(:first-child) {
+    margin-left: -1px;
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+  }
+  & > [data-variant]:not(:last-child) {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+  & > [data-variant]:hover,
+  & > [data-variant]:focus-visible {
+    z-index: 1;
   }
 }
 
