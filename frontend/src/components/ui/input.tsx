@@ -2,14 +2,14 @@ import type { ComponentProps } from "react";
 import { cn } from "@/lib/utils";
 
 const sizes = {
-  default: "tw:px-3 tw:py-1.5 tw:text-base tw:leading-normal tw:rounded-md",
-  sm: "tw:px-2 tw:py-1 tw:text-sm tw:leading-normal tw:rounded-sm",
+  default: "px-3 py-1.5 text-base leading-normal rounded-md",
+  sm: "px-2 py-1 text-sm leading-normal rounded-sm",
 } as const;
 
 type InputSize = keyof typeof sizes;
 
 const fieldClasses = cn(
-  "tw:block tw:w-full tw:border tw:border-border tw:bg-background tw:leading-normal tw:font-normal tw:text-foreground tw:placeholder:text-muted-foreground tw:focus:border-brand tw:focus:ring-4 tw:focus:ring-brand/25 tw:focus:outline-none tw:disabled:bg-secondary-subtle tw:aria-invalid:border-danger tw:aria-invalid:focus:ring-danger/25",
+  "block w-full border border-border bg-background leading-normal font-normal text-foreground placeholder:text-muted-foreground focus:border-brand focus:ring-4 focus:ring-brand/25 focus:outline-none disabled:bg-secondary-subtle aria-invalid:border-danger aria-invalid:focus:ring-danger/25",
 );
 
 /** Single-line text-like input. Pass `type`, `value` and handlers as for a native input. */
@@ -31,7 +31,7 @@ function Textarea({
 
 /** A field with attached `InputGroupText` add-ons before or after it. */
 function InputGroup({ className, ...props }: ComponentProps<"div">) {
-  return <div className={cn("tw:input-group", className)} {...props} />;
+  return <div className={cn("input-group", className)} {...props} />;
 }
 
 /** Static label attached to an input, such as "every" or "days". */
@@ -43,7 +43,7 @@ function InputGroupText({
   return (
     <span
       className={cn(
-        "tw:flex tw:items-center tw:border tw:border-border tw:bg-tertiary tw:text-center tw:leading-normal tw:font-normal tw:whitespace-nowrap tw:text-foreground",
+        "flex items-center border border-border bg-tertiary text-center leading-normal font-normal whitespace-nowrap text-foreground",
         sizes[size],
         className,
       )}

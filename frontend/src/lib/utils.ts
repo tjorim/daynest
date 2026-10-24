@@ -1,10 +1,7 @@
 import { createCn } from "cn/config";
 
-// Tailwind utilities carry the `tw:` prefix while Bootstrap is loaded; see tailwind.css. The
-// extra font sizes are the `--text-*` tokens and `@utility` sizes declared there, so `cn` keeps a
-// `tw:text-h5` next to a `tw:text-muted-foreground` instead of treating both as colours.
+// Preserve custom font-size utilities alongside text colours when merging classes.
 export const cn = createCn({
-  prefix: "tw",
   extend: {
     classGroups: {
       "font-size": [

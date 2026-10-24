@@ -68,9 +68,9 @@ export function PebblePairPage() {
   const signInFailed = Boolean(oidcError || sessionError);
 
   return (
-    <section className="tw:mx-auto tw:max-w-lg tw:py-12 tw:text-center">
-      <h1 className="tw:mb-4 tw:text-h4 tw:font-medium">{m.pebble_pair_title()}</h1>
-      <p className="tw:mb-6 tw:text-muted-foreground">{m.pebble_pair_description()}</p>
+    <section className="mx-auto max-w-lg py-12 text-center">
+      <h1 className="mb-4 text-h4 font-medium">{m.pebble_pair_title()}</h1>
+      <p className="mb-6 text-muted-foreground">{m.pebble_pair_description()}</p>
 
       {signInFailed || pairingError ? (
         <Alert variant="danger" role="alert">
@@ -78,7 +78,7 @@ export function PebblePairPage() {
           <Button
             variant="outline-danger"
             size="sm"
-            className="tw:mt-4"
+            className="mt-4"
             onClick={pairingError ? retryPairing : retrySignIn}
           >
             {pairingError ? m.pebble_pair_retry() : m.pebble_pair_retry_sign_in()}
@@ -89,10 +89,7 @@ export function PebblePairPage() {
           {m.pebble_pair_close_instruction()}
         </Alert>
       ) : (
-        <div
-          className="tw:flex tw:items-center tw:justify-center tw:gap-2 tw:text-muted-foreground"
-          role="status"
-        >
+        <div className="flex items-center justify-center gap-2 text-muted-foreground" role="status">
           <Spinner />
           {m.pebble_pair_connecting()}
         </div>

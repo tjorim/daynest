@@ -13,14 +13,11 @@ function Progress({
       aria-valuenow={value}
       aria-valuemin={0}
       aria-valuemax={100}
-      className={cn(
-        "tw:flex tw:h-4 tw:overflow-hidden tw:rounded-md tw:bg-secondary-bg tw:text-xs",
-        className,
-      )}
+      className={cn("flex h-4 overflow-hidden rounded-md bg-secondary-bg text-xs", className)}
       {...props}
     >
       <div
-        className="tw:flex tw:w-(--completion-percent) tw:flex-col tw:justify-center tw:overflow-hidden tw:bg-primary tw:text-center tw:whitespace-nowrap tw:text-white tw:transition-all tw:duration-600"
+        className="flex w-(--completion-percent) flex-col justify-center overflow-hidden bg-primary text-center whitespace-nowrap text-white transition-all duration-600"
         style={{ "--completion-percent": `${value}%` } as CSSProperties}
       />
     </div>

@@ -2,13 +2,13 @@ import type { ComponentProps } from "react";
 import { cn } from "@/lib/utils";
 
 const variants = {
-  primary: "tw:bg-brand tw:text-white",
-  secondary: "tw:bg-secondary tw:text-white",
-  success: "tw:bg-success tw:text-white",
-  danger: "tw:bg-danger tw:text-white",
-  warning: "tw:bg-warning tw:text-black",
-  info: "tw:bg-info tw:text-black",
-  light: "tw:bg-light tw:text-black",
+  primary: "bg-brand text-white",
+  secondary: "bg-secondary text-white",
+  success: "bg-success text-white",
+  danger: "bg-danger text-white",
+  warning: "bg-warning text-black",
+  info: "bg-info text-black",
+  light: "bg-light text-black",
 } as const;
 
 type BadgeVariant = keyof typeof variants;
@@ -28,7 +28,7 @@ function Badge({
     <span
       data-slot="badge"
       className={cn(
-        "tw:inline-block tw:rounded-md tw:p-badge tw:text-center tw:text-badge tw:leading-none tw:font-bold tw:whitespace-nowrap tw:align-baseline",
+        "inline-block rounded-md p-badge text-center text-badge leading-none font-bold whitespace-nowrap align-baseline",
         variants[variant],
         className,
       )}

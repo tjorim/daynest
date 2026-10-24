@@ -1,3 +1,4 @@
+import { Repeat } from "lucide-react";
 import { useEffect, useState } from "react";
 import * as m from "@/paraglide/messages";
 import {
@@ -207,11 +208,11 @@ export function SummaryCard({
   tone: StatusTone;
 }) {
   return (
-    <div className="tw:col-span-6 tw:sm:col-span-4 tw:lg:col-span-1">
-      <Card className="tw:h-full tw:border-0 summary-card tw:shadow-sm">
-        <CardContent className="tw:py-4">
+    <div className="col-span-6 sm:col-span-4 lg:col-span-1">
+      <Card className="h-full border-0 summary-card shadow-sm">
+        <CardContent className="py-4">
           <div className={cn("summary-pill", badgeColors(tone))}>{label}</div>
-          <div className="summary-value tw:mt-2">{value}</div>
+          <div className="summary-value mt-2">{value}</div>
         </CardContent>
       </Card>
     </div>
@@ -234,17 +235,17 @@ export function WebFocusPanel({ sections }: { sections: TodaySection[] }) {
   const nextItem = nextSection?.items.find(isItemActionable);
 
   return (
-    <Card className="tw:border-0 tw:shadow-sm tw:mb-4 web-focus-panel">
+    <Card className="border-0 shadow-sm mb-4 web-focus-panel">
       <CardContent>
-        <div className="tw:flex tw:flex-col tw:lg:flex-row tw:justify-between tw:gap-4">
+        <div className="flex flex-col lg:flex-row justify-between gap-4">
           <div>
-            <div className="tw:uppercase tw:text-muted-foreground tw:text-small tw:font-semibold">
+            <div className="uppercase text-muted-foreground text-small font-semibold">
               {m.today_focus_panel_title()}
             </div>
-            <h3 className="tw:text-h5 tw:font-medium tw:mb-1">
+            <h3 className="text-h5 font-medium mb-1">
               {nextItem ? nextItem.title : m.today_focus_all_clear()}
             </h3>
-            <p className="tw:text-muted-foreground tw:mb-0">
+            <p className="text-muted-foreground mb-0">
               {nextItem
                 ? m.today_focus_next_attention({ heading: nextSection?.heading ?? "Today" })
                 : m.today_focus_no_open_actions()}
@@ -255,13 +256,11 @@ export function WebFocusPanel({ sections }: { sections: TodaySection[] }) {
             aria-label={`${completionPercent}% ${m.today_focus_complete()}`}
           >
             <span className="focus-progress-value">{completionPercent}%</span>
-            <span className="tw:text-muted-foreground tw:text-small">
-              {m.today_focus_complete()}
-            </span>
+            <span className="text-muted-foreground text-small">{m.today_focus_complete()}</span>
           </div>
         </div>
-        <Progress className="tw:my-4" value={completionPercent} aria-label={m.today_completion()} />
-        <div className="tw:flex tw:gap-2 tw:flex-wrap">
+        <Progress className="my-4" value={completionPercent} aria-label={m.today_completion()} />
+        <div className="flex gap-2 flex-wrap">
           {sections.map((section) => {
             const actionable = getActionableCount(section.items);
             return (
@@ -274,7 +273,7 @@ export function WebFocusPanel({ sections }: { sections: TodaySection[] }) {
                 href={`#${section.key}`}
               >
                 {section.heading}
-                <Badge variant="light" className="tw:ms-2">
+                <Badge variant="light" className="ms-2">
                   {actionable}
                 </Badge>
               </a>
@@ -304,9 +303,9 @@ function TaskActions({
   return (
     <div>
       {actions.actionError ? (
-        <small className="tw:text-danger tw:block tw:mb-1">{actions.actionError}</small>
+        <small className="text-danger block mb-1">{actions.actionError}</small>
       ) : null}
-      <div className="tw:grid tw:gap-2 tw:sm:flex" role="group" aria-label={m.today_task_actions()}>
+      <div className="grid gap-2 sm:flex" role="group" aria-label={m.today_task_actions()}>
         <Button
           variant="success"
           size="sm"
@@ -357,13 +356,9 @@ function MedicationActions({
   return (
     <div>
       {actions.actionError ? (
-        <small className="tw:text-danger tw:block tw:mb-1">{actions.actionError}</small>
+        <small className="text-danger block mb-1">{actions.actionError}</small>
       ) : null}
-      <div
-        className="tw:grid tw:gap-2 tw:sm:flex"
-        role="group"
-        aria-label={m.today_medication_actions()}
-      >
+      <div className="grid gap-2 sm:flex" role="group" aria-label={m.today_medication_actions()}>
         <Button
           variant="success"
           size="sm"
@@ -403,13 +398,9 @@ function RoutineActions({
   return (
     <div>
       {actions.actionError ? (
-        <small className="tw:text-danger tw:block tw:mb-1">{actions.actionError}</small>
+        <small className="text-danger block mb-1">{actions.actionError}</small>
       ) : null}
-      <div
-        className="tw:grid tw:gap-2 tw:sm:flex"
-        role="group"
-        aria-label={m.today_routine_actions()}
-      >
+      <div className="grid gap-2 sm:flex" role="group" aria-label={m.today_routine_actions()}>
         {taskStatus === "pending" ? (
           <Button
             variant="outline-primary"
@@ -490,7 +481,7 @@ function PlannedItemActions({
 
   if (isEditing) {
     return (
-      <div className="tw:border tw:border-border tw:rounded-md tw:p-2 tw:flex tw:flex-col tw:gap-2 tw:min-w-56">
+      <div className="border border-border rounded-md p-2 flex flex-col gap-2 min-w-56">
         <Input
           size="sm"
           value={editTitle}
@@ -526,10 +517,8 @@ function PlannedItemActions({
             <option value="all">{m.calendar_planned_edit_scope_all()}</option>
           </Select>
         ) : null}
-        {actions.actionError ? (
-          <small className="tw:text-danger">{actions.actionError}</small>
-        ) : null}
-        <div className="tw:flex tw:gap-2">
+        {actions.actionError ? <small className="text-danger">{actions.actionError}</small> : null}
+        <div className="flex gap-2">
           <Button
             size="sm"
             disabled={actions.isSubmitting || !editTitle.trim()}
@@ -556,13 +545,9 @@ function PlannedItemActions({
   return (
     <div>
       {actions.actionError ? (
-        <small className="tw:text-danger tw:block tw:mb-1">{actions.actionError}</small>
+        <small className="text-danger block mb-1">{actions.actionError}</small>
       ) : null}
-      <div
-        className="tw:grid tw:gap-2 tw:sm:flex"
-        role="group"
-        aria-label={m.today_planned_item_actions()}
-      >
+      <div className="grid gap-2 sm:flex" role="group" aria-label={m.today_planned_item_actions()}>
         <Button
           variant={plannedItem.is_done ? "outline-success" : "success"}
           size="sm"
@@ -686,13 +671,13 @@ export function SectionCard({
   };
 
   return (
-    <Card className="tw:mb-4" id={sectionId}>
-      <CardHeader className="tw:py-2">
-        <div className="tw:flex tw:flex-col tw:gap-2">
-          <div className="tw:flex tw:justify-between tw:items-center tw:gap-2 tw:flex-wrap">
-            <span className="tw:font-semibold">{heading}</span>
+    <Card className="mb-4" id={sectionId}>
+      <CardHeader className="py-2">
+        <div className="flex flex-col gap-2">
+          <div className="flex justify-between items-center gap-2 flex-wrap">
+            <span className="font-semibold">{heading}</span>
             {bulkActions?.length ? (
-              <label className="tw:check-row tw:mb-0 tw:text-small tw:text-muted-foreground">
+              <label className="check-row mb-0 text-small text-muted-foreground">
                 <Checkbox
                   checked={allSelected}
                   disabled={isBulkSubmitting || selectableItems.length === 0}
@@ -703,8 +688,8 @@ export function SectionCard({
             ) : null}
           </div>
           {bulkActions?.length ? (
-            <div className="tw:flex tw:flex-col tw:gap-2">
-              <div className="tw:flex tw:gap-2 tw:flex-wrap">
+            <div className="flex flex-col gap-2">
+              <div className="flex gap-2 flex-wrap">
                 {bulkActions.map((action) => {
                   const applicableCount = selectedItems.filter((item) =>
                     action.isAvailable(item),
@@ -733,20 +718,20 @@ export function SectionCard({
       </CardHeader>
       <ListGroup flush render={<ul />}>
         {items.length === 0 ? (
-          <ListGroupItem render={<li />} className="tw:py-2 tw:text-muted-foreground">
+          <ListGroupItem render={<li />} className="py-2 text-muted-foreground">
             {m.today_no_items()}
           </ListGroupItem>
         ) : (
           items.map((item) => (
             <ListGroupItem
               render={<li />}
-              className="tw:py-2 tw:flex tw:justify-between tw:gap-4 tw:items-start tw:flex-col tw:md:flex-row"
+              className="py-2 flex justify-between gap-4 items-start flex-col md:flex-row"
               key={item.id}
             >
-              <div className="tw:flex tw:gap-2 tw:items-start tw:grow">
+              <div className="flex gap-2 items-start grow">
                 {bulkActions?.length ? (
                   <Checkbox
-                    className="tw:mt-1"
+                    className="mt-1"
                     checked={selectedIds.includes(item.id)}
                     disabled={isBulkSubmitting}
                     aria-label={m.today_select_item({ title: item.title })}
@@ -754,10 +739,10 @@ export function SectionCard({
                   />
                 ) : null}
                 <div>
-                  <div className="tw:font-medium tw:flex tw:items-center tw:gap-1">
+                  <div className="font-medium flex items-center gap-1">
                     {item.isRecurring ? (
-                      <i
-                        className="bi bi-arrow-repeat tw:text-muted-foreground"
+                      <Repeat
+                        className="inline size-4 text-muted-foreground"
                         role="img"
                         aria-label={m.today_recurring()}
                       />
@@ -765,21 +750,21 @@ export function SectionCard({
                     {item.title}
                   </div>
                   {item.instructions ? (
-                    <small className="tw:block">
+                    <small className="block">
                       {m.today_instructions({ text: item.instructions })}
                     </small>
                   ) : null}
                   {item.subtitle ? (
-                    <small className="tw:text-muted-foreground">{item.subtitle}</small>
+                    <small className="text-muted-foreground">{item.subtitle}</small>
                   ) : null}
                 </div>
               </div>
               {item.statusLabel ? (
-                <Badge variant={item.statusTone ?? "secondary"} className="tw:self-start">
+                <Badge variant={item.statusTone ?? "secondary"} className="self-start">
                   {item.statusLabel}
                 </Badge>
               ) : null}
-              <div className="tw:flex tw:gap-2 tw:items-center">
+              <div className="flex gap-2 items-center">
                 <MedicationActions
                   medicationDoseInstanceId={item.medicationDoseInstanceId}
                   medicationStatus={item.medicationStatus}

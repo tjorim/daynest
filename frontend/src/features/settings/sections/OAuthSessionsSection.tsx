@@ -59,9 +59,9 @@ export function OAuthSessionsSection() {
   }, []);
 
   return (
-    <Card className="tw:mt-4">
-      <CardHeader className="tw:flex tw:justify-between tw:items-center tw:py-2">
-        <span className="tw:font-semibold">{m.settings_oauth_sessions_header()}</span>
+    <Card className="mt-4">
+      <CardHeader className="flex justify-between items-center py-2">
+        <span className="font-semibold">{m.settings_oauth_sessions_header()}</span>
         <Button
           variant="outline-secondary"
           size="sm"
@@ -72,15 +72,15 @@ export function OAuthSessionsSection() {
         </Button>
       </CardHeader>
       {sessionsLoading ? (
-        <CardContent className="tw:py-2 tw:text-muted-foreground tw:text-small">
+        <CardContent className="py-2 text-muted-foreground text-small">
           {m.settings_loading_sessions()}
         </CardContent>
       ) : sessionsError ? (
-        <CardContent className="tw:py-2 tw:text-danger tw:text-small">{sessionsError}</CardContent>
+        <CardContent className="py-2 text-danger text-small">{sessionsError}</CardContent>
       ) : (
         <ListGroup flush render={<ul />}>
           {oauthSessions.length === 0 ? (
-            <ListGroupItem render={<li />} className="tw:py-2 tw:text-muted-foreground">
+            <ListGroupItem render={<li />} className="py-2 text-muted-foreground">
               {m.settings_no_sessions()}
             </ListGroupItem>
           ) : (
@@ -92,10 +92,10 @@ export function OAuthSessionsSection() {
                 lastAccess ? m.settings_last_active({ date: lastAccess }) : null,
               ].filter(Boolean);
               return (
-                <ListGroupItem render={<li />} className="tw:py-2" key={session.id}>
-                  <div className="tw:flex tw:justify-between tw:items-start tw:gap-4">
+                <ListGroupItem render={<li />} className="py-2" key={session.id}>
+                  <div className="flex justify-between items-start gap-4">
                     <div>
-                      <div className="tw:font-semibold tw:flex tw:items-center tw:flex-wrap tw:gap-2">
+                      <div className="font-semibold flex items-center flex-wrap gap-2">
                         <span>
                           {clientNames.length > 0
                             ? clientNames.join(", ")
@@ -106,7 +106,7 @@ export function OAuthSessionsSection() {
                         ) : null}
                       </div>
                       {metaParts.length > 0 ? (
-                        <small className="tw:text-muted-foreground tw:block">
+                        <small className="text-muted-foreground block">
                           {metaParts.join(" • ")}
                         </small>
                       ) : null}
@@ -114,7 +114,7 @@ export function OAuthSessionsSection() {
                     <Button
                       variant="outline-danger"
                       size="sm"
-                      className="tw:shrink-0"
+                      className="shrink-0"
                       disabled={revokingSession === session.id}
                       onClick={() => void onRevokeSession(session)}
                     >
@@ -128,7 +128,7 @@ export function OAuthSessionsSection() {
         </ListGroup>
       )}
       {revokeError ? (
-        <CardFooter className="tw:text-danger tw:py-2 tw:text-small">{revokeError}</CardFooter>
+        <CardFooter className="text-danger py-2 text-small">{revokeError}</CardFooter>
       ) : null}
     </Card>
   );

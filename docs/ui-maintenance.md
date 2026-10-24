@@ -1,6 +1,6 @@
 # UI dependency and component maintenance
 
-The shared primitives in `components/ui/` (`button`, `alert`, `badge`, `card`, `input`, `select`, `checkbox`, `radio`, `switch`, `field`, `list-group`, `table`, `progress`, `spinner`, `close-button`) are hand-written, Tailwind-styled replacements for the Bootstrap component classes (#937); only `button` imports Base UI (`Button`, plus `use-render` in `list-group`). Daynest also uses Base UI directly in `EditorDialog` and in the shared `dialog` wrapper (`components/ui/dialog.tsx`, used by the calendar event, meal planner, medication and search dialogs), styled with Bootstrap and Tailwind utilities (see `frontend/src/tailwind.css` for the cascade layers). `components.json` pins the Base UI base for the shadcn tooling, but there are no registry components and no `shadcn` dependency, so `ui-maintenance.json` stays in `base-ui` mode. Do not switch it to registry mode or replace the design system as part of dependency maintenance.
+The shared primitives in `components/ui/` (`button`, `alert`, `badge`, `card`, `input`, `select`, `checkbox`, `radio`, `switch`, `field`, `list-group`, `table`, `progress`, `spinner`, `close-button`) are hand-written, Tailwind-styled replacements for the Bootstrap component classes (#937); only `button` imports Base UI (`Button`, plus `use-render` in `list-group`). Daynest also uses Base UI directly in `EditorDialog` and in the shared `dialog` wrapper (`components/ui/dialog.tsx`, used by the calendar event, meal planner, medication and search dialogs), styled with owned theme tokens and Tailwind utilities (see `frontend/src/tailwind.css` for the cascade layers). `components.json` pins the Base UI base for the shadcn tooling, but there are no registry components and no `shadcn` dependency, so `ui-maintenance.json` stays in `base-ui` mode. Do not switch it to registry mode or replace the design system as part of dependency maintenance.
 
 ## Ownership and records
 
@@ -141,8 +141,7 @@ local adapter or an explicit reviewed exception. Do not add Radix or the retired
 
 UI code imports `cn` through `@/lib/utils` where that helper is used. Keep
 app-specific variants, classes, locale behaviour, labels and semantics.
-Daynest's existing native/Bootstrap controls remain supported; this convention
-does not initialise shadcn or introduce a visual migration there.
+Daynest's native controls remain supported; this convention does not initialise shadcn.
 
 ```sh
 pnpm ui:usage  # Parse owned application imports and re-exports with Oxc
@@ -161,3 +160,27 @@ pnpm 10.33.0; CI must read the package declaration rather than keeping a second
 hard-coded pnpm version. Frontend Node setup reads `.node-version`. Keep tool
 changes in reviewable PRs and preserve runtime-version/bundle investigations as
 separate work.
+
+## Bootstrap removal (#938)
+
+The app uses unprefixed Tailwind utilities and owned `--color-*` tokens. `data-theme`
+on `<html>` is the only theme selector. Document defaults in `tailwind.css` preserve
+the previous typography, element spacing and native control behaviour without a vendor reset.
+Application-specific styles are `@utility` definitions; dialog/calendar scoping uses
+`data-slot` attributes. Strict class lint has no legacy allow-list.
+
+The icon audit found additional dynamic uses beyond the original issue inventory.
+All replacements use Lucide outlines (including the previous filled theme icons):
+
+| Previous icon | Lucide | Accessibility |
+| --- | --- | --- |
+| search | Search | Decorative inside a labelled control |
+| x-lg | X | Decorative inside a labelled control |
+| arrow-repeat | Repeat | Decorative beside recurrence text |
+| link-45deg | Link | Named image indicating an attached recipe URL |
+| circle-half | Contrast | Decorative inside the labelled theme switch |
+| moon-stars-fill | MoonStar | Outline; decorative inside the theme switch |
+| sun-fill | Sun | Outline; decorative inside the theme switch |
+| list | Menu | Decorative beside the menu label |
+
+See [removal validation](bootstrap-removal-validation.md) for size and verification evidence.

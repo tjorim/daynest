@@ -26,11 +26,11 @@ function resolveTheme(theme: Theme): ResolvedTheme {
   return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
 
-// data-bs-theme on <html> is the single switch: Bootstrap, the Tailwind `dark:` variant, the design
+// data-theme on <html> is the single switch: the Tailwind `dark:` variant, the design
 // tokens and the calendar all follow it.
 function applyTheme(theme: Theme): ResolvedTheme {
   const resolved = resolveTheme(theme);
-  document.documentElement.setAttribute("data-bs-theme", resolved);
+  document.documentElement.setAttribute("data-theme", resolved);
   return resolved;
 }
 

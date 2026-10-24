@@ -103,26 +103,23 @@ export function TemplatesPage() {
 
   return (
     <section>
-      <div className="tw:flex tw:flex-col tw:md:flex-row tw:justify-between tw:items-start tw:md:items-center tw:gap-2 tw:mb-2">
-        <h2 className="tw:text-h4 tw:font-medium tw:mb-0">{m.templates_title()}</h2>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-2 mb-2">
+        <h2 className="text-h4 font-medium mb-0">{m.templates_title()}</h2>
         <Button
           variant="outline-primary"
           size="sm"
           disabled={loading || refreshing}
           onClick={() => void loadTemplates()}
         >
-          {refreshing ? <Spinner className="tw:me-1" role="status" /> : null}
+          {refreshing ? <Spinner className="me-1" role="status" /> : null}
           {m.action_refresh()}
         </Button>
       </div>
-      <p className="tw:text-muted-foreground tw:mb-4">{m.templates_subtitle()}</p>
+      <p className="text-muted-foreground mb-4">{m.templates_subtitle()}</p>
 
       <FeedbackBanner message={loading ? m.templates_loading() : null} tone="info" />
       {error ? (
-        <Alert
-          variant="danger"
-          className="tw:py-2 tw:flex tw:justify-between tw:items-center tw:gap-2 tw:flex-wrap"
-        >
+        <Alert variant="danger" className="py-2 flex justify-between items-center gap-2 flex-wrap">
           <span>{error}</span>
           {canRetry ? (
             <Button variant="danger" size="sm" onClick={() => void loadTemplates()}>
@@ -137,11 +134,11 @@ export function TemplatesPage() {
         onDismiss={() => setSuccessMessage(null)}
       />
 
-      <div className="tw:grid tw:grid-cols-12 tw:gap-4">
-        <div className="tw:col-span-12 tw:xl:col-span-6">
+      <div className="grid grid-cols-12 gap-4">
+        <div className="col-span-12 xl:col-span-6">
           <Card>
-            <CardHeader className="tw:flex tw:justify-between tw:items-center tw:gap-2 tw:py-2">
-              <span className="tw:font-semibold">{m.templates_routine_list_header()}</span>
+            <CardHeader className="flex justify-between items-center gap-2 py-2">
+              <span className="font-semibold">{m.templates_routine_list_header()}</span>
               <Button
                 size="sm"
                 onClick={(event) => openEditor({ kind: "routine" }, event.currentTarget)}
@@ -156,30 +153,30 @@ export function TemplatesPage() {
             />
             <ListGroup flush render={<ul />}>
               {routines.length === 0 ? (
-                <ListGroupItem render={<li />} className="tw:py-2 tw:text-muted-foreground">
+                <ListGroupItem render={<li />} className="py-2 text-muted-foreground">
                   {m.templates_no_routines()}
                 </ListGroupItem>
               ) : (
                 routines.map((routine) => (
-                  <ListGroupItem render={<li />} className="tw:py-2" key={routine.id}>
-                    <div className="tw:flex tw:justify-between tw:items-start tw:gap-4">
+                  <ListGroupItem render={<li />} className="py-2" key={routine.id}>
+                    <div className="flex justify-between items-start gap-4">
                       <div>
-                        <div className="tw:font-semibold">{routine.name}</div>
+                        <div className="font-semibold">{routine.name}</div>
                         {routine.description ? (
-                          <small className="tw:block">{routine.description}</small>
+                          <small className="block">{routine.description}</small>
                         ) : null}
-                        <small className="tw:text-muted-foreground tw:block">
+                        <small className="text-muted-foreground block">
                           {m.templates_starts({ date: formatDate(routine.start_date) })} •{" "}
                           {routine.every_n_days === 1
                             ? m.templates_every_day({ count: routine.every_n_days })
                             : m.templates_every_days({ count: routine.every_n_days })}
                           {routine.due_time ? ` • ${routine.due_time.slice(0, 5)}` : ""}
                         </small>
-                        <small className="tw:text-muted-foreground tw:block">
+                        <small className="text-muted-foreground block">
                           {m.templates_created({ date: formatDate(routine.created_at) })}
                         </small>
                       </div>
-                      <div className="tw:grid tw:gap-2">
+                      <div className="grid gap-2">
                         <Badge variant={routine.is_active ? "success" : "secondary"}>
                           {routine.is_active ? m.status_active() : m.status_inactive()}
                         </Badge>
@@ -204,7 +201,7 @@ export function TemplatesPage() {
                           {m.action_edit()}
                         </Button>
                         {confirmDeleteRoutineId === routine.id ? (
-                          <div className="tw:flex tw:gap-1">
+                          <div className="flex gap-1">
                             <Button
                               variant="danger"
                               size="sm"
@@ -240,10 +237,10 @@ export function TemplatesPage() {
           </Card>
         </div>
 
-        <div className="tw:col-span-12 tw:xl:col-span-6">
+        <div className="col-span-12 xl:col-span-6">
           <Card>
-            <CardHeader className="tw:flex tw:justify-between tw:items-center tw:gap-2 tw:py-2">
-              <span className="tw:font-semibold">{m.templates_chore_list_header()}</span>
+            <CardHeader className="flex justify-between items-center gap-2 py-2">
+              <span className="font-semibold">{m.templates_chore_list_header()}</span>
               <Button
                 size="sm"
                 onClick={(event) => openEditor({ kind: "chore" }, event.currentTarget)}
@@ -258,26 +255,26 @@ export function TemplatesPage() {
             />
             <ListGroup flush render={<ul />}>
               {chores.length === 0 ? (
-                <ListGroupItem render={<li />} className="tw:py-2 tw:text-muted-foreground">
+                <ListGroupItem render={<li />} className="py-2 text-muted-foreground">
                   {m.templates_no_chores()}
                 </ListGroupItem>
               ) : (
                 chores.map((chore) => (
-                  <ListGroupItem render={<li />} className="tw:py-2" key={chore.id}>
-                    <div className="tw:flex tw:justify-between tw:items-start tw:gap-4">
+                  <ListGroupItem render={<li />} className="py-2" key={chore.id}>
+                    <div className="flex justify-between items-start gap-4">
                       <div>
-                        <div className="tw:font-semibold">{chore.name}</div>
+                        <div className="font-semibold">{chore.name}</div>
                         {chore.description ? (
-                          <small className="tw:block">{chore.description}</small>
+                          <small className="block">{chore.description}</small>
                         ) : null}
-                        <small className="tw:text-muted-foreground tw:block">
+                        <small className="text-muted-foreground block">
                           {m.templates_starts({ date: formatDate(chore.start_date) })} •{" "}
                           {chore.every_n_days === 1
                             ? m.templates_every_day({ count: chore.every_n_days })
                             : m.templates_every_days({ count: chore.every_n_days })}
                         </small>
                       </div>
-                      <div className="tw:grid tw:gap-2">
+                      <div className="grid gap-2">
                         <Badge variant={chore.is_active ? "success" : "secondary"}>
                           {chore.is_active ? m.status_active() : m.status_inactive()}
                         </Badge>
@@ -302,7 +299,7 @@ export function TemplatesPage() {
                           {m.action_edit()}
                         </Button>
                         {confirmDeleteChoreId === chore.id ? (
-                          <div className="tw:flex tw:gap-1">
+                          <div className="flex gap-1">
                             <Button
                               variant="danger"
                               size="sm"

@@ -7,7 +7,7 @@ import "./dialog.css";
 
 /**
  * Shared modal dialog. Base UI owns the focus trap, focus return, inert background, scroll lock
- * and Escape/outside-press dismissal; this file only adds Bootstrap-compatible theme styling.
+ * and Escape/outside-press dismissal; this file only adds shared theme styling.
  * Consumers render `<Dialog open onOpenChange>` and decide what a dismissal means.
  */
 const Dialog = DialogPrimitive.Root;
@@ -26,13 +26,14 @@ function DialogContent({
 }) {
   return (
     <DialogPrimitive.Portal>
-      <DialogPrimitive.Backdrop className="tw:fixed tw:inset-0 tw:z-1050 tw:bg-black/50" />
+      <DialogPrimitive.Backdrop className="fixed inset-0 z-1050 bg-black/50" />
       <DialogPrimitive.Popup
+        data-slot="dialog-popup"
         className={cn(
-          "dialog-popup tw:fixed tw:z-1050 tw:flex tw:flex-col tw:overflow-y-auto tw:border tw:border-dialog-border tw:bg-popover tw:text-popover-foreground tw:shadow-dialog",
+          "fixed z-1050 flex flex-col overflow-y-auto border border-dialog-border bg-popover text-popover-foreground shadow-dialog",
           position === "center"
-            ? "tw:inset-4 tw:m-auto tw:h-fit tw:max-h-dialog tw:max-w-lg tw:rounded-lg"
-            : "tw:inset-x-0 tw:top-search-offset tw:mx-auto tw:w-search tw:max-h-search tw:rounded-lg",
+            ? "inset-4 m-auto h-fit max-h-dialog max-w-lg rounded-lg"
+            : "inset-x-0 top-search-offset mx-auto w-search max-h-search rounded-lg",
           className,
         )}
         aria-modal="true"
@@ -48,7 +49,7 @@ function DialogHeader({ className, ...props }: ComponentProps<"div">) {
   return (
     <div
       className={cn(
-        "tw:flex tw:items-start tw:justify-between tw:gap-4 tw:border-b tw:border-dialog-border tw:p-6",
+        "flex items-start justify-between gap-4 border-b border-dialog-border p-6",
         className,
       )}
       {...props}
@@ -57,14 +58,14 @@ function DialogHeader({ className, ...props }: ComponentProps<"div">) {
 }
 
 function DialogBody({ className, ...props }: ComponentProps<"div">) {
-  return <div className={cn("tw:p-6", className)} {...props} />;
+  return <div className={cn("p-6", className)} {...props} />;
 }
 
 function DialogFooter({ className, ...props }: ComponentProps<"div">) {
   return (
     <div
       className={cn(
-        "tw:flex tw:flex-wrap tw:items-center tw:justify-end tw:gap-2 tw:border-t tw:border-dialog-border tw:p-6",
+        "flex flex-wrap items-center justify-end gap-2 border-t border-dialog-border p-6",
         className,
       )}
       {...props}

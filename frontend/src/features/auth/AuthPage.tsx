@@ -38,20 +38,20 @@ export function AuthPage() {
   const isBusy = isLoading || isRedirecting;
 
   return (
-    <section className="tw:grid tw:min-h-auth tw:place-items-center">
-      <Card className="tw:w-full tw:max-w-lg tw:shadow-sm">
-        <CardContent className="tw:p-6 tw:text-center">
-          <h2 className="tw:mb-1 tw:text-h4 tw:font-medium">{m.auth_title()}</h2>
-          <p className="tw:mb-4 tw:text-muted-foreground">{m.auth_subtitle()}</p>
+    <section className="grid min-h-auth place-items-center">
+      <Card className="w-full max-w-lg shadow-sm">
+        <CardContent className="p-6 text-center">
+          <h2 className="mb-1 text-h4 font-medium">{m.auth_title()}</h2>
+          <p className="mb-4 text-muted-foreground">{m.auth_subtitle()}</p>
           {isAccountRejected ? (
-            <Alert variant="warning" className="tw:text-start" role="alert">
-              <p className="tw:mb-1 tw:font-semibold">{m.auth_no_account_title()}</p>
-              <p className="tw:mb-0">{m.auth_no_account_body()}</p>
+            <Alert variant="warning" className="text-start" role="alert">
+              <p className="mb-1 font-semibold">{m.auth_no_account_title()}</p>
+              <p className="mb-0">{m.auth_no_account_body()}</p>
             </Alert>
           ) : oidcError ? (
-            <Alert variant="danger" className="tw:text-start" role="alert">
-              <p className="tw:mb-1 tw:font-semibold">{m.auth_error_title()}</p>
-              <p className="tw:mb-0">{oidcError}</p>
+            <Alert variant="danger" className="text-start" role="alert">
+              <p className="mb-1 font-semibold">{m.auth_error_title()}</p>
+              <p className="mb-0">{oidcError}</p>
             </Alert>
           ) : null}
           {isAccountRejected ? (
@@ -62,7 +62,7 @@ export function AuthPage() {
             <Button onClick={startLogin} disabled={isBusy}>
               {isBusy ? (
                 <>
-                  <Spinner className="tw:me-2" />
+                  <Spinner className="me-2" />
                   {m.auth_loading()}
                 </>
               ) : (

@@ -68,9 +68,9 @@ export function StatsPage() {
 
   return (
     <section>
-      <div className="tw:flex tw:flex-col tw:md:flex-row tw:justify-between tw:items-start tw:md:items-center tw:gap-2 tw:mb-4">
-        <h2 className="tw:text-h4 tw:font-medium tw:mb-0">{m.stats_title()}</h2>
-        <div className="tw:flex tw:gap-2 tw:items-center tw:flex-wrap">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-2 mb-4">
+        <h2 className="text-h4 font-medium mb-0">{m.stats_title()}</h2>
+        <div className="flex gap-2 items-center flex-wrap">
           <ButtonGroup aria-label={m.stats_title()}>
             {periods.map((p) => (
               <Button
@@ -95,15 +95,12 @@ export function StatsPage() {
       </div>
 
       {loading ? (
-        <Alert variant="info" className="tw:py-2">
+        <Alert variant="info" className="py-2">
           {m.stats_loading()}
         </Alert>
       ) : null}
       {error ? (
-        <Alert
-          variant="danger"
-          className="tw:py-2 tw:flex tw:justify-between tw:items-center tw:gap-2 tw:flex-wrap"
-        >
+        <Alert variant="danger" className="py-2 flex justify-between items-center gap-2 flex-wrap">
           <span>{error}</span>
           {canRetry ? (
             <Button variant="danger" size="sm" onClick={() => void summaryQuery.refetch()}>
@@ -114,62 +111,62 @@ export function StatsPage() {
       ) : null}
 
       {summary ? (
-        <div className="tw:grid tw:grid-cols-12 tw:gap-4">
-          <div className="tw:col-span-12">
+        <div className="grid grid-cols-12 gap-4">
+          <div className="col-span-12">
             <Card>
-              <CardHeader className="tw:font-semibold tw:py-2">
+              <CardHeader className="font-semibold py-2">
                 {m.stats_completion_header({ start: summary.start_date, end: summary.end_date })}
               </CardHeader>
               <CardContent>
-                <div className="tw:grid tw:grid-cols-12 tw:gap-4">
-                  <div className="tw:col-span-12 tw:sm:col-span-3">
-                    <div className="tw:text-center tw:p-2">
-                      <div className="tw:text-fluid-4 tw:font-bold tw:text-brand">
+                <div className="grid grid-cols-12 gap-4">
+                  <div className="col-span-12 sm:col-span-3">
+                    <div className="text-center p-2">
+                      <div className="text-fluid-4 font-bold text-brand">
                         {pct(summary.chores.completion_rate)}
                       </div>
-                      <div className="tw:text-small tw:text-muted-foreground tw:mt-1">
+                      <div className="text-small text-muted-foreground mt-1">
                         {m.stats_chores()}
                       </div>
-                      <div className="tw:text-small tw:text-muted-foreground">
+                      <div className="text-small text-muted-foreground">
                         {summary.chores.total_completed}/{summary.chores.total_scheduled}
                       </div>
                     </div>
                   </div>
-                  <div className="tw:col-span-12 tw:sm:col-span-3">
-                    <div className="tw:text-center tw:p-2">
-                      <div className="tw:text-fluid-4 tw:font-bold tw:text-success">
+                  <div className="col-span-12 sm:col-span-3">
+                    <div className="text-center p-2">
+                      <div className="text-fluid-4 font-bold text-success">
                         {pct(summary.routines.completion_rate)}
                       </div>
-                      <div className="tw:text-small tw:text-muted-foreground tw:mt-1">
+                      <div className="text-small text-muted-foreground mt-1">
                         {m.stats_routines()}
                       </div>
-                      <div className="tw:text-small tw:text-muted-foreground">
+                      <div className="text-small text-muted-foreground">
                         {summary.routines.total_completed}/{summary.routines.total_scheduled}
                       </div>
                     </div>
                   </div>
-                  <div className="tw:col-span-12 tw:sm:col-span-3">
-                    <div className="tw:text-center tw:p-2">
-                      <div className="tw:text-fluid-4 tw:font-bold tw:text-info">
+                  <div className="col-span-12 sm:col-span-3">
+                    <div className="text-center p-2">
+                      <div className="text-fluid-4 font-bold text-info">
                         {pct(summary.medications.adherence_rate)}
                       </div>
-                      <div className="tw:text-small tw:text-muted-foreground tw:mt-1">
+                      <div className="text-small text-muted-foreground mt-1">
                         {m.stats_medication()}
                       </div>
-                      <div className="tw:text-small tw:text-muted-foreground">
+                      <div className="text-small text-muted-foreground">
                         {summary.medications.total_taken}/{summary.medications.total_scheduled}
                       </div>
                     </div>
                   </div>
-                  <div className="tw:col-span-12 tw:sm:col-span-3">
-                    <div className="tw:text-center tw:p-2">
-                      <div className="tw:text-fluid-4 tw:font-bold tw:text-warning">
+                  <div className="col-span-12 sm:col-span-3">
+                    <div className="text-center p-2">
+                      <div className="text-fluid-4 font-bold text-warning">
                         {pct(summary.planned_items.completion_rate)}
                       </div>
-                      <div className="tw:text-small tw:text-muted-foreground tw:mt-1">
+                      <div className="text-small text-muted-foreground mt-1">
                         {m.stats_planned_items()}
                       </div>
-                      <div className="tw:text-small tw:text-muted-foreground">
+                      <div className="text-small text-muted-foreground">
                         {summary.planned_items.total_completed}/
                         {summary.planned_items.total_scheduled}
                       </div>
@@ -180,14 +177,12 @@ export function StatsPage() {
             </Card>
           </div>
 
-          <div className="tw:col-span-12 tw:lg:col-span-6">
-            <Card className="tw:h-full">
-              <CardHeader className="tw:font-semibold tw:py-2">
-                {m.stats_streak_header()}
-              </CardHeader>
+          <div className="col-span-12 lg:col-span-6">
+            <Card className="h-full">
+              <CardHeader className="font-semibold py-2">{m.stats_streak_header()}</CardHeader>
               <ListGroup flush render={<ul />}>
                 {summary.chores.streaks.length === 0 && summary.routines.streaks.length === 0 ? (
-                  <ListGroupItem render={<li />} className="tw:py-2 tw:text-muted-foreground">
+                  <ListGroupItem render={<li />} className="py-2 text-muted-foreground">
                     {m.stats_no_streaks()}
                   </ListGroupItem>
                 ) : (
@@ -209,19 +204,19 @@ export function StatsPage() {
                   ]
                     .sort((a, b) => b.current - a.current)
                     .map((item) => (
-                      <ListGroupItem render={<li />} className="tw:py-2" key={item.key}>
-                        <div className="tw:flex tw:justify-between tw:items-center tw:gap-2">
+                      <ListGroupItem render={<li />} className="py-2" key={item.key}>
+                        <div className="flex justify-between items-center gap-2">
                           <div>
-                            <div className="tw:font-semibold">{item.name}</div>
-                            <small className="tw:text-muted-foreground">{item.type}</small>
+                            <div className="font-semibold">{item.name}</div>
+                            <small className="text-muted-foreground">{item.type}</small>
                           </div>
-                          <div className="tw:text-end">
+                          <div className="text-end">
                             {item.current > 0 ? (
-                              <Badge variant="warning" className="tw:me-1">
+                              <Badge variant="warning" className="me-1">
                                 🔥 {item.current}
                               </Badge>
                             ) : null}
-                            <small className="tw:text-muted-foreground tw:block">
+                            <small className="text-muted-foreground block">
                               {m.stats_best({ count: item.best })}
                             </small>
                           </div>
@@ -233,21 +228,21 @@ export function StatsPage() {
             </Card>
           </div>
 
-          <div className="tw:col-span-12 tw:lg:col-span-6">
-            <Card className="tw:h-full">
-              <CardHeader className="tw:font-semibold tw:py-2">
+          <div className="col-span-12 lg:col-span-6">
+            <Card className="h-full">
+              <CardHeader className="font-semibold py-2">
                 {m.stats_most_skipped_header()}
               </CardHeader>
               <ListGroup flush render={<ul />}>
                 {summary.chores.most_skipped.length === 0 ? (
-                  <ListGroupItem render={<li />} className="tw:py-2 tw:text-muted-foreground">
+                  <ListGroupItem render={<li />} className="py-2 text-muted-foreground">
                     {m.stats_no_skipped()}
                   </ListGroupItem>
                 ) : (
                   summary.chores.most_skipped.map((item) => (
-                    <ListGroupItem render={<li />} className="tw:py-2" key={item.chore_id}>
-                      <div className="tw:flex tw:justify-between tw:items-center tw:gap-2">
-                        <div className="tw:font-semibold">{item.name}</div>
+                    <ListGroupItem render={<li />} className="py-2" key={item.chore_id}>
+                      <div className="flex justify-between items-center gap-2">
+                        <div className="font-semibold">{item.name}</div>
                         <Badge variant="secondary">
                           {item.skip_count === 1
                             ? m.stats_skip({ count: item.skip_count })
@@ -262,16 +257,16 @@ export function StatsPage() {
           </div>
 
           {summary.chores.daily_completions.length > 0 ? (
-            <div className="tw:col-span-12 tw:lg:col-span-6">
+            <div className="col-span-12 lg:col-span-6">
               <Card>
-                <CardHeader className="tw:font-semibold tw:py-2">
+                <CardHeader className="font-semibold py-2">
                   {m.stats_chores_daily_header()}
                 </CardHeader>
-                <CardContent className="tw:pb-2">
+                <CardContent className="pb-2">
                   <TrendAreaChart
                     rows={toCompletionTrend(summary.chores.daily_completions)}
-                    stroke="var(--bs-primary)"
-                    fill="rgba(var(--bs-primary-rgb), 0.2)"
+                    stroke="var(--color-brand)"
+                    fill="color-mix(in srgb, var(--color-brand) 20%, transparent)"
                     ariaLabel={m.stats_chores_daily_header()}
                     tooltipLabel={m.stats_completion_tooltip()}
                   />
@@ -281,16 +276,16 @@ export function StatsPage() {
           ) : null}
 
           {summary.routines.daily_completions.length > 0 ? (
-            <div className="tw:col-span-12 tw:lg:col-span-6">
+            <div className="col-span-12 lg:col-span-6">
               <Card>
-                <CardHeader className="tw:font-semibold tw:py-2">
+                <CardHeader className="font-semibold py-2">
                   {m.stats_routines_daily_header()}
                 </CardHeader>
-                <CardContent className="tw:pb-2">
+                <CardContent className="pb-2">
                   <TrendAreaChart
                     rows={toCompletionTrend(summary.routines.daily_completions)}
-                    stroke="var(--bs-success)"
-                    fill="rgba(var(--bs-success-rgb), 0.2)"
+                    stroke="var(--color-success)"
+                    fill="color-mix(in srgb, var(--color-success) 20%, transparent)"
                     ariaLabel={m.stats_routines_daily_header()}
                     tooltipLabel={m.stats_completion_tooltip()}
                   />
@@ -300,16 +295,16 @@ export function StatsPage() {
           ) : null}
 
           {summary.medications.daily_adherence.length > 0 ? (
-            <div className="tw:col-span-12 tw:lg:col-span-6">
+            <div className="col-span-12 lg:col-span-6">
               <Card>
-                <CardHeader className="tw:font-semibold tw:py-2">
+                <CardHeader className="font-semibold py-2">
                   {m.stats_medication_adherence_header()}
                 </CardHeader>
-                <CardContent className="tw:pb-2">
+                <CardContent className="pb-2">
                   <TrendAreaChart
                     rows={toAdherenceTrend(summary.medications.daily_adherence)}
-                    stroke="var(--bs-info)"
-                    fill="rgba(var(--bs-info-rgb), 0.2)"
+                    stroke="var(--color-info)"
+                    fill="color-mix(in srgb, var(--color-info) 20%, transparent)"
                     ariaLabel={m.stats_medication_adherence_header()}
                     tooltipLabel={m.stats_adherence_tooltip()}
                   />
@@ -438,7 +433,7 @@ function TrendAreaChart({ rows, stroke, fill, ariaLabel, tooltipLabel }: TrendAr
     <div>
       <Chart definition={definition} renderer={chartRenderer} height={140} ariaLabel={ariaLabel} />
       {canBrush && range && selection ? (
-        <div className="tw:flex tw:justify-between tw:items-center tw:text-small tw:text-muted-foreground tw:mt-1">
+        <div className="flex justify-between items-center text-small text-muted-foreground mt-1">
           <span>
             {m.stats_trend_selection({
               start: shortDate(range.start),
@@ -447,7 +442,7 @@ function TrendAreaChart({ rows, stroke, fill, ariaLabel, tooltipLabel }: TrendAr
             })}
           </span>
           {!isFullRange ? (
-            <Button variant="link" size="sm" className="tw:p-0" onClick={() => setRange(fullRange)}>
+            <Button variant="link" size="sm" className="p-0" onClick={() => setRange(fullRange)}>
               {m.stats_trend_reset()}
             </Button>
           ) : null}

@@ -1,3 +1,4 @@
+import { Search, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import * as m from "@/paraglide/messages";
@@ -13,7 +14,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { apiErrorMessage } from "@/lib/api/errorMessages";
 
 const sectionTitleClass =
-  "tw:border-b tw:border-border tw:px-4 tw:py-1 tw:text-small tw:font-semibold tw:text-muted-foreground";
+  "border-b border-border px-4 py-1 text-small font-semibold text-muted-foreground";
 
 /** One result: a title, up to two detail lines and a done/open badge. */
 function ResultRow({
@@ -35,7 +36,7 @@ function ResultRow({
   openLabel: string;
   onSelect: () => void;
 }) {
-  const detailClass = active ? "tw:text-white/75" : "tw:text-muted-foreground";
+  const detailClass = active ? "text-white/75" : "text-muted-foreground";
   const [first, second] = details;
   return (
     <ListGroupItem
@@ -43,14 +44,14 @@ function ResultRow({
       render={<button type="button" />}
       action
       active={active}
-      className="tw:rounded-none tw:border-0 tw:px-4 tw:py-2"
+      className="rounded-none border-0 px-4 py-2"
       onClick={onSelect}
     >
-      <div className="tw:flex tw:items-center tw:justify-between tw:gap-2">
+      <div className="flex items-center justify-between gap-2">
         <div>
-          <div className="tw:font-semibold">{title}</div>
+          <div className="font-semibold">{title}</div>
           {first ? <small className={detailClass}>{first}</small> : null}
-          {second ? <small className={`tw:block ${detailClass}`}>{second}</small> : null}
+          {second ? <small className={`block ${detailClass}`}>{second}</small> : null}
         </div>
         <Badge variant={done ? "success" : "secondary"}>{done ? doneLabel : openLabel}</Badge>
       </div>
@@ -150,15 +151,15 @@ export function SearchOverlay({ onClose }: { onClose: () => void }) {
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent position="top" initialFocus={inputRef} aria-label={m.app_search()}>
-        <CardHeader className="tw:p-2">
-          <div className="tw:flex tw:w-full tw:flex-wrap tw:items-stretch">
-            <span className="tw:flex tw:items-center tw:px-3 tw:py-1.5 tw:text-center tw:leading-normal tw:whitespace-nowrap">
-              <i className="bi bi-search" aria-hidden="true" />
+        <CardHeader className="p-2">
+          <div className="flex w-full flex-wrap items-stretch">
+            <span className="flex items-center px-3 py-1.5 text-center leading-normal whitespace-nowrap">
+              <Search className="size-4" aria-hidden="true" />
             </span>
             <Input
               ref={inputRef}
               type="search"
-              className="tw:-ms-px tw:min-w-0 tw:flex-1 tw:border-0 tw:shadow-none tw:focus:ring-0"
+              className="-ms-px min-w-0 flex-1 border-0 shadow-none focus:ring-0"
               placeholder={m.search_placeholder()}
               value={query}
               onChange={(e) => onQueryChange(e.target.value)}
@@ -166,37 +167,37 @@ export function SearchOverlay({ onClose }: { onClose: () => void }) {
               autoComplete="off"
             />
             {loading ? (
-              <span className="tw:-ms-px tw:flex tw:items-center tw:px-3 tw:py-1.5 tw:text-center tw:leading-normal tw:whitespace-nowrap">
+              <span className="-ms-px flex items-center px-3 py-1.5 text-center leading-normal whitespace-nowrap">
                 <Spinner role="status" />
               </span>
             ) : null}
             <Button
               variant="link"
-              className="tw:-ms-px tw:border-0"
+              className="-ms-px border-0"
               onClick={onClose}
               aria-label={m.ui_close_search()}
             >
-              <i className="bi bi-x-lg" aria-hidden="true" />
+              <X className="size-4" aria-hidden="true" />
             </Button>
           </div>
           {query.length > 0 && query.length < MIN_QUERY_LEN ? (
-            <div className="tw:px-2 tw:pb-1">
-              <small className="tw:text-muted-foreground">
+            <div className="px-2 pb-1">
+              <small className="text-muted-foreground">
                 {m.search_min_chars({ min: MIN_QUERY_LEN })}
               </small>
             </div>
           ) : null}
         </CardHeader>
 
-        <div className="tw:flex-auto tw:overflow-auto">
+        <div className="flex-auto overflow-auto">
           {error ? (
-            <Alert variant="danger" className="tw:m-2 tw:py-2">
+            <Alert variant="danger" className="m-2 py-2">
               {error}
             </Alert>
           ) : null}
 
           {results && totalResults === 0 && !loading ? (
-            <div className="tw:p-4 tw:text-center tw:text-muted-foreground">
+            <div className="p-4 text-center text-muted-foreground">
               {m.search_no_results({ query: results.query })}
             </div>
           ) : null}
@@ -278,14 +279,12 @@ export function SearchOverlay({ onClose }: { onClose: () => void }) {
           ) : null}
 
           {!results && !loading && !error && query.length >= MIN_QUERY_LEN ? (
-            <div className="tw:p-4 tw:text-center tw:text-muted-foreground">
-              {m.search_searching()}
-            </div>
+            <div className="p-4 text-center text-muted-foreground">{m.search_searching()}</div>
           ) : null}
         </div>
 
-        <CardFooter className="tw:px-4 tw:py-1">
-          <small className="tw:text-muted-foreground">{m.search_keyboard_hint()}</small>
+        <CardFooter className="px-4 py-1">
+          <small className="text-muted-foreground">{m.search_keyboard_hint()}</small>
         </CardFooter>
       </DialogContent>
     </Dialog>

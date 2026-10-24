@@ -24,7 +24,7 @@ The name reflects the product goal: a calm place to organize everyday life at ho
 
 ## Tech stack
 
-- Frontend: React, TypeScript, Vite, TanStack (Query/Router/Form/Table), Bootstrap with Tailwind and Base UI, dayjs
+- Frontend: React, TypeScript, Vite, TanStack (Query/Router/Form/Table), Tailwind CSS, Base UI and Lucide, dayjs
 - Native Android: Kotlin, Jetpack Compose, AndroidX
 - Backend: FastAPI, SQLAlchemy/SQLModel, PostgreSQL, Alembic, Pydantic
 - Hosting: Docker Compose on a VPS, Caddy reverse proxy

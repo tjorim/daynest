@@ -18,18 +18,18 @@ export function SettingsPage() {
 
   return (
     <section>
-      <div className="tw:flex tw:flex-col tw:md:flex-row tw:justify-between tw:items-start tw:md:items-center tw:gap-2 tw:mb-2">
-        <h2 className="tw:text-h4 tw:font-medium tw:mb-0">{m.settings_title()}</h2>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-2 mb-2">
+        <h2 className="text-h4 font-medium mb-0">{m.settings_title()}</h2>
         <PwaInstallButton />
       </div>
-      <p className="tw:text-muted-foreground tw:mb-4">{m.settings_subtitle()}</p>
+      <p className="text-muted-foreground mb-4">{m.settings_subtitle()}</p>
 
-      <div className="tw:grid tw:grid-cols-12 tw:gap-4">
-        <div className="tw:col-span-12 tw:lg:col-span-5">
+      <div className="grid grid-cols-12 gap-4">
+        <div className="col-span-12 lg:col-span-5">
           <ServerConfigSection onBaseUrlChange={setBackendBaseUrl} />
           <UserPreferencesSection />
         </div>
-        <div className="tw:col-span-12 tw:lg:col-span-7">
+        <div className="col-span-12 lg:col-span-7">
           <IntegrationClientsSection backendBaseUrl={backendBaseUrl} />
           <OAuthSessionsSection />
           <AccountDeletionSection />

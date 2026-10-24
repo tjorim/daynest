@@ -43,22 +43,22 @@ export function AccountDeletionSection() {
   };
 
   return (
-    <Card className="tw:mt-4 tw:border-danger">
-      <CardHeader className="tw:font-semibold tw:py-2 tw:text-danger">
+    <Card className="mt-4 border-danger">
+      <CardHeader className="font-semibold py-2 text-danger">
         {m.settings_delete_account_header()}
       </CardHeader>
-      <CardContent className="tw:py-2">
-        <p className="tw:text-muted-foreground tw:text-small tw:mb-2">
+      <CardContent className="py-2">
+        <p className="text-muted-foreground text-small mb-2">
           {m.settings_delete_account_description()}
         </p>
         {isConfirming ? (
-          <Alert variant="danger" className="tw:py-2 tw:text-small tw:mb-2">
+          <Alert variant="danger" className="py-2 text-small mb-2">
             {m.settings_delete_account_confirm({ email: userEmail })}
           </Alert>
         ) : null}
         {isConfirming ? (
-          <div className="tw:mb-2">
-            <Label className="tw:text-small tw:mb-1" htmlFor="delete-account-email-confirmation">
+          <div className="mb-2">
+            <Label className="text-small mb-1" htmlFor="delete-account-email-confirmation">
               {m.settings_delete_account_email_label()}
             </Label>
             <Input
@@ -77,12 +77,12 @@ export function AccountDeletionSection() {
           </div>
         ) : null}
         {error ? (
-          <Alert variant="danger" className="tw:py-2 tw:text-small tw:mb-2">
+          <Alert variant="danger" className="py-2 text-small mb-2">
             {error}
           </Alert>
         ) : null}
         {isConfirming ? (
-          <div className="tw:flex tw:gap-1">
+          <div className="flex gap-1">
             <Button
               variant="danger"
               size="sm"

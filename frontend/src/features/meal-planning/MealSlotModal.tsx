@@ -85,10 +85,10 @@ export function MealSlotModal({
         >
           <DialogHeader>
             <div>
-              <DialogTitle className="tw:text-h5 tw:font-medium tw:mb-0">
+              <DialogTitle className="text-h5 font-medium mb-0">
                 {m.meal_plan_edit_slot()}
               </DialogTitle>
-              <div className="tw:text-small tw:text-muted-foreground">
+              <div className="text-small text-muted-foreground">
                 {dayLabel} · {mealLabel}
               </div>
             </div>
@@ -96,11 +96,11 @@ export function MealSlotModal({
           </DialogHeader>
           <DialogBody>
             {error ? (
-              <Alert variant="danger" className="tw:py-2">
+              <Alert variant="danger" className="py-2">
                 {error}
               </Alert>
             ) : null}
-            <div className="tw:mb-4">
+            <div className="mb-4">
               <Label htmlFor="meal-slot-title">{m.meal_plan_slot_title()}</Label>
               <form.Field
                 name="title"
@@ -114,7 +114,7 @@ export function MealSlotModal({
                 )}
               />
             </div>
-            <div className="tw:mb-4">
+            <div className="mb-4">
               <Label htmlFor="meal-slot-recipe">{m.meal_plan_recipe_url()}</Label>
               <form.Field
                 name="recipeUrl"

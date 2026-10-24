@@ -1,11 +1,11 @@
-.editor-dialog-backdrop {
+[data-slot="editor-dialog-backdrop"] {
   position: fixed;
   inset: 0;
   background: rgb(0 0 0 / 50%);
   z-index: 1050;
 }
 
-.editor-dialog-popup {
+[data-slot="editor-dialog-popup"] {
   position: fixed;
   top: 50%;
   left: 50%;
@@ -14,16 +14,16 @@
   max-height: calc(100dvh - 2rem);
   overflow-y: auto;
   padding: 1.25rem;
-  border: 1px solid var(--bs-border-color);
-  border-radius: var(--bs-border-radius-lg);
-  background: var(--bs-body-bg);
-  color: var(--bs-body-color);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-background);
+  color: var(--color-foreground);
   box-shadow: 0 1rem 3rem rgb(0 0 0 / 20%);
   z-index: 1050;
 }
 
 /* Outline buttons read their text colour from these tokens; lift them for contrast in dark dialogs. */
-[data-bs-theme="dark"] :is(.editor-dialog-popup, .dialog-popup) {
-  --tw-color-secondary-text: var(--bs-secondary-color);
-  --tw-color-danger-text: var(--bs-danger-text-emphasis);
+[data-theme="dark"] :is([data-slot="editor-dialog-popup"], [data-slot="dialog-popup"]) {
+  --color-secondary-text: var(--color-muted-foreground);
+  --color-danger-text: var(--color-danger-emphasis);
 }

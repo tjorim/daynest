@@ -54,7 +54,7 @@ for (const theme of ["light", "dark"] as const) {
         await expect(dialog.getByRole("button", { name: "Cancel", exact: true })).toBeInViewport();
         expect(await dialog.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
         const results = await new AxeBuilder({ page })
-          .include(".editor-dialog-popup")
+          .include("[data-slot=editor-dialog-popup]")
           .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
           .analyze();
         expect(results.violations).toEqual([]);

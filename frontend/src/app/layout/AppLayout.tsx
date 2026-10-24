@@ -1,3 +1,4 @@
+import { Search, X, Menu, Contrast, MoonStar, Sun } from "lucide-react";
 import React from "react";
 import { Link, Outlet } from "@tanstack/react-router";
 import * as m from "@/paraglide/messages";
@@ -11,18 +12,20 @@ import { Alert } from "@/components/ui/alert";
 import { Button, buttonVariants } from "@/components/ui/button";
 
 const navLinkClass = cn(
-  "tw:block tw:min-h-11 tw:rounded-md tw:px-4 tw:py-2 tw:text-link tw:no-underline tw:hover:text-link-hover tw:focus:text-link-hover",
+  "block min-h-11 rounded-md px-4 py-2 text-link no-underline hover:text-link-hover focus:text-link-hover",
 );
-const navLinkActiveClass = "tw:bg-primary tw:text-white tw:hover:text-white tw:focus:text-white";
+const navLinkActiveClass = "bg-primary text-white hover:text-white focus:text-white";
 
 export function AppLayout() {
   const { isAuthenticated, isLoading, logout, refreshUser, sessionError, user } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const ThemeIcon = theme === "auto" ? Contrast : theme === "light" ? MoonStar : Sun;
   const isOnline = useOnlineStatus();
   const [queuedCount, setQueuedCount] = React.useState(() => getQueuedCount());
   const [isRetryingSession, setIsRetryingSession] = React.useState(false);
   const [searchOpen, setSearchOpen] = React.useState(false);
   const [mobileNavOpen, setMobileNavOpen] = React.useState(false);
+  const MenuIcon = mobileNavOpen ? X : Menu;
 
   React.useEffect(() => {
     if (isOnline && getQueuedCount() > 0) {
@@ -138,21 +141,21 @@ export function AppLayout() {
         </Alert>
       ) : null}
       {!isOnline ? (
-        <Alert variant="warning" className="tw:py-2 tw:mb-4 tw:flex tw:items-center tw:gap-2">
+        <Alert variant="warning" className="py-2 mb-4 flex items-center gap-2">
           <span>⚠️ {m.app_offline_banner()}</span>
           {queuedCount > 0 ? (
-            <span className="tw:text-muted-foreground tw:text-small">
+            <span className="text-muted-foreground text-small">
               {m.app_offline_queued({ count: queuedCount })}
             </span>
           ) : null}
         </Alert>
       ) : queuedCount > 0 ? (
-        <Alert variant="info" className="tw:py-2 tw:mb-4">
+        <Alert variant="info" className="py-2 mb-4">
           {m.app_saved_queued({ count: queuedCount })}
           <Button
             variant="outline-primary"
             size="sm"
-            className="tw:ms-2"
+            className="ms-2"
             onClick={() => {
               void drainOfflineQueue()
                 .then(() => setQueuedCount(getQueuedCount()))
@@ -166,7 +169,7 @@ export function AppLayout() {
       {sessionError ? (
         <Alert
           variant="danger"
-          className="tw:py-2 tw:mb-4 tw:flex tw:justify-between tw:items-center tw:gap-2 tw:flex-wrap"
+          className="py-2 mb-4 flex justify-between items-center gap-2 flex-wrap"
         >
           <span>{m.app_session_retry_banner()}</span>
           <Button
@@ -189,13 +192,13 @@ export function AppLayout() {
       {searchOpen && isAuthenticated ? (
         <SearchOverlay onClose={() => setSearchOpen(false)} />
       ) : null}
-      <header className="tw:mb-4 tw:md:mb-6 tw:flex tw:flex-col tw:gap-4">
-        <div className="tw:flex tw:flex-col tw:md:flex-row tw:justify-between tw:items-start tw:md:items-center tw:gap-2">
+      <header className="mb-4 md:mb-6 flex flex-col gap-4">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-2">
           <div>
-            <h1 className="tw:mb-1">Daynest</h1>
-            <p className="tw:text-muted-foreground tw:mb-0">{m.app_subtitle()}</p>
+            <h1 className="mb-1">Daynest</h1>
+            <p className="text-muted-foreground mb-0">{m.app_subtitle()}</p>
           </div>
-          <div className="tw:flex tw:flex-wrap tw:items-center tw:gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {isAuthenticated ? (
               <Button
                 variant="outline-secondary"
@@ -204,7 +207,7 @@ export function AppLayout() {
                 title={m.app_search_shortcut()}
                 onClick={() => setSearchOpen(true)}
               >
-                <i className="bi bi-search" aria-hidden="true" />
+                <Search className="size-4" aria-hidden="true" />
               </Button>
             ) : null}
             <Button
@@ -214,16 +217,13 @@ export function AppLayout() {
               title={themeTitle}
               onClick={toggleTheme}
             >
-              <i
-                className={`bi ${theme === "auto" ? "bi-circle-half" : theme === "light" ? "bi-moon-stars-fill" : "bi-sun-fill"}`}
-                aria-hidden="true"
-              />
+              <ThemeIcon className="size-4" aria-hidden="true" />
             </Button>
             {isAuthenticated ? (
-              <div className="tw:flex tw:flex-col tw:sm:flex-row tw:items-start tw:sm:items-center tw:gap-2">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
                 {user ? (
-                  <div className="tw:text-small tw:text-muted-foreground tw:sm:text-end">
-                    <div className="tw:font-semibold tw:text-foreground">{user.full_name}</div>
+                  <div className="text-small text-muted-foreground sm:text-end">
+                    <div className="font-semibold text-foreground">{user.full_name}</div>
                     <div>{user.email}</div>
                   </div>
                 ) : null}
@@ -245,23 +245,20 @@ export function AppLayout() {
           </div>
         </div>
         {isAuthenticated ? (
-          <div className="tw:flex tw:flex-col tw:gap-2">
+          <div className="flex flex-col gap-2">
             <Button
               variant="outline-primary"
-              className="tw:md:hidden tw:self-start"
+              className="md:hidden self-start"
               aria-controls="primary-navigation"
               aria-expanded={mobileNavOpen}
               onClick={() => setMobileNavOpen((isOpen) => !isOpen)}
             >
-              <i
-                className={`bi ${mobileNavOpen ? "bi-x-lg" : "bi-list"} tw:me-2`}
-                aria-hidden="true"
-              />
+              <MenuIcon className="inline size-4 me-2" aria-hidden="true" />
               {m.nav_menu()}
             </Button>
             <nav
               id="primary-navigation"
-              className={`${mobileNavOpen ? "tw:flex" : "tw:hidden"} tw:md:flex tw:mb-0 tw:list-none tw:flex-col tw:flex-wrap tw:gap-2 tw:ps-0 tw:md:flex-row`}
+              className={`${mobileNavOpen ? "flex" : "hidden"} md:flex mb-0 list-none flex-col flex-wrap gap-2 ps-0 md:flex-row`}
               aria-label={m.nav_menu()}
             >
               {renderNavLinks(() => setMobileNavOpen(false))}
@@ -270,7 +267,7 @@ export function AppLayout() {
         ) : null}
       </header>
       <Outlet />
-      <footer className="tw:mt-6 tw:pt-4 tw:border-t tw:border-border tw:text-center tw:text-muted-foreground tw:text-small">
+      <footer className="mt-6 pt-4 border-t border-border text-center text-muted-foreground text-small">
         <Link to="/privacy">{m.app_footer_privacy_policy()}</Link>
       </footer>
     </>
