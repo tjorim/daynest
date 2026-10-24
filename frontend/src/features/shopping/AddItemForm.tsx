@@ -2,6 +2,11 @@ import { useState } from "react";
 import * as m from "@/paraglide/messages";
 import { toIsoDate } from "@/lib/dateUtils";
 import type { ShoppingItemInput } from "@/lib/api/shoppingLists";
+import { Card, CardContent } from "@/components/ui/card";
+import { Alert } from "@/components/ui/alert";
+import { Label } from "@/components/ui/field";
+import { Input, Textarea } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 interface AddItemFormProps {
   isSubmitting: boolean;
@@ -37,71 +42,58 @@ export function AddItemForm({ isSubmitting, onAddItem }: AddItemFormProps) {
   };
 
   return (
-    <div className="card mb-3">
-      <div className="card-body">
-        <h3 className="h6 mb-3">{m.shopping_add_item()}</h3>
-        {error ? <div className="alert alert-danger py-2">{error}</div> : null}
-        <div className="row g-2 align-items-end">
-          <div className="col-12 col-md-4">
-            <label className="form-label" htmlFor="shopping-item-title">
-              {m.shopping_item_name()}
-            </label>
-            <input
+    <Card className="tw:mb-4">
+      <CardContent>
+        <h3 className="tw:text-h6 tw:font-medium tw:mb-4">{m.shopping_add_item()}</h3>
+        {error ? (
+          <Alert variant="danger" className="tw:py-2">
+            {error}
+          </Alert>
+        ) : null}
+        <div className="tw:grid tw:grid-cols-12 tw:gap-2 tw:items-end">
+          <div className="tw:col-span-12 tw:md:col-span-4">
+            <Label htmlFor="shopping-item-title">{m.shopping_item_name()}</Label>
+            <Input
               id="shopping-item-title"
-              className="form-control"
               value={title}
               placeholder={m.shopping_item_placeholder()}
               onChange={(event) => setTitle(event.target.value)}
             />
           </div>
-          <div className="col-12 col-md-3">
-            <label className="form-label" htmlFor="shopping-item-tag">
-              {m.shopping_category_tag()}
-            </label>
-            <input
+          <div className="tw:col-span-12 tw:md:col-span-3">
+            <Label htmlFor="shopping-item-tag">{m.shopping_category_tag()}</Label>
+            <Input
               id="shopping-item-tag"
-              className="form-control"
               value={tag}
               placeholder={m.shopping_category_placeholder()}
               onChange={(event) => setTag(event.target.value)}
             />
           </div>
-          <div className="col-12 col-md-3">
-            <label className="form-label" htmlFor="shopping-item-date">
-              {m.shopping_planned_for()}
-            </label>
-            <input
+          <div className="tw:col-span-12 tw:md:col-span-3">
+            <Label htmlFor="shopping-item-date">{m.shopping_planned_for()}</Label>
+            <Input
               id="shopping-item-date"
               type="date"
-              className="form-control"
               value={plannedFor}
               onChange={(event) => setPlannedFor(event.target.value)}
             />
           </div>
-          <div className="col-12 col-md-2">
-            <button
-              type="button"
-              className="btn btn-primary w-100"
-              disabled={isSubmitting}
-              onClick={() => void submit()}
-            >
+          <div className="tw:col-span-12 tw:md:col-span-2">
+            <Button className="tw:w-full" disabled={isSubmitting} onClick={() => void submit()}>
               {isSubmitting ? m.action_adding() : m.action_add()}
-            </button>
+            </Button>
           </div>
-          <div className="col-12">
-            <label className="form-label" htmlFor="shopping-item-notes">
-              {m.today_notes_optional()}
-            </label>
-            <textarea
+          <div className="tw:col-span-12">
+            <Label htmlFor="shopping-item-notes">{m.today_notes_optional()}</Label>
+            <Textarea
               id="shopping-item-notes"
-              className="form-control"
               rows={2}
               value={notes}
               onChange={(event) => setNotes(event.target.value)}
             />
           </div>
         </div>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }

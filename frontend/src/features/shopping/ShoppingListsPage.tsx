@@ -5,6 +5,12 @@ import { isRetryableApiError } from "@/lib/api/http";
 import { useShoppingActions } from "@/features/shopping/useShoppingActions";
 import { useShoppingListsQuery } from "@/features/shopping/useShoppingLists";
 import { apiErrorMessage } from "@/lib/api/errorMessages";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Alert } from "@/components/ui/alert";
+import { Card, CardContent } from "@/components/ui/card";
+import { Label } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 
 export function ShoppingListsPage() {
   const [tab, setTab] = useState<"active" | "archived">("active");
@@ -43,163 +49,169 @@ export function ShoppingListsPage() {
 
   return (
     <section>
-      <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2 mb-2">
-        <h2 className="h4 mb-0">{m.shopping_title()}</h2>
-        <div className="d-flex flex-wrap gap-2">
-          <Link to="/shopping/recurring" className="btn btn-outline-primary btn-sm">
+      <div className="tw:flex tw:flex-col tw:md:flex-row tw:justify-between tw:items-start tw:md:items-center tw:gap-2 tw:mb-2">
+        <h2 className="tw:text-h4 tw:font-medium tw:mb-0">{m.shopping_title()}</h2>
+        <div className="tw:flex tw:flex-wrap tw:gap-2">
+          <Link
+            className={buttonVariants({ variant: "outline-primary", size: "sm" })}
+            to="/shopping/recurring"
+          >
             {m.recurring_groceries_manage()}
           </Link>
-          <button
-            type="button"
-            className="btn btn-outline-primary btn-sm"
+          <Button
+            variant="outline-primary"
+            size="sm"
             disabled={listsQuery.isPending}
             onClick={() => void listsQuery.refetch()}
           >
             {m.action_refresh()}
-          </button>
+          </Button>
         </div>
       </div>
-      <p className="text-muted mb-3">{m.shopping_subtitle()}</p>
+      <p className="tw:text-muted-foreground tw:mb-4">{m.shopping_subtitle()}</p>
 
       {listsQuery.isPending ? (
-        <div className="alert alert-info py-2">{m.shopping_loading()}</div>
+        <Alert variant="info" className="tw:py-2">
+          {m.shopping_loading()}
+        </Alert>
       ) : null}
       {error ? (
-        <div className="alert alert-danger py-2 d-flex justify-content-between align-items-center gap-2 flex-wrap">
+        <Alert
+          variant="danger"
+          className="tw:py-2 tw:flex tw:justify-between tw:items-center tw:gap-2 tw:flex-wrap"
+        >
           <span>{error}</span>
           {canRetry ? (
-            <button
-              type="button"
-              className="btn btn-danger btn-sm"
-              onClick={() => void listsQuery.refetch()}
-            >
+            <Button variant="danger" size="sm" onClick={() => void listsQuery.refetch()}>
               {m.action_retry()}
-            </button>
+            </Button>
           ) : null}
-        </div>
+        </Alert>
       ) : null}
       {actions.actionError ? (
-        <div className="alert alert-danger py-2">{actions.actionError}</div>
+        <Alert variant="danger" className="tw:py-2">
+          {actions.actionError}
+        </Alert>
       ) : null}
-      {successMessage ? <div className="alert alert-success py-2">{successMessage}</div> : null}
+      {successMessage ? (
+        <Alert variant="success" className="tw:py-2">
+          {successMessage}
+        </Alert>
+      ) : null}
 
-      <div className="card mb-3">
-        <div className="card-body">
-          <h3 className="h6 mb-3">{m.shopping_create_list()}</h3>
-          <div className="row g-2 align-items-end">
-            <div className="col-12 col-md-4">
-              <label className="form-label" htmlFor="shopping-list-name">
-                {m.shopping_list_name()}
-              </label>
-              <input
+      <Card className="tw:mb-4">
+        <CardContent>
+          <h3 className="tw:text-h6 tw:font-medium tw:mb-4">{m.shopping_create_list()}</h3>
+          <div className="tw:grid tw:grid-cols-12 tw:gap-2 tw:items-end">
+            <div className="tw:col-span-12 tw:md:col-span-4">
+              <Label htmlFor="shopping-list-name">{m.shopping_list_name()}</Label>
+              <Input
                 id="shopping-list-name"
-                className="form-control"
                 value={name}
                 onChange={(event) => setName(event.target.value)}
                 placeholder={m.shopping_list_name_placeholder()}
               />
             </div>
-            <div className="col-12 col-md-3">
-              <label className="form-label" htmlFor="shopping-list-store">
-                {m.shopping_store()}
-              </label>
-              <input
+            <div className="tw:col-span-12 tw:md:col-span-3">
+              <Label htmlFor="shopping-list-store">{m.shopping_store()}</Label>
+              <Input
                 id="shopping-list-store"
-                className="form-control"
                 value={store}
                 onChange={(event) => setStore(event.target.value)}
                 placeholder={m.shopping_store_placeholder()}
               />
             </div>
-            <div className="col-12 col-md-3">
-              <label className="form-label" htmlFor="shopping-list-notes">
-                {m.today_notes_optional()}
-              </label>
-              <input
+            <div className="tw:col-span-12 tw:md:col-span-3">
+              <Label htmlFor="shopping-list-notes">{m.today_notes_optional()}</Label>
+              <Input
                 id="shopping-list-notes"
-                className="form-control"
                 value={notes}
                 onChange={(event) => setNotes(event.target.value)}
               />
             </div>
-            <div className="col-12 col-md-2">
-              <button
-                type="button"
-                className="btn btn-primary w-100"
+            <div className="tw:col-span-12 tw:md:col-span-2">
+              <Button
+                className="tw:w-full"
                 disabled={actions.isSubmitting || !name.trim()}
                 onClick={() => void createList()}
               >
                 {actions.isSubmitting ? m.action_creating() : m.action_add()}
-              </button>
+              </Button>
             </div>
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
-      <div className="d-flex gap-2 mb-3" role="tablist" aria-label={m.shopping_tabs_label()}>
-        <button
-          type="button"
-          className={`btn btn-sm ${tab === "active" ? "btn-primary" : "btn-outline-primary"}`}
+      <div className="tw:flex tw:gap-2 tw:mb-4" role="tablist" aria-label={m.shopping_tabs_label()}>
+        <Button
+          size="sm"
+          variant={tab === "active" ? "primary" : "outline-primary"}
           onClick={() => setTab("active")}
         >
           {m.status_active()}
-        </button>
-        <button
-          type="button"
-          className={`btn btn-sm ${tab === "archived" ? "btn-primary" : "btn-outline-primary"}`}
+        </Button>
+        <Button
+          size="sm"
+          variant={tab === "archived" ? "primary" : "outline-primary"}
           onClick={() => setTab("archived")}
         >
           {m.shopping_archived()}
-        </button>
+        </Button>
       </div>
 
-      <div className="row g-3">
+      <div className="tw:grid tw:grid-cols-12 tw:gap-4">
         {lists.map((list) => (
-          <div className="col-12 col-md-6 col-xl-4" key={list.id}>
-            <div className="card h-100">
-              <div className="card-body d-flex flex-column gap-2">
+          <div className="tw:col-span-12 tw:md:col-span-6 tw:xl:col-span-4" key={list.id}>
+            <Card className="tw:h-full">
+              <CardContent className="tw:flex tw:flex-col tw:gap-2">
                 <div>
-                  <div className="d-flex justify-content-between gap-2">
-                    <h3 className="h5 mb-1">{list.name}</h3>
-                    <span className="badge text-bg-secondary align-self-start">{list.status}</span>
+                  <div className="tw:flex tw:justify-between tw:gap-2">
+                    <h3 className="tw:text-h5 tw:font-medium tw:mb-1">{list.name}</h3>
+                    <Badge variant="secondary" className="tw:self-start">
+                      {list.status}
+                    </Badge>
                   </div>
-                  {list.store ? <div className="text-muted small">{list.store}</div> : null}
-                  {list.notes ? <p className="mb-0 small">{list.notes}</p> : null}
+                  {list.store ? (
+                    <div className="tw:text-muted-foreground tw:text-small">{list.store}</div>
+                  ) : null}
+                  {list.notes ? <p className="tw:mb-0 tw:text-small">{list.notes}</p> : null}
                 </div>
-                <div className="d-flex flex-wrap gap-2 mt-auto">
+                <div className="tw:flex tw:flex-wrap tw:gap-2 tw:mt-auto">
                   <Link
+                    className={buttonVariants({ variant: "outline-primary", size: "sm" })}
                     to="/shopping/$listId"
                     params={{ listId: list.id }}
-                    className="btn btn-outline-primary btn-sm"
                   >
                     {m.shopping_open_list()}
                   </Link>
                   {list.status === "active" ? (
-                    <button
-                      type="button"
-                      className="btn btn-outline-secondary btn-sm"
+                    <Button
+                      variant="outline-secondary"
+                      size="sm"
                       disabled={actions.isSubmitting}
                       onClick={() => void actions.archiveList(list.id)}
                     >
                       {m.shopping_archive()}
-                    </button>
+                    </Button>
                   ) : null}
-                  <button
-                    type="button"
-                    className="btn btn-outline-danger btn-sm"
+                  <Button
+                    variant="outline-danger"
+                    size="sm"
                     disabled={actions.isSubmitting}
                     onClick={() => void actions.deleteList(list.id)}
                   >
                     {m.action_delete()}
-                  </button>
+                  </Button>
                 </div>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           </div>
         ))}
         {!listsQuery.isPending && lists.length === 0 ? (
-          <div className="col-12">
-            <div className="alert alert-secondary py-2">{m.shopping_no_lists()}</div>
+          <div className="tw:col-span-12">
+            <Alert variant="secondary" className="tw:py-2">
+              {m.shopping_no_lists()}
+            </Alert>
           </div>
         ) : null}
       </div>
