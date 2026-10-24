@@ -115,6 +115,30 @@
       "reason": "Hand-written component styled with the tw: prefix; replaces Bootstrap's .progress during the #937 migration.",
       "reviewedAt": null,
       "reviewNote": null
+    },
+    "table": {
+      "files": ["src/components/ui/table.tsx"],
+      "registry": null,
+      "origin": "local",
+      "reason": "Hand-written component styled with the tw: prefix and Bootstrap-bridged theme tokens; replaces Bootstrap's equivalent classes during the #937 migration.",
+      "reviewedAt": null,
+      "reviewNote": null
+    },
+    "radio": {
+      "files": ["src/components/ui/radio.tsx"],
+      "registry": null,
+      "origin": "local",
+      "reason": "Hand-written component styled with the tw: prefix and Bootstrap-bridged theme tokens; replaces Bootstrap's equivalent classes during the #937 migration.",
+      "reviewedAt": null,
+      "reviewNote": null
+    },
+    "switch": {
+      "files": ["src/components/ui/switch.tsx"],
+      "registry": null,
+      "origin": "local",
+      "reason": "Hand-written component styled with the tw: prefix and Bootstrap-bridged theme tokens; replaces Bootstrap's equivalent classes during the #937 migration.",
+      "reviewedAt": null,
+      "reviewNote": null
     }
   },
   "importPolicy": {

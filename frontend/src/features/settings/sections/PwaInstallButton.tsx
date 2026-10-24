@@ -5,6 +5,7 @@ import {
   promptToInstallApp,
   subscribeInstallPrompt,
 } from "@/app/pwa/installPrompt";
+import { Button } from "@/components/ui/button";
 
 export function PwaInstallButton() {
   const [isInstalling, setIsInstalling] = useState(false);
@@ -31,13 +32,8 @@ export function PwaInstallButton() {
   };
 
   return (
-    <button
-      type="button"
-      className="btn btn-primary btn-sm"
-      disabled={isInstalling}
-      onClick={() => void onInstallApp()}
-    >
+    <Button size="sm" disabled={isInstalling} onClick={() => void onInstallApp()}>
       {m.settings_install_app()}
-    </button>
+    </Button>
   );
 }
