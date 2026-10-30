@@ -17,6 +17,7 @@ updates:
     labels:
       - "dependencies"
       - "npm"
+      - "platform:frontend"
     versioning-strategy: "increase"
     groups:
       react:
@@ -91,6 +92,7 @@ updates:
     labels:
       - "dependencies"
       - "npm"
+      - "platform:dashboard"
     versioning-strategy: "increase"
     groups:
       schedule-x:
@@ -113,7 +115,7 @@ updates:
       include: "scope"
     labels:
       - "dependencies"
-      - "android"
+      - "platform:android"
 
   # Monitor uv-managed Python dependencies for the backend API
   - package-ecosystem: "uv"
@@ -131,7 +133,7 @@ updates:
       include: "scope"
     labels:
       - "dependencies"
-      - "backend"
+      - "platform:backend"
       - "python"
     versioning-strategy: "increase"
     # Include transitive dependencies such as mcp and mcp-types in grouped updates.
@@ -174,6 +176,7 @@ updates:
     labels:
       - "dependencies"
       - "python"
+      - "platform:home-assistant"
     versioning-strategy: "increase"
     allow:
       - dependency-type: all
@@ -195,6 +198,7 @@ updates:
     labels:
       - "dependencies"
       - "python"
+      - "platform:python-lib"
     versioning-strategy: "increase"
     allow:
       - dependency-type: all
