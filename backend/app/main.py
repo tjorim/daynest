@@ -5,12 +5,10 @@ from contextlib import asynccontextmanager
 from datetime import UTC, date, datetime
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastmcp.utilities.lifespan import combine_lifespans
-from slowapi.errors import RateLimitExceeded
-from slowapi.middleware import SlowAPIMiddleware
 from starlette.applications import Starlette
 
 from app.api.dependencies.events import get_event_bus
@@ -43,7 +41,7 @@ from app.core.request_timing import RequestTimingMiddleware
 from app.db.session import SessionLocal
 from app.mcp.capabilities import CONTRACT_VERSION, tool_capability
 from app.mcp_server import create_mcp_server
-from app.middleware.rate_limit import handle_rate_limit_exceeded, limiter
+from app.middleware.rate_limit import RateLimitExceeded, handle_rate_limit_exceeded, limiter, rate_limit
 from app.models.user import User
 from app.services.event_bus import EventBus
 from app.services.push_service import (
@@ -188,7 +186,7 @@ async def app_lifespan(app: Starlette):
 
 lifespan = combine_lifespans(app_lifespan, _mcp_app.lifespan) if _mcp_app is not None else app_lifespan
 
-app = FastAPI(title=settings.app_name, version=settings.version, lifespan=lifespan)
+app = FastAPI(title=settings.app_name, version=settings.version, lifespan=lifespan, dependencies=[Depends(rate_limit)])
 app.middleware("http")(observability_middleware)
 
 if settings.trusted_hosts:
@@ -207,13 +205,11 @@ if settings.cors_origins:
         expose_headers=["X-Request-ID"],
     )
 
-# Per-client-IP rate limiting. `limiter.enabled` (settings.rate_limit_enabled)
-# gates actual enforcement; the middleware is always registered so a 429 still
-# gets a request ID and observability log entry like any other response.
+# The global dependency runs after routing, including for included routers.
+# Mounted /mcp is separate: it retains its own authentication/integration limits.
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, handle_rate_limit_exceeded)
 app.add_exception_handler(ApiException, handle_api_exception)
-app.add_middleware(SlowAPIMiddleware)
 # Outermost, so its timing covers everything below it (apps#246).
 app.add_middleware(RequestTimingMiddleware)
 

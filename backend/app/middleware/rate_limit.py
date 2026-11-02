@@ -1,11 +1,16 @@
-"""Per-client-IP rate limiting for the public REST API, via slowapi."""
+"""Per-client-IP REST limits, enforced after FastAPI has resolved the route."""
 
 import ipaddress
+import math
+import re
+import time
 
-from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.errors import RateLimitExceeded
+from limits import parse_many
+from limits.storage import MemoryStorage
+from limits.strategies import FixedWindowRateLimiter
 from starlette.requests import Request
-from starlette.responses import Response
+from starlette.responses import JSONResponse, Response
+from starlette.routing import compile_path
 
 from app.core.config import settings
 
@@ -49,22 +54,77 @@ def get_client_ip(request: Request) -> str:
     return "unknown"
 
 
-limiter = Limiter(
-    key_func=get_client_ip,
-    default_limits=[settings.rate_limit_default],
-    enabled=settings.rate_limit_enabled,
-    headers_enabled=True,
-)
+class RateLimitExceeded(Exception):
+    def __init__(self, detail: str, headers: dict[str, str]) -> None:
+        self.detail = detail
+        self.headers = headers
+
+
+class RequestRateLimiter:
+    """Process-local fixed windows, matching the former slowapi defaults.
+
+    Keys use client IP and route template, shared across methods and path IDs.
+    Mounted ASGI apps do not run FastAPI dependencies and own their limits.
+    """
+
+    def __init__(self, limit: str, *, enabled: bool = True) -> None:
+        self.enabled = enabled
+        self.limits = parse_many(limit)
+        self.strategy = FixedWindowRateLimiter(MemoryStorage())
+
+    def check(self, request: Request, response: Response) -> None:
+        if not self.enabled:
+            return
+        template = route_template(request)
+        if template in exempt_paths():
+            return
+        identifiers = (get_client_ip(request), template)
+        for item in self.limits:
+            allowed = self.strategy.hit(item, *identifiers)
+            reset, remaining = self.strategy.get_window_stats(item, *identifiers)
+            headers = {
+                "X-RateLimit-Limit": str(item.amount),
+                "X-RateLimit-Remaining": str(remaining),
+                "X-RateLimit-Reset": str(reset + 1),
+                "Retry-After": str(max(1, math.ceil(reset - time.time()))),
+            }
+            if not allowed:
+                raise RateLimitExceeded(str(item), headers)
+            response.headers.update(headers)
+
+
+def route_template(request: Request) -> str:
+    """Keep inclusion prefixes when FastAPI exposes the router-local route.
+
+    Match only the already selected route's suffix; no route-tree traversal or
+    FastAPI effective-route internals are needed. Captured parameter values never
+    become bucket keys.
+    """
+    route = request.scope.get("route")
+    path = request.url.path
+    local_path = getattr(route, "path", None)
+    if local_path is None:
+        return path
+    regex, template, _ = compile_path(local_path)
+    match = re.search(regex.pattern.removeprefix("^"), path)
+    if match is None:
+        raise RuntimeError("Selected route does not match the request path")
+    return path[: match.start()] + template
+
+
+def exempt_paths() -> frozenset[str]:
+    return frozenset(f"{settings.api_prefix}/health/{probe}" for probe in ("liveness", "readiness"))
+
+
+limiter = RequestRateLimiter(settings.rate_limit_default, enabled=settings.rate_limit_enabled)
+
+
+async def rate_limit(request: Request, response: Response) -> None:
+    """Global dependency: included routers run this before auth and route handlers."""
+    request.app.state.limiter.check(request, response)
 
 
 def handle_rate_limit_exceeded(request: Request, exc: Exception) -> Response:
-    """Adapt slowapi's handler to Starlette's ``ExceptionHandler`` signature.
-
-    ``app.add_exception_handler`` types the handler's second parameter as the
-    base ``Exception``, while slowapi's own handler narrows it to
-    ``RateLimitExceeded``. Starlette only invokes this for that registered
-    exception type, so the isinstance check just satisfies the type checker.
-    """
     if not isinstance(exc, RateLimitExceeded):
         raise exc
-    return _rate_limit_exceeded_handler(request, exc)
+    return JSONResponse({"error": f"Rate limit exceeded: {exc.detail}"}, status_code=429, headers=exc.headers)
