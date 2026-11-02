@@ -127,3 +127,5 @@ tests/
 ├── msw/            MSW-backed integration tests (msw project)
 └── utils/          QueryTestProvider, router helpers
 ```
+
+Toolchain versions and coordinated rollout: [Node and pnpm toolchain](../docs/toolchain.md).
