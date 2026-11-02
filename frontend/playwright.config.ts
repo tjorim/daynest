@@ -13,7 +13,7 @@ export default defineConfig({
     // no real backend, database, or credentials required. The mocked
     // MockAuthProvider (src/mocks/MockAuthProvider.tsx) starts already
     // authenticated as MOCK_USER by default, so specs don't need to log in.
-    command: "corepack pnpm build:mock && corepack pnpm preview",
+    command: "pnpm build:mock && pnpm preview",
     url: "http://localhost:4173",
     reuseExistingServer: true,
   },
