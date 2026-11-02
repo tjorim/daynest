@@ -51,3 +51,11 @@ def client(db_session: Session) -> Generator[TestClient]:
     finally:
         app.router.lifespan_context = original_lifespan_context
         app.dependency_overrides.pop(get_db, None)
+
+
+@pytest.fixture(autouse=True)
+def reset_general_rate_limiter():
+    """Each test gets its own rate-limit budget, like a fresh worker."""
+    app.state.limiter.reset()
+    yield
+    app.state.limiter.reset()

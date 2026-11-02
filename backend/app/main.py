@@ -43,6 +43,7 @@ from app.mcp.capabilities import CONTRACT_VERSION, tool_capability
 from app.mcp_server import create_mcp_server
 from app.middleware.rate_limit import RateLimitExceeded, handle_rate_limit_exceeded, limiter, rate_limit
 from app.models.user import User
+from app.request_limits import RateLimitHeadersMiddleware
 from app.services.event_bus import EventBus
 from app.services.push_service import (
     close_http_client as close_push_http_client,
@@ -202,12 +203,19 @@ if settings.cors_origins:
         allow_credentials=not wildcard,
         allow_methods=["*"],
         allow_headers=["*"],
-        expose_headers=["X-Request-ID"],
+        expose_headers=[
+            "Retry-After",
+            "X-RateLimit-Limit",
+            "X-RateLimit-Remaining",
+            "X-RateLimit-Reset",
+            "X-Request-ID",
+        ],
     )
 
 # The global dependency runs after routing, including for included routers.
 # Mounted /mcp is separate: it retains its own authentication/integration limits.
 app.state.limiter = limiter
+app.add_middleware(RateLimitHeadersMiddleware)
 app.add_exception_handler(RateLimitExceeded, handle_rate_limit_exceeded)
 app.add_exception_handler(ApiException, handle_api_exception)
 # Outermost, so its timing covers everything below it (apps#246).
