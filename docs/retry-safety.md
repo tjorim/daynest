@@ -107,3 +107,11 @@ queue remains untouched and never executes automatically.
 `frontend/tests/lib/offlineQueue.test.ts` exercises account isolation, sign-out,
 concurrent enqueue/drain, failed responses, unsafe routes, storage failure and
 legacy retention. No new server retry guarantee is claimed.
+
+### General REST throttling
+
+A general rate-limit 429 occurs before the route handler and carries Retry-After
+and no-store semantics. Changing an ID or HTTP method does not create a fresh
+route-template allowance. This rejection causes no handler write; it does not
+prove that an earlier timed-out write failed. Existing idempotency keys or
+reconciliation rules still govern retries. Mounted MCP policies stay separate.
