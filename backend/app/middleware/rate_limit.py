@@ -34,5 +34,5 @@ def handle_rate_limit_exceeded(request: Request, exc: Exception) -> Response:
     return JSONResponse(
         {"error": f"Rate limit exceeded: {exc.detail}"},
         status_code=429,
-        headers={**exc.headers, "Cache-Control": "no-store"},
+        headers={**exc.rate_headers, "Cache-Control": "no-store"},
     )

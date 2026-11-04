@@ -188,6 +188,7 @@ async def app_lifespan(app: Starlette):
 lifespan = combine_lifespans(app_lifespan, _mcp_app.lifespan) if _mcp_app is not None else app_lifespan
 
 app = FastAPI(title=settings.app_name, version=settings.version, lifespan=lifespan, dependencies=[Depends(rate_limit)])
+app.add_middleware(RateLimitHeadersMiddleware, owner=app, check_before_body=rate_limit)
 app.middleware("http")(observability_middleware)
 
 if settings.trusted_hosts:
@@ -215,7 +216,6 @@ if settings.cors_origins:
 # The global dependency runs after routing, including for included routers.
 # Mounted /mcp is separate: it retains its own authentication/integration limits.
 app.state.limiter = limiter
-app.add_middleware(RateLimitHeadersMiddleware)
 app.add_exception_handler(RateLimitExceeded, handle_rate_limit_exceeded)
 app.add_exception_handler(ApiException, handle_api_exception)
 # Outermost, so its timing covers everything below it (apps#246).
