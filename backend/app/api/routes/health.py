@@ -13,7 +13,6 @@ from app.core.errors import ApiException
 from app.core.observability import metrics
 from app.core.oidc import check_jwks_reachable
 from app.db.session import engine
-from app.middleware.rate_limit import limiter
 
 logger = logging.getLogger("app.health")
 
@@ -52,7 +51,6 @@ def _require_metrics_access(request: Request) -> None:
 
 
 @router.get("/health/liveness")
-@limiter.exempt
 def liveness_check() -> dict[str, str]:
     return {"status": "alive"}
 
@@ -89,7 +87,6 @@ async def _jwks_reachable() -> bool:
 
 
 @router.get("/health/readiness")
-@limiter.exempt
 async def readiness_check(response: Response) -> dict[str, str]:
     try:
         await asyncio.to_thread(_check_db)
