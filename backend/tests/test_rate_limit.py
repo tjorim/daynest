@@ -160,7 +160,8 @@ def test_real_health_probes_stay_exempt(monkeypatch):
     from app.api.routes import health
     from app.main import app
 
-    monkeypatch.setattr(app.state, "limiter", RequestRateLimiter("1/minute"))
+    # State stores dynamic attributes in _state; patch the mapping so teardown restores the limiter.
+    monkeypatch.setitem(app.state._state, "limiter", RequestRateLimiter("1/minute"))
     monkeypatch.setattr(health, "_check_db", lambda: None)
     monkeypatch.setattr(health.settings, "oidc_issuer_url", None)
     client = TestClient(app, base_url="http://localhost")
@@ -189,7 +190,7 @@ def test_every_openapi_operation_enforces_default_limit(monkeypatch, method, tem
     from app.main import app
 
     limiter = RequestRateLimiter("1/minute")
-    monkeypatch.setattr(app.state, "limiter", limiter)
+    monkeypatch.setitem(app.state._state, "limiter", limiter)
     assert limiter.strategy.hit(limiter.limits[0], "testclient", template)
     path = re.sub(r"\{[^}]+\}", "1", template)
     client = TestClient(app, base_url="http://localhost")
