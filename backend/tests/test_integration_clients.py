@@ -256,7 +256,10 @@ class TestExchangeIntegrationClientToken:
     ) -> None:
         user = _create_user(db_session, "rotate-secret@example.com")
         raw_key = "daynest_previous_secret_key"
-        monkeypatch.setattr(settings, "_cached_integration_key_hash_secret", "current-secret")
+        # Patch the class property so teardown restores it without touching Pydantic's private storage.
+        monkeypatch.setattr(
+            type(settings), "resolved_integration_key_hash_secret", property(lambda self: "current-secret")
+        )
         monkeypatch.setattr(settings, "integration_key_hash_secret_previous", "previous-secret")
         record = IntegrationClient(
             user_id=user.id,
