@@ -197,8 +197,8 @@ importers:
         specifier: ^4.3.3
         version: 4.3.3(vite@8.3.5(@types/node@26.1.1)(jiti@2.7.0))
       '@tanstack/charts':
-        specifier: ^1.1.0
-        version: 1.1.0(preact@10.29.2)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(svelte@5.57.3)
+        specifier: ^1.2.1
+        version: 1.2.1(preact@10.29.2)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(svelte@5.57.3)
       '@tanstack/react-form':
         specifier: 2.0.0-alpha.3
         version: 2.0.0-alpha.3(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -1513,8 +1513,8 @@ packages:
     peerDependencies:
       vite: ^5.2.0 || ^6 || ^7 || ^8
 
-  '@tanstack/charts@1.1.0':
-    resolution: {integrity: sha512-0mb05yZMrBUzjHBohcKtK1XcTKJH9b8LS2uT0iYjDiLU+QR2jo0hrUJramAgg/AfBLMu2DY5fOgKe5bsqd6z4Q==}
+  '@tanstack/charts@1.2.1':
+    resolution: {integrity: sha512-3y3uSrfpfOMm8fVVirLsp3qQCHhuuiPo+hHM1K8qcuHYhGNjpYgGPpavjqn0dI39e6eyKSgyS6bl4Ug+MpcApw==}
     peerDependencies:
       '@angular/core': '>=19'
       '@angular/platform-browser': '>=19'
@@ -1524,9 +1524,9 @@ packages:
       preact: '>=10'
       react: ^18.0.0 || ^19.0.0
       react-dom: ^18.0.0 || ^19.0.0
-      react-native: ^0.86.0
+      react-native: ^0.86.0 || ^0.88.0
       react-native-svg: '>=15.15.4 <16'
-      solid-js: '>=1.8'
+      solid-js: ^1.8
       svelte: ^5.20.0
       vue: '>=3.5'
     peerDependenciesMeta:
@@ -3767,7 +3767,7 @@ snapshots:
       tailwindcss: 4.3.3
       vite: 8.3.5(@types/node@26.1.1)(jiti@2.7.0)
 
-  '@tanstack/charts@1.1.0(preact@10.29.2)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(svelte@5.57.3)':
+  '@tanstack/charts@1.2.1(preact@10.29.2)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(svelte@5.57.3)':
     dependencies:
       '@types/d3-force': 3.0.10
       '@types/d3-geo': 3.1.1
