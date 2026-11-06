@@ -16,7 +16,7 @@ dependencies = [
     "pydantic-settings==2.16.2",
     "cryptography==50.0.2",
     "pyjwt==2.15.1",
-    "python-dateutil==3.0.0",
+    "python-dateutil==4.0.0",
     "pywebpush==2.5.0",
     "sentry-sdk[fastapi]==2.73.0",
     "limits==5.8.0",
