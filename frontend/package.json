@@ -41,7 +41,7 @@
     "@tanstack/react-table": "^9.3.1",
     "canvas-confetti": "^1.9.4",
     "cn": "^0.5.0",
-    "d3-shape": "^3.2.0",
+    "d3-shape": "^3.2.1",
     "dayjs": "^1.11.23",
     "lucide-react": "^1.62.0",
     "oidc-client-ts": "^3.5.0",
