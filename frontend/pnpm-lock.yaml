@@ -180,16 +180,16 @@ importers:
         version: 4.6.0
       '@schedule-x/calendar':
         specifier: ^4.9.1
-        version: 4.9.1(@preact/signals@2.9.1(preact@10.29.2))(preact@10.29.2)(temporal-polyfill@1.0.7)
+        version: 4.9.1(@preact/signals@2.9.1(preact@10.29.8))(preact@10.29.8)(temporal-polyfill@1.0.7)
       '@schedule-x/drag-and-drop':
         specifier: ^3.7.3
         version: 3.7.3
       '@schedule-x/event-modal':
         specifier: ^4.9.1
-        version: 4.9.1(@preact/signals@2.9.1(preact@10.29.2))(preact@10.29.2)
+        version: 4.9.1(@preact/signals@2.9.1(preact@10.29.8))(preact@10.29.8)
       '@schedule-x/react':
         specifier: ^4.1.0
-        version: 4.1.0(@schedule-x/calendar@4.9.1(@preact/signals@2.9.1(preact@10.29.2))(preact@10.29.2)(temporal-polyfill@1.0.7))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+        version: 4.1.0(@schedule-x/calendar@4.9.1(@preact/signals@2.9.1(preact@10.29.8))(preact@10.29.8)(temporal-polyfill@1.0.7))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       '@schedule-x/theme-default':
         specifier: ^4.9.1
         version: 4.9.1
@@ -198,7 +198,7 @@ importers:
         version: 4.3.3(vite@8.3.5(@types/node@26.1.1)(jiti@2.7.0))
       '@tanstack/charts':
         specifier: ^1.2.1
-        version: 1.2.1(preact@10.29.2)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(svelte@5.57.3)
+        version: 1.2.1(preact@10.29.8)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(svelte@5.57.3)
       '@tanstack/react-form':
         specifier: 2.0.0-alpha.3
         version: 2.0.0-alpha.3(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -2622,8 +2622,13 @@ packages:
     resolution: {integrity: sha512-LJlKCCAUFKOuZxipUdYw1NzIITEsPcgyOG9LkvRJvuKj/bRzbuRY0ARXvL0pWGpsZvn8jku+LMep2eU0seHp8g==}
     engines: {node: ^10 || ^12 || >=14}
 
-  preact@10.29.2:
-    resolution: {integrity: sha512-7tNmwg/7mzzAoB/8kSg6Hl37JraAZw3Z3A0JSY7VXlZwo82Xn0G7wKbNNs2qoF4ZEEsQGTwDAroNdqKs1ofJxQ==}
+  preact@10.29.8:
+    resolution: {integrity: sha512-ej2aVZ+vZ8WO7tvlQWRM9N63A0KzF9q4mWJfDUHgYaIofWY9hu74QdnQrjoPMmZi2/nZ5gN0bJCQF49xQqx09Q==}
+    peerDependencies:
+      preact-render-to-string: '>=5'
+    peerDependenciesMeta:
+      preact-render-to-string:
+        optional: true
 
   pretty-format@27.5.1:
     resolution: {integrity: sha512-Qb1gy5OrP5+zDf2Bvnzdl3jsTf1qXVMazbvCoKhtKqVs4/YK4ozX4gKQJJVyNe+cajNPn0KoC0MC3FUmaHWEmQ==}
@@ -3616,10 +3621,10 @@ snapshots:
 
   '@preact/signals-core@1.14.5': {}
 
-  '@preact/signals@2.9.1(preact@10.29.2)':
+  '@preact/signals@2.9.1(preact@10.29.8)':
     dependencies:
       '@preact/signals-core': 1.14.5
-      preact: 10.29.2
+      preact: 10.29.8
 
   '@rolldown/binding-android-arm-eabi@1.2.15':
     optional: true
@@ -3668,22 +3673,22 @@ snapshots:
 
   '@rolldown/pluginutils@1.0.1': {}
 
-  '@schedule-x/calendar@4.9.1(@preact/signals@2.9.1(preact@10.29.2))(preact@10.29.2)(temporal-polyfill@1.0.7)':
+  '@schedule-x/calendar@4.9.1(@preact/signals@2.9.1(preact@10.29.8))(preact@10.29.8)(temporal-polyfill@1.0.7)':
     dependencies:
-      '@preact/signals': 2.9.1(preact@10.29.2)
-      preact: 10.29.2
+      '@preact/signals': 2.9.1(preact@10.29.8)
+      preact: 10.29.8
       temporal-polyfill: 1.0.7
 
   '@schedule-x/drag-and-drop@3.7.3': {}
 
-  '@schedule-x/event-modal@4.9.1(@preact/signals@2.9.1(preact@10.29.2))(preact@10.29.2)':
+  '@schedule-x/event-modal@4.9.1(@preact/signals@2.9.1(preact@10.29.8))(preact@10.29.8)':
     dependencies:
-      '@preact/signals': 2.9.1(preact@10.29.2)
-      preact: 10.29.2
+      '@preact/signals': 2.9.1(preact@10.29.8)
+      preact: 10.29.8
 
-  '@schedule-x/react@4.1.0(@schedule-x/calendar@4.9.1(@preact/signals@2.9.1(preact@10.29.2))(preact@10.29.2)(temporal-polyfill@1.0.7))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)':
+  '@schedule-x/react@4.1.0(@schedule-x/calendar@4.9.1(@preact/signals@2.9.1(preact@10.29.8))(preact@10.29.8)(temporal-polyfill@1.0.7))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)':
     dependencies:
-      '@schedule-x/calendar': 4.9.1(@preact/signals@2.9.1(preact@10.29.2))(preact@10.29.2)(temporal-polyfill@1.0.7)
+      '@schedule-x/calendar': 4.9.1(@preact/signals@2.9.1(preact@10.29.8))(preact@10.29.8)(temporal-polyfill@1.0.7)
       react: 19.3.1
       react-dom: 19.3.1(react@19.3.1)
 
@@ -3770,7 +3775,7 @@ snapshots:
       tailwindcss: 4.3.3
       vite: 8.3.5(@types/node@26.1.1)(jiti@2.7.0)
 
-  '@tanstack/charts@1.2.1(preact@10.29.2)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(svelte@5.57.3)':
+  '@tanstack/charts@1.2.1(preact@10.29.8)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(svelte@5.57.3)':
     dependencies:
       '@types/d3-force': 3.0.10
       '@types/d3-geo': 3.1.1
@@ -3792,7 +3797,7 @@ snapshots:
       d3-zoom: 3.0.0
       tslib: 2.9.1
     optionalDependencies:
-      preact: 10.29.2
+      preact: 10.29.8
       react: 19.3.1
       react-dom: 19.3.1(react@19.3.1)
       svelte: 5.57.3
@@ -4757,7 +4762,7 @@ snapshots:
       picocolors: 1.1.1
       source-map-js: 1.2.2
 
-  preact@10.29.2: {}
+  preact@10.29.8: {}
 
   pretty-format@27.5.1:
     dependencies:
