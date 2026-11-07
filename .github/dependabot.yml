@@ -19,20 +19,9 @@ updates:
       - "npm"
       - "platform:frontend"
     versioning-strategy: "increase"
-    # Dependabot only proposes direct dependencies unless allowed. The tanstack-router
-    # group's internals are transitive, so they are allowed by name; direct dependencies stay allowed.
+    # Include transitive dependencies (router internals, msw helpers, d3 modules, ...) so groups can collect them.
     allow:
-      - dependency-type: "direct"
-      - dependency-name: "@tanstack/history"
-        dependency-type: "all"
-      - dependency-name: "@tanstack/router-core"
-        dependency-type: "all"
-      - dependency-name: "isbot"
-        dependency-type: "all"
-      - dependency-name: "seroval"
-        dependency-type: "all"
-      - dependency-name: "seroval-plugins"
-        dependency-type: "all"
+      - dependency-type: all
     groups:
       react:
         patterns:
