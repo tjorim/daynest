@@ -19,19 +19,19 @@ updates:
       - "npm"
       - "platform:frontend"
     versioning-strategy: "increase"
-    # Dependabot only proposes direct dependencies unless allowed. Transitive
-    # packages are allowed by name so the groups above can pick them up.
+    # Dependabot only proposes direct dependencies unless allowed. Router internals
+    # are transitive, so they are allowed by name; direct dependencies stay allowed.
     allow:
       - dependency-type: "direct"
-      - dependency-name: "d3-*"
-        dependency-type: "all"
-      - dependency-name: "@types/d3-*"
-        dependency-type: "all"
       - dependency-name: "@tanstack/history"
         dependency-type: "all"
       - dependency-name: "@tanstack/router-core"
         dependency-type: "all"
       - dependency-name: "isbot"
+        dependency-type: "all"
+      - dependency-name: "seroval"
+        dependency-type: "all"
+      - dependency-name: "seroval-plugins"
         dependency-type: "all"
     groups:
       react:
@@ -71,17 +71,21 @@ updates:
         patterns:
           - "@playwright/*"
           - "@axe-core/playwright"
-      # d3 packages: direct d3-shape plus the d3-* and @types/d3-* packages @tanstack/charts pulls in
       d3:
         patterns:
-          - "d3-*"
-          - "@types/d3-*"
+          - "d3-shape"
+          - "@types/d3-shape"
+      charts:
+        patterns:
+          - "@tanstack/charts"
       # Internal dependencies of @tanstack/react-router (router itself stays ungrouped)
       tanstack-router-internals:
         patterns:
           - "@tanstack/history"
           - "@tanstack/router-core"
           - "isbot"
+          - "seroval"
+          - "seroval-plugins"
       canvas-confetti:
         patterns:
           - "canvas-confetti"
@@ -287,13 +291,9 @@ updates:
       - "dependencies"
       - "github-actions"
     groups:
-      # Listed first so CodeQL actions keep their own group
       codeql:
         patterns:
           - "github/codeql-action/*"
-      actions:
-        patterns:
-          - "*"
 
   # Monitor Docker images
   - package-ecosystem: "docker"
