@@ -200,7 +200,8 @@ updates:
       android-build:
         patterns:
           - "com.android.*"
-          - "org.jetbrains.kotlin*"
+          - "org.jetbrains.kotlin.*"
+          - "org.jetbrains.kotlin:*"
           - "com.google.devtools.ksp"
 
   # Monitor uv-managed Python dependencies for the backend API
