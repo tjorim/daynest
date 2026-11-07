@@ -1,7 +1,7 @@
 # Node and pnpm toolchain
 
 Use Node 26.13.0 (the `.node-version` pin) and pnpm 12.16.1 (the
-`packageManager` pin). CI reads those files; install pnpm directly with
+`packageManager` pin) in both `frontend/` and `dashboard/`. CI reads those files; install pnpm directly with
 `npm install --global pnpm@12.16.1`, since Node 26 does not bundle Corepack.
 
 The pnpm 10 to 12 migration keeps dependency versions locked. Configuration

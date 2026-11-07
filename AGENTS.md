@@ -15,4 +15,4 @@ Application UI imports use `@/components/ui/<component>`. Direct Base UI subpath
 - `components.json` pins `base-nova` and Lucide; `ui-maintenance.json` stays in `base-ui` mode. Inventory hand-written components as described in `docs/ui-maintenance.md`.
 - `pnpm lint` enforces no arbitrary values, raw palette colours, inline styles or unknown classes, with no class allow-list. Define named one-off sizes/styles with `@utility` in `tailwind.css`. Pass dynamic values through CSS custom properties.
 - Compare changed views against `main` in light/dark at 1280px and 390px. Preserve the documented breakpoints, native-control sizes and keyboard interactions.
-- Use `pnpm` only. `frontend/pnpm-lock.yaml` is the single lockfile.
+- Use `pnpm` only. Each package has a single lockfile: `frontend/pnpm-lock.yaml` and `dashboard/pnpm-lock.yaml`.
