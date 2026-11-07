@@ -3,9 +3,9 @@
   "version": "2026.8.2",
   "type": "module",
   "engines": {
-    "node": ">=26.0.0",
-    "npm": ">=11"
+    "node": ">=26.0.0"
   },
+  "packageManager": "pnpm@12.16.1",
   "scripts": {
     "build": "vite build",
     "dev": "vite build --watch"

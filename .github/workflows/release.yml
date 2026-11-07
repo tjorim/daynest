@@ -187,20 +187,25 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Set up pnpm
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        with:
+          package_json_file: dashboard/package.json
+
       - name: Set up Node.js
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: dashboard/.node-version
-          cache: npm
-          cache-dependency-path: dashboard/package-lock.json
+          cache: pnpm
+          cache-dependency-path: dashboard/pnpm-lock.yaml
 
       - name: Install dashboard dependencies
         working-directory: dashboard
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Build dashboard card
         working-directory: dashboard
-        run: npm run build
+        run: pnpm run build
 
       - name: Create HACS release archive
         working-directory: custom_components/daynest
