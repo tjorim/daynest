@@ -19,6 +19,20 @@ updates:
       - "npm"
       - "platform:frontend"
     versioning-strategy: "increase"
+    # Dependabot only proposes direct dependencies unless allowed. Transitive
+    # packages are allowed by name so the groups above can pick them up.
+    allow:
+      - dependency-type: "direct"
+      - dependency-name: "d3-*"
+        dependency-type: "all"
+      - dependency-name: "@types/d3-*"
+        dependency-type: "all"
+      - dependency-name: "@tanstack/history"
+        dependency-type: "all"
+      - dependency-name: "@tanstack/router-core"
+        dependency-type: "all"
+      - dependency-name: "isbot"
+        dependency-type: "all"
     groups:
       react:
         patterns:
@@ -39,7 +53,6 @@ updates:
           - "@testing-library/*"
           - "@vitest/*"
           - "vitest"
-          - "msw"
           - "happy-dom"
       oxc:
         patterns:
@@ -58,10 +71,17 @@ updates:
         patterns:
           - "@playwright/*"
           - "@axe-core/playwright"
+      # d3 packages: direct d3-shape plus the d3-* and @types/d3-* packages @tanstack/charts pulls in
       d3:
         patterns:
-          - "d3-shape"
-          - "@types/d3-shape"
+          - "d3-*"
+          - "@types/d3-*"
+      # Internal dependencies of @tanstack/react-router (router itself stays ungrouped)
+      tanstack-router-internals:
+        patterns:
+          - "@tanstack/history"
+          - "@tanstack/router-core"
+          - "isbot"
       canvas-confetti:
         patterns:
           - "canvas-confetti"
@@ -72,16 +92,6 @@ updates:
       dayjs:
         patterns:
           - "dayjs"
-      # TanStack packages (router, query, form, table, charts) share a release train
-      tanstack:
-        patterns:
-          - "@tanstack/*"
-      # Base UI and shadcn tooling plus icons: changes here need ui:check validation
-      ui:
-        patterns:
-          - "@base-ui/*"
-          - "@shadcn/*"
-          - "lucide-react"
       typescript:
         patterns:
           - "typescript"
