@@ -177,7 +177,7 @@ importers:
         specifier: ^2.0.0
         version: 2.0.0(lit@3.3.3)
       lit:
-        specifier: ^3.0.0
+        specifier: ^3.3.3
         version: 3.3.3
       tslib:
         specifier: ^2.9.1
