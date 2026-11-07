@@ -22,6 +22,12 @@ updates:
     # Include transitive dependencies (router internals, msw helpers, d3 modules, ...) so groups can collect them.
     allow:
       - dependency-type: all
+    # Dependabot runs pnpm with --config.minimum-release-age=4320 (3 days). Without a matching
+    # cooldown it proposes releases younger than that, pnpm refuses them for transitive
+    # dependencies (@babel/*, undici, ...) and the job fails with dependency_file_not_resolvable.
+    # Security updates ignore the cooldown.
+    cooldown:
+      default-days: 3
     groups:
       react:
         patterns:
