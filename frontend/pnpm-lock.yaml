@@ -291,7 +291,7 @@ importers:
         specifier: ^10.1.0
         version: 10.1.0
       happy-dom:
-        specifier: ^21.0.3
+        specifier: ^21.0.4
         version: 21.0.4
       msw:
         specifier: ^3.0.3
