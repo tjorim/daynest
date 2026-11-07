@@ -26,10 +26,6 @@ updates:
           - "react-dom"
           - "@types/react"
           - "@types/react-dom"
-      bootstrap:
-        patterns:
-          - "bootstrap"
-          - "bootstrap-icons"
       tailwind:
         patterns:
           - "tailwindcss"
@@ -43,6 +39,8 @@ updates:
           - "@testing-library/*"
           - "@vitest/*"
           - "vitest"
+          - "msw"
+          - "happy-dom"
       oxc:
         patterns:
           - "oxlint"
@@ -74,6 +72,20 @@ updates:
       dayjs:
         patterns:
           - "dayjs"
+      # TanStack packages (router, query, form, table, charts) share a release train
+      tanstack:
+        patterns:
+          - "@tanstack/*"
+      # Base UI and shadcn tooling plus icons: changes here need ui:check validation
+      ui:
+        patterns:
+          - "@base-ui/*"
+          - "@shadcn/*"
+          - "lucide-react"
+      typescript:
+        patterns:
+          - "typescript"
+          - "tslib"
 
   # Monitor npm dependencies for the Lovelace card
   - package-ecosystem: "npm"
@@ -98,6 +110,10 @@ updates:
       schedule-x:
         patterns:
           - "@schedule-x/*"
+      typescript:
+        patterns:
+          - "typescript"
+          - "tslib"
 
   # Monitor Android Gradle dependencies and wrapper versions
   - package-ecosystem: "gradle"
@@ -116,6 +132,13 @@ updates:
     labels:
       - "dependencies"
       - "platform:android"
+    groups:
+      # Android Gradle Plugin, KSP and Kotlin plugin move together
+      gradle-plugins:
+        patterns:
+          - "com.android.*"
+          - "com.google.devtools.ksp"
+          - "org.jetbrains.kotlin.*"
 
   # Monitor uv-managed Python dependencies for the backend API
   - package-ecosystem: "uv"
@@ -158,6 +181,20 @@ updates:
           - "ruff"
           - "ty"
           - "pytest"
+      # Google/OIDC auth stack; cachetools is a transitive google-auth dependency
+      auth:
+        patterns:
+          - "authlib"
+          - "joserfc"
+          - "google-auth"
+          - "cachetools"
+      # FastAPI request stack and its async/multipart dependencies
+      fastapi-stack:
+        patterns:
+          - "fastapi"
+          - "starlette"
+          - "python-multipart"
+          - "anyio"
 
   # Monitor uv-managed Python dependencies for the Home Assistant custom component
   - package-ecosystem: "uv"
@@ -180,6 +217,18 @@ updates:
     versioning-strategy: "increase"
     allow:
       - dependency-type: all
+    groups:
+      # Apple PyObjC bindings are released as one family
+      pyobjc:
+        patterns:
+          - "pyobjc-*"
+      # Windows WinRT bindings are released as one family
+      winrt:
+        patterns:
+          - "winrt-*"
+      async:
+        patterns:
+          - "anyio"
 
   # Monitor uv-managed Python dependencies for the python-daynest library
   - package-ecosystem: "uv"
@@ -202,6 +251,13 @@ updates:
     versioning-strategy: "increase"
     allow:
       - dependency-type: all
+    groups:
+      python-dev:
+        patterns:
+          - "pytest*"
+          - "ruff"
+          - "pyright"
+          - "nodeenv"
 
   # Monitor GitHub Actions
   - package-ecosystem: "github-actions"
@@ -221,9 +277,13 @@ updates:
       - "dependencies"
       - "github-actions"
     groups:
+      # Listed first so CodeQL actions keep their own group
       codeql:
         patterns:
           - "github/codeql-action/*"
+      actions:
+        patterns:
+          - "*"
 
   # Monitor Docker images
   - package-ecosystem: "docker"
