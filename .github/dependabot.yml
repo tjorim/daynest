@@ -354,6 +354,26 @@ updates:
         patterns:
           - "github/codeql-action/*"
 
+  # Monitor npm dependencies for the Pebble watch app
+  - package-ecosystem: "npm"
+    directory: "/pebble"
+    schedule:
+      interval: "weekly"
+      day: "friday"
+      time: "18:00"
+      timezone: "Etc/UTC"
+    open-pull-requests-limit: 20
+    assignees:
+      - "tjorim"
+    commit-message:
+      prefix: "deps(pebble)"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "npm"
+      - "platform:pebble"
+    versioning-strategy: "increase"
+
   # Monitor Docker images
   - package-ecosystem: "docker"
     directory: "/backend"
