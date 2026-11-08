@@ -186,7 +186,7 @@ importers:
         specifier: ^7.0.2
         version: 7.0.2
       vite:
-        specifier: ^8.3.5
+        specifier: ^8.3.6
         version: 8.3.6
 
 packages:
