@@ -90,7 +90,9 @@ async function initializeApp() {
 
 initializeApp();
 
-if ("serviceWorker" in navigator && import.meta.env.PROD) {
+// MSW owns the root service-worker scope in mock builds. Registering the PWA
+// worker there replaces MSW and can prevent the app from starting after reload.
+if ("serviceWorker" in navigator && import.meta.env.PROD && import.meta.env.VITE_MSW !== "true") {
   const appVersion = __APP_VERSION__;
 
   window.addEventListener("beforeinstallprompt", (event) => {

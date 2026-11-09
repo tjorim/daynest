@@ -40,6 +40,9 @@ const cases: DialogCase[] = [
     path: "/meal-plan",
     open: async (page) => {
       const trigger = page.getByRole("button", { name: "Generate shopping list" }).first();
+      // The trigger is disabled until the meal-plan query finishes. Focusing a
+      // disabled button does nothing, so wait before testing keyboard activation.
+      await expect(trigger).toBeEnabled();
       await trigger.focus();
       await page.keyboard.press("Enter");
       return trigger;
