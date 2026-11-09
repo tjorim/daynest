@@ -8,18 +8,6 @@
   ],
   "packageRules": [
     {
-      "description": [
-        "msw 3.0.4 reworks the service worker (active clients are stored in Cache Storage and restored on every wake-up). With it the e2e suite intermittently fails: pages stay on the loading state or show 'This page could not be loaded' (theme.spec.ts, dialogs, registry coverage). msw 3.0.3 passes 87/87. Remove this rule once a later msw release passes the e2e suite."
-      ],
-      "matchDatasources": [
-        "npm"
-      ],
-      "matchPackageNames": [
-        "msw"
-      ],
-      "allowedVersions": "<3.0.4"
-    },
-    {
       "matchDatasources": [
         "npm"
       ],
