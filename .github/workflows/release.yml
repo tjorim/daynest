@@ -5,16 +5,34 @@ on:
     tags:
       - 'v*'
 
+# Read-only by default. Only `draft` writes (contents) and only `publish-library` gets an OIDC token.
 permissions:
   contents: read
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+# Every tjorim/* repository releases with the same job graph; a repository leaves out what it does not
+# have. Publishing is always manual: the last job only drafts the GitHub release.
+#
+#   validate         tag == VERSION == every versioned file == CHANGELOG        (all repositories)
+#   *-checks         the tests that gate this repository's release                (repository specific)
+#   publish-library  build and publish the Python client to PyPI, once per tag    (Daynest, Travel)
+#   package-*        build release assets (HACS archive, Android APK)             (Daynest, Travel)
+#   draft            changelog notes + assets become a draft GitHub release       (all repositories)
+
 jobs:
-  preflight:
-    name: Release preflight
+  validate:
+    name: Validate tag, versions and changelog
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Set up Node.js
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -22,31 +40,31 @@ jobs:
           node-version-file: frontend/.node-version
           package-manager-cache: false
 
-      # The tag, VERSION, the package.json files, the HACS manifest version and its python-daynest
-      # pin, python-daynest/pyproject.toml, python-daynest/uv.lock and the CHANGELOG must agree
-      # (scripts/release.mjs; configuration in release.config.json). python-daynest follows the
-      # app's CalVer, so the PyPI version is always the tag.
+      # The tag, VERSION, the package.json files, the HACS manifest version and its python-daynest pin,
+      # python-daynest/pyproject.toml, its uv.lock and the CHANGELOG must agree (scripts/release.mjs;
+      # configuration in release.config.json). Android derives versionName/versionCode from VERSION at
+      # build time, so it cannot drift.
       - name: Validate tag, versions and changelog
-        run: node scripts/release.mjs check --tag "$GITHUB_REF_NAME"
+        env:
+          TAG: ${{ github.ref_name }}
+        run: node scripts/release.mjs check --tag "$TAG"
 
-      # android/app/build.gradle.kts versionName/versionCode are no longer
-      # hand-maintained literals — both are computed from the root VERSION
-      # file at build time (see versionCodeFor()), which is checked above,
-      # so there's nothing left here that could independently drift.
+      - name: Read version
+        id: version
+        run: echo "version=$(tr -d '[:space:]' < VERSION)" >> "$GITHUB_OUTPUT"
 
-  lib:
-    name: Publish python-daynest to PyPI
-    needs: [preflight]
+  library-checks:
+    name: Library checks
+    needs: validate
     runs-on: ubuntu-latest
-    environment: pypi
-    permissions:
-      id-token: write
     defaults:
       run:
         working-directory: python-daynest
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Set up Python
         uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
@@ -73,32 +91,59 @@ jobs:
       - name: Test
         run: uv run pytest -q
 
+  publish-library:
+    name: Publish python-daynest to PyPI
+    needs: [validate, library-checks]
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      contents: read
+      id-token: write
+    defaults:
+      run:
+        working-directory: python-daynest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version-file: python-daynest/.python-version
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version: '0.13.7'
+
       - name: Build
         run: uv build
 
+      # python-daynest shares the app's CalVer, so every tag publishes a new version; a re-run of a tag whose
+      # version is already on PyPI skips the upload instead of failing on a duplicate.
       - name: Check if this version is already on PyPI
-        # python-daynest shares the app's CalVer, so every new tag publishes a
-        # new version. Skip rather than fail when re-running a tag whose version
-        # is already on PyPI — `uv publish` would error on a duplicate.
-        id: check-published
+        id: published
+        env:
+          VERSION: ${{ needs.validate.outputs.version }}
         run: |
           set -euo pipefail
-          LIB_VERSION=$(grep -oP '^version\s*=\s*"\K[^"]+' pyproject.toml)
-          HTTP_STATUS=$(curl -s -o /dev/null -w '%{http_code}' "https://pypi.org/pypi/python-daynest/${LIB_VERSION}/json")
-          if [[ "${HTTP_STATUS}" == "200" ]]; then
+          STATUS=$(curl -s -o /dev/null -w '%{http_code}' "https://pypi.org/pypi/python-daynest/${VERSION}/json")
+          if [[ "${STATUS}" == "200" ]]; then
             echo "already_published=true" >> "$GITHUB_OUTPUT"
-            echo "python-daynest ${LIB_VERSION} is already on PyPI; skipping publish."
+            echo "python-daynest ${VERSION} is already on PyPI; skipping publish."
           else
             echo "already_published=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Publish to PyPI
-        if: steps.check-published.outputs.already_published == 'false'
+        if: steps.published.outputs.already_published == 'false'
         run: uv publish --trusted-publishing always
 
-  hacs:
-    name: Build HACS package
-    needs: [lib]
+  package-hacs:
+    name: Build HACS archive
+    needs: [validate, publish-library]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -130,22 +175,22 @@ jobs:
         working-directory: custom_components/daynest
         run: zip -r ../../daynest.zip .
 
-      - name: Upload HACS artifact
+      - name: Upload HACS archive
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: daynest-hacs
+          name: release-hacs
           path: daynest.zip
           if-no-files-found: error
 
-  android:
+  build-android:
     name: Build Android release APK
-    needs: [preflight]
+    needs: validate
     runs-on: ubuntu-latest
-    outputs:
-      apk_available: ${{ steps.keystore.outputs.signing_available || 'false' }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Set up JDK 17
         uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
@@ -208,13 +253,13 @@ jobs:
           steps.keystore.outputs.signing_available == 'true'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: daynest-android-release
+          name: release-android
           path: android/app/build/outputs/apk/release/*.apk
           if-no-files-found: error
 
-  release:
-    name: Create GitHub Release
-    needs: [hacs, android]
+  draft:
+    name: Create draft release
+    needs: [validate, package-hacs, build-android]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -233,26 +278,20 @@ jobs:
       - name: Extract release notes from the changelog
         run: node scripts/release.mjs notes > "$RUNNER_TEMP/release-notes.md"
 
-      - name: Download HACS artifact
+      - name: Download release assets
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
-          name: daynest-hacs
+          pattern: release-*
+          merge-multiple: true
+          path: assets
 
-      - name: Download Android APK
-        if: needs.android.outputs.apk_available == 'true'
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          name: daynest-android-release
-          path: android-apk
-
-      - name: Create GitHub Release
+      # Publishing stays manual. The APK is attached only when the signing secrets are configured.
+      - name: Create draft release
         uses: softprops/action-gh-release@8a0cd651e5b2365bd640854a3fa5dfc70e4875f3 # v3.0.4
         with:
           tag_name: ${{ github.ref_name }}
           name: ${{ github.ref_name }}
           draft: true
           body_path: ${{ runner.temp }}/release-notes.md
-          fail_on_unmatched_files: false
-          files: |
-            daynest.zip
-            android-apk/*.apk
+          files: assets/*
+          fail_on_unmatched_files: true
