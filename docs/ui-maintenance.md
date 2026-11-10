@@ -188,3 +188,26 @@ See [removal validation](bootstrap-removal-validation.md) for size and verificat
 ## Registry coverage gate (#1137)
 
 [The current-code coverage audit](ui-registry-coverage.md) records shared primitives, feature compositions, registry alternatives, consumer paths and unresolved acceptance checks. Consult it before implementing or restyling custom UI. A keep decision is a source/requirements decision, not proof of visual or accessibility acceptance. Do not record #933/#937 as complete while its open gates remain.
+
+## Redact runtime (2026-11-09)
+
+The browser build uses pinned `@tanstack/redact` 0.3.1 with the full preset,
+registered before the React plugin. Keep React, React DOM and their types installed
+for library peers and TypeScript. No application imports need changing.
+Vitest stays on native React. Redact aliases application imports, but CommonJS
+entries in testing-library, Lucide and react-error-boundary can still load native
+React and cause invalid hook calls. Browser E2E tests exercise Redact instead;
+keep this distinction when interpreting unit test coverage.
+
+Redact renders synchronously. Review input responsiveness, portals, focus return,
+external stores and calendar/map interactions when upgrading it. Renovate groups
+Redact separately and disables automerge.
+
+Rollback: remove the Redact plugin call/import from Vite and remove its dev
+dependency with pnpm.
+
+Implementation validation uses base `699b12068d9667367d291703aea40b05feaf7458`. `pnpm build` passed with Redact;
+TypeScript runs in that command. Unit tests deliberately use native React as
+explained above. No INP trace or Firefox/WebKit compatibility claim is made.
+
+`pnpm test --maxWorkers=2`: all 211 tests passed. Production mock-build calendar and dialog E2E: all 22 checks passed, including keyboard/focus return and accessibility in both themes at desktop/mobile widths.

@@ -1,4 +1,5 @@
 /// <reference types="vitest" />
+import { redact } from "@tanstack/redact/vite";
 import path from "path";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
@@ -8,6 +9,8 @@ import packageJson from "./package.json";
 
 export default defineConfig({
   plugins: [
+    // Unit tests retain native React; browser E2E tests cover the Redact runtime.
+    ...(process.env.VITEST ? [] : [redact({ preset: "full", environments: ["client"] })]),
     react(),
     tailwindcss(),
     paraglideVitePlugin({
