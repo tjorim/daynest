@@ -41,6 +41,8 @@ bump on every app release.
 
 ## [Unreleased]
 
+## [2026.11.1] - 2026-11-10
+
 ### Added
 - **Backend:** `uv run python -m app.db.dev_schema` builds the local SQLite database (`backend/dev.db`, the default
   with `ENVIRONMENT=dev`) from the models, so a dev instance needs no container. Until now that default had no

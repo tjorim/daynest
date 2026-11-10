@@ -1,6 +1,6 @@
 {
   "name": "daynest-frontend",
-  "version": "2026.8.2",
+  "version": "2026.11.1",
   "private": true,
   "type": "module",
   "scripts": {
