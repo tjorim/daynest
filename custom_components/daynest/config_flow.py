@@ -20,7 +20,7 @@ from daynest import (
     DaynestTimeoutError,
 )
 from homeassistant import config_entries
-from homeassistant.const import CONF_URL
+from homeassistant.const import CONF_CLIENT_ID, CONF_URL
 from homeassistant.helpers import config_entry_oauth2_flow, selector
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.loader import async_get_loaded_integration
@@ -30,14 +30,12 @@ from .const import (
     CONF_AUTH_MODE,
     CONF_AUTHORIZATION_URL,
     CONF_TOKEN_URL,
-    DEFAULT_OIDC_CLIENT_ID,
     DOMAIN,
     LOGGER,
     SUPPORTED_INTEGRATION_CONTRACT_VERSIONS,
-    build_oidc_authorization_url,
-    build_oidc_token_url,
     parse_integration_contract_version,
 )
+from .oidc import async_fetch_oidc_config
 
 ERROR_AUTH = "invalid_auth"
 ERROR_CANNOT_CONNECT = "cannot_connect"
@@ -94,15 +92,8 @@ class DaynestConfigFlowHandler(config_entry_oauth2_flow.AbstractOAuth2FlowHandle
         return {"scope": "openid profile email offline_access"}
 
     async def _async_fetch_oidc_config(self, base_url: str) -> tuple[str, str, str] | None:
-        """Fetch OIDC endpoints from the Daynest backend. Returns (authorization_url, token_url, client_id) or None on failure."""
-        result = await DaynestClient.async_fetch_oidc_config(
-            base_url,
-            session=async_get_clientsession(self.hass),
-        )
-        if result is None:
-            return None
-        authorization_url, token_url = result
-        return authorization_url, token_url, DEFAULT_OIDC_CLIENT_ID
+        """Fetch validated OIDC endpoints from the Daynest backend. Returns (authorization_url, token_url, client_id) or None."""
+        return await async_fetch_oidc_config(async_get_clientsession(self.hass), base_url)
 
     async def async_step_user(
         self,
@@ -131,6 +122,7 @@ class DaynestConfigFlowHandler(config_entry_oauth2_flow.AbstractOAuth2FlowHandle
                         CONF_URL: base_url,
                         CONF_AUTHORIZATION_URL: authorization_url,
                         CONF_TOKEN_URL: oidc_token_url,
+                        CONF_CLIENT_ID: client_id,
                     }
                 )
 
@@ -177,6 +169,7 @@ class DaynestConfigFlowHandler(config_entry_oauth2_flow.AbstractOAuth2FlowHandle
                         CONF_URL: base_url,
                         CONF_AUTHORIZATION_URL: authorization_url,
                         CONF_TOKEN_URL: oidc_token_url,
+                        CONF_CLIENT_ID: client_id,
                     }
                 )
                 return await self.async_step_auth()
@@ -202,15 +195,9 @@ class DaynestConfigFlowHandler(config_entry_oauth2_flow.AbstractOAuth2FlowHandle
         base_url = str(reauth_entry.data[CONF_URL]).strip().rstrip("/")
 
         oidc = await self._async_fetch_oidc_config(base_url)
-        if oidc is not None:
-            authorization_url, token_url, client_id = oidc
-        else:
-            # Fall back to stored values or derived URLs if backend is unreachable.
-            authorization_url = str(
-                reauth_entry.data.get(CONF_AUTHORIZATION_URL) or ""
-            ).strip() or build_oidc_authorization_url(base_url)
-            token_url = str(reauth_entry.data.get(CONF_TOKEN_URL) or "").strip() or build_oidc_token_url(base_url)
-            client_id = DEFAULT_OIDC_CLIENT_ID
+        if oidc is None:
+            return self.async_abort(reason=ERROR_CANNOT_CONNECT)
+        authorization_url, token_url, client_id = oidc
 
         self.flow_impl = config_entry_oauth2_flow.LocalOAuth2ImplementationWithPkce(
             self.hass,
@@ -224,6 +211,7 @@ class DaynestConfigFlowHandler(config_entry_oauth2_flow.AbstractOAuth2FlowHandle
                 CONF_URL: base_url,
                 CONF_AUTHORIZATION_URL: authorization_url,
                 CONF_TOKEN_URL: token_url,
+                CONF_CLIENT_ID: client_id,
             }
         )
         return await self.async_step_auth()
@@ -249,6 +237,7 @@ class DaynestConfigFlowHandler(config_entry_oauth2_flow.AbstractOAuth2FlowHandle
                     CONF_AUTH_MODE: AUTH_MODE_OAUTH_REDIRECT,
                     CONF_AUTHORIZATION_URL: str(self.context[CONF_AUTHORIZATION_URL]),
                     CONF_TOKEN_URL: str(self.context[CONF_TOKEN_URL]),
+                    CONF_CLIENT_ID: str(self.context[CONF_CLIENT_ID]),
                 },
             )
 
@@ -264,6 +253,7 @@ class DaynestConfigFlowHandler(config_entry_oauth2_flow.AbstractOAuth2FlowHandle
                     CONF_AUTH_MODE: AUTH_MODE_OAUTH_REDIRECT,
                     CONF_AUTHORIZATION_URL: str(self.context[CONF_AUTHORIZATION_URL]),
                     CONF_TOKEN_URL: str(self.context[CONF_TOKEN_URL]),
+                    CONF_CLIENT_ID: str(self.context[CONF_CLIENT_ID]),
                 },
             )
 
@@ -276,6 +266,7 @@ class DaynestConfigFlowHandler(config_entry_oauth2_flow.AbstractOAuth2FlowHandle
                 CONF_AUTH_MODE: AUTH_MODE_OAUTH_REDIRECT,
                 CONF_AUTHORIZATION_URL: str(self.context[CONF_AUTHORIZATION_URL]),
                 CONF_TOKEN_URL: str(self.context[CONF_TOKEN_URL]),
+                CONF_CLIENT_ID: str(self.context[CONF_CLIENT_ID]),
             },
         )
 

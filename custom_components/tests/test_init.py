@@ -13,11 +13,10 @@ from custom_components.daynest.const import (
     CONF_AUTH_MODE,
     CONF_AUTHORIZATION_URL,
     CONF_TOKEN_URL,
-    build_oidc_authorization_url,
-    build_oidc_token_url,
     build_token_url,
 )
 from homeassistant.const import CONF_API_KEY, CONF_CLIENT_ID, CONF_CLIENT_SECRET, CONF_URL
+from homeassistant.exceptions import ConfigEntryAuthFailed
 
 
 class _ResourceCollection:
@@ -108,10 +107,9 @@ class TestMigrateEntry:
         first_call_kwargs = hass.config_entries.async_update_entry.call_args_list[0][1]
         assert first_call_kwargs["version"] == 4
         assert first_call_kwargs["data"][CONF_AUTH_MODE] == AUTH_MODE_OAUTH_REDIRECT
-        assert first_call_kwargs["data"][CONF_AUTHORIZATION_URL] == build_oidc_authorization_url(
-            "https://api.daynest.example"
-        )
-        assert first_call_kwargs["data"][CONF_TOKEN_URL] == build_oidc_token_url("https://api.daynest.example")
+        # Endpoints are never guessed on the Daynest origin; setup asks for reauthentication instead.
+        assert CONF_AUTHORIZATION_URL not in first_call_kwargs["data"]
+        assert CONF_TOKEN_URL not in first_call_kwargs["data"]
 
     async def test_migrates_v4_client_credentials_normalizes_token_url(self) -> None:
         hass = MagicMock()
@@ -134,7 +132,7 @@ class TestMigrateEntry:
         assert kwargs["data"][CONF_TOKEN_URL] == build_token_url("https://api.daynest.example")
         assert kwargs["data"][CONF_AUTH_MODE] == AUTH_MODE_CLIENT_CREDENTIALS
 
-    async def test_migrates_v4_oauth_redirect_sets_missing_urls(self) -> None:
+    async def test_migrates_v4_oauth_redirect_does_not_guess_urls(self) -> None:
         hass = MagicMock()
         hass.config_entries.async_update_entry = MagicMock()
         entry = MagicMock(
@@ -152,8 +150,8 @@ class TestMigrateEntry:
         _, kwargs = hass.config_entries.async_update_entry.call_args
         assert kwargs["version"] == 5
         assert kwargs["data"][CONF_AUTH_MODE] == AUTH_MODE_OAUTH_REDIRECT
-        assert kwargs["data"][CONF_AUTHORIZATION_URL] == build_oidc_authorization_url("https://api.daynest.example")
-        assert kwargs["data"][CONF_TOKEN_URL] == build_oidc_token_url("https://api.daynest.example")
+        assert CONF_AUTHORIZATION_URL not in kwargs["data"]
+        assert CONF_TOKEN_URL not in kwargs["data"]
 
 
 @pytest.mark.unit
@@ -211,8 +209,8 @@ class TestSetupEntry:
             data={
                 CONF_URL: "https://api.daynest.example",
                 CONF_AUTH_MODE: AUTH_MODE_OAUTH_REDIRECT,
-                CONF_AUTHORIZATION_URL: build_oidc_authorization_url("https://api.daynest.example"),
-                CONF_TOKEN_URL: build_oidc_token_url("https://api.daynest.example"),
+                CONF_AUTHORIZATION_URL: "https://auth.example.test/realms/daynest/protocol/openid-connect/auth",
+                CONF_TOKEN_URL: "https://auth.example.test/realms/daynest/protocol/openid-connect/token",
                 "token": {"access_token": "oidc_access_token", "expires_at": 9999999999},
                 "auth_implementation": "daynest",
             },
@@ -247,6 +245,36 @@ class TestSetupEntry:
         access_token_getter = kwargs["access_token_getter"]
         assert await access_token_getter() == "oidc_access_token"
         oauth_session.async_ensure_token_valid.assert_awaited()
+
+
+@pytest.mark.unit
+class TestSetupEntryMissingEndpoints:
+    @pytest.mark.parametrize(
+        "urls",
+        [
+            {},
+            {
+                CONF_AUTHORIZATION_URL: "http://insecure.example.test/auth",
+                CONF_TOKEN_URL: "http://insecure.example.test/t",
+            },
+            {
+                CONF_AUTHORIZATION_URL: "https://auth.example.test/auth",
+                CONF_TOKEN_URL: "https://other.example.test/token",
+            },
+        ],
+    )
+    async def test_setup_entry_requests_reauth_instead_of_guessing_endpoints(self, urls: dict[str, str]) -> None:
+        entry = MagicMock(
+            data={
+                CONF_URL: "https://api.daynest.example",
+                CONF_AUTH_MODE: AUTH_MODE_OAUTH_REDIRECT,
+                "token": {"access_token": "t", "expires_at": 9999999999},
+                **urls,
+            },
+        )
+
+        with pytest.raises(ConfigEntryAuthFailed):
+            await integration.async_setup_entry(MagicMock(), entry)
 
 
 @pytest.mark.unit

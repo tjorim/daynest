@@ -101,6 +101,9 @@ bump on every app release.
 - **Docs:** the README pointed at a non-existent `/api/v1/mcp/*` adapter; it now lists the live
   `GET /api/mcp/capabilities` endpoint (#914).
 
+### Security
+- **HA integration:** sign-in endpoints read from the backend are now validated (plain HTTPS, one shared host; HTTP only on loopback), redirects are not followed, and the client ID comes from `GET /api/integrations/home-assistant/oidc-config` (falling back to the generic endpoint for older backends). Entries without valid stored endpoints ask for reauthentication instead of using `{daynest origin}/realms/daynest/...` URLs, which pointed at a Keycloak that is not on the Daynest origin; reauthentication now aborts with "cannot connect" instead of using them.
+
 ## [2026.8.2] - 2026-08-01
 
 ### Fixed
