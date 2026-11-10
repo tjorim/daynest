@@ -16,6 +16,11 @@ the allowed scopes are listed in `release.config.json`, and `node scripts/releas
 
 ## [Unreleased]
 
+### Internal
+- Hardened python-daynest OIDC discovery: reject unsafe or mismatched endpoint URLs and stop following
+  redirects, while preserving loopback development support. Bumped the library and Home Assistant pin
+  to 0.1.12 (#1406).
+
 ## [2026.11.1] - 2026-11-10
 
 ### Added
