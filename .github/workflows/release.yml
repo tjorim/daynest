@@ -22,45 +22,12 @@ jobs:
           node-version-file: frontend/.node-version
           package-manager-cache: false
 
-      # The tag, VERSION, the package.json files, the HACS manifest version and the CHANGELOG
-      # must agree (scripts/release.mjs; configuration in release.config.json). Android derives
-      # versionName/versionCode from VERSION at build time, so it cannot drift. python-daynest
-      # keeps its own SemVer (issue #673) and is checked separately below.
+      # The tag, VERSION, the package.json files, the HACS manifest version and its python-daynest
+      # pin, python-daynest/pyproject.toml, python-daynest/uv.lock and the CHANGELOG must agree
+      # (scripts/release.mjs; configuration in release.config.json). python-daynest follows the
+      # app's CalVer, so the PyPI version is always the tag.
       - name: Validate tag, versions and changelog
         run: node scripts/release.mjs check --tag "$GITHUB_REF_NAME"
-
-      - name: Read python-daynest/pyproject.toml version
-        # python-daynest keeps its own independent SemVer version — it is
-        # NOT expected to match the app's CalVer tag (see issue #673). This
-        # just captures it for the requirements-pin cross-check below; the
-        # lib job separately skips publishing if this version is already
-        # on PyPI.
-        run: |
-          set -euo pipefail
-          LIB_VERSION=$(grep -oP '^version\s*=\s*"\K[^"]+' python-daynest/pyproject.toml)
-          echo "LIB_VERSION=${LIB_VERSION}" >> "$GITHUB_ENV"
-          echo "✓ python-daynest/pyproject.toml: ${LIB_VERSION}"
-
-      - name: Check manifest.json python-daynest requirements pin
-        run: |
-          set -euo pipefail
-          FILE_VERSION=$(python3 -c "
-          import json, re, sys
-          d = json.load(open('custom_components/daynest/manifest.json'))
-          reqs = d.get('requirements', [])
-          m = next((re.match(r'python-daynest==(.+)', r) for r in reqs), None)
-          if not m:
-              print('::error::manifest.json requirements list has no python-daynest== pin')
-              sys.exit(1)
-          print(m.group(1))
-          ")
-          # Checked against python-daynest's own version, not the app tag —
-          # the two are independently versioned (see issue #673).
-          if [[ "${FILE_VERSION}" != "${LIB_VERSION}" ]]; then
-            echo "::error::manifest.json python-daynest requirement pin '${FILE_VERSION}' does not match python-daynest/pyproject.toml's version '${LIB_VERSION}'"
-            exit 1
-          fi
-          echo "✓ manifest.json requirements pin: python-daynest==${FILE_VERSION}"
 
       # android/app/build.gradle.kts versionName/versionCode are no longer
       # hand-maintained literals — both are computed from the root VERSION
@@ -110,9 +77,9 @@ jobs:
         run: uv build
 
       - name: Check if this version is already on PyPI
-        # python-daynest releases independently of the app (see issue #673),
-        # so most app tags won't have bumped its version. Skip rather than
-        # fail — `uv publish` would otherwise error on a duplicate version.
+        # python-daynest shares the app's CalVer, so every new tag publishes a
+        # new version. Skip rather than fail when re-running a tag whose version
+        # is already on PyPI — `uv publish` would error on a duplicate.
         id: check-published
         run: |
           set -euo pipefail

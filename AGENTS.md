@@ -21,13 +21,15 @@ Application UI imports use `@/components/ui/<component>`. Direct Base UI subpath
 
 The app uses CalVer, `YYYY.M.MICRO` (`MICRO` counts releases within a month), tagged `vYYYY.M.MICRO`. The
 root `VERSION` file is the single source of truth; `release.config.json` lists the files that carry a
-checked-in copy (`frontend/package.json`, `dashboard/package.json`, `custom_components/daynest/manifest.json`).
+checked-in copy (`frontend/package.json`, `dashboard/package.json`, `custom_components/daynest/manifest.json`, `python-daynest/`).
 `android/app/build.gradle.kts` reads `VERSION` at build time and must never be hand-edited. Its
 `versionCode` is `MAJOR × 1000000 + MINOR × 1000 + PATCH` of `YYYY.M.MICRO` (`v2026.7.1` → `2026007001`).
 
-`python-daynest` (PyPI) keeps its **own SemVer** in `python-daynest/pyproject.toml` (#673): bump it only
-when the library changes, and keep the `python-daynest==` pin in `manifest.json` equal to it. The release
-workflow checks that pin and skips the PyPI publish when the version is already published.
+`python-daynest` (PyPI) follows the same CalVer: `python-daynest/pyproject.toml`, `python-daynest/uv.lock`
+and the `python-daynest==` pin in `manifest.json` are also listed in `release.config.json`, so `bump`
+and `check` keep them equal to `VERSION`. Every app tag therefore publishes a new library version. The
+release workflow skips the PyPI upload only when that version is already published (re-running a tag).
+Releases up to `0.1.12` used independent SemVer (#673); CalVer versions sort above them.
 
 1. Add entries under `## [Unreleased]` in `CHANGELOG.md` while working (`### Added`, `### Changed`,
    `### Fixed`, `### Removed`). Put backend, infrastructure, CI and dependency changes under `### Internal`:
