@@ -17,6 +17,9 @@ WORKDIR /app
 COPY --from=builder /app/.venv /app/.venv
 COPY . .
 
+ARG APP_COMMIT=unknown
+ENV APP_COMMIT=${APP_COMMIT}
+
 ENV PATH="/app/.venv/bin:$PATH"
 
 RUN groupadd --gid 1000 appgroup \
