@@ -9,7 +9,8 @@ import pytest
 from fastapi.testclient import TestClient
 
 
-def test_liveness_and_health_endpoints(client: TestClient) -> None:
+def test_liveness_and_health_endpoints(client: TestClient, monkeypatch) -> None:
+    monkeypatch.setenv("APP_COMMIT", "c" * 40)
     liveness_response = client.get("/api/health/liveness")
     assert liveness_response.status_code == 200
     assert liveness_response.json()["status"] == "alive"
@@ -19,6 +20,8 @@ def test_liveness_and_health_endpoints(client: TestClient) -> None:
     payload = health_response.json()
     assert payload["status"] == "ok"
     assert payload["liveness"] == "alive"
+    assert payload["version"]
+    assert payload["commit"] == "c" * 40
     assert "readiness_endpoint" in payload
 
 
