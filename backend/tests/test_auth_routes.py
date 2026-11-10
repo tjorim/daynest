@@ -137,8 +137,11 @@ class TestOidcConfigEndpoint:
             asyncio.run(auth_routes.oidc_config())
         assert exc_info.value.status_code == 503
 
-    def test_home_assistant_oidc_config_uses_discovery(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        from app.api.routes.integrations import home_assistant
+    @pytest.mark.parametrize("client_id", ["home-assistant", "renamed-home-assistant"])
+    def test_home_assistant_oidc_config_uses_discovery(
+        self, monkeypatch: pytest.MonkeyPatch, client: TestClient, client_id: str
+    ) -> None:
+        monkeypatch.setattr(settings, "oidc_home_assistant_client_id", client_id)
 
         issuer = "https://auth.example.test/realms/daynest"
         monkeypatch.setattr(settings, "oidc_issuer_url", issuer)
@@ -154,11 +157,14 @@ class TestOidcConfigEndpoint:
             ),
         )
 
-        config = asyncio.run(home_assistant.home_assistant_oidc_config())
+        response = client.get("/api/integrations/home-assistant/oidc-config")
 
-        assert config.authorization_url == f"{issuer}/authorize/"
-        assert config.token_url == f"{issuer}/token/"
-        assert config.client_id == "home-assistant"
+        assert response.status_code == 200
+        assert response.json() == {
+            "authorization_url": f"{issuer}/authorize/",
+            "token_url": f"{issuer}/token/",
+            "client_id": client_id,
+        }
 
 
 # ---------------------------------------------------------------------------

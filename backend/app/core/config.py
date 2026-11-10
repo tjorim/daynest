@@ -46,6 +46,7 @@ class AppSettings(BaseSettings):
 
     oidc_issuer_url: str | None = None
     oidc_audience: str | None = None
+    oidc_home_assistant_client_id: str = "home-assistant"
     mcp_interactive_client_ids: str = "daynest,daynest-android"
     oidc_jwks_uri: str | None = None
     oidc_algorithms: str = "RS256"

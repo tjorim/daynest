@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, Query, Response
 from app.api.dependencies.integration_auth import require_integration_auth
 from app.api.dependencies.today import get_today_service
 from app.api.routes.auth import discover_oidc_endpoints
+from app.core.config import settings
 from app.models.user import User
 from app.schemas.integration_contracts import (
     HOME_ASSISTANT_ADAPTER,
@@ -32,8 +33,6 @@ from app.schemas.today import PlannedItemCreateRequest as TodayPlannedItemCreate
 from app.schemas.today import PlannedItemUpdateRequest as TodayPlannedItemUpdateRequest
 from app.services.today_service import TodayService
 
-_HA_OIDC_CLIENT_ID = "home-assistant"
-
 router = APIRouter(prefix="/integrations/home-assistant", tags=["integrations"])
 
 
@@ -50,7 +49,7 @@ async def home_assistant_oidc_config() -> HomeAssistantOIDCConfig:
     return HomeAssistantOIDCConfig(
         authorization_url=str(config.authorization_url),
         token_url=str(config.token_url),
-        client_id=_HA_OIDC_CLIENT_ID,
+        client_id=settings.oidc_home_assistant_client_id,
     )
 
 
