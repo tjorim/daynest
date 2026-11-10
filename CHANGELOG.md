@@ -3,11 +3,10 @@
 All notable changes to this project are documented in this file.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The app (frontend, Android,
-HACS integration) uses [CalVer](https://calver.org/) — `YYYY.M.MICRO`, a counter that resets each month —
-while `python-daynest`, the PyPI client library, stays on
-[Semantic Versioning](https://semver.org/spec/v2.0.0.html) independently, since HACS/Home Assistant
-consumers pin against it for compatibility (#673). The maintainer steps for cutting a release are in
-`AGENTS.md`.
+HACS integration) and `python-daynest`, the PyPI client library, use [CalVer](https://calver.org/) —
+`YYYY.M.MICRO`, a counter that resets each month. Library releases up to 0.1.12 followed
+[Semantic Versioning](https://semver.org/spec/v2.0.0.html) (#673). The maintainer steps for cutting a
+release are in `AGENTS.md`.
 
 Entries under `### Internal` (backend, infrastructure, CI, dependencies) are left out of what the apps
 show their users. Start a bullet with a scope such as `**Android:**` to limit it to one client or area;
@@ -17,7 +16,9 @@ the allowed scopes are listed in `release.config.json`, and `node scripts/releas
 ## [Unreleased]
 
 ### Internal
-
+- Version `python-daynest` with the app's CalVer instead of its own SemVer: `release.mjs` now keeps
+  `python-daynest/pyproject.toml`, its `uv.lock` entry and the Home Assistant `python-daynest==` pin in
+  step with `VERSION`, and the release workflow no longer cross-checks them separately.
 - Report the built source commit alongside the app version in the health response; VPS builds receive the full commit from the shared deployment tooling (tjorim/apps#345).
 - Make the Home Assistant OIDC client ID configurable through `OIDC_HOME_ASSISTANT_CLIENT_ID`,
   defaulting to `home-assistant` (#1407).
