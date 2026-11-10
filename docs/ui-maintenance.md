@@ -191,7 +191,7 @@ See [removal validation](bootstrap-removal-validation.md) for size and verificat
 
 ## Redact runtime (2026-11-09)
 
-The browser build uses pinned `@tanstack/redact` 0.3.1 with the full preset,
+The browser build uses pinned `@tanstack/redact` 0.3.1 with the full preset and explicit feature exclusions,
 registered before the React plugin. Keep React, React DOM and their types installed
 for library peers and TypeScript. No application imports need changing.
 Vitest stays on native React. Redact aliases application imports, but CommonJS
@@ -211,3 +211,24 @@ TypeScript runs in that command. Unit tests deliberately use native React as
 explained above. No INP trace or Firefox/WebKit compatibility claim is made.
 
 `pnpm test --maxWorkers=2`: all 211 tests passed. Production mock-build calendar and dialog E2E: all 22 checks passed, including keyboard/focus return and accessibility in both themes at desktop/mobile widths.
+
+### Unused feature exclusions (2026-11-10)
+
+Disable `hydration`, `activity` and `fragmentRefs` in the browser runtime.
+The entry points mount with `createRoot`; the production module graph has no
+React Activity boundaries or Fragment DOM refs in app code or dependencies.
+Base UI's Activity mentions are comments explaining effect cleanup, not usage.
+Query/router cache hydration and Preact's internal hydration are separate APIs
+and do not require Redact DOM hydration.
+
+Keep portals, context, memo, forwardRef, lazy, Suspense and class components
+(including error-boundary lifecycles). Native view-transition animation remains
+off by default. Re-enable the relevant flag before introducing SSR hydration,
+Activity boundaries or Fragment refs, including through a dependency update.
+
+Same-config production chunk audit: disabling these three features removes
+16,054 raw bytes and 5,610 gzip bytes beyond the full-preset build.
+The audit found no native React/React DOM modules in the emitted browser chunks.
+
+Validation with these exclusions: build and lint passed; all 22 production
+mock-build calendar/dialog Chromium checks passed.

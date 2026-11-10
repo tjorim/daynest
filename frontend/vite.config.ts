@@ -10,7 +10,16 @@ import packageJson from "./package.json";
 export default defineConfig({
   plugins: [
     // Unit tests retain native React; browser E2E tests cover the Redact runtime.
-    ...(process.env.VITEST ? [] : [redact({ preset: "full", environments: ["client"] })]),
+    ...(process.env.VITEST
+      ? []
+      : [
+          redact({
+            preset: "full",
+            environments: ["client"],
+            // Client-only mount; no Activity boundaries or Fragment DOM refs are used.
+            features: { hydration: false, activity: false, fragmentRefs: false },
+          }),
+        ]),
     react(),
     tailwindcss(),
     paraglideVitePlugin({
