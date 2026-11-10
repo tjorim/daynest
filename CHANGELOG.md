@@ -17,6 +17,8 @@ the allowed scopes are listed in `release.config.json`, and `node scripts/releas
 ## [Unreleased]
 
 ### Internal
+
+- Report the built source commit alongside the app version in the health response; VPS builds receive the full commit from the shared deployment tooling (tjorim/apps#345).
 - Make the Home Assistant OIDC client ID configurable through `OIDC_HOME_ASSISTANT_CLIENT_ID`,
   defaulting to `home-assistant` (#1407).
 - Hardened python-daynest OIDC discovery: reject unsafe or mismatched endpoint URLs and stop following

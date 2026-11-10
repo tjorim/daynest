@@ -2,6 +2,7 @@ import asyncio
 import hashlib
 import hmac
 import logging
+import os
 import time
 
 from fastapi import APIRouter, Depends, Request, Response, status
@@ -104,7 +105,13 @@ async def readiness_check(response: Response) -> dict[str, str]:
 
 @router.get("/health")
 def health_check() -> dict[str, str]:
-    return {"status": "ok", "liveness": "alive", "readiness_endpoint": "/health/readiness"}
+    return {
+        "status": "ok",
+        "version": settings.version,
+        "commit": os.environ.get("APP_COMMIT", "unknown"),
+        "liveness": "alive",
+        "readiness_endpoint": "/health/readiness",
+    }
 
 
 @router.get("/metrics")
