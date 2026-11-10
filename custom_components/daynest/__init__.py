@@ -37,12 +37,11 @@ from .const import (
     DEFAULT_OIDC_CLIENT_ID,
     DOMAIN,
     LOGGER,
-    build_oidc_authorization_url,
-    build_oidc_token_url,
     build_token_url,
 )
 from .coordinator import DaynestDataUpdateCoordinator
 from .data import DaynestData
+from .oidc import validated_oidc_config
 from .services import async_setup_services, async_unload_services
 
 try:
@@ -192,11 +191,10 @@ async def async_migrate_entry(hass: HomeAssistant, entry: DaynestConfigEntry) ->
 
     if entry.version == 3:
         data = dict(entry.data)
-        base_url = str(data.get(CONF_URL) or DEFAULT_API_BASE_URL).strip().rstrip("/")
         if _resolve_auth_mode(data) == AUTH_MODE_OAUTH_REDIRECT:
+            # Sign-in endpoints are never guessed: setup asks for reauthentication,
+            # which reads them from the Daynest backend.
             data.setdefault(CONF_AUTH_MODE, AUTH_MODE_OAUTH_REDIRECT)
-            data.setdefault(CONF_AUTHORIZATION_URL, build_oidc_authorization_url(base_url))
-            data.setdefault(CONF_TOKEN_URL, build_oidc_token_url(base_url))
         else:
             data.setdefault(CONF_AUTH_MODE, AUTH_MODE_CLIENT_CREDENTIALS)
         hass.config_entries.async_update_entry(entry, data=data, version=4)
@@ -206,9 +204,9 @@ async def async_migrate_entry(hass: HomeAssistant, entry: DaynestConfigEntry) ->
         data = dict(entry.data)
         base_url = str(data.get(CONF_URL) or DEFAULT_API_BASE_URL).strip().rstrip("/")
         if _resolve_auth_mode(data) == AUTH_MODE_OAUTH_REDIRECT:
+            # Sign-in endpoints are never guessed: setup asks for reauthentication,
+            # which reads them from the Daynest backend.
             data.setdefault(CONF_AUTH_MODE, AUTH_MODE_OAUTH_REDIRECT)
-            data.setdefault(CONF_AUTHORIZATION_URL, build_oidc_authorization_url(base_url))
-            data.setdefault(CONF_TOKEN_URL, build_oidc_token_url(base_url))
         else:
             data.setdefault(CONF_AUTH_MODE, AUTH_MODE_CLIENT_CREDENTIALS)
             legacy_token_url = f"{base_url}/realms/daynest/protocol/openid-connect/token"
@@ -229,15 +227,22 @@ async def async_setup_entry(
     auth_mode = _resolve_auth_mode(entry.data)
 
     if auth_mode == AUTH_MODE_OAUTH_REDIRECT:
-        authorization_url = str(entry.data.get(CONF_AUTHORIZATION_URL) or "").strip().rstrip(
-            "/"
-        ) or build_oidc_authorization_url(base_url)
-        token_url = str(entry.data.get(CONF_TOKEN_URL) or "").strip().rstrip("/") or build_oidc_token_url(base_url)
+        try:
+            authorization_url, token_url, client_id = validated_oidc_config(
+                {
+                    "authorization_url": str(entry.data.get(CONF_AUTHORIZATION_URL) or "").strip(),
+                    "token_url": str(entry.data.get(CONF_TOKEN_URL) or "").strip(),
+                },
+                default_client_id=str(entry.data.get(CONF_CLIENT_ID) or DEFAULT_OIDC_CLIENT_ID),
+            )
+        except (TypeError, ValueError) as err:
+            msg = "Daynest sign-in endpoints are missing or invalid; sign in again"
+            raise ConfigEntryAuthFailed(msg) from err
 
         oauth_impl = config_entry_oauth2_flow.LocalOAuth2ImplementationWithPkce(
             hass,
             DOMAIN,
-            DEFAULT_OIDC_CLIENT_ID,
+            client_id,
             authorization_url,
             token_url,
         )

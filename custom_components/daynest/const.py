@@ -27,16 +27,6 @@ def build_token_url(base_url: str) -> str:
     return f"{base_url.rstrip('/')}/api/integrations/clients/token"
 
 
-def build_oidc_authorization_url(base_url: str) -> str:
-    """Build the Daynest OIDC authorization URL for Home Assistant."""
-    return f"{base_url.rstrip('/')}/realms/daynest/protocol/openid-connect/auth"
-
-
-def build_oidc_token_url(base_url: str) -> str:
-    """Build the Daynest OIDC token URL for Home Assistant redirect auth."""
-    return f"{base_url.rstrip('/')}/realms/daynest/protocol/openid-connect/token"
-
-
 def parse_integration_contract_version(contract: str | None) -> str | None:
     """Extract and normalize the version token from a contract header value."""
     if contract is None:

@@ -5,10 +5,9 @@ This guide describes the backend contract expected by the Daynest Home Assistant
 ## Authentication Requirements
 
 - Home Assistant now uses a browser-based OAuth redirect flow and opens the Daynest sign-in page automatically during setup.
-- The integration starts from only the Daynest base URL and derives the OIDC endpoints:
-  - `/realms/daynest/protocol/openid-connect/auth`
-  - `/realms/daynest/protocol/openid-connect/token`
-- The OAuth client ID used by the integration is `home-assistant` (PKCE flow).
+- The integration starts from only the Daynest base URL and reads the sign-in endpoints from the backend: `GET /api/integrations/home-assistant/oidc-config` returns the provider's authorization and token URLs (from its OIDC discovery document) and the client ID. Older backends without it are read through `GET /api/auth/oidc-config`.
+- Both endpoints must be plain HTTPS URLs on the same host (HTTP is accepted only on loopback for local development), and redirects are not followed. A stored entry with missing or invalid endpoints asks for reauthentication, which reads them again.
+- The OAuth client ID is `home-assistant` (public client, PKCE flow, no secret).
 - Any valid authenticated token (OIDC or integration key) grants full access to the user's own data.
 - Legacy integration-client keys remain supported through `X-Integration-Key` and the integration client token endpoint.
 

@@ -24,8 +24,6 @@ from custom_components.daynest.const import (
     CONF_AUTH_MODE,
     CONF_AUTHORIZATION_URL,
     CONF_TOKEN_URL,
-    build_oidc_authorization_url,
-    build_oidc_token_url,
 )
 from daynest import (
     DaynestAuthError,
@@ -35,7 +33,7 @@ from daynest import (
     DaynestTimeoutError,
 )
 from homeassistant import config_entries
-from homeassistant.const import CONF_URL
+from homeassistant.const import CONF_CLIENT_ID, CONF_URL
 
 CONTRACT_HEADER_VALID = "home-assistant; version=ha.v1"
 CONTRACT_HEADER_UNSUPPORTED = "home-assistant; version=ha.v99"
@@ -49,6 +47,8 @@ VALID_SUMMARY_PAYLOAD = {
     "sensor_daynest_next_medication": "Vitamin D @ 09:00",
 }
 
+AUTH_URL = "https://auth.example.test/realms/daynest/protocol/openid-connect/auth"
+TOKEN_URL = "https://auth.example.test/realms/daynest/protocol/openid-connect/token"
 BASE_URL = "https://api.daynest.example"
 TOKEN = {"access_token": "valid_access_token"}
 
@@ -73,8 +73,9 @@ def _make_handler(*, source: str = "user") -> DaynestConfigFlowHandler:
     handler.context = {
         "source": source,
         CONF_URL: BASE_URL,
-        CONF_AUTHORIZATION_URL: build_oidc_authorization_url(BASE_URL),
-        CONF_TOKEN_URL: build_oidc_token_url(BASE_URL),
+        CONF_AUTHORIZATION_URL: AUTH_URL,
+        CONF_TOKEN_URL: TOKEN_URL,
+        CONF_CLIENT_ID: "home-assistant",
     }
     handler.async_abort = MagicMock(side_effect=lambda **kwargs: {"type": "abort", **kwargs})
     handler.async_create_entry = MagicMock(side_effect=lambda **kwargs: {"type": "create_entry", **kwargs})
@@ -189,8 +190,8 @@ class TestConfigFlowValidation:
         entry_data = result["data"]
         assert entry_data[CONF_URL] == BASE_URL
         assert entry_data[CONF_AUTH_MODE] == AUTH_MODE_OAUTH_REDIRECT
-        assert entry_data[CONF_AUTHORIZATION_URL] == build_oidc_authorization_url(BASE_URL)
-        assert entry_data[CONF_TOKEN_URL] == build_oidc_token_url(BASE_URL)
+        assert entry_data[CONF_AUTHORIZATION_URL] == AUTH_URL
+        assert entry_data[CONF_TOKEN_URL] == TOKEN_URL
 
     async def test_oauth_create_entry_uses_id_token_sub_as_unique_id(self) -> None:
         handler = _make_handler()
@@ -211,8 +212,8 @@ class TestConfigFlowValidation:
         existing_entry.data = {
             CONF_URL: BASE_URL,
             CONF_AUTH_MODE: AUTH_MODE_OAUTH_REDIRECT,
-            CONF_AUTHORIZATION_URL: build_oidc_authorization_url(BASE_URL),
-            CONF_TOKEN_URL: build_oidc_token_url(BASE_URL),
+            CONF_AUTHORIZATION_URL: AUTH_URL,
+            CONF_TOKEN_URL: TOKEN_URL,
         }
         handler._get_reauth_entry = MagicMock(return_value=existing_entry)
         handler.async_update_reload_and_abort = MagicMock(return_value={"type": "abort", "reason": "reauth_successful"})
@@ -223,6 +224,47 @@ class TestConfigFlowValidation:
         assert result["reason"] == "reauth_successful"
         handler.async_update_reload_and_abort.assert_called_once()
         handler.async_create_entry.assert_not_called()
+
+
+@pytest.mark.unit
+class TestOidcDiscoveryInFlow:
+    """The flow only proceeds with validated endpoints and persists the advertised client."""
+
+    async def test_reauth_aborts_when_discovery_fails_instead_of_guessing_urls(self) -> None:
+        handler = _make_handler(source=config_entries.SOURCE_REAUTH)
+        reauth_entry = MagicMock()
+        reauth_entry.data = {CONF_URL: BASE_URL, CONF_AUTHORIZATION_URL: AUTH_URL, CONF_TOKEN_URL: TOKEN_URL}
+        handler._get_reauth_entry = MagicMock(return_value=reauth_entry)
+        handler.async_step_auth = AsyncMock()
+        with (
+            patch.object(handler, "_async_fetch_oidc_config", AsyncMock(return_value=None)),
+        ):
+            result = await handler.async_step_reauth_confirm({})
+
+        assert result["type"] == "abort"
+        assert result["reason"] == "cannot_connect"
+        handler.async_step_auth.assert_not_awaited()
+
+    async def test_reauth_uses_freshly_discovered_client_and_endpoints(self) -> None:
+        handler = _make_handler(source=config_entries.SOURCE_REAUTH)
+        reauth_entry = MagicMock()
+        reauth_entry.data = {CONF_URL: BASE_URL}
+        handler._get_reauth_entry = MagicMock(return_value=reauth_entry)
+        handler.async_step_auth = AsyncMock(return_value={"type": "external"})
+        discovered = (AUTH_URL, TOKEN_URL, "custom-client")
+        with patch.object(handler, "_async_fetch_oidc_config", AsyncMock(return_value=discovered)):
+            await handler.async_step_reauth_confirm({})
+
+        assert handler.flow_impl.client_id == "custom-client"
+        assert handler.context[CONF_CLIENT_ID] == "custom-client"
+        assert handler.context[CONF_TOKEN_URL] == TOKEN_URL
+
+    async def test_created_entry_stores_advertised_client_id(self) -> None:
+        handler = _make_handler()
+        handler.context[CONF_CLIENT_ID] = "custom-client"
+        with patch.object(handler, "_async_validate_oauth_token", AsyncMock(return_value={})):
+            result = await handler.async_oauth_create_entry({"token": TOKEN, "auth_implementation": "daynest"})
+        assert result["data"][CONF_CLIENT_ID] == "custom-client"
 
 
 @pytest.mark.unit
