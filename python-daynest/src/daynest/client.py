@@ -12,7 +12,7 @@ import weakref
 from collections.abc import Awaitable, Callable, Mapping
 from datetime import date, timedelta
 from typing import Any, Self, TypeVar
-from urllib.parse import urlencode, urljoin
+from urllib.parse import urlencode, urljoin, urlsplit
 
 import aiohttp
 
@@ -44,6 +44,29 @@ TOKEN_EXPIRY_BUFFER = 30  # seconds before expiry to refresh proactively
 logger = logging.getLogger(__name__)
 
 ModelT = TypeVar("ModelT")
+
+
+def _checked_oidc_url(value: object) -> str:
+    """Validate a plain HTTPS endpoint, allowing HTTP only on loopback."""
+    if not isinstance(value, str):
+        raise TypeError("Sign-in endpoints must be URLs")
+    if any(character.isspace() or ord(character) < 32 or ord(character) == 127 for character in value):
+        raise ValueError("Sign-in endpoints must not contain whitespace or controls")
+    url = urlsplit(value)
+    # Accessing port also rejects malformed and out-of-range port numbers.
+    _ = url.port
+    if (
+        url.scheme not in {"https", "http"}
+        or (url.scheme == "http" and url.hostname not in {"localhost", "127.0.0.1", "::1"})
+        or not url.hostname
+        or url.username is not None
+        or url.password is not None
+        or "?" in value
+        or "#" in value
+        or "\\" in value
+    ):
+        raise ValueError("Sign-in endpoints must be plain HTTPS URLs")
+    return value
 
 
 class DaynestClient:
@@ -204,19 +227,21 @@ class DaynestClient:
 
         Returns (authorization_url, token_url) or None if the backend is
         unreachable or the response is malformed. Does not require authentication.
+        Endpoints must use HTTPS (HTTP is allowed on loopback for development)
+        and share one host and port. Discovery redirects are never followed.
         """
         url = urljoin(f"{base_url.strip().rstrip('/')}/", "api/auth/oidc-config")
         owned = session is None
         if owned:
             session = aiohttp.ClientSession()
         try:
-            async with session.get(url, timeout=REQUEST_TIMEOUT) as resp:
+            async with session.get(url, timeout=REQUEST_TIMEOUT, allow_redirects=False) as resp:
                 if resp.status == 200:
                     data = await resp.json(content_type=None)
                     if isinstance(data, dict):
-                        auth_url = data.get("authorization_url")
-                        token_url = data.get("token_url")
-                        if isinstance(auth_url, str) and isinstance(token_url, str):
+                        auth_url = _checked_oidc_url(data.get("authorization_url"))
+                        token_url = _checked_oidc_url(data.get("token_url"))
+                        if urlsplit(auth_url).netloc.lower() == urlsplit(token_url).netloc.lower():
                             return auth_url, token_url
         except Exception:
             logger.debug("Failed to fetch OIDC discovery config from %s", url, exc_info=True)

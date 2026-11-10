@@ -1125,3 +1125,65 @@ class TestDaynestClientShoppingLists:
         await client.async_delete_shopping_item(1)
 
         assert session.delete.call_args.args[0] == "https://api.daynest.example/api/planned-items/1"
+
+
+class TestOidcDiscovery:
+    @pytest.mark.parametrize("origin", ["https://auth.example", "http://localhost:8080", "http://[::1]:8080"])
+    async def test_valid_endpoints(self, origin: str) -> None:
+        auth, token = f"{origin}/auth", f"{origin}/token"
+        session = MagicMock(spec=aiohttp.ClientSession)
+        session.get.return_value = _make_mock_response(200, {"authorization_url": auth, "token_url": token})
+        assert await DaynestClient.async_fetch_oidc_config("https://api.example/", session=session) == (auth, token)
+        session.get.assert_called_once_with(
+            "https://api.example/api/auth/oidc-config", timeout=aiohttp.ClientTimeout(total=10), allow_redirects=False
+        )
+        session.close.assert_not_called()
+
+    @pytest.mark.parametrize("field", ["authorization_url", "token_url"])
+    @pytest.mark.parametrize(
+        "value",
+        [
+            None,
+            42,
+            "",
+            "/auth",
+            "//auth.example/auth",
+            "javascript:alert(1)",
+            "http://auth.example/auth",
+            "https://evil.example/auth",
+            "https://user:pw@auth.example/auth",
+            "https://@auth.example/auth",
+            "https://auth.example/auth?next=evil",
+            "https://auth.example/auth#fragment",
+            "https://auth.example/auth?",
+            "https://auth.example/auth#",
+            "https://auth.example:444/auth",
+            "https://auth.example:bad/auth",
+            "https://auth.example:99999/auth",
+            "https://[invalid/auth",
+            " https://auth.example/auth",
+            "https://auth.example/au\nth",
+            "https://auth.example/\\evil",
+            "http://127.1/auth",
+            "http://2130706433/auth",
+        ],
+    )
+    async def test_rejects_unsafe_endpoints(self, field: str, value: object) -> None:
+        payload = {"authorization_url": "https://auth.example/auth", "token_url": "https://auth.example/token"}
+        session = MagicMock(spec=aiohttp.ClientSession)
+        session.get.return_value = _make_mock_response(200, {**payload, field: value})
+        assert await DaynestClient.async_fetch_oidc_config("https://api.example", session=session) is None
+
+    @pytest.mark.parametrize("status, payload", [(302, {}), (404, {}), (200, []), (200, {})])
+    async def test_unusable_response(self, status: int, payload: object) -> None:
+        session = MagicMock(spec=aiohttp.ClientSession)
+        session.get.return_value = _make_mock_response(status, payload)
+        assert await DaynestClient.async_fetch_oidc_config("https://api.example", session=session) is None
+        assert session.get.call_args.kwargs["allow_redirects"] is False
+
+    async def test_owned_session_closed_on_failure(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        session = MagicMock(spec=aiohttp.ClientSession)
+        session.get.side_effect = aiohttp.ClientConnectionError()
+        monkeypatch.setattr(aiohttp, "ClientSession", lambda: session)
+        assert await DaynestClient.async_fetch_oidc_config("https://api.example") is None
+        session.close.assert_awaited_once()
