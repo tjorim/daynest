@@ -1,6 +1,6 @@
 {
   "name": "daynest-card",
-  "version": "2026.11.1",
+  "version": "2026.11.2",
   "type": "module",
   "engines": {
     "node": ">=26.0.0"
