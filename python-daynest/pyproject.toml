@@ -1,6 +1,6 @@
 [project]
 name = "python-daynest"
-version = "2026.11.1"
+version = "2026.11.2"
 description = "Python client library for the Daynest API"
 requires-python = ">=3.14"
 license = { text = "MIT" }

@@ -15,6 +15,8 @@ the allowed scopes are listed in `release.config.json`, and `node scripts/releas
 
 ## [Unreleased]
 
+## [2026.11.2] - 2026-11-10
+
 ### Internal
 - Version `python-daynest` with the app's CalVer instead of its own SemVer: `release.mjs` now keeps
   `python-daynest/pyproject.toml`, its `uv.lock` entry and the Home Assistant `python-daynest==` pin in
@@ -287,7 +289,8 @@ the allowed scopes are listed in `release.config.json`, and `node scripts/releas
 - MCP server with Keycloak OIDC auth and medication plan CRUD tools
 - Tag-driven GitHub Release workflow publishing HACS zip, Android APK, and python-daynest to PyPI
 
-[Unreleased]: https://github.com/tjorim/daynest/compare/v2026.11.1...HEAD
+[Unreleased]: https://github.com/tjorim/daynest/compare/v2026.11.2...HEAD
+[2026.11.2]: https://github.com/tjorim/daynest/compare/v2026.11.1...v2026.11.2
 [2026.11.1]: https://github.com/tjorim/daynest/compare/v2026.8.2...v2026.11.1
 [2026.8.2]: https://github.com/tjorim/daynest/compare/v2026.8.1...v2026.8.2
 [2026.8.1]: https://github.com/tjorim/daynest/compare/v2026.7.3...v2026.8.1
