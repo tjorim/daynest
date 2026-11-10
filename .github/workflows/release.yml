@@ -16,26 +16,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Validate release tag format
-        run: |
-          set -euo pipefail
-          # App version is CalVer YYYY.MM.MICRO (see issue #673) but that's
-          # still a strict 3-part X.Y.Z, so the tag pattern itself is unchanged.
-          if [[ ! "${GITHUB_REF_NAME}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "::error::Tag '${GITHUB_REF_NAME}' is not a strict X.Y.Z release tag (expected format: v2026.7.1)"
-            exit 1
-          fi
-          echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: frontend/.node-version
 
-      - name: Check VERSION file
-        run: |
-          set -euo pipefail
-          FILE_VERSION=$(<VERSION)
-          if [[ "${FILE_VERSION}" != "${VERSION}" ]]; then
-            echo "::error::VERSION file '${FILE_VERSION}' does not match tag '${VERSION}'"
-            exit 1
-          fi
-          echo "✓ VERSION: ${FILE_VERSION}"
+      # The tag, VERSION, the package.json files, the HACS manifest version and the CHANGELOG
+      # must agree (scripts/release.mjs; configuration in release.config.json). Android derives
+      # versionName/versionCode from VERSION at build time, so it cannot drift. python-daynest
+      # keeps its own SemVer (issue #673) and is checked separately below.
+      - name: Validate tag, versions and changelog
+        run: node scripts/release.mjs check --tag "$GITHUB_REF_NAME"
 
       - name: Read python-daynest/pyproject.toml version
         # python-daynest keeps its own independent SemVer version — it is
@@ -48,16 +39,6 @@ jobs:
           LIB_VERSION=$(grep -oP '^version\s*=\s*"\K[^"]+' python-daynest/pyproject.toml)
           echo "LIB_VERSION=${LIB_VERSION}" >> "$GITHUB_ENV"
           echo "✓ python-daynest/pyproject.toml: ${LIB_VERSION}"
-
-      - name: Check custom_components/daynest/manifest.json version
-        run: |
-          set -euo pipefail
-          FILE_VERSION=$(python3 -c "import json; d=json.load(open('custom_components/daynest/manifest.json')); print(d['version'])")
-          if [[ "${FILE_VERSION}" != "${VERSION}" ]]; then
-            echo "::error::custom_components/daynest/manifest.json version '${FILE_VERSION}' does not match tag '${VERSION}'"
-            exit 1
-          fi
-          echo "✓ custom_components/daynest/manifest.json: ${FILE_VERSION}"
 
       - name: Check manifest.json python-daynest requirements pin
         run: |
@@ -84,36 +65,6 @@ jobs:
       # hand-maintained literals — both are computed from the root VERSION
       # file at build time (see versionCodeFor()), which is checked above,
       # so there's nothing left here that could independently drift.
-
-      - name: Check frontend/package.json
-        run: |
-          set -euo pipefail
-          FILE_VERSION=$(python3 -c "import json; d=json.load(open('frontend/package.json')); print(d['version'])")
-          if [[ "${FILE_VERSION}" != "${VERSION}" ]]; then
-            echo "::error::frontend/package.json version '${FILE_VERSION}' does not match tag '${VERSION}'"
-            exit 1
-          fi
-          echo "✓ frontend/package.json: ${FILE_VERSION}"
-
-      - name: Check dashboard/package.json
-        run: |
-          set -euo pipefail
-          FILE_VERSION=$(python3 -c "import json; d=json.load(open('dashboard/package.json')); print(d['version'])")
-          if [[ "${FILE_VERSION}" != "${VERSION}" ]]; then
-            echo "::error::dashboard/package.json version '${FILE_VERSION}' does not match tag '${VERSION}'"
-            exit 1
-          fi
-          echo "✓ dashboard/package.json: ${FILE_VERSION}"
-
-      - name: Check CHANGELOG.md entry
-        run: |
-          set -euo pipefail
-          ESCAPED_VERSION="$(printf '%s' "${VERSION}" | sed 's/\./\\./g')"
-          if ! grep -qE "^## \[${ESCAPED_VERSION}\] - [0-9]{4}-[0-9]{2}-[0-9]{2}$" CHANGELOG.md; then
-            echo "::error::CHANGELOG.md has no '## [${VERSION}] - YYYY-MM-DD' section. Add a dated changelog entry before tagging."
-            exit 1
-          fi
-          echo "✓ CHANGELOG.md: entry for [${VERSION}] found"
 
   lib:
     name: Publish python-daynest to PyPI
@@ -300,6 +251,17 @@ jobs:
     permissions:
       contents: write
     steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: frontend/.node-version
+
+      - name: Extract release notes from the changelog
+        run: node scripts/release.mjs notes > "$RUNNER_TEMP/release-notes.md"
+
       - name: Download HACS artifact
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
@@ -318,6 +280,7 @@ jobs:
           tag_name: ${{ github.ref_name }}
           name: ${{ github.ref_name }}
           draft: true
+          body_path: ${{ runner.temp }}/release-notes.md
           fail_on_unmatched_files: false
           files: |
             daynest.zip
