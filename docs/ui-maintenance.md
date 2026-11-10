@@ -232,3 +232,11 @@ The audit found no native React/React DOM modules in the emitted browser chunks.
 
 Validation with these exclusions: build and lint passed; all 22 production
 mock-build calendar/dialog Chromium checks passed.
+
+## Aligned bundle budgets (2026-11-10)
+
+All five apps now use the same measurement script, fixture tests, byte-based
+configuration and report/check commands. See [the shared contract](bundle-budgets.md).
+Existing ceilings are preserved; previously unguarded measurements use about
+5% headroom. The JSON config is the source of truth for limits. CI runs
+`pnpm bundle:test && pnpm bundle:check` after building.
