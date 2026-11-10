@@ -39,3 +39,11 @@ def test_dev_auth_bypass_token_rejected_in_non_dev():
 def test_dev_auth_bypass_token_allowed_in_dev():
     settings = AppSettings(_env_file=None, environment="dev", dev_auth_bypass_token="some-token")
     assert settings.dev_auth_bypass_token == "some-token"
+
+
+def test_home_assistant_oidc_client_id_default_and_environment(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.delenv("OIDC_HOME_ASSISTANT_CLIENT_ID", raising=False)
+    assert AppSettings(_env_file=None, environment="dev").oidc_home_assistant_client_id == "home-assistant"
+
+    monkeypatch.setenv("OIDC_HOME_ASSISTANT_CLIENT_ID", "renamed-home-assistant")
+    assert AppSettings(_env_file=None, environment="dev").oidc_home_assistant_client_id == "renamed-home-assistant"
