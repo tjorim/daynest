@@ -69,8 +69,8 @@ fun resolveConfigValue(key: String, envKey: String, required: Boolean, default: 
 
 // Single source of truth for the app version: the root VERSION file. Every
 // other checked-in copy (frontend/package.json, dashboard/package.json,
-// manifest.json) is stamped from it by scripts/sync-version.sh — this is the
-// only one read directly by the build. Read via providers.fileContents (not
+// manifest.json) is written by `node scripts/release.mjs bump` and verified by
+// `release.mjs check` — this is the only one read directly by the build. Read via providers.fileContents (not
 // File.readText()) so the file is tracked as a build configuration input and
 // this stays Configuration Cache-compatible.
 val appVersion =

@@ -1,45 +1,22 @@
 # Changelog
 
-All notable changes to this project will be documented in this file.
+All notable changes to this project are documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
-This project's own version (the `## [x.y.z]` headers below, `vYYYY.MM.MICRO`
-release tags, frontend/Android/HACS integration) uses
-[CalVer](https://calver.org/) — `YYYY.MM.MICRO`, a counter that resets each
-month — while `python-daynest`, the PyPI client library, stays on
-[Semantic Versioning](https://semver.org/spec/v2.0.0.html) independently,
-since HACS/Home Assistant consumers pin against it for compatibility (#673).
+The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The app (frontend, Android,
+HACS integration) uses [CalVer](https://calver.org/) — `YYYY.M.MICRO`, a counter that resets each month —
+while `python-daynest`, the PyPI client library, stays on
+[Semantic Versioning](https://semver.org/spec/v2.0.0.html) independently, since HACS/Home Assistant
+consumers pin against it for compatibility (#673). The maintainer steps for cutting a release are in
+`AGENTS.md`.
 
-## Maintainer notes
-
-`VERSION` (repo root) is the single source of truth for the app's own version.
-After bumping it, run `bash scripts/sync-version.sh` to stamp the value into
-every file that needs a static, checked-in copy, then update the rest of this
-list by hand:
-
-| File | Field | How it's updated |
-|---|---|---|
-| `VERSION` | contents | hand-edit — the source of truth |
-| `frontend/package.json` | `version` | `scripts/sync-version.sh` |
-| `dashboard/package.json` | `version` | `scripts/sync-version.sh` |
-| `custom_components/daynest/manifest.json` | `version` | `scripts/sync-version.sh` |
-| `android/app/build.gradle.kts` | `versionName`, `versionCode` | auto-derived from `VERSION` at build time — never hand-edit |
-| `CHANGELOG.md` | new `## [YYYY.MM.MICRO]` section | hand-edit |
-| `python-daynest/pyproject.toml` | `version` | hand-edit, **independently** — only bump when the library itself changes, not on every app release |
-| `custom_components/daynest/manifest.json` | `requirements` pin | hand-edit to match `python-daynest/pyproject.toml`'s version whenever that changes |
-
-**Android `versionCode` convention:** `MAJOR × 1000000 + MINOR × 1000 + PATCH`,
-where `MAJOR.MINOR.PATCH` is `YYYY.MM.MICRO`.
-Examples: `v2026.7.1` → `2026007001`, `v2026.12.3` → `2026012003`.
-
-The release preflight job enforces all of the above and fails the workflow before any
-artifact is built or published if any check fails. `python-daynest`'s PyPI publish step
-skips (rather than fails) when its current version is already published, since it doesn't
-bump on every app release.
-
----
+Entries under `### Internal` (backend, infrastructure, CI, dependencies) are left out of what the apps
+show their users. Start a bullet with a scope such as `**Android:**` to limit it to one client or area;
+the allowed scopes are listed in `release.config.json`, and `node scripts/release.mjs check` validates
+`[Unreleased]`.
 
 ## [Unreleased]
+
+## [2026.11.1] - 2026-11-10
 
 ### Added
 - **Backend:** `uv run python -m app.db.dev_schema` builds the local SQLite database (`backend/dev.db`, the default
@@ -300,9 +277,11 @@ bump on every app release.
 - MCP server with Keycloak OIDC auth and medication plan CRUD tools
 - Tag-driven GitHub Release workflow publishing HACS zip, Android APK, and python-daynest to PyPI
 
-[Unreleased]: https://github.com/tjorim/daynest/compare/v2026.7.2...HEAD
-[2026.7.2]: https://github.com/tjorim/daynest/compare/v2026.7.1...v2026.7.2
-[2026.7.1]: https://github.com/tjorim/daynest/compare/v0.1.11...v2026.7.1
+[Unreleased]: https://github.com/tjorim/daynest/compare/v2026.11.1...HEAD
+[2026.11.1]: https://github.com/tjorim/daynest/compare/v2026.8.2...v2026.11.1
+[2026.8.2]: https://github.com/tjorim/daynest/compare/v2026.8.1...v2026.8.2
+[2026.8.1]: https://github.com/tjorim/daynest/compare/v2026.7.3...v2026.8.1
+[2026.7.3]: https://github.com/tjorim/daynest/compare/v0.1.11...v2026.7.3
 [0.1.11]: https://github.com/tjorim/daynest/compare/v0.1.10...v0.1.11
 [0.1.10]: https://github.com/tjorim/daynest/compare/v0.1.9...v0.1.10
 [0.1.9]: https://github.com/tjorim/daynest/compare/v0.1.8...v0.1.9

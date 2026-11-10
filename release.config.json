@@ -1,0 +1,10 @@
+{
+  "repo": "tjorim/daynest",
+  "targets": [
+    { "file": "frontend/package.json", "pattern": "\"version\": \"([^\"]+)\"" },
+    { "file": "dashboard/package.json", "pattern": "\"version\": \"([^\"]+)\"" },
+    { "file": "custom_components/daynest/manifest.json", "pattern": "\"version\": \"([^\"]+)\"" }
+  ],
+  "scopes": ["Web", "Android", "Wear OS", "Pebble", "Backend", "MCP", "Home Assistant", "Library"],
+  "platforms": ["Web", "Android", "Wear OS", "Pebble"]
+}
