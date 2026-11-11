@@ -18,6 +18,8 @@
     "lint": "oxlint",
     "format": "oxfmt .",
     "format:check": "oxfmt --check .",
+    "format:repo": "cd .. && frontend/node_modules/.bin/oxfmt -c frontend/.oxfmtrc.json .github scripts *.json",
+    "format:repo:check": "cd .. && frontend/node_modules/.bin/oxfmt --check -c frontend/.oxfmtrc.json .github scripts *.json",
     "ui:check": "node scripts/ui-maintenance.mjs check && node scripts/ui-imports.mjs",
     "ui:upstream": "node scripts/ui-maintenance.mjs upstream",
     "ui:test": "node --test scripts/ui-maintenance.verify.mjs scripts/ui-imports.verify.mjs",
