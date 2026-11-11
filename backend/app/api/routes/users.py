@@ -102,7 +102,7 @@ def update_settings(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 code="invalid_timezone",
                 detail="Invalid IANA timezone",
-            )
+            ) from None
         current_user.timezone = request.timezone
     if request.default_snooze_days is not None:
         current_user.default_snooze_days = request.default_snooze_days

@@ -23,7 +23,7 @@ class UserUpdateRequest(RequestModel):
         try:
             ZoneInfo(v)
         except ZoneInfoNotFoundError, KeyError:
-            raise ValueError(f"Unknown timezone: {v!r}. Use an IANA timezone name such as 'Europe/Brussels'.")
+            raise ValueError(f"Unknown timezone: {v!r}. Use an IANA timezone name such as 'Europe/Brussels'.") from None
         return v
 
 
