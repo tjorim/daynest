@@ -164,7 +164,7 @@ def invite_member(
             status_code=status.HTTP_409_CONFLICT,
             code="household_already_member",
             detail="User is already a member of this household",
-        )
+        ) from None
     return HouseholdMemberResponse(
         user_id=invitee.id,
         email=invitee.email,

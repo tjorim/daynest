@@ -13,6 +13,7 @@
     "build:mock": "msw init public --save && cross-env VITE_MSW=true pnpm build",
     "preview": "vite preview",
     "postinstall": "msw init public --save",
+    "typecheck": "pnpm paraglide:compile && tsc -b --noEmit",
     "test": "vitest run",
     "test:e2e": "playwright test",
     "lint": "oxlint",

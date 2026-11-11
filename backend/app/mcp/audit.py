@@ -28,11 +28,7 @@ def _parse_datetime_boundary(value: str | None, *, is_until: bool = False) -> da
         return None
     try:
         dt = datetime.fromisoformat(value)
-        if dt.tzinfo is None:
-            dt = dt.replace(tzinfo=UTC)
-        else:
-            dt = dt.astimezone(UTC)
-        return dt
+        return dt.replace(tzinfo=UTC) if dt.tzinfo is None else dt.astimezone(UTC)
     except ValueError:
         # Fall back to date-only input (e.g. "2026-05-01") for convenience.
         parsed_date = parse_date(value)

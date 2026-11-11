@@ -154,7 +154,7 @@ def require_integration_auth(*required_scopes: str) -> Callable:
                             status_code=status.HTTP_401_UNAUTHORIZED,
                             code="invalid_integration_token",
                             detail="Invalid integration token",
-                        )
+                        ) from None
                     int_client = db.scalar(
                         select(IntegrationClient)
                         .where(IntegrationClient.id == client_id_int)
