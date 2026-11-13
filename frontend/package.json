@@ -79,9 +79,9 @@
     "cross-env": "^10.1.0",
     "happy-dom": "^21.0.4",
     "msw": "^3.0.4",
-    "oxc-parser": "^0.157.0",
-    "oxfmt": "^0.77.0",
-    "oxlint": "^1.92.0",
+    "oxc-parser": "^0.158.0",
+    "oxfmt": "^0.78.0",
+    "oxlint": "^1.93.0",
     "typescript": "^7.0.2",
     "vite": "^8.3.6",
     "vitest": "^5.1.0"
