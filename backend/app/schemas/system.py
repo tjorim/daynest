@@ -2,18 +2,18 @@
 
 from typing import Literal
 
-from pydantic import BaseModel
+from app.schemas.base import ResponseModel
 
 
-class LivenessResponse(BaseModel):
+class LivenessResponse(ResponseModel):
     status: Literal["alive"]
 
 
-class ReadinessResponse(BaseModel):
+class ReadinessResponse(ResponseModel):
     status: Literal["ready", "not_ready"]
 
 
-class HealthResponse(BaseModel):
+class HealthResponse(ResponseModel):
     status: Literal["ok"]
     version: str
     commit: str
@@ -21,7 +21,7 @@ class HealthResponse(BaseModel):
     readiness_endpoint: str
 
 
-class MetricsResponse(BaseModel):
+class MetricsResponse(ResponseModel):
     uptime_seconds: float
     request_total: int
     error_total: int
@@ -31,12 +31,12 @@ class MetricsResponse(BaseModel):
     latency_max_ms: float
 
 
-class MetaResponse(BaseModel):
+class MetaResponse(ResponseModel):
     name: str
     version: str
 
 
-class RootResponse(BaseModel):
+class RootResponse(ResponseModel):
     name: str
     message: str
     liveness: str

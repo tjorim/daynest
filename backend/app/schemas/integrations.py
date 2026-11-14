@@ -3,9 +3,9 @@ from __future__ import annotations
 from datetime import date, datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import Field
 
-from app.schemas.base import NonEmptyText255, RequestModel, Text255, Text4000
+from app.schemas.base import NonEmptyText255, RequestModel, ResponseModel, Text255, Text4000
 from app.schemas.today import DueTodayItem, MedicationTodayItem, PlannedTodayItem
 
 
@@ -37,7 +37,7 @@ class MarkPlannedDoneRequest(RequestModel):
 PlannedItemModuleKey = Literal["shopping_list", "meal_planning", "recurring_grocery", "shared_calendar"]
 
 
-class PlannedItemCreateRequest(RequestModel):
+class HomeAssistantPlannedItemCreateRequest(RequestModel):
     title: NonEmptyText255
     planned_for: date
     notes: Text4000 | None = None
@@ -47,16 +47,16 @@ class PlannedItemCreateRequest(RequestModel):
     linked_ref: Text255 | None = None
 
 
-class PlannedItemUpdateRequest(PlannedItemCreateRequest, RequestModel):
+class HomeAssistantPlannedItemUpdateRequest(HomeAssistantPlannedItemCreateRequest, RequestModel):
     is_done: bool = False
 
 
-class HAActionResult(BaseModel):
+class HAActionResult(ResponseModel):
     success: bool
     detail: str
 
 
-class HomeAssistantSummaryResponse(BaseModel):
+class HomeAssistantSummaryResponse(ResponseModel):
     """Flat sensor values of ``GET /integrations/home-assistant/summary``; every key is always sent."""
 
     sensor_daynest_chores_due: int
@@ -83,7 +83,7 @@ class IntegrationClientCreateRequest(RequestModel):
     )
 
 
-class IntegrationClientCreateResponse(BaseModel):
+class IntegrationClientCreateResponse(ResponseModel):
     id: int
     name: str
     rate_limit_per_minute: int
@@ -94,13 +94,13 @@ class IntegrationClientCreateResponse(BaseModel):
     token_url: str
 
 
-class IntegrationClientTokenResponse(BaseModel):
+class IntegrationClientTokenResponse(ResponseModel):
     access_token: str
     token_type: str = "Bearer"
     expires_in: int
 
 
-class IntegrationClientResponse(BaseModel):
+class IntegrationClientResponse(ResponseModel):
     id: int
     name: str
     rate_limit_per_minute: int
@@ -112,13 +112,13 @@ class IntegrationClientResponse(BaseModel):
     revoked_at: datetime | None
 
 
-class HomeAssistantEntity(BaseModel):
+class HomeAssistantEntity(ResponseModel):
     entity_id: str
     state: str
     attributes: dict[str, Any]
 
 
-class DashboardReadModel(BaseModel):
+class DashboardReadModel(ResponseModel):
     for_date: date
     overdue_count: int
     due_today_count: int
@@ -135,13 +135,13 @@ class DashboardReadModel(BaseModel):
     planned_items: list[PlannedTodayItem] = []
 
 
-class HomeAssistantOIDCConfig(BaseModel):
+class HomeAssistantOIDCConfig(ResponseModel):
     authorization_url: str
     token_url: str
     client_id: str
 
 
-class HACalendarEvent(BaseModel):
+class HACalendarEvent(ResponseModel):
     uid: str
     summary: str
     start: dict[str, str]

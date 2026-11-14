@@ -21,11 +21,11 @@ from app.schemas.integrations import (
     HACalendarEvent,
     HomeAssistantEntity,
     HomeAssistantOIDCConfig,
+    HomeAssistantPlannedItemCreateRequest,
+    HomeAssistantPlannedItemUpdateRequest,
     HomeAssistantSummaryResponse,
     MarkMedicationTakenRequest,
     MarkPlannedDoneRequest,
-    PlannedItemCreateRequest,
-    PlannedItemUpdateRequest,
     SkipMedicationRequest,
     SkipTaskRequest,
     SnoozeTaskRequest,
@@ -227,7 +227,7 @@ def home_assistant_mark_planned_done(
 
 @router.post("/actions/create-planned-item", response_model=HAActionResult)
 def home_assistant_create_planned_item(
-    request: PlannedItemCreateRequest,
+    request: HomeAssistantPlannedItemCreateRequest,
     service: TodayService = Depends(get_today_service),
     integration_user: User = Depends(require_integration_auth("home_assistant:*")),
 ) -> HAActionResult:
@@ -242,7 +242,7 @@ def home_assistant_create_planned_item(
 @router.put("/actions/update-planned-item/{planned_item_id}", response_model=HAActionResult)
 def home_assistant_update_planned_item(
     planned_item_id: int,
-    request: PlannedItemUpdateRequest,
+    request: HomeAssistantPlannedItemUpdateRequest,
     service: TodayService = Depends(get_today_service),
     integration_user: User = Depends(require_integration_auth("home_assistant:*")),
 ) -> HAActionResult:

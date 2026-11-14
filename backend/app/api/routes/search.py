@@ -3,7 +3,6 @@ from __future__ import annotations
 from datetime import date, datetime
 
 from fastapi import APIRouter, Depends, Query
-from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -14,6 +13,7 @@ from app.models.medication_plan import MedicationPlan
 from app.models.planned_item import PlannedItem
 from app.models.routine_template import RoutineTemplate
 from app.models.user import User
+from app.schemas.base import ResponseModel
 
 router = APIRouter(prefix="/search", tags=["search"])
 
@@ -28,7 +28,7 @@ def _like_pattern(q: str) -> str:
     return f"%{escaped}%"
 
 
-class RoutineSearchResult(BaseModel):
+class RoutineSearchResult(ResponseModel):
     id: int
     name: str
     description: str | None
@@ -36,7 +36,7 @@ class RoutineSearchResult(BaseModel):
     created_at: datetime
 
 
-class ChoreSearchResult(BaseModel):
+class ChoreSearchResult(ResponseModel):
     id: int
     name: str
     description: str | None
@@ -46,7 +46,7 @@ class ChoreSearchResult(BaseModel):
     created_at: datetime
 
 
-class MedicationSearchResult(BaseModel):
+class MedicationSearchResult(ResponseModel):
     id: int
     name: str
     instructions: str
@@ -54,7 +54,7 @@ class MedicationSearchResult(BaseModel):
     created_at: datetime
 
 
-class PlannedItemSearchResult(BaseModel):
+class PlannedItemSearchResult(ResponseModel):
     id: int
     title: str
     notes: str | None
@@ -65,7 +65,7 @@ class PlannedItemSearchResult(BaseModel):
     created_at: datetime
 
 
-class SearchResponse(BaseModel):
+class SearchResponse(ResponseModel):
     query: str
     routine_templates: list[RoutineSearchResult]
     chore_templates: list[ChoreSearchResult]
