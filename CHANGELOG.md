@@ -17,6 +17,7 @@ the allowed scopes are listed in `release.config.json`, and `node scripts/releas
 
 ### Internal
 
+- Commit the API's OpenAPI document as `frontend/openapi.json`, written by `uv run python -m app.openapi_export` in `backend/`. A backend test fails when the snapshot is stale, so a route or schema change has to ship its regenerated document. Nothing reads the file at runtime yet.
 - Give every JSON route a named response model (health, metrics, meta, root, the Home Assistant summary, the MCP capability manifest and the user data export and import were anonymous objects), and describe the iCalendar and event-stream routes as `text/calendar` and `text/event-stream` instead of an empty JSON schema. A backend test fails when a JSON route has none. Request and response bodies are unchanged.
 - Lint the backend and `python-daynest` with the same ruff rule set as the other apps (`E, F, I, UP, B, C4, SIM`); five exception re-raises now say `from None` and one `if`/`else` became a conditional expression. `UP042` stays off because the `(str, Enum)` classes would print differently as `StrEnum`. The frontend gains a `typecheck` script like the other apps.
 - Check the formatting of workflows, scripts and the root JSON files in CI (`pnpm format:repo:check`), as the other apps do; the files it flagged were reformatted.
