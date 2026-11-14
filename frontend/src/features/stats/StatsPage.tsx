@@ -10,7 +10,7 @@ import { scalePoint } from "@tanstack/charts/scales/point";
 import { tooltip } from "@tanstack/charts/tooltip";
 import { curveMonotoneX } from "d3-shape";
 import * as m from "@/paraglide/messages";
-import { type AnalyticsPeriod, type DailyCount } from "@/lib/api/analytics";
+import type { AnalyticsPeriod, DailyCount } from "@/api-types";
 import { isRetryableApiError } from "@/lib/api/http";
 import { useStatsSummaryQuery } from "@/features/stats/useStatsQuery";
 import { apiErrorMessage } from "@/lib/api/errorMessages";
@@ -62,7 +62,6 @@ export function StatsPage() {
   const periods: { value: AnalyticsPeriod; label: string }[] = [
     { value: "week", label: m.stats_period_week() },
     { value: "month", label: m.stats_period_month() },
-    { value: "quarter", label: m.stats_period_quarter() },
     { value: "year", label: m.stats_period_year() },
   ];
 

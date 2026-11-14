@@ -24,6 +24,7 @@ function renderSection(logout = vi.fn()) {
           full_name: "Test User",
           is_active: true,
           roles: [],
+          timezone: "Europe/Brussels",
         },
         isLoading: false,
         isAuthenticated: true,

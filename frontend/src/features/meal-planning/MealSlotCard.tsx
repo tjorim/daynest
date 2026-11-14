@@ -1,7 +1,7 @@
 import { Link } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import * as m from "@/paraglide/messages";
-import type { MealSlot } from "@/lib/api/mealPlans";
+import type { MealSlot } from "@/api-types";
 
 interface MealSlotCardProps {
   slot: MealSlot | undefined;

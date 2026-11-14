@@ -402,6 +402,9 @@ describe("isItemActionable", () => {
           planned_for: "2026-05-20",
           is_done: false,
           ...plannedBase,
+          auto_add_to_list_id: null,
+          priority: "normal",
+          tags: [],
         },
       }),
     ).toBe(true);
@@ -418,6 +421,9 @@ describe("isItemActionable", () => {
           planned_for: "2026-05-20",
           is_done: true,
           ...plannedBase,
+          auto_add_to_list_id: null,
+          priority: "normal",
+          tags: [],
         },
       }),
     ).toBe(false);
@@ -480,6 +486,9 @@ describe("isItemCompleted", () => {
           planned_for: "2026-05-20",
           is_done: true,
           ...plannedBase,
+          auto_add_to_list_id: null,
+          priority: "normal",
+          tags: [],
         },
       }),
     ).toBe(true);
@@ -499,6 +508,9 @@ describe("build item helpers", () => {
         title: "Mop",
         status: "pending",
         scheduled_date: "2026-05-20",
+        household_id: null,
+        assigned_to: null,
+        completed_by: null,
       },
     ]);
     expect(result).toHaveLength(1);
@@ -519,6 +531,9 @@ describe("build item helpers", () => {
         title: "T",
         status: "completed",
         scheduled_date: "2026-05-20",
+        household_id: null,
+        assigned_to: null,
+        completed_by: null,
       },
     ]);
     expect(item!.statusTone).toBe("success");
@@ -551,6 +566,9 @@ describe("build item helpers", () => {
         title: "Dishes",
         status: "pending",
         overdue_since: "2026-05-18",
+        household_id: null,
+        assigned_to: null,
+        completed_by: null,
       },
     ]);
     expect(item).toMatchObject({
@@ -571,6 +589,9 @@ describe("build item helpers", () => {
           title: "Dishes",
           status: "pending",
           overdue_since: "2026-05-18",
+          household_id: null,
+          assigned_to: null,
+          completed_by: null,
         },
       ]);
       expect(item?.subtitle).toBe("Achterstallig sinds 18 mei");
@@ -581,7 +602,14 @@ describe("build item helpers", () => {
 
   it("buildUpcomingItems sets upcoming status", () => {
     const [item] = buildUpcomingItems([
-      { chore_instance_id: 5, chore_template_id: 1, title: "Call", scheduled_date: "2026-05-22" },
+      {
+        chore_instance_id: 5,
+        chore_template_id: 1,
+        title: "Call",
+        scheduled_date: "2026-05-22",
+        household_id: null,
+        assigned_to: null,
+      },
     ]);
     expect(item).toMatchObject({
       id: "upcoming-5",
@@ -592,7 +620,16 @@ describe("build item helpers", () => {
 
   it("buildPlannedItems maps planned item fields", () => {
     const [item] = buildPlannedItems([
-      { id: 9, title: "Read", planned_for: "2026-05-20", is_done: false, ...plannedBase },
+      {
+        id: 9,
+        title: "Read",
+        planned_for: "2026-05-20",
+        is_done: false,
+        ...plannedBase,
+        auto_add_to_list_id: null,
+        priority: "normal",
+        tags: [],
+      },
     ]);
     expect(item).toMatchObject({
       id: "planned-9",
@@ -610,6 +647,9 @@ describe("build item helpers", () => {
         is_done: false,
         ...plannedBase,
         time_of_day: "10:00:00",
+        auto_add_to_list_id: null,
+        priority: "normal",
+        tags: [],
       },
     ]);
     expect(item).toBeDefined();
@@ -626,6 +666,9 @@ describe("build item helpers", () => {
         is_done: false,
         ...plannedBase,
         time_of_day: null,
+        auto_add_to_list_id: null,
+        priority: "normal",
+        tags: [],
       },
       {
         id: 2,
@@ -634,6 +677,9 @@ describe("build item helpers", () => {
         is_done: false,
         ...plannedBase,
         time_of_day: "12:00:00",
+        auto_add_to_list_id: null,
+        priority: "normal",
+        tags: [],
       },
       {
         id: 3,
@@ -642,6 +688,9 @@ describe("build item helpers", () => {
         is_done: false,
         ...plannedBase,
         time_of_day: "09:30:00",
+        auto_add_to_list_id: null,
+        priority: "normal",
+        tags: [],
       },
     ]);
     expect(items.map((item) => item.id)).toEqual(["planned-3", "planned-2", "planned-1"]);
@@ -649,7 +698,16 @@ describe("build item helpers", () => {
 
   it("buildPlannedItems uses done tone when is_done", () => {
     const [item] = buildPlannedItems([
-      { id: 9, title: "Read", planned_for: "2026-05-20", is_done: true, ...plannedBase },
+      {
+        id: 9,
+        title: "Read",
+        planned_for: "2026-05-20",
+        is_done: true,
+        ...plannedBase,
+        auto_add_to_list_id: null,
+        priority: "normal",
+        tags: [],
+      },
     ]);
     expect(item).toMatchObject({ statusLabel: "Done", statusTone: "success" });
   });
@@ -663,6 +721,9 @@ describe("build item helpers", () => {
         is_done: false,
         ...plannedBase,
         rrule: "FREQ=DAILY",
+        auto_add_to_list_id: null,
+        priority: "normal",
+        tags: [],
       },
     ]);
     expect(item?.isRecurring).toBe(true);

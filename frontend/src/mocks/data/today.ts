@@ -1,4 +1,4 @@
-import type { TodayPayload } from "@/lib/api/today";
+import type { TodayPayload } from "@/api-types";
 
 export function emptyTodayPayload(_date: string): TodayPayload {
   return {
@@ -85,6 +85,9 @@ export function busyTodayPayload(date: string): TodayPayload {
         title: "Water plants",
         status: "pending",
         scheduled_date: date,
+        household_id: null,
+        assigned_to: null,
+        completed_by: null,
       },
       {
         chore_instance_id: 302,
@@ -92,6 +95,9 @@ export function busyTodayPayload(date: string): TodayPayload {
         title: "Take out recycling",
         status: "completed",
         scheduled_date: date,
+        household_id: null,
+        assigned_to: null,
+        completed_by: null,
       },
     ],
     upcoming: [
@@ -100,6 +106,8 @@ export function busyTodayPayload(date: string): TodayPayload {
         chore_template_id: 32,
         title: "Clean bathroom",
         scheduled_date: "2026-06-01",
+        household_id: null,
+        assigned_to: null,
       },
     ],
     planned: [
@@ -117,6 +125,9 @@ export function busyTodayPayload(date: string): TodayPayload {
         linked_source: null,
         linked_ref: null,
         is_done: false,
+        auto_add_to_list_id: null,
+        priority: "normal",
+        tags: [],
       },
       {
         id: 402,
@@ -132,6 +143,9 @@ export function busyTodayPayload(date: string): TodayPayload {
         linked_source: null,
         linked_ref: null,
         is_done: true,
+        auto_add_to_list_id: null,
+        priority: "normal",
+        tags: [],
       },
     ],
     day_items: [
@@ -144,6 +158,14 @@ export function busyTodayPayload(date: string): TodayPayload {
         scheduled_date: date,
         detail: null,
         module_key: null,
+        time_of_day: null,
+        duration_minutes: null,
+        rrule: null,
+        recurrence_series_id: null,
+        recurrence_hint: null,
+        linked_source: null,
+        linked_ref: null,
+        priority: "normal",
       },
     ],
   };
@@ -250,6 +272,9 @@ export function overdueTodayPayload(date: string): TodayPayload {
         title: "Clean kitchen",
         status: "pending",
         overdue_since: "2026-05-25",
+        household_id: null,
+        assigned_to: null,
+        completed_by: null,
       },
       {
         chore_instance_id: 311,
@@ -257,6 +282,9 @@ export function overdueTodayPayload(date: string): TodayPayload {
         title: "Change bed sheets",
         status: "pending",
         overdue_since: "2026-05-20",
+        household_id: null,
+        assigned_to: null,
+        completed_by: null,
       },
     ],
     due_today: [
@@ -266,6 +294,9 @@ export function overdueTodayPayload(date: string): TodayPayload {
         title: "Vacuum living room",
         status: "pending",
         scheduled_date: date,
+        household_id: null,
+        assigned_to: null,
+        completed_by: null,
       },
     ],
     upcoming: [],

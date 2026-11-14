@@ -2,7 +2,7 @@ import { http, HttpResponse } from "msw/http";
 import { getMockState, mutateMedications } from "../data/state";
 import { nextMedicationId, seedMedicationHistory } from "../data/medication";
 import { MOCK_TODAY } from "../data/constants";
-import type { MedicationPlanInput, MedicationPlanUpdateInput } from "@/lib/api/medications";
+import type { MedicationPlanInput, MedicationPlanUpdateInput } from "@/api-types";
 
 export const medicationHandlers = [
   http.get("/api/medications", () => HttpResponse.json(getMockState().medications)),
@@ -15,7 +15,7 @@ export const medicationHandlers = [
       instructions: input.instructions,
       start_date: input.start_date,
       schedule_time: input.schedule_time,
-      every_n_days: input.every_n_days,
+      every_n_days: input.every_n_days ?? 1,
       is_active: true,
     };
     mutateMedications((plans) => [...plans, newPlan]);
@@ -32,7 +32,11 @@ export const medicationHandlers = [
       return HttpResponse.json({ detail: "Not found" }, { status: 404 });
     }
 
-    const updated = { ...existing, ...input };
+    const updated = {
+      ...existing,
+      ...input,
+      every_n_days: input.every_n_days ?? existing.every_n_days,
+    };
     mutateMedications((plans) => plans.map((m) => (m.id === id ? updated : m)));
     return HttpResponse.json(updated);
   }),

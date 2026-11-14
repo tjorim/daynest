@@ -72,3 +72,9 @@ export type {
   WeekDayResponse as WeekDayMealSlots,
   WeekGridResponse,
 } from "./api-schema";
+import type { PlannedTodayItem } from "./api-schema";
+
+// Shapes read straight out of a generated type, so they follow it.
+
+/** The module a planned item belongs to; `null` (no module) is not one of them. */
+export type PlannedItemModuleKey = NonNullable<PlannedTodayItem["module_key"]>;

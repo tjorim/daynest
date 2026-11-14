@@ -22,6 +22,7 @@ describe("PebblePairPage", () => {
         full_name: "Pebble User",
         is_active: true,
         roles: [],
+        timezone: "Europe/Brussels",
       },
       isLoading: false,
       isAuthenticated: true,

@@ -1,58 +1,23 @@
-import {
-  createPlannedItem,
-  listPlannedItems,
-  updatePlannedItem,
-  type PlannedTodayItem,
-} from "@/lib/api/today";
+import { createPlannedItem, listPlannedItems, updatePlannedItem } from "@/lib/api/today";
 import { fetchWithAuth, parseJsonResponse } from "@/lib/api/http";
-import { z } from "zod";
+import type {
+  PlannedTodayItem,
+  ShoppingList,
+  ShoppingListInput,
+  ShoppingListStatus,
+  ShoppingListUpdateInput,
+} from "@/api-types";
 import * as m from "@/paraglide/messages";
 
-export type ShoppingListStatus = "active" | "archived";
 export type ShoppingListStatusFilter = ShoppingListStatus | "all";
 
-export interface ShoppingList {
-  id: number;
-  user_id: number;
-  name: string;
-  store: string | null;
-  notes: string | null;
-  status: ShoppingListStatus;
-  created_at: string;
-}
-
-export interface ShoppingListInput {
-  name: string;
-  store?: string | null;
-  notes?: string | null;
-}
-
-export interface ShoppingListUpdateInput {
-  name?: string;
-  store?: string | null;
-  notes?: string | null;
-  status?: ShoppingListStatus;
-}
-
+/** A shopping item as the screen collects it; it is stored as a planned item. */
 export interface ShoppingItemInput {
   title: string;
   planned_for: string;
   notes?: string | null;
   tag?: string | null;
 }
-
-const shoppingListStatusSchema = z.enum(["active", "archived"]);
-const shoppingListSchema = z.object({
-  id: z.number(),
-  user_id: z.number(),
-  name: z.string(),
-  store: z.string().nullable(),
-  notes: z.string().nullable(),
-  status: shoppingListStatusSchema,
-  created_at: z.string(),
-});
-
-const shoppingListsSchema = z.array(shoppingListSchema);
 
 export async function listShoppingLists(
   status: ShoppingListStatusFilter = "active",
@@ -64,7 +29,7 @@ export async function listShoppingLists(
     headers: { Accept: "application/json" },
     signal,
   });
-  return parseJsonResponse(response, m.api_shopping_lists_load_failed(), true, shoppingListsSchema);
+  return parseJsonResponse<ShoppingList[]>(response, m.api_shopping_lists_load_failed(), true);
 }
 
 export async function getShoppingList(listId: number, signal?: AbortSignal): Promise<ShoppingList> {
@@ -72,7 +37,7 @@ export async function getShoppingList(listId: number, signal?: AbortSignal): Pro
     headers: { Accept: "application/json" },
     signal,
   });
-  return parseJsonResponse(response, m.api_shopping_list_load_failed(), true, shoppingListSchema);
+  return parseJsonResponse<ShoppingList>(response, m.api_shopping_list_load_failed(), true);
 }
 
 export async function createShoppingList(input: ShoppingListInput): Promise<ShoppingList> {
@@ -84,12 +49,7 @@ export async function createShoppingList(input: ShoppingListInput): Promise<Shop
     },
     body: JSON.stringify(input),
   });
-  return parseJsonResponse(
-    response,
-    m.api_shopping_list_create_failed(),
-    false,
-    shoppingListSchema,
-  );
+  return parseJsonResponse<ShoppingList>(response, m.api_shopping_list_create_failed(), false);
 }
 
 export async function updateShoppingList(
@@ -104,12 +64,7 @@ export async function updateShoppingList(
     },
     body: JSON.stringify(input),
   });
-  return parseJsonResponse(
-    response,
-    m.api_shopping_list_update_failed(),
-    false,
-    shoppingListSchema,
-  );
+  return parseJsonResponse<ShoppingList>(response, m.api_shopping_list_update_failed(), false);
 }
 
 export async function deleteShoppingList(listId: number): Promise<void> {

@@ -8,9 +8,8 @@ import {
   listRoutineTemplates,
   updateChoreTemplate,
   updateRoutineTemplate,
-  type ChoreTemplateInput,
-  type RoutineTemplateInput,
 } from "@/lib/api/templates";
+import type { RoutineTemplateInput, ChoreTemplateInput } from "@/api-types";
 import { fetchAnalyticsSummary } from "@/lib/api/analytics";
 import { queryKeys } from "@/lib/query/queryKeys";
 

@@ -1,4 +1,4 @@
-import type { UnifiedDayItem } from "@/lib/api/today";
+import type { UnifiedDayItem } from "@/api-types";
 import * as m from "@/paraglide/messages";
 import {
   Dialog,

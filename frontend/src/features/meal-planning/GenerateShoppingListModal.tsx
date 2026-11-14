@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import * as m from "@/paraglide/messages";
-import type { WeekGridResponse } from "@/lib/api/mealPlans";
+import type { WeekGridResponse } from "@/api-types";
 import {
   Dialog,
   DialogBody,

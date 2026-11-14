@@ -1,4 +1,4 @@
-import type { AuthUser } from "@/lib/api/auth";
+import type { AuthUser } from "@/api-types";
 
 export const MOCK_TODAY = "2026-05-29";
 export const MOCK_TOKEN = "mock-access-token";
@@ -8,5 +8,6 @@ export const MOCK_USER: AuthUser = {
   email: "demo@daynest.app",
   full_name: "Demo User",
   is_active: true,
+  timezone: "Europe/Brussels",
   roles: ["user"],
 };

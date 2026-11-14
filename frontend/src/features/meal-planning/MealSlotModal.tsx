@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useForm } from "@tanstack/react-form";
 import * as m from "@/paraglide/messages";
-import type { MealSlot, MealSlotUpdateInput } from "@/lib/api/mealPlans";
+import type { MealSlot, MealSlotUpdateInput } from "@/api-types";
 import {
   Dialog,
   DialogBody,

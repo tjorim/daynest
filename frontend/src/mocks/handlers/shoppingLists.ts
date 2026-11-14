@@ -1,11 +1,7 @@
 import { http, HttpResponse } from "msw/http";
 import { getMockState, mutatePlannedItems } from "../data/state";
 import { nextPlannedItemId } from "../data/plannedItems";
-import type {
-  ShoppingList,
-  ShoppingListInput,
-  ShoppingListUpdateInput,
-} from "@/lib/api/shoppingLists";
+import type { ShoppingListInput, ShoppingList, ShoppingListUpdateInput } from "@/api-types";
 
 let nextShoppingListId = 3;
 const shoppingLists: ShoppingList[] = [

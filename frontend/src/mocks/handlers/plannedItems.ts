@@ -1,7 +1,7 @@
 import { http, HttpResponse } from "msw/http";
 import { getMockState, mutatePlannedItems } from "../data/state";
 import { nextPlannedItemId } from "../data/plannedItems";
-import type { PlannedItemInput, PlannedItemUpdateInput } from "@/lib/api/today";
+import type { PlannedItemUpdateInput, PlannedItemInput } from "@/api-types";
 
 export const plannedItemHandlers = [
   http.get("/api/planned-items", ({ request }) => {

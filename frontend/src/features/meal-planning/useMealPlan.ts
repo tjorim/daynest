@@ -6,10 +6,8 @@ import {
   listMealPlans,
   updateMealPlan,
   updateMealSlot,
-  type MealPlanInput,
-  type MealPlanUpdateInput,
-  type MealSlotUpdateInput,
 } from "@/lib/api/mealPlans";
+import type { MealPlanInput, MealPlanUpdateInput, MealSlotUpdateInput } from "@/api-types";
 import { queryKeys } from "@/lib/query/queryKeys";
 
 export function useMealPlansQuery() {

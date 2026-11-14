@@ -1,4 +1,4 @@
-import type { PlannedTodayItem } from "@/lib/api/today";
+import type { PlannedTodayItem } from "@/api-types";
 
 export function seedPlannedItems(date: string): PlannedTodayItem[] {
   return [
@@ -35,6 +35,8 @@ export function seedPlannedItems(date: string): PlannedTodayItem[] {
       linked_ref: null,
       auto_add_to_list_id: null,
       is_done: true,
+      priority: "normal",
+      tags: [],
     },
     {
       id: 403,
@@ -51,6 +53,8 @@ export function seedPlannedItems(date: string): PlannedTodayItem[] {
       linked_ref: null,
       auto_add_to_list_id: null,
       is_done: false,
+      priority: "normal",
+      tags: [],
     },
     {
       id: 404,

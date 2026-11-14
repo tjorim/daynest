@@ -1,56 +1,19 @@
 import { fetchWithAuth, getJson, parseJsonResponse, sendJson } from "@/lib/api/http";
-import { z } from "zod";
+import type {
+  IntegrationClient,
+  IntegrationClientCreateResponse,
+  IntegrationClientInput,
+} from "@/api-types";
 import * as m from "@/paraglide/messages";
 
-export interface IntegrationClient {
-  id: number;
-  name: string;
-  rate_limit_per_minute: number;
-  scopes: string[];
-  is_active: boolean;
-}
-
-export interface IntegrationClientInput {
-  name: string;
-  rate_limit_per_minute: number;
-  scopes: Array<"home_assistant:*" | "pebble:read" | "pebble:write">;
-}
-
-export interface IntegrationClientCreateResponse extends IntegrationClient {
-  api_key: string;
-  client_id: string;
-  client_secret: string;
-  token_url: string;
-}
-
-const integrationClientSchema = z.object({
-  id: z.number(),
-  name: z.string(),
-  rate_limit_per_minute: z.number(),
-  scopes: z.array(z.string()),
-  is_active: z.boolean(),
-});
-
-const integrationClientCreateResponseSchema = integrationClientSchema.extend({
-  api_key: z.string(),
-  client_id: z.string(),
-  client_secret: z.string(),
-  token_url: z.string(),
-});
-
 export async function listIntegrationClients(signal?: AbortSignal): Promise<IntegrationClient[]> {
-  return getJson("/api/integrations/clients", z.array(integrationClientSchema), signal, 2);
+  return getJson<IntegrationClient[]>("/api/integrations/clients", signal, 2);
 }
 
 export async function createIntegrationClient(
   input: IntegrationClientInput,
 ): Promise<IntegrationClientCreateResponse> {
-  return sendJson(
-    "POST",
-    "/api/integrations/clients",
-    input,
-    integrationClientCreateResponseSchema,
-  );
+  return sendJson<IntegrationClientCreateResponse>("POST", "/api/integrations/clients", input);
 }
 
 export async function rotateIntegrationClient(
@@ -60,11 +23,10 @@ export async function rotateIntegrationClient(
     method: "POST",
     headers: { Accept: "application/json" },
   });
-  return parseJsonResponse(
+  return parseJsonResponse<IntegrationClientCreateResponse>(
     response,
     m.api_integration_client_rotate_failed(),
     false,
-    integrationClientCreateResponseSchema,
   );
 }
 
