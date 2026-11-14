@@ -17,6 +17,21 @@ Application UI imports use `@/components/ui/<component>`. Direct Base UI subpath
 - Compare changed views against `main` in light/dark at 1280px and 390px. Preserve the documented breakpoints, native-control sizes and keyboard interactions.
 - Use `pnpm` only. Each package has a single lockfile: `frontend/pnpm-lock.yaml` and `dashboard/pnpm-lock.yaml`.
 
+## API types
+
+The frontend's API types are generated, never written by hand. `frontend/openapi.json` is a committed
+snapshot of the backend's OpenAPI document (`backend/app/openapi_export.py`) and `frontend/src/api-schema/`
+(one file per schema) is generated from it with the pinned Orval (`frontend/orval.config.mjs`: schemas only,
+`useTypeOverInterfaces`, no client, no zod, no pnpmfile). `frontend/src/api-types.ts` names the generated
+records for the screens. After changing a response model or an endpoint in `backend/`, run
+`pnpm api:generate` in `frontend/` (it needs `uv`) and commit `openapi.json` and `src/api-schema/`; never edit
+`src/api-schema/`. `pnpm typecheck` runs `pnpm api:check` and fails when `src/api-schema/` is stale; the
+backend test `test_openapi_snapshot` fails when `openapi.json` is stale, and `test_response_models` fails
+when a JSON route has no named response model. Response models derive from `ResponseModel`
+(`backend/app/schemas/base.py`) so a field with a default is `required` in the schema. Do not use
+`openapi-typescript` or `@hey-api/openapi-ts`: both call the TypeScript 5 compiler API and fail under
+TypeScript 7.
+
 ## Releases
 
 The app uses CalVer, `YYYY.M.MICRO` (`MICRO` counts releases within a month), tagged `vYYYY.M.MICRO`. The
