@@ -17,6 +17,7 @@ the allowed scopes are listed in `release.config.json`, and `node scripts/releas
 
 ### Internal
 
+- Remove `.github/dependabot.yml`: Renovate (shared `tjorim/renovate-config` preset) is the only dependency updater now. Dependabot security alerts stay on.
 - `release.mjs` now also keeps the `python-daynest` entry in `custom_components/uv.lock` equal to `VERSION`, and that lock is synced to 2026.11.2 (it still said 0.1.11 after the CalVer switch).
 - Lint the backend and `python-daynest` with the same ruff rule set as the other apps (`E, F, I, UP, B, C4, SIM`); five exception re-raises now say `from None` and one `if`/`else` became a conditional expression. `UP042` stays off because the `(str, Enum)` classes would print differently as `StrEnum`. The frontend gains a `typecheck` script like the other apps.
 - Check the formatting of workflows, scripts and the root JSON files in CI (`pnpm format:repo:check`), as the other apps do; the files it flagged were reformatted.
