@@ -1,5 +1,6 @@
 from datetime import UTC, date, datetime, timedelta
 from secrets import token_urlsafe
+from typing import Any
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from fastapi import APIRouter, Depends, Query, Request, Response, status
@@ -18,6 +19,11 @@ from app.schemas.today import CalendarRangeResponse
 from app.services.today_service import TodayService
 
 router = APIRouter(tags=["calendar"])
+
+# These endpoints answer with an iCalendar document, not JSON.
+_ICALENDAR_RESPONSE: dict[int | str, dict[str, Any]] = {
+    200: {"content": {"text/calendar": {"schema": {"type": "string"}}}}
+}
 
 _EXPORT_PAST_DAYS = 60
 _EXPORT_FUTURE_DAYS = 365
@@ -237,7 +243,12 @@ def _build_planned_items_calendar(user: User, planned_items: list[PlannedItem]) 
     return calendar.to_ical()
 
 
-@router.get("/calendar/feed/{token}.ics", name="get_calendar_feed_ics")
+@router.get(
+    "/calendar/feed/{token}.ics",
+    name="get_calendar_feed_ics",
+    response_class=Response,
+    responses=_ICALENDAR_RESPONSE,
+)
 def get_calendar_feed_ics(token: str, db: Session = Depends(get_db)) -> Response:
     user = db.scalar(select(User).where(User.calendar_feed_token == token).where(User.is_active.is_(True)))
     if user is None:
@@ -309,7 +320,7 @@ def _resolve_user(
     )
 
 
-@router.get("/calendar/export.ics")
+@router.get("/calendar/export.ics", response_class=Response, responses=_ICALENDAR_RESPONSE)
 def export_ical(
     token: str | None = Query(default=None, description="Per-user calendar subscription token"),
     db: Session = Depends(get_db),

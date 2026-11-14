@@ -56,6 +56,17 @@ class HAActionResult(BaseModel):
     detail: str
 
 
+class HomeAssistantSummaryResponse(BaseModel):
+    """Flat sensor values of ``GET /integrations/home-assistant/summary``; every key is always sent."""
+
+    sensor_daynest_chores_due: int
+    sensor_daynest_routines_open: int
+    sensor_daynest_medication_due: int
+    sensor_daynest_planned_remaining: int
+    sensor_daynest_overdue_count: int
+    sensor_daynest_next_medication: str | None
+
+
 IntegrationScope = Literal["home_assistant:*", "pebble:read", "pebble:write"]
 
 
