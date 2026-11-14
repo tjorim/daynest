@@ -2,30 +2,30 @@
 
 from typing import Literal
 
-from pydantic import BaseModel
+from app.schemas.base import ResponseModel
 
 
-class McpToolAccess(BaseModel):
+class McpToolAccess(ResponseModel):
     auth: Literal["interactive", "user_or_integration"]
     tier: Literal["household_member", "owner"]
 
 
-class McpToolCapability(BaseModel):
+class McpToolCapability(ResponseModel):
     name: str
     effect: Literal["read", "write"]
     requires_confirmation: bool
     access: McpToolAccess
 
 
-class McpResourceCapability(BaseModel):
+class McpResourceCapability(ResponseModel):
     uri: str
 
 
-class McpPromptCapability(BaseModel):
+class McpPromptCapability(ResponseModel):
     name: str
 
 
-class McpCapabilitiesResponse(BaseModel):
+class McpCapabilitiesResponse(ResponseModel):
     contract_version: int
     enabled: bool
     mount_path: str

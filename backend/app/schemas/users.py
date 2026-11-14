@@ -1,12 +1,12 @@
 from datetime import time
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import Field
 
-from app.schemas.base import RequestModel
+from app.schemas.base import RequestModel, ResponseModel
 
 
-class UserSettingsResponse(BaseModel):
+class UserSettingsResponse(ResponseModel):
     timezone: str
     default_snooze_days: int
     medication_reminder_minutes: int
@@ -28,7 +28,7 @@ class UserSettingsPatchRequest(RequestModel):
     push_missed_medications_enabled: bool | None = None
 
 
-class UserExportResponse(BaseModel):
+class UserExportResponse(ResponseModel):
     """The JSON form of ``GET /users/me/export``; the same document ``POST /users/me/import`` accepts.
 
     Rows are exported column by column from the database models (see ``export_import_service``), so they are
@@ -47,7 +47,7 @@ class UserExportResponse(BaseModel):
     planned_items: list[dict[str, Any]]
 
 
-class UserImportCounts(BaseModel):
+class UserImportCounts(ResponseModel):
     routine_templates: int
     chore_templates: int
     medication_plans: int
@@ -57,5 +57,5 @@ class UserImportCounts(BaseModel):
     planned_items: int
 
 
-class UserImportResponse(BaseModel):
+class UserImportResponse(ResponseModel):
     imported: UserImportCounts

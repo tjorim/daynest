@@ -28,6 +28,31 @@ def untyped_json_responses(document: dict[str, Any]) -> list[str]:
     return untyped
 
 
+def _response_schemas(document: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    """The component schemas a response can contain, directly or through another schema."""
+    schemas = document["components"]["schemas"]
+    found: dict[str, dict[str, Any]] = {}
+
+    def visit(node: object) -> None:
+        if isinstance(node, dict):
+            for key, value in node.items():
+                if key == "$ref":
+                    name = value.rsplit("/", 1)[-1]
+                    if name not in found:
+                        found[name] = schemas[name]
+                        visit(schemas[name])
+                else:
+                    visit(value)
+        elif isinstance(node, list):
+            for item in node:
+                visit(item)
+
+    for operations in document["paths"].values():
+        for operation in operations.values():
+            visit(operation["responses"])
+    return found
+
+
 def test_every_json_route_declares_a_response_model() -> None:
     assert untyped_json_responses(app.openapi()) == []
 
@@ -107,3 +132,20 @@ def test_system_endpoints_keep_their_wire_shape(client: TestClient) -> None:
         "mcp",
         "mcp_capabilities",
     }
+
+
+def test_a_response_field_with_a_default_is_required_in_the_schema() -> None:
+    """A defaulted field is always sent, so the schema (and the frontend types generated from it) must say so."""
+    optional = [
+        f"{name}.{field}"
+        for name, schema in _response_schemas(app.openapi()).items()
+        for field, definition in schema.get("properties", {}).items()
+        if "default" in definition and field not in schema.get("required", [])
+    ]
+    assert optional == [], "derive the response model from ResponseModel (app/schemas/base.py)"
+
+
+def test_schema_names_are_unique() -> None:
+    """Two classes with one name make FastAPI qualify both (`app__schemas__x__Name`), and so any generated type."""
+    qualified = [name for name in app.openapi()["components"]["schemas"] if "__" in name]
+    assert qualified == []

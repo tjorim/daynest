@@ -2629,7 +2629,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/app__schemas__integrations__PlannedItemCreateRequest"
+                "$ref": "#/components/schemas/HomeAssistantPlannedItemCreateRequest"
               }
             }
           }
@@ -2714,7 +2714,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/app__schemas__integrations__PlannedItemUpdateRequest"
+                "$ref": "#/components/schemas/HomeAssistantPlannedItemUpdateRequest"
               }
             }
           }
@@ -3345,7 +3345,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/app__schemas__today__PlannedItemCreateRequest"
+                "$ref": "#/components/schemas/PlannedItemCreateRequest"
               }
             }
           }
@@ -3415,7 +3415,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/app__schemas__today__PlannedItemUpdateRequest"
+                "$ref": "#/components/schemas/PlannedItemUpdateRequest"
               }
             }
           }
@@ -5344,7 +5344,8 @@
         "required": [
           "type",
           "id",
-          "success"
+          "success",
+          "error"
         ],
         "title": "BulkMutationResult"
       },
@@ -5547,7 +5548,11 @@
         "required": [
           "chore_instance_id",
           "status",
-          "scheduled_date"
+          "scheduled_date",
+          "completed_at",
+          "skipped_at",
+          "assigned_to",
+          "completed_by"
         ],
         "title": "ChoreInstanceMutationResponse"
       },
@@ -5853,7 +5858,14 @@
         "type": "object",
         "required": [
           "name",
+          "description",
           "start_date",
+          "every_n_days",
+          "rrule",
+          "priority",
+          "tags",
+          "is_active",
+          "household_id",
           "id",
           "created_at"
         ],
@@ -6108,8 +6120,16 @@
           "overdue_count",
           "due_today_count",
           "planned_count",
+          "planned_remaining_count",
           "medication_due_count",
-          "completion_ratio"
+          "completion_ratio",
+          "next_medication",
+          "routines_open_count",
+          "due_today",
+          "planned",
+          "chores",
+          "medications",
+          "planned_items"
         ],
         "title": "DashboardReadModel"
       },
@@ -6175,7 +6195,10 @@
           "chore_template_id",
           "title",
           "status",
-          "scheduled_date"
+          "scheduled_date",
+          "household_id",
+          "assigned_to",
+          "completed_by"
         ],
         "title": "DueTodayItem"
       },
@@ -6258,7 +6281,8 @@
           "uid",
           "summary",
           "start",
-          "end"
+          "end",
+          "description"
         ],
         "title": "HACalendarEvent"
       },
@@ -6356,6 +6380,185 @@
           "client_id"
         ],
         "title": "HomeAssistantOIDCConfig"
+      },
+      "HomeAssistantPlannedItemCreateRequest": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Title"
+          },
+          "planned_for": {
+            "type": "string",
+            "format": "date",
+            "title": "Planned For"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 4000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "module_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "shopping_list",
+                  "meal_planning",
+                  "recurring_grocery",
+                  "shared_calendar"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Module Key"
+          },
+          "recurrence_hint": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 255
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recurrence Hint"
+          },
+          "linked_source": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 120
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Linked Source"
+          },
+          "linked_ref": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 255
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Linked Ref"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "title",
+          "planned_for"
+        ],
+        "title": "HomeAssistantPlannedItemCreateRequest"
+      },
+      "HomeAssistantPlannedItemUpdateRequest": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Title"
+          },
+          "planned_for": {
+            "type": "string",
+            "format": "date",
+            "title": "Planned For"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 4000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "module_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "shopping_list",
+                  "meal_planning",
+                  "recurring_grocery",
+                  "shared_calendar"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Module Key"
+          },
+          "recurrence_hint": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 255
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recurrence Hint"
+          },
+          "linked_source": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 120
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Linked Source"
+          },
+          "linked_ref": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 255
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Linked Ref"
+          },
+          "is_done": {
+            "type": "boolean",
+            "title": "Is Done",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "title",
+          "planned_for"
+        ],
+        "title": "HomeAssistantPlannedItemUpdateRequest"
       },
       "HomeAssistantSummaryResponse": {
         "properties": {
@@ -6701,6 +6904,7 @@
         "type": "object",
         "required": [
           "access_token",
+          "token_type",
           "expires_in"
         ],
         "title": "IntegrationClientTokenResponse"
@@ -6985,6 +7189,7 @@
           "user_id",
           "name",
           "week_start",
+          "notes",
           "created_at"
         ],
         "title": "MealPlanResponse"
@@ -7098,7 +7303,10 @@
           "meal_plan_id",
           "slot_date",
           "slot_type",
-          "title"
+          "title",
+          "recipe_url",
+          "ingredients_json",
+          "planned_item_id"
         ],
         "title": "MealSlotResponse"
       },
@@ -7599,7 +7807,11 @@
         },
         "type": "object",
         "required": [
-          "clientId"
+          "clientId",
+          "clientName",
+          "userConsentRequired",
+          "inUse",
+          "offlineAccess"
         ],
         "title": "OAuthSessionClient",
         "description": "A client entry within a Keycloak session."
@@ -7670,7 +7882,13 @@
         },
         "type": "object",
         "required": [
-          "id"
+          "id",
+          "ip_address",
+          "started",
+          "last_access",
+          "expires",
+          "clients",
+          "is_current"
         ],
         "title": "OAuthSessionResponse",
         "description": "Active OAuth session returned by the Keycloak Account REST API."
@@ -7717,7 +7935,8 @@
         "required": [
           "issuer",
           "authorization_url",
-          "token_url"
+          "token_url",
+          "end_session_endpoint"
         ],
         "title": "OidcDiscoveryConfig"
       },
@@ -7783,9 +8002,158 @@
           "chore_template_id",
           "title",
           "status",
-          "overdue_since"
+          "overdue_since",
+          "household_id",
+          "assigned_to",
+          "completed_by"
         ],
         "title": "OverdueTodayItem"
+      },
+      "PlannedItemCreateRequest": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Title"
+          },
+          "planned_for": {
+            "type": "string",
+            "format": "date",
+            "title": "Planned For"
+          },
+          "time_of_day": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Time Of Day"
+          },
+          "duration_minutes": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Minutes"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 4000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "module_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "shopping_list",
+                  "meal_planning",
+                  "recurring_grocery",
+                  "shared_calendar"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Module Key"
+          },
+          "recurrence_hint": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 255
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recurrence Hint"
+          },
+          "rrule": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rrule"
+          },
+          "linked_source": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 120
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Linked Source"
+          },
+          "linked_ref": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 255
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Linked Ref"
+          },
+          "auto_add_to_list_id": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Auto Add To List Id"
+          },
+          "priority": {
+            "$ref": "#/components/schemas/Priority",
+            "default": "normal"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tags"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "title",
+          "planned_for"
+        ],
+        "title": "PlannedItemCreateRequest"
       },
       "PlannedItemSearchResult": {
         "properties": {
@@ -7877,6 +8245,157 @@
           "daily_completions"
         ],
         "title": "PlannedItemStats"
+      },
+      "PlannedItemUpdateRequest": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Title"
+          },
+          "planned_for": {
+            "type": "string",
+            "format": "date",
+            "title": "Planned For"
+          },
+          "time_of_day": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Time Of Day"
+          },
+          "duration_minutes": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Minutes"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 4000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "module_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "shopping_list",
+                  "meal_planning",
+                  "recurring_grocery",
+                  "shared_calendar"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Module Key"
+          },
+          "recurrence_hint": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 255
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recurrence Hint"
+          },
+          "rrule": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rrule"
+          },
+          "linked_source": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 120
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Linked Source"
+          },
+          "linked_ref": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 255
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Linked Ref"
+          },
+          "auto_add_to_list_id": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Auto Add To List Id"
+          },
+          "priority": {
+            "$ref": "#/components/schemas/Priority",
+            "default": "normal"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tags"
+          },
+          "is_done": {
+            "type": "boolean",
+            "title": "Is Done",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "title",
+          "planned_for"
+        ],
+        "title": "PlannedItemUpdateRequest"
       },
       "PlannedTodayItem": {
         "properties": {
@@ -8032,6 +8551,18 @@
           "id",
           "title",
           "planned_for",
+          "time_of_day",
+          "duration_minutes",
+          "notes",
+          "module_key",
+          "recurrence_hint",
+          "rrule",
+          "recurrence_series_id",
+          "linked_source",
+          "linked_ref",
+          "auto_add_to_list_id",
+          "priority",
+          "tags",
           "is_done"
         ],
         "title": "PlannedTodayItem"
@@ -8441,7 +8972,12 @@
         "type": "object",
         "required": [
           "name",
+          "description",
           "start_date",
+          "every_n_days",
+          "rrule",
+          "due_time",
+          "is_active",
           "id",
           "created_at"
         ],
@@ -8557,7 +9093,8 @@
           "routine_template_id",
           "title",
           "status",
-          "scheduled_date"
+          "scheduled_date",
+          "due_at"
         ],
         "title": "RoutineTodayItem"
       },
@@ -8603,7 +9140,8 @@
         "type": "object",
         "required": [
           "suggestion_type",
-          "message"
+          "message",
+          "metadata"
         ],
         "title": "SchedulingSuggestion"
       },
@@ -8996,7 +9534,9 @@
         "required": [
           "task_instance_id",
           "status",
-          "scheduled_date"
+          "scheduled_date",
+          "due_at",
+          "completed_at"
         ],
         "title": "TaskInstanceMutationResponse"
       },
@@ -9246,7 +9786,19 @@
           "item_type",
           "item_id",
           "title",
-          "status"
+          "status",
+          "scheduled_at",
+          "scheduled_date",
+          "time_of_day",
+          "duration_minutes",
+          "detail",
+          "module_key",
+          "rrule",
+          "recurrence_series_id",
+          "recurrence_hint",
+          "linked_source",
+          "linked_ref",
+          "priority"
         ],
         "title": "UnifiedDayItem"
       },
@@ -9297,7 +9849,9 @@
           "chore_instance_id",
           "chore_template_id",
           "title",
-          "scheduled_date"
+          "scheduled_date",
+          "household_id",
+          "assigned_to"
         ],
         "title": "UpcomingTodayItem"
       },
@@ -9487,7 +10041,10 @@
         "required": [
           "id",
           "email",
-          "is_active"
+          "full_name",
+          "is_active",
+          "timezone",
+          "roles"
         ],
         "title": "UserMeResponse"
       },
@@ -9758,482 +10315,6 @@
           "days"
         ],
         "title": "WeekGridResponse"
-      },
-      "app__schemas__integrations__PlannedItemCreateRequest": {
-        "properties": {
-          "title": {
-            "type": "string",
-            "maxLength": 255,
-            "minLength": 1,
-            "title": "Title"
-          },
-          "planned_for": {
-            "type": "string",
-            "format": "date",
-            "title": "Planned For"
-          },
-          "notes": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 4000
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Notes"
-          },
-          "module_key": {
-            "anyOf": [
-              {
-                "type": "string",
-                "enum": [
-                  "shopping_list",
-                  "meal_planning",
-                  "recurring_grocery",
-                  "shared_calendar"
-                ]
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Module Key"
-          },
-          "recurrence_hint": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 255
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Recurrence Hint"
-          },
-          "linked_source": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 120
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Linked Source"
-          },
-          "linked_ref": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 255
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Linked Ref"
-          }
-        },
-        "additionalProperties": false,
-        "type": "object",
-        "required": [
-          "title",
-          "planned_for"
-        ],
-        "title": "PlannedItemCreateRequest"
-      },
-      "app__schemas__integrations__PlannedItemUpdateRequest": {
-        "properties": {
-          "title": {
-            "type": "string",
-            "maxLength": 255,
-            "minLength": 1,
-            "title": "Title"
-          },
-          "planned_for": {
-            "type": "string",
-            "format": "date",
-            "title": "Planned For"
-          },
-          "notes": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 4000
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Notes"
-          },
-          "module_key": {
-            "anyOf": [
-              {
-                "type": "string",
-                "enum": [
-                  "shopping_list",
-                  "meal_planning",
-                  "recurring_grocery",
-                  "shared_calendar"
-                ]
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Module Key"
-          },
-          "recurrence_hint": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 255
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Recurrence Hint"
-          },
-          "linked_source": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 120
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Linked Source"
-          },
-          "linked_ref": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 255
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Linked Ref"
-          },
-          "is_done": {
-            "type": "boolean",
-            "title": "Is Done",
-            "default": false
-          }
-        },
-        "additionalProperties": false,
-        "type": "object",
-        "required": [
-          "title",
-          "planned_for"
-        ],
-        "title": "PlannedItemUpdateRequest"
-      },
-      "app__schemas__today__PlannedItemCreateRequest": {
-        "properties": {
-          "title": {
-            "type": "string",
-            "maxLength": 255,
-            "minLength": 1,
-            "title": "Title"
-          },
-          "planned_for": {
-            "type": "string",
-            "format": "date",
-            "title": "Planned For"
-          },
-          "time_of_day": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "time"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Time Of Day"
-          },
-          "duration_minutes": {
-            "anyOf": [
-              {
-                "type": "integer",
-                "minimum": 1.0
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Duration Minutes"
-          },
-          "notes": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 4000
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Notes"
-          },
-          "module_key": {
-            "anyOf": [
-              {
-                "type": "string",
-                "enum": [
-                  "shopping_list",
-                  "meal_planning",
-                  "recurring_grocery",
-                  "shared_calendar"
-                ]
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Module Key"
-          },
-          "recurrence_hint": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 255
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Recurrence Hint"
-          },
-          "rrule": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 500
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Rrule"
-          },
-          "linked_source": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 120
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Linked Source"
-          },
-          "linked_ref": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 255
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Linked Ref"
-          },
-          "auto_add_to_list_id": {
-            "anyOf": [
-              {
-                "type": "integer",
-                "minimum": 1.0
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Auto Add To List Id"
-          },
-          "priority": {
-            "$ref": "#/components/schemas/Priority",
-            "default": "normal"
-          },
-          "tags": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Tags"
-          }
-        },
-        "additionalProperties": false,
-        "type": "object",
-        "required": [
-          "title",
-          "planned_for"
-        ],
-        "title": "PlannedItemCreateRequest"
-      },
-      "app__schemas__today__PlannedItemUpdateRequest": {
-        "properties": {
-          "title": {
-            "type": "string",
-            "maxLength": 255,
-            "minLength": 1,
-            "title": "Title"
-          },
-          "planned_for": {
-            "type": "string",
-            "format": "date",
-            "title": "Planned For"
-          },
-          "time_of_day": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "time"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Time Of Day"
-          },
-          "duration_minutes": {
-            "anyOf": [
-              {
-                "type": "integer",
-                "minimum": 1.0
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Duration Minutes"
-          },
-          "notes": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 4000
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Notes"
-          },
-          "module_key": {
-            "anyOf": [
-              {
-                "type": "string",
-                "enum": [
-                  "shopping_list",
-                  "meal_planning",
-                  "recurring_grocery",
-                  "shared_calendar"
-                ]
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Module Key"
-          },
-          "recurrence_hint": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 255
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Recurrence Hint"
-          },
-          "rrule": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 500
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Rrule"
-          },
-          "linked_source": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 120
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Linked Source"
-          },
-          "linked_ref": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 255
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Linked Ref"
-          },
-          "auto_add_to_list_id": {
-            "anyOf": [
-              {
-                "type": "integer",
-                "minimum": 1.0
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Auto Add To List Id"
-          },
-          "priority": {
-            "$ref": "#/components/schemas/Priority",
-            "default": "normal"
-          },
-          "tags": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Tags"
-          },
-          "is_done": {
-            "type": "boolean",
-            "title": "Is Done",
-            "default": false
-          }
-        },
-        "additionalProperties": false,
-        "type": "object",
-        "required": [
-          "title",
-          "planned_for"
-        ],
-        "title": "PlannedItemUpdateRequest"
       }
     },
     "securitySchemes": {
