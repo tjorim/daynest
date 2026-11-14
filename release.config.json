@@ -12,6 +12,10 @@
     {
       "file": "python-daynest/uv.lock",
       "pattern": "name = \"python-daynest\"\\nversion = \"([^\"]+)\""
+    },
+    {
+      "file": "custom_components/uv.lock",
+      "pattern": "name = \"python-daynest\"\\nversion = \"([^\"]+)\""
     }
   ],
   "scopes": ["Web", "Android", "Wear OS", "Pebble", "Backend", "MCP", "Home Assistant", "Library"],
