@@ -4,7 +4,7 @@ The shared primitives in `components/ui/` (`button`, `alert`, `badge`, `card`, `
 
 ## Ownership and records
 
-Dependabot proposes package and lockfile updates. It does not update copied
+Renovate proposes package and lockfile updates. It does not update copied
 component source or prove interaction compatibility. Keep Base UI runtime
 updates separate from registry-source changes so regressions are attributable.
 
