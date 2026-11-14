@@ -1,7 +1,7 @@
 import type { CalendarEvent } from "@schedule-x/calendar";
 import dayjs from "dayjs";
 import { Temporal } from "temporal-polyfill";
-import type { UnifiedDayItem } from "@/lib/api/today";
+import type { UnifiedDayItem } from "@/api-types";
 
 export const CALENDAR_COLORS = {
   routine: "#0d6efd",

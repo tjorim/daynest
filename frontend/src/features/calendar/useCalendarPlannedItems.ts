@@ -10,9 +10,8 @@ import {
   type PlannedItemBackupFile,
   type PlannedItemEditScope,
   type PlannedItemDeleteScope,
-  type PlannedItemModuleKey,
-  type PlannedTodayItem,
 } from "@/lib/api/today";
+import type { PlannedItemModuleKey, PlannedTodayItem } from "@/api-types";
 import * as m from "@/paraglide/messages";
 import { apiErrorMessage } from "@/lib/api/errorMessages";
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { TodayPayload } from "@/lib/api/today";
+import type { TodayPayload } from "@/api-types";
 
 type Expect<T extends true> = T;
 type Equal<A, B> =
@@ -59,6 +59,9 @@ const contractExample: TodayPayload = {
       title: "Laundry",
       status: "pending",
       overdue_since: "2026-04-20",
+      household_id: null,
+      assigned_to: null,
+      completed_by: null,
     },
   ],
   due_today: [
@@ -68,6 +71,9 @@ const contractExample: TodayPayload = {
       title: "Morning stretch",
       status: "pending",
       scheduled_date: "2026-04-23",
+      household_id: null,
+      assigned_to: null,
+      completed_by: null,
     },
   ],
   upcoming: [
@@ -76,6 +82,8 @@ const contractExample: TodayPayload = {
       chore_template_id: 4,
       title: "Refill meds",
       scheduled_date: "2026-04-24",
+      household_id: null,
+      assigned_to: null,
     },
   ],
   planned: [
@@ -93,6 +101,9 @@ const contractExample: TodayPayload = {
       linked_source: "google_calendar",
       linked_ref: "event_13",
       is_done: false,
+      auto_add_to_list_id: null,
+      priority: "normal",
+      tags: [],
     },
   ],
   day_items: [
@@ -105,6 +116,14 @@ const contractExample: TodayPayload = {
       scheduled_date: "2026-04-25",
       detail: null,
       module_key: "meal_planning",
+      time_of_day: null,
+      duration_minutes: null,
+      rrule: null,
+      recurrence_series_id: null,
+      recurrence_hint: null,
+      linked_source: null,
+      linked_ref: null,
+      priority: "normal",
     },
   ],
 };

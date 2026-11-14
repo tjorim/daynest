@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { useAuth as useOidcAuth } from "react-oidc-context";
-import { AuthApiError, fetchMe, type AuthUser } from "@/lib/api/auth";
+import { AuthApiError, fetchMe } from "@/lib/api/auth";
+import type { AuthUser } from "@/api-types";
 import { setOidcAccessToken, setSigninSilent, setOfflineOwner } from "@/lib/auth/session";
 import { AUTH_ROUTE_PATHS } from "@/config/oidc";
 import * as m from "@/paraglide/messages";

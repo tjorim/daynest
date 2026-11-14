@@ -3,7 +3,7 @@ import { render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { StatsPage } from "@/features/stats/StatsPage";
 import { setLocale } from "@/paraglide/runtime";
-import type { AnalyticsSummary, DailyCount } from "@/lib/api/analytics";
+import type { AnalyticsSummary, DailyCount } from "@/api-types";
 import { QueryTestProvider } from "../../utils/queryTestProvider";
 
 const analyticsApiMock = vi.hoisted(() => ({ fetchAnalyticsSummary: vi.fn() }));

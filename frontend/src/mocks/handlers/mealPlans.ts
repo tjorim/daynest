@@ -1,13 +1,13 @@
 import { http, HttpResponse } from "msw/http";
 import type {
-  MealPlan,
   MealPlanInput,
   MealPlanUpdateInput,
+  MealPlan,
   MealSlot,
   MealSlotUpdateInput,
-} from "@/lib/api/mealPlans";
+  PlannedTodayItem,
+} from "@/api-types";
 import { MEAL_SLOT_TYPES } from "@/lib/api/mealPlans";
-import type { PlannedTodayItem } from "@/lib/api/today";
 import { addMockShoppingList } from "@/mocks/handlers/shoppingLists";
 import { dayjs, toIsoDate } from "@/lib/dateUtils";
 
@@ -170,6 +170,7 @@ export const mealPlanHandlers = [
       recurrence_series_id: null,
       linked_source: "shopping_list",
       linked_ref: String(shoppingList.id),
+      auto_add_to_list_id: null,
       priority: "normal",
       tags: ["meal-planning"],
       is_done: false,

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import * as m from "@/paraglide/messages";
-import { listOAuthSessions, revokeOAuthSession, type OAuthSession } from "@/lib/api/auth";
+import { listOAuthSessions, revokeOAuthSession } from "@/lib/api/auth";
+import type { OAuthSession } from "@/api-types";
 import { apiErrorMessage } from "@/lib/api/errorMessages";
 import { formatDateTime } from "@/lib/dateUtils";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";

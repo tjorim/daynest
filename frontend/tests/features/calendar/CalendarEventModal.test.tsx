@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { CalendarEventModal } from "@/features/calendar/CalendarEventModal";
-import type { UnifiedDayItem } from "@/lib/api/today";
+import type { UnifiedDayItem } from "@/api-types";
 
 const item: UnifiedDayItem = {
   item_type: "chore",
@@ -13,6 +13,14 @@ const item: UnifiedDayItem = {
   scheduled_date: "2026-10-24",
   detail: "Balcony first",
   module_key: null,
+  time_of_day: null,
+  duration_minutes: null,
+  rrule: null,
+  recurrence_series_id: null,
+  recurrence_hint: null,
+  linked_source: null,
+  linked_ref: null,
+  priority: "normal",
 };
 
 function setup(overrides: Partial<Parameters<typeof CalendarEventModal>[0]> = {}) {

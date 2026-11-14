@@ -15,8 +15,14 @@ the allowed scopes are listed in `release.config.json`, and `node scripts/releas
 
 ## [Unreleased]
 
+### Fixed
+
+- A planned item with the `urgent` priority (created through the API) no longer makes Today and the planned-item lists fail to load: the app's own copy of the response shape did not know that priority.
+- Statistics no longer offers a "3 Months" period: the server only has week, month and year, so choosing it always failed.
+
 ### Internal
 
+- The frontend reads API responses as the types generated from the backend's OpenAPI document (`frontend/src/api-types.ts`) instead of hand-written zod schemas and interfaces in `src/lib/api/`, and no longer re-checks each response against a second copy of its shape at runtime; a field renamed or retyped in the backend now stops `pnpm typecheck`. `zod` stays for the router search params, the medication form and the offline queue (#1458).
 - Generate the frontend API types with a pinned Orval (schemas only, one file per schema in `frontend/src/api-schema/`) from `frontend/openapi.json`, with `pnpm api:generate` and `pnpm api:check`; `pnpm typecheck` fails when the generated files are stale. `frontend/src/api-types.ts` names them for the screens. Nothing imports it yet; the hand-written zod schemas and types are replaced in a follow-up (#1458).
 - The published API schema now lists a response field that has a default (`priority`, `tags`, `is_active`, …) as required, because it is always sent, and the two Home Assistant planned-item request bodies no longer share a name with the `/planned-items` ones. Responses and requests are unchanged; the generated frontend types stop treating those fields as optional. Backend tests fail when a response model skips the new `ResponseModel` base or two schemas share a name (#1458).
 - Commit the API's OpenAPI document as `frontend/openapi.json`, written by `uv run python -m app.openapi_export` in `backend/`. A backend test fails when the snapshot is stale, so a route or schema change has to ship its regenerated document. Nothing reads the file at runtime yet.

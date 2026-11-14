@@ -1,6 +1,6 @@
 import { http, HttpResponse } from "msw/http";
 import { getMockState, mutateSettings } from "../data/state";
-import type { UserSettingsPatch } from "@/lib/api/settings";
+import type { UserSettingsPatch } from "@/api-types";
 
 let mockCalendarFeedToken = "mock-calendar-feed-token";
 
@@ -9,7 +9,23 @@ export const settingsHandlers = [
 
   http.patch("/api/users/me/settings", async ({ request }) => {
     const patch = (await request.json()) as UserSettingsPatch;
-    mutateSettings((s) => ({ ...s, ...patch }));
+    mutateSettings((s) => ({
+      ...s,
+      timezone: patch.timezone ?? s.timezone,
+      default_snooze_days: patch.default_snooze_days ?? s.default_snooze_days,
+      medication_reminder_minutes:
+        patch.medication_reminder_minutes ?? s.medication_reminder_minutes,
+      quiet_hours_start:
+        patch.quiet_hours_start === undefined ? s.quiet_hours_start : patch.quiet_hours_start,
+      quiet_hours_end:
+        patch.quiet_hours_end === undefined ? s.quiet_hours_end : patch.quiet_hours_end,
+      push_overdue_chores_enabled:
+        patch.push_overdue_chores_enabled ?? s.push_overdue_chores_enabled,
+      push_medication_reminders_enabled:
+        patch.push_medication_reminders_enabled ?? s.push_medication_reminders_enabled,
+      push_missed_medications_enabled:
+        patch.push_missed_medications_enabled ?? s.push_missed_medications_enabled,
+    }));
     return HttpResponse.json(getMockState().settings);
   }),
 

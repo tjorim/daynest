@@ -6,8 +6,6 @@ function periodDays(period: string): number {
   switch (period) {
     case "month":
       return 30;
-    case "quarter":
-      return 90;
     case "year":
       return 365;
     default:

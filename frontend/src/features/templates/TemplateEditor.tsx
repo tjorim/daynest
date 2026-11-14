@@ -4,7 +4,7 @@ import { EditorDialog } from "@/components/ui/EditorDialog";
 import { FeedbackBanner } from "@/components/common/FeedbackBanner";
 import { apiErrorMessage } from "@/lib/api/errorMessages";
 import { toIsoDate } from "@/lib/dateUtils";
-import type { ChoreTemplate, RoutineTemplate, RoutineTemplateInput } from "@/lib/api/templates";
+import type { ChoreTemplate, RoutineTemplateInput, RoutineTemplate } from "@/api-types";
 import { Label } from "@/components/ui/field";
 import { Input, Textarea } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";

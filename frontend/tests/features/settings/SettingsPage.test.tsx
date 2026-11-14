@@ -53,6 +53,7 @@ function renderSettingsPage(children: React.ReactNode) {
           full_name: "Test User",
           is_active: true,
           roles: [],
+          timezone: "Europe/Brussels",
         },
         isLoading: false,
         isAuthenticated: true,

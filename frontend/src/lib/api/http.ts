@@ -1,7 +1,6 @@
 import { buildApiUrl } from "@/lib/api/serverConfig";
 import { getOidcAccessToken, renewOidcAccessToken } from "@/lib/auth/session";
 import { enqueue as enqueueOffline } from "@/lib/offlineQueue";
-import { z } from "zod";
 import * as m from "@/paraglide/messages";
 
 export type ApiErrorParams = Record<string, string | number | boolean>;
@@ -182,11 +181,12 @@ export async function fetchWithAuth(
   return fetchWithRetry(url, withAuthHeader(init, renewedToken), retries);
 }
 
+/** Reads a successful JSON body as `T`, the type generated from the backend's response model
+ * (`@/api-types`). Failures throw an `ApiError` built from the error body. */
 export async function parseJsonResponse<T>(
   response: Response,
   fallbackMessage = m.api_request_failed(),
   isIdempotent = true,
-  schema?: z.ZodType<T>,
 ): Promise<T> {
   const requestId = response.headers.get("x-request-id");
 
@@ -205,32 +205,11 @@ export async function parseJsonResponse<T>(
       params,
     );
   }
-  const payload = (await response.json()) as unknown;
-
-  if (!schema) {
-    return payload as T;
-  }
-
-  const result = schema.safeParse(payload);
-  if (!result.success) {
-    const details = result.error.issues
-      .map((issue) => {
-        const path = issue.path.length > 0 ? issue.path.join(".") : "response";
-        return `${path}: ${issue.message}`;
-      })
-      .join(", ");
-    const fullMessage = requestId
-      ? m.api_invalid_response_with_request_id({ details, id: requestId })
-      : m.api_invalid_response({ details });
-    throw new ApiError(fullMessage, response.status, false, requestId, "invalid_response");
-  }
-
-  return result.data;
+  return (await response.json()) as T;
 }
 
 export async function getJson<T>(
   path: string,
-  schema: z.ZodType<T>,
   signal?: AbortSignal,
   retries = 1,
   fallbackMessage = m.api_request_failed(),
@@ -243,14 +222,13 @@ export async function getJson<T>(
     },
     retries,
   );
-  return parseJsonResponse(response, fallbackMessage, true, schema);
+  return parseJsonResponse<T>(response, fallbackMessage, true);
 }
 
 export async function sendJson<T>(
   method: "POST" | "PUT" | "PATCH" | "DELETE",
   path: string,
   body: unknown,
-  schema: z.ZodType<T>,
   fallbackMessage = m.api_request_failed(),
 ): Promise<T> {
   const response = await fetchWithAuth(path, {
@@ -262,7 +240,7 @@ export async function sendJson<T>(
     body: JSON.stringify(body),
   });
   const isIdempotent = method === "PUT" || method === "DELETE";
-  return parseJsonResponse(response, fallbackMessage, isIdempotent, schema);
+  return parseJsonResponse<T>(response, fallbackMessage, isIdempotent);
 }
 
 export function isRetryableApiError(error: unknown): boolean {

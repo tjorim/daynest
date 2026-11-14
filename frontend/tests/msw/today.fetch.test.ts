@@ -5,20 +5,18 @@ import { server } from "@/mocks/server";
 
 import {
   deletePlannedItem,
-  fetchCalendarDay,
-  fetchCalendarMonth,
   fetchToday,
+  listPlannedItems,
   updatePlannedItem,
-  type CalendarMonthPayload,
-  type TodayPayload,
 } from "@/lib/api/today";
+import type { PlannedTodayItem, TodayPayload } from "@/api-types";
 
 afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe("today API response validation", () => {
-  it("returns today payload when response matches schema", async () => {
+describe("today API", () => {
+  it("returns the today payload as the API sends it", async () => {
     const payload: TodayPayload = {
       medication: [],
       medication_history: [],
@@ -35,45 +33,29 @@ describe("today API response validation", () => {
     await expect(fetchToday()).resolves.toEqual(payload);
   });
 
-  it("throws a clear error when today response is invalid", async () => {
-    server.use(http.get("/api/today", () => HttpResponse.json({ medication: [] })));
-
-    await expect(fetchToday()).rejects.toMatchObject({
-      name: "ApiError",
-      message: expect.stringContaining("Invalid response format"),
-    });
-  });
-
-  it("throws a clear error when fetchCalendarMonth response is invalid", async () => {
-    const payload: CalendarMonthPayload = {
-      year: 2026,
-      month: 5,
-      days: [{ date: "2026-05-16", total: 2, routines: 1, chores: 1, medications: 0, planned: 0 }],
+  it("reads a planned item with an urgent priority", async () => {
+    // The backend's Priority enum has `urgent`; the old hand-written schema did not and failed the whole screen.
+    const urgent: PlannedTodayItem = {
+      id: 7,
+      title: "Pay the invoice",
+      planned_for: "2026-05-20",
+      time_of_day: null,
+      duration_minutes: null,
+      notes: null,
+      module_key: null,
+      recurrence_hint: null,
+      rrule: null,
+      recurrence_series_id: null,
+      linked_source: null,
+      linked_ref: null,
+      auto_add_to_list_id: null,
+      priority: "urgent",
+      tags: [],
+      is_done: false,
     };
+    server.use(http.get("/api/planned-items", () => HttpResponse.json([urgent])));
 
-    server.use(
-      http.get("/api/calendar/month", () =>
-        HttpResponse.json({ ...payload, days: [{ ...payload.days[0], total: "2" }] }),
-      ),
-    );
-
-    await expect(fetchCalendarMonth(2026, 5)).rejects.toMatchObject({
-      name: "ApiError",
-      message: expect.stringContaining("days.0.total"),
-    });
-  });
-
-  it("throws a clear error when fetchCalendarDay response is invalid", async () => {
-    server.use(
-      http.get("/api/calendar/day", () =>
-        HttpResponse.json({ date: "2026-05-16", items: [{ item_type: "planned", item_id: "13" }] }),
-      ),
-    );
-
-    await expect(fetchCalendarDay("2026-05-16")).rejects.toMatchObject({
-      name: "ApiError",
-      message: expect.stringContaining("items.0.item_id"),
-    });
+    await expect(listPlannedItems()).resolves.toEqual([urgent]);
   });
 
   it("passes delete scope for recurring planned-item removal", async () => {
