@@ -14,6 +14,7 @@ from app.core.errors import ApiException
 from app.core.observability import metrics
 from app.core.oidc import check_jwks_reachable
 from app.db.session import engine
+from app.schemas.system import HealthResponse, LivenessResponse, MetaResponse, MetricsResponse, ReadinessResponse
 
 logger = logging.getLogger("app.health")
 
@@ -51,9 +52,9 @@ def _require_metrics_access(request: Request) -> None:
         raise ApiException(status_code=status.HTTP_403_FORBIDDEN, code="forbidden", detail="Forbidden")
 
 
-@router.get("/health/liveness")
-def liveness_check() -> dict[str, str]:
-    return {"status": "alive"}
+@router.get("/health/liveness", response_model=LivenessResponse)
+def liveness_check() -> LivenessResponse:
+    return LivenessResponse(status="alive")
 
 
 def _check_db() -> None:
@@ -87,50 +88,51 @@ async def _jwks_reachable() -> bool:
         return reachable
 
 
-@router.get("/health/readiness")
-async def readiness_check(response: Response) -> dict[str, str]:
+@router.get(
+    "/health/readiness",
+    response_model=ReadinessResponse,
+    responses={status.HTTP_503_SERVICE_UNAVAILABLE: {"model": ReadinessResponse}},
+)
+async def readiness_check(response: Response) -> ReadinessResponse:
     try:
         await asyncio.to_thread(_check_db)
     except SQLAlchemyError, OSError, RuntimeError:
         logger.exception("Readiness check failed: database connectivity error")
         response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
-        return {"status": "not_ready"}
+        return ReadinessResponse(status="not_ready")
 
     if settings.oidc_issuer_url and not await _jwks_reachable():
         response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
-        return {"status": "not_ready"}
+        return ReadinessResponse(status="not_ready")
 
-    return {"status": "ready"}
-
-
-@router.get("/health")
-def health_check() -> dict[str, str]:
-    return {
-        "status": "ok",
-        "version": settings.version,
-        "commit": os.environ.get("APP_COMMIT", "unknown"),
-        "liveness": "alive",
-        "readiness_endpoint": "/health/readiness",
-    }
+    return ReadinessResponse(status="ready")
 
 
-@router.get("/metrics")
-def metrics_endpoint(_: None = Depends(_require_metrics_access)) -> dict[str, float | int]:
+@router.get("/health", response_model=HealthResponse)
+def health_check() -> HealthResponse:
+    return HealthResponse(
+        status="ok",
+        version=settings.version,
+        commit=os.environ.get("APP_COMMIT", "unknown"),
+        liveness="alive",
+        readiness_endpoint="/health/readiness",
+    )
+
+
+@router.get("/metrics", response_model=MetricsResponse)
+def metrics_endpoint(_: None = Depends(_require_metrics_access)) -> MetricsResponse:
     snapshot = metrics.snapshot()
-    return {
-        "uptime_seconds": round(snapshot.uptime_seconds, 2),
-        "request_total": snapshot.total_requests,
-        "error_total": snapshot.total_errors,
-        "request_rate_per_second": round(snapshot.request_rate_per_second, 4),
-        "error_rate": round(snapshot.error_rate, 4),
-        "latency_avg_ms": round(snapshot.latency_avg_ms, 2),
-        "latency_max_ms": round(snapshot.latency_max_ms, 2),
-    }
+    return MetricsResponse(
+        uptime_seconds=round(snapshot.uptime_seconds, 2),
+        request_total=snapshot.total_requests,
+        error_total=snapshot.total_errors,
+        request_rate_per_second=round(snapshot.request_rate_per_second, 4),
+        error_rate=round(snapshot.error_rate, 4),
+        latency_avg_ms=round(snapshot.latency_avg_ms, 2),
+        latency_max_ms=round(snapshot.latency_max_ms, 2),
+    )
 
 
-@router.get("/meta")
-def meta() -> dict[str, str]:
-    return {
-        "name": settings.app_name,
-        "version": settings.version,
-    }
+@router.get("/meta", response_model=MetaResponse)
+def meta() -> MetaResponse:
+    return MetaResponse(name=settings.app_name, version=settings.version)

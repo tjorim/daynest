@@ -44,6 +44,8 @@ from app.mcp_server import create_mcp_server
 from app.middleware.rate_limit import RateLimitExceeded, handle_rate_limit_exceeded, limiter, rate_limit
 from app.models.user import User
 from app.request_limits import RateLimitHeadersMiddleware
+from app.schemas.mcp import McpCapabilitiesResponse, McpPromptCapability, McpResourceCapability, McpToolCapability
+from app.schemas.system import RootResponse
 from app.services.event_bus import EventBus
 from app.services.push_service import (
     close_http_client as close_push_http_client,
@@ -242,8 +244,8 @@ if _mcp_app is not None:
     app.mount("/mcp", _mcp_app)
 
 
-@app.get(f"{settings.api_prefix}/mcp/capabilities")
-async def mcp_capabilities() -> dict[str, object]:
+@app.get(f"{settings.api_prefix}/mcp/capabilities", response_model=McpCapabilitiesResponse)
+async def mcp_capabilities() -> McpCapabilitiesResponse:
     """Report MCP capabilities derived live from the running FastMCP server.
 
     Deliberately queries ``_mcp`` (the actual registration) rather than the
@@ -256,44 +258,44 @@ async def mcp_capabilities() -> dict[str, object]:
 
     enabled = _mcp_app is not None
     if not enabled or _mcp is None:
-        return {
-            "contract_version": CONTRACT_VERSION,
-            "enabled": False,
-            "mount_path": "/mcp",
-            "version": None,
-            "tools": [],
-            "resources": [],
-            "prompts": [],
-        }
+        return McpCapabilitiesResponse(
+            contract_version=CONTRACT_VERSION,
+            enabled=False,
+            mount_path="/mcp",
+            version=None,
+            tools=[],
+            resources=[],
+            prompts=[],
+        )
 
     tools = await _mcp.local_provider.list_tools()
     resource_templates = await _mcp.local_provider.list_resource_templates()
     resources = await _mcp.local_provider.list_resources()
     prompts = await _mcp.local_provider.list_prompts()
-    return {
-        "contract_version": CONTRACT_VERSION,
-        "enabled": True,
-        "mount_path": "/mcp",
-        "version": _mcp.version,
-        "tools": [tool_capability(tool.name) for tool in sorted(tools, key=lambda tool: tool.name)],
-        "resources": sorted(
-            [{"uri": template.uri_template} for template in resource_templates]
-            + [{"uri": str(resource.uri)} for resource in resources],
-            key=lambda resource: resource["uri"],
+    return McpCapabilitiesResponse(
+        contract_version=CONTRACT_VERSION,
+        enabled=True,
+        mount_path="/mcp",
+        version=_mcp.version,
+        tools=[McpToolCapability(**tool_capability(tool.name)) for tool in sorted(tools, key=lambda tool: tool.name)],
+        resources=sorted(
+            [McpResourceCapability(uri=template.uri_template) for template in resource_templates]
+            + [McpResourceCapability(uri=str(resource.uri)) for resource in resources],
+            key=lambda resource: resource.uri,
         ),
-        "prompts": [{"name": prompt.name} for prompt in sorted(prompts, key=lambda prompt: prompt.name)],
-    }
+        prompts=[McpPromptCapability(name=prompt.name) for prompt in sorted(prompts, key=lambda prompt: prompt.name)],
+    )
 
 
-@app.get("/")
-def root() -> dict[str, str]:
-    return {
-        "name": settings.app_name,
-        "message": "API is running",
-        "liveness": f"{settings.api_prefix}/health/liveness",
-        "readiness": f"{settings.api_prefix}/health/readiness",
-        "metrics": f"{settings.api_prefix}/metrics",
-        "ha_summary": f"{settings.api_prefix}/integrations/home-assistant/summary",
-        "mcp": "/mcp",
-        "mcp_capabilities": f"{settings.api_prefix}/mcp/capabilities",
-    }
+@app.get("/", response_model=RootResponse)
+def root() -> RootResponse:
+    return RootResponse(
+        name=settings.app_name,
+        message="API is running",
+        liveness=f"{settings.api_prefix}/health/liveness",
+        readiness=f"{settings.api_prefix}/health/readiness",
+        metrics=f"{settings.api_prefix}/metrics",
+        ha_summary=f"{settings.api_prefix}/integrations/home-assistant/summary",
+        mcp="/mcp",
+        mcp_capabilities=f"{settings.api_prefix}/mcp/capabilities",
+    )
