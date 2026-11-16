@@ -1,3 +1,4 @@
+import { jsonResponse } from "@/mocks/response";
 import { http, HttpResponse } from "msw/http";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -28,7 +29,7 @@ describe("today API", () => {
       day_items: [],
     };
 
-    server.use(http.get("/api/today", () => HttpResponse.json(payload)));
+    server.use(http.get("/api/today", () => jsonResponse<TodayPayload>(payload)));
 
     await expect(fetchToday()).resolves.toEqual(payload);
   });
@@ -53,7 +54,7 @@ describe("today API", () => {
       tags: [],
       is_done: false,
     };
-    server.use(http.get("/api/planned-items", () => HttpResponse.json([urgent])));
+    server.use(http.get("/api/planned-items", () => jsonResponse<PlannedTodayItem[]>([urgent])));
 
     await expect(listPlannedItems()).resolves.toEqual([urgent]);
   });
@@ -78,7 +79,7 @@ describe("today API", () => {
     server.use(
       http.put("/api/planned-items/42", ({ request }) => {
         received.push(request);
-        return HttpResponse.json({
+        return jsonResponse<PlannedTodayItem>({
           id: 42,
           title: "Update",
           planned_for: "2026-05-20",
@@ -91,6 +92,9 @@ describe("today API", () => {
           recurrence_series_id: null,
           linked_source: null,
           linked_ref: null,
+          auto_add_to_list_id: null,
+          priority: "normal",
+          tags: [],
           is_done: false,
         });
       }),

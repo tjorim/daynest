@@ -4,10 +4,10 @@
  * Daynest API
  * OpenAPI spec version: snapshot
  */
-import type { HomeAssistantEntityAttributes } from './homeAssistantEntityAttributes';
+import type { HAEntityAttributes } from './hAEntityAttributes';
 
 export type HomeAssistantEntity = {
   entity_id: string;
   state: string;
-  attributes: HomeAssistantEntityAttributes;
+  attributes: HAEntityAttributes;
 };

@@ -4,30 +4,30 @@
  * Daynest API
  * OpenAPI spec version: snapshot
  */
-import type { UserExportResponseChoreInstancesItem } from './userExportResponseChoreInstancesItem';
-import type { UserExportResponseChoreTemplatesItem } from './userExportResponseChoreTemplatesItem';
-import type { UserExportResponseMedicationDoseInstancesItem } from './userExportResponseMedicationDoseInstancesItem';
-import type { UserExportResponseMedicationPlansItem } from './userExportResponseMedicationPlansItem';
-import type { UserExportResponsePlannedItemsItem } from './userExportResponsePlannedItemsItem';
-import type { UserExportResponseRoutineTemplatesItem } from './userExportResponseRoutineTemplatesItem';
-import type { UserExportResponseTaskInstancesItem } from './userExportResponseTaskInstancesItem';
-import type { UserExportResponseUserSettings } from './userExportResponseUserSettings';
+import type { ExportChoreInstance } from './exportChoreInstance';
+import type { ExportChoreTemplate } from './exportChoreTemplate';
+import type { ExportMedicationDoseInstance } from './exportMedicationDoseInstance';
+import type { ExportMedicationPlan } from './exportMedicationPlan';
+import type { ExportPlannedItem } from './exportPlannedItem';
+import type { ExportRoutineTemplate } from './exportRoutineTemplate';
+import type { ExportTaskInstance } from './exportTaskInstance';
+import type { ExportUserSettings } from './exportUserSettings';
 
 /**
  * The JSON form of ``GET /users/me/export``; the same document ``POST /users/me/import`` accepts.
  *
- * Rows are exported column by column from the database models (see ``export_import_service``), so they are
- * described as open objects here rather than repeated as a second set of models.
+ * Rows describe the explicit export field lists in ``export_import_service``. Dates and times remain
+ * strings to preserve the exporter's exact formatting; private/household columns stay excluded.
  */
 export type UserExportResponse = {
   version: number;
   exported_at: string;
-  user_settings: UserExportResponseUserSettings;
-  routine_templates: UserExportResponseRoutineTemplatesItem[];
-  chore_templates: UserExportResponseChoreTemplatesItem[];
-  medication_plans: UserExportResponseMedicationPlansItem[];
-  task_instances: UserExportResponseTaskInstancesItem[];
-  chore_instances: UserExportResponseChoreInstancesItem[];
-  medication_dose_instances: UserExportResponseMedicationDoseInstancesItem[];
-  planned_items: UserExportResponsePlannedItemsItem[];
+  user_settings: ExportUserSettings;
+  routine_templates: ExportRoutineTemplate[];
+  chore_templates: ExportChoreTemplate[];
+  medication_plans: ExportMedicationPlan[];
+  task_instances: ExportTaskInstance[];
+  chore_instances: ExportChoreInstance[];
+  medication_dose_instances: ExportMedicationDoseInstance[];
+  planned_items: ExportPlannedItem[];
 };

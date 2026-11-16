@@ -1,3 +1,9 @@
+import {
+  plannedItemFixture,
+  taskMutationFixture,
+  choreMutationFixture,
+  medicationMutationFixture,
+} from "../../utils/apiFixtures";
 import { act, renderHook } from "@testing-library/react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { createElement } from "react";
@@ -10,17 +16,17 @@ import { queryKeys } from "@/lib/query/queryKeys";
 import { createQueryTestClient } from "../../utils/queryTestProvider";
 
 const todayApiMock = vi.hoisted(() => ({
-  completeRoutineTask: vi.fn(),
-  completeChore: vi.fn(),
-  createPlannedItem: vi.fn(),
-  deletePlannedItem: vi.fn(),
-  rescheduleChore: vi.fn(),
-  skipRoutineTask: vi.fn(),
-  skipChore: vi.fn(),
-  skipMedicationDose: vi.fn(),
-  startRoutineTask: vi.fn(),
-  takeMedicationDose: vi.fn(),
-  updatePlannedItem: vi.fn(),
+  completeRoutineTask: vi.fn<typeof import("@/lib/api/today").completeRoutineTask>(),
+  completeChore: vi.fn<typeof import("@/lib/api/today").completeChore>(),
+  createPlannedItem: vi.fn<typeof import("@/lib/api/today").createPlannedItem>(),
+  deletePlannedItem: vi.fn<typeof import("@/lib/api/today").deletePlannedItem>(),
+  rescheduleChore: vi.fn<typeof import("@/lib/api/today").rescheduleChore>(),
+  skipRoutineTask: vi.fn<typeof import("@/lib/api/today").skipRoutineTask>(),
+  skipChore: vi.fn<typeof import("@/lib/api/today").skipChore>(),
+  skipMedicationDose: vi.fn<typeof import("@/lib/api/today").skipMedicationDose>(),
+  startRoutineTask: vi.fn<typeof import("@/lib/api/today").startRoutineTask>(),
+  takeMedicationDose: vi.fn<typeof import("@/lib/api/today").takeMedicationDose>(),
+  updatePlannedItem: vi.fn<typeof import("@/lib/api/today").updatePlannedItem>(),
 }));
 
 vi.mock("@/lib/api/today", async () => {
@@ -43,17 +49,17 @@ vi.mock("@/lib/api/today", async () => {
 
 describe("useTodayActions", () => {
   beforeEach(() => {
-    todayApiMock.completeRoutineTask.mockReset().mockResolvedValue({});
-    todayApiMock.completeChore.mockReset().mockResolvedValue({});
-    todayApiMock.createPlannedItem.mockReset().mockResolvedValue({});
-    todayApiMock.deletePlannedItem.mockReset().mockResolvedValue({});
-    todayApiMock.rescheduleChore.mockReset().mockResolvedValue({});
-    todayApiMock.skipRoutineTask.mockReset().mockResolvedValue({});
-    todayApiMock.skipChore.mockReset().mockResolvedValue({});
-    todayApiMock.skipMedicationDose.mockReset().mockResolvedValue({});
-    todayApiMock.startRoutineTask.mockReset().mockResolvedValue({});
-    todayApiMock.takeMedicationDose.mockReset().mockResolvedValue({});
-    todayApiMock.updatePlannedItem.mockReset().mockResolvedValue({});
+    todayApiMock.completeRoutineTask.mockReset().mockResolvedValue(taskMutationFixture);
+    todayApiMock.completeChore.mockReset().mockResolvedValue(choreMutationFixture);
+    todayApiMock.createPlannedItem.mockReset().mockResolvedValue(plannedItemFixture);
+    todayApiMock.deletePlannedItem.mockReset().mockResolvedValue(undefined);
+    todayApiMock.rescheduleChore.mockReset().mockResolvedValue(choreMutationFixture);
+    todayApiMock.skipRoutineTask.mockReset().mockResolvedValue(taskMutationFixture);
+    todayApiMock.skipChore.mockReset().mockResolvedValue(choreMutationFixture);
+    todayApiMock.skipMedicationDose.mockReset().mockResolvedValue(medicationMutationFixture);
+    todayApiMock.startRoutineTask.mockReset().mockResolvedValue(taskMutationFixture);
+    todayApiMock.takeMedicationDose.mockReset().mockResolvedValue(medicationMutationFixture);
+    todayApiMock.updatePlannedItem.mockReset().mockResolvedValue(plannedItemFixture);
   });
 
   function buildWrapper() {

@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 from datetime import date, datetime
-from typing import Any, Literal
+from typing import Literal, NotRequired
 
-from pydantic import Field
+from pydantic import ConfigDict, Field, with_config
+from typing_extensions import TypedDict
 
 from app.schemas.base import NonEmptyText255, RequestModel, ResponseModel, Text255, Text4000
 from app.schemas.today import DueTodayItem, MedicationTodayItem, PlannedTodayItem
@@ -112,10 +113,27 @@ class IntegrationClientResponse(ResponseModel):
     revoked_at: datetime | None
 
 
+@with_config(ConfigDict(json_schema_serialization_defaults_required=False))
+class HAEntityAttributes(TypedDict):
+    friendly_name: str
+    unit_of_measurement: NotRequired[str]
+
+
+class HACalendarDate(TypedDict):
+    date: str
+
+
+class HACalendarDateTime(TypedDict):
+    dateTime: str
+
+
 class HomeAssistantEntity(ResponseModel):
+    # Preserve genuinely omitted TypedDict keys; this envelope has no defaulted fields.
+    model_config = ConfigDict(json_schema_serialization_defaults_required=False)
+
     entity_id: str
     state: str
-    attributes: dict[str, Any]
+    attributes: HAEntityAttributes
 
 
 class DashboardReadModel(ResponseModel):
@@ -144,6 +162,6 @@ class HomeAssistantOIDCConfig(ResponseModel):
 class HACalendarEvent(ResponseModel):
     uid: str
     summary: str
-    start: dict[str, str]
-    end: dict[str, str]
+    start: HACalendarDate | HACalendarDateTime
+    end: HACalendarDate | HACalendarDateTime
     description: str | None = None

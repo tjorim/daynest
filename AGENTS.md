@@ -32,6 +32,11 @@ when a JSON route has no named response model. Response models derive from `Resp
 `openapi-typescript` or `@hey-api/openapi-ts`: both call the TypeScript 5 compiler API and fail under
 TypeScript 7.
 
+Successful JSON fixtures use `jsonResponse<GeneratedResponse>` from `@/mocks/response`; see
+`frontend/src/mocks/README.md` for explicit non-success/control exceptions. `pnpm typecheck` checks
+fixtures and browser specs as well as application code. Keep the fixture source guard and negative
+compile probes when adding a new response factory.
+
 ## Releases
 
 The app uses CalVer, `YYYY.M.MICRO` (`MICRO` counts releases within a month), tagged `vYYYY.M.MICRO`. The

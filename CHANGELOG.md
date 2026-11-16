@@ -22,6 +22,8 @@ the allowed scopes are listed in `release.config.json`, and `node scripts/releas
 
 ### Internal
 
+- Enforce generated API contracts across successful frontend fixtures and browser typechecks; audit optional and nested response records without changing wire formats.
+
 - The frontend reads API responses as the types generated from the backend's OpenAPI document (`frontend/src/api-types.ts`) instead of hand-written zod schemas and interfaces in `src/lib/api/`, and no longer re-checks each response against a second copy of its shape at runtime; a field renamed or retyped in the backend now stops `pnpm typecheck`. `zod` stays for the router search params, the medication form and the offline queue (#1458).
 - Generate the frontend API types with a pinned Orval (schemas only, one file per schema in `frontend/src/api-schema/`) from `frontend/openapi.json`, with `pnpm api:generate` and `pnpm api:check`; `pnpm typecheck` fails when the generated files are stale. `frontend/src/api-types.ts` names them for the screens. Nothing imports it yet; the hand-written zod schemas and types are replaced in a follow-up (#1458).
 - The published API schema now lists a response field that has a default (`priority`, `tags`, `is_active`, …) as required, because it is always sent, and the two Home Assistant planned-item request bodies no longer share a name with the `/planned-items` ones. Responses and requests are unchanged; the generated frontend types stop treating those fields as optional. Backend tests fail when a response model skips the new `ResponseModel` base or two schemas share a name (#1458).

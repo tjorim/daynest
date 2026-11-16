@@ -23,6 +23,7 @@ vi.mock("react-oidc-context", () => ({
 }));
 
 vi.mock("@/lib/api/auth", () => ({
+  // Fixture control: null deliberately suppresses profile rendering while testing OIDC/session plumbing.
   fetchMe: vi.fn(async () => null),
 }));
 

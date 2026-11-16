@@ -6202,6 +6202,586 @@
         ],
         "title": "DueTodayItem"
       },
+      "ExportChoreInstance": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "chore_template_id": {
+            "type": "integer",
+            "title": "Chore Template Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "scheduled_date": {
+            "type": "string",
+            "title": "Scheduled Date"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ChoreStatus"
+          },
+          "completed_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At"
+          },
+          "skipped_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Skipped At"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "chore_template_id",
+          "title",
+          "scheduled_date",
+          "status",
+          "completed_at",
+          "skipped_at",
+          "created_at"
+        ],
+        "title": "ExportChoreInstance"
+      },
+      "ExportChoreTemplate": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "start_date": {
+            "type": "string",
+            "title": "Start Date"
+          },
+          "every_n_days": {
+            "type": "integer",
+            "title": "Every N Days"
+          },
+          "rrule": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rrule"
+          },
+          "priority": {
+            "$ref": "#/components/schemas/Priority"
+          },
+          "tags": {
+            "items": {
+              "$ref": "#/components/schemas/JsonValue"
+            },
+            "type": "array",
+            "title": "Tags"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "description",
+          "start_date",
+          "every_n_days",
+          "rrule",
+          "priority",
+          "tags",
+          "is_active",
+          "created_at"
+        ],
+        "title": "ExportChoreTemplate"
+      },
+      "ExportMedicationDoseInstance": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "medication_plan_id": {
+            "type": "integer",
+            "title": "Medication Plan Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "instructions": {
+            "type": "string",
+            "title": "Instructions"
+          },
+          "scheduled_date": {
+            "type": "string",
+            "title": "Scheduled Date"
+          },
+          "scheduled_at": {
+            "type": "string",
+            "title": "Scheduled At"
+          },
+          "status": {
+            "$ref": "#/components/schemas/MedicationDoseStatus"
+          },
+          "taken_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Taken At"
+          },
+          "skipped_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Skipped At"
+          },
+          "missed_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Missed At"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "medication_plan_id",
+          "name",
+          "instructions",
+          "scheduled_date",
+          "scheduled_at",
+          "status",
+          "taken_at",
+          "skipped_at",
+          "missed_at",
+          "created_at"
+        ],
+        "title": "ExportMedicationDoseInstance"
+      },
+      "ExportMedicationPlan": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "instructions": {
+            "type": "string",
+            "title": "Instructions"
+          },
+          "start_date": {
+            "type": "string",
+            "title": "Start Date"
+          },
+          "schedule_time": {
+            "type": "string",
+            "title": "Schedule Time"
+          },
+          "every_n_days": {
+            "type": "integer",
+            "title": "Every N Days"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "instructions",
+          "start_date",
+          "schedule_time",
+          "every_n_days",
+          "is_active",
+          "created_at"
+        ],
+        "title": "ExportMedicationPlan"
+      },
+      "ExportPlannedItem": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "module_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Module Key"
+          },
+          "recurrence_hint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recurrence Hint"
+          },
+          "linked_source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Linked Source"
+          },
+          "linked_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Linked Ref"
+          },
+          "planned_for": {
+            "type": "string",
+            "title": "Planned For"
+          },
+          "priority": {
+            "$ref": "#/components/schemas/Priority"
+          },
+          "tags": {
+            "items": {
+              "$ref": "#/components/schemas/JsonValue"
+            },
+            "type": "array",
+            "title": "Tags"
+          },
+          "is_done": {
+            "type": "boolean",
+            "title": "Is Done"
+          },
+          "completed_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "notes",
+          "module_key",
+          "recurrence_hint",
+          "linked_source",
+          "linked_ref",
+          "planned_for",
+          "priority",
+          "tags",
+          "is_done",
+          "completed_at",
+          "created_at"
+        ],
+        "title": "ExportPlannedItem"
+      },
+      "ExportRoutineTemplate": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "start_date": {
+            "type": "string",
+            "title": "Start Date"
+          },
+          "every_n_days": {
+            "type": "integer",
+            "title": "Every N Days"
+          },
+          "rrule": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rrule"
+          },
+          "due_time": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Due Time"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "description",
+          "start_date",
+          "every_n_days",
+          "rrule",
+          "due_time",
+          "is_active",
+          "created_at"
+        ],
+        "title": "ExportRoutineTemplate"
+      },
+      "ExportTaskInstance": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "routine_template_id": {
+            "type": "integer",
+            "title": "Routine Template Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "scheduled_date": {
+            "type": "string",
+            "title": "Scheduled Date"
+          },
+          "due_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Due At"
+          },
+          "status": {
+            "$ref": "#/components/schemas/TaskStatus"
+          },
+          "completed_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "routine_template_id",
+          "title",
+          "scheduled_date",
+          "due_at",
+          "status",
+          "completed_at",
+          "created_at"
+        ],
+        "title": "ExportTaskInstance"
+      },
+      "ExportUserSettings": {
+        "properties": {
+          "timezone": {
+            "type": "string",
+            "title": "Timezone"
+          },
+          "default_snooze_days": {
+            "type": "integer",
+            "title": "Default Snooze Days"
+          },
+          "medication_reminder_minutes": {
+            "type": "integer",
+            "title": "Medication Reminder Minutes"
+          },
+          "quiet_hours_start": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quiet Hours Start"
+          },
+          "quiet_hours_end": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quiet Hours End"
+          },
+          "push_overdue_chores_enabled": {
+            "type": "boolean",
+            "title": "Push Overdue Chores Enabled"
+          },
+          "push_medication_reminders_enabled": {
+            "type": "boolean",
+            "title": "Push Medication Reminders Enabled"
+          },
+          "push_missed_medications_enabled": {
+            "type": "boolean",
+            "title": "Push Missed Medications Enabled"
+          }
+        },
+        "type": "object",
+        "required": [
+          "timezone",
+          "default_snooze_days",
+          "medication_reminder_minutes",
+          "quiet_hours_start",
+          "quiet_hours_end",
+          "push_overdue_chores_enabled",
+          "push_medication_reminders_enabled",
+          "push_missed_medications_enabled"
+        ],
+        "title": "ExportUserSettings"
+      },
       "GenerateShoppingListResponse": {
         "properties": {
           "shopping_list": {
@@ -6240,6 +6820,32 @@
         ],
         "title": "HAActionResult"
       },
+      "HACalendarDate": {
+        "properties": {
+          "date": {
+            "type": "string",
+            "title": "Date"
+          }
+        },
+        "type": "object",
+        "required": [
+          "date"
+        ],
+        "title": "HACalendarDate"
+      },
+      "HACalendarDateTime": {
+        "properties": {
+          "dateTime": {
+            "type": "string",
+            "title": "Datetime"
+          }
+        },
+        "type": "object",
+        "required": [
+          "dateTime"
+        ],
+        "title": "HACalendarDateTime"
+      },
       "HACalendarEvent": {
         "properties": {
           "uid": {
@@ -6251,17 +6857,25 @@
             "title": "Summary"
           },
           "start": {
-            "additionalProperties": {
-              "type": "string"
-            },
-            "type": "object",
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/HACalendarDate"
+              },
+              {
+                "$ref": "#/components/schemas/HACalendarDateTime"
+              }
+            ],
             "title": "Start"
           },
           "end": {
-            "additionalProperties": {
-              "type": "string"
-            },
-            "type": "object",
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/HACalendarDate"
+              },
+              {
+                "$ref": "#/components/schemas/HACalendarDateTime"
+              }
+            ],
             "title": "End"
           },
           "description": {
@@ -6285,6 +6899,23 @@
           "description"
         ],
         "title": "HACalendarEvent"
+      },
+      "HAEntityAttributes": {
+        "properties": {
+          "friendly_name": {
+            "type": "string",
+            "title": "Friendly Name"
+          },
+          "unit_of_measurement": {
+            "type": "string",
+            "title": "Unit Of Measurement"
+          }
+        },
+        "type": "object",
+        "required": [
+          "friendly_name"
+        ],
+        "title": "HAEntityAttributes"
       },
       "HTTPValidationError": {
         "properties": {
@@ -6345,9 +6976,7 @@
             "title": "State"
           },
           "attributes": {
-            "additionalProperties": true,
-            "type": "object",
-            "title": "Attributes"
+            "$ref": "#/components/schemas/HAEntityAttributes"
           }
         },
         "type": "object",
@@ -6925,6 +7554,7 @@
         ],
         "title": "InviteRequest"
       },
+      "JsonValue": {},
       "LivenessResponse": {
         "properties": {
           "status": {
@@ -9866,62 +10496,53 @@
             "title": "Exported At"
           },
           "user_settings": {
-            "additionalProperties": true,
-            "type": "object",
-            "title": "User Settings"
+            "$ref": "#/components/schemas/ExportUserSettings"
           },
           "routine_templates": {
             "items": {
-              "additionalProperties": true,
-              "type": "object"
+              "$ref": "#/components/schemas/ExportRoutineTemplate"
             },
             "type": "array",
             "title": "Routine Templates"
           },
           "chore_templates": {
             "items": {
-              "additionalProperties": true,
-              "type": "object"
+              "$ref": "#/components/schemas/ExportChoreTemplate"
             },
             "type": "array",
             "title": "Chore Templates"
           },
           "medication_plans": {
             "items": {
-              "additionalProperties": true,
-              "type": "object"
+              "$ref": "#/components/schemas/ExportMedicationPlan"
             },
             "type": "array",
             "title": "Medication Plans"
           },
           "task_instances": {
             "items": {
-              "additionalProperties": true,
-              "type": "object"
+              "$ref": "#/components/schemas/ExportTaskInstance"
             },
             "type": "array",
             "title": "Task Instances"
           },
           "chore_instances": {
             "items": {
-              "additionalProperties": true,
-              "type": "object"
+              "$ref": "#/components/schemas/ExportChoreInstance"
             },
             "type": "array",
             "title": "Chore Instances"
           },
           "medication_dose_instances": {
             "items": {
-              "additionalProperties": true,
-              "type": "object"
+              "$ref": "#/components/schemas/ExportMedicationDoseInstance"
             },
             "type": "array",
             "title": "Medication Dose Instances"
           },
           "planned_items": {
             "items": {
-              "additionalProperties": true,
-              "type": "object"
+              "$ref": "#/components/schemas/ExportPlannedItem"
             },
             "type": "array",
             "title": "Planned Items"
@@ -9941,7 +10562,7 @@
           "planned_items"
         ],
         "title": "UserExportResponse",
-        "description": "The JSON form of ``GET /users/me/export``; the same document ``POST /users/me/import`` accepts.\n\nRows are exported column by column from the database models (see ``export_import_service``), so they are\ndescribed as open objects here rather than repeated as a second set of models."
+        "description": "The JSON form of ``GET /users/me/export``; the same document ``POST /users/me/import`` accepts.\n\nRows describe the explicit export field lists in ``export_import_service``. Dates and times remain\nstrings to preserve the exporter's exact formatting; private/household columns stay excluded."
       },
       "UserImportCounts": {
         "properties": {

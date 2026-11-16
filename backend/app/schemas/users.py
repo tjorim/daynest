@@ -1,8 +1,8 @@
 from datetime import time
-from typing import Any
 
-from pydantic import Field
+from pydantic import Field, JsonValue
 
+from app.core.enums import ChoreStatus, MedicationDoseStatus, Priority, TaskStatus
 from app.schemas.base import RequestModel, ResponseModel
 
 
@@ -28,23 +28,123 @@ class UserSettingsPatchRequest(RequestModel):
     push_missed_medications_enabled: bool | None = None
 
 
+class ExportUserSettings(ResponseModel):
+    # Exported strings stay strings: do not parse/reformat naive times or datetimes.
+    timezone: str
+    default_snooze_days: int
+    medication_reminder_minutes: int
+    quiet_hours_start: str | None
+    quiet_hours_end: str | None
+    push_overdue_chores_enabled: bool
+    push_medication_reminders_enabled: bool
+    push_missed_medications_enabled: bool
+
+
+class ExportRoutineTemplate(ResponseModel):
+    id: int
+    name: str
+    description: str | None
+    start_date: str
+    every_n_days: int
+    rrule: str | None
+    due_time: str | None
+    is_active: bool
+    created_at: str
+
+
+class ExportChoreTemplate(ResponseModel):
+    id: int
+    name: str
+    description: str | None
+    start_date: str
+    every_n_days: int
+    rrule: str | None
+    priority: Priority
+    tags: list[JsonValue]
+    is_active: bool
+    created_at: str
+
+
+class ExportMedicationPlan(ResponseModel):
+    id: int
+    name: str
+    instructions: str
+    start_date: str
+    schedule_time: str
+    every_n_days: int
+    is_active: bool
+    created_at: str
+
+
+class ExportTaskInstance(ResponseModel):
+    id: int
+    routine_template_id: int
+    title: str
+    scheduled_date: str
+    due_at: str | None
+    status: TaskStatus
+    completed_at: str | None
+    created_at: str
+
+
+class ExportChoreInstance(ResponseModel):
+    id: int
+    chore_template_id: int
+    title: str
+    scheduled_date: str
+    status: ChoreStatus
+    completed_at: str | None
+    skipped_at: str | None
+    created_at: str
+
+
+class ExportMedicationDoseInstance(ResponseModel):
+    id: int
+    medication_plan_id: int
+    name: str
+    instructions: str
+    scheduled_date: str
+    scheduled_at: str
+    status: MedicationDoseStatus
+    taken_at: str | None
+    skipped_at: str | None
+    missed_at: str | None
+    created_at: str
+
+
+class ExportPlannedItem(ResponseModel):
+    id: int
+    title: str
+    notes: str | None
+    module_key: str | None
+    recurrence_hint: str | None
+    linked_source: str | None
+    linked_ref: str | None
+    planned_for: str
+    priority: Priority
+    tags: list[JsonValue]
+    is_done: bool
+    completed_at: str | None
+    created_at: str
+
+
 class UserExportResponse(ResponseModel):
     """The JSON form of ``GET /users/me/export``; the same document ``POST /users/me/import`` accepts.
 
-    Rows are exported column by column from the database models (see ``export_import_service``), so they are
-    described as open objects here rather than repeated as a second set of models.
+    Rows describe the explicit export field lists in ``export_import_service``. Dates and times remain
+    strings to preserve the exporter's exact formatting; private/household columns stay excluded.
     """
 
     version: int
     exported_at: str
-    user_settings: dict[str, Any]
-    routine_templates: list[dict[str, Any]]
-    chore_templates: list[dict[str, Any]]
-    medication_plans: list[dict[str, Any]]
-    task_instances: list[dict[str, Any]]
-    chore_instances: list[dict[str, Any]]
-    medication_dose_instances: list[dict[str, Any]]
-    planned_items: list[dict[str, Any]]
+    user_settings: ExportUserSettings
+    routine_templates: list[ExportRoutineTemplate]
+    chore_templates: list[ExportChoreTemplate]
+    medication_plans: list[ExportMedicationPlan]
+    task_instances: list[ExportTaskInstance]
+    chore_instances: list[ExportChoreInstance]
+    medication_dose_instances: list[ExportMedicationDoseInstance]
+    planned_items: list[ExportPlannedItem]
 
 
 class UserImportCounts(ResponseModel):

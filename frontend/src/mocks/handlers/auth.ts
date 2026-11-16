@@ -1,3 +1,5 @@
+import { jsonResponse } from "@/mocks/response";
+import type { OAuthSessionResponse, UserMeResponse } from "@/api-schema";
 import { http, HttpResponse } from "msw/http";
 import { MOCK_USER, MOCK_TODAY } from "../data/constants";
 import { getMockState } from "../data/state";
@@ -8,14 +10,14 @@ export const authHandlers = [
     const { scenario } = getMockState();
     if (scenario === "signed-out" || scenario === "expired-session") return auth401();
     if (scenario === "forbidden") return forbidden403();
-    return HttpResponse.json(MOCK_USER);
+    return jsonResponse<UserMeResponse>(MOCK_USER);
   }),
 
   http.get("/api/auth/sessions", () => {
     const { scenario } = getMockState();
     if (scenario === "signed-out") return auth401();
     const base = new Date(MOCK_TODAY + "T12:00:00Z").getTime();
-    return HttpResponse.json([
+    return jsonResponse<OAuthSessionResponse[]>([
       {
         id: "session-001",
         ip_address: "127.0.0.1",
@@ -23,6 +25,7 @@ export const authHandlers = [
         last_access: base - 60_000,
         expires: base + 86_400_000,
         clients: [],
+        is_current: true,
       },
     ]);
   }),

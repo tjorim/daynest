@@ -4,13 +4,13 @@
  * Daynest API
  * OpenAPI spec version: snapshot
  */
-import type { HACalendarEventEnd } from './hACalendarEventEnd';
-import type { HACalendarEventStart } from './hACalendarEventStart';
+import type { HACalendarDate } from './hACalendarDate';
+import type { HACalendarDateTime } from './hACalendarDateTime';
 
 export type HACalendarEvent = {
   uid: string;
   summary: string;
-  start: HACalendarEventStart;
-  end: HACalendarEventEnd;
+  start: HACalendarDate | HACalendarDateTime;
+  end: HACalendarDate | HACalendarDateTime;
   description: string | null;
 };

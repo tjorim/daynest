@@ -1,3 +1,4 @@
+from collections.abc import Mapping
 from datetime import UTC, date, datetime, timedelta
 from secrets import token_urlsafe
 from typing import Any
@@ -75,8 +76,8 @@ def _format_event(
     uid: str,
     dtstamp: str,
     summary: str,
-    start: dict[str, str],
-    end: dict[str, str],
+    start: Mapping[str, Any],
+    end: Mapping[str, Any],
     description: str | None,
     reminder_minutes: int | None,
 ) -> list[str]:

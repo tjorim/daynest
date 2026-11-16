@@ -6,7 +6,8 @@ import { ApiError } from "@/lib/api/http";
 import { QueryTestProvider } from "../../utils/queryTestProvider";
 
 const todayApiMock = vi.hoisted(() => ({
-  fetchToday: vi.fn(),
+  fetchToday: vi.fn<typeof import("@/lib/api/today").fetchToday>(),
+  // Fixture control: mutations are never invoked in these read-only rendering/error tests.
   mutation: vi.fn().mockResolvedValue({}),
 }));
 

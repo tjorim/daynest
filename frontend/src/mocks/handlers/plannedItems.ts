@@ -1,3 +1,5 @@
+import { jsonResponse } from "@/mocks/response";
+import type { PlannedTodayItem } from "@/api-schema";
 import { http, HttpResponse } from "msw/http";
 import { getMockState, mutatePlannedItems } from "../data/state";
 import { nextPlannedItemId } from "../data/plannedItems";
@@ -17,7 +19,7 @@ export const plannedItemHandlers = [
       plannedItems = plannedItems.filter((i) => i.planned_for <= endDate);
     }
 
-    return HttpResponse.json(plannedItems);
+    return jsonResponse<PlannedTodayItem[]>(plannedItems);
   }),
 
   http.post("/api/planned-items", async ({ request }) => {
@@ -41,7 +43,7 @@ export const plannedItemHandlers = [
       is_done: false,
     };
     mutatePlannedItems((items) => [...items, newItem]);
-    return HttpResponse.json(newItem, { status: 201 });
+    return jsonResponse<PlannedTodayItem>(newItem, { status: 201 });
   }),
 
   http.put("/api/planned-items/:id", async ({ params, request }) => {
@@ -51,12 +53,17 @@ export const plannedItemHandlers = [
     const existing = plannedItems.find((i) => i.id === id);
 
     if (!existing) {
-      return HttpResponse.json({ detail: "Not found" }, { status: 404 });
+      return HttpResponse.json(
+        /* Fixture exception: intentional HTTP error body, not a successful API payload. */ {
+          detail: "Not found",
+        },
+        { status: 404 },
+      );
     }
 
     const updated = { ...existing, ...input };
     mutatePlannedItems((items) => items.map((i) => (i.id === id ? updated : i)));
-    return HttpResponse.json(updated);
+    return jsonResponse<PlannedTodayItem>(updated);
   }),
 
   http.delete("/api/planned-items/:id", ({ params }) => {

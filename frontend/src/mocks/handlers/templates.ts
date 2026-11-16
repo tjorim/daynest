@@ -1,3 +1,5 @@
+import { jsonResponse } from "@/mocks/response";
+import type { ChoreTemplateResponse, RoutineTemplateResponse } from "@/api-schema";
 import { http, HttpResponse } from "msw/http";
 import { getMockState, mutateRoutineTemplates, mutateChoreTemplates } from "../data/state";
 import { nextTemplateId } from "../data/templates";
@@ -11,7 +13,9 @@ import type {
 
 export const templateHandlers = [
   // Routine templates
-  http.get("/api/templates/routines", () => HttpResponse.json(getMockState().routineTemplates)),
+  http.get("/api/templates/routines", () =>
+    jsonResponse<RoutineTemplateResponse[]>(getMockState().routineTemplates),
+  ),
 
   http.post("/api/templates/routines", async ({ request }) => {
     const input = (await request.json()) as RoutineTemplateInput;
@@ -27,7 +31,7 @@ export const templateHandlers = [
       created_at: `${MOCK_TODAY}T00:00:00.000Z`,
     };
     mutateRoutineTemplates((ts) => [...ts, newTemplate]);
-    return HttpResponse.json(newTemplate, { status: 201 });
+    return jsonResponse<RoutineTemplateResponse>(newTemplate, { status: 201 });
   }),
 
   http.put("/api/templates/routines/:id", async ({ params, request }) => {
@@ -37,7 +41,12 @@ export const templateHandlers = [
     const existing = routineTemplates.find((t) => t.id === id);
 
     if (!existing) {
-      return HttpResponse.json({ detail: "Not found" }, { status: 404 });
+      return HttpResponse.json(
+        /* Fixture exception: intentional HTTP error body, not a successful API payload. */ {
+          detail: "Not found",
+        },
+        { status: 404 },
+      );
     }
 
     const updated: RoutineTemplate = {
@@ -51,7 +60,7 @@ export const templateHandlers = [
       due_time: input.due_time ?? null,
     };
     mutateRoutineTemplates((ts) => ts.map((t) => (t.id === id ? updated : t)));
-    return HttpResponse.json(updated);
+    return jsonResponse<RoutineTemplateResponse>(updated);
   }),
 
   http.delete("/api/templates/routines/:id", ({ params }) => {
@@ -61,7 +70,9 @@ export const templateHandlers = [
   }),
 
   // Chore templates
-  http.get("/api/templates/chores", () => HttpResponse.json(getMockState().choreTemplates)),
+  http.get("/api/templates/chores", () =>
+    jsonResponse<ChoreTemplateResponse[]>(getMockState().choreTemplates),
+  ),
 
   http.post("/api/templates/chores", async ({ request }) => {
     const input = (await request.json()) as ChoreTemplateInput;
@@ -79,7 +90,7 @@ export const templateHandlers = [
       created_at: `${MOCK_TODAY}T00:00:00.000Z`,
     };
     mutateChoreTemplates((ts) => [...ts, newTemplate]);
-    return HttpResponse.json(newTemplate, { status: 201 });
+    return jsonResponse<ChoreTemplateResponse>(newTemplate, { status: 201 });
   }),
 
   http.put("/api/templates/chores/:id", async ({ params, request }) => {
@@ -89,7 +100,12 @@ export const templateHandlers = [
     const existing = choreTemplates.find((t) => t.id === id);
 
     if (!existing) {
-      return HttpResponse.json({ detail: "Not found" }, { status: 404 });
+      return HttpResponse.json(
+        /* Fixture exception: intentional HTTP error body, not a successful API payload. */ {
+          detail: "Not found",
+        },
+        { status: 404 },
+      );
     }
 
     const updated: ChoreTemplate = {
@@ -105,7 +121,7 @@ export const templateHandlers = [
       description: input.description ?? null,
     };
     mutateChoreTemplates((ts) => ts.map((t) => (t.id === id ? updated : t)));
-    return HttpResponse.json(updated);
+    return jsonResponse<ChoreTemplateResponse>(updated);
   }),
 
   http.delete("/api/templates/chores/:id", ({ params }) => {

@@ -5,4 +5,6 @@
  * OpenAPI spec version: snapshot
  */
 
-export type HACalendarEventStart = {[key: string]: string};
+export type HACalendarDateTime = {
+  dateTime: string;
+};

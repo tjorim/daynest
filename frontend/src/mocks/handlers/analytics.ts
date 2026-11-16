@@ -1,4 +1,6 @@
-import { http, HttpResponse } from "msw/http";
+import { jsonResponse } from "@/mocks/response";
+import type { AnalyticsSummaryResponse, SearchResponse } from "@/api-schema";
+import { http } from "msw/http";
 import { MOCK_TODAY } from "../data/constants";
 import { getMockState } from "../data/state";
 
@@ -56,14 +58,15 @@ function sumSeries(series: ReturnType<typeof dailySeries>, key: "completed" | "t
 export const analyticsHandlers = [
   http.get("/api/analytics/summary", ({ request }) => {
     const url = new URL(request.url);
-    const period = url.searchParams.get("period") ?? "week";
+    const requested = url.searchParams.get("period");
+    const period = requested === "month" || requested === "year" ? requested : "week";
     const chores = dailySeries(period, 1);
     const routines = dailySeries(period, 2);
     const medications = dailySeries(period, 3);
     const choresSum = sumSeries(chores, "completed");
     const routinesSum = sumSeries(routines, "completed");
     const medicationsSum = sumSeries(medications, "taken");
-    return HttpResponse.json({
+    return jsonResponse<AnalyticsSummaryResponse>({
       period,
       start_date: startDateFor(period),
       end_date: MOCK_TODAY,
@@ -106,7 +109,7 @@ export const analyticsHandlers = [
     const matches = (...values: (string | null | undefined)[]) =>
       needle.length > 0 && values.some((value) => value?.toLowerCase().includes(needle));
     const state = getMockState();
-    return HttpResponse.json({
+    return jsonResponse<SearchResponse>({
       query: q,
       routine_templates: state.routineTemplates
         .filter((r) => matches(r.name, r.description))

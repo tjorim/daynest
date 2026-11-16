@@ -33,6 +33,7 @@ describe("listMedicationPlans — MSW-backed", () => {
     server.use(
       http.post("/api/medications", () =>
         HttpResponse.json(
+          /* Fixture exception: intentional HTTP error body, not a successful API payload. */
           { detail: [{ loc: ["body", "name"], msg: "Field required", type: "missing" }] },
           { status: 422 },
         ),

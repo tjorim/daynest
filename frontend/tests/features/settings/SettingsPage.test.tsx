@@ -1,3 +1,6 @@
+import type { UserSettings } from "@/api-types";
+import { settingsFixture } from "../../utils/apiFixtures";
+const legacyCreateExtras = { is_active: true };
 // @vitest-environment happy-dom
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -9,13 +12,17 @@ import { setLocale } from "@/paraglide/runtime";
 import { QueryTestProvider } from "../../utils/queryTestProvider";
 
 const apiMock = vi.hoisted(() => ({
-  createIntegrationClient: vi.fn(),
-  listIntegrationClients: vi.fn(),
-  revokeIntegrationClient: vi.fn(),
-  rotateIntegrationClient: vi.fn(),
-  fetchUserSettings: vi.fn(),
-  updateUserSettings: vi.fn(),
-  deleteAccount: vi.fn(),
+  createIntegrationClient:
+    vi.fn<typeof import("@/lib/api/integrationClients").createIntegrationClient>(),
+  listIntegrationClients:
+    vi.fn<typeof import("@/lib/api/integrationClients").listIntegrationClients>(),
+  revokeIntegrationClient:
+    vi.fn<typeof import("@/lib/api/integrationClients").revokeIntegrationClient>(),
+  rotateIntegrationClient:
+    vi.fn<typeof import("@/lib/api/integrationClients").rotateIntegrationClient>(),
+  fetchUserSettings: vi.fn<typeof import("@/lib/api/settings").fetchUserSettings>(),
+  updateUserSettings: vi.fn<typeof import("@/lib/api/settings").updateUserSettings>(),
+  deleteAccount: vi.fn<typeof import("@/lib/api/settings").deleteAccount>(),
 }));
 
 const pwaMock = vi.hoisted(() => ({
@@ -86,6 +93,8 @@ describe("SettingsPage", () => {
     pwaMock.subscribeInstallPrompt.mockReset();
     apiMock.listIntegrationClients.mockResolvedValue([]);
     apiMock.fetchUserSettings.mockResolvedValue({
+      ...settingsFixture,
+      default_snooze_days: 1,
       timezone: "UTC",
       push_overdue_chores_enabled: true,
       push_medication_reminders_enabled: true,
@@ -99,7 +108,7 @@ describe("SettingsPage", () => {
       name: "Home Assistant Automations",
       rate_limit_per_minute: 120,
       scopes: ["home_assistant:*"],
-      is_active: true,
+      ...legacyCreateExtras,
       api_key: "daynest_test_key",
       client_id: "1",
       client_secret: "daynest_test_key",
@@ -200,6 +209,7 @@ describe("SettingsPage", () => {
   it("timezone selector loads current timezone and saves on change", async () => {
     const user = userEvent.setup();
     apiMock.fetchUserSettings.mockResolvedValue({
+      ...settingsFixture,
       timezone: "Europe/Brussels",
       push_overdue_chores_enabled: true,
       push_medication_reminders_enabled: true,
@@ -208,7 +218,10 @@ describe("SettingsPage", () => {
       quiet_hours_start: null,
       quiet_hours_end: null,
     });
-    apiMock.updateUserSettings.mockResolvedValue({ timezone: "America/New_York" });
+    apiMock.updateUserSettings.mockResolvedValue({
+      ...settingsFixture,
+      timezone: "America/New_York",
+    });
 
     render(
       <QueryTestProvider>
@@ -230,7 +243,7 @@ describe("SettingsPage", () => {
 
   it("saves push toggle updates with only changed field", async () => {
     const user = userEvent.setup();
-    apiMock.updateUserSettings.mockResolvedValue({});
+    apiMock.updateUserSettings.mockResolvedValue(settingsFixture);
     render(
       <QueryTestProvider>
         <SettingsPage />
@@ -249,7 +262,7 @@ describe("SettingsPage", () => {
 
   it("skips API call when toggle is reverted before server confirms", async () => {
     const user = userEvent.setup();
-    let resolveFirst!: (v: unknown) => void;
+    let resolveFirst!: (v: UserSettings) => void;
     apiMock.updateUserSettings.mockImplementationOnce(
       () =>
         new Promise((r) => {
@@ -267,7 +280,7 @@ describe("SettingsPage", () => {
     await user.click(overdueToggle);
     // Toggle back on before API resolves — no-op because UI matches server state
     await user.click(overdueToggle);
-    resolveFirst({});
+    resolveFirst(settingsFixture);
     // Only one API call was made — the revert was a no-op
     await waitFor(() => {
       expect(apiMock.updateUserSettings).toHaveBeenCalledTimes(1);
@@ -276,7 +289,7 @@ describe("SettingsPage", () => {
 
   it("saves notification numeric and quiet hours via apply button", async () => {
     const user = userEvent.setup();
-    apiMock.updateUserSettings.mockResolvedValue({});
+    apiMock.updateUserSettings.mockResolvedValue(settingsFixture);
     render(
       <QueryTestProvider>
         <SettingsPage />

@@ -134,18 +134,146 @@ def test_system_endpoints_keep_their_wire_shape(client: TestClient) -> None:
     }
 
 
-def test_a_response_field_with_a_default_is_required_in_the_schema() -> None:
-    """A defaulted field is always sent, so the schema (and the frontend types generated from it) must say so."""
-    optional = [
-        f"{name}.{field}"
-        for name, schema in _response_schemas(app.openapi()).items()
-        for field, definition in schema.get("properties", {}).items()
-        if "default" in definition and field not in schema.get("required", [])
-    ]
-    assert optional == [], "derive the response model from ResponseModel (app/schemas/base.py)"
+# Explicit omissions, including framework-owned validation error schemas.
+OPTIONAL_ON_THE_WIRE = {
+    "HAEntityAttributes.unit_of_measurement": "Only count sensors send a unit; ratio/next-medication omit it.",
+    "HTTPValidationError.detail": "FastAPI owns this optional error-envelope declaration.",
+    "ValidationError.input": "FastAPI/Pydantic may omit rejected input in errors.",
+    "ValidationError.ctx": "Only validators with additional context emit ctx.",
+}
+
+
+def optional_response_properties(document: dict[str, Any]) -> set[str]:
+    """Inspect inline objects, arrays, unions and every reachable reference, including errors."""
+    optional: set[str] = set()
+
+    def visit(node: object, path: str) -> None:
+        if isinstance(node, dict):
+            for field in node.get("properties", {}):
+                if field not in node.get("required", []):
+                    optional.add(f"{path}.{field}")
+            for key, value in node.items():
+                if key != "$ref":
+                    visit(value, f"{path}.{key}")
+        elif isinstance(node, list):
+            for index, item in enumerate(node):
+                visit(item, f"{path}[{index}]")
+
+    for name, schema in _response_schemas(document).items():
+        visit(schema, name)
+    for path, operations in document["paths"].items():
+        for method, operation in operations.items():
+            visit(operation["responses"], f"{method.upper()} {path}")
+    return optional
+
+
+def assert_optional_response_properties(document: dict[str, Any], exceptions: dict[str, str]) -> None:
+    optional = optional_response_properties(document)
+    assert all(reason.strip() for reason in exceptions.values()), "Every exception needs a reason"
+    assert optional == set(exceptions), (
+        f"Undocumented optional fields: {optional - exceptions.keys()}; "
+        f"stale exceptions: {exceptions.keys() - optional}"
+    )
+
+
+def test_all_optional_response_properties_are_documented() -> None:
+    assert_optional_response_properties(app.openapi(), OPTIONAL_ON_THE_WIRE)
+
+
+def test_optional_check_catches_nested_fields_without_defaults_and_stale_exceptions() -> None:
+    import pytest
+
+    document = {
+        "paths": {
+            "/probe": {
+                "get": {
+                    "responses": {
+                        "200": {"content": {"application/json": {"schema": {"$ref": "#/components/schemas/Probe"}}}}
+                    }
+                }
+            }
+        },
+        "components": {
+            "schemas": {
+                "Probe": {
+                    "properties": {
+                        "nested": {
+                            "type": "array",
+                            "items": {"anyOf": [{"type": "object", "properties": {"missing": {"type": "string"}}}]},
+                        }
+                    },
+                    "required": ["nested"],
+                }
+            }
+        },
+    }
+    field = "Probe.properties.nested.items.anyOf[0].missing"
+    assert optional_response_properties(document) == {field}
+    with pytest.raises(AssertionError, match="Undocumented"):
+        assert_optional_response_properties(document, {})
+    assert_optional_response_properties(document, {field: "Deliberately omitted probe field"})
+    with pytest.raises(AssertionError, match="stale"):
+        assert_optional_response_properties(document, {field: "Probe", "Probe.removed": "Old field"})
 
 
 def test_schema_names_are_unique() -> None:
     """Two classes with one name make FastAPI qualify both (`app__schemas__x__Name`), and so any generated type."""
     qualified = [name for name in app.openapi()["components"]["schemas"] if "__" in name]
     assert qualified == []
+
+
+# Open values with no fixed record shape; every other nested response object is modeled.
+LOOSE_ON_THE_WIRE = {
+    "JsonValue": "Exported legacy tags are JSON arrays, not constrained to strings by the DB/importer.",
+    "ValidationError.properties.input": "Framework-owned rejected input can be any JSON value.",
+    "ValidationError.properties.ctx": "Framework validators attach heterogeneous diagnostic context.",
+}
+
+
+def loose_response_properties(document: dict[str, Any]) -> set[str]:
+    loose: set[str] = set()
+
+    def visit(schema: dict[str, Any], path: str) -> None:
+        if not (set(schema) - {"title", "description"}):
+            loose.add(path)
+        if schema.get("type") == "object" and not schema.get("properties"):
+            extra = schema.get("additionalProperties", True)
+            if extra is True or extra == {}:
+                loose.add(path)
+        for field, child in schema.get("properties", {}).items():
+            visit(child, f"{path}.properties.{field}")
+        for key in ("items", "additionalProperties"):
+            if isinstance(schema.get(key), dict):
+                visit(schema[key], f"{path}.{key}")
+        for key in ("anyOf", "allOf", "oneOf"):
+            for index, child in enumerate(schema.get(key, [])):
+                visit(child, f"{path}.{key}[{index}]")
+
+    for name, schema in _response_schemas(document).items():
+        visit(schema, name)
+    return loose
+
+
+def test_nested_response_objects_are_modeled_or_justified() -> None:
+    assert all(LOOSE_ON_THE_WIRE.values())
+    assert loose_response_properties(app.openapi()) == set(LOOSE_ON_THE_WIRE)
+
+
+def test_loose_check_rejects_nested_anonymous_objects() -> None:
+    document = {
+        "paths": {
+            "/probe": {
+                "get": {
+                    "responses": {
+                        "200": {"content": {"application/json": {"schema": {"$ref": "#/components/schemas/Probe"}}}}
+                    }
+                }
+            }
+        },
+        "components": {
+            "schemas": {
+                "Probe": {"type": "object", "properties": {"rows": {"type": "array", "items": {"type": "object"}}}}
+            }
+        },
+    }
+    assert loose_response_properties(document) == {"Probe.properties.rows.items"}

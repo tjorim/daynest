@@ -1,3 +1,5 @@
+import { jsonResponse } from "@/mocks/response";
+import type { PlannedTodayItem, ShoppingListResponse } from "@/api-schema";
 import { http, HttpResponse } from "msw/http";
 import { getMockState, mutatePlannedItems } from "../data/state";
 import { nextPlannedItemId } from "../data/plannedItems";
@@ -44,15 +46,17 @@ export const shoppingListHandlers = [
     const status = new URL(request.url).searchParams.get("status") ?? "active";
     const payload =
       status === "all" ? shoppingLists : shoppingLists.filter((list) => list.status === status);
-    return HttpResponse.json(payload);
+    return jsonResponse<ShoppingListResponse[]>(payload);
   }),
   http.get("/api/shopping-lists/:listId", ({ params }) => {
     const list = shoppingLists.find((item) => item.id === Number(params.listId));
-    return list ? HttpResponse.json(list) : new HttpResponse(null, { status: 404 });
+    return list
+      ? jsonResponse<ShoppingListResponse>(list)
+      : new HttpResponse(null, { status: 404 });
   }),
   http.post("/api/shopping-lists", async ({ request }) => {
     const input = (await request.json()) as ShoppingListInput;
-    return HttpResponse.json(addMockShoppingList(input), { status: 201 });
+    return jsonResponse<ShoppingListResponse>(addMockShoppingList(input), { status: 201 });
   }),
   http.put("/api/shopping-lists/:listId", async ({ params, request }) => {
     const index = shoppingLists.findIndex((item) => item.id === Number(params.listId));
@@ -66,7 +70,7 @@ export const shoppingListHandlers = [
       notes: "notes" in input ? (input.notes ?? null) : existing.notes,
       status: input.status ?? existing.status,
     };
-    return HttpResponse.json(shoppingLists[index]);
+    return jsonResponse<ShoppingListResponse>(shoppingLists[index]);
   }),
   http.post("/api/shopping-lists/:listId/import-recurring", ({ params }) => {
     const listId = Number(params.listId);
@@ -94,7 +98,7 @@ export const shoppingListHandlers = [
       is_done: false,
     }));
     mutatePlannedItems((items) => [...items, ...imported]);
-    return HttpResponse.json(imported);
+    return jsonResponse<PlannedTodayItem[]>(imported);
   }),
   http.delete("/api/shopping-lists/:listId", ({ params }) => {
     const index = shoppingLists.findIndex((item) => item.id === Number(params.listId));

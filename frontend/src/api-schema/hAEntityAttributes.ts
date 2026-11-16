@@ -5,4 +5,7 @@
  * OpenAPI spec version: snapshot
  */
 
-export type UserExportResponseChoreInstancesItem = { [key: string]: unknown };
+export type HAEntityAttributes = {
+  friendly_name: string;
+  unit_of_measurement?: string;
+};

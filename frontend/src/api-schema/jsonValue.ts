@@ -5,4 +5,4 @@
  * OpenAPI spec version: snapshot
  */
 
-export type UserExportResponseRoutineTemplatesItem = { [key: string]: unknown };
+export type JsonValue = unknown;

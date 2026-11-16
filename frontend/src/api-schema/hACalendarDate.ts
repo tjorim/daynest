@@ -5,4 +5,6 @@
  * OpenAPI spec version: snapshot
  */
 
-export type UserExportResponseUserSettings = { [key: string]: unknown };
+export type HACalendarDate = {
+  date: string;
+};
