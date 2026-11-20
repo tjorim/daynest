@@ -1,64 +1,115 @@
-name: frontend-ci
+name: Frontend CI
 
 on:
   workflow_call:
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  frontend-type-build:
+  frontend:
+    name: Frontend
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: frontend
+
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Set up pnpm
+      - name: Setup pnpm
         uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
         with:
           package_json_file: frontend/package.json
 
-      - name: Set up Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: frontend/.node-version
           cache: pnpm
           cache-dependency-path: frontend/pnpm-lock.yaml
 
-      - name: Install frontend dependencies
+      - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Validate UI maintenance inventory
-        working-directory: frontend
-        run: |
-          node --test scripts/ui-maintenance.verify.mjs scripts/ui-imports.verify.mjs
-          node scripts/ui-maintenance.mjs check
-          node scripts/ui-imports.mjs
+      - name: Typecheck (Paraglide, API types, fixtures, tsc)
+        run: pnpm run typecheck
+
+      - name: Lint
+        run: pnpm run lint
+
+      - name: Format check
+        run: pnpm run format:check
+
+      # Keeps the coverage floor on the Today actions and sections.
+      - name: Test
+        run: >
+          pnpm run test --
+          --coverage
+          --coverage.include=src/features/today/useTodayActions.ts
+          --coverage.include=src/features/today/TodaySections.tsx
+          --coverage.thresholds.lines=80
+
+      - name: Build
+        run: pnpm run build
+
+      - name: Bundle size budget
+        run: pnpm run bundle:test && pnpm run bundle:check
 
       - name: Audit interface strings and catalogues
         run: pnpm run locale:audit
 
-      - name: Lint
-        run: pnpm lint
+      - name: Check message parity
+        run: pnpm run check-message-parity
 
-      - name: Check formatting
-        run: pnpm format:check
+      - name: Validate UI maintenance inventory
+        run: pnpm run ui:test && pnpm run ui:check
 
-      - name: Type-check (generated API types and fixture contracts)
-        run: pnpm typecheck
+  e2e:
+    name: Frontend / E2E Tests (Chromium)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
 
-      - name: Build frontend
-        run: pnpm build
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
-      - name: Check bundle budgets
-        run: pnpm bundle:test && pnpm bundle:check
+      - name: Setup pnpm
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        with:
+          package_json_file: frontend/package.json
 
-      - name: Run frontend tests with coverage
-        run: >
-          pnpm test -- --coverage
-          --coverage.include=src/features/today/useTodayActions.ts
-          --coverage.include=src/features/today/TodaySections.tsx
-          --coverage.thresholds.lines=80
+      - name: Setup Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: frontend/.node-version
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright Chromium
+        run: pnpm exec playwright install chromium --with-deps
+
+      # Self-contained: playwright.config.ts's webServer builds the app with
+      # the MSW mock service worker baked in (no real backend, database, or
+      # credentials needed) and starts already authenticated as a mock user.
+      - name: Run E2E tests
+        run: pnpm run test:e2e
+
+      - name: Upload Playwright report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: playwright-report
+          path: |
+            frontend/playwright-report/
+            frontend/test-results/
+          retention-days: 7
