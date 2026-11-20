@@ -1,4 +1,3 @@
-/// <reference types="vitest" />
 import { redact } from "@tanstack/redact/vite";
 import path from "path";
 import { defineConfig } from "vite";
@@ -9,17 +8,12 @@ import packageJson from "./package.json";
 
 export default defineConfig({
   plugins: [
-    // Unit tests retain native React; browser E2E tests cover the Redact runtime.
-    ...(process.env.VITEST
-      ? []
-      : [
-          redact({
-            preset: "full",
-            environments: ["client"],
-            // Client-only mount; no Activity boundaries or Fragment DOM refs are used.
-            features: { hydration: false, activity: false, fragmentRefs: false },
-          }),
-        ]),
+    redact({
+      preset: "full",
+      environments: ["client"],
+      // Client-only mount; no Activity boundaries or Fragment DOM refs are used.
+      features: { hydration: false, activity: false, fragmentRefs: false },
+    }),
     react(),
     tailwindcss(),
     paraglideVitePlugin({
@@ -35,60 +29,6 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
-    },
-  },
-  test: {
-    projects: [
-      {
-        extends: true,
-        test: {
-          name: "dom",
-          include: [
-            "tests/features/**/*.{test,spec}.?(c|m)[jt]s?(x)",
-            "tests/components/**/*.{test,spec}.?(c|m)[jt]s?(x)",
-          ],
-          environment: "happy-dom",
-          env: {
-            TZ: "UTC",
-          },
-          setupFiles: ["./tests/setup.ts", "./tests/setup.msw.ts"],
-        },
-      },
-      {
-        extends: true,
-        test: {
-          name: "node",
-          include: ["tests/lib/**/*.{test,spec}.?(c|m)[jt]s?(x)"],
-          environment: "node",
-          env: {
-            TZ: "UTC",
-          },
-          setupFiles: ["./tests/setup.ts"],
-        },
-      },
-      {
-        extends: true,
-        test: {
-          name: "scripts",
-          include: ["scripts/**/*.test.mjs"],
-          environment: "node",
-        },
-      },
-      {
-        extends: true,
-        test: {
-          name: "msw",
-          include: ["tests/msw/**/*.test.?(c|m)[jt]s?(x)"],
-          environment: "happy-dom",
-          env: {
-            TZ: "UTC",
-          },
-          setupFiles: ["./tests/setup.ts", "./tests/setup.msw.ts"],
-        },
-      },
-    ],
-    coverage: {
-      provider: "v8",
     },
   },
   server: {

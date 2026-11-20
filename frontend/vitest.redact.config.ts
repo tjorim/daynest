@@ -1,6 +1,6 @@
 import { redact } from "@tanstack/redact/vite";
 import { defineConfig } from "vitest/config";
-import base from "./vite.config";
+import base from "./vitest.config";
 
 export default defineConfig(async (env) => {
   const config = typeof base === "function" ? await base(env) : await base;
