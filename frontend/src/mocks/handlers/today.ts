@@ -1,7 +1,26 @@
-import { http, HttpResponse } from "msw/http";
+import { jsonResponse } from "@/mocks/response";
+import type {
+  CalendarDayResponse,
+  CalendarMonthResponse,
+  CalendarRangeResponse,
+  TodayResponse,
+} from "@/api-schema";
+import { http } from "msw/http";
 import { getMockState, getTodayPayload } from "../data/state";
 import { auth401, forbidden403, serverError500 } from "./errors";
 import { MOCK_TODAY } from "../data/constants";
+
+// Fields serialized for every calendar item, including non-recurring items.
+const calendarDefaults = {
+  time_of_day: null,
+  duration_minutes: null,
+  rrule: null,
+  recurrence_series_id: null,
+  recurrence_hint: null,
+  linked_source: null,
+  linked_ref: null,
+  priority: "normal" as const,
+};
 
 export const todayHandlers = [
   http.get("/api/today/stream", () => {
@@ -24,7 +43,7 @@ export const todayHandlers = [
     if (scenario === "signed-out" || scenario === "expired-session") return auth401();
     if (scenario === "forbidden") return forbidden403();
     if (scenario === "api-error") return serverError500();
-    return HttpResponse.json(getTodayPayload());
+    return jsonResponse<TodayResponse>(getTodayPayload());
   }),
 
   http.get("/api/calendar/month", ({ request }) => {
@@ -47,7 +66,7 @@ export const todayHandlers = [
       };
     });
 
-    return HttpResponse.json({ year, month, days });
+    return jsonResponse<CalendarMonthResponse>({ year, month, days });
   }),
 
   http.get("/api/calendar/range", ({ request }) => {
@@ -55,11 +74,12 @@ export const todayHandlers = [
     const start = url.searchParams.get("start") ?? MOCK_TODAY;
     const end = url.searchParams.get("end") ?? MOCK_TODAY;
     const payload = getTodayPayload();
-    return HttpResponse.json({
+    return jsonResponse<CalendarRangeResponse>({
       items: [
         ...payload.routines
           .filter((r) => r.scheduled_date >= start && r.scheduled_date <= end)
           .map((r) => ({
+            ...calendarDefaults,
             item_type: "routine" as const,
             item_id: r.task_instance_id,
             title: r.title,
@@ -72,6 +92,7 @@ export const todayHandlers = [
         ...payload.due_today
           .filter((c) => c.scheduled_date >= start && c.scheduled_date <= end)
           .map((c) => ({
+            ...calendarDefaults,
             item_type: "chore" as const,
             item_id: c.chore_instance_id,
             title: c.title,
@@ -84,6 +105,7 @@ export const todayHandlers = [
         ...getMockState()
           .plannedItems.filter((item) => item.planned_for >= start && item.planned_for <= end)
           .map((item) => ({
+            ...calendarDefaults,
             item_type: "planned" as const,
             item_id: item.id,
             title: item.title,
@@ -103,10 +125,11 @@ export const todayHandlers = [
     const date = url.searchParams.get("date") ?? MOCK_TODAY;
     const payload = getTodayPayload();
 
-    return HttpResponse.json({
+    return jsonResponse<CalendarDayResponse>({
       date,
       items: [
         ...payload.routines.map((r) => ({
+          ...calendarDefaults,
           item_type: "routine" as const,
           item_id: r.task_instance_id,
           title: r.title,
@@ -117,6 +140,7 @@ export const todayHandlers = [
           module_key: null,
         })),
         ...payload.due_today.map((c) => ({
+          ...calendarDefaults,
           item_type: "chore" as const,
           item_id: c.chore_instance_id,
           title: c.title,

@@ -17,7 +17,6 @@ const messages: Record<string, MessageFor> = {
   not_found: () => m.error_not_found(),
   offline_queued: () => m.error_offline_queued(),
   offline_not_saved: () => m.error_offline_not_saved(),
-  invalid_response: () => m.error_invalid_response(),
   household_not_found: () => m.error_household_not_found(),
   household_not_a_member: () => m.error_household_not_a_member(),
   household_already_member: () => m.error_household_already_member(),

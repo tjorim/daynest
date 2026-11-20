@@ -1,33 +1,8 @@
 import { getOidcAccessToken } from "@/lib/auth/session";
 import { buildApiUrl } from "@/lib/api/serverConfig";
 import { ApiError, readErrorBody, type ApiErrorParams } from "@/lib/api/http";
+import type { AuthUser, OAuthSession } from "@/api-types";
 import * as m from "@/paraglide/messages";
-
-export interface AuthUser {
-  id: number;
-  email: string;
-  full_name: string | null;
-  is_active: boolean;
-  roles: string[];
-}
-
-export interface OAuthSessionClient {
-  clientId: string;
-  clientName: string | null;
-  userConsentRequired: boolean;
-  inUse: boolean;
-  offlineAccess: boolean;
-}
-
-export interface OAuthSession {
-  id: string;
-  ip_address: string | null;
-  started: number | null;
-  last_access: number | null;
-  expires: number | null;
-  clients: OAuthSessionClient[];
-  is_current: boolean;
-}
 
 export class AuthApiError extends ApiError {
   constructor(

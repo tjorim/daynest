@@ -1,10 +1,13 @@
+import { plannedItemFixture } from "../../utils/apiFixtures";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { PlannedSection } from "@/features/today/PlannedSection";
 import { QueryTestProvider } from "../../utils/queryTestProvider";
 
-const createPlannedItem = vi.hoisted(() => vi.fn());
+const createPlannedItem = vi.hoisted(() =>
+  vi.fn<typeof import("@/lib/api/today").createPlannedItem>(),
+);
 const formLoaded = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/api/today", async () => {
@@ -18,7 +21,7 @@ vi.mock("@/features/today/QuickAddPlannedForm", async () => {
 });
 
 beforeEach(() => {
-  createPlannedItem.mockReset().mockResolvedValue({});
+  createPlannedItem.mockReset().mockResolvedValue(plannedItemFixture);
 });
 
 describe("PlannedSection quick add", () => {

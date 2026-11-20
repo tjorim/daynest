@@ -4,14 +4,13 @@ import {
   listIntegrationClients,
   revokeIntegrationClient,
   rotateIntegrationClient,
-  type IntegrationClientInput,
 } from "@/lib/api/integrationClients";
+import type { IntegrationClientInput, UserSettingsPatch } from "@/api-types";
 import {
   fetchCalendarFeed,
   fetchUserSettings,
   regenerateCalendarFeed,
   updateUserSettings,
-  type UserSettingsPatch,
 } from "@/lib/api/settings";
 import { queryKeys } from "@/lib/query/queryKeys";
 

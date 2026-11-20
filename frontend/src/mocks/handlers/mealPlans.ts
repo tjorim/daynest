@@ -1,13 +1,20 @@
+import { jsonResponse } from "@/mocks/response";
+import type {
+  GenerateShoppingListResponse,
+  MealPlanResponse,
+  MealSlotResponse,
+  WeekGridResponse,
+} from "@/api-schema";
 import { http, HttpResponse } from "msw/http";
 import type {
-  MealPlan,
   MealPlanInput,
   MealPlanUpdateInput,
+  MealPlan,
   MealSlot,
   MealSlotUpdateInput,
-} from "@/lib/api/mealPlans";
+  PlannedTodayItem,
+} from "@/api-types";
 import { MEAL_SLOT_TYPES } from "@/lib/api/mealPlans";
-import type { PlannedTodayItem } from "@/lib/api/today";
 import { addMockShoppingList } from "@/mocks/handlers/shoppingLists";
 import { dayjs, toIsoDate } from "@/lib/dateUtils";
 
@@ -96,7 +103,7 @@ function weekPayload(plan: MealPlan) {
 }
 
 export const mealPlanHandlers = [
-  http.get("/api/meal-plans", () => HttpResponse.json(mealPlans)),
+  http.get("/api/meal-plans", () => jsonResponse<MealPlanResponse[]>(mealPlans)),
   http.post("/api/meal-plans", async ({ request }) => {
     const input = (await request.json()) as MealPlanInput;
     const plan: MealPlan = {
@@ -109,7 +116,7 @@ export const mealPlanHandlers = [
     };
     mealPlans.unshift(plan);
     ensureSlots(plan);
-    return HttpResponse.json(plan, { status: 201 });
+    return jsonResponse<MealPlanResponse>(plan, { status: 201 });
   }),
   http.put("/api/meal-plans/:mealPlanId", async ({ params, request }) => {
     const plan = mealPlans.find((item) => item.id === Number(params.mealPlanId));
@@ -119,11 +126,13 @@ export const mealPlanHandlers = [
     plan.week_start = input.week_start ?? plan.week_start;
     plan.notes = "notes" in input ? (input.notes ?? null) : plan.notes;
     ensureSlots(plan);
-    return HttpResponse.json(plan);
+    return jsonResponse<MealPlanResponse>(plan);
   }),
   http.get("/api/meal-plans/:mealPlanId/slots", ({ params }) => {
     const plan = mealPlans.find((item) => item.id === Number(params.mealPlanId));
-    return plan ? HttpResponse.json(weekPayload(plan)) : new HttpResponse(null, { status: 404 });
+    return plan
+      ? jsonResponse<WeekGridResponse>(weekPayload(plan))
+      : new HttpResponse(null, { status: 404 });
   }),
   http.put("/api/meal-plans/:mealPlanId/slots/:slotId", async ({ params, request }) => {
     const slot = mealSlots.find(
@@ -137,7 +146,7 @@ export const mealPlanHandlers = [
     slot.ingredients_json = input.ingredients_json ?? slot.ingredients_json;
     slot.planned_item_id =
       "planned_item_id" in input ? (input.planned_item_id ?? null) : slot.planned_item_id;
-    return HttpResponse.json(slot);
+    return jsonResponse<MealSlotResponse>(slot);
   }),
   http.post("/api/meal-plans/:mealPlanId/generate-shopping-list", ({ params }) => {
     const plan = mealPlans.find((item) => item.id === Number(params.mealPlanId));
@@ -151,7 +160,12 @@ export const mealPlanHandlers = [
       ),
     );
     if (ingredients.length === 0) {
-      return HttpResponse.json({ detail: "Meal plan has no ingredients" }, { status: 422 });
+      return HttpResponse.json(
+        /* Fixture exception: intentional HTTP error body, not a successful API payload. */ {
+          detail: "Meal plan has no ingredients",
+        },
+        { status: 422 },
+      );
     }
     const shoppingList = addMockShoppingList({
       name: `Meal plan: ${plan.name}`,
@@ -170,10 +184,11 @@ export const mealPlanHandlers = [
       recurrence_series_id: null,
       linked_source: "shopping_list",
       linked_ref: String(shoppingList.id),
+      auto_add_to_list_id: null,
       priority: "normal",
       tags: ["meal-planning"],
       is_done: false,
     }));
-    return HttpResponse.json({ shopping_list: shoppingList, items });
+    return jsonResponse<GenerateShoppingListResponse>({ shopping_list: shoppingList, items });
   }),
 ];

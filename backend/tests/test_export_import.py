@@ -14,6 +14,7 @@ from app.models.planned_item import PlannedItem
 from app.models.routine_template import RoutineTemplate
 from app.models.task_instance import TaskInstance
 from app.models.user import User
+from app.services.export_import_service import build_user_export
 
 
 def _create_user(db_session: Session, email: str) -> User:
@@ -140,6 +141,12 @@ def test_export_user_data_returns_full_json_backup(client: TestClient, db_sessio
 
     assert response.status_code == 200
     payload = response.json()
+    expected = build_user_export(db_session, user)
+    # All seven populated row groups must survive response serialization byte-for-value,
+    # including nulls, naive dates/times and the deliberately private export field lists.
+    assert {k: v for k, v in payload.items() if k != "exported_at"} == {
+        k: v for k, v in expected.items() if k != "exported_at"
+    }
     assert payload["version"] == 1
     assert payload["user_settings"]["timezone"] == "Europe/Brussels"
     assert payload["user_settings"]["quiet_hours_start"] == "22:00:00"

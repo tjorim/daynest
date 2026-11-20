@@ -1,84 +1,25 @@
 import { fetchWithAuth, getJson, parseJsonResponse, sendJson } from "@/lib/api/http";
-import { z } from "zod";
+import type {
+  ChoreTemplate,
+  ChoreTemplateInput,
+  RoutineTemplate,
+  RoutineTemplateInput,
+} from "@/api-types";
 import * as m from "@/paraglide/messages";
 
-export interface RoutineTemplate {
-  id: number;
-  name: string;
-  description: string | null;
-  start_date: string;
-  every_n_days: number;
-  due_time: string | null;
-  is_active: boolean;
-  created_at: string;
-}
-
-export interface RoutineTemplateInput {
-  name: string;
-  description?: string | null;
-  start_date: string;
-  every_n_days: number;
-  due_time?: string | null;
-  is_active: boolean;
-}
-
-export interface ChoreTemplate {
-  id: number;
-  name: string;
-  description: string | null;
-  start_date: string;
-  every_n_days: number;
-  is_active: boolean;
-  created_at: string;
-}
-
-export interface ChoreTemplateInput {
-  name: string;
-  description?: string | null;
-  start_date: string;
-  every_n_days: number;
-  is_active: boolean;
-}
-
-const routineTemplateSchema = z.object({
-  id: z.number(),
-  name: z.string(),
-  description: z.string().nullable(),
-  start_date: z.string(),
-  every_n_days: z.number(),
-  due_time: z.string().nullable(),
-  is_active: z.boolean(),
-  created_at: z.string(),
-});
-
-const choreTemplateSchema = z.object({
-  id: z.number(),
-  name: z.string(),
-  description: z.string().nullable(),
-  start_date: z.string(),
-  every_n_days: z.number(),
-  is_active: z.boolean(),
-  created_at: z.string(),
-});
-
 export async function listRoutineTemplates(signal?: AbortSignal): Promise<RoutineTemplate[]> {
-  return getJson("/api/templates/routines", z.array(routineTemplateSchema), signal, 2);
+  return getJson<RoutineTemplate[]>("/api/templates/routines", signal, 2);
 }
 
 export async function createRoutineTemplate(input: RoutineTemplateInput): Promise<RoutineTemplate> {
-  return sendJson("POST", "/api/templates/routines", input, routineTemplateSchema);
+  return sendJson<RoutineTemplate>("POST", "/api/templates/routines", input);
 }
 
 export async function updateRoutineTemplate(
   routineTemplateId: number,
   input: RoutineTemplateInput,
 ): Promise<RoutineTemplate> {
-  return sendJson(
-    "PUT",
-    `/api/templates/routines/${routineTemplateId}`,
-    input,
-    routineTemplateSchema,
-  );
+  return sendJson<RoutineTemplate>("PUT", `/api/templates/routines/${routineTemplateId}`, input);
 }
 
 export async function deleteRoutineTemplate(routineTemplateId: number): Promise<void> {
@@ -94,18 +35,18 @@ export async function deleteRoutineTemplate(routineTemplateId: number): Promise<
 }
 
 export async function listChoreTemplates(signal?: AbortSignal): Promise<ChoreTemplate[]> {
-  return getJson("/api/templates/chores", z.array(choreTemplateSchema), signal, 2);
+  return getJson<ChoreTemplate[]>("/api/templates/chores", signal, 2);
 }
 
 export async function createChoreTemplate(input: ChoreTemplateInput): Promise<ChoreTemplate> {
-  return sendJson("POST", "/api/templates/chores", input, choreTemplateSchema);
+  return sendJson<ChoreTemplate>("POST", "/api/templates/chores", input);
 }
 
 export async function updateChoreTemplate(
   choreTemplateId: number,
   input: ChoreTemplateInput,
 ): Promise<ChoreTemplate> {
-  return sendJson("PUT", `/api/templates/chores/${choreTemplateId}`, input, choreTemplateSchema);
+  return sendJson<ChoreTemplate>("PUT", `/api/templates/chores/${choreTemplateId}`, input);
 }
 
 export async function deleteChoreTemplate(choreTemplateId: number): Promise<void> {

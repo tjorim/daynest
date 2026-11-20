@@ -3,7 +3,7 @@ import { useState } from "react";
 import * as m from "@/paraglide/messages";
 import { FeedbackBanner } from "@/components/common/FeedbackBanner";
 import { formatDate } from "@/lib/dateUtils";
-import type { PlannedTodayItem } from "@/lib/api/today";
+import type { PlannedTodayItem } from "@/api-types";
 import { isRetryableApiError } from "@/lib/api/http";
 import { AddItemForm } from "@/features/shopping/AddItemForm";
 import { useShoppingActions } from "@/features/shopping/useShoppingActions";

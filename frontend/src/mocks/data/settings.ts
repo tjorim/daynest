@@ -1,4 +1,4 @@
-import type { UserSettings } from "@/lib/api/settings";
+import type { UserSettings } from "@/api-types";
 
 export function seedUserSettings(): UserSettings {
   return {

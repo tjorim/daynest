@@ -19,9 +19,9 @@ vi.mock("@tanstack/react-router", async (importOriginal) => {
 });
 
 const calendarApiMock = vi.hoisted(() => ({
-  fetchCalendarRange: vi.fn(),
-  fetchCalendarDay: vi.fn(),
-  listPlannedItems: vi.fn(),
+  fetchCalendarRange: vi.fn<typeof import("@/lib/api/today").fetchCalendarRange>(),
+  fetchCalendarDay: vi.fn<typeof import("@/lib/api/today").fetchCalendarDay>(),
+  listPlannedItems: vi.fn<typeof import("@/lib/api/today").listPlannedItems>(),
 }));
 
 vi.mock("@/lib/api/today", async () => {
@@ -42,6 +42,14 @@ describe("CalendarPage", () => {
     calendarApiMock.fetchCalendarRange.mockResolvedValue({
       items: [
         {
+          time_of_day: null,
+          duration_minutes: null,
+          rrule: null,
+          recurrence_series_id: null,
+          recurrence_hint: null,
+          linked_source: null,
+          linked_ref: null,
+          priority: "normal",
           item_type: "routine",
           item_id: 1,
           title: "Morning stretch",
@@ -57,6 +65,14 @@ describe("CalendarPage", () => {
       date: "2026-05-16",
       items: [
         {
+          time_of_day: null,
+          duration_minutes: null,
+          rrule: null,
+          recurrence_series_id: null,
+          recurrence_hint: null,
+          linked_source: null,
+          linked_ref: null,
+          priority: "normal",
           item_type: "routine",
           item_id: 1,
           title: "Morning stretch",
@@ -124,6 +140,9 @@ describe("CalendarPage", () => {
         recurrence_series_id: "9f5ed4cc-f797-4e6e-b331-a6ca889fbcb7",
         linked_source: null,
         linked_ref: null,
+        auto_add_to_list_id: null,
+        priority: "normal",
+        tags: [],
         is_done: false,
       },
     ]);

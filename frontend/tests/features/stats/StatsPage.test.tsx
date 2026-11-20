@@ -3,10 +3,12 @@ import { render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { StatsPage } from "@/features/stats/StatsPage";
 import { setLocale } from "@/paraglide/runtime";
-import type { AnalyticsSummary, DailyCount } from "@/lib/api/analytics";
+import type { AnalyticsSummary, DailyCount } from "@/api-types";
 import { QueryTestProvider } from "../../utils/queryTestProvider";
 
-const analyticsApiMock = vi.hoisted(() => ({ fetchAnalyticsSummary: vi.fn() }));
+const analyticsApiMock = vi.hoisted(() => ({
+  fetchAnalyticsSummary: vi.fn<typeof import("@/lib/api/analytics").fetchAnalyticsSummary>(),
+}));
 
 vi.mock("@/lib/api/analytics", async () => {
   const actual = await vi.importActual<typeof import("@/lib/api/analytics")>("@/lib/api/analytics");

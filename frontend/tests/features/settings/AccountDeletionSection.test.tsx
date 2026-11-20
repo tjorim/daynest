@@ -7,7 +7,7 @@ import { ApiError } from "@/lib/api/http";
 import { AccountDeletionSection } from "@/features/settings/sections/AccountDeletionSection";
 
 const apiMock = vi.hoisted(() => ({
-  deleteAccount: vi.fn(),
+  deleteAccount: vi.fn<typeof import("@/lib/api/settings").deleteAccount>(),
 }));
 
 vi.mock("@/lib/api/settings", () => ({
@@ -24,6 +24,7 @@ function renderSection(logout = vi.fn()) {
           full_name: "Test User",
           is_active: true,
           roles: [],
+          timezone: "Europe/Brussels",
         },
         isLoading: false,
         isAuthenticated: true,

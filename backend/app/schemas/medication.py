@@ -3,7 +3,7 @@ from datetime import date, datetime, time
 from pydantic import BaseModel, Field
 
 from app.core.enums import MedicationDoseStatus
-from app.schemas.base import RequestModel
+from app.schemas.base import RequestModel, ResponseModel
 
 
 class MedicationPlanBase(BaseModel):
@@ -22,7 +22,7 @@ class MedicationPlanUpdateRequest(MedicationPlanBase, RequestModel):
     is_active: bool
 
 
-class MedicationPlanResponse(BaseModel):
+class MedicationPlanResponse(ResponseModel):
     id: int
     name: str
     instructions: str
@@ -46,18 +46,18 @@ class SkipMissedDosesRequest(RequestModel):
     )
 
 
-class SkipMissedDosesResponse(BaseModel):
+class SkipMissedDosesResponse(ResponseModel):
     skipped_count: int
     before_date: date
 
 
-class MedicationDoseMutationResponse(BaseModel):
+class MedicationDoseMutationResponse(ResponseModel):
     medication_dose_instance_id: int
     status: MedicationDoseStatus
     scheduled_date: date
 
 
-class MedicationHistoryItem(BaseModel):
+class MedicationHistoryItem(ResponseModel):
     medication_dose_instance_id: int
     medication_plan_id: int
     name: str
@@ -66,5 +66,5 @@ class MedicationHistoryItem(BaseModel):
     status: MedicationDoseStatus
 
 
-class MedicationHistoryResponse(BaseModel):
+class MedicationHistoryResponse(ResponseModel):
     history: list[MedicationHistoryItem]

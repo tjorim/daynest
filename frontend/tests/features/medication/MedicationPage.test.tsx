@@ -1,3 +1,4 @@
+import type { MedicationPlan, MedicationHistoryItem } from "@/api-types";
 // @vitest-environment happy-dom
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -48,12 +49,53 @@ vi.mock("@/paraglide/messages", () => {
   };
 });
 
+// UI query-state envelope; only data is a wire record.
+type QueryFixture<T> = {
+  data: T;
+  isPending: boolean;
+  error: Error | null;
+  refetch: () => Promise<void>;
+};
+const medicationFixture: MedicationPlan = {
+  id: 2,
+  name: "Morning magnesium",
+  instructions: "With water",
+  start_date: "2026-05-20",
+  schedule_time: "09:00:00",
+  every_n_days: 1,
+  is_active: true,
+};
+
 const medicationHooksMock = vi.hoisted(() => ({
-  useMedicationPlansQuery: vi.fn(),
-  useMedicationHistoryQuery: vi.fn(),
-  useCreateMedicationPlanMutation: vi.fn(),
-  useUpdateMedicationPlanMutation: vi.fn(),
-  useDeleteMedicationPlanMutation: vi.fn(),
+  useMedicationPlansQuery: vi.fn<() => QueryFixture<MedicationPlan[]>>(),
+  useMedicationHistoryQuery: vi.fn<() => QueryFixture<MedicationHistoryItem[]>>(),
+  useCreateMedicationPlanMutation:
+    vi.fn<
+      () => Pick<
+        ReturnType<
+          typeof import("@/features/medication/useMedicationQueries").useCreateMedicationPlanMutation
+        >,
+        "mutateAsync"
+      >
+    >(),
+  useUpdateMedicationPlanMutation:
+    vi.fn<
+      () => Pick<
+        ReturnType<
+          typeof import("@/features/medication/useMedicationQueries").useUpdateMedicationPlanMutation
+        >,
+        "mutateAsync"
+      >
+    >(),
+  useDeleteMedicationPlanMutation:
+    vi.fn<
+      () => Pick<
+        ReturnType<
+          typeof import("@/features/medication/useMedicationQueries").useDeleteMedicationPlanMutation
+        >,
+        "mutateAsync"
+      >
+    >(),
 }));
 
 vi.mock("@/features/medication/useMedicationQueries", () => ({
@@ -65,9 +107,24 @@ vi.mock("@/features/medication/useMedicationQueries", () => ({
 }));
 
 describe("MedicationPage", () => {
-  const createMutation = vi.fn();
-  const updateMutation = vi.fn();
-  const deleteMutation = vi.fn();
+  const createMutation =
+    vi.fn<
+      ReturnType<
+        typeof import("@/features/medication/useMedicationQueries").useCreateMedicationPlanMutation
+      >["mutateAsync"]
+    >();
+  const updateMutation =
+    vi.fn<
+      ReturnType<
+        typeof import("@/features/medication/useMedicationQueries").useUpdateMedicationPlanMutation
+      >["mutateAsync"]
+    >();
+  const deleteMutation =
+    vi.fn<
+      ReturnType<
+        typeof import("@/features/medication/useMedicationQueries").useDeleteMedicationPlanMutation
+      >["mutateAsync"]
+    >();
 
   beforeEach(() => {
     createMutation.mockReset();
@@ -132,7 +189,7 @@ describe("MedicationPage", () => {
 
   it("submits valid values through tanstack form and shows success", async () => {
     const user = userEvent.setup();
-    createMutation.mockResolvedValueOnce({ id: 2 });
+    createMutation.mockResolvedValueOnce(medicationFixture);
     render(<MedicationPage />);
 
     await user.type(screen.getByLabelText(/name/i), "Morning magnesium");

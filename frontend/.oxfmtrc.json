@@ -5,6 +5,8 @@
     "**/dist",
     "**/build",
     "**/coverage",
-    "public/mockServiceWorker.js"
+    "public/mockServiceWorker.js",
+    "openapi.json",
+    "src/api-schema/**"
   ]
 }

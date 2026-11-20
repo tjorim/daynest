@@ -3,8 +3,8 @@ import {
   deletePlannedItem,
   listPlannedItems,
   updatePlannedItem,
-  type PlannedTodayItem,
 } from "@/lib/api/today";
+import type { PlannedTodayItem } from "@/api-types";
 
 export type RecurringGroceryInput = {
   title: string;

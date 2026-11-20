@@ -1,11 +1,8 @@
 import type { ChangeEvent, RefObject } from "react";
 import * as m from "@/paraglide/messages";
 import { formatDate } from "@/lib/dateUtils";
-import {
-  type PlannedItemEditScope,
-  type PlannedItemModuleKey,
-  type PlannedTodayItem,
-} from "@/lib/api/today";
+import { type PlannedItemEditScope } from "@/lib/api/today";
+import type { PlannedItemModuleKey, PlannedTodayItem } from "@/api-types";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Input, InputGroup, InputGroupText, Textarea } from "@/components/ui/input";
 import { Label } from "@/components/ui/field";

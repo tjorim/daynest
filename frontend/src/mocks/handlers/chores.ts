@@ -1,9 +1,13 @@
-import { http, HttpResponse } from "msw/http";
+import { jsonResponse } from "@/mocks/response";
+import type { ChoreInstanceMutationResponse } from "@/api-schema";
+import { http } from "msw/http";
 import { MOCK_TODAY } from "../data/constants";
 
 export const choreHandlers = [
   http.post("/api/chores/:id/complete", ({ params }) =>
-    HttpResponse.json({
+    jsonResponse<ChoreInstanceMutationResponse>({
+      assigned_to: null,
+      completed_by: null,
       chore_instance_id: Number(params.id),
       status: "completed",
       scheduled_date: MOCK_TODAY,
@@ -13,7 +17,9 @@ export const choreHandlers = [
   ),
 
   http.post("/api/chores/:id/skip", ({ params }) =>
-    HttpResponse.json({
+    jsonResponse<ChoreInstanceMutationResponse>({
+      assigned_to: null,
+      completed_by: null,
       chore_instance_id: Number(params.id),
       status: "skipped",
       scheduled_date: MOCK_TODAY,
@@ -24,7 +30,9 @@ export const choreHandlers = [
 
   http.post("/api/chores/:id/reschedule", async ({ params, request }) => {
     const body = (await request.json()) as { scheduled_date: string };
-    return HttpResponse.json({
+    return jsonResponse<ChoreInstanceMutationResponse>({
+      assigned_to: null,
+      completed_by: null,
       chore_instance_id: Number(params.id),
       status: "pending",
       scheduled_date: body.scheduled_date,

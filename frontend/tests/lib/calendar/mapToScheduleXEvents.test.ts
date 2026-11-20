@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { Temporal } from "temporal-polyfill";
 import { CALENDAR_COLORS, mapToScheduleXEvents } from "@/features/calendar/mapToScheduleXEvents";
-import type { UnifiedDayItem } from "@/lib/api/today";
+import type { UnifiedDayItem } from "@/api-types";
 
 function buildItem(overrides: Partial<UnifiedDayItem> = {}): UnifiedDayItem {
   return {
@@ -11,9 +11,16 @@ function buildItem(overrides: Partial<UnifiedDayItem> = {}): UnifiedDayItem {
     status: "pending",
     scheduled_at: "2026-05-31T08:15:00",
     scheduled_date: "2026-05-31",
+    time_of_day: null,
     duration_minutes: 45,
     detail: null,
     module_key: null,
+    rrule: null,
+    recurrence_series_id: null,
+    recurrence_hint: null,
+    linked_source: null,
+    linked_ref: null,
+    priority: "normal",
     ...overrides,
   };
 }

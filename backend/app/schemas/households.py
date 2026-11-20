@@ -1,9 +1,9 @@
 from datetime import datetime
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import EmailStr, Field
 
 from app.core.enums import HouseholdMemberRole
-from app.schemas.base import NonEmptyText255, RequestModel
+from app.schemas.base import NonEmptyText255, RequestModel, ResponseModel
 
 
 class HouseholdCreateRequest(RequestModel):
@@ -14,7 +14,7 @@ class HouseholdUpdateRequest(RequestModel):
     name: NonEmptyText255
 
 
-class HouseholdMemberResponse(BaseModel):
+class HouseholdMemberResponse(ResponseModel):
     user_id: int
     email: str
     full_name: str | None
@@ -22,7 +22,7 @@ class HouseholdMemberResponse(BaseModel):
     joined_at: datetime
 
 
-class HouseholdResponse(BaseModel):
+class HouseholdResponse(ResponseModel):
     id: int
     name: str
     created_at: datetime

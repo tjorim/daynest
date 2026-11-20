@@ -1,11 +1,19 @@
+import { jsonResponse } from "@/mocks/response";
+import type {
+  MedicationDoseMutationResponse,
+  MedicationHistoryResponse,
+  MedicationPlanResponse,
+} from "@/api-schema";
 import { http, HttpResponse } from "msw/http";
 import { getMockState, mutateMedications } from "../data/state";
 import { nextMedicationId, seedMedicationHistory } from "../data/medication";
 import { MOCK_TODAY } from "../data/constants";
-import type { MedicationPlanInput, MedicationPlanUpdateInput } from "@/lib/api/medications";
+import type { MedicationPlanInput, MedicationPlanUpdateInput } from "@/api-types";
 
 export const medicationHandlers = [
-  http.get("/api/medications", () => HttpResponse.json(getMockState().medications)),
+  http.get("/api/medications", () =>
+    jsonResponse<MedicationPlanResponse[]>(getMockState().medications),
+  ),
 
   http.post("/api/medications", async ({ request }) => {
     const input = (await request.json()) as MedicationPlanInput;
@@ -15,11 +23,11 @@ export const medicationHandlers = [
       instructions: input.instructions,
       start_date: input.start_date,
       schedule_time: input.schedule_time,
-      every_n_days: input.every_n_days,
+      every_n_days: input.every_n_days ?? 1,
       is_active: true,
     };
     mutateMedications((plans) => [...plans, newPlan]);
-    return HttpResponse.json(newPlan, { status: 201 });
+    return jsonResponse<MedicationPlanResponse>(newPlan, { status: 201 });
   }),
 
   http.put("/api/medications/:id", async ({ params, request }) => {
@@ -29,12 +37,22 @@ export const medicationHandlers = [
     const existing = medications.find((m) => m.id === id);
 
     if (!existing) {
-      return HttpResponse.json({ detail: "Not found" }, { status: 404 });
+      return HttpResponse.json(
+        /* Fixture exception: intentional HTTP error body, not a successful API payload. */ {
+          detail: "Not found",
+        },
+        { status: 404 },
+      );
     }
 
-    const updated = { ...existing, ...input };
+    const updated = {
+      ...existing,
+      ...input,
+      // PUT replaces the plan; the backend defaults an omitted interval to 1 rather than keeping the stored one.
+      every_n_days: input.every_n_days ?? 1,
+    };
     mutateMedications((plans) => plans.map((m) => (m.id === id ? updated : m)));
-    return HttpResponse.json(updated);
+    return jsonResponse<MedicationPlanResponse>(updated);
   }),
 
   http.delete("/api/medications/:id", ({ params }) => {
@@ -44,7 +62,7 @@ export const medicationHandlers = [
   }),
 
   http.post("/api/medication-doses/:id/take", ({ params }) =>
-    HttpResponse.json({
+    jsonResponse<MedicationDoseMutationResponse>({
       medication_dose_instance_id: Number(params.id),
       status: "taken",
       scheduled_date: MOCK_TODAY,
@@ -52,7 +70,7 @@ export const medicationHandlers = [
   ),
 
   http.post("/api/medication-doses/:id/skip", ({ params }) =>
-    HttpResponse.json({
+    jsonResponse<MedicationDoseMutationResponse>({
       medication_dose_instance_id: Number(params.id),
       status: "skipped",
       scheduled_date: MOCK_TODAY,
@@ -60,6 +78,6 @@ export const medicationHandlers = [
   ),
 
   http.get("/api/medication-doses/history", () =>
-    HttpResponse.json({ history: seedMedicationHistory() }),
+    jsonResponse<MedicationHistoryResponse>({ history: seedMedicationHistory() }),
   ),
 ];

@@ -3,7 +3,7 @@ import { useForm } from "@tanstack/react-form";
 import { z } from "zod";
 import * as m from "@/paraglide/messages";
 import { isRetryableApiError } from "@/lib/api/http";
-import { type MedicationPlan, type MedicationPlanUpdateInput } from "@/lib/api/medications";
+import type { MedicationPlanUpdateInput, MedicationPlan } from "@/api-types";
 import { formatDate, formatDateTime } from "@/lib/dateUtils";
 import {
   Dialog,

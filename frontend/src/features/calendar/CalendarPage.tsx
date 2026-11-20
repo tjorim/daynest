@@ -15,7 +15,7 @@ import * as m from "@/paraglide/messages";
 import { useLanguage } from "@/i18n/LanguageProvider";
 import { useTheme } from "@/app/theme/ThemeContext";
 import { isRetryableApiError } from "@/lib/api/http";
-import type { UnifiedDayItem } from "@/lib/api/today";
+import type { UnifiedDayItem } from "@/api-types";
 import { dayjs, toIsoDate } from "@/lib/dateUtils";
 import { CalendarEventModal } from "@/features/calendar/CalendarEventModal";
 import { PlannedItemsSidebar } from "@/features/calendar/CalendarPageSections";

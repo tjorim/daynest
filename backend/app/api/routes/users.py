@@ -12,7 +12,13 @@ from app.db.session import get_db
 from app.models.chore_template import ChoreTemplate
 from app.models.household_member import HouseholdMember
 from app.models.user import User
-from app.schemas.users import UserSettingsPatchRequest, UserSettingsResponse
+from app.schemas.users import (
+    UserExportResponse,
+    UserImportCounts,
+    UserImportResponse,
+    UserSettingsPatchRequest,
+    UserSettingsResponse,
+)
 from app.services.export_import_service import (
     build_user_export,
     import_user_export,
@@ -123,12 +129,16 @@ def update_settings(
     return _to_response(current_user)
 
 
-@router.get("/me/export", response_model=None)
+@router.get(
+    "/me/export",
+    response_model=UserExportResponse,
+    responses={200: {"content": {"text/csv": {"schema": {"type": "string"}}}}},
+)
 def export_user_data(
     format: str = Query(default="json", pattern="^(json|csv)$"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-) -> dict[str, Any] | Response:
+) -> UserExportResponse | Response:
     payload = build_user_export(db, current_user)
     if format == "csv":
         return Response(
@@ -136,18 +146,18 @@ def export_user_data(
             media_type="text/csv",
             headers={"Content-Disposition": 'attachment; filename="daynest-export.csv"'},
         )
-    return payload
+    return UserExportResponse.model_validate(payload)
 
 
-@router.post("/me/import")
+@router.post("/me/import", response_model=UserImportResponse)
 def import_user_data(
     payload: dict[str, Any] = Body(...),
     replace: bool = Query(default=False),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-) -> dict[str, Any]:
+) -> UserImportResponse:
     counts = import_user_export(db, current_user, payload, replace=replace)
-    return {"imported": counts}
+    return UserImportResponse(imported=UserImportCounts(**counts))
 
 
 @router.delete("/me", status_code=status.HTTP_204_NO_CONTENT)
