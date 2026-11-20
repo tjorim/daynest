@@ -15,8 +15,16 @@ the allowed scopes are listed in `release.config.json`, and `node scripts/releas
 
 ## [Unreleased]
 
+### Fixed
+
+- A planned item with the `urgent` priority (created through the API) no longer makes Today and the planned-item lists fail to load: the app's own copy of the response shape did not know that priority.
+- Statistics no longer offers a "3 Months" period: the server only has week, month and year, so choosing it always failed.
+
 ### Internal
 
+- The frontend reads the backend's API as the types generated from its OpenAPI document instead of hand-written zod schemas, interfaces and mappers in `src/lib/api/`, and no longer re-checks each response against a second copy of its shape at runtime. The backend's response models are the single source of truth: `frontend/openapi.json` is a committed snapshot written by `uv run python -m app.openapi_export` (a backend test fails when it is stale), a pinned Orval writes one type per schema into `frontend/src/api-schema/` (`pnpm api:generate`; `pnpm typecheck` fails when the generated files are stale), and `frontend/src/api-types.ts` names them for the screens. `zod` stays for the router search params, the medication form and the offline queue (#1458).
+- Give every JSON route a named response model (health, metrics, meta, root, the Home Assistant summary, the MCP capability manifest and the user data export and import were anonymous objects), describe the iCalendar and event-stream routes as `text/calendar` and `text/event-stream` instead of an empty JSON schema, and list a response field that has a default (`priority`, `tags`, `is_active`, …) as required because it is always sent. The two Home Assistant planned-item request bodies no longer share a schema name with the `/planned-items` ones, and the meal-plan update schema no longer accepts `null` for `name` and `week_start`, which the route already rejected. Backend tests fail when a JSON route has no response model, a response model skips the `ResponseModel` base, or two schemas share a name. Wire payloads are unchanged (#1458).
+- Type every successful frontend fixture (MSW handlers, fetch doubles, browser specs) with the generated records, guarded by `pnpm fixtures:check` and compile-time negative probes, and type-check tests and e2e specs with the app (#1458).
 - Remove `.github/dependabot.yml`: Renovate (shared `tjorim/renovate-config` preset) is the only dependency updater now. Dependabot security alerts stay on.
 - `release.mjs` now also keeps the `python-daynest` entry in `custom_components/uv.lock` equal to `VERSION`, and that lock is synced to 2026.11.2 (it still said 0.1.11 after the CalVer switch).
 - Lint the backend and `python-daynest` with the same ruff rule set as the other apps (`E, F, I, UP, B, C4, SIM`); five exception re-raises now say `from None` and one `if`/`else` became a conditional expression. `UP042` stays off because the `(str, Enum)` classes would print differently as `StrEnum`. The frontend gains a `typecheck` script like the other apps.

@@ -1,4 +1,4 @@
-import type { MedicationPlan, MedicationHistoryItem } from "@/lib/api/medications";
+import type { MedicationHistoryItem, MedicationPlan } from "@/api-types";
 
 export function seedMedications(): MedicationPlan[] {
   return [

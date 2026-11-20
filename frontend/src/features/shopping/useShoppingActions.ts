@@ -8,10 +8,8 @@ import {
   importRecurringGroceries,
   updateShoppingList,
   type ShoppingItemInput,
-  type ShoppingListInput,
-  type ShoppingListUpdateInput,
 } from "@/lib/api/shoppingLists";
-import type { PlannedTodayItem } from "@/lib/api/today";
+import type { ShoppingListInput, ShoppingListUpdateInput, PlannedTodayItem } from "@/api-types";
 import { queryKeys } from "@/lib/query/queryKeys";
 import * as m from "@/paraglide/messages";
 import { apiErrorMessage } from "@/lib/api/errorMessages";

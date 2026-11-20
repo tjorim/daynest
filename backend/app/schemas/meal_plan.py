@@ -1,9 +1,9 @@
 from datetime import date, datetime
 from typing import Literal
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import Field, model_validator
 
-from app.schemas.base import NonEmptyText255, RequestModel, Text255, Text4000
+from app.schemas.base import NonEmptyText255, RequestModel, ResponseModel, Text255, Text4000, omit_but_never_null
 from app.schemas.shopping_list import ShoppingListResponse
 from app.schemas.today import PlannedTodayItem
 
@@ -18,8 +18,8 @@ class MealPlanCreate(RequestModel):
 
 
 class MealPlanUpdate(RequestModel):
-    name: NonEmptyText255 | None = None
-    week_start: date | None = None
+    name: NonEmptyText255 | None = Field(default=None, json_schema_extra=omit_but_never_null)
+    week_start: date | None = Field(default=None, json_schema_extra=omit_but_never_null)
     notes: Text4000 | None = None
 
     @model_validator(mode="after")
@@ -44,7 +44,7 @@ class MealSlotUpdate(RequestModel):
         return self
 
 
-class MealSlotResponse(BaseModel):
+class MealSlotResponse(ResponseModel):
     id: int
     meal_plan_id: int
     slot_date: date
@@ -55,7 +55,7 @@ class MealSlotResponse(BaseModel):
     planned_item_id: int | None = None
 
 
-class MealPlanResponse(BaseModel):
+class MealPlanResponse(ResponseModel):
     id: int
     user_id: int
     name: str
@@ -64,16 +64,16 @@ class MealPlanResponse(BaseModel):
     created_at: datetime
 
 
-class WeekDayResponse(BaseModel):
+class WeekDayResponse(ResponseModel):
     date: date
     slots: dict[MealSlotType, MealSlotResponse]
 
 
-class WeekGridResponse(BaseModel):
+class WeekGridResponse(ResponseModel):
     meal_plan: MealPlanResponse
     days: list[WeekDayResponse]
 
 
-class GenerateShoppingListResponse(BaseModel):
+class GenerateShoppingListResponse(ResponseModel):
     shopping_list: ShoppingListResponse
     items: list[PlannedTodayItem]

@@ -1,3 +1,5 @@
+import type { IntegrationClientCreateResponse } from "@/api-schema";
+import { jsonResponse } from "@/mocks/response";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -8,7 +10,7 @@ import { fetchWithAuth } from "@/lib/api/http";
 vi.mock("@/app/providers/AuthProvider");
 vi.mock("@/lib/api/http", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/api/http")>()),
-  fetchWithAuth: vi.fn(),
+  fetchWithAuth: vi.fn<typeof import("@/lib/api/http").fetchWithAuth>(),
 }));
 
 describe("PebblePairPage", () => {
@@ -22,6 +24,7 @@ describe("PebblePairPage", () => {
         full_name: "Pebble User",
         is_active: true,
         roles: [],
+        timezone: "Europe/Brussels",
       },
       isLoading: false,
       isAuthenticated: true,
@@ -85,9 +88,21 @@ describe("PebblePairPage", () => {
     vi.mocked(fetchWithAuth)
       .mockResolvedValueOnce(new Response(null, { status: 503 }))
       .mockResolvedValueOnce(
-        new Response(JSON.stringify({ api_key: "daynest_retry-token" }), {
-          status: 200,
-        }),
+        jsonResponse<IntegrationClientCreateResponse>(
+          {
+            id: 1,
+            name: "Pebble",
+            rate_limit_per_minute: 60,
+            scopes: [],
+            api_key: "daynest_retry-token",
+            client_id: "mock",
+            client_secret: "mock",
+            token_url: "http://localhost/token",
+          },
+          {
+            status: 200,
+          },
+        ),
       );
 
     const user = userEvent.setup();

@@ -6,7 +6,8 @@ import { ApiError } from "@/lib/api/http";
 import { QueryTestProvider } from "../../utils/queryTestProvider";
 
 const todayApiMock = vi.hoisted(() => ({
-  fetchToday: vi.fn(),
+  fetchToday: vi.fn<typeof import("@/lib/api/today").fetchToday>(),
+  // Fixture control: mutations are never invoked in these read-only rendering/error tests.
   mutation: vi.fn().mockResolvedValue({}),
 }));
 
@@ -66,6 +67,9 @@ const todayPayload = {
       title: "Water plants",
       status: "pending",
       scheduled_date: "2026-05-15",
+      household_id: null,
+      assigned_to: null,
+      completed_by: null,
     },
   ],
   upcoming: [],
@@ -84,6 +88,9 @@ const todayPayload = {
       linked_source: null,
       linked_ref: null,
       is_done: false,
+      auto_add_to_list_id: null,
+      priority: "normal",
+      tags: [],
     },
   ],
   day_items: [],

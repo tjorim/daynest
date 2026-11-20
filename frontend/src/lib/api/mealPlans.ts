@@ -1,128 +1,25 @@
 import { fetchWithAuth, parseJsonResponse } from "@/lib/api/http";
-import { plannedTodayItemSchema } from "@/lib/api/today";
-import type { PlannedTodayItem } from "@/lib/api/today";
-import { z } from "zod";
+import { MealSlotResponseSlotType } from "@/api-schema";
+import type {
+  GenerateShoppingListResponse,
+  MealPlan,
+  MealPlanInput,
+  MealPlanUpdateInput,
+  MealSlot,
+  MealSlotType,
+  MealSlotUpdateInput,
+  WeekGridResponse,
+} from "@/api-types";
 import * as m from "@/paraglide/messages";
 
-export type MealSlotType = "breakfast" | "lunch" | "dinner" | "snack";
-
-export const MEAL_SLOT_TYPES: readonly MealSlotType[] = ["breakfast", "lunch", "dinner", "snack"];
-
-export interface MealPlan {
-  id: number;
-  user_id: number;
-  name: string;
-  week_start: string;
-  notes: string | null;
-  created_at: string;
-}
-
-export interface MealPlanInput {
-  name: string;
-  week_start: string;
-  notes?: string | null;
-}
-
-export interface MealPlanUpdateInput {
-  name?: string;
-  week_start?: string;
-  notes?: string | null;
-}
-
-export interface MealSlot {
-  id: number;
-  meal_plan_id: number;
-  slot_date: string;
-  slot_type: MealSlotType;
-  title: string;
-  recipe_url: string | null;
-  ingredients_json: string[];
-  planned_item_id: number | null;
-}
-
-export interface MealSlotUpdateInput {
-  title?: string;
-  recipe_url?: string | null;
-  ingredients_json?: string[];
-  planned_item_id?: number | null;
-}
-
-export interface WeekDayMealSlots {
-  date: string;
-  slots: Partial<Record<MealSlotType, MealSlot>>;
-}
-
-export interface WeekGridResponse {
-  meal_plan: MealPlan;
-  days: WeekDayMealSlots[];
-}
-
-export interface GenerateShoppingListResponse {
-  shopping_list: {
-    id: number;
-    user_id: number;
-    name: string;
-    store: string | null;
-    notes: string | null;
-    status: "active" | "archived";
-    created_at: string;
-  };
-  items: PlannedTodayItem[];
-}
-
-const mealSlotTypeSchema = z.enum(["breakfast", "lunch", "dinner", "snack"]);
-
-const mealPlanSchema = z.object({
-  id: z.number(),
-  user_id: z.number(),
-  name: z.string(),
-  week_start: z.string(),
-  notes: z.string().nullable(),
-  created_at: z.string(),
-});
-
-const mealSlotSchema = z.object({
-  id: z.number(),
-  meal_plan_id: z.number(),
-  slot_date: z.string(),
-  slot_type: mealSlotTypeSchema,
-  title: z.string(),
-  recipe_url: z.string().nullable(),
-  ingredients_json: z.array(z.string()),
-  planned_item_id: z.number().nullable(),
-});
-
-const weekGridSchema = z.object({
-  meal_plan: mealPlanSchema,
-  days: z.array(
-    z.object({
-      date: z.string(),
-      slots: z.record(mealSlotTypeSchema, mealSlotSchema.optional()),
-    }),
-  ),
-});
-
-const shoppingListSchema = z.object({
-  id: z.number(),
-  user_id: z.number(),
-  name: z.string(),
-  store: z.string().nullable(),
-  notes: z.string().nullable(),
-  status: z.enum(["active", "archived"]),
-  created_at: z.string(),
-});
-
-const generateShoppingListResponseSchema = z.object({
-  shopping_list: shoppingListSchema,
-  items: z.array(plannedTodayItemSchema),
-});
+export const MEAL_SLOT_TYPES: readonly MealSlotType[] = Object.values(MealSlotResponseSlotType);
 
 export async function listMealPlans(signal?: AbortSignal): Promise<MealPlan[]> {
   const response = await fetchWithAuth("/api/meal-plans", {
     headers: { Accept: "application/json" },
     signal,
   });
-  return parseJsonResponse(response, m.api_meal_plans_load_failed(), true, z.array(mealPlanSchema));
+  return parseJsonResponse<MealPlan[]>(response, m.api_meal_plans_load_failed(), true);
 }
 
 export async function createMealPlan(input: MealPlanInput): Promise<MealPlan> {
@@ -134,7 +31,7 @@ export async function createMealPlan(input: MealPlanInput): Promise<MealPlan> {
     },
     body: JSON.stringify(input),
   });
-  return parseJsonResponse(response, m.api_meal_plan_create_failed(), false, mealPlanSchema);
+  return parseJsonResponse<MealPlan>(response, m.api_meal_plan_create_failed(), false);
 }
 
 export async function updateMealPlan(
@@ -149,7 +46,7 @@ export async function updateMealPlan(
     },
     body: JSON.stringify(input),
   });
-  return parseJsonResponse(response, m.api_meal_plan_update_failed(), false, mealPlanSchema);
+  return parseJsonResponse<MealPlan>(response, m.api_meal_plan_update_failed(), false);
 }
 
 export async function getMealPlanWeek(
@@ -167,7 +64,7 @@ export async function getMealPlanWeek(
       signal,
     },
   );
-  return parseJsonResponse(response, m.api_meal_plan_week_load_failed(), true, weekGridSchema);
+  return parseJsonResponse<WeekGridResponse>(response, m.api_meal_plan_week_load_failed(), true);
 }
 
 export async function updateMealSlot(
@@ -183,7 +80,7 @@ export async function updateMealSlot(
     },
     body: JSON.stringify(input),
   });
-  return parseJsonResponse(response, m.api_meal_slot_update_failed(), false, mealSlotSchema);
+  return parseJsonResponse<MealSlot>(response, m.api_meal_slot_update_failed(), false);
 }
 
 export async function generateMealPlanShoppingList(
@@ -193,10 +90,9 @@ export async function generateMealPlanShoppingList(
     method: "POST",
     headers: { Accept: "application/json" },
   });
-  return parseJsonResponse(
+  return parseJsonResponse<GenerateShoppingListResponse>(
     response,
     m.api_shopping_list_generate_failed(),
     false,
-    generateShoppingListResponseSchema,
   );
 }

@@ -19,10 +19,7 @@ import {
 } from "@tanstack/react-table";
 import * as m from "@/paraglide/messages";
 import { FeedbackBanner } from "@/components/common/FeedbackBanner";
-import {
-  type IntegrationClient,
-  type IntegrationClientCreateResponse,
-} from "@/lib/api/integrationClients";
+import type { IntegrationClientCreateResponse, IntegrationClient } from "@/api-types";
 import { isRetryableApiError } from "@/lib/api/http";
 import {
   useCreateIntegrationClientMutation,

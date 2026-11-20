@@ -5,10 +5,10 @@ from uuid import UUID
 from pydantic import BaseModel, Field, model_validator
 
 from app.core.enums import ChoreStatus, MedicationDoseStatus, Priority, TaskStatus
-from app.schemas.base import NonEmptyText255, RequestModel, Text255, Text4000
+from app.schemas.base import NonEmptyText255, RequestModel, ResponseModel, Text255, Text4000
 
 
-class MedicationTodayItem(BaseModel):
+class MedicationTodayItem(ResponseModel):
     medication_dose_instance_id: int
     medication_plan_id: int
     name: str
@@ -17,7 +17,7 @@ class MedicationTodayItem(BaseModel):
     status: MedicationDoseStatus
 
 
-class MedicationHistoryItem(BaseModel):
+class MedicationHistoryItem(ResponseModel):
     medication_dose_instance_id: int
     medication_plan_id: int
     name: str
@@ -26,7 +26,7 @@ class MedicationHistoryItem(BaseModel):
     status: MedicationDoseStatus
 
 
-class RoutineTodayItem(BaseModel):
+class RoutineTodayItem(ResponseModel):
     task_instance_id: int
     routine_template_id: int
     title: str
@@ -35,7 +35,7 @@ class RoutineTodayItem(BaseModel):
     due_at: datetime | None = None
 
 
-class OverdueTodayItem(BaseModel):
+class OverdueTodayItem(ResponseModel):
     chore_instance_id: int
     chore_template_id: int
     title: str
@@ -46,7 +46,7 @@ class OverdueTodayItem(BaseModel):
     completed_by: int | None = None
 
 
-class DueTodayItem(BaseModel):
+class DueTodayItem(ResponseModel):
     chore_instance_id: int
     chore_template_id: int
     title: str
@@ -57,7 +57,7 @@ class DueTodayItem(BaseModel):
     completed_by: int | None = None
 
 
-class UpcomingTodayItem(BaseModel):
+class UpcomingTodayItem(ResponseModel):
     chore_instance_id: int
     chore_template_id: int
     title: str
@@ -69,7 +69,7 @@ class UpcomingTodayItem(BaseModel):
 PlannedItemModuleKey = Literal["shopping_list", "meal_planning", "recurring_grocery", "shared_calendar"]
 
 
-class PlannedTodayItem(BaseModel):
+class PlannedTodayItem(ResponseModel):
     id: int
     title: str
     planned_for: date
@@ -118,7 +118,7 @@ class PlannedItemUpdateRequest(PlannedItemBase, RequestModel):
     is_done: bool = False
 
 
-class UnifiedDayItem(BaseModel):
+class UnifiedDayItem(ResponseModel):
     item_type: Literal["routine", "chore", "medication", "planned"]
     item_id: int
     title: str
@@ -137,16 +137,16 @@ class UnifiedDayItem(BaseModel):
     priority: Priority = Priority.normal
 
 
-class CalendarDayResponse(BaseModel):
+class CalendarDayResponse(ResponseModel):
     date: date
     items: list[UnifiedDayItem]
 
 
-class CalendarRangeResponse(BaseModel):
+class CalendarRangeResponse(ResponseModel):
     items: list[UnifiedDayItem]
 
 
-class CalendarMonthDaySummary(BaseModel):
+class CalendarMonthDaySummary(ResponseModel):
     date: date
     total: int
     routines: int
@@ -155,13 +155,13 @@ class CalendarMonthDaySummary(BaseModel):
     planned: int
 
 
-class CalendarMonthResponse(BaseModel):
+class CalendarMonthResponse(ResponseModel):
     year: int
     month: int
     days: list[CalendarMonthDaySummary]
 
 
-class TodayResponse(BaseModel):
+class TodayResponse(ResponseModel):
     medication: list[MedicationTodayItem]
     medication_history: list[MedicationHistoryItem]
     routines: list[RoutineTodayItem]
@@ -172,7 +172,7 @@ class TodayResponse(BaseModel):
     day_items: list[UnifiedDayItem]
 
 
-class ChoreInstanceMutationResponse(BaseModel):
+class ChoreInstanceMutationResponse(ResponseModel):
     chore_instance_id: int
     status: ChoreStatus
     scheduled_date: date
@@ -182,7 +182,7 @@ class ChoreInstanceMutationResponse(BaseModel):
     completed_by: int | None = None
 
 
-class TaskInstanceMutationResponse(BaseModel):
+class TaskInstanceMutationResponse(ResponseModel):
     task_instance_id: int
     status: TaskStatus
     scheduled_date: date

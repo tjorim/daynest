@@ -21,10 +21,11 @@ from app.schemas.integrations import (
     HACalendarEvent,
     HomeAssistantEntity,
     HomeAssistantOIDCConfig,
+    HomeAssistantPlannedItemCreateRequest,
+    HomeAssistantPlannedItemUpdateRequest,
+    HomeAssistantSummaryResponse,
     MarkMedicationTakenRequest,
     MarkPlannedDoneRequest,
-    PlannedItemCreateRequest,
-    PlannedItemUpdateRequest,
     SkipMedicationRequest,
     SkipTaskRequest,
     SnoozeTaskRequest,
@@ -53,21 +54,21 @@ async def home_assistant_oidc_config() -> HomeAssistantOIDCConfig:
     )
 
 
-@router.get("/summary")
+@router.get("/summary", response_model=HomeAssistantSummaryResponse)
 def home_assistant_summary(
     service: TodayService = Depends(get_today_service),
     integration_user: User = Depends(require_integration_auth("home_assistant:*")),
     _: None = Depends(_set_ha_contract_header),
-) -> dict[str, str | int | None]:
+) -> HomeAssistantSummaryResponse:
     read_model = service.get_dashboard_read_model(user_id=integration_user.id, for_date=datetime.now(UTC).date())
-    return {
-        "sensor_daynest_chores_due": read_model.due_today_count,
-        "sensor_daynest_routines_open": read_model.routines_open_count,
-        "sensor_daynest_medication_due": read_model.medication_due_count,
-        "sensor_daynest_planned_remaining": read_model.planned_remaining_count,
-        "sensor_daynest_overdue_count": read_model.overdue_count,
-        "sensor_daynest_next_medication": read_model.next_medication,
-    }
+    return HomeAssistantSummaryResponse(
+        sensor_daynest_chores_due=read_model.due_today_count,
+        sensor_daynest_routines_open=read_model.routines_open_count,
+        sensor_daynest_medication_due=read_model.medication_due_count,
+        sensor_daynest_planned_remaining=read_model.planned_remaining_count,
+        sensor_daynest_overdue_count=read_model.overdue_count,
+        sensor_daynest_next_medication=read_model.next_medication,
+    )
 
 
 @router.get("/entities", response_model=list[HomeAssistantEntity])
@@ -226,7 +227,7 @@ def home_assistant_mark_planned_done(
 
 @router.post("/actions/create-planned-item", response_model=HAActionResult)
 def home_assistant_create_planned_item(
-    request: PlannedItemCreateRequest,
+    request: HomeAssistantPlannedItemCreateRequest,
     service: TodayService = Depends(get_today_service),
     integration_user: User = Depends(require_integration_auth("home_assistant:*")),
 ) -> HAActionResult:
@@ -241,7 +242,7 @@ def home_assistant_create_planned_item(
 @router.put("/actions/update-planned-item/{planned_item_id}", response_model=HAActionResult)
 def home_assistant_update_planned_item(
     planned_item_id: int,
-    request: PlannedItemUpdateRequest,
+    request: HomeAssistantPlannedItemUpdateRequest,
     service: TodayService = Depends(get_today_service),
     integration_user: User = Depends(require_integration_auth("home_assistant:*")),
 ) -> HAActionResult:

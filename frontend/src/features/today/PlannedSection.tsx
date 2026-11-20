@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useState } from "react";
 import * as m from "@/paraglide/messages";
-import { type PlannedTodayItem } from "@/lib/api/today";
+import type { PlannedTodayItem } from "@/api-types";
 import { SectionCard, buildPlannedItems, type BulkAction } from "@/features/today/TodaySections";
 import { Button } from "@/components/ui/button";
 

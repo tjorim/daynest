@@ -1,9 +1,11 @@
-import { http, HttpResponse } from "msw/http";
+import { jsonResponse } from "@/mocks/response";
+import type { TaskInstanceMutationResponse } from "@/api-schema";
+import { http } from "msw/http";
 import { MOCK_TODAY } from "../data/constants";
 
 export const taskHandlers = [
   http.post("/api/tasks/:id/start", ({ params }) =>
-    HttpResponse.json({
+    jsonResponse<TaskInstanceMutationResponse>({
       task_instance_id: Number(params.id),
       status: "in_progress",
       scheduled_date: MOCK_TODAY,
@@ -13,7 +15,7 @@ export const taskHandlers = [
   ),
 
   http.post("/api/tasks/:id/complete", ({ params }) =>
-    HttpResponse.json({
+    jsonResponse<TaskInstanceMutationResponse>({
       task_instance_id: Number(params.id),
       status: "completed",
       scheduled_date: MOCK_TODAY,
@@ -23,7 +25,7 @@ export const taskHandlers = [
   ),
 
   http.post("/api/tasks/:id/skip", ({ params }) =>
-    HttpResponse.json({
+    jsonResponse<TaskInstanceMutationResponse>({
       task_instance_id: Number(params.id),
       status: "skipped",
       scheduled_date: MOCK_TODAY,

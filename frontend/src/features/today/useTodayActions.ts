@@ -14,11 +14,13 @@ import {
   updatePlannedItem,
   type PlannedItemDeleteScope,
   type PlannedItemEditScope,
-  type PlannedItemModuleKey,
-  type PlannedItemPriority,
-  type PlannedItemUpdateInput,
-  type PlannedTodayItem,
 } from "@/lib/api/today";
+import type {
+  PlannedItemPriority,
+  PlannedItemUpdateInput,
+  PlannedItemModuleKey,
+  PlannedTodayItem,
+} from "@/api-types";
 import { dayjs, toIsoDate } from "@/lib/dateUtils";
 import { queryKeys } from "@/lib/query/queryKeys";
 import * as m from "@/paraglide/messages";

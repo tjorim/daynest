@@ -1,30 +1,32 @@
 from datetime import date
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import Field
+
+from app.schemas.base import ResponseModel
 
 
-class DailyCount(BaseModel):
+class DailyCount(ResponseModel):
     date: date
     completed: int
     total: int
     completion_rate: float
 
 
-class ChoreStreak(BaseModel):
+class ChoreStreak(ResponseModel):
     chore_id: int
     name: str
     current_streak: int
     longest_streak: int
 
 
-class SkippedChore(BaseModel):
+class SkippedChore(ResponseModel):
     chore_id: int
     name: str
     skip_count: int
 
 
-class ChoreStats(BaseModel):
+class ChoreStats(ResponseModel):
     completion_rate: float
     total_completed: int
     total_scheduled: int
@@ -33,35 +35,35 @@ class ChoreStats(BaseModel):
     most_skipped: list[SkippedChore]
 
 
-class DailyAdherence(BaseModel):
+class DailyAdherence(ResponseModel):
     date: date
     taken: int
     total: int
     adherence_rate: float
 
 
-class MedicationStats(BaseModel):
+class MedicationStats(ResponseModel):
     adherence_rate: float
     total_taken: int
     total_scheduled: int
     daily_adherence: list[DailyAdherence]
 
 
-class PlannedItemStats(BaseModel):
+class PlannedItemStats(ResponseModel):
     completion_rate: float
     total_completed: int
     total_scheduled: int
     daily_completions: list[DailyCount]
 
 
-class RoutineStreak(BaseModel):
+class RoutineStreak(ResponseModel):
     routine_id: int
     name: str
     current_streak: int
     longest_streak: int
 
 
-class RoutineStats(BaseModel):
+class RoutineStats(ResponseModel):
     completion_rate: float
     total_completed: int
     total_scheduled: int
@@ -69,7 +71,7 @@ class RoutineStats(BaseModel):
     streaks: list[RoutineStreak]
 
 
-class AnalyticsSummaryResponse(BaseModel):
+class AnalyticsSummaryResponse(ResponseModel):
     period: Literal["week", "month", "year"]
     start_date: date
     end_date: date
@@ -83,12 +85,12 @@ SuggestionType = Literal["chore_reschedule", "medication_reminder_adjustment", "
 SuggestionValue = str | int | float | bool | None
 
 
-class SchedulingSuggestion(BaseModel):
+class SchedulingSuggestion(ResponseModel):
     suggestion_type: SuggestionType
     message: str
     metadata: dict[str, SuggestionValue] = Field(default_factory=dict)
 
 
-class SchedulingSuggestionsResponse(BaseModel):
+class SchedulingSuggestionsResponse(ResponseModel):
     for_date: date
     suggestions: list[SchedulingSuggestion]

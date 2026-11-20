@@ -1,3 +1,4 @@
+import type { IntegrationClientCreateResponse } from "@/api-schema";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/app/providers/AuthProvider";
 import * as m from "@/paraglide/messages";
@@ -39,7 +40,7 @@ export function PebblePairPage() {
           );
           throw new ApiError(message, response.status, false, null, code, params);
         }
-        const result = (await response.json()) as { api_key?: string };
+        const result = (await response.json()) as IntegrationClientCreateResponse;
         if (!result.api_key) throw new Error("Pairing response did not include a token");
         const payload = encodeURIComponent(JSON.stringify({ accessToken: result.api_key }));
         window.location.href = `pebblejs://close#${payload}`;

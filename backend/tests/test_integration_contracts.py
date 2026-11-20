@@ -168,3 +168,14 @@ def test_home_assistant_contract_calendar_shape(client: TestClient, db_session: 
         assert isinstance(event["start"], dict)
         assert isinstance(event["end"], dict)
         assert "date" in event["start"] or "dateTime" in event["start"]
+
+
+def test_ha_nested_records_keep_omitted_keys_and_exact_calendar_strings() -> None:
+    from app.schemas.integrations import HACalendarEvent, HomeAssistantEntity
+
+    for attributes in ({"friendly_name": "Ratio"}, {"friendly_name": "Count", "unit_of_measurement": "items"}):
+        entity = {"entity_id": "sensor.example", "state": "1", "attributes": attributes}
+        assert HomeAssistantEntity.model_validate(entity).model_dump(mode="json") == entity
+    for stamp in ({"date": "2026-05-01"}, {"dateTime": "2026-05-01T08:00:00"}):
+        event = {"uid": "example", "summary": "Example", "start": stamp, "end": stamp, "description": None}
+        assert HACalendarEvent.model_validate(event).model_dump(mode="json") == event

@@ -5,9 +5,8 @@ import {
   fetchMedicationHistory,
   listMedicationPlans,
   updateMedicationPlan,
-  type MedicationPlanInput,
-  type MedicationPlanUpdateInput,
 } from "@/lib/api/medications";
+import type { MedicationPlanInput, MedicationPlanUpdateInput } from "@/api-types";
 import { queryKeys } from "@/lib/query/queryKeys";
 
 function useInvalidateMedicationQueries() {

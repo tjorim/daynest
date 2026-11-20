@@ -64,3 +64,10 @@ def test_shared_text_constraints_preserve_boundaries() -> None:
     assert ShoppingListUpdateRequest(notes="x" * 4000).notes == "x" * 4000
     with pytest.raises(ValidationError):
         ShoppingListUpdateRequest(notes="x" * 4001)
+
+
+def test_meal_plan_update_publishes_name_and_week_start_as_omittable_but_not_nullable() -> None:
+    schema = app.openapi()["components"]["schemas"]["MealPlanUpdate"]["properties"]
+    assert "anyOf" not in schema["name"] and "default" not in schema["name"]
+    assert "anyOf" not in schema["week_start"] and "default" not in schema["week_start"]
+    assert {"type": "null"} in schema["notes"]["anyOf"]

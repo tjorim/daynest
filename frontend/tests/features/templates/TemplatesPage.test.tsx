@@ -91,7 +91,12 @@ for (const kind of ["routine", "chore"] as const) {
         http.post(`/api/templates/${kind}s`, async () => {
           request();
           await pending;
-          return HttpResponse.json({ detail: "Save rejected" }, { status: 400 });
+          return HttpResponse.json(
+            /* Fixture exception: intentional HTTP error body, not a successful API payload. */ {
+              detail: "Save rejected",
+            },
+            { status: 400 },
+          );
         }),
       );
       await user.dblClick(submit);

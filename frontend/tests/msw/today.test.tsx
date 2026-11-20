@@ -51,7 +51,12 @@ describe("TodayPage — MSW-backed", () => {
   it("shows error UI when MSW returns a 500 for /api/today", async () => {
     server.use(
       http.get("/api/today", () =>
-        HttpResponse.json({ detail: "Internal server error" }, { status: 500 }),
+        HttpResponse.json(
+          /* Fixture exception: intentional HTTP error body, not a successful API payload. */ {
+            detail: "Internal server error",
+          },
+          { status: 500 },
+        ),
       ),
     );
 
@@ -69,6 +74,7 @@ describe("TodayPage — MSW-backed", () => {
     server.use(
       http.get("/api/today", () =>
         HttpResponse.json(
+          /* Fixture exception: intentional HTTP error body, not a successful API payload. */
           { detail: "Not authenticated", code: "not_authenticated" },
           { status: 401 },
         ),

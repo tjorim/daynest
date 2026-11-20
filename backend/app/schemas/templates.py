@@ -3,7 +3,7 @@ from datetime import date, datetime, time
 from pydantic import BaseModel, Field, PositiveInt
 
 from app.core.enums import Priority
-from app.schemas.base import NonEmptyText255, RequestModel, Text4000
+from app.schemas.base import NonEmptyText255, RequestModel, ResponseModel, Text4000
 
 
 class RoutineTemplateBase(BaseModel):
@@ -24,7 +24,7 @@ class RoutineTemplateUpdateRequest(RoutineTemplateBase, RequestModel):
     pass
 
 
-class RoutineTemplateResponse(RoutineTemplateBase):
+class RoutineTemplateResponse(RoutineTemplateBase, ResponseModel):
     id: int
     created_at: datetime
 
@@ -49,6 +49,6 @@ class ChoreTemplateUpdateRequest(ChoreTemplateBase, RequestModel):
     pass
 
 
-class ChoreTemplateResponse(ChoreTemplateBase):
+class ChoreTemplateResponse(ChoreTemplateBase, ResponseModel):
     id: int
     created_at: datetime

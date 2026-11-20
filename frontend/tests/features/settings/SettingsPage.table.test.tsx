@@ -3,10 +3,7 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { SettingsPage } from "@/features/settings/SettingsPage";
-import type {
-  IntegrationClient,
-  IntegrationClientCreateResponse,
-} from "@/lib/api/integrationClients";
+import type { IntegrationClient, IntegrationClientCreateResponse } from "@/api-types";
 import { QueryTestProvider } from "../../utils/queryTestProvider";
 
 vi.mock("@/paraglide/messages", async (importOriginal) => {
@@ -15,18 +12,22 @@ vi.mock("@/paraglide/messages", async (importOriginal) => {
 });
 
 const apiMock = vi.hoisted(() => ({
-  createIntegrationClient: vi.fn(),
-  listIntegrationClients: vi.fn<(signal?: AbortSignal) => Promise<IntegrationClient[]>>(),
-  revokeIntegrationClient: vi.fn<(clientId: number) => Promise<void>>(),
-  rotateIntegrationClient: vi.fn<(clientId: number) => Promise<IntegrationClientCreateResponse>>(),
-  fetchUserSettings: vi.fn(),
-  updateUserSettings: vi.fn(),
-  deleteAccount: vi.fn(),
+  createIntegrationClient:
+    vi.fn<typeof import("@/lib/api/integrationClients").createIntegrationClient>(),
+  listIntegrationClients:
+    vi.fn<typeof import("@/lib/api/integrationClients").listIntegrationClients>(),
+  revokeIntegrationClient:
+    vi.fn<typeof import("@/lib/api/integrationClients").revokeIntegrationClient>(),
+  rotateIntegrationClient:
+    vi.fn<typeof import("@/lib/api/integrationClients").rotateIntegrationClient>(),
+  fetchUserSettings: vi.fn<typeof import("@/lib/api/settings").fetchUserSettings>(),
+  updateUserSettings: vi.fn<typeof import("@/lib/api/settings").updateUserSettings>(),
+  deleteAccount: vi.fn<typeof import("@/lib/api/settings").deleteAccount>(),
 }));
 
 const authMock = vi.hoisted(() => ({
-  listOAuthSessions: vi.fn(),
-  revokeOAuthSession: vi.fn(),
+  listOAuthSessions: vi.fn<typeof import("@/lib/api/auth").listOAuthSessions>(),
+  revokeOAuthSession: vi.fn<typeof import("@/lib/api/auth").revokeOAuthSession>(),
 }));
 
 const installPromptMock = vi.hoisted(() => ({
@@ -61,7 +62,7 @@ vi.mock("@/app/pwa/installPrompt", () => ({
 
 vi.mock("@/lib/api/serverConfig", () => ({
   getCustomServerUrl: () => null,
-  setCustomServerUrl: vi.fn(),
+  setCustomServerUrl: vi.fn<typeof import("@/lib/api/serverConfig").setCustomServerUrl>(),
 }));
 
 describe("SettingsPage integration clients table", () => {
@@ -81,6 +82,10 @@ describe("SettingsPage integration clients table", () => {
         rate_limit_per_minute: 120,
         scopes: ["home_assistant:*"],
         is_active: true,
+        key_preview: null,
+        created_at: "2026-01-01T00:00:00Z",
+        last_used_at: null,
+        revoked_at: null,
       },
       {
         id: 2,
@@ -88,9 +93,14 @@ describe("SettingsPage integration clients table", () => {
         rate_limit_per_minute: 80,
         scopes: ["home_assistant:*"],
         is_active: false,
+        key_preview: null,
+        created_at: "2026-01-01T00:00:00Z",
+        last_used_at: null,
+        revoked_at: null,
       },
     ]);
     apiMock.fetchUserSettings.mockResolvedValue({
+      default_snooze_days: 1,
       timezone: "UTC",
       push_overdue_chores_enabled: true,
       push_medication_reminders_enabled: true,
@@ -135,6 +145,10 @@ describe("SettingsPage integration clients table", () => {
         rate_limit_per_minute: 120,
         scopes: ["home_assistant:*"],
         is_active: true,
+        key_preview: null,
+        created_at: "2026-01-01T00:00:00Z",
+        last_used_at: null,
+        revoked_at: null,
       },
       {
         id: 2,
@@ -142,6 +156,10 @@ describe("SettingsPage integration clients table", () => {
         rate_limit_per_minute: 80,
         scopes: ["home_assistant:*"],
         is_active: true,
+        key_preview: null,
+        created_at: "2026-01-01T00:00:00Z",
+        last_used_at: null,
+        revoked_at: null,
       },
       {
         id: 3,
@@ -149,6 +167,10 @@ describe("SettingsPage integration clients table", () => {
         rate_limit_per_minute: 60,
         scopes: ["home_assistant:*"],
         is_active: false,
+        key_preview: null,
+        created_at: "2026-01-01T00:00:00Z",
+        last_used_at: null,
+        revoked_at: null,
       },
     ]);
     const user = userEvent.setup();
@@ -183,6 +205,10 @@ describe("SettingsPage integration clients table", () => {
       rate_limit_per_minute: 80,
       scopes: ["home_assistant:*"],
       is_active: true,
+      key_preview: null,
+      created_at: "2026-01-01T00:00:00Z",
+      last_used_at: null,
+      revoked_at: null,
     };
     const clients: IntegrationClient[] = [
       {
@@ -191,6 +217,10 @@ describe("SettingsPage integration clients table", () => {
         rate_limit_per_minute: 120,
         scopes: ["home_assistant:*"],
         is_active: true,
+        key_preview: null,
+        created_at: "2026-01-01T00:00:00Z",
+        last_used_at: null,
+        revoked_at: null,
       },
       client2,
     ];

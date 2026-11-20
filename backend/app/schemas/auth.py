@@ -1,11 +1,11 @@
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from pydantic import BaseModel, HttpUrl, field_validator
+from pydantic import HttpUrl, field_validator
 
-from app.schemas.base import RequestModel
+from app.schemas.base import RequestModel, ResponseModel
 
 
-class UserMeResponse(BaseModel):
+class UserMeResponse(ResponseModel):
     id: int
     email: str
     full_name: str | None = None
@@ -27,14 +27,14 @@ class UserUpdateRequest(RequestModel):
         return v
 
 
-class OidcDiscoveryConfig(BaseModel):
+class OidcDiscoveryConfig(ResponseModel):
     issuer: HttpUrl
     authorization_url: HttpUrl
     token_url: HttpUrl
     end_session_endpoint: HttpUrl | None = None
 
 
-class OAuthSessionClient(BaseModel):
+class OAuthSessionClient(ResponseModel):
     """A client entry within a Keycloak session."""
 
     clientId: str
@@ -44,7 +44,7 @@ class OAuthSessionClient(BaseModel):
     offlineAccess: bool = False
 
 
-class OAuthSessionResponse(BaseModel):
+class OAuthSessionResponse(ResponseModel):
     """Active OAuth session returned by the Keycloak Account REST API."""
 
     id: str

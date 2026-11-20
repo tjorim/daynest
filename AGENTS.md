@@ -17,6 +17,36 @@ Application UI imports use `@/components/ui/<component>`. Direct Base UI subpath
 - Compare changed views against `main` in light/dark at 1280px and 390px. Preserve the documented breakpoints, native-control sizes and keyboard interactions.
 - Use `pnpm` only. Each package has a single lockfile: `frontend/pnpm-lock.yaml` and `dashboard/pnpm-lock.yaml`.
 
+## API contract
+
+The backend's response models are the source of truth for the frontend's API types, and nothing in between is written by hand:
+
+```text
+backend response models -> uv run python -m app.openapi_export (pnpm api:generate)
+  -> frontend/openapi.json -> Orval (frontend/orval.config.mjs) -> frontend/src/api-schema/
+  -> frontend/src/api-types.ts (the one import point for API shapes)
+```
+
+- `frontend/openapi.json` is a committed snapshot of the backend's OpenAPI document with `info.version` pinned to
+  `"snapshot"`, so a release bump never stales it. `frontend/src/api-schema/` is generated from it, one file per
+  schema. Never hand-edit either, and do not declare an API record type anywhere else in the frontend.
+- To add or change an endpoint: give the route a `response_model` (a test enforces it; a response model derives from
+  `ResponseModel` in `backend/app/schemas/base.py` so a field with a default is required in the generated type), run
+  `pnpm api:generate` in `frontend/` (it needs `uv`), commit `openapi.json` and `src/api-schema/`, and alias the
+  generated record for the screens in `frontend/src/api-types.ts`.
+- `pnpm typecheck` runs `pnpm api:check` and fails when `src/api-schema/` is stale; the backend test
+  `test_openapi_snapshot` fails when `openapi.json` is stale. `backend/tests/test_response_models.py` fails on a JSON
+  route without a documented response schema, and on an optional response field without a documented reason (it
+  rejects both new unexplained fields and stale exceptions). Request optionality is a separate contract.
+- Do not use `openapi-typescript` or `@hey-api/openapi-ts`: both call the TypeScript 5 compiler API and fail under
+  TypeScript 7.
+- Fixtures: every successful JSON response in MSW handlers, fetch doubles and browser specs is typed with a generated
+  record, `jsonResponse<GeneratedResponse>` from `@/mocks/response`. `pnpm typecheck` type-checks `src`, `tests` and
+  `e2e`, runs the negative compile probes (`tests/types/fixtureContracts.compile.ts`) and the source guard
+  (`pnpm fixtures:check`), which fails on an unchecked or erased fixture. A fixture that is deliberately not a success
+  record (an error envelope, an empty stream) carries an inline `/* Fixture exception: <reason> */` comment; see
+  `frontend/src/mocks/README.md`.
+
 ## Releases
 
 The app uses CalVer, `YYYY.M.MICRO` (`MICRO` counts releases within a month), tagged `vYYYY.M.MICRO`. The

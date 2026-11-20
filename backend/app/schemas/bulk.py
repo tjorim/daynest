@@ -1,8 +1,8 @@
 import enum
 
-from pydantic import BaseModel, Field
+from pydantic import Field
 
-from app.schemas.base import RequestModel
+from app.schemas.base import RequestModel, ResponseModel
 
 
 class MutationType(str, enum.Enum):
@@ -20,12 +20,12 @@ class BulkMutationRequest(RequestModel):
     mutations: list[BulkMutationItem] = Field(..., min_length=1, max_length=100)
 
 
-class BulkMutationResult(BaseModel):
+class BulkMutationResult(ResponseModel):
     type: MutationType
     id: int
     success: bool
     error: str | None = None
 
 
-class BulkMutationResponse(BaseModel):
+class BulkMutationResponse(ResponseModel):
     results: list[BulkMutationResult]

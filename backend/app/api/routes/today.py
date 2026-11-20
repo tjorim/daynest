@@ -41,7 +41,11 @@ def get_today(
     return service.get_today(user_id=current_user.id, for_date=datetime.now(UTC).date())
 
 
-@router.get("/today/stream")
+@router.get(
+    "/today/stream",
+    response_class=EventSourceResponse,
+    responses={200: {"content": {"text/event-stream": {"schema": {"type": "string"}}}}},
+)
 async def stream_today_updates(
     request: Request,
     event_bus: EventBus = Depends(get_event_bus),
