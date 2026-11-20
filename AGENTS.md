@@ -1,12 +1,79 @@
-# Repository guidance
+# AGENTS.md
 
-## UI dependency maintenance
+## Project overview
 
-Follow [docs/ui-maintenance.md](docs/ui-maintenance.md) for Base UI/runtime updates and direct dialog maintenance. Run `pnpm ui:check` from `frontend/` after changing shared UI. Renovate does not update owned component source; preserve the documented customisations and validate interactions and bundle budgets.
+Daynest is a personal web app for daily routines, chores, medication and household planning: a React 19 + Vite +
+TypeScript 7 single-page app (`frontend/`), a FastAPI + SQLAlchemy backend (`backend/`) whose OpenAPI document drives
+the frontend's generated API types, a native Android app (`android/`), a Pebble companion (`pebble/`), a Home Assistant
+integration (`custom_components/`, `dashboard/`) and the `python-daynest` client library. Toolchain versions live in
+`frontend/.node-version`, the `packageManager` field of `frontend/package.json` and `backend/pyproject.toml`; see
+`docs/toolchain.md`.
 
-Application UI imports use `@/components/ui/<component>`. Direct Base UI subpath imports belong in inventoried UI adapters or exact documented composition exceptions. `pnpm ui:check` enforces the policy; `pnpm ui:test` tests it. Keep styles and application behaviour when aligning imports.
+## Repository layout
 
-## Styling: Tailwind and Base UI
+- `frontend/` contains the web app (`src/`, unit tests in `tests/`, Playwright specs in `e2e/`, translations in `messages/`)
+- `backend/` contains the FastAPI service (`app/`, `alembic/`, `tests/`, per-environment files in `env/`)
+- `android/` contains the native Android app; `pebble/` the Pebble watch app
+- `custom_components/` contains the Home Assistant integration, `dashboard/` its Lovelace card and `python-daynest/` the PyPI client library
+- `docs/` holds contracts, decisions and maintenance guides; `scripts/` the release tooling; `secrets/` the (git-ignored) compose secret files
+- `docker-compose.yml` is the local development stack (PostgreSQL and Keycloak); production runs elsewhere with the same images
+
+### Source of truth
+
+- `VERSION` (repo root) for the app version, see "Release"
+- `backend/` for API shapes: `frontend/openapi.json` is the committed OpenAPI document (`uv run python -m app.openapi_export`), `frontend/src/api-schema/` is generated from it by Orval and `frontend/src/api-types.ts` is the one place screens import API types from
+- `frontend/messages/` for translation content
+- `backend/SCHEMA-CONVENTIONS.md` for backend schema conventions
+
+## Commands
+
+### Frontend (`cd frontend`)
+
+```bash
+pnpm install --frozen-lockfile
+pnpm dev                 # needs a running backend and Keycloak; `pnpm dev:mock` runs against MSW instead
+pnpm typecheck           # paraglide:compile + api:check + fixtures:check + tsc -b --noEmit
+pnpm lint
+pnpm format              # rewrites files in place
+pnpm format:check        # what CI runs
+pnpm format:repo         # same for ../.github, ../scripts and the root JSON files (format:repo:check in CI)
+pnpm test                # Vitest; test:watch for watch mode
+pnpm test:e2e            # Playwright against the mocked frontend (builds with MSW baked in)
+pnpm build               # build:mock builds with the MSW service worker
+pnpm bundle:check        # bundle budgets (bundle:report prints them, bundle:test tests the script)
+pnpm locale:audit        # interface strings and catalogues
+pnpm check-message-parity
+pnpm paraglide:compile   # regenerates src/paraglide (git-ignored)
+pnpm api:generate        # rewrites openapi.json (needs uv) and src/api-schema/
+pnpm api:check           # fails when src/api-schema/ is stale against openapi.json
+pnpm ui:check            # UI maintenance inventory (ui:test, ui:usage, ui:upstream, ui:diff, ui:record)
+pnpm test:compatibility  # native-React vs Redact runtime checks
+```
+
+### Backend (`cd backend`)
+
+```bash
+uv sync --locked
+uv run uvicorn app.main:app --reload
+uv run pytest
+uv run ruff check .
+uv run ruff format --check .      # ruff format . to rewrite
+uv run ty check .
+uv run alembic upgrade head       # PostgreSQL; alembic check verifies migrations match the models
+uv run python -m app.openapi_export   # rewrites ../frontend/openapi.json
+uv run python -m app.db.dev_schema    # SQLite dev database from the models (--reset rebuilds it)
+```
+
+## Conventions
+
+### Code style
+
+- Frontend formatting is `oxfmt`, linting `oxlint` (with `@shadcn/lint`); backend formatting and linting is `ruff` (line length 120, rules `E, F, I, UP, B, C4, SIM`) and type checking `ty`. Do not add another formatter or linter.
+- Use `pnpm` only (one lockfile per package: `frontend/` and `dashboard/`) and `uv` only for Python. `minimumReleaseAge: 1440` in `pnpm-workspace.yaml` keeps the one-day quarantine for new releases: wait for a release to mature instead of disabling it.
+- TypeScript runs with `erasableSyntaxOnly` and `verbatimModuleSyntax`: no enums, namespaces or parameter properties; use `import type` for types. `@/` maps to `frontend/src/`.
+- Backend dependencies are pinned exactly (`==`) in `backend/pyproject.toml`; frontend ranges use `^x.y.z`. Update lockfiles with `pnpm install --lockfile-only` and `uv lock`, never by hand.
+
+### Styling and UI
 
 - Use unprefixed Tailwind v4 utilities (`px-4`, `dark:bg-popover`, `max-w-lg`). Bootstrap and its icon font have been removed; do not add their packages or classes.
 - `frontend/src/tailwind.css` owns tokens, document defaults and custom utilities. The cascade is `theme, base, schedule-x, components, utilities`; import vendor styles into a named layer below utilities. The owned base layer preserves the existing typography and native controls, so do not add a second reset or preflight without comparing every screen.
@@ -16,6 +83,23 @@ Application UI imports use `@/components/ui/<component>`. Direct Base UI subpath
 - `pnpm lint` enforces no arbitrary values, raw palette colours, inline styles or unknown classes, with no class allow-list. Define named one-off sizes/styles with `@utility` in `tailwind.css`. Pass dynamic values through CSS custom properties.
 - Compare changed views against `main` in light/dark at 1280px and 390px. Preserve the documented breakpoints, native-control sizes and keyboard interactions.
 - Use `pnpm` only. Each package has a single lockfile: `frontend/pnpm-lock.yaml` and `dashboard/pnpm-lock.yaml`.
+
+### UI dependency maintenance
+
+Follow [docs/ui-maintenance.md](docs/ui-maintenance.md) for Base UI/runtime updates and direct dialog maintenance. Run `pnpm ui:check` from `frontend/` after changing shared UI. Renovate does not update owned component source; preserve the documented customisations and validate interactions and bundle budgets.
+
+Application UI imports use `@/components/ui/<component>`. Direct Base UI subpath imports belong in inventoried UI adapters or exact documented composition exceptions. `pnpm ui:check` enforces the policy; `pnpm ui:test` tests it. Keep styles and application behaviour when aligning imports.
+
+### Tests
+
+- Frontend unit tests live in `frontend/tests/` (Vitest projects `dom`, `node`, `scripts` and `msw`, see `frontend/vitest.config.ts`); `frontend/scripts/*.test.mjs` test the repo scripts. Browser specs live in `frontend/e2e/`.
+- Backend tests live in `backend/tests/` and use an in-memory SQLite database; async tests use `@pytest.mark.anyio`.
+- Every JSON fixture in a test is typed with a generated API record (see "API contract").
+
+### Internationalisation
+
+- UI text lives in `frontend/messages/{en,nl}.json` and is compiled by Paraglide into `frontend/src/paraglide/` (git-ignored; `pnpm typecheck` and `pnpm build` compile it). Use `m.<key>()` from `@/paraglide/messages`; never hard-code interface strings.
+- `pnpm locale:audit` and `pnpm check-message-parity` keep both catalogues complete and in step.
 
 ## API contract
 
@@ -47,7 +131,15 @@ backend response models -> uv run python -m app.openapi_export (pnpm api:generat
   record (an error envelope, an empty stream) carries an inline `/* Fixture exception: <reason> */` comment; see
   `frontend/src/mocks/README.md`.
 
-## Releases
+## Testing
+
+Run the checks CI runs before pushing, from `frontend/`: `pnpm typecheck`, `pnpm lint`, `pnpm format:check` (+ `pnpm format:repo:check`), `pnpm test`, `pnpm build`, `pnpm bundle:test && pnpm bundle:check`, `pnpm locale:audit`, `pnpm check-message-parity` and `pnpm ui:test && pnpm ui:check`; from `backend/`: `uv run ruff check .`, `uv run ruff format --check .`, `uv run ty check .` and `uv run pytest`. `pnpm test:e2e` needs `pnpm exec playwright install chromium`. Other components have their own checks (`android/`, `pebble/`, `custom_components/`, `python-daynest/`, `dashboard/`); see their workflows.
+
+## CI
+
+`.github/workflows/ci.yml` detects which components a change touches and calls the component workflows (`backend-ci.yml`, `frontend-ci.yml`, `dashboard-ci.yml`, `daynest-lib-ci.yml`, `ha-ci.yml`, `android.yml`, `pebble.yml` and the `codeql-*.yml` scans); unchanged components show as skipped. The `CI gate` job fails when any needed job failed or was cancelled. The frontend workflow runs the `Frontend` job and `Frontend / E2E Tests (Chromium)`; the backend workflow runs `Backend` and `Backend / Migrations`. `ci.yml` also checks release metadata and the formatting of workflows, scripts and root JSON. Action versions are pinned to commit SHAs with the version in a comment; Renovate keeps them current.
+
+## Release
 
 The app uses CalVer, `YYYY.M.MICRO` (`MICRO` counts releases within a month), tagged `vYYYY.M.MICRO`. The
 root `VERSION` file is the single source of truth; `release.config.json` lists the files that carry a
@@ -74,3 +166,13 @@ Releases up to `0.1.12` used independent SemVer (#673); CalVer versions sort abo
    and Android APK, and creates a **draft** GitHub release whose notes are the changelog section.
 
 `node scripts/release.mjs check` also runs in CI on every pull request.
+
+## Pitfalls
+
+- Never hand-edit `frontend/openapi.json` or `frontend/src/api-schema/`; regenerate them, and do not declare API record types elsewhere in the frontend.
+- `frontend/src/paraglide/` is generated and git-ignored: run `pnpm paraglide:compile` (or `pnpm typecheck`) after a fresh checkout before running `tsc` or Vitest directly.
+- `pnpm install` runs `msw init` (postinstall), which can rewrite `frontend/public/mockServiceWorker.js` after an MSW upgrade; commit that file only when the upgrade is intended.
+- `ENVIRONMENT=dev` without a `DATABASE_URL` uses a SQLite file built from the models, not from the migrations; production is PostgreSQL, so verify schema changes with `alembic upgrade head` and `alembic check` against PostgreSQL.
+- `android/app/build.gradle.kts` reads `VERSION`; never edit the version there by hand.
+- `openapi-typescript` and `@hey-api/openapi-ts` fail under TypeScript 7; the API types come from Orval only.
+- Keep `.github/` workflows, `scripts/` and the root JSON files formatted with `pnpm format:repo` (CI runs `format:repo:check`).

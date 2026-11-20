@@ -1,10 +1,12 @@
 # Daynest
 
+## What it is
+
 Daynest is a personal web app for managing daily routines, chores, medication, and household planning across phone and laptop.
 
 It combines a **today-focused checklist** with a **calendar overview**, and is designed to integrate later with **Home Assistant** and AI tooling via an MCP-compatible adapter.
 
-## Why the name “Daynest”?
+### Why the name “Daynest”?
 
 “Daynest” combines:
 
@@ -13,7 +15,7 @@ It combines a **today-focused checklist** with a **calendar overview**, and is d
 
 The name reflects the product goal: a calm place to organize everyday life at home.
 
-## Goals
+### Goals
 
 - Keep today clear and actionable.
 - Avoid forgetting recurring chores.
@@ -22,14 +24,7 @@ The name reflects the product goal: a calm place to organize everyday life at ho
 - Stay simple enough for one person to build and maintain.
 - Support future integrations without redesigning core logic.
 
-## Tech stack
-
-- Frontend: React, TypeScript, Vite, TanStack (Query/Router/Form/Table), Tailwind CSS, Base UI and Lucide, dayjs
-- Native Android: Kotlin, Jetpack Compose, AndroidX
-- Backend: FastAPI, SQLAlchemy/SQLModel, PostgreSQL, Alembic, Pydantic
-- Hosting: Docker Compose on a VPS, Caddy reverse proxy
-
-## Product principles
+### Product principles
 
 - Today screen is the default and primary interaction point.
 - Calendar is an overview/planning layer, not the only workflow.
@@ -42,62 +37,7 @@ The name reflects the product goal: a calm place to organize everyday life at ho
 Frontend TanStack architecture and usage conventions are documented in
 `frontend/docs/tanstack-architecture.md`.
 
-## Initial architecture layout
-
-```text
-frontend/
-  src/
-    app/
-      router/
-      layout/
-      providers/
-    components/
-      common/
-      forms/
-      calendar/
-    features/
-      today/
-      routines/
-      chores/
-      medication/
-      planning/
-      settings/
-    domain/
-      routines/
-      chores/
-      medication/
-      planning/
-      today/
-    lib/
-      api/
-      dates/
-      storage/
-      utils/
-    hooks/
-    types/
-
-backend/
-  app/
-    api/
-      routes/
-    core/
-    db/
-    models/
-    schemas/
-    services/
-    repositories/
-    jobs/
-    integrations/
-  alembic/
-
-android/
-  app/
-    src/main/
-      java/com/test/nativeapp/
-      res/
-```
-
-## Roadmap
+### Roadmap
 
 Completed phases:
 
@@ -116,7 +56,7 @@ Optional growth modules (not yet implemented — tracked as metadata hooks):
 - Recurring groceries/inventory hooks
 - Shared calendar/planning linkage
 
-## Optional growth modules (implemented as metadata, not separate silos)
+### Optional growth modules (implemented as metadata, not separate silos)
 
 Planned items can now carry optional `module_key` and link metadata so Daynest can grow into shopping,
 meal planning, recurring grocery reminders, and shared calendar linkage without creating new mandatory workflows.
@@ -136,11 +76,11 @@ Optional linkage fields on planned items:
 
 If these fields are omitted, planned items remain plain and simple.
 
-## Why this direction
+### Why this direction
 
 This architecture keeps Daynest calm, lightweight, and practical while preserving a clean path for future integrations and automation.
 
-## Integration-ready API surface
+### Integration-ready API surface
 
 Daynest now exposes thin integration adapters over the existing `TodayService` read models,
 with integration keys and per-client rate limits:
@@ -169,9 +109,94 @@ Compatibility and schema evolution documentation:
 - `backend/docs/integrations/SCHEMA_CHANGELOG.md`
 - `backend/docs/integrations/HOME_ASSISTANT_CUSTOM_INTEGRATION_PLAN.md`
 
-## Runtime hardening and environment-specific config
+## Quick start
 
-### Environment files
+Requirements: Node (version in `frontend/.node-version`) with pnpm (the `packageManager` field of `frontend/package.json`; see [docs/toolchain.md](docs/toolchain.md)), [uv](https://docs.astral.sh/uv/) for the backend, and Docker for the full local stack.
+
+### Frontend only (mock mode)
+
+```bash
+cd frontend
+pnpm install --frozen-lockfile
+pnpm dev:mock       # MSW answers every API call: no backend, database or Keycloak needed
+```
+
+See [frontend/README.md](frontend/README.md) for mock scenarios and the other frontend scripts.
+
+### Backend without a container
+
+With `ENVIRONMENT=dev` (the default) and no `DATABASE_URL`, the backend uses a SQLite file, `backend/dev.db`. Production runs on PostgreSQL and its migrations target it, so the SQLite database is built from the models instead:
+
+```bash
+cd backend
+export DEV_AUTH_BYPASS_TOKEN=dev   # any string; send it as `Authorization: Bearer dev`
+uv run python -m app.db.dev_schema           # create the tables
+uv run uvicorn app.main:app --reload
+```
+
+`create_all` never alters an existing table, so after a model change run `uv run python -m app.db.dev_schema --reset` to rebuild the file. The test suite uses an in-memory SQLite database the same way.
+
+### Full local stack
+
+`docker-compose.yml` starts PostgreSQL and Keycloak for development (credentials are hardcoded dev defaults; never use them in production). Then run the backend ([backend/README.md](backend/README.md)) and `pnpm dev` in `frontend/`.
+
+## Development commands
+
+```bash
+# Frontend (cd frontend)
+pnpm dev            # dev server (pnpm dev:mock for mock mode)
+pnpm typecheck      # paraglide:compile + api:check + fixtures:check + tsc -b --noEmit
+pnpm lint
+pnpm format:check   # `pnpm format` rewrites; format:repo(:check) covers .github, scripts and root JSON
+pnpm test
+pnpm build
+
+# Backend (cd backend)
+uv run uvicorn app.main:app --reload
+uv run ruff check . && uv run ruff format --check . && uv run ty check .
+uv run alembic upgrade head
+```
+
+The full command list is in [AGENTS.md](AGENTS.md#commands) and [backend/README.md](backend/README.md).
+
+## Testing
+
+```bash
+cd frontend && pnpm test            # Vitest (tests/); pnpm test:e2e runs the Playwright specs in e2e/
+cd backend && uv run pytest         # in-memory SQLite, no services required
+```
+
+CI runs the same checks plus the bundle budgets, locale audit, message parity and UI maintenance inventory; see "Continuous integration" below.
+
+## Project layout
+
+```text
+frontend/    React web app: src/ (app, features, components, lib, mocks, ...), tests/ (Vitest), e2e/ (Playwright), messages/ (en, nl)
+backend/     FastAPI service: app/ (api, core, db, models, schemas, services, repositories, mcp, middleware), alembic/, tests/, env/
+android/     Native Android app (Kotlin, Jetpack Compose)
+pebble/      Pebble watch companion
+custom_components/  Home Assistant integration;  dashboard/  its Lovelace card
+python-daynest/     PyPI client library
+docs/        Contracts, decisions and maintenance guides;  scripts/  release tooling
+```
+
+### Tech stack
+
+- Frontend: React, TypeScript, Vite, TanStack (Query/Router/Form/Table), Tailwind CSS, Base UI and Lucide, dayjs
+- Native Android: Kotlin, Jetpack Compose, AndroidX
+- Backend: FastAPI, SQLAlchemy/SQLModel, PostgreSQL, Alembic, Pydantic
+- Hosting: Docker Compose on a VPS, Caddy reverse proxy
+
+Frontend TanStack architecture and usage conventions are documented in
+`frontend/docs/tanstack-architecture.md`.
+
+## Deployment and release
+
+Releases use CalVer (`YYYY.M.MICRO`) with the root `VERSION` file as the single source of truth; the maintainer steps are in the "Release" section of [AGENTS.md](AGENTS.md) and the history in [CHANGELOG.md](CHANGELOG.md). Hosting is Docker Compose on a VPS behind Caddy.
+
+### Runtime hardening and environment-specific config
+
+#### Environment files
 
 Backend runtime configuration is split by environment:
 
@@ -185,7 +210,7 @@ Select the backend env file at deploy time:
 BACKEND_ENV_FILE=./backend/env/staging.env docker compose up -d
 ```
 
-### Managed secret injection
+#### Managed secret injection
 
 Do not store app/database secrets in env files. The stack reads them from container secret files:
 
@@ -201,14 +226,14 @@ BACKEND_ENV_FILE=./backend/env/staging.env \
 docker compose up -d
 ```
 
-### CORS and trusted hosts
+#### CORS and trusted hosts
 
 Configure these per environment via env files:
 
 - `CORS_ORIGINS` (comma-separated)
 - `TRUSTED_HOSTS` (comma-separated)
 
-### DB/network exposure by environment
+#### DB/network exposure by environment
 
 - Base `docker-compose.yml` keeps Postgres internal-only (`expose` only).
 - Local development can opt into host DB access by layering `docker-compose.dev.yml`:
@@ -217,24 +242,11 @@ Configure these per environment via env files:
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
 ```
 
-### Local backend without a container
-
-With `ENVIRONMENT=dev` (the default) and no `DATABASE_URL`, the backend uses a SQLite file, `backend/dev.db`. Production runs on PostgreSQL and its migrations target it, so the SQLite database is built from the models instead:
-
-```bash
-cd backend
-export DEV_AUTH_BYPASS_TOKEN=dev   # any string; send it as `Authorization: Bearer dev`
-uv run python -m app.db.dev_schema           # create the tables
-uv run uvicorn app.main:app --reload
-```
-
-`create_all` never alters an existing table, so after a model change run `uv run python -m app.db.dev_schema --reset` to rebuild the file. The test suite uses an in-memory SQLite database the same way.
-
-## Data loss prevention playbook
+### Data loss prevention playbook
 
 To reduce painful data loss, Daynest treats backup/recovery and data portability as first-class operational requirements.
 
-### 1) Postgres backup policy + restore drill
+#### 1) Postgres backup policy + restore drill
 
 **Backup policy**
 
@@ -257,7 +269,7 @@ To reduce painful data loss, Daynest treats backup/recovery and data portability
   - data validation findings,
   - follow-up actions.
 
-### 2) Export/import compatibility contract + versioning
+#### 2) Export/import compatibility contract + versioning
 
 Daynest export files must be **self-describing** and versioned.
 
@@ -278,7 +290,7 @@ Daynest export files must be **self-describing** and versioned.
   - foreign-key/reference integrity issues,
   - per-entity counts to be created/updated/skipped.
 
-### 3) Migration rollback guidelines
+#### 3) Migration rollback guidelines
 
 Alembic migrations should be written with safe rollback strategy in mind.
 
@@ -295,7 +307,7 @@ Alembic migrations should be written with safe rollback strategy in mind.
   - tested downgrade on staging snapshot before production apply.
 - Never combine major schema reshaping and unrelated feature work in one migration revision.
 
-### 4) Seed/snapshot strategy for local + staging parity
+#### 4) Seed/snapshot strategy for local + staging parity
 
 Use both deterministic seeds and sanitized snapshots, each for a different purpose.
 
@@ -312,7 +324,7 @@ Use both deterministic seeds and sanitized snapshots, each for a different purpo
   - staging defaults to latest approved sanitized snapshot,
   - snapshot refresh procedure includes automatic smoke tests before marking usable.
 
-## Operational visibility
+### Operational visibility
 
 The backend includes baseline observability primitives for production operations:
 
@@ -332,15 +344,16 @@ Related backend environment variables:
 - `SENTRY_DSN` (optional)
 - `SENTRY_TRACES_SAMPLE_RATE` (default `0.0`)
 
-## Continuous integration
+## Contributing and docs
+
+### Continuous integration
 
 Everything runs from `.github/workflows/ci.yml` on pull requests and pushes to `main`. A `changes` job detects which components a pull request touches and each component job runs only when it is affected; the rest show as **Skipped**. Pushes to `main` run everything. Each component lives in its own reusable workflow:
 
 | Job | Workflow | Checks |
 |-----|----------|--------|
-| Backend | `backend-ci.yml` | Ruff lint and format, `ty` type-check, pytest; Alembic migrations applied to head |
-| Frontend | `frontend-ci.yml` | locale audit, format check, type-check and production build, Vitest with coverage |
-| End-to-end | `e2e.yml` | Playwright against the mocked frontend |
+| Backend | `backend-ci.yml` | Ruff lint and format, `ty` type-check, pytest; `Backend / Migrations` applies Alembic migrations to head |
+| Frontend | `frontend-ci.yml` | type-check, lint, format check, Vitest with coverage, production build, bundle budgets, locale audit, message parity, UI maintenance; `Frontend / E2E Tests (Chromium)` runs Playwright against the mocked frontend |
 | Dashboard | `dashboard-ci.yml` | Lovelace card build |
 | Python library | `daynest-lib-ci.yml` | Ruff, pyright, pytest for `python-daynest` |
 | Home Assistant | `ha-ci.yml` | Ruff and pytest for `custom_components` |
@@ -352,7 +365,7 @@ The `CI gate` job at the end passes only when every job passed or was skipped, s
 
 Release workflows (`release.yml`, `android-release.yml`) are triggered by tags or manually and are not part of `ci.yml`.
 
-## Backend Python tooling
+### Backend Python tooling
 
 The backend uses Astral tooling throughout:
 
@@ -368,21 +381,24 @@ The backend uses Astral tooling throughout:
 - Significantly faster than mypy (10–100×), even on small codebases.
 - No mypy-specific plugins are used in this project, so migration is clean.
 - `ty` is in beta as of 0.0.x; false positives from incomplete third-party stubs
-  (e.g. `anyio.to_thread`) are suppressed via `[tool.ty.rules]` in `pyproject.toml`.
+  (e.g. `anyio.to_thread`) are suppressed in `backend/pyproject.toml` (`[tool.ty]`).
 
 Run type-checking locally:
 
 ```bash
 cd backend
-uv run ty check app
+uv run ty check .
 ```
 
-## Retry safety
+### Retry safety
 
 See [docs/retry-safety.md](docs/retry-safety.md) for the write-operation inventory, retry/idempotency contracts across REST and integrations, and the checklist for new externally callable writes.
 
-## UI maintenance
+### UI maintenance
 
 See [UI dependency and component maintenance](docs/ui-maintenance.md) for package updates, component provenance, upstream review commands and validation.
 
 Toolchain versions and coordinated rollout: [Node and pnpm toolchain](docs/toolchain.md).
+
+- [AGENTS.md](AGENTS.md): conventions, commands, API contract, release steps
+- [backend/README.md](backend/README.md) and [frontend/README.md](frontend/README.md)
