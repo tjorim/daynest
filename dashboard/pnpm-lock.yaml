@@ -174,8 +174,8 @@ importers:
         version: 4.9.1
     devDependencies:
       custom-card-helpers:
-        specifier: ^2.0.0
-        version: 2.1.0(lit@3.3.3)
+        specifier: ^2.2.1
+        version: 2.2.1(lit@3.3.3)
       lit:
         specifier: ^3.3.3
         version: 3.3.3
@@ -473,8 +473,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  custom-card-helpers@2.1.0:
-    resolution: {integrity: sha512-XfuA1dSFjt0UwOzkXKGoWFYQ/6+RtjWgXEQt5mRJ+ooumnXhR23eyBQTHBA+eRIlAktz+2aMFHh8T4YKIVFSiA==}
+  custom-card-helpers@2.2.1:
+    resolution: {integrity: sha512-OI3N8UtN0/KZk+1ctdABxWtOaBzmi5DLTwYKK4Xg76YXi9hSOkD7rNwf52TysQwtIYRri+k5nVOcmN/8kZ8HBw==}
     engines: {node: '>=24', npm: '>=11'}
     peerDependencies:
       lit: '>=3.0.0'
@@ -861,7 +861,7 @@ snapshots:
   '@typescript/typescript-win32-x64@7.0.2':
     optional: true
 
-  custom-card-helpers@2.1.0(lit@3.3.3):
+  custom-card-helpers@2.2.1(lit@3.3.3):
     dependencies:
       home-assistant-js-websocket: 9.8.1
       intl-messageformat: 12.1.5
