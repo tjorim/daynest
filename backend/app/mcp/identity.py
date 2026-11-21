@@ -14,14 +14,14 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.api.dependencies.integration_auth import (
-    INTEGRATION_KEY_PREFIX,
-    hash_integration_key,
-)
 from app.mcp import principal as principal_module
 from app.mcp.context import session_scope
 from app.models.integration_client import IntegrationClient
 from app.models.user import User
+from app.routers.dependencies.integration_auth import (
+    INTEGRATION_KEY_PREFIX,
+    hash_integration_key,
+)
 from app.services.audit_service import write_audit_entry
 
 

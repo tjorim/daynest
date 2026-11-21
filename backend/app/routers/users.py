@@ -5,13 +5,13 @@ from fastapi import APIRouter, Body, Depends, Query, Response, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session, aliased
 
-from app.api.dependencies.auth import get_current_user
 from app.core.enums import HouseholdMemberRole
 from app.core.errors import ApiException
 from app.db.session import get_db
 from app.models.chore_template import ChoreTemplate
 from app.models.household_member import HouseholdMember
 from app.models.user import User
+from app.routers.dependencies.auth import get_current_user
 from app.schemas.users import (
     UserExportResponse,
     UserImportCounts,

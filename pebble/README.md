@@ -49,12 +49,12 @@ phone's connection. See
 ## A course-correction from the original issue plan
 
 Issue #676 says to reuse `/api/today` and the today-actions endpoints. That's
-**not quite right**: `/api/today` (`backend/app/api/routes/today.py`) is
+**not quite right**: `/api/today` (`backend/app/routers/today.py`) is
 wired to `get_current_user`, which only accepts an interactive OIDC bearer
 token — it does not accept an integration API key.
 
 There's now a dedicated, narrow router for this app:
-`backend/app/api/routes/integrations/pebble.py`, guarded by
+`backend/app/routers/integrations/pebble.py`, guarded by
 `require_integration_auth` with scoped permissions (see
 `docs/authorization-model.md`) — a key created for Pebble cannot reach the
 Home Assistant integration routes or vice versa:

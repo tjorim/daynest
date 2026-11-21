@@ -10,7 +10,6 @@ from fastmcp.server.auth import AccessToken, AuthContext, run_auth_checks
 from mcp.types import CompletionArgument, PromptReference, ResourceTemplateReference
 from sqlalchemy.orm import Session, sessionmaker
 
-from app.api.dependencies.integration_auth import hash_integration_key
 from app.core.config import settings
 from app.core.enums import ChoreStatus, MedicationDoseStatus
 from app.mcp.capabilities import (
@@ -38,6 +37,7 @@ from app.models.medication_dose_instance import MedicationDoseInstance
 from app.models.medication_plan import MedicationPlan
 from app.models.routine_template import RoutineTemplate
 from app.models.user import User
+from app.routers.dependencies.integration_auth import hash_integration_key
 
 
 def _session_factory(db_session: Session) -> sessionmaker[Session]:

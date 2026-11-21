@@ -9,12 +9,12 @@ from icalendar import Calendar, Event
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.api.dependencies.auth import get_current_user, get_current_user_optional
-from app.api.dependencies.today import get_today_service
 from app.core.errors import ApiException
 from app.db.session import get_db
 from app.models.planned_item import PlannedItem
 from app.models.user import User
+from app.routers.dependencies.auth import get_current_user, get_current_user_optional
+from app.routers.dependencies.today import get_today_service
 from app.schemas.calendar import CalendarFeedResponse, CalendarTokenResponse
 from app.schemas.today import CalendarRangeResponse
 from app.services.today_service import TodayService

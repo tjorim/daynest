@@ -6,13 +6,13 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from app.api.dependencies.auth import get_current_user
 from app.main import app
 from app.models.chore_template import ChoreTemplate
 from app.models.household import Household
 from app.models.household_member import HouseholdMember
 from app.models.medication_plan import MedicationPlan
 from app.models.user import User
+from app.routers.dependencies.auth import get_current_user
 
 
 def _create_user(db_session: Session, email: str) -> User:

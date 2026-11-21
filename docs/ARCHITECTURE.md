@@ -39,6 +39,24 @@ Rules:
 
 ## Backend (`backend/app/`)
 
-Daynest keeps its own backend layout for now (`api/`, `core/`, `db/`, `models/`, `repositories/`, `schemas/`,
-`services/`, `mcp/`, `middleware/`). The shared target, applied to all four apps in a later step, is `main.py`, `core/`,
-`db/`, `models/`, `schemas/`, `routers/`, `services/`, `mcp/` and `middleware/`, with `api/` becoming `routers/`.
+```
+main.py                 app assembly: middleware, router registration, lifespan; nothing else
+mcp_server.py           the stdio MCP entry point (`python -m app.mcp_server`), documented in backend/docs
+openapi_export.py       writes frontend/openapi.json (`uv run python -m app.openapi_export`)
+routers/                the HTTP layer, one module per domain; thin: validate, call a service, return a response model
+  dependencies/         FastAPI dependencies shared by the routers (auth, audit, events, integration auth)
+  integrations/         routers for the integration clients (Home Assistant, Pebble, client management)
+services/               business logic, one module per domain
+repositories/           database access used by the services
+models/                 SQLAlchemy models, one module per domain
+schemas/                Pydantic request and response models, one module per domain (`base.py` has the shared bases)
+core/                   configuration, errors, OIDC, password hashing, pagination, request limits and timing, observability
+db/                     engine, session, base class and the dev schema helper
+mcp/                    the MCP server, tools and resources
+middleware/             ASGI middleware
+```
+
+Rules: every JSON route declares a response model; routers do not touch the database directly; code used by one domain
+stays in that domain's modules. Tests live in `backend/tests/`. The shared target for all four apps is this layout
+(`main.py`, `core/`, `db/`, `models/`, `schemas/`, `routers/`, `services/`, `mcp/`, `middleware/`); `repositories/` is
+kept here because daynest already has it.

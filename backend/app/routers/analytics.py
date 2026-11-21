@@ -4,7 +4,6 @@ from typing import Literal
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
-from app.api.dependencies.auth import get_current_user
 from app.db.session import get_db
 from app.models.user import User
 from app.repositories.analytics_repository import (
@@ -16,6 +15,7 @@ from app.repositories.analytics_repository import (
 from app.repositories.analytics_repository import (
     get_scheduling_suggestions as build_scheduling_suggestions,
 )
+from app.routers.dependencies.auth import get_current_user
 from app.schemas.analytics import (
     AnalyticsSummaryResponse,
     SchedulingSuggestionsResponse,

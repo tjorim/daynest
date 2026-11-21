@@ -5,8 +5,6 @@ from fastapi.testclient import TestClient
 from pytest import MonkeyPatch
 from sqlalchemy.orm import Session
 
-from app.api.dependencies.auth import get_current_user
-from app.api.dependencies.integration_auth import hash_integration_key
 from app.core.enums import ChoreStatus
 from app.main import app
 from app.models.chore_instance import ChoreInstance
@@ -14,6 +12,8 @@ from app.models.chore_template import ChoreTemplate
 from app.models.integration_client import IntegrationClient
 from app.models.medication_plan import MedicationPlan
 from app.models.user import User
+from app.routers.dependencies.auth import get_current_user
+from app.routers.dependencies.integration_auth import hash_integration_key
 from app.schemas.integration_contracts import (
     HOME_ASSISTANT_ADAPTER,
     HOME_ASSISTANT_CONTRACT_VERSION,
@@ -138,7 +138,7 @@ def test_home_assistant_routes_reject_invalid_key(
     db_session: Session,
     monkeypatch: MonkeyPatch,
 ) -> None:
-    _freeze_route_today(monkeypatch, "app.api.routes.integrations.home_assistant")
+    _freeze_route_today(monkeypatch, "app.routers.integrations.home_assistant")
     _create_home_assistant_fixture(db_session, "ha-scope@example.com")
 
     for endpoint in HOME_ASSISTANT_ENDPOINTS:
@@ -154,7 +154,7 @@ def test_pebble_and_home_assistant_scopes_are_isolated(
     db_session: Session,
     monkeypatch: MonkeyPatch,
 ) -> None:
-    _freeze_route_today(monkeypatch, "app.api.routes.integrations.pebble")
+    _freeze_route_today(monkeypatch, "app.routers.integrations.pebble")
     user = _create_home_assistant_fixture(db_session, "integration-scope-matrix@example.com")
     pebble_key = _create_integration_key(
         db_session,
@@ -180,7 +180,7 @@ def test_home_assistant_scope_cannot_reach_pebble_routes(
     db_session: Session,
     monkeypatch: MonkeyPatch,
 ) -> None:
-    _freeze_route_today(monkeypatch, "app.api.routes.integrations.home_assistant")
+    _freeze_route_today(monkeypatch, "app.routers.integrations.home_assistant")
     user = _create_home_assistant_fixture(db_session, "reverse-scope-matrix@example.com")
     home_assistant_key = _create_integration_key(
         db_session,
@@ -201,7 +201,7 @@ def test_pebble_read_scope_cannot_run_watch_actions(
     db_session: Session,
     monkeypatch: MonkeyPatch,
 ) -> None:
-    _freeze_route_today(monkeypatch, "app.api.routes.integrations.pebble")
+    _freeze_route_today(monkeypatch, "app.routers.integrations.pebble")
     user = _create_home_assistant_fixture(db_session, "pebble-read-only@example.com")
     read_key = _create_integration_key(db_session, user.id, scopes=["pebble:read"])
     chore = db_session.query(ChoreInstance).filter_by(user_id=user.id).first()
@@ -221,7 +221,7 @@ def test_home_assistant_summary_contract_is_stable(
     db_session: Session,
     monkeypatch: MonkeyPatch,
 ) -> None:
-    _freeze_route_today(monkeypatch, "app.api.routes.integrations.home_assistant")
+    _freeze_route_today(monkeypatch, "app.routers.integrations.home_assistant")
     user = _create_home_assistant_fixture(db_session, "ha-summary-contract@example.com")
     ha_key = _create_integration_key(db_session, user.id)
     expected_contract = integration_contract_header(HOME_ASSISTANT_ADAPTER, HOME_ASSISTANT_CONTRACT_VERSION)
@@ -254,7 +254,7 @@ def test_home_assistant_entities_contract_is_stable(
     db_session: Session,
     monkeypatch: MonkeyPatch,
 ) -> None:
-    _freeze_route_today(monkeypatch, "app.api.routes.integrations.home_assistant")
+    _freeze_route_today(monkeypatch, "app.routers.integrations.home_assistant")
     user = _create_home_assistant_fixture(db_session, "ha-entities-contract@example.com")
     ha_key = _create_integration_key(db_session, user.id)
     expected_contract = integration_contract_header(HOME_ASSISTANT_ADAPTER, HOME_ASSISTANT_CONTRACT_VERSION)
@@ -285,7 +285,7 @@ def test_home_assistant_dashboard_contract_is_stable(
     db_session: Session,
     monkeypatch: MonkeyPatch,
 ) -> None:
-    _freeze_route_today(monkeypatch, "app.api.routes.integrations.home_assistant")
+    _freeze_route_today(monkeypatch, "app.routers.integrations.home_assistant")
     user = _create_home_assistant_fixture(db_session, "ha-dashboard-contract@example.com")
     ha_key = _create_integration_key(db_session, user.id)
     expected_contract = integration_contract_header(HOME_ASSISTANT_ADAPTER, HOME_ASSISTANT_CONTRACT_VERSION)
@@ -326,7 +326,7 @@ def test_home_assistant_complete_task_marks_chore_complete(
     db_session: Session,
     monkeypatch: MonkeyPatch,
 ) -> None:
-    _freeze_route_today(monkeypatch, "app.api.routes.integrations.home_assistant")
+    _freeze_route_today(monkeypatch, "app.routers.integrations.home_assistant")
     user = _create_home_assistant_fixture(db_session, "ha-complete-task@example.com")
     write_key = _create_integration_key(db_session, user.id)
 
@@ -353,7 +353,7 @@ def test_home_assistant_snooze_task_reschedules_chore(
     db_session: Session,
     monkeypatch: MonkeyPatch,
 ) -> None:
-    _freeze_route_today(monkeypatch, "app.api.routes.integrations.home_assistant")
+    _freeze_route_today(monkeypatch, "app.routers.integrations.home_assistant")
     user = _create_home_assistant_fixture(db_session, "ha-snooze-task@example.com")
     write_key = _create_integration_key(db_session, user.id)
 
@@ -384,7 +384,7 @@ def test_home_assistant_mark_medication_taken(
     from app.core.enums import MedicationDoseStatus
     from app.models.medication_dose_instance import MedicationDoseInstance
 
-    _freeze_route_today(monkeypatch, "app.api.routes.integrations.home_assistant")
+    _freeze_route_today(monkeypatch, "app.routers.integrations.home_assistant")
     user = _create_home_assistant_fixture(db_session, "ha-mark-medication@example.com")
     write_key = _create_integration_key(db_session, user.id)
 
@@ -428,7 +428,7 @@ def test_home_assistant_planned_item_crud_actions(
     db_session: Session,
     monkeypatch: MonkeyPatch,
 ) -> None:
-    _freeze_route_today(monkeypatch, "app.api.routes.integrations.home_assistant")
+    _freeze_route_today(monkeypatch, "app.routers.integrations.home_assistant")
     user = _create_home_assistant_fixture(db_session, "ha-planned-crud@example.com")
     write_key = _create_integration_key(db_session, user.id)
 

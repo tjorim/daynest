@@ -121,7 +121,7 @@ Bluetooth connection, and `pebble emu-set-time` moves the clock.
 ## The mock backend
 
 [`scripts/mock-server.py`](scripts/mock-server.py) implements the three routes
-from `backend/app/api/routes/integrations/pebble.py` — dashboard, complete-task,
+from `backend/app/routers/integrations/pebble.py` — dashboard, complete-task,
 skip-task — with the same `X-Integration-Key` check. It logs every request to
 `requests.log`, which is the point: the mutation-replay acceptance criteria are
 about what the server received, not what the watch displayed. Three rapid

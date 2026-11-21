@@ -4,9 +4,9 @@ from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends
 
-from app.api.dependencies.integration_auth import require_integration_auth
-from app.api.dependencies.today import get_today_service
 from app.models.user import User
+from app.routers.dependencies.integration_auth import require_integration_auth
+from app.routers.dependencies.today import get_today_service
 from app.schemas.integrations import (
     CompleteTaskRequest,
     DashboardReadModel,

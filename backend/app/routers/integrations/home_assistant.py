@@ -3,11 +3,11 @@ from typing import Literal
 
 from fastapi import APIRouter, Depends, Query, Response
 
-from app.api.dependencies.integration_auth import require_integration_auth
-from app.api.dependencies.today import get_today_service
-from app.api.routes.auth import discover_oidc_endpoints
 from app.core.config import settings
 from app.models.user import User
+from app.routers.auth import discover_oidc_endpoints
+from app.routers.dependencies.integration_auth import require_integration_auth
+from app.routers.dependencies.today import get_today_service
 from app.schemas.integration_contracts import (
     HOME_ASSISTANT_ADAPTER,
     HOME_ASSISTANT_CONTRACT_VERSION,

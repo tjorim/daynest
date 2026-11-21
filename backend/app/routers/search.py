@@ -6,13 +6,13 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.api.dependencies.auth import get_current_user
 from app.db.session import get_db
 from app.models.chore_template import ChoreTemplate
 from app.models.medication_plan import MedicationPlan
 from app.models.planned_item import PlannedItem
 from app.models.routine_template import RoutineTemplate
 from app.models.user import User
+from app.routers.dependencies.auth import get_current_user
 from app.schemas.base import ResponseModel
 
 router = APIRouter(prefix="/search", tags=["search"])

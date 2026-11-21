@@ -157,8 +157,8 @@ def test_mounted_mcp_is_outside_rest_limit():
 
 
 def test_real_health_probes_stay_exempt(monkeypatch):
-    from app.api.routes import health
     from app.main import app
+    from app.routers import health
 
     # State stores dynamic attributes in _state; patch the mapping so teardown restores the limiter.
     monkeypatch.setitem(app.state._state, "limiter", RequestRateLimiter("1/minute"))

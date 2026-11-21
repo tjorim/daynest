@@ -6,14 +6,14 @@ from typing import Literal, cast
 from fastapi import APIRouter, Depends, Query, Request, Response, status
 from sse_starlette import EventSourceResponse
 
-from app.api.dependencies.audit import get_audit_actor
-from app.api.dependencies.auth import (
+from app.models.user import User
+from app.routers.dependencies.audit import get_audit_actor
+from app.routers.dependencies.auth import (
     get_current_user,
     get_current_user_from_query_token,
 )
-from app.api.dependencies.events import get_event_bus
-from app.api.dependencies.today import get_today_service
-from app.models.user import User
+from app.routers.dependencies.events import get_event_bus
+from app.routers.dependencies.today import get_today_service
 from app.schemas.today import (
     AssignChoreRequest,
     CalendarDayResponse,

@@ -13,15 +13,15 @@ from fastapi.security import HTTPAuthorizationCredentials
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from app.api.dependencies.auth import (
-    get_current_user,
-    get_current_user_from_query_token,
-)
-from app.api.routes import auth as auth_routes
 from app.core.config import settings
 from app.core.oidc import get_or_create_local_user
 from app.main import app
 from app.models.user import User
+from app.routers import auth as auth_routes
+from app.routers.dependencies.auth import (
+    get_current_user,
+    get_current_user_from_query_token,
+)
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -222,7 +222,7 @@ class TestQueryTokenAuth:
             assert token == "sse-access-token"
             return {"sub": user.oidc_subject, "email": user.email}
 
-        monkeypatch.setattr("app.api.dependencies.auth.decode_oidc_token", _decode)
+        monkeypatch.setattr("app.routers.dependencies.auth.decode_oidc_token", _decode)
         resolved = await get_current_user_from_query_token(request, token="sse-access-token", db=db_session)
         assert resolved.id == user.id
 
@@ -239,7 +239,7 @@ class TestQueryTokenAuth:
                 "azp": "daynest-mcp",
             }
 
-        monkeypatch.setattr("app.api.dependencies.auth.decode_oidc_token", _decode)
+        monkeypatch.setattr("app.routers.dependencies.auth.decode_oidc_token", _decode)
 
         with pytest.raises(HTTPException) as exc_info:
             await get_current_user(
@@ -360,10 +360,10 @@ class TestListSessions:
         user = _make_user(db_session, email="sessions@example.com", oidc_subject="sub-sessions")
         _override_auth(user)
         monkeypatch.setattr(
-            "app.api.routes.auth._http_client",
+            "app.routers.auth._http_client",
             MagicMock(get=AsyncMock(return_value=_make_httpx_response(200, SAMPLE_SESSIONS))),
         )
-        monkeypatch.setattr("app.api.routes.auth.settings.oidc_issuer_url", "http://keycloak/realms/daynest")
+        monkeypatch.setattr("app.routers.auth.settings.oidc_issuer_url", "http://keycloak/realms/daynest")
         try:
             resp = client.get("/api/auth/sessions", headers={"Authorization": "Bearer dummy-token"})
             assert resp.status_code == 200
@@ -392,10 +392,10 @@ class TestListSessions:
         user = _make_user(db_session, email="current-session@example.com", oidc_subject="sub-current")
         _override_auth(user, oidc_session_id="session-def456")
         monkeypatch.setattr(
-            "app.api.routes.auth._http_client",
+            "app.routers.auth._http_client",
             MagicMock(get=AsyncMock(return_value=_make_httpx_response(200, SAMPLE_SESSIONS))),
         )
-        monkeypatch.setattr("app.api.routes.auth.settings.oidc_issuer_url", "http://keycloak/realms/daynest")
+        monkeypatch.setattr("app.routers.auth.settings.oidc_issuer_url", "http://keycloak/realms/daynest")
         try:
             resp = client.get("/api/auth/sessions", headers={"Authorization": "Bearer dummy-token"})
             assert resp.status_code == 200
@@ -411,7 +411,7 @@ class TestListSessions:
     ) -> None:
         user = _make_user(db_session, email="nooidc@example.com", oidc_subject="sub-nooidc")
         _override_auth(user)
-        monkeypatch.setattr("app.api.routes.auth.settings.oidc_issuer_url", None)
+        monkeypatch.setattr("app.routers.auth.settings.oidc_issuer_url", None)
         try:
             resp = client.get("/api/auth/sessions", headers={"Authorization": "Bearer dummy-token"})
             assert resp.status_code == 501
@@ -423,9 +423,9 @@ class TestListSessions:
     ) -> None:
         user = _make_user(db_session, email="unreachable@example.com", oidc_subject="sub-unreachable")
         _override_auth(user)
-        monkeypatch.setattr("app.api.routes.auth.settings.oidc_issuer_url", "http://keycloak/realms/daynest")
+        monkeypatch.setattr("app.routers.auth.settings.oidc_issuer_url", "http://keycloak/realms/daynest")
         monkeypatch.setattr(
-            "app.api.routes.auth._http_client",
+            "app.routers.auth._http_client",
             MagicMock(get=AsyncMock(side_effect=httpx.ConnectError("connection refused"))),
         )
         try:
@@ -450,9 +450,9 @@ class TestRevokeSession:
     ) -> None:
         user = _make_user(db_session, email="revoke@example.com", oidc_subject="sub-revoke")
         _override_auth(user)
-        monkeypatch.setattr("app.api.routes.auth.settings.oidc_issuer_url", "http://keycloak/realms/daynest")
+        monkeypatch.setattr("app.routers.auth.settings.oidc_issuer_url", "http://keycloak/realms/daynest")
         monkeypatch.setattr(
-            "app.api.routes.auth._http_client", MagicMock(delete=AsyncMock(return_value=_make_httpx_response(204, "")))
+            "app.routers.auth._http_client", MagicMock(delete=AsyncMock(return_value=_make_httpx_response(204, "")))
         )
         try:
             resp = client.delete(
@@ -468,7 +468,7 @@ class TestRevokeSession:
     ) -> None:
         user = _make_user(db_session, email="revoke-nooidc@example.com", oidc_subject="sub-revoke-nooidc")
         _override_auth(user)
-        monkeypatch.setattr("app.api.routes.auth.settings.oidc_issuer_url", None)
+        monkeypatch.setattr("app.routers.auth.settings.oidc_issuer_url", None)
         try:
             resp = client.delete(
                 "/api/auth/sessions/session-abc123",
@@ -483,9 +483,9 @@ class TestRevokeSession:
     ) -> None:
         user = _make_user(db_session, email="revoke-unreachable@example.com", oidc_subject="sub-revoke-unreach")
         _override_auth(user)
-        monkeypatch.setattr("app.api.routes.auth.settings.oidc_issuer_url", "http://keycloak/realms/daynest")
+        monkeypatch.setattr("app.routers.auth.settings.oidc_issuer_url", "http://keycloak/realms/daynest")
         monkeypatch.setattr(
-            "app.api.routes.auth._http_client",
+            "app.routers.auth._http_client",
             MagicMock(delete=AsyncMock(side_effect=httpx.ConnectError("connection refused"))),
         )
         try:

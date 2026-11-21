@@ -26,7 +26,7 @@ def test_liveness_and_health_endpoints(client: TestClient, monkeypatch) -> None:
 
 
 def test_readiness_endpoint_returns_ready(client: TestClient, monkeypatch) -> None:
-    from app.api.routes import health
+    from app.routers import health
 
     class HealthyConnection:
         def __enter__(self):
@@ -50,7 +50,7 @@ def test_readiness_endpoint_returns_ready(client: TestClient, monkeypatch) -> No
 
 
 def test_readiness_endpoint_returns_not_ready_with_db_down(client: TestClient, monkeypatch) -> None:
-    from app.api.routes import health
+    from app.routers import health
 
     class BrokenEngine:
         def connect(self):
@@ -65,7 +65,7 @@ def test_readiness_endpoint_returns_not_ready_with_db_down(client: TestClient, m
 
 @pytest.mark.anyio
 async def test_jwks_reachable_coalesces_concurrent_cache_misses(monkeypatch) -> None:
-    from app.api.routes import health
+    from app.routers import health
 
     calls = 0
 

@@ -2,12 +2,12 @@ from fastapi import APIRouter, Depends, Response, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.api.dependencies.auth import get_current_user
 from app.core.enums import HouseholdMemberRole
 from app.core.errors import ApiException
 from app.db.session import get_db
 from app.models.user import User
 from app.repositories.household_repository import HouseholdRepository
+from app.routers.dependencies.auth import get_current_user
 from app.schemas.households import (
     HouseholdCreateRequest,
     HouseholdMemberResponse,

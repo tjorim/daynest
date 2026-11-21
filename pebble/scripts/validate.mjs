@@ -43,7 +43,7 @@ const pairingSource = readFileSync(
   "utf8",
 );
 const clientSource = readFileSync(
-  resolve(repoRoot, "backend/app/api/routes/integrations/clients.py"),
+  resolve(repoRoot, "backend/app/routers/integrations/clients.py"),
   "utf8",
 );
 if (!watchSource.includes("fetch(")) throw new Error("Watch code must use Alloy fetch()");

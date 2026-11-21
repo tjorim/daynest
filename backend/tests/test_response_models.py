@@ -7,9 +7,9 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from app.api.dependencies.auth import get_current_user
 from app.main import app
 from app.models.user import User
+from app.routers.dependencies.auth import get_current_user
 from app.services.export_import_service import build_user_export
 
 

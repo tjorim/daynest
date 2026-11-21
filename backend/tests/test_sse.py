@@ -9,11 +9,11 @@ from fastapi import Request
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from app.api.dependencies.auth import get_current_user
-from app.api.dependencies.events import get_event_bus
-from app.api.routes.today import stream_today_updates
 from app.main import _publish_today_rollovers, app
 from app.models.user import User
+from app.routers.dependencies.auth import get_current_user
+from app.routers.dependencies.events import get_event_bus
+from app.routers.today import stream_today_updates
 from app.services.event_bus import EventBus
 
 

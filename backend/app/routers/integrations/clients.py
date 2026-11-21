@@ -6,17 +6,17 @@ from fastapi import APIRouter, Depends, Form, Request, Response, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.api.dependencies.audit import get_audit_actor
-from app.api.dependencies.auth import get_current_user
-from app.api.dependencies.integration_auth import (
-    get_integration_client_by_raw_key,
-    hash_integration_key,
-)
 from app.core.config import settings
 from app.core.errors import ApiException
 from app.db.session import get_db
 from app.models.integration_client import IntegrationClient
 from app.models.user import User
+from app.routers.dependencies.audit import get_audit_actor
+from app.routers.dependencies.auth import get_current_user
+from app.routers.dependencies.integration_auth import (
+    get_integration_client_by_raw_key,
+    hash_integration_key,
+)
 from app.schemas.integrations import (
     IntegrationClientCreateRequest,
     IntegrationClientCreateResponse,

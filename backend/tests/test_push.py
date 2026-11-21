@@ -3,7 +3,6 @@ from datetime import UTC, date, datetime, time, timedelta
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from app.api.dependencies.auth import get_current_user
 from app.main import app
 from app.models.chore_instance import ChoreInstance
 from app.models.chore_template import ChoreTemplate
@@ -13,6 +12,7 @@ from app.models.notification_claim import NotificationClaim
 from app.models.notification_sent import NotificationSent
 from app.models.push_subscription import PushSubscription
 from app.models.user import User
+from app.routers.dependencies.auth import get_current_user
 from app.services.push_service import (
     _claim_item_ids,
     dispatch_medication_reminders,
