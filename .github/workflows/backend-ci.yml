@@ -9,7 +9,7 @@ permissions:
 
 jobs:
   backend:
-    name: Backend
+    name: Checks
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -41,7 +41,7 @@ jobs:
         run: uv run pytest
 
   migrations:
-    name: Backend / Migrations
+    name: Migrations
     runs-on: ubuntu-latest
     services:
       postgres:
