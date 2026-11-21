@@ -4,11 +4,15 @@
 router that changes the shape is caught. Wording of ``detail`` is not part of the contract, ``code`` is.
 """
 
+import logging
 from collections.abc import Generator
+from types import SimpleNamespace
 
 import pytest
+from fastapi import Request
 from fastapi.testclient import TestClient
 
+from app.core.errors import handle_unhandled_exception
 from app.db.session import get_db
 from app.main import app
 
@@ -101,3 +105,24 @@ def test_an_unhandled_exception_answers_500_without_leaking_its_cause() -> None:
         assert secret not in response.text
     for marker in TRACE_MARKERS:
         assert marker not in response.text
+
+
+@pytest.mark.anyio
+async def test_the_unhandled_error_log_names_the_route_template_not_the_raw_path(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    # A path can carry a credential (the calendar feed token), so the log must never contain it.
+    scope = {
+        "type": "http",
+        "method": "GET",
+        "path": "/api/calendar/feed/secret-feed-token.ics",
+        "headers": [],
+        "route": SimpleNamespace(path="/calendar/feed/{token}.ics"),
+    }
+    with caplog.at_level(logging.ERROR, logger="app.core.errors"):
+        response = await handle_unhandled_exception(Request(scope), RuntimeError("boom"))
+
+    assert response.status_code == 500
+    message = next(r.getMessage() for r in caplog.records if r.name == "app.core.errors")
+    assert "/calendar/feed/{token}.ics" in message
+    assert "secret-feed-token" not in message
