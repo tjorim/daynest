@@ -13,13 +13,13 @@ from fastapi import Request
 from sentry_sdk.integrations.fastapi import FastApiIntegration
 
 from app.core.config import settings
+from app.core.errors import REQUEST_ID_HEADER, internal_error_response
 from app.core.request_timing import _route_template
 
 logger = logging.getLogger("app.observability")
 
 # Same log line layout in every app: the message is the one-line JSON access record.
 LOG_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-REQUEST_ID_HEADER = "X-Request-ID"
 # A caller's id is only reused when it is a short token; anything else would let a caller forge log lines.
 _VALID_REQUEST_ID = re.compile(r"[A-Za-z0-9._:-]{1,128}")
 
@@ -109,8 +109,6 @@ def configure_error_tracking() -> None:
 
 
 async def observability_middleware(request: Request, call_next):
-    from starlette.responses import Response as StarletteResponse
-
     started = time.perf_counter()
     supplied = request.headers.get(REQUEST_ID_HEADER)
     request_id = supplied if supplied is not None and _VALID_REQUEST_ID.fullmatch(supplied) else str(uuid.uuid4())
@@ -125,7 +123,7 @@ async def observability_middleware(request: Request, call_next):
     except Exception as exc:
         sentry_sdk.capture_exception(exc)
         logger.exception("Unhandled request error: %s %s", request.method, request.url.path)
-        response = StarletteResponse("Internal Server Error", status_code=500)
+        response = internal_error_response()
 
     latency_ms = (time.perf_counter() - started) * 1000
     metrics.record(status_code=status_code, latency_ms=latency_ms)

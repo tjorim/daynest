@@ -96,7 +96,7 @@ Sentry is initialised at startup if `SENTRY_DSN` is set. Configuration:
 | `SENTRY_TRACES_SAMPLE_RATE` | `0.0` | Set to > 0 to enable performance tracing. |
 | `send_default_pii` | `False` | Hard-coded off — IP addresses, cookies, and request bodies are never sent to Sentry. |
 
-All unhandled exceptions (those not converted to HTTP responses by FastAPI's exception handlers) are captured via `sentry_sdk.capture_exception()` and also emit an `ERROR` log.
+All unhandled exceptions (those not converted to HTTP responses by FastAPI's exception handlers) are captured via `sentry_sdk.capture_exception()` and also emit an `ERROR` log. The client gets the JSON body `{"detail": "Internal server error", "code": "internal_error"}` with the `X-Request-ID` header, never the cause (see [API error contract](api-errors.md)).
 
 ---
 

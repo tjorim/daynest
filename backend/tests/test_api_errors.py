@@ -1,10 +1,19 @@
 """Coded API errors: ``detail`` stays English, ``code`` (and ``params``) are stable and machine-readable."""
 
 import pytest
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
+from fastapi.exceptions import RequestValidationError
 from fastapi.testclient import TestClient
+from pydantic import BaseModel, Field
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from app.core.errors import ApiException, handle_api_exception
+from app.core.errors import (
+    ApiException,
+    handle_api_exception,
+    handle_http_exception,
+    handle_unhandled_exception,
+    handle_validation_error,
+)
 
 
 @pytest.fixture
@@ -58,3 +67,118 @@ def test_real_endpoint_returns_a_code(client: TestClient) -> None:
     assert response.status_code in (401, 404)
     if response.status_code == 401:
         assert response.json()["code"] == "not_authenticated"
+
+
+def test_unhandled_handler_answers_json_with_a_request_id_and_no_cause(caplog: pytest.LogCaptureFixture) -> None:
+    # The path for an exception raised outside ``observability_middleware`` (Starlette's ServerErrorMiddleware).
+    app = FastAPI()
+    app.add_exception_handler(Exception, handle_unhandled_exception)
+
+    @app.get("/boom")
+    def boom() -> None:
+        raise RuntimeError("secret-token")
+
+    response = TestClient(app, raise_server_exceptions=False).get("/boom")
+
+    assert response.status_code == 500
+    assert response.json() == {"detail": "Internal server error", "code": "internal_error"}
+    assert response.headers["x-request-id"]
+    assert "secret-token" not in response.text
+    assert any(record.exc_info for record in caplog.records)  # the stack trace stays in the server log
+
+
+@pytest.fixture
+def http_client() -> TestClient:
+    app = FastAPI()
+    app.add_exception_handler(StarletteHTTPException, handle_http_exception)
+
+    @app.get("/plain/{status}")
+    def plain(status: int) -> None:
+        raise HTTPException(status, "Nope", headers={"WWW-Authenticate": "Bearer", "Retry-After": "7"})
+
+    return TestClient(app)
+
+
+@pytest.mark.parametrize(
+    ("status", "code"),
+    [
+        (400, "bad_request"),
+        (401, "unauthorized"),
+        (403, "forbidden"),
+        (404, "not_found"),
+        (405, "method_not_allowed"),
+        (409, "http_409"),
+        (503, "http_503"),
+    ],
+)
+def test_http_exception_keeps_detail_and_headers_and_gains_a_code(
+    http_client: TestClient, status: int, code: str
+) -> None:
+    response = http_client.get(f"/plain/{status}")
+
+    assert response.status_code == status
+    assert response.json() == {"detail": "Nope", "code": code}
+    assert response.headers["www-authenticate"] == "Bearer"
+    assert response.headers["retry-after"] == "7"
+
+
+def test_http_exception_without_a_body_stays_empty(http_client: TestClient) -> None:
+    response = http_client.get("/plain/204")
+
+    assert response.status_code == 204
+    assert response.content == b""
+
+
+def test_http_handler_never_overrides_an_existing_code_or_params() -> None:
+    # Registered for the base class only: the coded exception must come out unchanged.
+    app = FastAPI()
+    app.add_exception_handler(StarletteHTTPException, handle_http_exception)
+
+    @app.get("/coded")
+    def coded() -> None:
+        raise ApiException(409, "household_conflict", "Clash", params={"n": 1})
+
+    response = TestClient(app).get("/coded")
+
+    assert response.status_code == 409
+    assert response.json() == {"detail": "Clash", "code": "household_conflict", "params": {"n": 1}}
+
+
+class _Payload(BaseModel):
+    name: str = Field(min_length=3)
+    count: int = Field(ge=1)
+
+
+def test_validation_error_keeps_the_detail_list_and_drops_submitted_values() -> None:
+    app = FastAPI()
+    app.add_exception_handler(RequestValidationError, handle_validation_error)
+
+    @app.post("/items")
+    def create(payload: _Payload) -> None: ...
+
+    response = TestClient(app).post("/items", json={"name": "secret-token", "count": 0, "extra": "x"})
+    short = TestClient(app).post("/items", json={"name": "ab", "count": 1})
+
+    assert response.status_code == 422
+    body = response.json()
+    assert body["code"] == "validation_error"
+    assert [(entry["type"], entry["loc"]) for entry in body["detail"]] == [("greater_than_equal", ["body", "count"])]
+    assert all(set(entry) == {"type", "loc", "msg"} for entry in body["detail"] + short.json()["detail"])
+    assert "secret-token" not in response.text
+    assert short.json()["detail"][0]["type"] == "string_too_short"
+
+
+def test_validation_error_for_malformed_json_does_not_echo_the_body() -> None:
+    app = FastAPI()
+    app.add_exception_handler(RequestValidationError, handle_validation_error)
+
+    @app.post("/items")
+    def create(payload: _Payload) -> None: ...
+
+    response = TestClient(app).post(
+        "/items", content=b'{"name": secret-token', headers={"content-type": "application/json"}
+    )
+
+    assert response.status_code == 422
+    assert response.json()["code"] == "validation_error"
+    assert "secret-token" not in response.text
