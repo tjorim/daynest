@@ -67,8 +67,13 @@ async def handle_unhandled_exception(request: Request, exc: Exception) -> Respon
     and then re-raises for the server; the response still carries the request id, taken from ``request.state`` when
     the middleware got that far, else a fresh one.
     """
+    # Log the route template, never the raw path: it can carry a credential (the calendar feed token).
+    route = getattr(request.scope.get("route"), "path", None)
     logger.error(
-        "Unhandled error outside the request middleware: %s %s", request.method, request.url.path, exc_info=exc
+        "Unhandled error outside the request middleware: %s %s",
+        request.method,
+        route if isinstance(route, str) else "unmatched",
+        exc_info=exc,
     )
     response = internal_error_response()
     response.headers[REQUEST_ID_HEADER] = getattr(request.state, "request_id", None) or str(uuid.uuid4())
