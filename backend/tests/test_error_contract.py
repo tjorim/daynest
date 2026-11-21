@@ -36,13 +36,18 @@ def test_app_raised_failures_use_one_shape_with_stable_codes(client: TestClient)
         assert body["code"] == code
 
 
-def test_framework_failures_are_json_with_a_detail(client: TestClient) -> None:
-    # Unknown paths and wrong methods are answered by Starlette, before any app handler: ``detail`` only, no ``code``
-    # (recorded as a follow-up; adding one changes the body clients see).
-    for response, status in ((client.get("/api/does-not-exist"), 404), (client.delete("/api/health"), 405)):
+def test_framework_failures_carry_a_stable_code_next_to_their_detail(client: TestClient) -> None:
+    # Unknown paths and wrong methods are answered by Starlette: ``detail`` unchanged, ``code`` added.
+    cases = (
+        (client.get("/api/does-not-exist"), 404, "not_found"),
+        (client.delete("/api/health"), 405, "method_not_allowed"),
+    )
+    for response, status, code in cases:
         assert response.status_code == status
         assert response.headers["content-type"] == "application/json"
-        assert set(response.json()) == {"detail"}
+        assert_error_body(response.json())
+        assert response.json()["code"] == code
+    assert "GET" in client.delete("/api/health").headers["allow"]
 
 
 def test_validation_failures_list_field_errors_without_the_raw_payload(client: TestClient) -> None:

@@ -10,9 +10,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastmcp.utilities.lifespan import combine_lifespans
 from starlette.applications import Starlette
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.core.config import settings
-from app.core.errors import ApiException, handle_api_exception, handle_unhandled_exception
+from app.core.errors import ApiException, handle_api_exception, handle_http_exception, handle_unhandled_exception
 from app.core.observability import (
     configure_error_tracking,
     configure_logging,
@@ -220,6 +221,7 @@ if settings.cors_origins:
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, handle_rate_limit_exceeded)
 app.add_exception_handler(ApiException, handle_api_exception)
+app.add_exception_handler(StarletteHTTPException, handle_http_exception)
 app.add_exception_handler(Exception, handle_unhandled_exception)
 # Outermost, so its timing covers everything below it (apps#246).
 app.add_middleware(RequestTimingMiddleware)
