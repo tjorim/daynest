@@ -3,8 +3,8 @@ import ReactDOM from "react-dom/client";
 import { RouterProvider } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { AuthProvider as OidcProvider } from "react-oidc-context";
-import "./tailwind.css";
-import "./app.css";
+import "./styles/tailwind.css";
+import "./styles/app.css";
 
 import * as m from "@/paraglide/messages";
 import { LanguageProvider } from "@/i18n/LanguageProvider";
