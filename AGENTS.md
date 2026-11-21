@@ -172,7 +172,7 @@ Releases up to `0.1.12` used independent SemVer (#673); CalVer versions sort abo
 
 - Never hand-edit `frontend/openapi.json` or `frontend/src/api-schema/`; regenerate them, and do not declare API record types elsewhere in the frontend.
 - `frontend/src/paraglide/` is generated and git-ignored: run `pnpm paraglide:compile` (or `pnpm typecheck`) after a fresh checkout before running `tsc` or Vitest directly.
-- `pnpm install` runs `msw init` (postinstall), which can rewrite `frontend/public/mockServiceWorker.js` after an MSW upgrade; commit that file only when the upgrade is intended.
+- `pnpm install` runs `msw init` (postinstall), which generates `frontend/public/mockServiceWorker.js`; the file is gitignored, never commit it.
 - `ENVIRONMENT=dev` without a `DATABASE_URL` uses a SQLite file built from the models, not from the migrations; production is PostgreSQL, so verify schema changes with `alembic upgrade head` and `alembic check` against PostgreSQL.
 - `android/app/build.gradle.kts` reads `VERSION`; never edit the version there by hand.
 - `openapi-typescript` and `@hey-api/openapi-ts` fail under TypeScript 7; the API types come from Orval only.
