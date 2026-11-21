@@ -77,5 +77,5 @@ for the schema rules.
 
 ## More documentation
 
-- [Observability](docs/OBSERVABILITY.md), [profiling](docs/PROFILING.md) and [rate limiting](docs/RATE_LIMITING.md)
+- [API error contract](docs/api-errors.md), [observability](docs/OBSERVABILITY.md), [profiling](docs/PROFILING.md) and [rate limiting](docs/RATE_LIMITING.md)
 - Integration contracts: [compatibility policy](docs/integrations/COMPATIBILITY_POLICY.md), [schema changelog](docs/integrations/SCHEMA_CHANGELOG.md), [local MCP server](docs/integrations/LOCAL_MCP_SERVER.md)
