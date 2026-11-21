@@ -1,12 +1,19 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
 [project]
 name = "daynest-backend"
-version = "0.1.0"
+# Packaging metadata only; the project runs from source (uv run / the Docker image) and is never
+# installed as a distributable wheel. The release version lives in /VERSION.
+version = "0.0.0"
+description = "FastAPI backend for Daynest"
 requires-python = ">=3.15"
 dependencies = [
     "alembic==1.20.1",
     "anyio==4.16.0",
     "email-validator==2.4.0",
-    "fastapi==0.162.4",
+    "fastapi==0.162.5",
     "google-auth==2.62.2",
     "httpx==0.28.1",
     "icalendar==7.3.0",
@@ -32,8 +39,18 @@ dev = [
     "ty==0.0.105",
 ]
 
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
 [tool.pytest.ini_options]
 pythonpath = ["."]
+testpaths = ["tests"]
+# Third-party deprecations we cannot fix here; each entry is scoped to the emitting
+# module. Drop an entry once its upstream release stops warning.
+filterwarnings = [
+  # fastmcp's py-key-value-aio protocol is checked by beartype without @runtime_checkable.
+  "ignore:.*isn't explicitly decorated with @runtime_checkable:DeprecationWarning:beartype",
+]
 
 [tool.ruff]
 target-version = "py315"
@@ -47,3 +64,13 @@ ignore = [
     "UP042",  # the (str, Enum) classes keep str()/format() output; StrEnum would change it
 ]
 per-file-ignores = { "__init__.py" = ["F401"] }
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
+
+[tool.ty.environment]
+python-version = "3.15"
+
+# Applied migrations are history and are not edited to satisfy a type checker.
+[tool.ty.src]
+exclude = ["alembic"]

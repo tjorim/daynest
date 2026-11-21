@@ -24,7 +24,6 @@ jobs:
       backend: ${{ steps.filter.outputs.backend }}
       dashboard: ${{ steps.filter.outputs.dashboard }}
       lib: ${{ steps.filter.outputs.lib }}
-      e2e: ${{ steps.filter.outputs.e2e }}
       frontend: ${{ steps.filter.outputs.frontend }}
       home-assistant: ${{ steps.filter.outputs.home-assistant }}
       pebble: ${{ steps.filter.outputs.pebble }}
@@ -54,10 +53,6 @@ jobs:
             lib:
               - 'python-daynest/**'
               - '.github/workflows/daynest-lib-ci.yml'
-              - '.github/workflows/ci.yml'
-            e2e:
-              - 'frontend/**'
-              - '.github/workflows/e2e.yml'
               - '.github/workflows/ci.yml'
             frontend:
               - 'frontend/**'
@@ -122,12 +117,6 @@ jobs:
     needs: changes
     if: github.event_name == 'push' || needs.changes.outputs.lib == 'true'
     uses: ./.github/workflows/daynest-lib-ci.yml
-
-  e2e:
-    name: End-to-end
-    needs: changes
-    if: github.event_name == 'push' || needs.changes.outputs.e2e == 'true'
-    uses: ./.github/workflows/e2e.yml
 
   frontend:
     name: Frontend
@@ -240,7 +229,6 @@ jobs:
       - backend
       - dashboard
       - lib
-      - e2e
       - frontend
       - home-assistant
       - pebble

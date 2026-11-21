@@ -1,8 +1,8 @@
 # Node and pnpm toolchain
 
-Use Node 26.13.0 (the `.node-version` pin) and pnpm 12.16.1 (the
+Use Node 26.13.1 (the `.node-version` pin) and pnpm 12.21.0 (the
 `packageManager` pin) in both `frontend/` and `dashboard/`. CI reads those files; install pnpm directly with
-`npm install --global pnpm@12.16.1`, since Node 26 does not bundle Corepack.
+`npm install --global pnpm@12.21.0`, since Node 26 does not bundle Corepack.
 
 The pnpm 10 to 12 migration keeps dependency versions locked. Configuration
 belongs in `pnpm-workspace.yaml`; `allowBuilds` retains explicit dependency
@@ -15,7 +15,7 @@ list. pnpm switches to the exact `packageManager` version when necessary.
 ## Coordinated rollout
 
 App checks must pass on this toolchain before rollout. Apply tjorim/apps#304
-(pnpm 12.16.1) and tjorim/apps#303 (Node 26) to the build host before merging
+(pnpm, at the `packageManager` pin) and tjorim/apps#303 (Node 26) to the build host before merging
 app changes that require Node 26 or pnpm 12. Run Ansible with `--check --diff`
 first, then apply and verify `node --version` and `pnpm --version` as the deploy
 user in a non-interactive shell. Until then, production remains on its previous

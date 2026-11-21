@@ -14,8 +14,11 @@ type EventHandler = (event: MessageEvent) => void;
 class MockEventSource {
   private readonly handlers: Record<string, EventHandler[]> = {};
   public closed = false;
+  public readonly url: string;
 
-  constructor(public readonly url: string) {}
+  constructor(url: string) {
+    this.url = url;
+  }
 
   addEventListener(type: string, handler: EventHandler): void {
     this.handlers[type] ??= [];
