@@ -49,10 +49,14 @@ uv run ty check .
 
 ## Migrations
 
-Alembic revisions live in `alembic/versions/`; the database URL is taken from `DATABASE_URL` or the `DB_*` variables.
+Alembic revisions live in `alembic/versions/`. The database URL is `DATABASE_URL` when set; otherwise, with the
+default `ENVIRONMENT=dev`, the backend uses a local SQLite file (`dev.db`) and ignores `DB_*`. The `DB_*` variables only
+select PostgreSQL outside the dev environment, so for PostgreSQL migrations in development export a `DATABASE_URL`
+first (for example `postgresql+psycopg://user:password@localhost:5432/daynest`).
 
 ```bash
-uv run alembic upgrade head      # apply migrations (PostgreSQL)
+export DATABASE_URL=postgresql+psycopg://user:password@localhost:5432/daynest   # PostgreSQL target
+uv run alembic upgrade head      # apply migrations
 uv run alembic check             # fail when the models and migrations disagree
 uv run alembic revision --autogenerate -m "describe the change"
 ```

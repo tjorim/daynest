@@ -162,8 +162,8 @@ The full command list is in [AGENTS.md](AGENTS.md#commands) and [backend/README.
 ## Testing
 
 ```bash
-cd frontend && pnpm test            # Vitest (tests/); pnpm test:e2e runs the Playwright specs in e2e/
-cd backend && uv run pytest         # in-memory SQLite, no services required
+(cd frontend && pnpm test)         # Vitest (tests/); pnpm test:e2e runs the Playwright specs in e2e/
+(cd backend && uv run pytest)      # in-memory SQLite, no services required
 ```
 
 CI runs the same checks plus the bundle budgets, locale audit, message parity and UI maintenance inventory; see "Continuous integration" below.

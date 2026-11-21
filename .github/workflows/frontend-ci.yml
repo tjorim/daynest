@@ -46,7 +46,7 @@ jobs:
       # Keeps the coverage floor on the Today actions and sections.
       - name: Test
         run: >
-          pnpm run test --
+          pnpm run test
           --coverage
           --coverage.include=src/features/today/useTodayActions.ts
           --coverage.include=src/features/today/TodaySections.tsx
