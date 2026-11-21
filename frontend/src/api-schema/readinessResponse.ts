@@ -6,6 +6,9 @@
  */
 import type { ReadinessResponseStatus } from './readinessResponseStatus';
 
+/**
+ * Result of the dependency checks, sent with HTTP 200 (``ready``) or 503 (``not_ready``).
+ */
 export type ReadinessResponse = {
   status: ReadinessResponseStatus;
 };

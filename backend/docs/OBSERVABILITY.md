@@ -9,7 +9,7 @@ This document describes the observability guarantees that apply to every HTTP re
 | Behaviour | Detail |
 |---|---|
 | **Generation** | If the incoming request carries no `X-Request-ID` header, the middleware generates a UUID4 and assigns it. |
-| **Propagation** | If the incoming request supplies `X-Request-ID`, that value is used unchanged. |
+| **Propagation** | If the incoming request supplies `X-Request-ID` and it is a short token (1-128 letters, digits and `._:-`), that value is used unchanged. Anything else is replaced by a new UUID4, so a caller cannot forge log lines. |
 | **Echo** | Every response carries `X-Request-ID` in its headers regardless of status code. |
 | **Scope** | The ID is stored in `request.state.request_id` and is available to all downstream handlers and dependencies. |
 
@@ -19,7 +19,7 @@ Clients that want end-to-end tracing across their own systems should supply `X-R
 
 ## Structured Request Log
 
-Every request emits one JSON log line via the `app.observability` logger after the response is sent. The log level reflects the outcome:
+Every request emits one JSON log line via the `app.observability` logger after the response is sent. The `app` logger prints `asctime - logger - level - message` (the same layout as the other apps), with the JSON object as the message. The log level reflects the outcome:
 
 - `INFO` — 1xx / 2xx / 3xx
 - `WARNING` — 4xx
@@ -34,14 +34,14 @@ Every request emits one JSON log line via the `app.observability` logger after t
 | `user_id` | `int \| null` | Local user ID. `null` for unauthenticated and system routes. |
 | `auth_type` | `"oidc" \| "integration_key" \| "integration_jwt" \| null` | How the caller authenticated. `null` for unauthenticated requests. |
 | `method` | `string` | HTTP verb (`GET`, `POST`, …). |
-| `route` | `string` | URL path only — **query parameters are never logged** to prevent token leakage (relevant for the SSE stream route that accepts a bearer token via `?token=`). |
+| `route` | `string` | The route template as FastAPI routes it (for example `/calendar/feed/{token}.ics`, without the prefix of an included router), never the raw path or the query string, so calendar feed tokens and ids (and the SSE stream's `?token=`) are not logged. |
 | `status_code` | `int` | HTTP response status. |
 | `latency_ms` | `float` | Wall-clock time in milliseconds from first byte received to response headers sent. For SSE connections this is time-to-first-byte, not stream duration. |
 
 Example:
 
 ```json
-{"event":"http_request","request_id":"3fa85f64-5717-4562-b3fc-2c963f66afa6","user_id":42,"auth_type":"oidc","method":"POST","route":"/api/v1/today/planned-items","status_code":201,"latency_ms":18.4}
+{"event":"http_request","request_id":"3fa85f64-5717-4562-b3fc-2c963f66afa6","user_id":42,"auth_type":"oidc","method":"POST","route":"/today/planned-items","status_code":201,"latency_ms":18.4}
 ```
 
 ---
@@ -50,11 +50,11 @@ Example:
 
 | Endpoint | Auth | Behaviour |
 |---|---|---|
-| `GET /api/v1/health/liveness` | None | Returns `{"status": "alive"}` immediately. Use this to tell the process is up. |
-| `GET /api/v1/health/readiness` | None | Runs `SELECT 1` against the database with a 2-second timeout. Returns `{"status": "ready"}` (200) or `{"status": "not_ready"}` (503). |
-| `GET /api/v1/health` | None | Returns liveness status inline and the URL of the readiness endpoint. |
+| `GET /api/health/liveness` | None | Returns `{"status": "alive"}` immediately. Use this to tell the process is up. |
+| `GET /api/health/readiness` | None | Runs `SELECT 1` against the database with a 2-second timeout. Returns `{"status": "ready"}` (200) or `{"status": "not_ready"}` (503). |
+| `GET /api/health` | None | Returns `status`, `version` and `commit` with `liveness_endpoint` and `readiness_endpoint` (the two probe paths); no dependency is touched, so the image's `HEALTHCHECK` stays cheap. The legacy `liveness` field is still sent. |
 
-**Deployment note:** Configure your load balancer or orchestrator to use `/api/v1/health/readiness` for traffic routing (not liveness). A failing readiness check means the database is unreachable; the process itself is still alive.
+**Deployment note:** Configure your load balancer or orchestrator to use `/api/health/readiness` for traffic routing (not liveness). A failing readiness check means the database is unreachable; the process itself is still alive.
 
 ---
 

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import time
 import uuid
 from dataclasses import dataclass
@@ -12,8 +13,15 @@ from fastapi import Request
 from sentry_sdk.integrations.fastapi import FastApiIntegration
 
 from app.core.config import settings
+from app.core.request_timing import _route_template
 
 logger = logging.getLogger("app.observability")
+
+# Same log line layout in every app: the message is the one-line JSON access record.
+LOG_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+REQUEST_ID_HEADER = "X-Request-ID"
+# A caller's id is only reused when it is a short token; anything else would let a caller forge log lines.
+_VALID_REQUEST_ID = re.compile(r"[A-Za-z0-9._:-]{1,128}")
 
 
 @dataclass
@@ -83,7 +91,7 @@ def configure_logging() -> None:
     app_logger.setLevel(level)
     if not app_logger.handlers:
         handler = logging.StreamHandler()
-        handler.setFormatter(logging.Formatter("%(message)s"))
+        handler.setFormatter(logging.Formatter(LOG_FORMAT))
         app_logger.addHandler(handler)
 
 
@@ -104,8 +112,10 @@ async def observability_middleware(request: Request, call_next):
     from starlette.responses import Response as StarletteResponse
 
     started = time.perf_counter()
-    request_id = request.headers.get("X-Request-ID") or str(uuid.uuid4())
+    supplied = request.headers.get(REQUEST_ID_HEADER)
+    request_id = supplied if supplied is not None and _VALID_REQUEST_ID.fullmatch(supplied) else str(uuid.uuid4())
     request.state.request_id = request_id
+    root_path = request.scope.get("root_path", "")
 
     status_code = 500
     response = None
@@ -129,12 +139,13 @@ async def observability_middleware(request: Request, call_next):
             "user_id": user_id,
             "auth_type": auth_type,
             "method": request.method,
-            "route": request.url.path,
+            # The route template, never the raw path, which can carry calendar feed tokens and ids.
+            "route": _route_template(request.scope, root_path),
             "status_code": status_code,
             "latency_ms": round(latency_ms, 2),
         }
         log = logger.error if status_code >= 500 else logger.warning if status_code >= 400 else logger.info
         log(json.dumps(log_payload, separators=(",", ":")))
 
-    response.headers["X-Request-ID"] = request_id
+    response.headers[REQUEST_ID_HEADER] = request_id
     return response

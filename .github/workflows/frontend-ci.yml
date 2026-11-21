@@ -43,14 +43,9 @@ jobs:
       - name: Format check
         run: pnpm run format:check
 
-      # Keeps the coverage floor on the Today actions and sections.
-      - name: Test
-        run: >
-          pnpm run test
-          --coverage
-          --coverage.include=src/features/today/useTodayActions.ts
-          --coverage.include=src/features/today/TodaySections.tsx
-          --coverage.thresholds.lines=80
+      # Coverage floors (overall and for the Today actions and sections) live in vitest.config.ts.
+      - name: Test (with coverage thresholds)
+        run: pnpm run test --coverage
 
       - name: Build
         run: pnpm run build

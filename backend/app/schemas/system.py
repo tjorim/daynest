@@ -6,18 +6,26 @@ from app.schemas.base import ResponseModel
 
 
 class LivenessResponse(ResponseModel):
+    """Process-level alive signal; never touches a dependency."""
+
     status: Literal["alive"]
 
 
 class ReadinessResponse(ResponseModel):
+    """Result of the dependency checks, sent with HTTP 200 (``ready``) or 503 (``not_ready``)."""
+
     status: Literal["ready", "not_ready"]
 
 
 class HealthResponse(ResponseModel):
+    """Summary with the two probe paths: the same shape in every app (``status``, ``version``, ``commit``, probes)."""
+
     status: Literal["ok"]
     version: str
     commit: str
+    # Kept for clients that read the old summary; ``liveness_endpoint`` replaces it.
     liveness: Literal["alive"]
+    liveness_endpoint: str
     readiness_endpoint: str
 
 

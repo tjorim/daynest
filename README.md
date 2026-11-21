@@ -359,7 +359,7 @@ Everything runs from `.github/workflows/ci.yml` on pull requests and pushes to `
 | Home Assistant | `ha-ci.yml` | Ruff and pytest for `custom_components` |
 | Android | `android.yml` | detekt, ktlint, Android lint, unit tests, debug APK |
 | Pebble | `pebble.yml` | Pebble app build and emulator tests |
-| CodeQL | `codeql-*.yml` | Code scanning for Actions, Android, JavaScript and Python; also runs weekly |
+| CodeQL | GitHub default setup (repository settings) | Code scanning for Actions, Android, JavaScript and Python; no workflow files in the repository |
 
 The `CI gate` job at the end passes only when every job passed or was skipped, so it is the one check to require in branch protection. Branch protection is not configured for this repository yet.
 

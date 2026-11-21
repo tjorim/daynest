@@ -6950,6 +6950,10 @@
             "const": "alive",
             "title": "Liveness"
           },
+          "liveness_endpoint": {
+            "type": "string",
+            "title": "Liveness Endpoint"
+          },
           "readiness_endpoint": {
             "type": "string",
             "title": "Readiness Endpoint"
@@ -6961,9 +6965,11 @@
           "version",
           "commit",
           "liveness",
+          "liveness_endpoint",
           "readiness_endpoint"
         ],
-        "title": "HealthResponse"
+        "title": "HealthResponse",
+        "description": "Summary with the two probe paths: the same shape in every app (``status``, ``version``, ``commit``, probes)."
       },
       "HomeAssistantEntity": {
         "properties": {
@@ -7567,7 +7573,8 @@
         "required": [
           "status"
         ],
-        "title": "LivenessResponse"
+        "title": "LivenessResponse",
+        "description": "Process-level alive signal; never touches a dependency."
       },
       "MarkMedicationTakenRequest": {
         "properties": {
@@ -9272,7 +9279,8 @@
         "required": [
           "status"
         ],
-        "title": "ReadinessResponse"
+        "title": "ReadinessResponse",
+        "description": "Result of the dependency checks, sent with HTTP 200 (``ready``) or 503 (``not_ready``)."
       },
       "RescheduleChoreRequest": {
         "properties": {
