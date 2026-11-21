@@ -59,7 +59,8 @@ def liveness_check() -> LivenessResponse:
 
 def _check_db() -> None:
     with engine.connect() as connection:
-        connection.execute(text("SET LOCAL statement_timeout = '2000'"))
+        if connection.dialect.name == "postgresql":
+            connection.execute(text("SET LOCAL statement_timeout = '2000'"))
         connection.execute(text("SELECT 1"))
 
 
@@ -115,7 +116,8 @@ def health_check() -> HealthResponse:
         version=settings.version,
         commit=os.environ.get("APP_COMMIT", "unknown"),
         liveness="alive",
-        readiness_endpoint="/health/readiness",
+        liveness_endpoint=f"{settings.api_prefix}/health/liveness",
+        readiness_endpoint=f"{settings.api_prefix}/health/readiness",
     )
 
 

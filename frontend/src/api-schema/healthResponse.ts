@@ -5,10 +5,14 @@
  * OpenAPI spec version: snapshot
  */
 
+/**
+ * Summary with the two probe paths: the same shape in every app (``status``, ``version``, ``commit``, probes).
+ */
 export type HealthResponse = {
   status: 'ok';
   version: string;
   commit: string;
   liveness: 'alive';
+  liveness_endpoint: string;
   readiness_endpoint: string;
 };

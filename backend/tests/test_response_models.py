@@ -120,6 +120,7 @@ def test_system_endpoints_keep_their_wire_shape(client: TestClient) -> None:
         "version",
         "commit",
         "liveness",
+        "liveness_endpoint",
         "readiness_endpoint",
     }
     assert client.get("/").json().keys() == {

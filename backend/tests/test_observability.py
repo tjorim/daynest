@@ -4,6 +4,7 @@ import json
 import logging
 import time
 import uuid
+from types import SimpleNamespace
 
 import pytest
 from fastapi.testclient import TestClient
@@ -20,15 +21,18 @@ def test_liveness_and_health_endpoints(client: TestClient, monkeypatch) -> None:
     payload = health_response.json()
     assert payload["status"] == "ok"
     assert payload["liveness"] == "alive"
+    assert payload["liveness_endpoint"] == "/api/health/liveness"
+    assert payload["readiness_endpoint"] == "/api/health/readiness"
     assert payload["version"]
     assert payload["commit"] == "c" * 40
-    assert "readiness_endpoint" in payload
 
 
 def test_readiness_endpoint_returns_ready(client: TestClient, monkeypatch) -> None:
     from app.routers import health
 
     class HealthyConnection:
+        dialect = SimpleNamespace(name="sqlite")
+
         def __enter__(self):
             return self
 

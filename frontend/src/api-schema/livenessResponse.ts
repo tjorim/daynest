@@ -5,6 +5,9 @@
  * OpenAPI spec version: snapshot
  */
 
+/**
+ * Process-level alive signal; never touches a dependency.
+ */
 export type LivenessResponse = {
   status: 'alive';
 };
