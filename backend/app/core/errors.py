@@ -12,7 +12,8 @@ import uuid
 from collections.abc import Mapping
 from typing import Any
 
-from fastapi import HTTPException, Request
+from fastapi import HTTPException, Request, status
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, Response
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
@@ -108,3 +109,24 @@ async def handle_http_exception(request: Request, exc: Exception) -> Response:
     if params:
         payload["params"] = params
     return JSONResponse(payload, status_code=exc.status_code, headers=headers)
+
+
+VALIDATION_ERROR_CODE = "validation_error"
+
+# ``input`` (the submitted value) and ``ctx`` (constraint values, sometimes the raw cause) can echo secrets or PII.
+_UNSAFE_VALIDATION_KEYS = frozenset({"input", "ctx"})
+
+
+async def handle_validation_error(request: Request, exc: Exception) -> Response:
+    """Render a 422 as FastAPI's ``detail`` list (``type``, ``loc``, ``msg``) without the submitted values.
+
+    ``detail`` stays a list, as the generated client and the frontend read it; ``code`` is added next to it.
+    """
+    if not isinstance(exc, RequestValidationError):
+        raise exc
+    detail = [
+        {key: value for key, value in issue.items() if key not in _UNSAFE_VALIDATION_KEYS} for issue in exc.errors()
+    ]
+    return JSONResponse(
+        {"detail": detail, "code": VALIDATION_ERROR_CODE}, status_code=status.HTTP_422_UNPROCESSABLE_CONTENT
+    )

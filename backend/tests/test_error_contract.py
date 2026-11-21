@@ -54,8 +54,11 @@ def test_validation_failures_list_field_errors_without_the_raw_payload(client: T
     response = client.post("/api/integrations/clients/token", json={"client_secret": "secret-token"})
 
     assert response.status_code == 422
-    errors = response.json()["detail"]
-    assert errors and all({"type", "loc", "msg"} <= set(entry) for entry in errors)
+    body = response.json()
+    assert set(body) == {"detail", "code"}
+    assert body["code"] == "validation_error"
+    errors = body["detail"]
+    assert errors and all(set(entry) == {"type", "loc", "msg"} for entry in errors)
     assert {entry["type"] for entry in errors} == {"missing"}
     assert "secret-token" not in response.text
 

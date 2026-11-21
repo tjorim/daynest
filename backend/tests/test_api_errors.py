@@ -2,7 +2,9 @@
 
 import pytest
 from fastapi import FastAPI, HTTPException
+from fastapi.exceptions import RequestValidationError
 from fastapi.testclient import TestClient
+from pydantic import BaseModel, Field
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.core.errors import (
@@ -10,6 +12,7 @@ from app.core.errors import (
     handle_api_exception,
     handle_http_exception,
     handle_unhandled_exception,
+    handle_validation_error,
 )
 
 
@@ -139,3 +142,43 @@ def test_http_handler_never_overrides_an_existing_code_or_params() -> None:
 
     assert response.status_code == 409
     assert response.json() == {"detail": "Clash", "code": "household_conflict", "params": {"n": 1}}
+
+
+class _Payload(BaseModel):
+    name: str = Field(min_length=3)
+    count: int = Field(ge=1)
+
+
+def test_validation_error_keeps_the_detail_list_and_drops_submitted_values() -> None:
+    app = FastAPI()
+    app.add_exception_handler(RequestValidationError, handle_validation_error)
+
+    @app.post("/items")
+    def create(payload: _Payload) -> None: ...
+
+    response = TestClient(app).post("/items", json={"name": "secret-token", "count": 0, "extra": "x"})
+    short = TestClient(app).post("/items", json={"name": "ab", "count": 1})
+
+    assert response.status_code == 422
+    body = response.json()
+    assert body["code"] == "validation_error"
+    assert [(entry["type"], entry["loc"]) for entry in body["detail"]] == [("greater_than_equal", ["body", "count"])]
+    assert all(set(entry) == {"type", "loc", "msg"} for entry in body["detail"] + short.json()["detail"])
+    assert "secret-token" not in response.text
+    assert short.json()["detail"][0]["type"] == "string_too_short"
+
+
+def test_validation_error_for_malformed_json_does_not_echo_the_body() -> None:
+    app = FastAPI()
+    app.add_exception_handler(RequestValidationError, handle_validation_error)
+
+    @app.post("/items")
+    def create(payload: _Payload) -> None: ...
+
+    response = TestClient(app).post(
+        "/items", content=b'{"name": secret-token', headers={"content-type": "application/json"}
+    )
+
+    assert response.status_code == 422
+    assert response.json()["code"] == "validation_error"
+    assert "secret-token" not in response.text
