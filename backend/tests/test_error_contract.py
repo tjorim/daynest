@@ -81,12 +81,13 @@ def broken_db() -> Generator[None]:
 
 @pytest.mark.usefixtures("broken_db")
 def test_an_unhandled_exception_answers_500_without_leaking_its_cause() -> None:
-    # The unhandled-exception response is Starlette's plain text, not the JSON shape above (recorded as a follow-up).
     payload = {"grant_type": "client_credentials", "client_id": "x", "client_secret": "secret-token"}
     unhandled = TestClient(app, raise_server_exceptions=False, base_url="http://localhost")
     response = unhandled.post("/api/integrations/clients/token", json=payload)
 
     assert response.status_code == 500
+    assert response.headers["content-type"] == "application/json"
+    assert response.json() == {"detail": "Internal server error", "code": "internal_error"}
     assert response.headers["x-request-id"]
     for secret in ("secret-token", "password", "postgresql"):
         assert secret not in response.text

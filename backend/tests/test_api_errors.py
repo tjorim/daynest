@@ -4,7 +4,7 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from app.core.errors import ApiException, handle_api_exception
+from app.core.errors import ApiException, handle_api_exception, handle_unhandled_exception
 
 
 @pytest.fixture
@@ -58,3 +58,21 @@ def test_real_endpoint_returns_a_code(client: TestClient) -> None:
     assert response.status_code in (401, 404)
     if response.status_code == 401:
         assert response.json()["code"] == "not_authenticated"
+
+
+def test_unhandled_handler_answers_json_with_a_request_id_and_no_cause(caplog: pytest.LogCaptureFixture) -> None:
+    # The path for an exception raised outside ``observability_middleware`` (Starlette's ServerErrorMiddleware).
+    app = FastAPI()
+    app.add_exception_handler(Exception, handle_unhandled_exception)
+
+    @app.get("/boom")
+    def boom() -> None:
+        raise RuntimeError("secret-token")
+
+    response = TestClient(app, raise_server_exceptions=False).get("/boom")
+
+    assert response.status_code == 500
+    assert response.json() == {"detail": "Internal server error", "code": "internal_error"}
+    assert response.headers["x-request-id"]
+    assert "secret-token" not in response.text
+    assert any(record.exc_info for record in caplog.records)  # the stack trace stays in the server log
