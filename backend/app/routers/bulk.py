@@ -2,11 +2,11 @@ import logging
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from app.api.dependencies.audit import get_audit_actor
-from app.api.dependencies.auth import get_current_user
-from app.api.dependencies.events import get_event_bus
-from app.api.dependencies.today import get_today_service
 from app.models.user import User
+from app.routers.dependencies.audit import get_audit_actor
+from app.routers.dependencies.auth import get_current_user
+from app.routers.dependencies.events import get_event_bus
+from app.routers.dependencies.today import get_today_service
 from app.schemas.bulk import (
     BulkMutationItem,
     BulkMutationRequest,

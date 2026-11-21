@@ -4,7 +4,7 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
 from app.core.config import settings
-from app.request_limits import RateLimitExceeded, RequestRateLimiter, get_client_ip, route_template
+from app.core.request_limits import RateLimitExceeded, RequestRateLimiter, get_client_ip, route_template
 
 __all__ = [
     "RateLimitExceeded",

@@ -3,14 +3,14 @@ from datetime import UTC, datetime
 from fastapi import APIRouter, Depends, Response, status
 from sqlalchemy.orm import Session
 
-from app.api.dependencies.audit import get_audit_actor
-from app.api.dependencies.auth import get_current_user
 from app.core.config import settings
 from app.core.errors import ApiException
 from app.db.session import get_db
 from app.models.medication_plan import MedicationPlan
 from app.models.user import User
 from app.repositories.today_repository import TodayRepository
+from app.routers.dependencies.audit import get_audit_actor
+from app.routers.dependencies.auth import get_current_user
 from app.schemas.medication import (
     MedicationDoseMutationResponse,
     MedicationDoseTakeRequest,

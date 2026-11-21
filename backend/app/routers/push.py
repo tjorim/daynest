@@ -4,10 +4,10 @@ from sqlalchemy.dialects.postgresql import insert as postgresql_insert
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.orm import Session
 
-from app.api.dependencies.auth import get_current_user
 from app.db.session import get_db
 from app.models.push_subscription import PushSubscription
 from app.models.user import User
+from app.routers.dependencies.auth import get_current_user
 from app.schemas.push import PushSubscribeRequest, PushUnsubscribeRequest
 
 router = APIRouter(tags=["push"])

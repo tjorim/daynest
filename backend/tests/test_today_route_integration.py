@@ -4,9 +4,6 @@ from unittest.mock import MagicMock
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from app.api.dependencies.auth import get_current_user
-from app.api.dependencies.today import get_today_service
-from app.api.routes import calendar as calendar_routes
 from app.core.config import settings
 from app.core.enums import ChoreStatus, MedicationDoseStatus, TaskStatus
 from app.main import app
@@ -19,6 +16,9 @@ from app.models.routine_template import RoutineTemplate
 from app.models.task_instance import TaskInstance
 from app.models.user import User
 from app.repositories.today_repository import TodayRepository
+from app.routers import calendar as calendar_routes
+from app.routers.dependencies.auth import get_current_user
+from app.routers.dependencies.today import get_today_service
 from app.schemas.integrations import HACalendarEvent
 from app.schemas.today import TodayResponse
 from app.services.today_service import TodayService

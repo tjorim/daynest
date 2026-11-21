@@ -16,12 +16,12 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session, sessionmaker
 from starlette.testclient import TestClient
 
-from app.api.dependencies.integration_auth import hash_integration_key
 from app.core.config import settings
 from app.mcp_server import DaynestMcpBackend, create_mcp_server
 from app.models.audit_entry import AuditEntry
 from app.models.integration_client import IntegrationClient
 from app.models.user import User
+from app.routers.dependencies.integration_auth import hash_integration_key
 
 PRIVATE = "PRIVATE-NOTE-9f3a"
 ISSUER = "https://auth.example/realms/daynest"

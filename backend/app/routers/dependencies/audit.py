@@ -1,7 +1,7 @@
 """FastAPI dependency that builds an AuditActor for the current REST request.
 
 Reuses the AuthorizationPrincipal that ``get_current_user`` already stashes on
-``request.state`` (see app.api.dependencies.auth._set_request_auth_state) so
+``request.state`` (see app.routers.dependencies.auth._set_request_auth_state) so
 REST routes can pass the same AuditActor shape into the shared services that
 MCP tools use — one audit path for both surfaces.
 """
@@ -10,8 +10,8 @@ from __future__ import annotations
 
 from fastapi import Depends, Request
 
-from app.api.dependencies.auth import AuthorizationPrincipal, AuthType, get_current_user
 from app.models.user import User
+from app.routers.dependencies.auth import AuthorizationPrincipal, AuthType, get_current_user
 from app.services.audit_service import AuditActor, AuditAuthSource
 
 _AUTH_TYPE_TO_AUDIT_SOURCE: dict[AuthType, AuditAuthSource] = {

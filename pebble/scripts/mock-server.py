@@ -1,6 +1,6 @@
 """Mock of Daynest's Pebble integration routes, for testing the watchapp.
 
-Mirrors backend/app/api/routes/integrations/pebble.py:
+Mirrors backend/app/routers/integrations/pebble.py:
 
     GET  /api/integrations/pebble/dashboard              (pebble:read)
     POST /api/integrations/pebble/actions/complete-task  (pebble:write)

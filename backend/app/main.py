@@ -11,25 +11,6 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastmcp.utilities.lifespan import combine_lifespans
 from starlette.applications import Starlette
 
-from app.api.dependencies.events import get_event_bus
-from app.api.routes.analytics import router as analytics_router
-from app.api.routes.auth import close_http_client as close_auth_http_client
-from app.api.routes.auth import router as auth_router
-from app.api.routes.bulk import router as bulk_router
-from app.api.routes.calendar import router as calendar_router
-from app.api.routes.health import router as system_router
-from app.api.routes.households import router as households_router
-from app.api.routes.integrations.clients import router as integration_clients_router
-from app.api.routes.integrations.home_assistant import router as home_assistant_router
-from app.api.routes.integrations.pebble import router as pebble_router
-from app.api.routes.meal_plans import router as meal_plans_router
-from app.api.routes.medications import router as medications_router
-from app.api.routes.push import router as push_router
-from app.api.routes.search import router as search_router
-from app.api.routes.shopping_lists import router as shopping_lists_router
-from app.api.routes.templates import router as templates_router
-from app.api.routes.today import router as today_router
-from app.api.routes.users import router as users_router
 from app.core.config import settings
 from app.core.errors import ApiException, handle_api_exception
 from app.core.observability import (
@@ -37,13 +18,32 @@ from app.core.observability import (
     configure_logging,
     observability_middleware,
 )
+from app.core.request_limits import RateLimitHeadersMiddleware
 from app.core.request_timing import RequestTimingMiddleware
 from app.db.session import SessionLocal
 from app.mcp.capabilities import CONTRACT_VERSION, tool_capability
 from app.mcp_server import create_mcp_server
 from app.middleware.rate_limit import RateLimitExceeded, handle_rate_limit_exceeded, limiter, rate_limit
 from app.models.user import User
-from app.request_limits import RateLimitHeadersMiddleware
+from app.routers.analytics import router as analytics_router
+from app.routers.auth import close_http_client as close_auth_http_client
+from app.routers.auth import router as auth_router
+from app.routers.bulk import router as bulk_router
+from app.routers.calendar import router as calendar_router
+from app.routers.dependencies.events import get_event_bus
+from app.routers.health import router as system_router
+from app.routers.households import router as households_router
+from app.routers.integrations.clients import router as integration_clients_router
+from app.routers.integrations.home_assistant import router as home_assistant_router
+from app.routers.integrations.pebble import router as pebble_router
+from app.routers.meal_plans import router as meal_plans_router
+from app.routers.medications import router as medications_router
+from app.routers.push import router as push_router
+from app.routers.search import router as search_router
+from app.routers.shopping_lists import router as shopping_lists_router
+from app.routers.templates import router as templates_router
+from app.routers.today import router as today_router
+from app.routers.users import router as users_router
 from app.schemas.mcp import McpCapabilitiesResponse, McpPromptCapability, McpResourceCapability, McpToolCapability
 from app.schemas.system import RootResponse
 from app.services.event_bus import EventBus

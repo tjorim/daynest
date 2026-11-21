@@ -8,7 +8,7 @@ from fastapi import HTTPException
 from fastmcp.server.auth import AccessToken, TokenVerifier
 from sqlalchemy.orm import Session
 
-from app.api.dependencies.integration_auth import (
+from app.routers.dependencies.integration_auth import (
     INTEGRATION_KEY_PREFIX,
     enforce_integration_rate_limit,
     get_integration_client_by_raw_key,

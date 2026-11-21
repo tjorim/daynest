@@ -18,10 +18,10 @@ from fastmcp.server.dependencies import get_access_token
 from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
-from app.api.dependencies.integration_auth import has_required_scopes
 from app.core.oidc import get_or_create_local_user
 from app.models.integration_client import IntegrationClient
 from app.models.user import User
+from app.routers.dependencies.integration_auth import has_required_scopes
 from app.services.audit_service import AuditActor, AuditAuthSource
 
 logger = logging.getLogger(__name__)

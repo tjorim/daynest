@@ -3,7 +3,6 @@ from datetime import UTC, date, datetime, time
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from app.api.dependencies.auth import get_current_user
 from app.core.enums import ChoreStatus, MedicationDoseStatus, Priority, TaskStatus
 from app.main import app
 from app.models.chore_instance import ChoreInstance
@@ -14,6 +13,7 @@ from app.models.planned_item import PlannedItem
 from app.models.routine_template import RoutineTemplate
 from app.models.task_instance import TaskInstance
 from app.models.user import User
+from app.routers.dependencies.auth import get_current_user
 from app.services.export_import_service import build_user_export
 
 

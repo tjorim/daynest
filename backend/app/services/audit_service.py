@@ -25,7 +25,7 @@ from app.models.audit_entry import AuditEntry
 
 # Auth sources recorded on audit entries. Mirrors the vocabulary used by MCP's
 # principal resolution (app.mcp.principal.McpPrincipal) and REST's
-# AuthorizationPrincipal (app.api.dependencies.auth.AuthType), normalized to a
+# AuthorizationPrincipal (app.routers.dependencies.auth.AuthType), normalized to a
 # single string vocabulary so audit rows are comparable across both surfaces.
 AuditAuthSource = Literal["oidc", "keycloak_service", "integration", "local", "delegated"]
 

@@ -26,7 +26,7 @@ uv run alembic upgrade head
 
 | Target | Flags | Why |
 |---|---|---|
-| Sync REST routes (`def` handlers, most of `app/api/routes`) | `--mode cpu -a` | FastAPI runs them in its threadpool, so every thread must be sampled. Wall-clock mode is dominated by idle pool workers. |
+| Sync REST routes (`def` handlers, most of `app/routers`) | `--mode cpu -a` | FastAPI runs them in its threadpool, so every thread must be sampled. Wall-clock mode is dominated by idle pool workers. |
 | MCP tools and other `async def` code | `--async-aware` | Reconstructs stacks per asyncio task. Cannot be combined with `-a`. |
 | A request that is slow but not CPU-bound (waiting on DB or HTTP) | `--mode wall -a` | Wall time shows where it waits. |
 | A request that hangs | `dump <pid>` | Prints what every thread is doing right now. |

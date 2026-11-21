@@ -5,9 +5,9 @@ from fastapi.testclient import TestClient
 from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
-from app.api.dependencies.auth import get_current_user
 from app.main import app
 from app.models.user import User
+from app.routers.dependencies.auth import get_current_user
 from app.schemas.bulk import BulkMutationRequest
 from app.schemas.households import InviteRequest
 from app.schemas.shopping_list import ShoppingListUpdateRequest

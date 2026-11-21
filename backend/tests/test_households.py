@@ -6,11 +6,11 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from app.api.dependencies.auth import get_current_user
 from app.core.enums import HouseholdMemberRole
 from app.main import app
 from app.models.chore_instance import ChoreInstance
 from app.models.user import User
+from app.routers.dependencies.auth import get_current_user
 
 
 def _create_user(db_session: Session, email: str) -> User:

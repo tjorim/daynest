@@ -8,7 +8,6 @@ from fastapi import Depends, Header, Request, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
-from app.api.dependencies.auth import AuthorizationPrincipal, AuthType
 from app.core.config import settings
 from app.core.errors import ApiException
 from app.core.oidc import (
@@ -20,6 +19,7 @@ from app.core.oidc import (
 from app.db.session import get_db
 from app.models.integration_client import IntegrationClient
 from app.models.user import User
+from app.routers.dependencies.auth import AuthorizationPrincipal, AuthType
 
 _INTEGRATION_JWT_ISSUER = "daynest-integration"
 INTEGRATION_KEY_PREFIX = "daynest_"
