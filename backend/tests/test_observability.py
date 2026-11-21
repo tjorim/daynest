@@ -174,7 +174,8 @@ def test_structured_log_payload_shape(client: TestClient, caplog) -> None:
     assert "user_id" in payload
     assert "auth_type" in payload
     assert payload["method"] == "GET"
-    assert payload["route"] == "/api/health/liveness"
+    # The route template as FastAPI routes it, without the prefix of an included router (like the slow-request log).
+    assert payload["route"] == "/health/liveness"
     assert payload["status_code"] == 200
     assert "latency_ms" in payload
     assert isinstance(payload["latency_ms"], float)
@@ -192,3 +193,32 @@ def test_structured_log_does_not_leak_query_params(client: TestClient, caplog) -
     payload = json.loads(log_records[-1].message)
     assert "sensitive" not in payload["route"]
     assert "secret-token" not in payload["route"]
+
+
+def test_structured_log_names_the_route_template_not_the_path_with_a_token(client: TestClient, caplog) -> None:
+    """Calendar feed URLs carry a secret token in the path: the log keeps the template."""
+    with caplog.at_level(logging.INFO, logger="app.observability"):
+        client.get("/api/calendar/feed/secret-token.ics")
+
+    records = [r for r in caplog.records if r.name == "app.observability"]
+    assert records
+    payload = json.loads(records[-1].message)
+    assert payload["route"] == "/calendar/feed/{token}.ics"
+    assert "secret-token" not in caplog.text
+
+
+@pytest.mark.parametrize("supplied", ["bad id with spaces", "x" * 129, "a=b;c"])
+def test_request_id_is_replaced_when_the_caller_supplies_an_unsafe_one(client: TestClient, supplied: str) -> None:
+    response = client.get("/api/health/liveness", headers={"X-Request-ID": supplied})
+
+    request_id = response.headers["X-Request-ID"]
+    assert request_id != supplied
+    assert uuid.UUID(request_id, version=4)
+
+
+def test_log_lines_use_the_shared_layout() -> None:
+    from app.core.observability import LOG_FORMAT
+
+    record = logging.LogRecord("app.observability", logging.INFO, __file__, 1, "{}", None, None)
+
+    assert logging.Formatter(LOG_FORMAT).format(record).endswith(" - app.observability - INFO - {}")
