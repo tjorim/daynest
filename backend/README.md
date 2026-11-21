@@ -33,7 +33,7 @@ For PostgreSQL and Keycloak start the local stack from the repository root with 
 ## Test
 
 ```bash
-uv run pytest
+uv run pytest          # add --cov for the coverage report; CI fails under the `fail_under` floor in pyproject.toml
 ```
 
 The suite uses an in-memory SQLite database and needs no services. Async tests are marked `@pytest.mark.anyio`.

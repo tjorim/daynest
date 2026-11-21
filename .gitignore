@@ -29,3 +29,8 @@ secrets/**
 
 # Claude Code local settings
 .claude/settings.local.json
+
+# Coverage output (generated)
+.coverage
+htmlcov/
+coverage/

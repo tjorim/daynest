@@ -134,7 +134,7 @@ backend response models -> uv run python -m app.openapi_export (pnpm api:generat
 
 ## Testing
 
-Run the checks CI runs before pushing, from `frontend/`: `pnpm typecheck`, `pnpm lint`, `pnpm format:check` (+ `pnpm format:repo:check`), `pnpm test`, `pnpm build`, `pnpm bundle:test && pnpm bundle:check`, `pnpm locale:audit`, `pnpm check-message-parity` and `pnpm ui:test && pnpm ui:check`; from `backend/`: `uv run ruff check .`, `uv run ruff format --check .`, `uv run ty check .` and `uv run pytest`. `pnpm test:e2e` needs `pnpm exec playwright install chromium`. Other components have their own checks (`android/`, `pebble/`, `custom_components/`, `python-daynest/`, `dashboard/`); see their workflows.
+Run the checks CI runs before pushing, from `frontend/`: `pnpm typecheck`, `pnpm lint`, `pnpm format:check` (+ `pnpm format:repo:check`), `pnpm test`, `pnpm build`, `pnpm bundle:test && pnpm bundle:check`, `pnpm locale:audit`, `pnpm check-message-parity` and `pnpm ui:test && pnpm ui:check`; from `backend/`: `uv run ruff check .`, `uv run ruff format --check .`, `uv run ty check .` and `uv run pytest --cov`. CI runs `pnpm test --coverage` and `pytest --cov` with floors just below the measured totals (`vitest.config.ts`, `[tool.coverage.report]`): raise them as tests are added, never lower them to land a change. `pnpm test:e2e` needs `pnpm exec playwright install chromium`. Other components have their own checks (`android/`, `pebble/`, `custom_components/`, `python-daynest/`, `dashboard/`); see their workflows.
 
 ## CI
 

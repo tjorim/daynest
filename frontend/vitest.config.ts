@@ -77,8 +77,18 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       include: ["src/**"],
-      exclude: ["src/paraglide/**", "src/main.tsx", "src/assets/**"],
+      exclude: ["src/paraglide/**", "src/main.tsx", "src/assets/**", "src/**/*.md"],
       reporter: ["text", "lcov"],
+      // Floors just below the measured totals (statements 49.10, branches 44.35, functions 42.98, lines 49.73), so
+      // coverage cannot regress unnoticed. Raise them as tests are added; never lower them to land a change.
+      thresholds: {
+        statements: 49,
+        branches: 44,
+        functions: 42,
+        lines: 49,
+        // The Today actions and sections keep their own, higher floor (measured together: 84.5% lines).
+        "src/features/today/{useTodayActions.ts,TodaySections.tsx}": { lines: 80 },
+      },
     },
   },
 });
