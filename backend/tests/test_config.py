@@ -47,3 +47,17 @@ def test_home_assistant_oidc_client_id_default_and_environment(monkeypatch: pyte
 
     monkeypatch.setenv("OIDC_HOME_ASSISTANT_CLIENT_ID", "renamed-home-assistant")
     assert AppSettings(_env_file=None, environment="dev").oidc_home_assistant_client_id == "renamed-home-assistant"
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "daynest",
+        "https://daynest.example/mcp",
+        "https://daynest.example/mcp/?unexpected=true",
+        "https://user@daynest.example/mcp/",
+    ],
+)
+def test_mcp_resource_url_requires_canonical_endpoint(url: str):
+    with pytest.raises(ValidationError, match="mcp_resource_url"):
+        AppSettings(_env_file=None, mcp_resource_url=url)

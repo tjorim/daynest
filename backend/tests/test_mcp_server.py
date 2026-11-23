@@ -1101,21 +1101,13 @@ def test_create_mcp_server_uses_backend_session_factory(db_session: Session, mon
     assert mcp.auth.session_factory == session_factory
 
 
-def test_create_mcp_server_accepts_client_credentials_without_user_scopes(monkeypatch) -> None:
+def test_create_mcp_server_requires_resource_url_for_deployed_oauth(monkeypatch) -> None:
     monkeypatch.setattr(settings, "oidc_issuer_url", "https://auth.example/realms/daynest")
-    monkeypatch.setattr(settings, "oidc_audience", "daynest")
-    monkeypatch.setenv("MCP_BASE_URL", "https://api.example/mcp")
-    backend = DaynestMcpBackend(MagicMock())
+    monkeypatch.setattr(settings, "environment", "prod")
+    monkeypatch.setattr(settings, "mcp_resource_url", None)
 
-    with patch("app.mcp_server.KeycloakAuthProvider") as provider:
-        create_mcp_server(backend)
-
-    provider.assert_called_once_with(
-        realm_url="https://auth.example/realms/daynest",
-        base_url="https://api.example/mcp",
-        audience="daynest",
-        required_scopes=[],
-    )
+    with pytest.raises(ValueError, match="MCP_RESOURCE_URL must be set"):
+        create_mcp_server(DaynestMcpBackend(MagicMock()))
 
 
 def test_create_mcp_server_propagates_keycloak_provider_failure(monkeypatch) -> None:

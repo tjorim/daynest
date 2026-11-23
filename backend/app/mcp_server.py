@@ -47,7 +47,7 @@ from app.mcp import medications as mcp_medications
 from app.mcp import planning as mcp_planning
 from app.mcp import routines as mcp_routines
 from app.mcp import shopping as mcp_shopping
-from app.mcp.auth import IntegrationKeyTokenVerifier
+from app.mcp.auth import IntegrationKeyTokenVerifier, McpJwtVerifier
 from app.mcp.capabilities import tool_annotations, tool_auth
 from app.mcp.errors import ToolCallErrorMiddleware, guard_invalid_results
 from app.mcp.medications import DEFAULT_MEDICATION_HISTORY_LIMIT
@@ -612,21 +612,24 @@ class DaynestMcpBackend:
 
 def create_mcp_server(backend: DaynestMcpBackend | None = None) -> FastMCP:
     daynest = backend or DaynestMcpBackend(SessionLocal)
-    resource_server_url = os.getenv("MCP_BASE_URL", "http://127.0.0.1:8000/mcp")
+    resource_server_url = settings.mcp_resource_url
     integration_verifier = IntegrationKeyTokenVerifier(daynest.session_factory, resource_server_url=resource_server_url)
 
     if settings.oidc_issuer_url:
-        # Requires Keycloak >= 26.6.0. When audience is set, a matching audience
-        # mapper must be configured in the realm or token validation will fail.
-        logger.info(
-            "MCP: Keycloak auth enabled (realm=%s, audience=%r)",
-            settings.oidc_issuer_url,
-            settings.oidc_audience,
-        )
+        if resource_server_url is None and settings.environment != "dev":
+            raise ValueError("MCP_RESOURCE_URL must be set when MCP OAuth is enabled outside development")
+        resource_server_url = resource_server_url or "http://127.0.0.1:8000/mcp/"
+        issuer = settings.oidc_issuer_url.rstrip("/")
+        logger.info("MCP: Keycloak auth enabled (realm=%s, resource=%s)", issuer, resource_server_url)
         keycloak_provider = KeycloakAuthProvider(
-            realm_url=settings.oidc_issuer_url,
+            realm_url=issuer,
             base_url=resource_server_url,
-            audience=settings.oidc_audience,
+            token_verifier=McpJwtVerifier(
+                jwks_uri=f"{issuer}/protocol/openid-connect/certs",
+                issuer=issuer,
+                algorithm="RS256",
+                audience=resource_server_url,
+            ),
             required_scopes=[],
         )
         auth: MultiAuth | IntegrationKeyTokenVerifier = MultiAuth(
