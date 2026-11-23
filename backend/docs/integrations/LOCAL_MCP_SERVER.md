@@ -73,38 +73,50 @@ you opt into by running `app.mcp_server` differently; it happens
 automatically as part of `app.main`, alongside the REST API, in the same
 process.
 
-Set `MCP_BASE_URL` to the externally reachable URL of
-this mount (used for OAuth resource-server metadata) before starting the
-app:
+Set `MCP_RESOURCE_URL` to the canonical public Streamable HTTP endpoint, including
+the trailing slash. Production uses `https://daynest.tjor.im/mcp/`. Configure the
+same URL as Keycloak's resource URL and MCP token audience. Set this variable
+in the deployment before enabling MCP OAuth outside development. The ordinary
+REST API continues to use `OIDC_AUDIENCE=daynest`.
 
-**PowerShell:**
-```powershell
-$env:MCP_BASE_URL = "https://your-domain.example/mcp"
-uv run uvicorn app.main:app
-```
+RFC 9728 metadata at `/.well-known/oauth-protected-resource/mcp/` advertises
+this resource and the realm configured by `OIDC_ISSUER_URL`. FastMCP validates
+Keycloak-issued access tokens directly using the realm JWKS, issuer, expiration,
+and resource audience. Keycloak handles authorization server discovery, client
+registration, and token issuance. For clients that support URL-based client
+discovery, the shared Keycloak 26.8 rollout configures CIMD and resource
+indicators. Clients must send the public URL as the OAuth `resource` parameter.
+[Keycloak MCP authorization guide](https://www.keycloak.org/securing-apps/mcp-authz-server)
 
-**bash/zsh:**
-```bash
-export MCP_BASE_URL="https://your-domain.example/mcp"
-uv run uvicorn app.main:app
-```
+### Connecting after the cutover
 
-Two authentication methods are accepted on this mount, matching how
-`resolve_principal` (`app/mcp/principal.py`) identifies the caller:
+Once the Keycloak rollout is ready, remove the old OAuth connection and its
+cached credentials, then reconnect using the exact `MCP_RESOURCE_URL`.
 
-- **Keycloak OIDC** — a Bearer token issued by the realm configured via
-  `settings.oidc_issuer_url`/`settings.oidc_audience`. Human users and
-  Keycloak service accounts (mapped to a local user via a
-  `daynest_user_id` protocol mapper) both work.
-- **Integration client keys** — Daynest's existing hashed, revocable,
-  rate-limited integration credentials:
+- In Claude Code, add the remote server with
+  `claude mcp add --transport http daynest https://daynest.tjor.im/mcp/`, then
+  sign in through `/mcp`. In Claude Desktop, add the same URL as a custom
+  connector.
+- In VS Code, add an HTTP MCP server with the same URL and start it to sign in.
+- ChatGPT requires a compatible Keycloak client configuration confirmed by the
+  infrastructure pilot. Keycloak's built-in CIMD support alone does not handle
+  the ChatGPT metadata format.
 
-  ```http
-  Authorization: Bearer daynest_...
-  ```
+Sign in as the Daynest owner and use `whoami` to check the connected identity.
+The [shared Keycloak rollout](https://github.com/tjorim/apps/issues/265) tracks
+client policies and live OAuth verification.
 
-Create an integration client in the Daynest app (or via the
-`create_integration_client` MCP tool) to obtain a key.
+Keycloak service accounts can also use an MCP-audience token when mapped to
+a local user through the `daynest_user_id` claim.
+
+### Managed integration keys
+
+Create a managed integration client in Daynest or with the
+`create_integration_client` tool and send its key as
+`Authorization: Bearer daynest_...`. Daynest checks the stored hash, client
+and owner status, revocation, rate limit, and tool scopes. Tool actions retain
+the integration client as their audit actor. Household membership and
+medication privacy checks apply to all callers.
 
 ### Rotating the integration-key hash secret
 

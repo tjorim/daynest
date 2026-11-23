@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 
 from fastapi import HTTPException
-from fastmcp.server.auth import AccessToken, TokenVerifier
+from fastmcp.server.auth import AccessToken, JWTVerifier, TokenVerifier
 from sqlalchemy.orm import Session
 
 from app.routers.dependencies.integration_auth import (
@@ -14,6 +14,16 @@ from app.routers.dependencies.integration_auth import (
     get_integration_client_by_raw_key,
     record_integration_client_use,
 )
+
+
+class McpJwtVerifier(JWTVerifier):
+    """Require the expiry claim in addition to FastMCP's JWT validation."""
+
+    async def verify_token(self, token: str) -> AccessToken | None:
+        verified = await super().verify_token(token)
+        if verified is None or verified.expires_at is None:
+            return None
+        return verified
 
 
 class IntegrationKeyTokenVerifier(TokenVerifier):

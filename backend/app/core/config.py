@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Annotated
 from urllib.parse import quote_plus
 
-from pydantic import Field, PrivateAttr, field_validator, model_validator
+from pydantic import AnyHttpUrl, Field, PrivateAttr, TypeAdapter, field_validator, model_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
@@ -47,6 +47,7 @@ class AppSettings(BaseSettings):
     oidc_issuer_url: str | None = None
     oidc_audience: str | None = None
     oidc_home_assistant_client_id: str = "home-assistant"
+    mcp_resource_url: str | None = None
     mcp_interactive_client_ids: str = "daynest,daynest-android"
     oidc_jwks_uri: str | None = None
     oidc_algorithms: str = "RS256"
@@ -96,6 +97,20 @@ class AppSettings(BaseSettings):
     def _split_csv_lists(cls, value: str | list[str]) -> list[str]:
         if isinstance(value, str):
             return [item.strip() for item in value.split(",") if item.strip()]
+        return value
+
+    @field_validator("mcp_resource_url")
+    @classmethod
+    def _validate_mcp_resource_url(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        url = TypeAdapter(AnyHttpUrl).validate_python(value)
+        if (
+            str(url) != value
+            or url.path != "/mcp/"
+            or any(part is not None for part in (url.username, url.password, url.query, url.fragment))
+        ):
+            raise ValueError("MCP_RESOURCE_URL must be a canonical HTTP(S) URL ending in /mcp/")
         return value
 
     @model_validator(mode="after")

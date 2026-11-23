@@ -70,7 +70,7 @@ configure_error_tracking()
 
 
 class _MCPAwareCORSMiddleware:
-    """CORS middleware that skips /mcp paths.
+    """CORS middleware that skips MCP transport and discovery paths.
 
     fastmcp handles CORS for its own OAuth .well-known routes; a second CORS
     layer on those paths causes 404s on preflight requests.
@@ -81,7 +81,10 @@ class _MCPAwareCORSMiddleware:
         self._cors = CORSMiddleware(app, **cors_kwargs)
 
     async def __call__(self, scope, receive, send) -> None:
-        if scope.get("type") == "http" and scope.get("path", "").startswith("/mcp"):
+        path = scope.get("path", "")
+        if scope.get("type") == "http" and (
+            path.startswith("/mcp") or path.startswith("/.well-known/oauth-protected-resource/mcp")
+        ):
             await self._app(scope, receive, send)
         else:
             await self._cors(scope, receive, send)
@@ -253,6 +256,10 @@ app.include_router(calendar_router, prefix=settings.api_prefix)
 app.include_router(search_router, prefix=settings.api_prefix)
 if _mcp_app is not None:
     app.mount("/mcp", _mcp_app)
+    if _mcp is not None and _mcp.auth is not None:
+        # RFC 9728 discovery is rooted at the public origin. Keep the mounted
+        # routes too for deployments that forward discovery through /mcp.
+        app.router.routes.extend(_mcp.auth.get_well_known_routes(mcp_path="/"))
 
 
 @app.get(f"{settings.api_prefix}/mcp/capabilities", response_model=McpCapabilitiesResponse)

@@ -2,20 +2,23 @@
 
 import logging
 import time
+from datetime import UTC, datetime
 from unittest.mock import patch
 
 import jwt
 import pytest
-from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from fastmcp import Client
 from fastmcp.exceptions import ToolError
-from fastmcp.server.auth import JWTVerifier, MultiAuth, RemoteAuthProvider
-from pydantic import AnyHttpUrl, BaseModel, Field
+from fastmcp.server.auth import JWTVerifier, MultiAuth
+from jwt.algorithms import RSAAlgorithm
+from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, sessionmaker
+from starlette.applications import Starlette
 from starlette.testclient import TestClient
 
+from app.core import oidc
 from app.core.config import settings
 from app.mcp_server import DaynestMcpBackend, create_mcp_server
 from app.models.audit_entry import AuditEntry
@@ -25,6 +28,8 @@ from app.routers.dependencies.integration_auth import hash_integration_key
 
 PRIVATE = "PRIVATE-NOTE-9f3a"
 ISSUER = "https://auth.example/realms/daynest"
+RESOURCE = "https://api.example/mcp/"
+METADATA_PATH = "/.well-known/oauth-protected-resource/mcp/"
 INTEGRATION_KEY = "daynest_fastmcp_boundary_key"
 RPC_HEADERS = {"Accept": "application/json, text/event-stream", "Content-Type": "application/json"}
 
@@ -164,13 +169,8 @@ async def test_repeated_discovery_searches_stay_current(local_server) -> None:
 
 
 @pytest.fixture()
-def keycloak_keypair() -> tuple[bytes, bytes]:
-    key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
-    private = key.private_bytes(
-        serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8, serialization.NoEncryption()
-    )
-    public = key.public_key().public_bytes(serialization.Encoding.PEM, serialization.PublicFormat.SubjectPublicKeyInfo)
-    return private, public
+def keycloak_signing_key() -> rsa.RSAPrivateKey:
+    return rsa.generate_private_key(public_exponent=65537, key_size=2048)
 
 
 def _rpc(client: TestClient, token: str | None, name: str, arguments: dict | None = None):
@@ -178,7 +178,7 @@ def _rpc(client: TestClient, token: str | None, name: str, arguments: dict | Non
     if token:
         headers["Authorization"] = f"Bearer {token}"
     return client.post(
-        "/mcp",
+        "/mcp/",
         headers=headers,
         json={
             "jsonrpc": "2.0",
@@ -190,12 +190,24 @@ def _rpc(client: TestClient, token: str | None, name: str, arguments: dict | Non
 
 
 def test_multiauth_resolves_keycloak_and_integration_principals_over_stateless_http(
-    db_session: Session, monkeypatch: pytest.MonkeyPatch, keycloak_keypair: tuple[bytes, bytes]
+    db_session: Session,
+    monkeypatch: pytest.MonkeyPatch,
+    keycloak_signing_key: rsa.RSAPrivateKey,
+    client: TestClient,
 ) -> None:
-    """MultiAuth qualifies client IDs by source in FastMCP 4.1; principal resolution must not depend on that shape."""
-    private_key, public_key = keycloak_keypair
+    private_key = keycloak_signing_key
+    jwks = {"keys": [RSAAlgorithm.to_jwk(private_key.public_key(), as_dict=True)]}
     monkeypatch.setattr(settings, "oidc_issuer_url", ISSUER)
+    monkeypatch.setattr(settings, "mcp_resource_url", RESOURCE)
     monkeypatch.setattr(settings, "oidc_audience", "daynest")
+    monkeypatch.setattr(oidc, "_OIDC_ISSUER", ISSUER)
+    monkeypatch.setattr(oidc, "_OIDC_AUDIENCE", settings.oidc_audience)
+
+    async def fetch_api_jwks():
+        return jwt.PyJWKSet.from_dict(jwks)
+
+    monkeypatch.setattr(oidc, "_jwks_cache", None)
+    monkeypatch.setattr(oidc, "_fetch_jwks", fetch_api_jwks)
     owner = _user(db_session)
     db_session.add(
         IntegrationClient(
@@ -209,34 +221,64 @@ def test_multiauth_resolves_keycloak_and_integration_principals_over_stateless_h
     )
     db_session.commit()
 
-    def stand_in_keycloak(*, realm_url: str, base_url: str, audience: str, required_scopes: list[str]):
-        return RemoteAuthProvider(
-            token_verifier=JWTVerifier(public_key=public_key.decode(), issuer=realm_url, audience=audience),
-            authorization_servers=[AnyHttpUrl(realm_url)],
-            base_url=base_url,
-        )
+    async def fetch_mcp_jwks(verifier: JWTVerifier):
+        assert verifier.jwks_uri == f"{ISSUER}/protocol/openid-connect/certs"
+        return jwks
 
-    with patch("app.mcp_server.KeycloakAuthProvider", stand_in_keycloak):
-        mcp = create_mcp_server(DaynestMcpBackend(_session_factory(db_session)))
+    monkeypatch.setattr(JWTVerifier, "_fetch_jwks", fetch_mcp_jwks)
+    mcp = create_mcp_server(DaynestMcpBackend(_session_factory(db_session)))
     assert isinstance(mcp.auth, MultiAuth)
 
-    oidc_token = jwt.encode(
-        {
-            "sub": "keycloak-subject-1",
-            "iss": ISSUER,
-            "aud": "daynest",
-            "exp": int(time.time()) + 300,
-            "preferred_username": "kc-user",
-            "email": "kc-user@example.com",
-        },
-        private_key,
-        algorithm="RS256",
-    )
+    claims = {
+        "sub": "keycloak-subject-1",
+        "iss": ISSUER,
+        "aud": [RESOURCE, "account"],
+        "exp": int(time.time()) + 300,
+        "preferred_username": "kc-user",
+        "email": "kc-user@example.com",
+    }
+
+    def sign(**overrides):
+        return jwt.encode(claims | overrides, private_key, algorithm="RS256")
+
+    oidc_token = sign()
+    api_token = sign(aud="daynest")
+    api_response = client.get("/api/auth/me", headers={"Authorization": f"Bearer {api_token}"})
+    assert api_response.status_code == 200
+    assert api_response.json()["email"] == "kc-user@example.com"
+    assert client.get("/api/auth/me", headers={"Authorization": f"Bearer {oidc_token}"}).status_code == 401
+
+    mcp_app = mcp.http_app(path="/", stateless_http=True)
+    app = Starlette(routes=mcp.auth.get_well_known_routes(mcp_path="/"), lifespan=mcp_app.lifespan)
+    app.mount("/mcp", mcp_app)
 
     # Stateless: every request is self-contained, with no initialize call and no session id.
-    with TestClient(mcp.http_app(path="/mcp", stateless_http=True), base_url="https://api.example") as client:
-        assert _rpc(client, None, "whoami").status_code == 401
-        assert _rpc(client, "garbage", "whoami").status_code == 401
+    with TestClient(app, base_url="https://api.example") as client:
+        metadata = client.get(METADATA_PATH)
+        assert metadata.status_code == 200
+        assert metadata.json()["resource"] == RESOURCE
+        assert metadata.json()["authorization_servers"] == [ISSUER]
+
+        unauthenticated = _rpc(client, None, "whoami")
+        assert unauthenticated.status_code == 401
+        assert f"https://api.example{METADATA_PATH}" in unauthenticated.headers["www-authenticate"]
+        missing_expiry = jwt.encode(
+            {key: value for key, value in claims.items() if key != "exp"}, private_key, algorithm="RS256"
+        )
+        bad_signature = jwt.encode(
+            claims, rsa.generate_private_key(public_exponent=65537, key_size=2048), algorithm="RS256"
+        )
+        for rejected_token in (
+            "garbage",
+            api_token,
+            sign(aud="unexpected-audience"),
+            sign(aud=["https://other.example/mcp/", "account"]),
+            sign(iss="https://another-issuer.example"),
+            sign(exp=int(time.time()) - 60),
+            missing_expiry,
+            bad_signature,
+        ):
+            assert _rpc(client, rejected_token, "whoami").status_code == 401
 
         oidc_response = _rpc(client, oidc_token, "whoami")
         assert oidc_response.status_code == 200
@@ -252,3 +294,31 @@ def test_multiauth_resolves_keycloak_and_integration_principals_over_stateless_h
         barred = _rpc(client, INTEGRATION_KEY, "call_tool", {"name": "list_users", "arguments": {}})
         assert barred.status_code == 200
         assert '"isError":true' in barred.text.replace(" ", "")
+
+        mutation = _rpc(
+            client,
+            INTEGRATION_KEY,
+            "call_tool",
+            {
+                "name": "create_shopping_list",
+                "arguments": {"name": "Groceries"},
+            },
+        )
+        assert mutation.status_code == 200
+        assert '"isError":false' in mutation.text.replace(" ", "")
+
+        integration = db_session.scalar(select(IntegrationClient).where(IntegrationClient.user_id == owner.id))
+        assert integration is not None
+        assert integration.last_used_at is not None
+        audit = db_session.scalar(select(AuditEntry))
+        assert audit is not None
+        assert (audit.auth_source, audit.actor_user_id, audit.integration_client_id) == (
+            "integration",
+            owner.id,
+            integration.id,
+        )
+
+        integration.revoked_at = datetime.now(UTC)
+        db_session.commit()
+        assert _rpc(client, INTEGRATION_KEY, "whoami").status_code == 401
+        assert _audit_count(db_session) == 1
