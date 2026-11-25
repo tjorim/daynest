@@ -22,6 +22,7 @@ the allowed scopes are listed in `release.config.json`, and `node scripts/releas
 
 ### Internal
 
+- Refuse to start when the retired `MCP_BASE_URL` is set (environment or `.env`) without `MCP_RESOURCE_URL`, or when `MCP_RESOURCE_URL` is set without `OIDC_AUDIENCE`, matching Worktime, Champagnefestival and Travel. `env/dev.env` now sets `OIDC_AUDIENCE=daynest`.
 - Bind MCP OAuth access tokens and discovery to the canonical public MCP URL, with a separate audience for the REST API. Reconnect OAuth clients after the Keycloak cutover.
 - Keep generated API schema files out of CodeRabbit reviews so large API changes stay under its file limit. Reviews remain on request only.
 - Give every API error one body shape (Part of #1492, additive): an unhandled exception answers `{"detail": "Internal server error", "code": "internal_error"}` with `X-Request-ID` instead of plain text, framework errors (unknown route, wrong method) keep their `detail` and gain a `code` (`not_found`, `method_not_allowed`, `unauthorized`, `forbidden`, `bad_request`, else `http_<status>`), and 422 validation errors keep the `detail` list but drop the submitted `input` and `ctx` and gain `code: "validation_error"`. Documented in `backend/docs/api-errors.md`; the generated API types are unchanged.

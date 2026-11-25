@@ -60,4 +60,32 @@ def test_home_assistant_oidc_client_id_default_and_environment(monkeypatch: pyte
 )
 def test_mcp_resource_url_requires_canonical_endpoint(url: str):
     with pytest.raises(ValidationError, match="mcp_resource_url"):
-        AppSettings(_env_file=None, mcp_resource_url=url)
+        AppSettings(_env_file=None, oidc_audience="daynest", mcp_resource_url=url)
+
+
+def test_mcp_resource_url_requires_the_rest_api_audience(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.delenv("OIDC_AUDIENCE", raising=False)
+
+    with pytest.raises(ValidationError, match="OIDC_AUDIENCE must be set when MCP_RESOURCE_URL is"):
+        AppSettings(_env_file=None, environment="dev", mcp_resource_url="http://localhost:8000/mcp/")
+    assert AppSettings(
+        _env_file=None, environment="dev", oidc_audience="daynest", mcp_resource_url="http://localhost:8000/mcp/"
+    ).mcp_resource_url
+
+
+def test_retired_mcp_base_url_fails_loudly(monkeypatch: pytest.MonkeyPatch, tmp_path):
+    monkeypatch.delenv("MCP_BASE_URL", raising=False)
+    monkeypatch.delenv("MCP_RESOURCE_URL", raising=False)
+    monkeypatch.setenv("MCP_BASE_URL", "https://daynest.example/mcp")
+    with pytest.raises(ValidationError, match="MCP_BASE_URL is no longer read"):
+        AppSettings(_env_file=None, environment="dev")
+    monkeypatch.delenv("MCP_BASE_URL")
+
+    env_file = tmp_path / ".env"
+    env_file.write_text("MCP_BASE_URL=https://daynest.example/mcp\n")
+    with pytest.raises(ValidationError, match="MCP_BASE_URL is no longer read"):
+        AppSettings(_env_file=env_file, environment="dev")
+    env_file.write_text(
+        "OIDC_AUDIENCE=daynest\nMCP_BASE_URL=https://daynest.example/mcp\nMCP_RESOURCE_URL=https://daynest.example/mcp/\n"
+    )
+    assert AppSettings(_env_file=env_file, environment="dev").mcp_resource_url == "https://daynest.example/mcp/"
