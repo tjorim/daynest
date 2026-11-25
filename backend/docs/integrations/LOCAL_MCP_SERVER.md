@@ -77,7 +77,11 @@ Set `MCP_RESOURCE_URL` to the canonical public Streamable HTTP endpoint, includi
 the trailing slash. Production uses `https://daynest.tjor.im/mcp/`. Configure the
 same URL as Keycloak's resource URL and MCP token audience. Set this variable
 in the deployment before enabling MCP OAuth outside development. The ordinary
-REST API continues to use `OIDC_AUDIENCE=daynest`.
+REST API continues to use `OIDC_AUDIENCE=daynest`, which must be set whenever
+`MCP_RESOURCE_URL` is: an empty audience skips the REST audience check, so the
+REST API would accept MCP tokens, and startup refuses that combination. The
+retired `MCP_BASE_URL` is no longer read; startup fails if it is set (in the
+environment or `.env`) without `MCP_RESOURCE_URL`.
 
 RFC 9728 metadata at `/.well-known/oauth-protected-resource/mcp/` advertises
 this resource and the realm configured by `OIDC_ISSUER_URL`. FastMCP validates

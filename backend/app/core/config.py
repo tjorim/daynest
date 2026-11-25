@@ -48,6 +48,9 @@ class AppSettings(BaseSettings):
     oidc_audience: str | None = None
     oidc_home_assistant_client_id: str = "home-assistant"
     mcp_resource_url: str | None = None
+    # Retired MCP_BASE_URL, read from every settings source (environment and .env) only so
+    # startup can refuse a config that still uses it. Nothing else reads it.
+    retired_mcp_base_url: str | None = Field(default=None, validation_alias="MCP_BASE_URL", exclude=True, repr=False)
     mcp_interactive_client_ids: str = "daynest,daynest-android"
     oidc_jwks_uri: str | None = None
     oidc_algorithms: str = "RS256"
@@ -127,6 +130,14 @@ class AppSettings(BaseSettings):
             raise ValueError("OIDC_ISSUER_URL must be set in non-dev environments")
         if not self.oidc_audience and self.oidc_algorithms != "none" and self.environment != "dev":
             raise ValueError("OIDC_AUDIENCE must be set in non-dev environments when using token verification")
+        if self.retired_mcp_base_url and not self.mcp_resource_url:
+            raise ValueError(
+                "MCP_BASE_URL is no longer read: set MCP_RESOURCE_URL to the canonical https://<host>/mcp/ URL."
+            )
+        if self.mcp_resource_url and not self.oidc_audience:
+            raise ValueError(
+                "OIDC_AUDIENCE must be set when MCP_RESOURCE_URL is: without it the REST API accepts MCP tokens."
+            )
         if not self._cached_integration_key_hash_secret and self.environment != "dev":
             raise ValueError(
                 "INTEGRATION_KEY_HASH_SECRET or INTEGRATION_KEY_HASH_SECRET_FILE must be set in non-dev environments"
