@@ -16,7 +16,7 @@ dependencies = [
     "fastapi==0.164.0",
     "google-auth==2.62.2",
     "httpx==0.28.1",
-    "icalendar==7.3.0",
+    "icalendar==7.3.2",
     "fastmcp==4.2.5",
     "psycopg[binary]==3.3.9",
     "pydantic[email]==2.14.4",
