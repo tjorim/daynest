@@ -120,7 +120,12 @@ val gitCommit =
 
 extensions.configure<ApplicationExtension> {
     namespace = "com.daynest.android"
-    compileSdk = 37
+    compileSdk {
+        version =
+            release(37) {
+                minorApiLevel = 1
+            }
+    }
 
     val keystorePath =
         localProperties.getProperty("keystorePath") ?: providers.environmentVariable("KEYSTORE_PATH").orNull
