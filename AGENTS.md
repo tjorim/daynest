@@ -136,6 +136,16 @@ backend response models -> uv run python -m app.openapi_export (pnpm api:generat
 
 Run the checks CI runs before pushing, from `frontend/`: `pnpm typecheck`, `pnpm lint`, `pnpm format:check` (+ `pnpm format:repo:check`), `pnpm test`, `pnpm build`, `pnpm bundle:test && pnpm bundle:check`, `pnpm locale:audit`, `pnpm check-message-parity` and `pnpm ui:test && pnpm ui:check`; from `backend/`: `uv run ruff check .`, `uv run ruff format --check .`, `uv run ty check .` and `uv run pytest --cov`. CI runs `pnpm test --coverage` and `pytest --cov` with floors just below the measured totals (`vitest.config.ts`, `[tool.coverage.report]`): raise them as tests are added, never lower them to land a change. `pnpm test:e2e` needs `pnpm exec playwright install chromium`. Other components have their own checks (`android/`, `pebble/`, `custom_components/`, `python-daynest/`, `dashboard/`); see their workflows.
 
+## Pull requests
+
+Open a pull request as a draft while the work is in progress and mark it ready for review once it is complete and its checks pass locally, so reviewers and CI only see finished work; push once per pull request where you can rather than after every small change.
+
+Match review effort to risk: low-risk changes (docs, UI polish, derived read-only views) get one quick review and only real bugs are fixed; keep the full review and fix loop for money, auth, data models, files, exports and permissions.
+
+If a gap fits inside the change in progress, fix it there. When a change surfaces work that is legitimately out of scope (it belongs in another repository, depends on work that does not exist yet, or was excluded by a decision), open a concrete GitHub issue for it before considering the change done, after checking for an existing one.
+
+GitHub issues are living documents: never add comments to them. Record clarifications and decisions by editing the issue body (read it first, keep the original text, add or adjust a clearly headed section).
+
 ## CI
 
 `.github/workflows/ci.yml` detects which components a change touches and calls the component workflows (`backend-ci.yml`, `frontend-ci.yml`, `dashboard-ci.yml`, `daynest-lib-ci.yml`, `ha-ci.yml`, `android.yml` and `pebble.yml`); unchanged components show as skipped. The `CI gate` job fails when any needed job failed or was cancelled. The frontend workflow runs `Frontend / Checks` and `Frontend / E2E Tests (Chromium)`; the backend workflow runs `Backend / Checks` and `Backend / Migrations` (the calling jobs in `ci.yml` supply the `Frontend` and `Backend` prefix, so the jobs inside the called workflows must not repeat it). `ci.yml` also checks release metadata and the formatting of workflows, scripts and root JSON. CodeQL runs through GitHub's default setup (repository settings), so there are no `codeql-*.yml` files here; do not add them while the default setup is on, because GitHub rejects advanced-workflow uploads in that case. Action versions are pinned to commit SHAs with the version in a comment; Renovate keeps them current.
