@@ -99,12 +99,27 @@ def configure_error_tracking() -> None:
     if not settings.sentry_dsn:
         return
 
+    # sentry-sdk 3 replaced `send_default_pii` with `data_collection`, whose defaults collect more data. This keeps
+    # the previous `send_default_pii=False` behaviour (the SDK's "Migrating from send_default_pii" guide).
+    sensitive_terms = ["forwarded", "-ip", "remote-", "via", "-user"]
+
     sentry_sdk.init(
         dsn=settings.sentry_dsn,
         environment=settings.environment,
         traces_sample_rate=settings.sentry_traces_sample_rate,
         integrations=[FastApiIntegration()],
-        send_default_pii=False,
+        data_collection={
+            "user_info": False,
+            "http_bodies": [],
+            "graphql": {"document": False, "variables": False},
+            "gen_ai": {"inputs": False, "outputs": False},
+            "mcp": {"inputs": False, "outputs": False},
+            "database_query_data": False,
+            "queues": False,
+            "http_headers": {"request": {"mode": "denylist", "terms": sensitive_terms}},
+            "cookies": {"mode": "denylist", "terms": sensitive_terms},
+            "url_query_params": {"mode": "denylist", "terms": sensitive_terms},
+        },
     )
 
 
