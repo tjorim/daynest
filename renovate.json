@@ -13,17 +13,6 @@
       "groupName": "canvas-confetti"
     },
     {
-      "description": ["Schedule-X calendar component and its plugins"],
-      "matchDatasources": ["npm"],
-      "matchPackageNames": ["@schedule-x/*"],
-      "groupName": "schedule-x"
-    },
-    {
-      "matchDatasources": ["npm"],
-      "matchPackageNames": ["dayjs"],
-      "groupName": "dayjs"
-    },
-    {
       "matchDatasources": ["pypi"],
       "matchFileNames": ["custom_components/**"],
       "matchPackageNames": ["pyobjc-*"],
