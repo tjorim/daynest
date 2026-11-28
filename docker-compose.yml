@@ -2,7 +2,7 @@
 # Credentials below are intentionally hardcoded dev defaults.
 services:
   postgres:
-    image: postgres:18-alpine
+    image: postgres:19-alpine
     environment:
       POSTGRES_USER: daynest
       POSTGRES_PASSWORD: daynest
