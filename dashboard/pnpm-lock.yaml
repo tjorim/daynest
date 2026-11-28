@@ -186,11 +186,11 @@ importers:
   .:
     dependencies:
       '@schedule-x/calendar':
-        specifier: ^4.9.1
-        version: 4.9.1(@preact/signals@2.11.4(preact@10.29.8))(preact@10.29.8)(temporal-polyfill@0.3.2)
+        specifier: ^4.9.2
+        version: 4.9.2(@preact/signals@2.11.4(preact@10.29.8))(preact@10.29.8)(temporal-polyfill@0.3.2)
       '@schedule-x/theme-default':
-        specifier: ^4.9.1
-        version: 4.9.1
+        specifier: ^4.9.2
+        version: 4.9.2
     devDependencies:
       custom-card-helpers:
         specifier: ^2.2.1
@@ -356,15 +356,15 @@ packages:
   '@rolldown/pluginutils@1.1.1':
     resolution: {integrity: sha512-glFIJDvLNDtJhT9qrMFWLPbvS+skxgt4L0K8Ei2YtnhPysAJnsI7nyxSJxKj4ADeKX0OLjC4ntRkwpLOoS3rwA==}
 
-  '@schedule-x/calendar@4.9.1':
-    resolution: {integrity: sha512-/Zsn49BqOklOZmftsh2B5QyqF/hMf8tUqpcBbg+W0xv7FFrYd1qsYeJfdEVPVKTa42hybyswLJvtglnKgaqC+Q==}
+  '@schedule-x/calendar@4.9.2':
+    resolution: {integrity: sha512-PLWU6D24s4XGCbdbyu9zSyk4FkoBrEwD4el4x2MM2/Rld4ctW5CEGbJM0L+pX8pDNmuhwRUFVEUQl0IJU8n77A==}
     peerDependencies:
       '@preact/signals': ^2.0.2
       preact: ^10.19.2
       temporal-polyfill: 0.3.2
 
-  '@schedule-x/theme-default@4.9.1':
-    resolution: {integrity: sha512-mCe0Ly9ZEBc1nsEDq2vTVvASSmM6oO5a4Nt+ogeYBnsZIBk3w9pk2IcaJHcXqHIS0uA1b8TzmjlpgvorvMtZ7w==}
+  '@schedule-x/theme-default@4.9.2':
+    resolution: {integrity: sha512-upBgC+46I+kYoCgvENMfS7nV7XXdMpd7h5BuJ3l8jc3ycNQnCZBOlCUEAZEw6csQaxOUDSl2FmT9B2DeiIQk2A==}
 
   '@tybys/wasm-util@0.10.5':
     resolution: {integrity: sha512-dOGOPxlaNV+G046mZzN+9C0dAcQZeSKcXiVaM0TYy/LM4ttTmgSBDxYfovcYI8Em3+eAbiAYpvWLOv8+ZVRJKA==}
@@ -805,13 +805,13 @@ snapshots:
 
   '@rolldown/pluginutils@1.1.1': {}
 
-  '@schedule-x/calendar@4.9.1(@preact/signals@2.11.4(preact@10.29.8))(preact@10.29.8)(temporal-polyfill@0.3.2)':
+  '@schedule-x/calendar@4.9.2(@preact/signals@2.11.4(preact@10.29.8))(preact@10.29.8)(temporal-polyfill@0.3.2)':
     dependencies:
       '@preact/signals': 2.11.4(preact@10.29.8)
       preact: 10.29.8
       temporal-polyfill: 0.3.2
 
-  '@schedule-x/theme-default@4.9.1': {}
+  '@schedule-x/theme-default@4.9.2': {}
 
   '@tybys/wasm-util@0.10.5':
     dependencies:
