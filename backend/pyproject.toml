@@ -13,7 +13,7 @@ dependencies = [
     "alembic==1.20.1",
     "anyio==4.16.0",
     "email-validator==2.4.0",
-    "fastapi==0.164.0",
+    "fastapi==0.165.0",
     "google-auth==2.63.1",
     "httpx==0.28.1",
     "icalendar==7.3.2",
