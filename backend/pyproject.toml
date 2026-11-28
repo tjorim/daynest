@@ -19,7 +19,7 @@ dependencies = [
     "icalendar==7.3.0",
     "fastmcp==4.2.5",
     "psycopg[binary]==3.3.9",
-    "pydantic[email]==2.14.3",
+    "pydantic[email]==2.14.4",
     "pydantic-settings==2.16.3",
     "cryptography==50.0.2",
     "pyjwt==2.15.1",
