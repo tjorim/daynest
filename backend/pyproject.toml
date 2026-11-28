@@ -27,7 +27,7 @@ dependencies = [
     "pywebpush==2.5.0",
     "sentry-sdk[fastapi]==2.75.0",
     "limits==5.8.0",
-    "sse-starlette==3.7.0",
+    "sse-starlette==3.7.1",
     "sqlalchemy==2.1.9",
     "uvicorn[standard]==0.54.0",
 ]
